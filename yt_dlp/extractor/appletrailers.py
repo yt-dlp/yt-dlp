@@ -1,13 +1,9 @@
-import re
 import json
+import re
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    unified_strdate,
-)
+from ..utils import int_or_none, parse_duration, unified_strdate
 
 
 class AppleTrailersIE(InfoExtractor):
@@ -99,7 +95,7 @@ class AppleTrailersIE(InfoExtractor):
         webpage = self._download_webpage(url, movie)
         film_id = self._search_regex(r"FilmId\s*=\s*'(\d+)'", webpage, 'film id')
         film_data = self._download_json(
-            'http://trailers.apple.com/trailers/feeds/data/%s.json' % film_id,
+            f'http://trailers.apple.com/trailers/feeds/data/{film_id}.json',
             film_id, fatal=False)
 
         if film_data:
@@ -114,7 +110,7 @@ class AppleTrailersIE(InfoExtractor):
                         if not src:
                             continue
                         formats.append({
-                            'format_id': '%s-%s' % (version, size),
+                            'format_id': f'{version}-{size}',
                             'url': re.sub(r'_(\d+p\.mov)', r'_h\1', src),
                             'width': int_or_none(size_data.get('width')),
                             'height': int_or_none(size_data.get('height')),
@@ -145,7 +141,7 @@ class AppleTrailersIE(InfoExtractor):
             def _clean_json(m):
                 return 'iTunes.playURL(%s);' % m.group(1).replace('\'', '&#39;')
             s = re.sub(self._JSON_RE, _clean_json, s)
-            s = '<html>%s</html>' % s
+            s = f'<html>{s}</html>'
             return s
         doc = self._download_xml(playlist_url, movie, transform_source=fix_html)
 
@@ -170,7 +166,7 @@ class AppleTrailersIE(InfoExtractor):
                 duration = 60 * int(m.group('minutes')) + int(m.group('seconds'))
 
             trailer_id = first_url.split('/')[-1].rpartition('_')[0].lower()
-            settings_json_url = compat_urlparse.urljoin(url, 'includes/settings/%s.json' % trailer_id)
+            settings_json_url = compat_urlparse.urljoin(url, f'includes/settings/{trailer_id}.json')
             settings = self._download_json(settings_json_url, trailer_id, 'Downloading settings json')
 
             formats = []
@@ -270,7 +266,7 @@ class AppleTrailersSectionIE(InfoExtractor):
     def _real_extract(self, url):
         section = self._match_id(url)
         section_data = self._download_json(
-            'http://trailers.apple.com/trailers/home/feeds/%s.json' % self._SECTIONS[section]['feed_path'],
+            f"http://trailers.apple.com/trailers/home/feeds/{self._SECTIONS[section]['feed_path']}.json",
             section)
         entries = [
             self.url_result('http://trailers.apple.com' + e['location'])

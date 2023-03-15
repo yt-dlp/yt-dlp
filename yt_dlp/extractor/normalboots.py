@@ -1,9 +1,6 @@
 from .common import InfoExtractor
 from .jwplatform import JWPlatformIE
-
-from ..utils import (
-    unified_strdate,
-)
+from ..utils import unified_strdate
 
 
 class NormalbootsIE(InfoExtractor):

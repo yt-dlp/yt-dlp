@@ -1,11 +1,7 @@
 from .common import InfoExtractor
-from .youtube import YoutubeIE
 from .vimeo import VimeoIE
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    update_url_query,
-)
+from .youtube import YoutubeIE
+from ..utils import int_or_none, parse_iso8601, update_url_query
 
 
 class AmaraIE(InfoExtractor):
@@ -61,7 +57,7 @@ class AmaraIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         meta = self._download_json(
-            'https://amara.org/api/videos/%s/' % video_id,
+            f'https://amara.org/api/videos/{video_id}/',
             video_id, query={'format': 'json'})
         title = meta['title']
         video_url = meta['all_urls'][0]

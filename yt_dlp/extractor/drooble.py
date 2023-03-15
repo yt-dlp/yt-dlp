@@ -1,11 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    try_get,
-)
+from ..utils import ExtractorError, int_or_none, try_get
 
 
 class DroobleIE(InfoExtractor):

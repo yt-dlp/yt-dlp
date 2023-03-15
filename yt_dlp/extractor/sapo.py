@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    unified_strdate,
-)
+from ..utils import parse_duration, unified_strdate
 
 
 class SapoIE(InfoExtractor):
@@ -64,7 +61,7 @@ class SapoIE(InfoExtractor):
         video_id = mobj.group('id')
 
         item = self._download_xml(
-            'http://rd3.videos.sapo.pt/%s/rss2' % video_id, video_id).find('./channel/item')
+            f'http://rd3.videos.sapo.pt/{video_id}/rss2', video_id).find('./channel/item')
 
         title = item.find('./title').text
         description = item.find('./{http://videos.sapo.pt/mrss/}synopse').text

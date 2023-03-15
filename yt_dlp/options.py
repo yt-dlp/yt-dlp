@@ -1257,7 +1257,7 @@ def create_parser():
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'home|temp|%s' % '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
+            'allowed_keys': f"home|temp|{'|'.join(map(re.escape, OUTTMPL_TYPES.keys()))}",
             'default_key': 'home'
         }, help=(
             'The paths where the files should be downloaded. '

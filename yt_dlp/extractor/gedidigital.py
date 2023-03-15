@@ -1,13 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    base_url,
-    determine_ext,
-    int_or_none,
-    url_basename,
-    urljoin,
-)
+from ..utils import base_url, determine_ext, int_or_none, url_basename, urljoin
 
 
 class GediDigitalIE(InfoExtractor):
@@ -109,7 +103,7 @@ class GediDigitalIE(InfoExtractor):
         # add protocol if missing
         for i, e in enumerate(urls):
             if e.startswith('//'):
-                urls[i] = 'https:%s' % e
+                urls[i] = f'https:{e}'
         # clean iframes urls
         for i, e in enumerate(urls):
             urls[i] = urljoin(base_url(e), url_basename(e))

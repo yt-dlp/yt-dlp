@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import int_or_none, try_get, unified_timestamp
 
 
 class TunePkIE(InfoExtractor):
@@ -43,7 +39,7 @@ class TunePkIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://tune.pk/video/%s' % video_id, video_id)
+            f'https://tune.pk/video/{video_id}', video_id)
 
         details = self._parse_json(
             self._search_regex(

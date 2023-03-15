@@ -1384,7 +1384,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
     def _extract_mvpd_auth(self, url, video_id, requestor_id, resource):
         def xml_text(xml_str, tag):
             return self._search_regex(
-                '<%s>(.+?)</%s>' % (tag, tag), xml_str, tag)
+                f'<{tag}>(.+?)</{tag}>', xml_str, tag)
 
         def is_expired(token, date_ele):
             token_expires = unified_timestamp(re.sub(r'[_ ]GMT', '', xml_text(token, date_ele)))

@@ -2,9 +2,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    str_or_none,
     js_to_json,
     parse_filesize,
+    str_or_none,
     urlencode_postdata,
     urljoin,
 )
@@ -39,7 +39,7 @@ class ZoomIE(InfoExtractor):
                     'This video is protected by a passcode, use the --video-password option', expected=True)
             is_meeting = form.get('useWhichPasswd') == 'meeting'
             validation = self._download_json(
-                base_url + 'rec/validate%s_passwd' % ('_meet' if is_meeting else ''),
+                base_url + f"rec/validate{'_meet' if is_meeting else ''}_passwd",
                 play_id, 'Validating passcode', 'Wrong passcode', data=urlencode_postdata({
                     'id': form[('meet' if is_meeting else 'file') + 'Id'],
                     'passwd': password,
@@ -55,9 +55,9 @@ class ZoomIE(InfoExtractor):
 
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
-            if data.get('%sUrl' % _type):
+            if data.get(f'{_type}Url'):
                 subtitles[_type] = [{
-                    'url': urljoin(base_url, data['%sUrl' % _type]),
+                    'url': urljoin(base_url, data[f'{_type}Url']),
                     'ext': 'vtt',
                 }]
 

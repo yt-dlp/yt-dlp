@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-
-from ..utils import (
-    parse_duration,
-    traverse_obj,
-    unified_timestamp,
-)
+from ..utils import parse_duration, traverse_obj, unified_timestamp
 
 
 class RTVSIE(InfoExtractor):

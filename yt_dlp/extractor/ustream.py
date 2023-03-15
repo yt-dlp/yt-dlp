@@ -2,15 +2,12 @@ import random
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
-    encode_data_uri,
     ExtractorError,
-    int_or_none,
+    encode_data_uri,
     float_or_none,
+    int_or_none,
     join_nonempty,
     mimetype2ext,
     str_or_none,
@@ -88,7 +85,7 @@ class UstreamIE(InfoExtractor):
                 'type': 'viewer',
                 'appId': app_id_ver[0],
                 'appVersion': app_id_ver[1],
-                'rsid': '%s:%s' % (num_to_hex(rnd(1e8)), num_to_hex(rnd(1e8))),
+                'rsid': f'{num_to_hex(rnd(100000000.0))}:{num_to_hex(rnd(100000000.0))}',
                 'rpin': '_rpin.%d' % rnd(1e15),
                 'referrer': url,
                 'media': video_id,
@@ -98,7 +95,7 @@ class UstreamIE(InfoExtractor):
         connection_id = conn_info[0]['args'][0]['connectionId']
 
         return self._download_json(
-            'http://%s/1/ustream?connectionId=%s' % (host, connection_id),
+            f'http://{host}/1/ustream?connectionId={connection_id}',
             video_id, note='Downloading stream info' + extra_note)
 
     def _get_streams(self, url, video_id, app_id_ver):
@@ -177,12 +174,12 @@ class UstreamIE(InfoExtractor):
                 video_id)
 
         params = self._download_json(
-            'https://api.ustream.tv/videos/%s.json' % video_id, video_id)
+            f'https://api.ustream.tv/videos/{video_id}.json', video_id)
 
         error = params.get('error')
         if error:
             raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} returned error: {error}', expected=True)
 
         video = params['video']
 
@@ -255,7 +252,7 @@ class UstreamChannelIE(InfoExtractor):
         channel_id = self._html_search_meta('ustream:channel_id', webpage)
 
         BASE = 'http://www.ustream.tv'
-        next_url = '/ajax/socialstream/videos/%s/1.json' % channel_id
+        next_url = f'/ajax/socialstream/videos/{channel_id}/1.json'
         video_ids = []
         while next_url:
             reply = self._download_json(

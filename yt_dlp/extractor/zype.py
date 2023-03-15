@@ -3,8 +3,8 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     int_or_none,
     js_to_json,
     parse_iso8601,
@@ -14,7 +14,7 @@ from ..utils import (
 class ZypeIE(InfoExtractor):
     _ID_RE = r'[\da-fA-F]+'
     _COMMON_RE = r'//player\.zype\.com/embed/%s\.(?:js|json|html)\?.*?(?:access_token|(?:ap[ip]|player)_key)='
-    _VALID_URL = r'https?:%s[^&]+' % (_COMMON_RE % ('(?P<id>%s)' % _ID_RE))
+    _VALID_URL = r'https?:%s[^&]+' % (_COMMON_RE % (f'(?P<id>{_ID_RE})'))
     _EMBED_REGEX = [fr'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?{_COMMON_RE % _ID_RE}.+?)\1']
     _TEST = {
         'url': 'https://player.zype.com/embed/5b400b834b32992a310622b9.js?api_key=jZ9GUhRmxcPvX7M3SlfejB6Hle9jyHTdk2jVxG7wOHPLODgncEKVdPYBhuz9iWXQ&autoplay=false&controls=true&da=false',
@@ -88,7 +88,7 @@ class ZypeIE(InfoExtractor):
                         source, key, group='val')
 
                 if get_attr('integration') == 'verizon-media':
-                    m3u8_url = 'https://content.uplynk.com/%s.m3u8' % get_attr('id')
+                    m3u8_url = f"https://content.uplynk.com/{get_attr('id')}.m3u8"
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
             text_tracks = self._search_regex(

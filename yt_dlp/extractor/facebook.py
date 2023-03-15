@@ -350,7 +350,7 @@ class FacebookIE(InfoExtractor):
                     r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
                     login_results, 'login error', default=None, group='error')
                 if error:
-                    raise ExtractorError('Unable to login: %s' % error, expected=True)
+                    raise ExtractorError(f'Unable to login: {error}', expected=True)
                 self.report_warning('unable to log in: bad username/password, or exceeded login rate limit (~3/min). Check credentials or wait.')
                 return
 
@@ -374,7 +374,7 @@ class FacebookIE(InfoExtractor):
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
                 self.report_warning('Unable to confirm login, you have to login in your browser and authorize the login.')
         except network_exceptions as err:
-            self.report_warning('unable to log in: %s' % error_to_compat_str(err))
+            self.report_warning(f'unable to log in: {error_to_compat_str(err)}')
             return
 
     def _extract_from_url(self, url, video_id):
@@ -528,7 +528,7 @@ class FacebookIE(InfoExtractor):
                             'description': description,
                         })
                     else:
-                        info['title'] = description or 'Facebook video #%s' % v_id
+                        info['title'] = description or f'Facebook video #{v_id}'
                     entries.append(info)
 
                 def parse_attachment(attachment, key='media'):
@@ -575,7 +575,7 @@ class FacebookIE(InfoExtractor):
             m_msg = re.search(r'class="[^"]*uiInterstitialContent[^"]*"><div>(.*?)</div>', webpage)
             if m_msg is not None:
                 raise ExtractorError(
-                    'The video is not available, Facebook said: "%s"' % m_msg.group(1),
+                    f'The video is not available, Facebook said: "{m_msg.group(1)}"',
                     expected=True)
             elif any(p in webpage for p in (
                     '>You must log in to continue',
@@ -670,13 +670,13 @@ class FacebookIE(InfoExtractor):
                 continue
             for quality in ('sd', 'hd'):
                 for src_type in ('src', 'src_no_ratelimit'):
-                    src = f[0].get('%s_%s' % (quality, src_type))
+                    src = f[0].get(f'{quality}_{src_type}')
                     if src:
                         preference = -10 if format_id == 'progressive' else -1
                         if quality == 'hd':
                             preference += 5
                         formats.append({
-                            'format_id': '%s_%s_%s' % (format_id, quality, src_type),
+                            'format_id': f'{format_id}_{quality}_{src_type}',
                             'url': src,
                             'quality': preference,
                             'height': 720 if quality == 'hd' else None

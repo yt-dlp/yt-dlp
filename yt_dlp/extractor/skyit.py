@@ -1,14 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    dict_get,
-    int_or_none,
-    parse_duration,
-    unified_timestamp,
-)
+from ..compat import compat_parse_qs, compat_urllib_parse_urlparse
+from ..utils import dict_get, int_or_none, parse_duration, unified_timestamp
 
 
 class SkyItPlayerIE(InfoExtractor):

@@ -56,7 +56,7 @@ class GigaIE(InfoExtractor):
                 break
             formats.append({
                 'url': fmt['src'],
-                'format_id': '%s-%s' % (fmt['quality'], fmt['type'].split('/')[-1]),
+                'format_id': f"{fmt['quality']}-{fmt['type'].split('/')[-1]}",
                 'quality': quality(fmt['quality']),
             })
 

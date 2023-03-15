@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-)
+from ..utils import ExtractorError, int_or_none, parse_iso8601
 
 
 class MySpaceIE(InfoExtractor):
@@ -100,7 +96,7 @@ class MySpaceIE(InfoExtractor):
             if song_data is None:
                 # some songs in an album are not playable
                 self.report_warning(
-                    '%s: No downloadable song on this page' % video_id)
+                    f'{video_id}: No downloadable song on this page')
                 return
 
             def search_data(name):
@@ -114,10 +110,10 @@ class MySpaceIE(InfoExtractor):
                 vevo_id = search_data('vevo-id')
                 youtube_id = search_data('youtube-id')
                 if vevo_id:
-                    self.to_screen('Vevo video detected: %s' % vevo_id)
-                    return self.url_result('vevo:%s' % vevo_id, ie='Vevo')
+                    self.to_screen(f'Vevo video detected: {vevo_id}')
+                    return self.url_result(f'vevo:{vevo_id}', ie='Vevo')
                 elif youtube_id:
-                    self.to_screen('Youtube video detected: %s' % youtube_id)
+                    self.to_screen(f'Youtube video detected: {youtube_id}')
                     return self.url_result(youtube_id, ie='Youtube')
                 else:
                     raise ExtractorError(
@@ -181,7 +177,7 @@ class MySpaceAlbumIE(InfoExtractor):
         tracks_paths = re.findall(r'"music:song" content="(.*?)"', webpage)
         if not tracks_paths:
             raise ExtractorError(
-                '%s: No songs found, try using proxy' % display_id,
+                f'{display_id}: No songs found, try using proxy',
                 expected=True)
         entries = [
             self.url_result(t_path, ie=MySpaceIE.ie_key())

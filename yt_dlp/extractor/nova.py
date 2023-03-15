@@ -111,8 +111,8 @@ class NovaEmbedIE(InfoExtractor):
                     }
                     f_id = format_id
                     for quality in QUALITIES:
-                        if '%s.mp4' % quality in format_url:
-                            f_id += '-%s' % quality
+                        if f'{quality}.mp4' in format_url:
+                            f_id += f'-{quality}'
                             f.update({
                                 'quality': quality_key(quality),
                                 'format_note': quality.upper(),
@@ -231,7 +231,7 @@ class NovaIE(InfoExtractor):
         if embed_id:
             return {
                 '_type': 'url_transparent',
-                'url': 'https://media.cms.nova.cz/embed/%s' % embed_id,
+                'url': f'https://media.cms.nova.cz/embed/{embed_id}',
                 'ie_key': NovaEmbedIE.ie_key(),
                 'id': embed_id,
                 'description': description,

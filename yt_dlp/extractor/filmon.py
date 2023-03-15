@@ -1,14 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_HTTPError,
-)
-from ..utils import (
-    qualities,
-    strip_or_none,
-    int_or_none,
-    ExtractorError,
-)
+from ..compat import compat_HTTPError, compat_str
+from ..utils import ExtractorError, int_or_none, qualities, strip_or_none
 
 
 class FilmOnIE(InfoExtractor):
@@ -37,12 +29,12 @@ class FilmOnIE(InfoExtractor):
 
         try:
             response = self._download_json(
-                'https://www.filmon.com/api/vod/movie?id=%s' % video_id,
+                f'https://www.filmon.com/api/vod/movie?id={video_id}',
                 video_id)['response']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError):
                 errmsg = self._parse_json(e.cause.read().decode(), video_id)['reason']
-                raise ExtractorError('%s said: %s' % (self.IE_NAME, errmsg), expected=True)
+                raise ExtractorError(f'{self.IE_NAME} said: {errmsg}', expected=True)
             raise
 
         title = response['title']
@@ -126,7 +118,7 @@ class FilmOnChannelIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError):
                 errmsg = self._parse_json(e.cause.read().decode(), channel_id)['message']
-                raise ExtractorError('%s said: %s' % (self.IE_NAME, errmsg), expected=True)
+                raise ExtractorError(f'{self.IE_NAME} said: {errmsg}', expected=True)
             raise
 
         channel_id = compat_str(channel_data['id'])
@@ -157,7 +149,7 @@ class FilmOnChannelIE(InfoExtractor):
         for name, width, height in self._THUMBNAIL_RES:
             thumbnails.append({
                 'id': name,
-                'url': 'http://static.filmon.com/assets/channels/%s/%s.png' % (channel_id, name),
+                'url': f'http://static.filmon.com/assets/channels/{channel_id}/{name}.png',
                 'width': width,
                 'height': height,
             })

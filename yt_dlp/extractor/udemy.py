@@ -100,7 +100,7 @@ class UdemyIE(InfoExtractor):
                 course_id, 'Enrolling in the course',
                 headers={'Referer': base_url})
             if '>You have enrolled in' in webpage:
-                self.to_screen('%s: Successfully enrolled in the course' % course_id)
+                self.to_screen(f'{course_id}: Successfully enrolled in the course')
 
     def _download_lecture(self, course_id, lecture_id):
         return self._download_json(
@@ -116,10 +116,10 @@ class UdemyIE(InfoExtractor):
             return
         error = response.get('error')
         if error:
-            error_str = 'Udemy returned error #%s: %s' % (error.get('code'), error.get('message'))
+            error_str = f"Udemy returned error #{error.get('code')}: {error.get('message')}"
             error_data = error.get('data')
             if error_data:
-                error_str += ' - %s' % error_data.get('formErrors')
+                error_str += f" - {error_data.get('formErrors')}"
             raise ExtractorError(error_str, expected=True)
 
     def _download_webpage_handle(self, *args, **kwargs):
@@ -151,7 +151,7 @@ class UdemyIE(InfoExtractor):
                 headers['X-Udemy-Client-Id'] = cookie.value
             elif cookie.name == 'access_token':
                 headers['X-Udemy-Bearer-Token'] = cookie.value
-                headers['X-Udemy-Authorization'] = 'Bearer %s' % cookie.value
+                headers['X-Udemy-Authorization'] = f'Bearer {cookie.value}'
 
         if isinstance(url_or_request, urllib.request.Request):
             for header, value in headers.items():
@@ -196,7 +196,7 @@ class UdemyIE(InfoExtractor):
                 r'(?s)<div[^>]+class="form-errors[^"]*">(.+?)</div>',
                 response, 'error message', default=None)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
             raise ExtractorError('Unable to log in')
 
     def _real_extract(self, url):
@@ -227,7 +227,7 @@ class UdemyIE(InfoExtractor):
         asset_type = asset.get('asset_type') or asset.get('assetType')
         if asset_type != 'Video':
             raise ExtractorError(
-                'Lecture %s is not a video' % lecture_id, expected=True)
+                f'Lecture {lecture_id} is not a video', expected=True)
 
         stream_url = asset.get('stream_url') or asset.get('streamUrl')
         if stream_url:
@@ -288,7 +288,7 @@ class UdemyIE(InfoExtractor):
                 format_id = source.get('label')
                 f = {
                     'url': video_url,
-                    'format_id': '%sp' % format_id,
+                    'format_id': f'{format_id}p',
                     'height': int_or_none(format_id),
                 }
                 if format_id:
@@ -317,7 +317,7 @@ class UdemyIE(InfoExtractor):
                 })
 
         for url_kind in ('download', 'stream'):
-            urls = asset.get('%s_urls' % url_kind)
+            urls = asset.get(f'{url_kind}_urls')
             if isinstance(urls, dict):
                 extract_formats(urls.get('Video'))
 
@@ -436,7 +436,7 @@ class UdemyCourseIE(UdemyIE):  # XXX: Do not subclass from concrete IE
         self._enroll_course(url, webpage, course_id)
 
         response = self._download_json(
-            'https://www.udemy.com/api-2.0/courses/%s/cached-subscriber-curriculum-items' % course_id,
+            f'https://www.udemy.com/api-2.0/courses/{course_id}/cached-subscriber-curriculum-items',
             course_id, 'Downloading course curriculum', query={
                 'fields[chapter]': 'title,object_index',
                 'fields[lecture]': 'title,asset',

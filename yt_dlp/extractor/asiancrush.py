@@ -4,9 +4,9 @@ import re
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from ..utils import (
+    OnDemandPagedList,
     extract_attributes,
     int_or_none,
-    OnDemandPagedList,
     parse_age_limit,
     strip_or_none,
     try_get,
@@ -23,8 +23,8 @@ class AsianCrushBaseIE(InfoExtractor):
 
     def _call_api(self, host, endpoint, video_id, query, resource):
         return self._download_json(
-            'https://api%s.%s/%s' % (self._API_SUFFIX.get(host, ''), host, endpoint), video_id,
-            'Downloading %s JSON metadata' % resource, query=query,
+            f"https://api{self._API_SUFFIX.get(host, '')}.{host}/{endpoint}", video_id,
+            f'Downloading {resource} JSON metadata', query=query,
             headers=self.geo_verification_headers())['objects']
 
     def _download_object_data(self, host, object_id, resource):
@@ -53,7 +53,7 @@ class AsianCrushBaseIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': 'kaltura:%s:%s' % (partner_id, entry_id),
+            'url': f'kaltura:{partner_id}:{entry_id}',
             'ie_key': KalturaIE.ie_key(),
             'id': entry_id,
             'title': title,

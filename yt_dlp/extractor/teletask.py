@@ -41,7 +41,7 @@ class TeleTaskIE(InfoExtractor):
             r'Date:</td><td>([^<]+)</td>', webpage, 'date', fatal=False))
 
         entries = [{
-            'id': '%s-%s' % (lecture_id, format_id),
+            'id': f'{lecture_id}-{format_id}',
             'url': video_url,
             'title': title,
             'upload_date': upload_date,

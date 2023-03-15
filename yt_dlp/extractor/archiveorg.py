@@ -895,7 +895,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         for retry in retry_manager:
             try:
                 urlh = self._request_webpage(
-                    HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
+                    HEADRequest(f'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/{video_id}'),
                     video_id, note='Fetching archived video file url', expected_status=True)
             except ExtractorError as e:
                 # HTTP Error 404 is expected if the video is not saved.

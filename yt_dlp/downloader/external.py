@@ -54,7 +54,7 @@ class ExternalFD(FragmentFD):
             # correct and expected termination thus all postprocessing
             # should take place
             retval = 0
-            self.to_screen('[%s] Interrupted by user' % self.get_basename())
+            self.to_screen(f'[{self.get_basename()}] Interrupted by user')
 
         if retval == 0:
             status = {
@@ -172,7 +172,7 @@ class ExternalFD(FragmentFD):
             if not self.params.get('keep_fragments', False):
                 self.try_remove(encodeFilename(fragment_filename))
         dest.close()
-        self.try_remove(encodeFilename('%s.frag.urls' % tmpfilename))
+        self.try_remove(encodeFilename(f'{tmpfilename}.frag.urls'))
         return 0
 
     def _call_process(self, cmd, info_dict):
@@ -312,11 +312,11 @@ class Aria2cFD(ExternalFD):
 
         if 'fragments' in info_dict:
             cmd += ['--file-allocation=none', '--uri-selector=inorder']
-            url_list_file = '%s.frag.urls' % tmpfilename
+            url_list_file = f'{tmpfilename}.frag.urls'
             url_list = []
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
-                url_list.append('%s\n\tout=%s' % (fragment['url'], self._aria2c_filename(fragment_filename)))
+                url_list.append(f"{fragment['url']}\n\tout={self._aria2c_filename(fragment_filename)}")
             stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode())
             stream.close()
@@ -478,7 +478,7 @@ class FFmpegFD(ExternalFD):
         proxy = self.params.get('proxy')
         if proxy:
             if not re.match(r'^[\da-zA-Z]+://', proxy):
-                proxy = 'http://%s' % proxy
+                proxy = f'http://{proxy}'
 
             if proxy.startswith('socks'):
                 self.report_warning(

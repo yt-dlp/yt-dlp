@@ -52,7 +52,7 @@ class VRVBaseIE(InfoExtractor):
         try:
             return self._download_json(
                 '?'.join([base_url, encoded_query]), video_id,
-                note='Downloading %s JSON metadata' % note, headers=headers, data=data)
+                note=f'Downloading {note} JSON metadata', headers=headers, data=data)
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                 raise ExtractorError(json.loads(e.cause.read().decode())['message'], expected=True)
@@ -71,7 +71,7 @@ class VRVBaseIE(InfoExtractor):
                             self._CMS_SIGNING[name] = value
         return self._download_json(
             self._API_DOMAIN + path, video_id, query=self._CMS_SIGNING,
-            note='Downloading %s JSON metadata' % note, headers=self.geo_verification_headers())
+            note=f'Downloading {note} JSON metadata', headers=self.geo_verification_headers())
 
     def _get_cms_resource(self, resource_key, video_id):
         return self._call_api(
@@ -84,17 +84,17 @@ class VRVBaseIE(InfoExtractor):
             return []
         format_id = join_nonempty(
             stream_format,
-            audio_lang and 'audio-%s' % audio_lang,
-            hardsub_lang and 'hardsub-%s' % hardsub_lang)
+            audio_lang and f'audio-{audio_lang}',
+            hardsub_lang and f'hardsub-{hardsub_lang}')
         if 'hls' in stream_format:
             adaptive_formats = self._extract_m3u8_formats(
                 url, video_id, 'mp4', m3u8_id=format_id,
-                note='Downloading %s information' % format_id,
+                note=f'Downloading {format_id} information',
                 fatal=False)
         elif stream_format == 'dash':
             adaptive_formats = self._extract_mpd_formats(
                 url, video_id, mpd_id=format_id,
-                note='Downloading %s information' % format_id,
+                note=f'Downloading {format_id} information',
                 fatal=False)
         if audio_lang:
             for f in adaptive_formats:

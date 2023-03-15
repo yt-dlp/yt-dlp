@@ -1,11 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    find_xpath_attr,
-    xpath_text,
-    update_url_query,
-)
 from ..compat import compat_urllib_parse_unquote
+from ..utils import find_xpath_attr, int_or_none, update_url_query, xpath_text
 
 
 class NozIE(InfoExtractor):
@@ -52,7 +47,7 @@ class NozIE(InfoExtractor):
                 formats.append({
                     'url': http_url,
                     'format_name': xpath_text(qnode, './name'),
-                    'format_id': '%s-%s' % ('http', xpath_text(qnode, './id')),
+                    'format_id': f"{'http'}-{xpath_text(qnode, './id')}",
                     'height': int_or_none(xpath_text(qnode, './height')),
                     'width': int_or_none(xpath_text(qnode, './width')),
                     'tbr': int_or_none(xpath_text(qnode, './bitrate'), scale=1000),

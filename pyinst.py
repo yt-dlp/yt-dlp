@@ -96,7 +96,8 @@ def windows_set_version(exe, version):
     try:
         from PyInstaller.utils.win32.versioninfo import SetVersion
     except ImportError:  # Pyinstaller >= 5.8
-        from PyInstaller.utils.win32.versioninfo import write_version_info_to_executable as SetVersion
+        from PyInstaller.utils.win32.versioninfo import \
+            write_version_info_to_executable as SetVersion
 
     version_list = version_to_list(version)
     suffix = MACHINE and f'_{MACHINE}'
@@ -113,7 +114,7 @@ def windows_set_version(exe, version):
         ),
         kids=[
             StringFileInfo([StringTable('040904B0', [
-                StringStruct('Comments', 'yt-dlp%s Command Line Interface' % suffix),
+                StringStruct('Comments', f'yt-dlp{suffix} Command Line Interface'),
                 StringStruct('CompanyName', 'https://github.com/yt-dlp'),
                 StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),

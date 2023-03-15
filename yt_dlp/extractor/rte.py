@@ -3,13 +3,13 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
     float_or_none,
     parse_iso8601,
     str_or_none,
     try_get,
     unescapeHTML,
     url_or_none,
-    ExtractorError,
 )
 
 
@@ -35,7 +35,7 @@ class RteBaseIE(InfoExtractor):
                     error_info = self._parse_json(ee.cause.read().decode(), item_id, fatal=False)
                     if error_info:
                         raise ExtractorError(
-                            '%s said: %s' % (self.IE_NAME, error_info['message']),
+                            f"{self.IE_NAME} said: {error_info['message']}",
                             expected=True)
                 raise
 

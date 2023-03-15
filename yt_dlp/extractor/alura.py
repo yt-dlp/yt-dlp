@@ -1,17 +1,13 @@
 import re
 
 from .common import InfoExtractor
-
-from ..compat import (
-    compat_urlparse,
-)
-
+from ..compat import compat_urlparse
 from ..utils import (
+    ExtractorError,
+    clean_html,
+    int_or_none,
     urlencode_postdata,
     urljoin,
-    int_or_none,
-    clean_html,
-    ExtractorError
 )
 
 
@@ -107,7 +103,7 @@ class AluraIE(InfoExtractor):
                 r'(?s)<p[^>]+class="alert-message[^"]*">(.+?)</p>',
                 response, 'error message', default=None)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
             raise ExtractorError('Unable to log in')
 
 

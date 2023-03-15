@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    merge_dicts,
-    traverse_obj,
-    url_or_none,
-)
+from ..utils import clean_html, merge_dicts, traverse_obj, url_or_none
 
 
 class LRTBaseIE(InfoExtractor):

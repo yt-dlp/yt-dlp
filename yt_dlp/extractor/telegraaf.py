@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    parse_iso8601,
-    try_get,
-)
+from ..utils import determine_ext, int_or_none, parse_iso8601, try_get
 
 
 class TelegraafIE(InfoExtractor):
@@ -44,7 +39,7 @@ class TelegraafIE(InfoExtractor):
             })['data']['article']['videos'][0]['videoId']
 
         item = self._download_json(
-            'https://content.tmgvideo.nl/playlist/item=%s/playlist.json' % video_id,
+            f'https://content.tmgvideo.nl/playlist/item={video_id}/playlist.json',
             video_id)['items'][0]
         title = item['title']
 
@@ -62,7 +57,7 @@ class TelegraafIE(InfoExtractor):
                 formats.extend(self._extract_mpd_formats(
                     manifest_url, video_id, mpd_id='dash', fatal=False))
             else:
-                self.report_warning('Unknown adaptive format %s' % ext)
+                self.report_warning(f'Unknown adaptive format {ext}')
         for location in locations.get('progressive', []):
             src = try_get(location, lambda x: x['sources'][0]['src'])
             if not src:
@@ -72,7 +67,7 @@ class TelegraafIE(InfoExtractor):
                 'url': src,
                 'width': int_or_none(location.get('width')),
                 'height': int_or_none(location.get('height')),
-                'format_id': 'http' + ('-%s' % label if label else ''),
+                'format_id': 'http' + (f'-{label}' if label else ''),
             })
 
         return {

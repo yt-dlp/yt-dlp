@@ -1,21 +1,17 @@
 import calendar
-import json
 import functools
+import json
 from datetime import datetime
 from random import random
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urlparse
-)
-
+from ..compat import compat_urllib_parse_urlparse, compat_urlparse
 from ..utils import (
-    bug_reports_message,
     ExtractorError,
+    OnDemandPagedList,
+    bug_reports_message,
     get_first,
     int_or_none,
-    OnDemandPagedList,
     parse_qs,
     srt_subtitles_timecode,
     traverse_obj,
@@ -479,7 +475,7 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
         video_id = get_first(parse_qs(url), 'id')
         if video_id:
             if self.get_param('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+                self.to_screen(f'Downloading just video {video_id} because of --no-playlist')
                 return self.url_result(base_url + f'/Pages/Viewer.aspx?id={video_id}', ie_key=PanoptoIE.ie_key(), video_id=video_id)
             else:
                 self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')

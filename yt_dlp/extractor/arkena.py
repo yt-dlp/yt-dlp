@@ -64,7 +64,7 @@ class ArkenaIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
 
         media = self._download_json(
-            'https://video.qbrick.com/api/v1/public/accounts/%s/medias/%s' % (account_id, video_id),
+            f'https://video.qbrick.com/api/v1/public/accounts/{account_id}/medias/{video_id}',
             video_id, query={
                 # https://video.qbrick.com/docs/api/examples/library-api.html
                 'fields': 'asset/resources/*/renditions/*(height,id,language,links/*(href,mimeType),type,size,videos/*(audios/*(codec,sampleRate),bitrate,codec,duration,height,width),width),created,metadata/*(title,description),tags',

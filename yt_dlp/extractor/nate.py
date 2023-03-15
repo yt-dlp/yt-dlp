@@ -1,12 +1,7 @@
 import itertools
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    str_or_none,
-    traverse_obj,
-    unified_strdate,
-)
+from ..utils import int_or_none, str_or_none, traverse_obj, unified_strdate
 
 
 class NateIE(InfoExtractor):
@@ -110,7 +105,7 @@ class NateProgramIE(InfoExtractor):
                 clip_id = clip.get('clipSeq')
                 if clip_id:
                     yield self.url_result(
-                        'https://tv.nate.com/clip/%s' % clip_id,
+                        f'https://tv.nate.com/clip/{clip_id}',
                         ie=NateIE.ie_key(), video_id=clip_id)
             if program_data.get('last'):
                 break

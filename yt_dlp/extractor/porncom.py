@@ -2,12 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    int_or_none,
-    js_to_json,
-    parse_filesize,
-    str_to_int,
-)
+from ..utils import int_or_none, js_to_json, parse_filesize, str_to_int
 
 
 class PornComIE(InfoExtractor):
@@ -64,7 +59,7 @@ class PornComIE(InfoExtractor):
                 webpage, 'title')
             formats = [{
                 'url': compat_urlparse.urljoin(url, format_url),
-                'format_id': '%sp' % height,
+                'format_id': f'{height}p',
                 'height': int(height),
                 'filesize_approx': parse_filesize(filesize),
             } for format_url, height, filesize in re.findall(

@@ -2,10 +2,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
-    unified_strdate,
     determine_ext,
+    int_or_none,
     join_nonempty,
+    unified_strdate,
     update_url_query,
 )
 
@@ -84,7 +84,7 @@ class DisneyIE(InfoExtractor):
             video_data = page_data['data'][0]
         else:
             webpage = self._download_webpage(
-                'http://%s/embed/%s' % (domain, video_id), video_id)
+                f'http://{domain}/embed/{video_id}', video_id)
             page_data = self._parse_json(self._search_regex(
                 r'Disney\.EmbedVideo\s*=\s*({.+});',
                 webpage, 'embed data'), video_id)
@@ -132,7 +132,7 @@ class DisneyIE(InfoExtractor):
             })
         if not formats and video_data.get('expired'):
             self.raise_no_formats(
-                '%s said: %s' % (self.IE_NAME, page_data['translations']['video_expired']),
+                f"{self.IE_NAME} said: {page_data['translations']['video_expired']}",
                 expected=True)
 
         subtitles = {}

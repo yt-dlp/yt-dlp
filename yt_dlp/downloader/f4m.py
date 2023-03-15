@@ -309,7 +309,7 @@ class F4mFD(FragmentFD):
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
         requested_bitrate = info_dict.get('tbr')
-        self.to_screen('[%s] Downloading f4m manifest' % self.FD_NAME)
+        self.to_screen(f'[{self.FD_NAME}] Downloading f4m manifest')
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
         man_url = urlh.geturl()

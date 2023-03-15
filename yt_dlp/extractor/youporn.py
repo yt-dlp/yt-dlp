@@ -91,7 +91,7 @@ class YouPornIE(InfoExtractor):
         display_id = mobj.group('display_id') or video_id
 
         definitions = self._download_json(
-            'https://www.youporn.com/api/video/media_definitions/%s/' % video_id,
+            f'https://www.youporn.com/api/video/media_definitions/{video_id}/',
             display_id)
 
         formats = []
@@ -124,7 +124,7 @@ class YouPornIE(InfoExtractor):
             formats.append(f)
 
         webpage = self._download_webpage(
-            'http://www.youporn.com/watch/%s' % video_id, display_id,
+            f'http://www.youporn.com/watch/{video_id}', display_id,
             headers={'Cookie': 'age_verified=1'})
 
         title = self._html_search_regex(

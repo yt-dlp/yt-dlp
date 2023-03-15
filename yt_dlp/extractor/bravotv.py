@@ -2,12 +2,12 @@ import re
 
 from .adobepass import AdobePassIE
 from ..utils import (
-    smuggle_url,
-    update_url_query,
-    int_or_none,
-    float_or_none,
-    try_get,
     dict_get,
+    float_or_none,
+    int_or_none,
+    smuggle_url,
+    try_get,
+    update_url_query,
 )
 
 
@@ -85,7 +85,7 @@ class BravoTVIE(AdobePassIE):
             })
             query['switch'] = 'progressive'
 
-        tp_url = 'http://link.theplatform.com/s/%s/%s' % (account_pid, tp_path)
+        tp_url = f'http://link.theplatform.com/s/{account_pid}/{tp_path}'
 
         tp_metadata = self._download_json(
             update_url_query(tp_url, {'format': 'preview'}),

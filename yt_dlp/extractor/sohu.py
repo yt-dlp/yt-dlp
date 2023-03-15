@@ -1,15 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    try_get,
-)
+from ..compat import compat_str, compat_urllib_parse_urlencode
+from ..utils import ExtractorError, int_or_none, try_get
 
 
 class SohuIE(InfoExtractor):
@@ -91,7 +84,7 @@ class SohuIE(InfoExtractor):
 
             return self._download_json(
                 base_data_url + vid_id, video_id,
-                'Downloading JSON data for %s' % vid_id,
+                f'Downloading JSON data for {vid_id}',
                 headers=self.geo_verification_headers())
 
         mobj = self._match_valid_url(url)
@@ -109,15 +102,15 @@ class SohuIE(InfoExtractor):
         if vid_data['play'] != 1:
             if vid_data.get('status') == 12:
                 raise ExtractorError(
-                    '%s said: There\'s something wrong in the video.' % self.IE_NAME,
+                    f'{self.IE_NAME} said: There\'s something wrong in the video.',
                     expected=True)
             else:
                 self.raise_geo_restricted(
-                    '%s said: The video is only licensed to users in Mainland China.' % self.IE_NAME)
+                    f'{self.IE_NAME} said: The video is only licensed to users in Mainland China.')
 
         formats_json = {}
         for format_id in ('nor', 'high', 'super', 'ori', 'h2644k', 'h2654k'):
-            vid_id = vid_data['data'].get('%sVid' % format_id)
+            vid_id = vid_data['data'].get(f'{format_id}Vid')
             if not vid_id:
                 continue
             vid_id = compat_str(vid_id)
@@ -157,7 +150,7 @@ class SohuIE(InfoExtractor):
                     if retries > 0:
                         download_note += ' (retry #%d)' % retries
                     part_info = self._parse_json(self._download_webpage(
-                        'http://%s/?%s' % (allot, compat_urllib_parse_urlencode(params)),
+                        f'http://{allot}/?{compat_urllib_parse_urlencode(params)}',
                         video_id, download_note), video_id)
 
                     video_url = part_info['url']

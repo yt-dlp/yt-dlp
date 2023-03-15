@@ -1,13 +1,8 @@
-from uuid import uuid4
 import json
+from uuid import uuid4
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    try_get,
-    url_or_none,
-    ExtractorError,
-)
+from ..utils import ExtractorError, int_or_none, try_get, url_or_none
 
 
 class PolsatGoIE(InfoExtractor):

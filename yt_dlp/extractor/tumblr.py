@@ -3,7 +3,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     traverse_obj,
-    urlencode_postdata
+    urlencode_postdata,
 )
 
 

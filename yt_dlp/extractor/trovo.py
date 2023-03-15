@@ -77,7 +77,7 @@ class TrovoIE(TrovoBaseIE):
             },
         })
         if live_info.get('isLive') == 0:
-            raise ExtractorError('%s is offline' % username, expected=True)
+            raise ExtractorError(f'{username} is offline', expected=True)
         program_info = live_info['programInfo']
         program_id = program_info['id']
         title = program_info['title']

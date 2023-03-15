@@ -22,7 +22,7 @@ class ThisAmericanLifeIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://www.thisamericanlife.org/radio-archives/episode/%s' % video_id, video_id)
+            f'http://www.thisamericanlife.org/radio-archives/episode/{video_id}', video_id)
 
         return {
             'id': video_id,

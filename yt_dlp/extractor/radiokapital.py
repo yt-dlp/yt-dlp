@@ -1,12 +1,8 @@
-from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    traverse_obj,
-    unescapeHTML,
-)
-
 import itertools
 from urllib.parse import urlencode
+
+from .common import InfoExtractor
+from ..utils import clean_html, traverse_obj, unescapeHTML
 
 
 class RadioKapitalBaseIE(InfoExtractor):
@@ -16,7 +12,7 @@ class RadioKapitalBaseIE(InfoExtractor):
             video_id, note=note)
 
     def _parse_episode(self, data):
-        release = '%s%s%s' % (data['published'][6:11], data['published'][3:6], data['published'][:3])
+        release = f"{data['published'][6:11]}{data['published'][3:6]}{data['published'][:3]}"
         return {
             '_type': 'url_transparent',
             'url': data['mixcloud_url'],
@@ -50,7 +46,7 @@ class RadioKapitalIE(RadioKapitalBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        episode = self._call_api('episodes/%s' % video_id, video_id)
+        episode = self._call_api(f'episodes/{video_id}', video_id)
         return self._parse_episode(episode)
 
 

@@ -1,17 +1,17 @@
-from itertools import zip_longest
 import re
+from itertools import zip_longest
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     get_element_by_class,
     int_or_none,
+    mimetype2ext,
     srt_subtitles_timecode,
     strip_or_none,
-    mimetype2ext,
     try_get,
     urlencode_postdata,
     urljoin,
@@ -60,14 +60,14 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
         if video_slug:
             query.update({
                 'videoSlug': video_slug,
-                'resolution': '_%s' % resolution,
+                'resolution': f'_{resolution}',
             })
             sub = ' %dp' % resolution
         api_url = 'https://www.linkedin.com/learning-api/detailedCourses'
         if not self._get_cookies(api_url).get('JSESSIONID'):
             self.raise_login_required()
         return self._download_json(
-            api_url, video_slug, 'Downloading%s JSON metadata' % sub, headers={
+            api_url, video_slug, f'Downloading{sub} JSON metadata', headers={
                 'Csrf-Token': self._get_cookies(api_url)['JSESSIONID'].value,
             }, query=query)['elements'][0]
 
@@ -79,7 +79,7 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
                 return mobj.group(1)
 
     def _get_video_id(self, video_data, course_slug, video_slug):
-        return self._get_urn_id(video_data) or '%s/%s' % (course_slug, video_slug)
+        return self._get_urn_id(video_data) or f'{course_slug}/{video_slug}'
 
 
 class LinkedInIE(LinkedInBaseIE):
@@ -242,7 +242,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
                     '_type': 'url_transparent',
                     'id': self._get_video_id(video, course_slug, video_slug),
                     'title': video.get('title'),
-                    'url': 'https://www.linkedin.com/learning/%s/%s' % (course_slug, video_slug),
+                    'url': f'https://www.linkedin.com/learning/{course_slug}/{video_slug}',
                     'chapter': chapter_title,
                     'chapter_number': chapter_number,
                     'chapter_id': chapter_id,

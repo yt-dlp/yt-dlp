@@ -59,7 +59,7 @@ class MyviIE(SprutoBaseIE):
         video_id = self._match_id(url)
 
         spruto = self._download_json(
-            'http://myvi.ru/player/api/Video/Get/%s?sig' % video_id, video_id)['sprutoData']
+            f'http://myvi.ru/player/api/Video/Get/{video_id}?sig', video_id)['sprutoData']
 
         return self._extract_spruto(spruto, video_id)
 
@@ -91,10 +91,10 @@ class MyviEmbedIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://www.myvi.tv/embed/%s' % video_id, video_id)
+            f'https://www.myvi.tv/embed/{video_id}', video_id)
 
         myvi_id = self._search_regex(
             r'CreatePlayer\s*\(\s*["\'].*?\bv=([\da-zA-Z_]+)',
             webpage, 'video id')
 
-        return self.url_result('myvi:%s' % myvi_id, ie=MyviIE.ie_key())
+        return self.url_result(f'myvi:{myvi_id}', ie=MyviIE.ie_key())

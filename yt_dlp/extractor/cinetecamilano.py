@@ -1,5 +1,6 @@
 import json
 import urllib.error
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,

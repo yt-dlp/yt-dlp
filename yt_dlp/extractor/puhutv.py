@@ -1,12 +1,9 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_HTTPError, compat_str
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
     parse_resolution,
     str_or_none,
     try_get,
@@ -57,18 +54,18 @@ class PuhuTVIE(InfoExtractor):
         display_id = self._match_id(url)
 
         info = self._download_json(
-            urljoin(url, '/api/slug/%s-izle' % display_id),
+            urljoin(url, f'/api/slug/{display_id}-izle'),
             display_id)['data']
 
         video_id = compat_str(info['id'])
         show = info.get('title') or {}
         title = info.get('name') or show['name']
         if info.get('display_name'):
-            title = '%s %s' % (title, info['display_name'])
+            title = f"{title} {info['display_name']}"
 
         try:
             videos = self._download_json(
-                'https://puhutv.com/api/assets/%s/videos' % video_id,
+                f'https://puhutv.com/api/assets/{video_id}/videos',
                 display_id, 'Downloading video JSON',
                 headers=self.geo_verification_headers())
         except ExtractorError as e:
@@ -108,7 +105,7 @@ class PuhuTVIE(InfoExtractor):
             else:
                 continue
             if quality:
-                format_id += '-%sp' % quality
+                format_id += f'-{quality}p'
             f['format_id'] = format_id
             formats.append(f)
 
@@ -124,7 +121,7 @@ class PuhuTVIE(InfoExtractor):
             if not isinstance(image_url, compat_str):
                 continue
             if not image_url.startswith(('http', '//')):
-                image_url = 'https://%s' % image_url
+                image_url = f'https://{image_url}'
             t = parse_resolution(image_id)
             t.update({
                 'id': image_id,
@@ -197,8 +194,8 @@ class PuhuTVSerieIE(InfoExtractor):
             has_more = True
             while has_more is True:
                 season = self._download_json(
-                    'https://galadriel.puhutv.com/seasons/%s' % season_id,
-                    season_id, 'Downloading page %s' % page, query={
+                    f'https://galadriel.puhutv.com/seasons/{season_id}',
+                    season_id, f'Downloading page {page}', query={
                         'page': page,
                         'per': 40,
                     })
@@ -210,7 +207,7 @@ class PuhuTVSerieIE(InfoExtractor):
                             continue
                         video_id = str_or_none(int_or_none(ep.get('id')))
                         yield self.url_result(
-                            'https://puhutv.com/%s' % slug_path,
+                            f'https://puhutv.com/{slug_path}',
                             ie=PuhuTVIE.ie_key(), video_id=video_id,
                             video_title=ep.get('name') or ep.get('eventLabel'))
                 page += 1
@@ -220,7 +217,7 @@ class PuhuTVSerieIE(InfoExtractor):
         playlist_id = self._match_id(url)
 
         info = self._download_json(
-            urljoin(url, '/api/slug/%s-detay' % playlist_id),
+            urljoin(url, f'/api/slug/{playlist_id}-detay'),
             playlist_id)['data']
 
         seasons = info.get('seasons')
@@ -231,5 +228,5 @@ class PuhuTVSerieIE(InfoExtractor):
         # For films, these are using same url with series
         video_id = info.get('slug') or info['assets'][0]['slug']
         return self.url_result(
-            'https://puhutv.com/%s-izle' % video_id,
+            f'https://puhutv.com/{video_id}-izle',
             PuhuTVIE.ie_key(), video_id)

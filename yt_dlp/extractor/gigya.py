@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-
-from ..utils import (
-    ExtractorError,
-    urlencode_postdata,
-)
+from ..utils import ExtractorError, urlencode_postdata
 
 
 class GigyaBaseIE(InfoExtractor):
@@ -16,5 +12,5 @@ class GigyaBaseIE(InfoExtractor):
         error_message = auth_info.get('errorDetails') or auth_info.get('errorMessage')
         if error_message:
             raise ExtractorError(
-                'Unable to login: %s' % error_message, expected=True)
+                f'Unable to login: {error_message}', expected=True)
         return auth_info

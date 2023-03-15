@@ -244,7 +244,7 @@ class RTBFIE(RedBeeBaseIE):
             })
 
         if login_response['statusCode'] != 200:
-            raise ExtractorError('Login failed. Server message: %s' % login_response['errorMessage'], expected=True)
+            raise ExtractorError(f"Login failed. Server message: {login_response['errorMessage']}", expected=True)
 
         self._set_cookie('.rtbf.be', self._LOGIN_COOKIE_ID, login_response['sessionInfo']['login_token'],
                          secure=True, expire_time=time.time() + 3600)
@@ -286,7 +286,7 @@ class RTBFIE(RedBeeBaseIE):
 
         error = data.get('error')
         if error:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         provider = data.get('provider')
         if provider in self._PROVIDERS:

@@ -275,20 +275,20 @@ class HttpFD(FileDownloader):
                         ctx.filename = self.undo_temp_name(ctx.tmpfilename)
                         self.report_destination(ctx.filename)
                     except OSError as err:
-                        self.report_error('unable to open for writing: %s' % str(err))
+                        self.report_error(f'unable to open for writing: {str(err)}')
                         return False
 
                     if self.params.get('xattr_set_filesize', False) and data_len is not None:
                         try:
                             write_xattr(ctx.tmpfilename, 'user.ytdl.filesize', str(data_len).encode())
                         except (XAttrUnavailableError, XAttrMetadataError) as err:
-                            self.report_error('unable to set filesize xattr: %s' % str(err))
+                            self.report_error(f'unable to set filesize xattr: {str(err)}')
 
                 try:
                     ctx.stream.write(data_block)
                 except OSError as err:
                     self.to_stderr('\n')
-                    self.report_error('unable to write data: %s' % str(err))
+                    self.report_error(f'unable to write data: {str(err)}')
                     return False
 
                 # Apply rate limit

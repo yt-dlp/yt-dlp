@@ -6,6 +6,7 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -13,7 +14,6 @@ from ..utils import (
     parse_age_limit,
     parse_duration,
     url_or_none,
-    ExtractorError
 )
 
 
@@ -99,17 +99,17 @@ class CrackleIE(InfoExtractor):
                 country = geo_info.get('CountryCode')
                 if country is None:
                     continue
-                self.to_screen('%s identified country as %s' % (self.IE_NAME, country))
+                self.to_screen(f'{self.IE_NAME} identified country as {country}')
                 if country in countries:
-                    self.to_screen('Downloading from %s API was already attempted. Skipping...' % country)
+                    self.to_screen(f'Downloading from {country} API was already attempted. Skipping...')
                     continue
 
             if country is None:
                 continue
             try:
                 media = self._download_json(
-                    'https://web-api-us.crackle.com/Service.svc/details/media/%s/%s?disableProtocols=true' % (video_id, country),
-                    video_id, note='Downloading media JSON from %s API' % country,
+                    f'https://web-api-us.crackle.com/Service.svc/details/media/{video_id}/{country}?disableProtocols=true',
+                    video_id, note=f'Downloading media JSON from {country} API',
                     errnote='Unable to download media JSON')
             except ExtractorError as e:
                 # 401 means geo restriction, trying next country

@@ -1,11 +1,7 @@
 import functools
 
 from .common import InfoExtractor
-from ..utils import (
-    OnDemandPagedList,
-    traverse_obj,
-    unified_strdate,
-)
+from ..utils import OnDemandPagedList, traverse_obj, unified_strdate
 
 
 class GronkhIE(InfoExtractor):

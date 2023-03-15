@@ -2,11 +2,7 @@ import re
 
 from .common import InfoExtractor
 from .xstream import XstreamIE
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    try_get,
-)
+from ..utils import ExtractorError, float_or_none, try_get
 
 
 class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
@@ -180,7 +176,7 @@ class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
 
         if data.get('status') == 'inactive':
             raise ExtractorError(
-                'Video %s is no longer available' % video_id, expected=True)
+                f'Video {video_id} is no longer available', expected=True)
 
         info = {
             'formats': [],
@@ -203,7 +199,7 @@ class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
         if hds_url:
             hdcore_sign = 'hdcore=3.7.0'
             f4m_formats = self._extract_f4m_formats(
-                hds_url + '?%s' % hdcore_sign, video_id, f4m_id='hds', fatal=False)
+                hds_url + f'?{hdcore_sign}', video_id, f4m_id='hds', fatal=False)
             if f4m_formats:
                 for entry in f4m_formats:
                     # URLs without the extra param induce an 404 error
@@ -225,7 +221,7 @@ class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
                     'width': int(mobj.group(1)),
                     'height': int(mobj.group(2)),
                     'tbr': tbr,
-                    'format_id': 'mp4-%s' % tbr,
+                    'format_id': f'mp4-{tbr}',
                 })
             formats.append(format_info)
 
@@ -275,7 +271,7 @@ class BTArticleIE(InfoExtractor):
         webpage = self._download_webpage(url, self._match_id(url))
         video_id = self._search_regex(
             r'<video[^>]+data-id="(\d+)"', webpage, 'video id')
-        return self.url_result('bttv:%s' % video_id, 'VGTV')
+        return self.url_result(f'bttv:{video_id}', 'VGTV')
 
 
 class BTVestlendingenIE(InfoExtractor):
@@ -308,4 +304,4 @@ class BTVestlendingenIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result('bttv:%s' % self._match_id(url), 'VGTV')
+        return self.url_result(f'bttv:{self._match_id(url)}', 'VGTV')

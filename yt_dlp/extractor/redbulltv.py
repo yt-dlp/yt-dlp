@@ -1,9 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    float_or_none,
-    ExtractorError,
-)
+from ..utils import ExtractorError, float_or_none
 
 
 class RedBullTVIE(InfoExtractor):
@@ -57,8 +54,7 @@ class RedBullTVIE(InfoExtractor):
                 'os_family': 'http',
             })
         if session.get('code') == 'error':
-            raise ExtractorError('%s said: %s' % (
-                self.IE_NAME, session['message']))
+            raise ExtractorError(f"{self.IE_NAME} said: {session['message']}")
         token = session['token']
 
         try:
@@ -78,7 +74,7 @@ class RedBullTVIE(InfoExtractor):
         title = video['title'].strip()
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            'https://dms.redbull.tv/v3/%s/%s/playlist.m3u8' % (video_id, token),
+            f'https://dms.redbull.tv/v3/{video_id}/{token}/playlist.m3u8',
             video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
 
         for resource in video.get('resources', []):
@@ -86,13 +82,13 @@ class RedBullTVIE(InfoExtractor):
                 splitted_resource = resource.split('_')
                 if splitted_resource[2]:
                     subtitles.setdefault('en', []).append({
-                        'url': 'https://resources.redbull.tv/%s/%s' % (video_id, resource),
+                        'url': f'https://resources.redbull.tv/{video_id}/{resource}',
                         'ext': splitted_resource[2],
                     })
 
         subheading = video.get('subheading')
         if subheading:
-            title += ' - %s' % subheading
+            title += f' - {subheading}'
 
         return {
             'id': video_id,
@@ -155,7 +151,7 @@ class RedBullTVRrnContentIE(InfoExtractor):
 
     def _real_extract(self, url):
         region, lang, rrn_id = self._match_valid_url(url).groups()
-        rrn_id += ':%s-%s' % (lang, region.upper())
+        rrn_id += f':{lang}-{region.upper()}'
         return self.url_result(
             'https://www.redbull.com/embed/' + rrn_id,
             RedBullEmbedIE.ie_key(), rrn_id)
@@ -209,7 +205,7 @@ class RedBullIE(InfoExtractor):
                 regions.append('LAT')
             if lang in self._INT_FALLBACK_LIST:
                 regions.append('INT')
-        locale = '>'.join(['%s-%s' % (lang, reg) for reg in regions])
+        locale = '>'.join([f'{lang}-{reg}' for reg in regions])
 
         rrn_id = self._download_json(
             'https://www.redbull.com/v3/api/graphql/v1/v3/query/' + locale,

@@ -1,15 +1,8 @@
 import re
 
 from .turner import TurnerBaseIE
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_parse_qs,
-)
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    strip_or_none,
-)
+from ..compat import compat_parse_qs, compat_urllib_parse_urlparse
+from ..utils import float_or_none, int_or_none, strip_or_none
 
 
 class TBSIE(TurnerBaseIE):

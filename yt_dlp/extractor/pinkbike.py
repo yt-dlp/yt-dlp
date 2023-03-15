@@ -37,7 +37,7 @@ class PinkbikeIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://www.pinkbike.com/video/%s' % video_id, video_id)
+            f'http://www.pinkbike.com/video/{video_id}', video_id)
 
         formats = []
         for _, format_id, src in re.findall(

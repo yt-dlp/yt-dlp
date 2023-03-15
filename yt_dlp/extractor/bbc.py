@@ -281,7 +281,7 @@ class BBCCoUkIE(InfoExtractor):
             error = clean_html(get_element_by_class('form-message', response))
             if error:
                 raise ExtractorError(
-                    'Unable to login: %s' % error, expected=True)
+                    f'Unable to login: {error}', expected=True)
             raise ExtractorError('Unable to log in')
 
     class MediaSelectionError(Exception):
@@ -325,7 +325,7 @@ class BBCCoUkIE(InfoExtractor):
 
     def _raise_extractor_error(self, media_selection_error):
         raise ExtractorError(
-            '%s returned error: %s' % (self.IE_NAME, media_selection_error.id),
+            f'{self.IE_NAME} returned error: {media_selection_error.id}',
             expected=True)
 
     def _download_media_selector(self, programme_id):
@@ -376,7 +376,7 @@ class BBCCoUkIE(InfoExtractor):
                         for i, ref in enumerate(self._extract_asx_playlist(connection, programme_id)):
                             formats.append({
                                 'url': ref,
-                                'format_id': 'ref%s_%s' % (i, format_id),
+                                'format_id': f'ref{i}_{format_id}',
                             })
                     elif transfer_format == 'dash':
                         formats.extend(self._extract_mpd_formats(
@@ -427,9 +427,9 @@ class BBCCoUkIE(InfoExtractor):
                             identifier = connection.get('identifier')
                             server = connection.get('server')
                             fmt.update({
-                                'url': '%s://%s/%s?%s' % (protocol, server, application, auth_string),
+                                'url': f'{protocol}://{server}/{application}?{auth_string}',
                                 'play_path': identifier,
-                                'app': '%s?%s' % (application, auth_string),
+                                'app': f'{application}?{auth_string}',
                                 'page_url': 'http://www.bbc.co.uk',
                                 'player_url': 'http://www.bbc.co.uk/emp/releases/iplayer/revisions/617463_618125_4/617463_618125_4_emp.swf',
                                 'rtmp_live': False,
@@ -445,7 +445,7 @@ class BBCCoUkIE(InfoExtractor):
     def _download_playlist(self, playlist_id):
         try:
             playlist = self._download_json(
-                'http://www.bbc.co.uk/programmes/%s/playlist.json' % playlist_id,
+                f'http://www.bbc.co.uk/programmes/{playlist_id}/playlist.json',
                 playlist_id, 'Downloading playlist JSON')
             formats = []
             subtitles = {}
@@ -484,7 +484,7 @@ class BBCCoUkIE(InfoExtractor):
 
     def _process_legacy_playlist(self, playlist_id):
         return self._process_legacy_playlist_url(
-            'http://www.bbc.co.uk/iplayer/playlist/%s' % playlist_id, playlist_id)
+            f'http://www.bbc.co.uk/iplayer/playlist/{playlist_id}', playlist_id)
 
     def _download_legacy_playlist_url(self, url, playlist_id=None):
         return self._download_xml(
@@ -495,13 +495,13 @@ class BBCCoUkIE(InfoExtractor):
         if no_items is not None:
             reason = no_items.get('reason')
             if reason == 'preAvailability':
-                msg = 'Episode %s is not yet available' % playlist_id
+                msg = f'Episode {playlist_id} is not yet available'
             elif reason == 'postAvailability':
-                msg = 'Episode %s is no longer available' % playlist_id
+                msg = f'Episode {playlist_id} is no longer available'
             elif reason == 'noMedia':
-                msg = 'Episode %s is not currently available' % playlist_id
+                msg = f'Episode {playlist_id} is not currently available'
             else:
-                msg = 'Episode %s is not available: %s' % (playlist_id, reason)
+                msg = f'Episode {playlist_id} is not available: {reason}'
             raise ExtractorError(msg, expected=True)
 
         for item in self._extract_items(playlist):
@@ -968,7 +968,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                         if playlist:
                             entry = None
                             for key in ('streaming', 'progressiveDownload'):
-                                playlist_url = playlist.get('%sUrl' % key)
+                                playlist_url = playlist.get(f'{key}Url')
                                 if not playlist_url:
                                     continue
                                 try:
@@ -998,7 +998,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             webpage, 'group id', default=None)
         if group_id:
             return self.url_result(
-                'https://www.bbc.co.uk/programmes/%s' % group_id,
+                f'https://www.bbc.co.uk/programmes/{group_id}',
                 ie=BBCCoUkIE.ie_key())
 
         # single video story (e.g. http://www.bbc.com/travel/story/20150625-sri-lankas-spicy-secret)
@@ -1297,11 +1297,11 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
 
             video_id = media_meta.get('externalId')
             if not video_id:
-                video_id = playlist_id if len(medias) == 1 else '%s-%s' % (playlist_id, num)
+                video_id = playlist_id if len(medias) == 1 else f'{playlist_id}-{num}'
 
             title = media_meta.get('caption')
             if not title:
-                title = playlist_title if len(medias) == 1 else '%s - Video %s' % (playlist_title, num)
+                title = playlist_title if len(medias) == 1 else f'{playlist_title} - Video {num}'
 
             duration = int_or_none(media_meta.get('durationInSeconds')) or parse_duration(media_meta.get('duration'))
 
@@ -1581,7 +1581,7 @@ class BBCCoUkIPlayerGroupIE(BBCCoUkIPlayerPlaylistBaseIE):
 
     def _call_api(self, pid, per_page, page=1, series_id=None):
         return self._download_json(
-            'http://ibl.api.bbc.co.uk/ibl/v1/groups/%s/episodes' % pid,
+            f'http://ibl.api.bbc.co.uk/ibl/v1/groups/{pid}/episodes',
             pid, query={
                 'page': page,
                 'per_page': per_page,

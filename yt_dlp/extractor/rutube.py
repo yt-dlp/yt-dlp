@@ -1,12 +1,10 @@
 import itertools
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
+from ..compat import compat_str
 from ..utils import (
-    determine_ext,
     bool_or_none,
+    determine_ext,
     int_or_none,
     parse_qs,
     try_get,
@@ -21,7 +19,7 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            'http://rutube.ru/api/video/%s/' % video_id,
+            f'http://rutube.ru/api/video/{video_id}/',
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
@@ -63,7 +61,7 @@ class RutubeBaseIE(InfoExtractor):
             query = {}
         query['format'] = 'json'
         return self._download_json(
-            'http://rutube.ru/api/play/options/%s/' % video_id,
+            f'http://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
@@ -236,7 +234,7 @@ class RutubePlaylistBaseIE(RutubeBaseIE):
             page = self._download_json(
                 next_page_url or self._next_page_url(
                     pagenum, playlist_id, *args, **kwargs),
-                playlist_id, 'Downloading page %s' % pagenum)
+                playlist_id, f'Downloading page {pagenum}')
 
             results = page.get('results')
             if not results or not isinstance(results, list):

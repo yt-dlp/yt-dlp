@@ -133,14 +133,14 @@ class MetacafeIE(InfoExtractor):
             prefix, ext_id = m_external.groups()
             # Check if video comes from YouTube
             if prefix == 'yt':
-                return self.url_result('http://www.youtube.com/watch?v=%s' % ext_id, 'Youtube')
+                return self.url_result(f'http://www.youtube.com/watch?v={ext_id}', 'Youtube')
             # CBS videos use theplatform.com
             if prefix == 'cb':
-                return self.url_result('theplatform:%s' % ext_id, 'ThePlatform')
+                return self.url_result(f'theplatform:{ext_id}', 'ThePlatform')
 
         headers = {
             # Disable family filter
-            'Cookie': 'user=%s; ' % urllib.parse.quote(json.dumps({'ffilter': False}))
+            'Cookie': f"user={urllib.parse.quote(json.dumps({'ffilter': False}))}; "
         }
 
         # AnyClip videos require the flashversion cookie so that we get the link
@@ -173,7 +173,7 @@ class MetacafeIE(InfoExtractor):
                 video_url = mediaURL
             else:
                 gdaKey = mobj.group(1)
-                video_url = '%s?__gda__=%s' % (mediaURL, gdaKey)
+                video_url = f'{mediaURL}?__gda__={gdaKey}'
         if video_url is None:
             mobj = re.search(r'<video src="([^"]+)"', webpage)
             if mobj:
@@ -192,7 +192,7 @@ class MetacafeIE(InfoExtractor):
                 if mobj is None:
                     raise ExtractorError('Unable to extract media URL')
                 mediaURL = mobj.group('mediaURL').replace('\\/', '/')
-                video_url = '%s?__gda__=%s' % (mediaURL, mobj.group('key'))
+                video_url = f"{mediaURL}?__gda__={mobj.group('key')}"
                 video_ext = determine_ext(video_url)
         if video_url is None:
             player_url = self._search_regex(

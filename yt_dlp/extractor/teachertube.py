@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    qualities,
-)
+from ..utils import ExtractorError, determine_ext, qualities
 
 
 class TeacherTubeIE(InfoExtractor):
@@ -49,7 +45,7 @@ class TeacherTubeIE(InfoExtractor):
             r'<div\b[^>]+\bclass=["\']msgBox error[^>]+>([^<]+)', webpage,
             'error', default=None)
         if error:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         title = self._html_search_meta('title', webpage, 'title', fatal=True)
         TITLE_SUFFIX = ' - TeacherTube'
@@ -115,8 +111,8 @@ class TeacherTubeUserIE(InfoExtractor):
 
         pages = re.findall(r'/ajax-user/user-videos/%s\?page=([0-9]+)' % user_id, webpage)[:-1]
         for p in pages:
-            more = 'http://www.teachertube.com/ajax-user/user-videos/%s?page=%s' % (user_id, p)
-            webpage = self._download_webpage(more, user_id, 'Downloading page %s/%s' % (p, len(pages)))
+            more = f'http://www.teachertube.com/ajax-user/user-videos/{user_id}?page={p}'
+            webpage = self._download_webpage(more, user_id, f'Downloading page {p}/{len(pages)}')
             video_urls = re.findall(self._MEDIA_RE, webpage)
             urls.extend(video_urls)
 

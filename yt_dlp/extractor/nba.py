@@ -2,14 +2,11 @@ import functools
 import re
 
 from .turner import TurnerBaseIE
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import (
+    OnDemandPagedList,
     int_or_none,
     merge_dicts,
-    OnDemandPagedList,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -22,7 +19,7 @@ from ..utils import (
 class NBACVPBaseIE(TurnerBaseIE):
     def _extract_nba_cvp_info(self, path, video_id, fatal=False):
         return self._extract_cvp_info(
-            'http://secure.nba.com/%s' % path, video_id, {
+            f'http://secure.nba.com/{path}', video_id, {
                 'default': {
                     'media_src': 'http://nba.cdn.turner.com/nba/big',
                 },
@@ -260,8 +257,8 @@ class NBABaseIE(NBACVPBaseIE):
 
     def _call_api(self, team, content_id, query, resource):
         return self._download_json(
-            'https://api.nba.net/2/%s/video,imported_video,wsc/' % team,
-            content_id, 'Download %s JSON metadata' % resource,
+            f'https://api.nba.net/2/{team}/video,imported_video,wsc/',
+            content_id, f'Download {resource} JSON metadata',
             query=query, headers={
                 'accessToken': 'internal|bb88df6b4c2244e78822812cecf1ee1b',
             })['response']['result']
@@ -362,7 +359,7 @@ class NBAEmbedIE(NBABaseIE):
 
 class NBAIE(NBABaseIE):
     IENAME = 'nba'
-    _VALID_URL = NBABaseIE._VALID_URL_BASE + '(?!%s)video/(?P<id>(?:[^/]+/)*[^/?#&]+)' % NBABaseIE._CHANNEL_PATH_REGEX
+    _VALID_URL = NBABaseIE._VALID_URL_BASE + f'(?!{NBABaseIE._CHANNEL_PATH_REGEX})video/(?P<id>(?:[^/]+/)*[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.nba.com/bulls/video/teams/bulls/2020/12/04/3478774/1607105587854-20201204schedulereleasefinaldrupal-3478774',
         'info_dict': {
@@ -389,7 +386,7 @@ class NBAIE(NBABaseIE):
 
 class NBAChannelIE(NBABaseIE):
     IENAME = 'nba:channel'
-    _VALID_URL = NBABaseIE._VALID_URL_BASE + '(?:%s)/(?P<id>[^/?#&]+)' % NBABaseIE._CHANNEL_PATH_REGEX
+    _VALID_URL = NBABaseIE._VALID_URL_BASE + f'(?:{NBABaseIE._CHANNEL_PATH_REGEX})/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.nba.com/blazers/video/channel/summer_league',
         'info_dict': {

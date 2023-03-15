@@ -45,7 +45,7 @@ class SpiegelIE(InfoExtractor):
             '_type': 'url_transparent',
             'id': video_id,
             'display_id': video_id,
-            'url': 'jwplatform:%s' % media_id,
+            'url': f'jwplatform:{media_id}',
             'title': self._og_search_title(webpage, default=None),
             'ie_key': JWPlatformIE.ie_key(),
         }

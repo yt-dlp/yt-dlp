@@ -27,7 +27,7 @@ class ExecPP(PostProcessor):
     def run(self, info):
         for tmpl in self.exec_cmd:
             cmd = self.parse_cmd(tmpl, info)
-            self.to_screen('Executing command: %s' % cmd)
+            self.to_screen(f'Executing command: {cmd}')
             retCode = subprocess.call(encodeArgument(cmd), shell=True)
             if retCode != 0:
                 raise PostProcessingError('Command returned error code %d' % retCode)

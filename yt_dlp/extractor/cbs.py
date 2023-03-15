@@ -1,12 +1,12 @@
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     ExtractorError,
-    int_or_none,
     find_xpath_attr,
-    xpath_element,
-    xpath_text,
+    int_or_none,
     update_url_query,
     url_or_none,
+    xpath_element,
+    xpath_text,
 )
 
 
@@ -35,7 +35,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             try:
                 tp_formats, tp_subtitles = self._extract_theplatform_smil(
                     update_url_query(tp_release_url, query), content_id,
-                    'Downloading %s SMIL data' % asset_type)
+                    f'Downloading {asset_type} SMIL data')
             except ExtractorError as e:
                 last_e = e
                 if asset_type != 'fallback':
@@ -44,7 +44,7 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
                 try:
                     tp_formats, tp_subtitles = self._extract_theplatform_smil(
                         update_url_query(tp_release_url, query), content_id,
-                        'Downloading %s SMIL data, trying again with another format' % asset_type)
+                        f'Downloading {asset_type} SMIL data, trying again with another format')
                 except ExtractorError as e:
                     last_e = e
                     continue

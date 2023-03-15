@@ -2,12 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    unescapeHTML,
-)
+from ..utils import ExtractorError, determine_ext, int_or_none, unescapeHTML
 
 
 class MSNIE(InfoExtractor):
@@ -162,6 +157,6 @@ class MSNIE(InfoExtractor):
             error = unescapeHTML(self._search_regex(
                 r'data-error=(["\'])(?P<error>.+?)\1',
                 webpage, 'error', group='error'))
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         return self.playlist_result(entries, page_id)

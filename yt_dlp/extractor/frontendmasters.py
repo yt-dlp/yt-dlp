@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
     ExtractorError,
     parse_duration,
@@ -56,14 +53,14 @@ class FrontendMastersBaseIE(InfoExtractor):
             r'class=(["\'])(?:(?!\1).)*\bMessageAlert\b(?:(?!\1).)*\1[^>]*>(?P<error>[^<]+)<',
             response, 'error message', default=None, group='error')
         if error:
-            raise ExtractorError('Unable to login: %s' % error, expected=True)
+            raise ExtractorError(f'Unable to login: {error}', expected=True)
         raise ExtractorError('Unable to log in')
 
 
 class FrontendMastersPageBaseIE(FrontendMastersBaseIE):
     def _download_course(self, course_name, url):
         return self._download_json(
-            '%s/courses/%s' % (self._API_BASE, course_name), course_name,
+            f'{self._API_BASE}/courses/{course_name}', course_name,
             'Downloading course JSON', headers={'Referer': url})
 
     @staticmethod
@@ -102,7 +99,7 @@ class FrontendMastersPageBaseIE(FrontendMastersBaseIE):
 
         return {
             '_type': 'url_transparent',
-            'url': 'frontendmasters:%s' % lesson_id,
+            'url': f'frontendmasters:{lesson_id}',
             'ie_key': FrontendMastersIE.ie_key(),
             'id': lesson_id,
             'display_id': display_id,
@@ -134,16 +131,16 @@ class FrontendMastersIE(FrontendMastersBaseIE):
     def _real_extract(self, url):
         lesson_id = self._match_id(url)
 
-        source_url = '%s/video/%s/source' % (self._API_BASE, lesson_id)
+        source_url = f'{self._API_BASE}/video/{lesson_id}/source'
 
         formats = []
         for ext in ('webm', 'mp4'):
             for quality in ('low', 'mid', 'high'):
                 resolution = self._QUALITIES[quality].copy()
-                format_id = '%s-%s' % (ext, quality)
+                format_id = f'{ext}-{quality}'
                 format_url = self._download_json(
                     source_url, lesson_id,
-                    'Downloading %s source JSON' % format_id, query={
+                    f'Downloading {format_id} source JSON', query={
                         'f': ext,
                         'r': resolution['height'],
                     }, headers={
@@ -163,7 +160,7 @@ class FrontendMastersIE(FrontendMastersBaseIE):
 
         subtitles = {
             'en': [{
-                'url': '%s/transcripts/%s.vtt' % (self._API_BASE, lesson_id),
+                'url': f'{self._API_BASE}/transcripts/{lesson_id}.vtt',
             }]
         }
 

@@ -6,10 +6,10 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    dict_get,
     ExtractorError,
-    js_to_json,
+    dict_get,
     int_or_none,
+    js_to_json,
     parse_iso8601,
     str_or_none,
     try_get,
@@ -115,7 +115,7 @@ class ABCIE(InfoExtractor):
                 if mobj is None:
                     expired = self._html_search_regex(r'(?s)class="expired-(?:video|audio)".+?<span>(.+?)</span>', webpage, 'expired', None)
                     if expired:
-                        raise ExtractorError('%s said: %s' % (self.IE_NAME, expired), expected=True)
+                        raise ExtractorError(f'{self.IE_NAME} said: {expired}', expected=True)
                     raise ExtractorError('Unable to extract video urls')
 
             urls_info = self._parse_json(
@@ -202,7 +202,7 @@ class ABCIViewIE(InfoExtractor):
             b'android.content.res.Resources',
             path.encode('utf-8'), hashlib.sha256).hexdigest()
         token = self._download_webpage(
-            'http://iview.abc.net.au{0}&sig={1}'.format(path, sig), video_id)
+            f'http://iview.abc.net.au{path}&sig={sig}', video_id)
 
         def tokenize_url(url, token):
             return update_url_query(url, {

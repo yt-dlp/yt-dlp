@@ -24,8 +24,7 @@ class DefenseGouvFrIE(InfoExtractor):
             webpage, 'ID')
 
         json_url = (
-            'http://static.videos.gouv.fr/brightcovehub/export/json/%s' %
-            video_id)
+            f'http://static.videos.gouv.fr/brightcovehub/export/json/{video_id}')
         info = self._download_json(json_url, title, 'Downloading JSON config')
         video_url = info['renditions'][0]['url']
 

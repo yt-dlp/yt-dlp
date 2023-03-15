@@ -1,12 +1,6 @@
 from .common import InfoExtractor
-
 from ..compat import compat_str
-from ..utils import (
-    parse_iso8601,
-    ExtractorError,
-    try_get,
-    mimetype2ext
-)
+from ..utils import ExtractorError, mimetype2ext, parse_iso8601, try_get
 
 
 class FancodeVodIE(InfoExtractor):
@@ -65,7 +59,7 @@ class FancodeVodIE(InfoExtractor):
         if self._ACCESS_TOKEN is None:
             self.report_warning('Failed to get Access token')
         else:
-            self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
+            self.headers.update({'Authorization': f'Bearer {self._ACCESS_TOKEN}'})
 
     def _check_login_required(self, is_available, is_premium):
         msg = None

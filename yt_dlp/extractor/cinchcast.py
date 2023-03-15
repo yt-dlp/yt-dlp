@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    unified_strdate,
-    xpath_text,
-)
+from ..utils import unified_strdate, xpath_text
 
 
 class CinchcastIE(InfoExtractor):
@@ -26,7 +23,7 @@ class CinchcastIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         doc = self._download_xml(
-            'http://www.blogtalkradio.com/playerasset/mrss?assetType=single&assetId=%s' % video_id,
+            f'http://www.blogtalkradio.com/playerasset/mrss?assetType=single&assetId={video_id}',
             video_id)
 
         item = doc.find('.//item')

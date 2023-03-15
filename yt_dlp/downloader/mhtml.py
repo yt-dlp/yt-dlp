@@ -94,8 +94,7 @@ body > figure > img {
                 output.write((
                     '<figcaption>Slide #{num}</figcaption>'
                 ).format(num=i + 1))
-            output.write('<img src="cid:{cid}">'.format(
-                cid=self._gen_cid(i, frag, frag_boundary)))
+            output.write(f'<img src="cid:{self._gen_cid(i, frag, frag_boundary)}">')
             output.write('</figure>')
             t0 = t1
 

@@ -149,7 +149,7 @@ class DRTVIE(InfoExtractor):
 
         if '>Programmet er ikke længere tilgængeligt' in webpage:
             raise ExtractorError(
-                'Video %s is not available' % raw_video_id, expected=True)
+                f'Video {raw_video_id} is not available', expected=True)
 
         video_id = self._search_regex(
             (r'data-(?:material-identifier|episode-slug)="([^"]+)"',
@@ -167,7 +167,7 @@ class DRTVIE(InfoExtractor):
         query = {'expanded': 'true'}
 
         if video_id:
-            programcard_url = '%s/%s' % (_PROGRAMCARD_BASE, video_id)
+            programcard_url = f'{_PROGRAMCARD_BASE}/{video_id}'
         else:
             programcard_url = _PROGRAMCARD_BASE
             page = self._parse_json(
@@ -223,7 +223,7 @@ class DRTVIE(InfoExtractor):
             n = int(e[2:10], 16)
             a = e[10 + n:]
             data = hex_to_bytes(e[10:10 + n])
-            key = hashlib.sha256(('%s:sRBzYNXBzkKgnjj8pGtkACch' % a).encode('utf-8')).digest()
+            key = hashlib.sha256(f'{a}:sRBzYNXBzkKgnjj8pGtkACch'.encode('utf-8')).digest()
             iv = hex_to_bytes(a)
             decrypted = unpad_pkcs7(aes_cbc_decrypt_bytes(data, key, iv))
             return decrypted.decode('utf-8').split('?')[0]
@@ -255,7 +255,7 @@ class DRTVIE(InfoExtractor):
                     format_id = target or ''
                     if asset_target in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
                         preference = -1
-                        format_id += '-%s' % asset_target
+                        format_id += f'-{asset_target}'
                     elif asset_target == 'Default':
                         preference = 1
                     else:
@@ -276,7 +276,7 @@ class DRTVIE(InfoExtractor):
                     else:
                         bitrate = link.get('Bitrate')
                         if bitrate:
-                            format_id += '-%s' % bitrate
+                            format_id += f'-{bitrate}'
                         formats.append({
                             'url': uri,
                             'format_id': format_id,
@@ -362,14 +362,14 @@ class DRTVLiveIE(InfoExtractor):
                     if not stream_path:
                         continue
                     stream_url = update_url_query(
-                        '%s/%s' % (server, stream_path), {'b': ''})
+                        f'{server}/{stream_path}', {'b': ''})
                     if link_type == 'HLS':
                         formats.extend(self._extract_m3u8_formats(
                             stream_url, channel_id, 'mp4',
                             m3u8_id=link_type, fatal=False, live=True))
                     elif link_type == 'HDS':
                         formats.extend(self._extract_f4m_formats(update_url_query(
-                            '%s/%s' % (server, stream_path), {'hdcore': '3.7.0'}),
+                            f'{server}/{stream_path}', {'hdcore': '3.7.0'}),
                             channel_id, f4m_id=link_type, fatal=False))
 
         return {

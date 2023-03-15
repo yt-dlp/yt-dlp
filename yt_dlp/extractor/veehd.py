@@ -1,16 +1,9 @@
-import re
 import json
+import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    clean_html,
-    get_element_by_id,
-)
+from ..compat import compat_urllib_parse_unquote, compat_urlparse
+from ..utils import ExtractorError, clean_html, get_element_by_id
 
 
 class VeeHDIE(InfoExtractor):
@@ -57,7 +50,7 @@ class VeeHDIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         if 'This video has been removed<' in webpage:
-            raise ExtractorError('Video %s has been removed' % video_id, expected=True)
+            raise ExtractorError(f'Video {video_id} has been removed', expected=True)
 
         player_path = self._search_regex(
             r'\$\("#playeriframe"\).attr\({src : "(.+?)"',
@@ -85,7 +78,7 @@ class VeeHDIE(InfoExtractor):
         if not video_url:
             iframe_src = self._search_regex(
                 r'<iframe[^>]+src="/?([^"]+)"', player_page, 'iframe url')
-            iframe_url = 'http://veehd.com/%s' % iframe_src
+            iframe_url = f'http://veehd.com/{iframe_src}'
 
             self._download_webpage(iframe_url, video_id, 'Requesting iframe page')
             iframe_page = self._download_webpage(

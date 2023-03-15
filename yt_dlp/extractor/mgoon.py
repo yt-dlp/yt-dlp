@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    qualities,
-    unified_strdate,
-)
+from ..utils import ExtractorError, qualities, unified_strdate
 
 
 class MgoonIE(InfoExtractor):

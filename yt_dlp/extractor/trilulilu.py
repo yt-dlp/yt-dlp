@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-)
+from ..utils import ExtractorError, int_or_none, parse_iso8601
 
 
 class TriluliluIE(InfoExtractor):
@@ -44,7 +40,7 @@ class TriluliluIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        media_info = self._download_json('http://m.trilulilu.ro/%s?format=json' % display_id, display_id)
+        media_info = self._download_json(f'http://m.trilulilu.ro/{display_id}?format=json', display_id)
 
         age_limit = 0
         errors = media_info.get('errors', {})

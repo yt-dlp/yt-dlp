@@ -20,7 +20,7 @@ class PerformGroupIE(InfoExtractor):
 
     def _call_api(self, service, auth_token, content_id, referer_url):
         return self._download_json(
-            'http://ep3.performfeeds.com/ep%s/%s/%s/' % (service, auth_token, content_id),
+            f'http://ep3.performfeeds.com/ep{service}/{auth_token}/{content_id}/',
             content_id, headers={
                 'Referer': referer_url,
                 'Origin': 'http://player.performgroup.com',

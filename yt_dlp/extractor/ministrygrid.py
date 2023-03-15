@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    smuggle_url,
-)
+from ..utils import ExtractorError, smuggle_url
 
 
 class MinistryGridIE(InfoExtractor):
@@ -39,7 +36,7 @@ class MinistryGridIE(InfoExtractor):
             r'getPlid:function\(\){return"(\d+)"}', webpage, 'p_l_id')
 
         for i, portlet in enumerate(portlets):
-            portlet_url = 'http://www.ministrygrid.com/c/portal/render_portlet?p_l_id=%s&p_p_id=%s' % (pl_id, portlet)
+            portlet_url = f'http://www.ministrygrid.com/c/portal/render_portlet?p_l_id={pl_id}&p_p_id={portlet}'
             portlet_code = self._download_webpage(
                 portlet_url, video_id,
                 note='Looking in portlet %s (%d/%d)' % (portlet, i + 1, len(portlets)),

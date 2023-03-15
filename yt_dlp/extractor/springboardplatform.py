@@ -4,11 +4,11 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    xpath_attr,
-    xpath_text,
-    xpath_element,
     unescapeHTML,
     unified_timestamp,
+    xpath_attr,
+    xpath_element,
+    xpath_text,
 )
 
 
@@ -66,7 +66,7 @@ class SpringboardPlatformIE(InfoExtractor):
 
         if 'error_video.mp4' in video_url:
             raise ExtractorError(
-                'Video %s no longer exists' % video_id, expected=True)
+                f'Video {video_id} no longer exists', expected=True)
 
         duration = int_or_none(content.get('duration'))
         tbr = int_or_none(content.get('bitrate'))

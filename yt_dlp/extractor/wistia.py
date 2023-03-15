@@ -24,7 +24,7 @@ class WistiaBaseIE(InfoExtractor):
     _EMBED_BASE_URL = 'http://fast.wistia.net/embed/'
 
     def _download_embed_config(self, config_type, config_id, referer):
-        base_url = self._EMBED_BASE_URL + '%s/%s' % (config_type, config_id)
+        base_url = self._EMBED_BASE_URL + f'{config_type}/{config_id}'
         embed_config = self._download_json(
             base_url + '.json', config_id, headers={
                 'Referer': referer if referer.startswith('http') else base_url,  # Some videos require this.
@@ -74,7 +74,7 @@ class WistiaBaseIE(InfoExtractor):
                 display_name = a.get('display_name')
                 format_id = atype
                 if atype and atype.endswith('_video') and display_name:
-                    format_id = '%s-%s' % (atype[:-6], display_name)
+                    format_id = f'{atype[:-6]}-{display_name}'
                 f = {
                     'format_id': format_id,
                     'url': aurl,
@@ -254,14 +254,14 @@ class WistiaIE(WistiaBaseIE):
         urls = list(super()._extract_embed_urls(url, webpage))
         for match in cls._extract_wistia_async_embed(webpage):
             if match.group('type') != 'wistia_channel':
-                urls.append('wistia:%s' % match.group('id'))
+                urls.append(f"wistia:{match.group('id')}")
         for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})',
                                  webpage):
-            urls.append('wistia:%s' % match.group('id'))
+            urls.append(f"wistia:{match.group('id')}")
         if not WistiaChannelIE._extract_embed_urls(url, webpage):  # Fallback
             media_id = cls._extract_url_media_id(url)
             if media_id:
-                urls.append('wistia:%s' % match.group('id'))
+                urls.append(f"wistia:{match.group('id')}")
         return urls
 
 

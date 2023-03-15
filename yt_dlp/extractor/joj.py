@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    format_field,
-    int_or_none,
-    js_to_json,
-    try_get,
-)
+from ..utils import format_field, int_or_none, js_to_json, try_get
 
 
 class JojIE(InfoExtractor):
@@ -51,7 +46,7 @@ class JojIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://media.joj.sk/embed/%s' % video_id, video_id)
+            f'https://media.joj.sk/embed/{video_id}', video_id)
 
         title = (self._search_json(r'videoTitle\s*:', webpage, 'title', video_id,
                                    contains_pattern=r'["\'].+["\']', default=None)
@@ -78,7 +73,7 @@ class JojIE(InfoExtractor):
                 })
         if not formats:
             playlist = self._download_xml(
-                'https://media.joj.sk/services/Video.php?clip=%s' % video_id,
+                f'https://media.joj.sk/services/Video.php?clip={video_id}',
                 video_id)
             for file_el in playlist.findall('./files/file'):
                 path = file_el.get('path')
@@ -86,8 +81,7 @@ class JojIE(InfoExtractor):
                     continue
                 format_id = file_el.get('id') or file_el.get('label')
                 formats.append({
-                    'url': 'http://n16.joj.sk/storage/%s' % path.replace(
-                        'dat/', '', 1),
+                    'url': f"http://n16.joj.sk/storage/{path.replace('dat/', '', 1)}",
                     'format_id': format_id,
                     'height': int_or_none(self._search_regex(
                         r'(\d+)[pP]', format_id or path, 'height',

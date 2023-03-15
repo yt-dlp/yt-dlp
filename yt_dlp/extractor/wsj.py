@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    float_or_none,
-    unified_strdate,
-)
+from ..utils import float_or_none, int_or_none, unified_strdate
 
 
 class WSJIE(InfoExtractor):
@@ -117,4 +113,4 @@ class WSJArticleIE(InfoExtractor):
         video_id = self._search_regex(
             r'(?:id=["\']video|video-|iframe\.html\?guid=|data-src=["\'])([a-fA-F0-9-]{36})',
             webpage, 'video id')
-        return self.url_result('wsj:%s' % video_id, WSJIE.ie_key(), video_id)
+        return self.url_result(f'wsj:{video_id}', WSJIE.ie_key(), video_id)

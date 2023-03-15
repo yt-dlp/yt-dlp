@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    str_to_int,
-    unified_strdate,
-)
+from ..utils import str_to_int, unified_strdate
 
 
 class CloudyIE(InfoExtractor):
@@ -36,7 +33,7 @@ class CloudyIE(InfoExtractor):
         info = self._parse_html5_media_entries(url, webpage, video_id)[0]
 
         webpage = self._download_webpage(
-            'https://www.cloudy.ec/v/%s' % video_id, video_id, fatal=False)
+            f'https://www.cloudy.ec/v/{video_id}', video_id, fatal=False)
 
         if webpage:
             info.update({

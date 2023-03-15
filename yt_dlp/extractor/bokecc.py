@@ -42,7 +42,7 @@ class BokeCCIE(BokeCCBaseIE):
         if not qs.get('vid') or not qs.get('uid'):
             raise ExtractorError('Invalid URL', expected=True)
 
-        video_id = '%s_%s' % (qs['uid'][0], qs['vid'][0])
+        video_id = f"{qs['uid'][0]}_{qs['vid'][0]}"
 
         webpage = self._download_webpage(url, video_id)
 

@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..utils import (
-    js_to_json,
-    qualities,
-    determine_ext,
-)
+from ..utils import determine_ext, js_to_json, qualities
 
 
 class Tele13IE(InfoExtractor):

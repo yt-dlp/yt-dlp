@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    determine_ext,
-)
+from ..utils import determine_ext, js_to_json
 
 
 class BpbIE(InfoExtractor):
@@ -45,7 +42,7 @@ class BpbIE(InfoExtractor):
                 'url': video_url,
                 'quality': 10 if quality == 'high' else 0,
                 'format_note': quality,
-                'format_id': '%s-%s' % (quality, determine_ext(video_url)),
+                'format_id': f'{quality}-{determine_ext(video_url)}',
             })
 
         return {

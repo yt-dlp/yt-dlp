@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    clean_podcast_url,
-    int_or_none,
-    parse_iso8601,
-)
+from ..utils import clean_html, clean_podcast_url, int_or_none, parse_iso8601
 
 
 class ACastBaseIE(InfoExtractor):
@@ -77,7 +72,7 @@ class ACastIE(ACastBaseIE):
     def _real_extract(self, url):
         channel, display_id = self._match_valid_url(url).groups()
         episode = self._call_api(
-            '%s/episodes/%s' % (channel, display_id),
+            f'{channel}/episodes/{display_id}',
             display_id, {'showInfo': 'true'})
         return self._extract_episode(
             episode, self._extract_show_info(episode.get('show') or {}))

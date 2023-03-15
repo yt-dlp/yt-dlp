@@ -5,12 +5,7 @@ import json
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import (
-    OnDemandPagedList,
-    int_or_none,
-    traverse_obj,
-    urljoin,
-)
+from ..utils import OnDemandPagedList, int_or_none, traverse_obj, urljoin
 
 
 class ZingMp3BaseIE(InfoExtractor):

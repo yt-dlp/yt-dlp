@@ -1,9 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    fix_xml_ampersands,
-)
+from ..utils import fix_xml_ampersands
 
 
 class MetacriticIE(InfoExtractor):

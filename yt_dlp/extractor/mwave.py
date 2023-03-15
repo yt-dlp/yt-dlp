@@ -1,9 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    parse_duration,
-)
+from ..utils import int_or_none, parse_duration
 
 
 class MwaveIE(InfoExtractor):
@@ -30,7 +27,7 @@ class MwaveIE(InfoExtractor):
         video_id = self._match_id(url)
 
         vod_info = self._download_json(
-            'http://mwave.interest.me/onair/vod_info.m?vodtype=CL&sectorid=&endinfo=Y&id=%s' % video_id,
+            f'http://mwave.interest.me/onair/vod_info.m?vodtype=CL&sectorid=&endinfo=Y&id={video_id}',
             video_id, 'Download vod JSON')
 
         formats = []
@@ -41,7 +38,7 @@ class MwaveIE(InfoExtractor):
             stream_name = cdn_info.get('name') or compat_str(num)
             f4m_stream = self._download_json(
                 stream_url, video_id,
-                'Download %s stream JSON' % stream_name)
+                f'Download {stream_name} stream JSON')
             f4m_url = f4m_stream.get('fileurl')
             if not f4m_url:
                 continue

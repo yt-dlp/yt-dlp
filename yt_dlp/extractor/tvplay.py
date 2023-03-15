@@ -1,13 +1,10 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urlparse,
-)
+from ..compat import compat_HTTPError, compat_urlparse
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_iso8601,
     qualities,
@@ -234,13 +231,13 @@ class TVPlayIE(InfoExtractor):
         if geo_country:
             self._initialize_geo_bypass({'countries': [geo_country.upper()]})
         video = self._download_json(
-            'http://playapi.mtgx.tv/v3/videos/%s' % video_id, video_id, 'Downloading video JSON')
+            f'http://playapi.mtgx.tv/v3/videos/{video_id}', video_id, 'Downloading video JSON')
 
         title = video['title']
 
         try:
             streams = self._download_json(
-                'http://playapi.mtgx.tv/v3/videos/stream/%s' % video_id,
+                f'http://playapi.mtgx.tv/v3/videos/stream/{video_id}',
                 video_id, 'Downloading streams JSON')
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
@@ -392,7 +389,7 @@ class ViafreeIE(InfoExtractor):
     def _real_extract(self, url):
         country, path = self._match_valid_url(url).groups()
         content = self._download_json(
-            'https://viafree-content.mtg-api.com/viafree-content/v1/%s/path/%s' % (country, path), path)
+            f'https://viafree-content.mtg-api.com/viafree-content/v1/{country}/path/{path}', path)
         program = content['_embedded']['viafreeBlocks'][0]['_embedded']['program']
         guid = program['guid']
         meta = content['meta']

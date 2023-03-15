@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-)
+from ..utils import ExtractorError, int_or_none, parse_iso8601
 
 
 class PlayFMIE(InfoExtractor):
@@ -35,12 +31,12 @@ class PlayFMIE(InfoExtractor):
         slug = mobj.group('slug')
 
         recordings = self._download_json(
-            'http://v2api.play.fm/recordings/slug/%s' % slug, video_id)
+            f'http://v2api.play.fm/recordings/slug/{slug}', video_id)
 
         error = recordings.get('error')
         if isinstance(error, dict):
             raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, error.get('message')),
+                f"{self.IE_NAME} returned error: {error.get('message')}",
                 expected=True)
 
         audio_url = recordings['audio']

@@ -1,6 +1,6 @@
 import itertools
 import re
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -58,7 +58,7 @@ class NaverBaseIE(InfoExtractor):
                 encoding_option = stream.get('encodingOption', {})
                 bitrate = stream.get('bitrate', {})
                 formats.append({
-                    'format_id': '%s_%s' % (stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
+                    'format_id': f"{stream.get('type') or stream_type}_{dict_get(encoding_option, ('name', 'id'))}",
                     'url': stream_url,
                     'ext': 'mp4',
                     'width': int_or_none(encoding_option.get('width')),
@@ -223,7 +223,7 @@ class NaverLiveIE(InfoExtractor):
         if status == 'CLOSED':
             raise ExtractorError('Stream is offline.', expected=True)
         elif status != 'OPENED':
-            raise ExtractorError('Unknown status %s' % status)
+            raise ExtractorError(f'Unknown status {status}')
 
         title = meta.get('title')
         stream_list = video_data.get('streams')

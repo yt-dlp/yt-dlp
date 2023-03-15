@@ -74,9 +74,9 @@ class PornHubBaseIE(InfoExtractor):
         if username is None:
             return
 
-        login_url = 'https://www.%s/%slogin' % (host, 'premium/' if 'premium' in host else '')
+        login_url = f"https://www.{host}/{'premium/' if 'premium' in host else ''}login"
         login_page = self._download_webpage(
-            login_url, None, 'Downloading %s login page' % site)
+            login_url, None, f'Downloading {site} login page')
 
         def is_logged(webpage):
             return any(re.search(p, webpage) for p in (
@@ -95,8 +95,8 @@ class PornHubBaseIE(InfoExtractor):
         })
 
         response = self._download_json(
-            'https://www.%s/front/authenticate' % host, None,
-            'Logging in to %s' % site,
+            f'https://www.{host}/front/authenticate', None,
+            f'Logging in to {site}',
             data=urlencode_postdata(login_form),
             headers={
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -111,7 +111,7 @@ class PornHubBaseIE(InfoExtractor):
         message = response.get('message')
         if message is not None:
             raise ExtractorError(
-                'Unable to login: %s' % message, expected=True)
+                f'Unable to login: {message}', expected=True)
 
         raise ExtractorError('Unable to log in')
 
@@ -259,7 +259,7 @@ class PornHubIE(PornHubBaseIE):
     }]
 
     def _extract_count(self, pattern, webpage, name):
-        return str_to_int(self._search_regex(pattern, webpage, '%s count' % name, default=None))
+        return str_to_int(self._search_regex(pattern, webpage, f'{name} count', default=None))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -273,8 +273,8 @@ class PornHubIE(PornHubBaseIE):
         def dl_webpage(platform):
             self._set_cookie(host, 'platform', platform)
             return self._download_webpage(
-                'https://www.%s/view_video.php?viewkey=%s' % (host, video_id),
-                video_id, 'Downloading %s webpage' % platform)
+                f'https://www.{host}/view_video.php?viewkey={video_id}',
+                video_id, f'Downloading {platform} webpage')
 
         webpage = dl_webpage('pc')
 
@@ -285,7 +285,7 @@ class PornHubIE(PornHubBaseIE):
         if error_msg:
             error_msg = re.sub(r'\s+', ' ', error_msg)
             raise ExtractorError(
-                'PornHub said: %s' % error_msg,
+                f'PornHub said: {error_msg}',
                 expected=True, video_id=video_id)
 
         if any(re.search(p, webpage) for p in (
@@ -397,7 +397,7 @@ class PornHubIE(PornHubBaseIE):
             if not video_urls and re.search(
                     r'<[^>]+\bid=["\']lockedPlayer', webpage):
                 raise ExtractorError(
-                    'Video %s is locked' % video_id, expected=True)
+                    f'Video {video_id} is locked', expected=True)
 
         if not video_urls:
             js_vars = extract_js_vars(
@@ -522,7 +522,7 @@ class PornHubPlaylistBaseIE(PornHubBaseIE):
 
         return [
             self.url_result(
-                'http://www.%s/%s' % (host, video_url),
+                f'http://www.{host}/{video_url}',
                 PornHubIE.ie_key(), video_title=title)
             for video_url, title in orderedSet(re.findall(
                 r'href="/?(view_video\.php\?.*\bviewkey=[\da-z]+[^"]*)"[^>]*\s+title="([^"]+)"',
@@ -568,7 +568,7 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         user_id = mobj.group('id')
-        videos_url = '%s/videos' % mobj.group('url')
+        videos_url = f"{mobj.group('url')}/videos"
         page = self._extract_page(url)
         if page:
             videos_url = update_url_query(videos_url, {'page': page})
@@ -789,8 +789,8 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
         page_entries = self._extract_entries(webpage, host)
 
         def download_page(page_num):
-            note = 'Downloading page {}'.format(page_num)
-            page_url = 'https://www.{}/playlist/viewChunked'.format(host)
+            note = f'Downloading page {page_num}'
+            page_url = f'https://www.{host}/playlist/viewChunked'
             return self._download_webpage(page_url, item_id, note, query={
                 'id': playlist_id,
                 'page': page_num,

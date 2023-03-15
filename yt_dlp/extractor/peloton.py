@@ -115,7 +115,7 @@ class PelotonIE(InfoExtractor):
             else:
                 raise
 
-        metadata = self._download_json('https://api.onepeloton.com/api/ride/%s/details?stream_source=multichannel' % video_id, video_id)
+        metadata = self._download_json(f'https://api.onepeloton.com/api/ride/{video_id}/details?stream_source=multichannel', video_id)
         ride_data = metadata.get('ride')
         if not ride_data:
             raise ExtractorError('Missing stream metadata')
@@ -208,7 +208,7 @@ class PelotonLiveIE(InfoExtractor):
 
         if peloton.get('ride_id'):
             if not peloton.get('is_live') or peloton.get('is_encore') or peloton.get('status') != 'PRE_START':
-                return self.url_result('https://members.onepeloton.com/classes/player/%s' % peloton['ride_id'])
+                return self.url_result(f"https://members.onepeloton.com/classes/player/{peloton['ride_id']}")
             else:
                 raise ExtractorError('Ride has not started', expected=True)
         else:

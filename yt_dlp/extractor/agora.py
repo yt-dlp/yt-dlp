@@ -168,7 +168,7 @@ class TokFMPodcastIE(InfoExtractor):
         for ext in ('aac', 'mp3'):
             url_data = self._download_json(
                 f'https://api.podcast.radioagora.pl/api4/getSongUrl?podcast_id={media_id}&device_id={uuid.uuid4()}&ppre=false&audio={ext}',
-                media_id, 'Downloading podcast %s URL' % ext)
+                media_id, f'Downloading podcast {ext} URL')
             # prevents inserting the mp3 (default) multiple times
             if 'link_ssl' in url_data and f'.{ext}' in url_data['link_ssl']:
                 formats.append({

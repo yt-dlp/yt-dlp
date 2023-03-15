@@ -2,11 +2,7 @@ import re
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    str_or_none,
-)
+from ..utils import ExtractorError, int_or_none, str_or_none
 
 
 class VVVVIDIE(InfoExtractor):
@@ -91,7 +87,7 @@ class VVVVIDIE(InfoExtractor):
         if query:
             q.update(query)
         response = self._download_json(
-            'https://www.vvvvid.it/vvvvid/ondemand/%s/%s' % (show_id, path),
+            f'https://www.vvvvid.it/vvvvid/ondemand/{show_id}/{path}',
             video_id, headers=self.geo_verification_headers(), query=q, fatal=fatal)
         if not (response or fatal):
             return
@@ -110,7 +106,7 @@ class VVVVIDIE(InfoExtractor):
         show_id, season_id, video_id = self._match_valid_url(url).groups()
 
         response = self._download_info(
-            show_id, 'season/%s' % season_id,
+            show_id, f'season/{season_id}',
             video_id, query={'video_id': video_id})
 
         vid = int(video_id)
@@ -219,7 +215,7 @@ class VVVVIDIE(InfoExtractor):
                     embed_code, video_id, 'mp4', m3u8_id='hls', fatal=False))
             else:
                 formats.extend(self._extract_wowza_formats(
-                    'http://sb.top-ix.org/videomg/_definst_/mp4:%s/playlist.m3u8' % embed_code, video_id))
+                    f'http://sb.top-ix.org/videomg/_definst_/mp4:{embed_code}/playlist.m3u8', video_id))
             metadata_from_url(embed_code)
 
         if not is_youtube:

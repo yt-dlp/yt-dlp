@@ -4,13 +4,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    remove_end,
-    try_get,
-    urljoin,
-)
+from ..utils import int_or_none, parse_duration, remove_end, try_get, urljoin
 
 
 class MailRuIE(InfoExtractor):
@@ -108,7 +102,7 @@ class MailRuIE(InfoExtractor):
 
         video_id = None
         if meta_id:
-            meta_url = 'https://my.mail.ru/+/video/meta/%s' % meta_id
+            meta_url = f'https://my.mail.ru/+/video/meta/{meta_id}'
         else:
             video_id = mobj.group('idv1')
             if not video_id:
@@ -137,14 +131,14 @@ class MailRuIE(InfoExtractor):
         # Fallback old approach
         if not video_data:
             video_data = self._download_json(
-                'http://api.video.mail.ru/videos/%s.json?new=1' % video_id,
+                f'http://api.video.mail.ru/videos/{video_id}.json?new=1',
                 video_id, 'Downloading video JSON')
 
         headers = {}
 
         video_key = self._get_cookies('https://my.mail.ru').get('video_key')
         if video_key:
-            headers['Cookie'] = 'video_key=%s' % video_key.value
+            headers['Cookie'] = f'video_key={video_key.value}'
 
         formats = []
         for f in video_data['videos']:
@@ -171,7 +165,7 @@ class MailRuIE(InfoExtractor):
 
         acc_id = meta_data.get('accId')
         item_id = meta_data.get('itemId')
-        content_id = '%s_%s' % (acc_id, item_id) if acc_id and item_id else video_id
+        content_id = f'{acc_id}_{item_id}' if acc_id and item_id else video_id
 
         thumbnail = meta_data.get('poster')
         duration = int_or_none(meta_data.get('duration'))
@@ -238,7 +232,7 @@ class MailRuMusicSearchBaseIE(InfoExtractor):
         artist = t.get('Author') or t.get('Author_Text_HTML')
 
         if track:
-            title = '%s - %s' % (artist, track) if artist else track
+            title = f'{artist} - {track}' if artist else track
         else:
             title = audio_id
 

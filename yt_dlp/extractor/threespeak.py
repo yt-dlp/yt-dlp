@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    try_get,
-    unified_strdate,
-)
+from ..utils import try_get, unified_strdate
 
 
 class ThreeSpeakIE(InfoExtractor):
@@ -86,7 +83,7 @@ class ThreeSpeakUserIE(InfoExtractor):
         webpage = self._download_webpage(url, id)
         entries = [
             self.url_result(
-                'https://3speak.tv/watch?v=%s' % video,
+                f'https://3speak.tv/watch?v={video}',
                 ie=ThreeSpeakIE.ie_key())
             for video in re.findall(r'data-payout\s?\=\s?\"([^\"]+)\"', webpage) if video
         ]

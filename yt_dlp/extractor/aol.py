@@ -1,12 +1,7 @@
 import re
 
 from .yahoo import YahooIE
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_qs,
-    url_or_none,
-)
+from ..utils import ExtractorError, int_or_none, parse_qs, url_or_none
 
 
 class AolIE(YahooIE):  # XXX: Do not subclass from concrete IE
@@ -82,10 +77,10 @@ class AolIE(YahooIE):  # XXX: Do not subclass from concrete IE
             return self._extract_yahoo_video(video_id, 'us')
 
         response = self._download_json(
-            'https://feedapi.b2c.on.aol.com/v1.0/app/videos/aolon/%s/details' % video_id,
+            f'https://feedapi.b2c.on.aol.com/v1.0/app/videos/aolon/{video_id}/details',
             video_id)['response']
         if response['statusText'] != 'Ok':
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, response['statusText']), expected=True)
+            raise ExtractorError(f"{self.IE_NAME} said: {response['statusText']}", expected=True)
 
         video_data = response['data']
         formats = []

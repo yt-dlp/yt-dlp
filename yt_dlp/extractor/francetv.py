@@ -1,19 +1,19 @@
 from .common import InfoExtractor
+from .dailymotion import DailymotionIE
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     format_field,
     parse_iso8601,
     parse_qs,
 )
-from .dailymotion import DailymotionIE
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
     def _make_url_result(self, video_or_full_id, catalog=None):
-        full_id = 'francetv:%s' % video_or_full_id
+        full_id = f'francetv:{video_or_full_id}'
         if '@' not in video_or_full_id and catalog:
-            full_id += '@%s' % catalog
+            full_id += f'@{catalog}'
         return self.url_result(
             full_id, ie=FranceTVIE.ie_key(),
             video_id=video_or_full_id.split('@')[0])
@@ -89,8 +89,8 @@ class FranceTVIE(InfoExtractor):
 
         for device_type in ('desktop', 'mobile'):
             dinfo = self._download_json(
-                'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                video_id, 'Downloading %s video JSON' % device_type, query={
+                f'https://player.webservices.francetelevisions.fr/v1/videos/{video_id}',
+                video_id, f'Downloading {device_type} video JSON', query={
                     'device_type': device_type,
                     'browser': 'chrome',
                 }, fatal=False)
@@ -131,7 +131,7 @@ class FranceTVIE(InfoExtractor):
                 if token_url:
                     token_json = self._download_json(
                         token_url, video_id,
-                        'Downloading signed %s manifest URL' % format_id)
+                        f'Downloading signed {format_id} manifest URL')
                     if token_json:
                         video_url = token_json.get('url')
             if not video_url:
@@ -156,7 +156,7 @@ class FranceTVIE(InfoExtractor):
             elif video_url.startswith('rtmp'):
                 formats.append({
                     'url': video_url,
-                    'format_id': 'rtmp-%s' % format_id,
+                    'format_id': f'rtmp-{format_id}',
                     'ext': 'flv',
                 })
             else:
@@ -192,7 +192,7 @@ class FranceTVIE(InfoExtractor):
             })
 
         if subtitle:
-            title += ' - %s' % subtitle
+            title += f' - {subtitle}'
         title = title.strip()
 
         return {

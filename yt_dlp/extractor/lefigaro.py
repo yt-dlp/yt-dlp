@@ -2,10 +2,7 @@ import json
 import math
 
 from .common import InfoExtractor
-from ..utils import (
-    InAdvancePagedList,
-    traverse_obj,
-)
+from ..utils import InAdvancePagedList, traverse_obj
 
 
 class LeFigaroVideoEmbedIE(InfoExtractor):

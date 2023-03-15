@@ -206,7 +206,7 @@ class GDCVaultIE(InfoExtractor):
                     'display_id': display_id,
                 })
                 return info
-            embed_url = '%s/xml/%s' % (xml_root, xml_name)
+            embed_url = f'{xml_root}/xml/{xml_name}'
             ie_key = 'DigitallySpeaking'
 
         return {

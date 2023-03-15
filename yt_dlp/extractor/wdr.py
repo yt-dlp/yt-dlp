@@ -1,21 +1,18 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
+    ExtractorError,
     determine_ext,
     dict_get,
-    ExtractorError,
     js_to_json,
     strip_jsonp,
     try_get,
     unified_strdate,
     update_url_query,
-    urlhandle_detect_ext,
     url_or_none,
+    urlhandle_detect_ext,
 )
 
 
@@ -336,7 +333,7 @@ class WDRElefantIE(InfoExtractor):
         zmdb_url_element = xml_metadata.find('./movie/zmdb_url')
         if zmdb_url_element is None:
             raise ExtractorError(
-                '%s is not a video' % display_id, expected=True)
+                f'{display_id} is not a video', expected=True)
         return self.url_result(zmdb_url_element.text, ie=WDRIE.ie_key())
 
 

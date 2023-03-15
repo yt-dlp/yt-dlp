@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    unified_strdate,
-    update_url_query,
-    urlencode_postdata,
-)
+from ..utils import unified_strdate, update_url_query, urlencode_postdata
 
 
 class MediciIE(InfoExtractor):
@@ -33,7 +29,7 @@ class MediciIE(InfoExtractor):
             MEDICI_URL, video_id,
             data=urlencode_postdata({
                 'json': 'true',
-                'page': '/%s' % video_id,
+                'page': f'/{video_id}',
                 'timezone_offset': -420,
             }), headers={
                 'X-CSRFToken': self._get_cookies(url)['csrftoken'].value,

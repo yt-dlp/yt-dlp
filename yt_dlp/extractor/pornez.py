@@ -30,7 +30,7 @@ class PornezIE(InfoExtractor):
         entries = self._parse_html5_media_entries(iframe_src, webpage, video_id)[0]
         for format in entries['formats']:
             height = self._search_regex(r'_(\d+)\.m3u8', format['url'], 'height')
-            format['format_id'] = '%sp' % height
+            format['format_id'] = f'{height}p'
             format['height'] = int_or_none(height)
 
         entries.update({

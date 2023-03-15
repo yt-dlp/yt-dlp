@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    format_field,
-    int_or_none,
-    str_or_none,
-)
+from ..utils import format_field, int_or_none, str_or_none
 
 
 class LineLiveBaseIE(InfoExtractor):
@@ -71,7 +67,7 @@ class LineLiveIE(LineLiveBaseIE):
     def _real_extract(self, url):
         channel_id, broadcast_id = self._match_valid_url(url).groups()
         broadcast = self._download_json(
-            self._API_BASE_URL + '%s/broadcast/%s' % (channel_id, broadcast_id),
+            self._API_BASE_URL + f'{channel_id}/broadcast/{broadcast_id}',
             broadcast_id)
         item = broadcast['item']
         info = self._parse_broadcast_item(item)

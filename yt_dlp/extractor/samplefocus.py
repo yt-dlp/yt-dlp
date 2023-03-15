@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    get_element_by_attribute,
-    int_or_none,
-)
+from ..utils import extract_attributes, get_element_by_attribute, int_or_none
 
 
 class SampleFocusIE(InfoExtractor):
@@ -90,7 +86,7 @@ class SampleFocusIE(InfoExtractor):
                 r'<a[^>]+href=(["\'])/license\1[^>]*>(?P<license>[^<]+)<',
                 webpage, 'license', fatal=False, group='license'),
             'uploader_id': uploader_id,
-            'like_count': extract_count('sample-%s-favorites' % sample_id),
+            'like_count': extract_count(f'sample-{sample_id}-favorites'),
             'comment_count': extract_count('comments'),
             'comments': comments,
             'categories': categories,

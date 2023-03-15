@@ -33,7 +33,7 @@ class ChirbitIE(InfoExtractor):
         audio_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://chirb.it/%s' % audio_id, audio_id)
+            f'http://chirb.it/{audio_id}', audio_id)
 
         data_fd = self._search_regex(
             r'data-fd=(["\'])(?P<url>(?:(?!\1).)+)\1',

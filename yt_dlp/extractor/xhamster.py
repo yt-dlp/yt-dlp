@@ -4,11 +4,11 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     dict_get,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     int_or_none,
     parse_duration,
@@ -177,7 +177,7 @@ class XHamsterIE(InfoExtractor):
                         continue
                     format_urls.add(format_url)
                     formats.append({
-                        'format_id': '%s-%s' % (format_id, quality),
+                        'format_id': f'{format_id}-{quality}',
                         'url': format_url,
                         'ext': determine_ext(format_url, 'mp4'),
                         'height': get_height(quality),
@@ -228,7 +228,7 @@ class XHamsterIE(InfoExtractor):
                                            or str_or_none(standard_format.get('label'))
                                            or '')
                                 formats.append({
-                                    'format_id': '%s-%s' % (format_id, quality),
+                                    'format_id': f'{format_id}-{quality}',
                                     'url': standard_url,
                                     'ext': ext,
                                     'height': get_height(quality),
@@ -431,10 +431,10 @@ class XHamsterUserIE(InfoExtractor):
     }]
 
     def _entries(self, user_id):
-        next_page_url = 'https://xhamster.com/users/%s/videos/1' % user_id
+        next_page_url = f'https://xhamster.com/users/{user_id}/videos/1'
         for pagenum in itertools.count(1):
             page = self._download_webpage(
-                next_page_url, user_id, 'Downloading page %s' % pagenum)
+                next_page_url, user_id, f'Downloading page {pagenum}')
             for video_tag in re.findall(
                     r'(<a[^>]+class=["\'].*?\bvideo-thumb__image-container[^>]+>)',
                     page):

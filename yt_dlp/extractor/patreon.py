@@ -3,14 +3,13 @@ from urllib.error import HTTPError
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
+    KNOWN_EXTENSIONS,
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     int_or_none,
-    KNOWN_EXTENSIONS,
     mimetype2ext,
     parse_iso8601,
     str_or_none,

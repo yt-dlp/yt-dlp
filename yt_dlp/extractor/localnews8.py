@@ -35,7 +35,7 @@ class LocalNews8IE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': 'kaltura:%s:%s' % (partner_id, kaltura_id),
+            'url': f'kaltura:{partner_id}:{kaltura_id}',
             'ie_key': 'Kaltura',
             'id': video_id,
             'display_id': display_id,

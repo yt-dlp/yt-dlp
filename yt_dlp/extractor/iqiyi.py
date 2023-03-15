@@ -4,20 +4,20 @@ import re
 import time
 
 from .common import InfoExtractor
+from .openload import PhantomJSwrapper
 from ..compat import (
     compat_str,
+    compat_urllib_parse_unquote,
     compat_urllib_parse_urlencode,
-    compat_urllib_parse_unquote
 )
-from .openload import PhantomJSwrapper
 from ..utils import (
+    ExtractorError,
     clean_html,
     decode_packed_codes,
-    ExtractorError,
     float_or_none,
     format_field,
-    get_element_by_id,
     get_element_by_attribute,
+    get_element_by_id,
     int_or_none,
     js_to_json,
     ohdave_rsa_encrypt,
@@ -161,7 +161,7 @@ class IqiyiSDKInterpreter:
             elif function in other_functions:
                 other_functions[function]()
             else:
-                raise ExtractorError('Unknown function %s' % function)
+                raise ExtractorError(f'Unknown function {function}')
 
         return sdk.target
 
@@ -280,7 +280,7 @@ class IqiyiIE(InfoExtractor):
         if code != 'A00000':
             msg = MSG_MAP.get(code)
             if not msg:
-                msg = 'error %s' % code
+                msg = f'error {code}'
                 if validation_result.get('msg'):
                     msg += ': ' + validation_result['msg']
             self.report_warning('unable to log in: ' + msg)
@@ -302,7 +302,7 @@ class IqiyiIE(InfoExtractor):
         }
 
         return self._download_json(
-            'http://cache.m.iqiyi.com/jp/tmts/%s/%s/' % (tvid, video_id),
+            f'http://cache.m.iqiyi.com/jp/tmts/{tvid}/{video_id}/',
             video_id, transform_source=lambda s: remove_start(s, 'var tvInfoJs='),
             query=params, headers=self.geo_verification_headers())
 
@@ -749,7 +749,7 @@ class IqAlbumIE(InfoExtractor):
         album_data = next_data['props']['initialState']['album']['videoAlbumInfo']
 
         if album_data.get('videoType') == 'singleVideo':
-            return self.url_result('https://www.iq.com/play/%s' % album_id, IqIE.ie_key())
+            return self.url_result(f'https://www.iq.com/play/{album_id}', IqIE.ie_key())
         return self.playlist_result(
             self._entries(album_data['albumId'], album_data['totalPageRange'], album_id,
                           traverse_obj(next_data, ('props', 'initialProps', 'pageProps', 'modeCode')),

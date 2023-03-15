@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    unescapeHTML,
-)
+from ..utils import int_or_none, parse_iso8601, unescapeHTML
 
 
 class PeriscopeBaseIE(InfoExtractor):
@@ -13,13 +9,13 @@ class PeriscopeBaseIE(InfoExtractor):
 
     def _call_api(self, method, query, item_id):
         return self._download_json(
-            'https://api.periscope.tv/api/v2/%s' % method,
+            f'https://api.periscope.tv/api/v2/{method}',
             item_id, query=query)
 
     def _parse_broadcast_data(self, broadcast, video_id):
         title = broadcast.get('status') or 'Periscope Broadcast'
         uploader = broadcast.get('user_display_name') or broadcast.get('username')
-        title = '%s - %s' % (uploader, title) if uploader else title
+        title = f'{uploader} - {title}' if uploader else title
         is_live = broadcast.get('state').lower() == 'running'
 
         thumbnails = [{
@@ -177,7 +173,7 @@ class PeriscopeUserIE(PeriscopeBaseIE):
 
         entries = [
             self.url_result(
-                'https://www.periscope.tv/%s/%s' % (user_name, broadcast_id))
+                f'https://www.periscope.tv/{user_name}/{broadcast_id}')
             for broadcast_id in broadcast_ids]
 
         return self.playlist_result(entries, user_id, title, description)

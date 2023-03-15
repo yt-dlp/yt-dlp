@@ -47,7 +47,7 @@ class IndavideoEmbedIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/%s' % video_id,
+            f'https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/{video_id}',
             video_id)['data']
 
         title = video['title']
@@ -68,7 +68,7 @@ class IndavideoEmbedIE(InfoExtractor):
         video_prefix = video_urls[0].rsplit('/', 1)[0]
 
         for flv_file in video.get('flv_files', []):
-            flv_url = '%s/%s' % (video_prefix, flv_file)
+            flv_url = f'{video_prefix}/{flv_file}'
             if flv_url not in video_urls:
                 video_urls.append(flv_url)
 

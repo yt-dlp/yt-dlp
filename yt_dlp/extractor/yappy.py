@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    traverse_obj,
-    unified_timestamp,
-    url_or_none
-)
+from ..utils import int_or_none, traverse_obj, unified_timestamp, url_or_none
 
 
 class YappyIE(InfoExtractor):

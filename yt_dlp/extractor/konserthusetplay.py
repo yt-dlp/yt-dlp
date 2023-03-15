@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    int_or_none,
-    url_or_none,
-)
+from ..utils import determine_ext, float_or_none, int_or_none, url_or_none
 
 
 class KonserthusetPlayIE(InfoExtractor):
@@ -34,7 +29,7 @@ class KonserthusetPlayIE(InfoExtractor):
             r'https?://csp\.picsearch\.com/rest\?.*\be=(.+?)[&"\']', webpage, 'e')
 
         rest = self._download_json(
-            'http://csp.picsearch.com/rest?e=%s&containerId=mediaplayer&i=object' % e,
+            f'http://csp.picsearch.com/rest?e={e}&containerId=mediaplayer&i=object',
             video_id, transform_source=lambda s: s[s.index('{'):s.rindex('}') + 1])
 
         media = rest['media']
@@ -78,7 +73,7 @@ class KonserthusetPlayIE(InfoExtractor):
                 f.update({
                     'url': connection_url,
                     'play_path': video_url,
-                    'format_id': 'rtmp-%s' % format_id if format_id else 'rtmp',
+                    'format_id': f'rtmp-{format_id}' if format_id else 'rtmp',
                     'ext': 'flv',
                 })
                 formats.append(f)
@@ -86,7 +81,7 @@ class KonserthusetPlayIE(InfoExtractor):
                     f = f_common.copy()
                     f.update({
                         'url': fallback_url,
-                        'format_id': 'http-%s' % format_id if format_id else 'http',
+                        'format_id': f'http-{format_id}' if format_id else 'http',
                     })
                     formats.append(f)
 

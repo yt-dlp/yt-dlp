@@ -71,8 +71,8 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     def _extract_aetn_info(self, domain, filter_key, filter_value, url):
         requestor_id, brand = self._DOMAIN_MAP[domain]
         result = self._download_json(
-            'https://feeds.video.aetnd.com/api/v2/%s/videos' % brand,
-            filter_value, query={'filter[%s]' % filter_key: filter_value})['results'][0]
+            f'https://feeds.video.aetnd.com/api/v2/{brand}/videos',
+            filter_value, query={f'filter[{filter_key}]': filter_value})['results'][0]
         title = result['title']
         video_id = result['id']
         media_url = result['publicUrl']
@@ -187,7 +187,7 @@ class AENetworksListBaseIE(AENetworksBaseIE):
         domain, slug = self._match_valid_url(url).groups()
         _, brand = self._DOMAIN_MAP[domain]
         playlist = self._call_api(self._RESOURCE, slug, brand, self._FIELDS)
-        base_url = 'http://watch.%s' % domain
+        base_url = f'http://watch.{domain}'
 
         entries = []
         for item in (playlist.get(self._ITEMS_KEY) or []):

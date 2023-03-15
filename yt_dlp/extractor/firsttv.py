@@ -1,14 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    int_or_none,
-    qualities,
-    unified_strdate,
-    url_or_none,
-)
+from ..compat import compat_str, compat_urlparse
+from ..utils import int_or_none, qualities, unified_strdate, url_or_none
 
 
 class FirstTVIE(InfoExtractor):
@@ -117,10 +109,9 @@ class FirstTVIE(InfoExtractor):
                     m3u8_path = ','
                 else:
                     tbrs = [compat_str(t) for t in sorted(f['tbr'] for f in formats)]
-                    m3u8_path = '_,%s,%s' % (','.join(tbrs), '.mp4')
+                    m3u8_path = f"_,{','.join(tbrs)},{'.mp4'}"
                 formats.extend(self._extract_m3u8_formats(
-                    'http://balancer-vod.1tv.ru/%s%s.urlset/master.m3u8'
-                    % (path, m3u8_path),
+                    f'http://balancer-vod.1tv.ru/{path}{m3u8_path}.urlset/master.m3u8',
                     display_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
 

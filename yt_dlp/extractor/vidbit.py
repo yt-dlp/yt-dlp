@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    int_or_none,
-    js_to_json,
-    remove_end,
-    unified_strdate,
-)
+from ..utils import int_or_none, js_to_json, remove_end, unified_strdate
 
 
 class VidbitIE(InfoExtractor):
@@ -32,7 +27,7 @@ class VidbitIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            compat_urlparse.urljoin(url, '/watch?v=%s' % video_id), video_id)
+            compat_urlparse.urljoin(url, f'/watch?v={video_id}'), video_id)
 
         video_url, title = [None] * 2
 

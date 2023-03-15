@@ -2,12 +2,7 @@ import json
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    str_or_none,
-    try_get,
-)
+from ..utils import ExtractorError, int_or_none, str_or_none, try_get
 
 
 class ImgGamingBaseIE(InfoExtractor):
@@ -73,7 +68,7 @@ class ImgGamingBaseIE(InfoExtractor):
                 if not video_id:
                     continue
                 entries.append(self.url_result(
-                    'https://%s/video/%s' % (domain, video_id),
+                    f'https://{domain}/video/{video_id}',
                     self.ie_key(), video_id))
             return self.playlist_result(
                 entries, media_id, playlist.get('title'),

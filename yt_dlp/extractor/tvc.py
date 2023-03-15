@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-)
+from ..utils import clean_html, int_or_none
 
 
 class TVCIE(InfoExtractor):
@@ -24,7 +21,7 @@ class TVCIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://www.tvc.ru/video/json/id/%s' % video_id, video_id)
+            f'http://www.tvc.ru/video/json/id/{video_id}', video_id)
 
         formats = []
         for info in video.get('path', {}).get('quality', []):

@@ -34,11 +34,11 @@ class MoveFilesAfterDownloadPP(PostProcessor):
             if os.path.abspath(encodeFilename(oldfile)) == os.path.abspath(encodeFilename(newfile)):
                 continue
             if not os.path.exists(encodeFilename(oldfile)):
-                self.report_warning('File "%s" cannot be found' % oldfile)
+                self.report_warning(f'File "{oldfile}" cannot be found')
                 continue
             if os.path.exists(encodeFilename(newfile)):
                 if self.get_param('overwrites', True):
-                    self.report_warning('Replacing existing file "%s"' % newfile)
+                    self.report_warning(f'Replacing existing file "{newfile}"')
                     os.remove(encodeFilename(newfile))
                 else:
                     self.report_warning(

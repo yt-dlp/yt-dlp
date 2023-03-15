@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    get_element_by_class,
-    js_to_json,
-)
+from ..utils import clean_html, get_element_by_class, js_to_json
 
 
 class TVNoeIE(InfoExtractor):

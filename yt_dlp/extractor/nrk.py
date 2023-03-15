@@ -52,12 +52,12 @@ class NRKBaseIE(InfoExtractor):
                 msg=MESSAGES.get('ProgramIsGeoBlocked'),
                 countries=self._GEO_COUNTRIES)
         message = data.get('endUserMessage') or MESSAGES.get(message_type, message_type)
-        raise ExtractorError('%s said: %s' % (self.IE_NAME, message), expected=True)
+        raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
 
     def _call_api(self, path, video_id, item=None, note=None, fatal=True, query=None):
         return self._download_json(
             urljoin('https://psapi.nrk.no/', path),
-            video_id, note or 'Downloading %s JSON' % item,
+            video_id, note or f'Downloading {item} JSON',
             fatal=fatal, query=query)
 
 
@@ -215,7 +215,7 @@ class NRKIE(NRKBaseIE):
             sub_key = str_or_none(sub.get('language')) or 'nb'
             sub_type = str_or_none(sub.get('type'))
             if sub_type:
-                sub_key += '-%s' % sub_type
+                sub_key += f'-{sub_type}'
             subtitles.setdefault(sub_key, []).append({
                 'url': sub_url,
             })
@@ -248,7 +248,7 @@ class NRKIE(NRKBaseIE):
         if is_series:
             series = season_id = season_number = episode = episode_number = None
             programs = self._call_api(
-                'programs/%s' % video_id, video_id, 'programs', fatal=False)
+                f'programs/{video_id}', video_id, 'programs', fatal=False)
             if programs and isinstance(programs, dict):
                 series = str_or_none(programs.get('seriesTitle'))
                 season_id = str_or_none(programs.get('seasonId'))
@@ -258,7 +258,7 @@ class NRKIE(NRKBaseIE):
             if not series:
                 series = title
             if alt_title:
-                title += ' - %s' % alt_title
+                title += f' - {alt_title}'
             if not season_number:
                 season_number = int_or_none(self._search_regex(
                     r'Sesong\s+(\d+)', description or '', 'season number',
@@ -410,7 +410,7 @@ class NRKTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         return self.url_result(
-            'nrk:%s' % video_id, ie=NRKIE.ie_key(), video_id=video_id)
+            f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
 
 class NRKTVEpisodeIE(InfoExtractor):
@@ -467,7 +467,7 @@ class NRKTVEpisodeIE(InfoExtractor):
         info.update({
             '_type': 'url',
             'id': nrk_id,
-            'url': 'nrk:%s' % nrk_id,
+            'url': f'nrk:{nrk_id}',
             'ie_key': NRKIE.ie_key(),
             'season_number': int(season_number),
             'episode_number': int(episode_number),
@@ -485,7 +485,7 @@ class NRKTVSerieBaseIE(NRKBaseIE):
             if not nrk_id or not isinstance(nrk_id, compat_str):
                 continue
             entries.append(self.url_result(
-                'nrk:%s' % nrk_id, ie=NRKIE.ie_key(), video_id=nrk_id))
+                f'nrk:{nrk_id}', ie=NRKIE.ie_key(), video_id=nrk_id))
         return entries
 
     _ASSETS_KEYS = ('episodes', 'instalments',)
@@ -600,7 +600,7 @@ class NRKTVSeasonIE(NRKTVSerieBaseIE):
         serie_kind = mobj.group('serie_kind')
         serie = mobj.group('serie')
         season_id = mobj.group('id') or mobj.group('id_2')
-        display_id = '%s/%s' % (serie, season_id)
+        display_id = f'{serie}/{season_id}'
 
         data = self._call_api(
             '%s/catalog/%s/%s/seasons/%s'
@@ -699,8 +699,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
 
         size_prefix = 'p' if is_radio else 'embeddedInstalmentsP'
         series = self._call_api(
-            '%s/catalog/%s/%s'
-            % (domain, self._catalog_name(serie_kind), series_id),
+            f'{domain}/catalog/{self._catalog_name(serie_kind)}/{series_id}',
             series_id, 'serie', query={size_prefix + 'ageSize': 50})
         titles = try_get(series, [
             lambda x: x['titles'],
@@ -719,7 +718,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
                 if not season_url:
                     season_name = season.get('name')
                     if season_name and isinstance(season_name, compat_str):
-                        season_url = 'https://%s.nrk.no/serie/%s/sesong/%s' % (domain, series_id, season_name)
+                        season_url = f'https://{domain}.nrk.no/serie/{series_id}/sesong/{season_name}'
                 if season_url:
                     entries.append(self.url_result(
                         season_url, ie=NRKTVSeasonIE.ie_key(),
@@ -776,7 +775,7 @@ class NRKRadioPodkastIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         return self.url_result(
-            'nrk:%s' % video_id, ie=NRKIE.ie_key(), video_id=video_id)
+            f'nrk:{video_id}', ie=NRKIE.ie_key(), video_id=video_id)
 
 
 class NRKPlaylistBaseIE(InfoExtractor):
@@ -789,7 +788,7 @@ class NRKPlaylistBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
 
         entries = [
-            self.url_result('nrk:%s' % video_id, NRKIE.ie_key())
+            self.url_result(f'nrk:{video_id}', NRKIE.ie_key())
             for video_id in re.findall(self._ITEM_RE, webpage)
         ]
 
@@ -868,7 +867,7 @@ class NRKSkoleIE(InfoExtractor):
         video_id = self._match_id(url)
 
         nrk_id = self._download_json(
-            'https://nrkno-skole-prod.kube.nrk.no/skole/api/media/%s' % video_id,
+            f'https://nrkno-skole-prod.kube.nrk.no/skole/api/media/{video_id}',
             video_id)['psId']
 
-        return self.url_result('nrk:%s' % nrk_id)
+        return self.url_result(f'nrk:{nrk_id}')

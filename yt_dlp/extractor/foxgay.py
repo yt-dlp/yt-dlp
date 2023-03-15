@@ -1,11 +1,7 @@
 import itertools
 
 from .common import InfoExtractor
-from ..utils import (
-    get_element_by_id,
-    int_or_none,
-    remove_end,
-)
+from ..utils import get_element_by_id, int_or_none, remove_end
 
 
 class FoxgayIE(InfoExtractor):

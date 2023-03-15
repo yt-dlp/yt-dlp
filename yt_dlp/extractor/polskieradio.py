@@ -4,23 +4,19 @@ import math
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-    compat_urlparse
-)
+from ..compat import compat_str, compat_urllib_parse_unquote, compat_urlparse
 from ..utils import (
-    determine_ext,
-    extract_attributes,
     ExtractorError,
     InAdvancePagedList,
+    determine_ext,
+    extract_attributes,
     int_or_none,
     js_to_json,
     parse_iso8601,
     strip_or_none,
     traverse_obj,
-    unified_timestamp,
     unescapeHTML,
+    unified_timestamp,
     url_or_none,
 )
 
@@ -329,7 +325,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                 break
             next_url = compat_urlparse.urljoin(url, mobj.group('url'))
             content = self._download_webpage(
-                next_url, category_id, 'Downloading page %s' % page_num)
+                next_url, category_id, f'Downloading page {page_num}')
 
     def _real_extract(self, url):
         category_id = self._match_id(url)

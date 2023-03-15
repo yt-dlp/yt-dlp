@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_iso8601,
-    parse_duration,
-    parse_filesize,
-    int_or_none,
-)
+from ..utils import int_or_none, parse_duration, parse_filesize, parse_iso8601
 
 
 class AlphaPornoIE(InfoExtractor):

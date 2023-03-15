@@ -1,8 +1,5 @@
 from .adobepass import AdobePassIE
-from ..utils import (
-    update_url_query,
-    smuggle_url,
-)
+from ..utils import smuggle_url, update_url_query
 
 
 class SyfyIE(AdobePassIE):

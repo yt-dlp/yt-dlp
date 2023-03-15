@@ -1,18 +1,13 @@
 import json
 
 from .common import InfoExtractor
-from ..compat import (
-    # compat_str,
-    compat_HTTPError,
-)
-from ..utils import (
-    clean_html,
+from ..compat import compat_HTTPError  # compat_str,
+from ..utils import (  # remove_end,; urljoin,
     ExtractorError,
-    # remove_end,
+    clean_html,
     str_or_none,
     strip_or_none,
     unified_timestamp,
-    # urljoin,
 )
 
 
@@ -67,7 +62,7 @@ class PacktPubIE(PacktPubBaseIE):
             headers['Authorization'] = 'Bearer ' + self._TOKEN
         try:
             video_url = self._download_json(
-                'https://services.packtpub.com/products-v1/products/%s/%s/%s' % (course_id, chapter_id, video_id), video_id,
+                f'https://services.packtpub.com/products-v1/products/{course_id}/{chapter_id}/{video_id}', video_id,
                 'Downloading JSON video', headers=headers)['data']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
@@ -121,9 +116,9 @@ class PacktPubCourseIE(PacktPubBaseIE):
         url, course_id = mobj.group('url', 'id')
 
         course = self._download_json(
-            self._STATIC_PRODUCTS_BASE + '%s/toc' % course_id, course_id)
+            self._STATIC_PRODUCTS_BASE + f'{course_id}/toc', course_id)
         metadata = self._download_json(
-            self._STATIC_PRODUCTS_BASE + '%s/summary' % course_id,
+            self._STATIC_PRODUCTS_BASE + f'{course_id}/summary',
             course_id, fatal=False) or {}
 
         entries = []

@@ -1,11 +1,8 @@
+import json
+
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    try_get,
-    url_or_none
-)
-
-import json
+from ..utils import try_get, url_or_none
 
 
 class GoToStageIE(InfoExtractor):
@@ -28,7 +25,7 @@ class GoToStageIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         metadata = self._download_json(
-            'https://api.gotostage.com/contents?ids=%s' % video_id,
+            f'https://api.gotostage.com/contents?ids={video_id}',
             video_id,
             note='Downloading video metadata',
             errnote='Unable to download video metadata')[0]
@@ -52,7 +49,7 @@ class GoToStageIE(InfoExtractor):
             errnote='Unable to register user')
 
         content_response = self._download_json(
-            'https://api.gotostage.com/contents/%s/asset' % video_id,
+            f'https://api.gotostage.com/contents/{video_id}/asset',
             video_id,
             headers={'x-registrantkey': registration_response['registrationKey']},
             note='Get download url',

@@ -1,7 +1,5 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -108,7 +106,7 @@ class PandoraTVIE(InfoExtractor):
                 continue
 
             formats.append({
-                'format_id': '%sp' % height,
+                'format_id': f'{height}p',
                 'url': format_url,
                 'height': int(height),
             })

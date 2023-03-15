@@ -3,11 +3,11 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
 from ..utils import (
-    xpath_text,
-    xpath_element,
+    ExtractorError,
     int_or_none,
     parse_iso8601,
-    ExtractorError,
+    xpath_element,
+    xpath_text,
 )
 
 

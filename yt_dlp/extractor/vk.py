@@ -332,7 +332,7 @@ class VKIE(VKBaseIE):
             mv_data = opts.get('mvData') or {}
             player = opts.get('player') or {}
         else:
-            video_id = '%s_%s' % (mobj.group('oid'), mobj.group('id'))
+            video_id = f"{mobj.group('oid')}_{mobj.group('id')}"
 
             info_page = self._download_webpage(
                 'http://vk.com/video_ext.php?' + mobj.group('embed_query'), video_id)
@@ -567,7 +567,7 @@ class VKUserVideosIE(VKBaseIE):
             section = 'all'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
-        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section), playlist_title)
+        return self.playlist_result(self._entries(page_id, section), f'{page_id}_{section}', playlist_title)
 
 
 class VKWallPostIE(VKBaseIE):

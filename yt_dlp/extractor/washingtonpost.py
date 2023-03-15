@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-
 from ..utils import traverse_obj
 
 
@@ -113,7 +112,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 if content_element.get('type') == 'video':
                     uuids.append(content_element.get('_id'))
 
-        entries = [self.url_result('washingtonpost:%s' % uuid, 'WashingtonPost', uuid) for uuid in uuids]
+        entries = [self.url_result(f'washingtonpost:{uuid}', 'WashingtonPost', uuid) for uuid in uuids]
 
         return {
             '_type': 'playlist',

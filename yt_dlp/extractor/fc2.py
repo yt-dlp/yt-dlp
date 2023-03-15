@@ -94,7 +94,7 @@ class FC2IE(InfoExtractor):
             description = self._og_search_description(webpage, default=None)
 
         vidplaylist = self._download_json(
-            'https://video.fc2.com/api/v3/videoplaylist/%s?sh=1&fs=0' % video_id, video_id,
+            f'https://video.fc2.com/api/v3/videoplaylist/{video_id}?sh=1&fs=0', video_id,
             note='Downloading info page')
         vid_url = traverse_obj(vidplaylist, ('playlist', 'nq'))
         if not vid_url:
@@ -132,7 +132,7 @@ class FC2EmbedIE(InfoExtractor):
         query = compat_parse_qs(mobj.group('query'))
 
         video_id = query['i'][-1]
-        title = query.get('tl', ['FC2 video %s' % video_id])[0]
+        title = query.get('tl', [f'FC2 video {video_id}'])[0]
 
         sj = query.get('sj', [None])[0]
         thumbnail = None
@@ -144,7 +144,7 @@ class FC2EmbedIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'ie_key': FC2IE.ie_key(),
-            'url': 'fc2:%s' % video_id,
+            'url': f'fc2:{video_id}',
             'title': title,
             'thumbnail': thumbnail,
         }
@@ -170,7 +170,7 @@ class FC2LiveIE(InfoExtractor):
         if not websockets:
             raise ExtractorError('websockets library is not available. Please install it.', expected=True)
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://live.fc2.com/%s/' % video_id, video_id)
+        webpage = self._download_webpage(f'https://live.fc2.com/{video_id}/', video_id)
 
         self._set_cookie('live.fc2.com', 'js-player_size', '1')
 
@@ -199,7 +199,7 @@ class FC2LiveIE(InfoExtractor):
         ws_url = update_url_query(control_server['url'], {'control_token': control_server['control_token']})
         playlist_data = None
 
-        self.to_screen('%s: Fetching HLS playlist info via WebSocket' % video_id)
+        self.to_screen(f'{video_id}: Fetching HLS playlist info via WebSocket')
         ws = WebSocketsWrapper(ws_url, {
             'Cookie': str(self._get_cookies('https://live.fc2.com/'))[12:],
             'Origin': 'https://live.fc2.com',
@@ -232,7 +232,7 @@ class FC2LiveIE(InfoExtractor):
                 self.write_debug('Goodbye')
                 playlist_data = data
                 break
-            self.write_debug('Server said: %s%s' % (recv[:100], '...' if len(recv) > 100 else ''))
+            self.write_debug(f"Server said: {recv[:100]}{'...' if len(recv) > 100 else ''}")
 
         if not playlist_data:
             raise ExtractorError('Unable to fetch HLS playlist info via WebSocket')

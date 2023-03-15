@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    qualities,
-    url_or_none,
-)
+from ..utils import ExtractorError, int_or_none, qualities, url_or_none
 
 
 class YapFilesIE(InfoExtractor):
@@ -41,7 +36,7 @@ class YapFilesIE(InfoExtractor):
                 'player url', default=None, group='url')
 
         if not player_url:
-            player_url = 'http://api.yapfiles.ru/load/%s/' % video_id
+            player_url = f'http://api.yapfiles.ru/load/{video_id}/'
             query = {
                 'md5': 'ded5f369be61b8ae5f88e2eeb2f3caff',
                 'type': 'json',
@@ -57,7 +52,7 @@ class YapFilesIE(InfoExtractor):
 
         if title == 'Ролик удален' or 'deleted.jpg' in (thumbnail or ''):
             raise ExtractorError(
-                'Video %s has been removed' % video_id, expected=True)
+                f'Video {video_id} has been removed', expected=True)
 
         playlist = self._download_json(
             playlist_url, video_id)['player']['main']
@@ -70,7 +65,7 @@ class YapFilesIE(InfoExtractor):
         for format_id in QUALITIES:
             is_hd = format_id == 'hd'
             format_url = url_or_none(playlist.get(
-                'file%s' % ('_hd' if is_hd else '')))
+                f"file{'_hd' if is_hd else ''}"))
             if not format_url:
                 continue
             formats.append({

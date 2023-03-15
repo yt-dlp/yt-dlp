@@ -118,7 +118,7 @@ class MDRIE(InfoExtractor):
                     'progressiveDownload',
                     'dynamicHttpStreamingRedirector',
                     'adaptiveHttpStreamingRedirector'):
-                url_el = asset.find('./%sUrl' % source)
+                url_el = asset.find(f'./{source}Url')
                 if url_el is None:
                     continue
 

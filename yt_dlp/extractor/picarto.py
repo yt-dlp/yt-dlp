@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    js_to_json,
-)
+from ..utils import ExtractorError, js_to_json
 
 
 class PicartoIE(InfoExtractor):
@@ -77,7 +74,7 @@ class PicartoIE(InfoExtractor):
             'is_live': True,
             'channel': channel_id,
             'channel_id': metadata.get('id'),
-            'channel_url': 'https://picarto.tv/%s' % channel_id,
+            'channel_url': f'https://picarto.tv/{channel_id}',
             'age_limit': age_limit,
             'formats': formats,
         }

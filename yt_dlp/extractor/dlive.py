@@ -76,7 +76,7 @@ class DLiveStreamIE(InfoExtractor):
         title = livestream['title']
         username = user['username']
         formats = self._extract_m3u8_formats(
-            'https://live.prd.dlive.tv/hls/live/%s.m3u8' % username,
+            f'https://live.prd.dlive.tv/hls/live/{username}.m3u8',
             display_name, 'mp4')
         return {
             'id': display_name,

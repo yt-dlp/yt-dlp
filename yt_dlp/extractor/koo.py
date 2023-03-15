@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    try_get,
-)
+from ..utils import clean_html, try_get
 
 
 class KooIE(InfoExtractor):

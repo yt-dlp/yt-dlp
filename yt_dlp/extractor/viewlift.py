@@ -2,12 +2,7 @@ import json
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_age_limit,
-    traverse_obj,
-)
+from ..utils import ExtractorError, int_or_none, parse_age_limit, traverse_obj
 
 
 class ViewLiftBaseIE(InfoExtractor):
@@ -119,7 +114,7 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
                 'height', default=None))
             formats.append({
                 'url': video_asset_url,
-                'format_id': 'http%s' % ('-%d' % bitrate if bitrate else ''),
+                'format_id': f"http{'-%d' % bitrate if bitrate else ''}",
                 'tbr': bitrate,
                 'height': height,
                 'vcodec': video_asset.get('codec'),
@@ -329,7 +324,7 @@ class ViewLiftIE(ViewLiftBaseIE):
         film_id = next(m['contentData'][0]['gist']['id'] for m in modules if m.get('moduleType') == 'VideoDetailModule')
         return {
             '_type': 'url_transparent',
-            'url': 'http://%s/embed/player?filmId=%s' % (domain, film_id),
+            'url': f'http://{domain}/embed/player?filmId={film_id}',
             'id': film_id,
             'display_id': display_id,
             'ie_key': 'ViewLiftEmbed',

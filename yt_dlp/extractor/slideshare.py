@@ -1,13 +1,8 @@
 import json
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    get_element_by_id,
-)
+from ..compat import compat_urlparse
+from ..utils import ExtractorError, get_element_by_id
 
 
 class SlideshareIE(InfoExtractor):
@@ -32,7 +27,7 @@ class SlideshareIE(InfoExtractor):
             webpage, 'slideshare object')
         info = json.loads(slideshare_obj)
         if info['slideshow']['type'] != 'video':
-            raise ExtractorError('Webpage type is "%s": only video extraction is supported for Slideshare' % info['slideshow']['type'], expected=True)
+            raise ExtractorError(f"Webpage type is \"{info['slideshow']['type']}\": only video extraction is supported for Slideshare", expected=True)
 
         doc = info['doc']
         bucket = info['jsplayer']['video_bucket']

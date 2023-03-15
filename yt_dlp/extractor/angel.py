@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import url_or_none, merge_dicts
+from ..utils import merge_dicts, url_or_none
 
 
 class AngelIE(InfoExtractor):

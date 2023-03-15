@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    parse_iso8601,
-    xpath_text,
-)
+from ..utils import int_or_none, parse_duration, parse_iso8601, xpath_text
 
 
 class FolketingetIE(InfoExtractor):

@@ -1,12 +1,6 @@
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-
-from ..utils import (
-    dict_get,
-    get_element_by_id,
-    js_to_json,
-    traverse_obj,
-)
+from ..utils import dict_get, get_element_by_id, js_to_json, traverse_obj
 
 
 class CraftsyIE(InfoExtractor):

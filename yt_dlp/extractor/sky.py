@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    smuggle_url,
-    strip_or_none,
-    urljoin,
-)
+from ..utils import extract_attributes, smuggle_url, strip_or_none, urljoin
 
 
 class SkyBaseIE(InfoExtractor):
@@ -18,7 +13,7 @@ class SkyBaseIE(InfoExtractor):
         provider = sdc.get('data-provider')
         if provider == 'ooyala':
             video_id = sdc['data-sdc-video-id']
-            video_url = 'ooyala:%s' % video_id
+            video_url = f'ooyala:{video_id}'
             ie_key = 'Ooyala'
             ooyala_el = self._search_regex(
                 r'(<div[^>]+class="[^"]*\bsdc-article-video__media-ooyala\b[^"]*"[^>]+data-video-id="%s"[^>]*>)' % video_id,

@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    find_xpath_attr,
-    fix_xml_ampersands
-)
+from ..utils import find_xpath_attr, fix_xml_ampersands
 
 
 class ClipsyndicateIE(InfoExtractor):
@@ -26,13 +23,13 @@ class ClipsyndicateIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         js_player = self._download_webpage(
-            'http://eplayer.clipsyndicate.com/embed/player.js?va_id=%s' % video_id,
+            f'http://eplayer.clipsyndicate.com/embed/player.js?va_id={video_id}',
             video_id, 'Downlaoding player')
         # it includes a required token
         flvars = self._search_regex(r'flvars: "(.*?)"', js_player, 'flvars')
 
         pdoc = self._download_xml(
-            'http://eplayer.clipsyndicate.com/osmf/playlist?%s' % flvars,
+            f'http://eplayer.clipsyndicate.com/osmf/playlist?{flvars}',
             video_id, 'Downloading video info',
             transform_source=fix_xml_ampersands)
 

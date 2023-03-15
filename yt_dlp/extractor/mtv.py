@@ -4,13 +4,13 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
+    HEADRequest,
+    RegexNotFoundError,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
-    HEADRequest,
     int_or_none,
     join_nonempty,
-    RegexNotFoundError,
     sanitized_Request,
     strip_or_none,
     timeconvert,
@@ -43,7 +43,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         return self._FEED_URL
 
     def _get_thumbnail_url(self, uri, itemdoc):
-        search_path = '%s/%s' % (_media_xml_tag('group'), _media_xml_tag('thumbnail'))
+        search_path = f"{_media_xml_tag('group')}/{_media_xml_tag('thumbnail')}"
         thumb_node = itemdoc.find(search_path)
         if thumb_node is None:
             return None
@@ -87,7 +87,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     rtmp_video_url = rendition.find('./src').text
                     if 'error_not_available.swf' in rtmp_video_url:
                         raise ExtractorError(
-                            '%s said: video is not available' % self.IE_NAME,
+                            f'{self.IE_NAME} said: video is not available',
                             expected=True)
                     if rtmp_video_url.endswith('siteunavail.png'):
                         continue
@@ -127,7 +127,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         uri = itemdoc.find('guid').text
         video_id = self._id_from_uri(uri)
         self.report_extraction(video_id)
-        content_el = itemdoc.find('%s/%s' % (_media_xml_tag('group'), _media_xml_tag('content')))
+        content_el = itemdoc.find(f"{_media_xml_tag('group')}/{_media_xml_tag('content')}")
         mediagen_url = self._remove_template_parameter(content_el.attrib['url'])
         mediagen_url = mediagen_url.replace('device={device}', '')
         if 'acceptMethods' not in mediagen_url:
@@ -143,9 +143,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
         item = mediagen_doc.find('./video/item')
         if item is not None and item.get('type') == 'text':
-            message = '%s returned error: ' % self.IE_NAME
+            message = f'{self.IE_NAME} returned error: '
             if item.get('code') is not None:
-                message += '%s - ' % item.get('code')
+                message += f"{item.get('code')} - "
             message += item.text
             raise ExtractorError(message, expected=True)
 
@@ -346,7 +346,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
         config = self._download_json(
-            'http://media.mtvnservices.com/pmt/e1/access/index.html?uri=%s&configtype=edge' % uri, video_id)
+            f'http://media.mtvnservices.com/pmt/e1/access/index.html?uri={uri}&configtype=edge', video_id)
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
     def _real_extract(self, url):
@@ -443,8 +443,8 @@ class MTVVideoIE(MTVServicesInfoExtractor):
                 r'(?s)isVevoVideo = true;.*?vevoVideoId = "(.*?)";', webpage)
             if m_vevo:
                 vevo_id = m_vevo.group(1)
-                self.to_screen('Vevo video detected: %s' % vevo_id)
-                return self.url_result('vevo:%s' % vevo_id, ie='Vevo')
+                self.to_screen(f'Vevo video detected: {vevo_id}')
+                return self.url_result(f'vevo:{vevo_id}', ie='Vevo')
 
             uri = self._html_search_regex(r'/uri/(.*?)\?', webpage, 'uri')
         return self._get_videos_info(uri)
@@ -576,7 +576,7 @@ class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete I
     def _get_entries(self, title, url):
         while True:
             pg = self._search_regex(r'/(\d+)$', url, 'entries', '1')
-            entries = self._download_json(url, title, 'page %s' % pg)
+            entries = self._download_json(url, title, f'page {pg}')
             url = try_get(
                 entries, lambda x: x['result']['nextPageURL'], compat_str)
             entries = try_get(

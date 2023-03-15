@@ -49,7 +49,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 'session_id': session_id
             }).encode('ascii'))
         if login_response['code'] != 'ok':
-            raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
+            raise ExtractorError(f"Login failed. Server message: {login_response['message']}", expected=True)
         if not self.is_logged_in:
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
@@ -74,7 +74,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             auth_response = self._download_json(
                 f'{api_domain}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
                 headers={
-                    'Authorization': 'Basic ' + str(base64.b64encode(('%s:' % app_config['cxApiParams'][key]).encode('ascii')), 'ascii')
+                    'Authorization': 'Basic ' + str(base64.b64encode(f"{app_config['cxApiParams'][key]}:".encode('ascii')), 'ascii')
                 }, data=f'grant_type={grant_type}'.encode('ascii'))
             policy_response = self._download_json(
                 f'{api_domain}/index/v2', None, note='Retrieving signed policy',
@@ -303,7 +303,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
                         'url': f'https://www.crunchyroll.com/{lang}watch/{episode_id}/{episode_display_id}',
                         'ie_key': CrunchyrollBetaIE.ie_key(),
                         'id': episode_id,
-                        'title': '%s Episode %s – %s' % (episode.get('season_title'), episode.get('episode'), episode.get('title')),
+                        'title': f"{episode.get('season_title')} Episode {episode.get('episode')} – {episode.get('title')}",
                         'description': try_get(episode, lambda x: x['description'].replace(r'\r\n', '\n')),
                         'duration': float_or_none(episode.get('duration_ms'), 1000),
                         'series': episode.get('series_title'),

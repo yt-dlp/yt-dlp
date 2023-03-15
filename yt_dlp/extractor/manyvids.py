@@ -43,7 +43,7 @@ class ManyVidsIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        real_url = 'https://www.manyvids.com/video/%s/gtm.js' % (video_id, )
+        real_url = f'https://www.manyvids.com/video/{video_id}/gtm.js'
         try:
             webpage = self._download_webpage(real_url, video_id)
         except Exception:

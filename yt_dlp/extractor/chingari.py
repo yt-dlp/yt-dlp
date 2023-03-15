@@ -189,7 +189,7 @@ class ChingariUserIE(ChingariBaseIE):
             posts = self._download_json('https://api.chingari.io/users/getPosts', id,
                                         data=json.dumps({'userId': id, 'ownerId': id, 'skip': skip, 'limit': 20}).encode(),
                                         headers={'content-type': 'application/json;charset=UTF-8'},
-                                        note='Downloading page %s' % page)
+                                        note=f'Downloading page {page}')
             for post in posts.get('data', []):
                 post_data = post['post']
                 yield self._get_post(post_data['_id'], post_data)

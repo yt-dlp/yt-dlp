@@ -2,12 +2,7 @@ import itertools
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    format_field,
-    int_or_none,
-    try_get,
-)
+from ..utils import ExtractorError, format_field, int_or_none, try_get
 
 CDN_API_BASE = 'https://cdn.younow.com/php/api'
 MOMENT_URL_FORMAT = '%s/moment/fetch/id=%%s' % CDN_API_BASE
@@ -62,7 +57,7 @@ class YouNowLiveIE(InfoExtractor):
             'categories': data.get('tags'),
             'uploader': uploader,
             'uploader_id': data.get('userId'),
-            'uploader_url': 'https://www.younow.com/%s' % username,
+            'uploader_url': f'https://www.younow.com/{username}',
             'creator': uploader,
             'view_count': int_or_none(data.get('viewers')),
             'like_count': int_or_none(data.get('likes')),
@@ -152,7 +147,7 @@ class YouNowChannelIE(InfoExtractor):
                         for moment_id in moments:
                             m = self._download_json(
                                 MOMENT_URL_FORMAT % moment_id, username,
-                                note='Downloading %s moment JSON' % moment_id,
+                                note=f'Downloading {moment_id} moment JSON',
                                 fatal=False)
                             if m and isinstance(m, dict) and m.get('item'):
                                 entry = _extract_moment(m['item'])
@@ -167,7 +162,7 @@ class YouNowChannelIE(InfoExtractor):
             % username, username, note='Downloading user information')['userId'])
         return self.playlist_result(
             self._entries(username, channel_id), channel_id,
-            '%s moments' % username)
+            f'{username} moments')
 
 
 class YouNowMomentIE(InfoExtractor):

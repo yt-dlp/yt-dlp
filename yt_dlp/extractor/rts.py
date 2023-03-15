@@ -119,7 +119,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
 
         def download_json(internal_id):
             return self._download_json(
-                'http://www.rts.ch/a/%s.html?f=json/article' % internal_id,
+                f'http://www.rts.ch/a/{internal_id}.html?f=json/article',
                 display_id)
 
         all_info = download_json(media_id)
@@ -148,7 +148,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                         r'(?s)<iframe[^>]+class="srg-player"[^>]+src="[^"]+urn:([^"]+)"',
                         page)
                 if videos:
-                    entries = [self.url_result('srgssr:%s' % video_urn, 'SRGSSR') for video_urn in videos]
+                    entries = [self.url_result(f'srgssr:{video_urn}', 'SRGSSR') for video_urn in videos]
 
             if entries:
                 return self.playlist_result(entries, media_id, all_info.get('title'))
@@ -195,7 +195,7 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
                     'tbr': extract_bitrate(format_url),
                 })
 
-        download_base = 'http://rtsww%s-d.rts.ch/' % ('-a' if media_type == 'audio' else '')
+        download_base = f"http://rtsww{'-a' if media_type == 'audio' else ''}-d.rts.ch/"
         for media in info.get('media', []):
             media_url = media.get('url')
             if not media_url or re.match(r'https?://', media_url):

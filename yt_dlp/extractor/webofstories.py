@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    orderedSet,
-)
+from ..utils import int_or_none, orderedSet
 
 
 class WebOfStoriesIE(InfoExtractor):
@@ -79,19 +76,16 @@ class WebOfStoriesIE(InfoExtractor):
             ms_prefix = 'mini_sites/'
 
         if is_great_life_series:
-            mp4_url = '{0:}lives/{1:}/{2:}.mp4'.format(
-                self._VIDEO_DOMAIN, speaker_id, story_filename)
+            mp4_url = f'{self._VIDEO_DOMAIN}lives/{speaker_id}/{story_filename}.mp4'
             rtmp_ext = 'flv'
             streamer = self._GREAT_LIFE_STREAMER
-            play_path = 'stories/{0:}/{1:}'.format(
-                speaker_id, story_filename)
+            play_path = f'stories/{speaker_id}/{story_filename}'
         else:
             mp4_url = '{0:}{1:}{2:}/{3:}.mp4'.format(
                 self._VIDEO_DOMAIN, ms_prefix, speaker_id, story_filename)
             rtmp_ext = 'mp4'
             streamer = self._USER_STREAMER
-            play_path = 'mp4:{0:}{1:}/{2}.mp4'.format(
-                ms_prefix, speaker_id, story_filename)
+            play_path = f'mp4:{ms_prefix}{speaker_id}/{story_filename}.mp4'
 
         formats = [{
             'format_id': 'mp4_sd',
@@ -132,7 +126,7 @@ class WebOfStoriesPlaylistIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'http://www.webofstories.com/play/%s' % video_id,
+                f'http://www.webofstories.com/play/{video_id}',
                 'WebOfStories', video_id=video_id)
             for video_id in orderedSet(re.findall(r'\bid=["\']td_(\d+)', webpage))
         ]
@@ -145,7 +139,7 @@ class WebOfStoriesPlaylistIE(InfoExtractor):
                 r'<span id="primaryField">([^<]+)</span>',
                 webpage, 'field', default=None)
             if field:
-                title += ' (%s)' % field
+                title += f' ({field})'
 
         if not title:
             title = self._search_regex(

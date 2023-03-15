@@ -4,10 +4,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     dict_get,
-    ExtractorError,
     int_or_none,
     js_to_json,
     str_or_none,
@@ -290,7 +290,7 @@ class TVPStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        channel_url = self._proto_relative_url('//stream.tvp.pl/?channel_id=%s' % channel_id or 'default')
+        channel_url = self._proto_relative_url(f'//stream.tvp.pl/?channel_id={channel_id}' or 'default')
         webpage = self._download_webpage(channel_url, channel_id or 'default', 'Downloading channel webpage')
         channels = self._search_json(
             r'window\.__channels\s*=', webpage, 'channel list', channel_id,
@@ -300,7 +300,7 @@ class TVPStreamIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'id': channel_id or channel['id'],
-            'url': 'tvp:%s' % audition['video_id'],
+            'url': f"tvp:{audition['video_id']}",
             'title': audition.get('title'),
             'alt_title': channel.get('title'),
             'is_live': True,
@@ -470,7 +470,7 @@ class TVPEmbedIE(InfoExtractor):
         # vod.tvp.pl
         if info.get('vortalName') == 'vod':
             info_dict.update({
-                'title': '%s, %s' % (info.get('title'), info.get('subtitle')),
+                'title': f"{info.get('title')}, {info.get('subtitle')}",
                 'series': info.get('title'),
                 'season': info.get('season'),
                 'episode_number': info.get('episode'),

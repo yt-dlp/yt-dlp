@@ -1,14 +1,15 @@
 import itertools
+
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
-    urljoin,
-    traverse_obj,
+    clean_html,
     int_or_none,
     mimetype2ext,
-    clean_html,
-    url_or_none,
-    unified_timestamp,
     str_or_none,
+    traverse_obj,
+    unified_timestamp,
+    url_or_none,
+    urljoin,
 )
 
 
@@ -91,7 +92,7 @@ class PRXBaseIE(InfoExtractor):
             **base_info,
             'title': name,
             'channel_id': base_info.get('id'),
-            'channel_url': 'https://beta.prx.org/accounts/%s' % base_info.get('id'),
+            'channel_url': f"https://beta.prx.org/accounts/{base_info.get('id')}",
             'channel': name,
         }
 
@@ -141,7 +142,7 @@ class PRXBaseIE(InfoExtractor):
             return
         story.update({
             '_type': 'url',
-            'url': 'https://beta.prx.org/stories/%s' % story['id'],
+            'url': f"https://beta.prx.org/stories/{story['id']}",
             'ie_key': PRXStoryIE.ie_key()
         })
         return story
@@ -152,7 +153,7 @@ class PRXBaseIE(InfoExtractor):
             return
         series.update({
             '_type': 'url',
-            'url': 'https://beta.prx.org/series/%s' % series['id'],
+            'url': f"https://beta.prx.org/series/{series['id']}",
             'ie_key': PRXSeriesIE.ie_key()
         })
         return series
@@ -364,7 +365,7 @@ class PRXSeriesIE(PRXBaseIE):
         info = self._extract_series_info(series_response)
         return {
             '_type': 'playlist',
-            'entries': self._entries(info['id'], 'series/%s/stories' % info['id'], self._story_playlist_entry),
+            'entries': self._entries(info['id'], f"series/{info['id']}/stories", self._story_playlist_entry),
             **info
         }
 

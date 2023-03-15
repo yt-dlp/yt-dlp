@@ -278,8 +278,8 @@ class TestUtil(unittest.TestCase):
             self.assertEqual(expand_path(env('HOME')), os.getenv('HOME'))
             self.assertEqual(expand_path('~'), os.getenv('HOME'))
             self.assertEqual(
-                expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
-                '%s/expanded' % os.getenv('HOME'))
+                expand_path(f"~/{env('yt_dlp_EXPATH_PATH')}"),
+                f"{os.getenv('HOME')}/expanded")
         finally:
             os.environ['HOME'] = old_home or ''
 

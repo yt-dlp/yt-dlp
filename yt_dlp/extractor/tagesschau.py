@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    extract_attributes,
-    try_get,
-    int_or_none,
-)
+from ..utils import extract_attributes, int_or_none, js_to_json, try_get
 
 
 class TagesschauIE(InfoExtractor):

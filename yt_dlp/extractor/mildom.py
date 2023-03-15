@@ -4,11 +4,11 @@ import uuid
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     determine_ext,
     dict_get,
-    ExtractorError,
     float_or_none,
-    OnDemandPagedList,
     traverse_obj,
 )
 
@@ -154,7 +154,7 @@ class MildomVodIE(MildomBaseIE):
         }]
         for fmt in autoplay['video_link']:
             formats.append({
-                'format_id': 'video-%s' % fmt['name'],
+                'format_id': f"video-{fmt['name']}",
                 'url': fmt['url'],
                 'protocol': 'm3u8_native',
                 'width': fmt['level'] * autoplay['video_width'] // autoplay['video_height'],
@@ -280,7 +280,7 @@ class MildomUserVodIE(MildomBaseIE):
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
-        self.to_screen('This will download all VODs belonging to user. To download ongoing live video, use "https://www.mildom.com/%s" instead' % user_id)
+        self.to_screen(f'This will download all VODs belonging to user. To download ongoing live video, use "https://www.mildom.com/{user_id}" instead')
 
         profile = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/user/profileV2', user_id,

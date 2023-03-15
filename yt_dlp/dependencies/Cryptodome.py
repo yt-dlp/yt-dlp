@@ -21,7 +21,12 @@ try:
         from Cryptodome.PublicKey import RSA
     elif _parent.__name__ == 'Crypto':
         from Crypto import __version__
-        from Crypto.Cipher import AES, PKCS1_OAEP, Blowfish, PKCS1_v1_5  # noqa: F401
+        from Crypto.Cipher import (  # noqa: F401
+            AES,
+            PKCS1_OAEP,
+            Blowfish,
+            PKCS1_v1_5,
+        )
         from Crypto.Hash import CMAC, SHA1  # noqa: F401
         from Crypto.PublicKey import RSA  # noqa: F401
 except ImportError:

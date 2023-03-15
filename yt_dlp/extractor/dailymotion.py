@@ -245,7 +245,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
       audienceCount
       isOnAir
     }''' % (self._COMMON_MEDIA_FIELDS, self._COMMON_MEDIA_FIELDS), 'Downloading media JSON metadata',
-            'password: "%s"' % self.get_param('videopassword') if password else None)
+            f"password: \"{self.get_param('videopassword')}\"" if password else None)
         xid = media['xid']
 
         metadata = self._download_json(
@@ -261,7 +261,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 allowed_countries = try_get(media, lambda x: x['geoblockedCountries']['allowed'], list)
                 self.raise_geo_restricted(msg=title, countries=allowed_countries)
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, title), expected=True)
+                f'{self.IE_NAME} said: {title}', expected=True)
 
         title = metadata['title']
         is_live = media.get('isOnAir')
@@ -380,7 +380,7 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
                 r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.[a-z]{2,3}/widget/jukebox\?.+?)\1',
                 webpage):
             for p in re.findall(r'list\[\]=/playlist/([^/]+)/', unescapeHTML(mobj.group('url'))):
-                yield '//dailymotion.com/playlist/%s' % p
+                yield f'//dailymotion.com/playlist/{p}'
 
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):

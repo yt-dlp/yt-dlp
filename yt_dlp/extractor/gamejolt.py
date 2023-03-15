@@ -10,7 +10,7 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
-    try_get
+    try_get,
 )
 
 
@@ -87,7 +87,7 @@ class GameJoltBaseIE(InfoExtractor):
             'uploader': user_data.get('display_name') or user_data.get('name'),
             'uploader_id': user_data.get('username'),
             'uploader_url': format_field(user_data, 'url', 'https://gamejolt.com%s'),
-            'categories': [try_get(category, lambda x: '%s - %s' % (x['community']['name'], x['channel'].get('display_title') or x['channel']['title']))
+            'categories': [try_get(category, lambda x: f"{x['community']['name']} - {x['channel'].get('display_title') or x['channel']['title']}")
                            for category in post_data.get('communities' or [])],
             'tags': traverse_obj(
                 lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),

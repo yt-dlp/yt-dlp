@@ -58,7 +58,7 @@ class LnkGoIE(InfoExtractor):
         display_id, video_id = self._match_valid_url(url).groups()
 
         video_info = self._download_json(
-            'https://lnk.lt/api/main/video-page/%s/%s/false' % (display_id, video_id or '0'),
+            f"https://lnk.lt/api/main/video-page/{display_id}/{video_id or '0'}/false",
             display_id)['videoConfig']['videoInfo']
 
         video_id = compat_str(video_info['id'])

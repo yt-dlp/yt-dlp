@@ -55,7 +55,7 @@ class TikTokBaseIE(InfoExtractor):
         if webpage_cookies.get('sid_tt'):
             self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
         return self._download_json(
-            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
+            f'https://{self._API_HOSTNAME}/aweme/v1/{ep}/', video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
                 'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
@@ -128,7 +128,7 @@ class TikTokBaseIE(InfoExtractor):
                         else:
                             self.report_warning(str(e.cause or e.msg))
                             return
-                    self.report_warning('%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
+                    self.report_warning(f'{str(e.cause or e.msg)}. Retrying... (attempt {count} of {len(self._APP_VERSIONS)})')
                     continue
                 raise e
 
@@ -232,7 +232,7 @@ class TikTokBaseIE(InfoExtractor):
         if video_info.get('download_addr'):
             formats.extend(extract_addr(video_info['download_addr'], {
                 'format_id': 'download_addr',
-                'format_note': 'Download video%s' % (', watermarked' if video_info.get('has_watermark') else ''),
+                'format_note': f"Download video{', watermarked' if video_info.get('has_watermark') else ''}",
                 'vcodec': 'h264',
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
@@ -292,7 +292,7 @@ class TikTokBaseIE(InfoExtractor):
         contained_music_author = traverse_obj(
             music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
 
-        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
+        is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == f"original sound - {music_info.get('owner_handle')}"
         if is_generic_og_trackname:
             music_track, music_author = contained_music_track or 'original sound', contained_music_author
         else:

@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    urljoin,
-)
+from ..utils import ExtractorError, int_or_none, urljoin
 
 
 class ShowRoomLiveIE(InfoExtractor):
@@ -24,18 +20,18 @@ class ShowRoomLiveIE(InfoExtractor):
              r'(?:profile|room)\?room_id\=(\d+)'), webpage, 'room_id')
 
         room = self._download_json(
-            urljoin(url, '/api/room/profile?room_id=%s' % room_id),
+            urljoin(url, f'/api/room/profile?room_id={room_id}'),
             broadcaster_id)
 
         is_live = room.get('is_onlive')
         if is_live is not True:
-            raise ExtractorError('%s is offline' % broadcaster_id, expected=True)
+            raise ExtractorError(f'{broadcaster_id} is offline', expected=True)
 
         uploader = room.get('performer_name') or broadcaster_id
         title = room.get('room_name') or room.get('main_name') or uploader
 
         streaming_url_list = self._download_json(
-            urljoin(url, '/api/live/streaming_url?room_id=%s' % room_id),
+            urljoin(url, f'/api/live/streaming_url?room_id={room_id}'),
             broadcaster_id)['streaming_url_list']
 
         formats = []

@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    fix_xml_ampersands,
-    float_or_none,
-    xpath_with_ns,
-    xpath_text,
-)
+from ..utils import fix_xml_ampersands, float_or_none, xpath_text, xpath_with_ns
 
 
 class KarriereVideosIE(InfoExtractor):
@@ -52,7 +47,7 @@ class KarriereVideosIE(InfoExtractor):
         # Server returns malformed headers
         # Force Accept-Encoding: * to prevent gzipped results
         playlist = self._download_xml(
-            'http://www.karrierevideos.at/player-playlist.xml.php?p=%s' % video_id,
+            f'http://www.karrierevideos.at/player-playlist.xml.php?p={video_id}',
             video_id, transform_source=fix_xml_ampersands,
             headers={'Accept-Encoding': '*'})
 
@@ -86,7 +81,7 @@ class KarriereVideosIE(InfoExtractor):
         return {
             'id': video_id,
             'url': streamer.replace('rtmpt', 'rtmp'),
-            'play_path': 'mp4:%s' % video_file,
+            'play_path': f'mp4:{video_file}',
             'ext': 'flv',
             'title': title,
             'description': description,

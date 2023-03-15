@@ -4,8 +4,8 @@ import uuid
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     float_or_none,
     int_or_none,
     remove_start,
@@ -69,7 +69,7 @@ class DPlayBaseIE(InfoExtractor):
         self._initialize_geo_bypass({
             'countries': geo_countries,
         })
-        disco_base = 'https://%s/' % disco_host
+        disco_base = f'https://{disco_host}/'
         headers = {
             'Referer': url,
         }
@@ -852,7 +852,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
-            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-params': f'realm={realm}',
             'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:17.0.0',
             'Authorization': self._get_auth(disco_base, display_id, realm),
         })
@@ -900,7 +900,7 @@ class DiscoveryNetworksDeIE(DPlayBaseIE):
         country = 'GB' if domain == 'dplay.co.uk' else 'DE'
         realm = 'questuk' if country == 'GB' else domain.replace('.', '')
         return self._get_disco_api_info(
-            url, '%s/%s' % (programme, alternate_id),
+            url, f'{programme}/{alternate_id}',
             'sonic-eu1-prod.disco-api.com', realm, country)
 
 
@@ -924,14 +924,14 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
             while page_num < total_pages:
                 season_json = self._download_json(
                     season_url.format(season_id, show_id, str(page_num + 1)), show_name, headers=headers,
-                    note='Downloading season %s JSON metadata%s' % (season_id, ' page %d' % page_num if page_num else ''))
+                    note=f"Downloading season {season_id} JSON metadata{' page %d' % page_num if page_num else ''}")
                 if page_num == 0:
                     total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
                 episodes_json = season_json['data']
                 for episode in episodes_json:
                     video_path = episode['attributes']['path']
                     yield self.url_result(
-                        '%svideos/%s' % (self._DOMAIN, video_path),
+                        f'{self._DOMAIN}videos/{video_path}',
                         ie=self._VIDEO_IE.ie_key(), video_id=episode.get('id') or video_path)
                 page_num += 1
 
@@ -959,7 +959,7 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers.update({
-            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-params': f'realm={realm}',
             'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:25.2.6',
             'Authorization': self._get_auth(disco_base, display_id, realm),
         })

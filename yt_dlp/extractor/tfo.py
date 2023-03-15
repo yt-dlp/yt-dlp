@@ -1,12 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import (
-    HEADRequest,
-    ExtractorError,
-    int_or_none,
-    clean_html,
-)
+from ..utils import ExtractorError, HEADRequest, clean_html, int_or_none
 
 
 class TFOIE(InfoExtractor):
@@ -35,7 +30,7 @@ class TFOIE(InfoExtractor):
         if infos.get('success') == 0:
             if infos.get('code') == 'ErrGeoBlocked':
                 self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, clean_html(infos['msg'])), expected=True)
+            raise ExtractorError(f"{self.IE_NAME} said: {clean_html(infos['msg'])}", expected=True)
         video_data = infos['data']
 
         return {

@@ -1,14 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    strip_or_none,
-    try_get,
-)
+from ..compat import compat_str, compat_urllib_parse_unquote
+from ..utils import int_or_none, parse_iso8601, strip_or_none, try_get
 
 
 class KinjaEmbedIE(InfoExtractor):
@@ -152,7 +144,7 @@ class KinjaEmbedIE(InfoExtractor):
             poster = data.get('poster') or {}
             poster_id = poster.get('id')
             if poster_id:
-                thumbnail = 'https://i.kinja-img.com/gawker-media/image/upload/%s.%s' % (poster_id, poster.get('format') or 'jpg')
+                thumbnail = f"https://i.kinja-img.com/gawker-media/image/upload/{poster_id}.{poster.get('format') or 'jpg'}"
 
             return {
                 'id': video_id,

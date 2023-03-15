@@ -11,9 +11,9 @@ from ..compat import (
     compat_urllib_parse_urlencode,
 )
 from ..utils import (
+    ExtractorError,
     determine_ext,
     encode_data_uri,
-    ExtractorError,
     int_or_none,
     orderedSet,
     parse_iso8601,
@@ -140,7 +140,7 @@ class LeIE(InfoExtractor):
         def get_flash_urls(media_url, format_id):
             nodes_data = self._download_json(
                 media_url, media_id,
-                'Download JSON metadata for format %s' % format_id,
+                f'Download JSON metadata for format {format_id}',
                 query={
                     'm3v': 1,
                     'format': 1,
@@ -150,7 +150,7 @@ class LeIE(InfoExtractor):
 
             req = self._request_webpage(
                 nodes_data['nodelist'][0]['location'], media_id,
-                note='Downloading m3u8 information for format %s' % format_id)
+                note=f'Downloading m3u8 information for format {format_id}')
 
             m3u8_data = self.decrypt_m3u8(req.read())
 
@@ -173,7 +173,7 @@ class LeIE(InfoExtractor):
                 f = {
                     'url': format_url,
                     'ext': determine_ext(format_data[1]),
-                    'format_id': '%s-%s' % (protocol, format_id),
+                    'format_id': f'{protocol}-{format_id}',
                     'protocol': 'm3u8_native' if protocol == 'hls' else 'http',
                     'quality': int_or_none(format_id),
                 }
@@ -310,7 +310,7 @@ class LetvCloudIE(InfoExtractor):
             self.sign_data(data)
             return self._download_json(
                 'http://api.letvcloud.com/gpc.php?' + compat_urllib_parse_urlencode(data),
-                media_id, 'Downloading playJson data for type %s' % cf)
+                media_id, f'Downloading playJson data for type {cf}')
 
         play_json = get_play_json(cf, time.time())
         # The server time may be different from local time
@@ -319,7 +319,7 @@ class LetvCloudIE(InfoExtractor):
 
         if not play_json.get('data'):
             if play_json.get('message'):
-                raise ExtractorError('Letv cloud said: %s' % play_json['message'], expected=True)
+                raise ExtractorError(f"Letv cloud said: {play_json['message']}", expected=True)
             elif play_json.get('code'):
                 raise ExtractorError('Letv cloud returned error %d' % play_json['code'], expected=True)
             else:
@@ -349,7 +349,7 @@ class LetvCloudIE(InfoExtractor):
         vu_mobj = re.search(r'vu=([\w]+)', url)
 
         if not uu_mobj or not vu_mobj:
-            raise ExtractorError('Invalid URL: %s' % url, expected=True)
+            raise ExtractorError(f'Invalid URL: {url}', expected=True)
 
         uu = uu_mobj.group(1)
         vu = vu_mobj.group(1)
@@ -359,6 +359,6 @@ class LetvCloudIE(InfoExtractor):
 
         return {
             'id': media_id,
-            'title': 'Video %s' % media_id,
+            'title': f'Video {media_id}',
             'formats': formats,
         }

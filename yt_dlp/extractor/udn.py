@@ -1,12 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    js_to_json,
-)
 from ..compat import compat_urlparse
+from ..utils import determine_ext, int_or_none, js_to_json
 
 
 class UDNEmbedIE(InfoExtractor):
@@ -67,7 +63,7 @@ class UDNEmbedIE(InfoExtractor):
 
             video_url = self._download_webpage(
                 compat_urlparse.urljoin(url, api_url), video_id,
-                note='retrieve url for %s video' % video_type)
+                note=f'retrieve url for {video_type} video')
 
             ext = determine_ext(video_url)
             if ext == 'm3u8':

@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    merge_dicts,
-    parse_duration,
-    url_or_none,
-)
+from ..utils import determine_ext, merge_dicts, parse_duration, url_or_none
 
 
 class BYUtvIE(InfoExtractor):
@@ -68,7 +63,7 @@ class BYUtvIE(InfoExtractor):
             return {
                 '_type': 'url_transparent',
                 'ie_key': 'Ooyala',
-                'url': 'ooyala:%s' % ep['providerId'],
+                'url': f"ooyala:{ep['providerId']}",
                 'id': video_id,
                 'display_id': display_id,
                 'title': ep.get('title'),

@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-)
+from ..utils import clean_html, int_or_none
 
 
 class MoeVideoIE(InfoExtractor):
@@ -52,13 +49,13 @@ class MoeVideoIE(InfoExtractor):
         host, video_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(
-            'http://%s/video/%s' % (host, video_id),
+            f'http://{host}/video/{video_id}',
             video_id, 'Downloading webpage')
 
         title = self._og_search_title(webpage)
 
         embed_webpage = self._download_webpage(
-            'http://%s/embed/%s' % (host, video_id),
+            f'http://{host}/embed/{video_id}',
             video_id, 'Downloading embed webpage')
         video = self._parse_json(self._search_regex(
             r'mvplayer\("#player"\s*,\s*({.+})',

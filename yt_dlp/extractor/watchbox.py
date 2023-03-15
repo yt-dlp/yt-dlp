@@ -79,7 +79,7 @@ class WatchBoxIE(InfoExtractor):
         video_id = compat_str(source.get('videoId') or video_id)
 
         devapi = self._download_json(
-            'http://api.watchbox.de/devapi/id/%s' % video_id, video_id, query={
+            f'http://api.watchbox.de/devapi/id/{video_id}', video_id, query={
                 'format': 'json',
                 'apikey': 'hbbtv',
             }, fatal=False)

@@ -2,10 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    get_element_by_class,
-    urlencode_postdata,
-)
+from ..utils import get_element_by_class, urlencode_postdata
 
 
 class NJPWWorldIE(InfoExtractor):
@@ -64,7 +61,7 @@ class NJPWWorldIE(InfoExtractor):
 
         formats = []
         for kind, vid in re.findall(r'if\s+\(\s*imageQualityType\s*==\s*\'([^\']+)\'\s*\)\s*{\s*video_id\s*=\s*"(\d+)"', webpage):
-            player_path = '/intent?id=%s&type=url' % vid
+            player_path = f'/intent?id={vid}&type=url'
             player_url = compat_urlparse.urljoin(url, player_path)
             formats += self._extract_m3u8_formats(
                 player_url, video_id, 'mp4', 'm3u8_native', m3u8_id=kind, fatal=False, quality=int(kind == 'high'))

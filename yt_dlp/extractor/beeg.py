@@ -1,11 +1,5 @@
 from .common import InfoExtractor
-
-from ..utils import (
-    int_or_none,
-    traverse_obj,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import int_or_none, traverse_obj, try_get, unified_timestamp
 
 
 class BeegIE(InfoExtractor):
@@ -55,8 +49,8 @@ class BeegIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         video = self._download_json(
-            'https://store.externulls.com/facts/file/%s' % video_id,
-            video_id, 'Downloading JSON for %s' % video_id)
+            f'https://store.externulls.com/facts/file/{video_id}',
+            video_id, f'Downloading JSON for {video_id}')
 
         fc_facts = video.get('fc_facts')
         first_fact = {}

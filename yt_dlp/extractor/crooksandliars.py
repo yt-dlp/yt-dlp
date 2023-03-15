@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    qualities,
-)
+from ..utils import int_or_none, qualities
 
 
 class CrooksAndLiarsIE(InfoExtractor):
@@ -31,7 +28,7 @@ class CrooksAndLiarsIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://embed.crooksandliars.com/embed/%s' % video_id, video_id)
+            f'http://embed.crooksandliars.com/embed/{video_id}', video_id)
 
         manifest = self._parse_json(
             self._search_regex(

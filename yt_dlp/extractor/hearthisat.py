@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    KNOWN_EXTENSIONS,
-    str_to_int,
-)
+from ..utils import KNOWN_EXTENSIONS, determine_ext, str_to_int
 
 
 class HearThisAtIE(InfoExtractor):
@@ -49,7 +45,7 @@ class HearThisAtIE(InfoExtractor):
         data_json = self._download_json(api_url, display_id)
         track_id = data_json.get('id')
         artist_json = data_json.get('user')
-        title = '{} - {}'.format(artist_json.get('username'), data_json.get('title'))
+        title = f"{artist_json.get('username')} - {data_json.get('title')}"
         genre = data_json.get('genre')
         description = data_json.get('description')
         thumbnail = data_json.get('artwork_url') or data_json.get('thumb')

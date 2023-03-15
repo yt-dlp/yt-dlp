@@ -1,14 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-    compat_urllib_parse_urlencode,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-    qualities,
-)
+from ..compat import compat_urllib_parse_urlencode, compat_urlparse
+from ..utils import ExtractorError, int_or_none, parse_iso8601, qualities
 
 
 class PlaytvakIE(InfoExtractor):
@@ -136,7 +128,7 @@ class PlaytvakIE(InfoExtractor):
                 continue
 
             format_ = fmt['format']
-            format_id = '%s_%s' % (format_, fmt['quality'])
+            format_id = f"{format_}_{fmt['quality']}"
             preference = None
 
             if format_ in ('mp4', 'webm'):

@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import ExtractorError, int_or_none, try_get, unified_timestamp
 
 
 class CiscoWebexIE(InfoExtractor):
@@ -46,7 +41,7 @@ class CiscoWebexIE(InfoExtractor):
             headers['accessPwd'] = password
 
         stream, urlh = self._download_json_handle(
-            'https://%s.webex.com/webappng/api/v1/recordings/%s/stream' % (subdomain, video_id),
+            f'https://{subdomain}.webex.com/webappng/api/v1/recordings/{video_id}/stream',
             video_id, headers=headers, query={'siteurl': siteurl}, expected_status=(403, 429))
 
         if urlh.status == 403:
@@ -101,6 +96,6 @@ class CiscoWebexIE(InfoExtractor):
             'uploader_id': stream.get('ownerUserName') or stream.get('ownerId'),
             'timestamp': unified_timestamp(stream.get('createTime')),
             'duration': int_or_none(stream.get('duration'), 1000),
-            'webpage_url': 'https://%s.webex.com/recordingservice/sites/%s/recording/playback/%s' % (subdomain, siteurl, video_id),
+            'webpage_url': f'https://{subdomain}.webex.com/recordingservice/sites/{siteurl}/recording/playback/{video_id}',
             'formats': formats,
         }

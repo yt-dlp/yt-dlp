@@ -30,7 +30,7 @@ for test in gettestcases():
         try:
             webpage = urllib.request.urlopen(test['url'], timeout=10).read()
         except Exception:
-            print('\nFail: {}'.format(test['name']))
+            print(f"\nFail: {test['name']}")
             continue
 
         webpage = webpage.decode('utf8', 'replace')
@@ -40,7 +40,7 @@ for test in gettestcases():
     elif METHOD == 'LIST':
         domain = urllib.parse.urlparse(test['url']).netloc
         if not domain:
-            print('\nFail: {}'.format(test['name']))
+            print(f"\nFail: {test['name']}")
             continue
         domain = '.'.join(domain.split('.')[-2:])
 
@@ -48,11 +48,11 @@ for test in gettestcases():
 
     if RESULT and ('info_dict' not in test or 'age_limit' not in test['info_dict']
                    or test['info_dict']['age_limit'] != 18):
-        print('\nPotential missing age_limit check: {}'.format(test['name']))
+        print(f"\nPotential missing age_limit check: {test['name']}")
 
     elif not RESULT and ('info_dict' in test and 'age_limit' in test['info_dict']
                          and test['info_dict']['age_limit'] == 18):
-        print('\nPotential false negative: {}'.format(test['name']))
+        print(f"\nPotential false negative: {test['name']}")
 
     else:
         sys.stdout.write('.')

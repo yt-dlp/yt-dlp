@@ -3,9 +3,9 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     int_or_none,
     parse_duration,
 )
@@ -98,7 +98,7 @@ class XVideosIE(InfoExtractor):
 
         mobj = re.search(r'<h1 class="inlineError">(.+?)</h1>', webpage)
         if mobj:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, clean_html(mobj.group(1))), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {clean_html(mobj.group(1))}', expected=True)
 
         title = self._html_search_regex(
             (r'<title>(?P<title>.+?)\s+-\s+XVID',
@@ -145,7 +145,7 @@ class XVideosIE(InfoExtractor):
             elif format_id in ('urllow', 'urlhigh'):
                 formats.append({
                     'url': format_url,
-                    'format_id': '%s-%s' % (determine_ext(format_url, 'mp4'), format_id[3:]),
+                    'format_id': f"{determine_ext(format_url, 'mp4')}-{format_id[3:]}",
                     'quality': -2 if format_id.endswith('low') else None,
                 })
 

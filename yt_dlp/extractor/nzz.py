@@ -1,9 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-)
+from ..utils import extract_attributes
 
 
 class NZZIE(InfoExtractor):

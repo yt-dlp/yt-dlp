@@ -1,12 +1,7 @@
 import re
 
 from .theplatform import ThePlatformIE
-from ..utils import (
-    int_or_none,
-    parse_age_limit,
-    try_get,
-    update_url_query,
-)
+from ..utils import int_or_none, parse_age_limit, try_get, update_url_query
 
 
 class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE

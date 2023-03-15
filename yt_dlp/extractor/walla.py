@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    xpath_text,
-    int_or_none,
-)
+from ..utils import int_or_none, xpath_text
 
 
 class WallaIE(InfoExtractor):
@@ -36,7 +33,7 @@ class WallaIE(InfoExtractor):
         display_id = mobj.group('display_id')
 
         video = self._download_xml(
-            'http://video2.walla.co.il/?w=null/null/%s/@@/video/flv_pl' % video_id,
+            f'http://video2.walla.co.il/?w=null/null/{video_id}/@@/video/flv_pl',
             display_id)
 
         item = video.find('./items/item')

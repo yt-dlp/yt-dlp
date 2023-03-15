@@ -1,9 +1,6 @@
 # encoding: utf-8
 from .common import InfoExtractor
-from ..utils import (
-    traverse_obj,
-    UnsupportedError,
-)
+from ..utils import UnsupportedError, traverse_obj
 
 
 class TV2HuIE(InfoExtractor):

@@ -13,7 +13,7 @@ from ..utils import (
 class MicrosoftVirtualAcademyBaseIE(InfoExtractor):
     def _extract_base_url(self, course_id, display_id):
         return self._download_json(
-            'https://api-mlxprod.microsoft.com/services/products/anonymous/%s' % course_id,
+            f'https://api-mlxprod.microsoft.com/services/products/anonymous/{course_id}',
             display_id, 'Downloading course base URL')
 
     def _extract_chapter_and_title(self, title):
@@ -57,7 +57,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
         base_url = smuggled_data.get('base_url') or self._extract_base_url(course_id, video_id)
 
         settings = self._download_xml(
-            '%s/content/content_%s/videosettings.xml?v=1' % (base_url, video_id),
+            f'{base_url}/content/content_{video_id}/videosettings.xml?v=1',
             video_id, 'Downloading video settings XML')
 
         _, title = self._extract_chapter_and_title(xpath_text(
@@ -100,7 +100,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
             if not subtitle_url:
                 continue
             subtitles.setdefault('en', []).append({
-                'url': '%s/%s' % (base_url, subtitle_url),
+                'url': f'{base_url}/{subtitle_url}',
                 'ext': source.get('type'),
             })
 
@@ -153,7 +153,7 @@ class MicrosoftVirtualAcademyCourseIE(MicrosoftVirtualAcademyBaseIE):
         base_url = self._extract_base_url(course_id, display_id)
 
         manifest = self._download_json(
-            '%s/imsmanifestlite.json' % base_url,
+            f'{base_url}/imsmanifestlite.json',
             display_id, 'Downloading course manifest JSON')['manifest']
 
         organization = manifest['organizations']['organization'][0]
@@ -175,7 +175,7 @@ class MicrosoftVirtualAcademyCourseIE(MicrosoftVirtualAcademyBaseIE):
                 entries.append({
                     '_type': 'url_transparent',
                     'url': smuggle_url(
-                        'mva:%s:%s' % (course_id, item_id), {'base_url': base_url}),
+                        f'mva:{course_id}:{item_id}', {'base_url': base_url}),
                     'title': title,
                     'description': description,
                     'duration': duration,

@@ -1,14 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    parse_duration,
-    remove_end,
-)
+from ..compat import compat_urllib_parse_urlparse
+from ..utils import ExtractorError, parse_duration, remove_end
 
 
 class VuClipIE(InfoExtractor):
@@ -41,7 +35,7 @@ class VuClipIE(InfoExtractor):
             default=None)
         if error_msg:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error_msg), expected=True)
+                f'{self.IE_NAME} said: {error_msg}', expected=True)
 
         # These clowns alternate between two page types
         video_url = self._search_regex(

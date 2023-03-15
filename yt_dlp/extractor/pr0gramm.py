@@ -49,7 +49,7 @@ class Pr0grammStaticIE(InfoExtractor):
 
         return merge_dicts({
             'id': video_id,
-            'title': 'pr0gramm-%s%s' % (video_id, (' by ' + uploader) if uploader else ''),
+            'title': f"pr0gramm-{video_id}{' by ' + uploader if uploader else ''}",
             'uploader': uploader,
             'upload_date': uploadTimestr
         }, media_info)

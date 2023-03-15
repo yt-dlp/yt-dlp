@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import ExtractorError, int_or_none, try_get, unified_timestamp
 
 
 class VootIE(InfoExtractor):
@@ -139,7 +134,7 @@ class VootSeriesIE(InfoExtractor):
                 for episode in episodes_json:
                     video_id = episode.get('id')
                     yield self.url_result(
-                        'voot:%s' % video_id, ie=VootIE.ie_key(), video_id=video_id)
+                        f'voot:{video_id}', ie=VootIE.ie_key(), video_id=video_id)
                 episodes_json = self._download_json(self._SEASON_API.format(season_id, page_num),
                                                     video_id=season_id,
                                                     note='Downloading JSON metadata page %d' % page_num)['result']

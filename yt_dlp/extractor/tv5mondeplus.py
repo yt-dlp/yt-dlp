@@ -92,7 +92,7 @@ class TV5MondePlusIE(InfoExtractor):
             'series', default=None)
 
         if series and series != title:
-            title = '%s - %s' % (series, title)
+            title = f'{series} - {title}'
 
         upload_date = self._search_regex(
             r'(?:date_publication|publish_date)["\']\s*:\s*["\'](\d{4}_\d{2}_\d{2})',

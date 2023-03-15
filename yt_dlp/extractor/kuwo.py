@@ -3,10 +3,10 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
-    get_element_by_id,
-    clean_html,
     ExtractorError,
     InAdvancePagedList,
+    clean_html,
+    get_element_by_id,
     remove_start,
 )
 
@@ -27,14 +27,14 @@ class KuwoBaseIE(InfoExtractor):
             query = {
                 'format': file_format['ext'],
                 'br': file_format.get('br', ''),
-                'rid': 'MUSIC_%s' % song_id,
+                'rid': f'MUSIC_{song_id}',
                 'type': 'convert_url',
                 'response': 'url'
             }
 
             song_url = self._download_webpage(
                 'http://antiserver.kuwo.cn/anti.s',
-                song_id, note='Download %s url info' % file_format['format'],
+                song_id, note=f"Download {file_format['format']} url info",
                 query=query, headers=self.geo_verification_headers(),
             )
 
@@ -112,7 +112,7 @@ class KuwoIE(KuwoBaseIE):
         publish_time = None
         if album_id is not None:
             album_info_page = self._download_webpage(
-                'http://www.kuwo.cn/album/%s/' % album_id, song_id,
+                f'http://www.kuwo.cn/album/{album_id}/', song_id,
                 note='Download album detail info',
                 errnote='Unable to get album detail info')
 
@@ -158,7 +158,7 @@ class KuwoAlbumIE(InfoExtractor):
             'album name')
         album_intro = remove_start(
             clean_html(get_element_by_id('intro', webpage)),
-            '%s简介：' % album_name)
+            f'{album_name}简介：')
 
         entries = [
             self.url_result(song_url, 'Kuwo') for song_url in re.findall(
@@ -275,7 +275,7 @@ class KuwoCategoryIE(InfoExtractor):
 
         category_desc = remove_start(
             get_element_by_id('intro', webpage).strip(),
-            '%s简介：' % category_name)
+            f'{category_name}简介：')
         if category_desc == '暂无':
             category_desc = None
 
@@ -283,7 +283,7 @@ class KuwoCategoryIE(InfoExtractor):
             r'var\s+jsonm\s*=\s*([^;]+);', webpage, 'category songs'), category_id)
 
         entries = [
-            self.url_result('http://www.kuwo.cn/yinyue/%s/' % song['musicrid'], 'Kuwo')
+            self.url_result(f"http://www.kuwo.cn/yinyue/{song['musicrid']}/", 'Kuwo')
             for song in jsonm['musiclist']
         ]
         return self.playlist_result(entries, category_id, category_name, category_desc)
@@ -316,8 +316,8 @@ class KuwoMvIE(KuwoBaseIE):
     def _real_extract(self, url):
         song_id = self._match_id(url)
         webpage = self._download_webpage(
-            url, song_id, note='Download mv detail info: %s' % song_id,
-            errnote='Unable to get mv detail info: %s' % song_id)
+            url, song_id, note=f'Download mv detail info: {song_id}',
+            errnote=f'Unable to get mv detail info: {song_id}')
 
         mobj = re.search(
             r'<h1[^>]+title="(?P<song>[^"]+)">[^<]+<span[^>]+title="(?P<singer>[^"]+)"',
@@ -331,8 +331,8 @@ class KuwoMvIE(KuwoBaseIE):
         formats = self._get_formats(song_id, tolerate_ip_deny=True)
 
         mv_url = self._download_webpage(
-            'http://www.kuwo.cn/yy/st/mvurl?rid=MUSIC_%s' % song_id,
-            song_id, note='Download %s MV URL' % song_id)
+            f'http://www.kuwo.cn/yy/st/mvurl?rid=MUSIC_{song_id}',
+            song_id, note=f'Download {song_id} MV URL')
         formats.append({
             'url': mv_url,
             'format_id': 'mv',

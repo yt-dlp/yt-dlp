@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    int_or_none,
-    unescapeHTML,
-)
+from ..utils import int_or_none, js_to_json, unescapeHTML
 
 
 class ReutersIE(InfoExtractor):
@@ -23,7 +19,7 @@ class ReutersIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'http://www.reuters.com/assets/iframe/yovideo?videoId=%s' % video_id, video_id)
+            f'http://www.reuters.com/assets/iframe/yovideo?videoId={video_id}', video_id)
         video_data = js_to_json(self._search_regex(
             r'(?s)Reuters\.yovideo\.drawPlayer\(({.*?})\);',
             webpage, 'video data'))
@@ -35,7 +31,7 @@ class ReutersIE(InfoExtractor):
         mmid, fid = re.search(r',/(\d+)\?f=(\d+)', get_json_value('flv', fatal=True)).groups()
 
         mas_data = self._download_json(
-            'http://mas-e.cds1.yospace.com/mas/%s/%s?trans=json' % (mmid, fid),
+            f'http://mas-e.cds1.yospace.com/mas/{mmid}/{fid}?trans=json',
             video_id, transform_source=js_to_json)
         formats = []
         for f in mas_data:

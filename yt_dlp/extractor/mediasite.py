@@ -1,24 +1,20 @@
-import re
 import json
+import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
     ExtractorError,
     float_or_none,
     mimetype2ext,
+    smuggle_url,
     str_or_none,
     try_call,
     try_get,
-    smuggle_url,
     unsmuggle_url,
     url_or_none,
     urljoin,
 )
-
 
 _ID_RE = r'(?:[0-9a-f]{32,34}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12,14})'
 
@@ -179,7 +175,7 @@ class MediasiteIE(InfoExtractor):
             default='/Mediasite/PlayerService/PlayerService.svc/json'))
 
         player_options = self._download_json(
-            '%s/GetPlayerOptions' % service_path, resource_id,
+            f'{service_path}/GetPlayerOptions', resource_id,
             headers={
                 'Content-type': 'application/json; charset=utf-8',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -198,7 +194,7 @@ class MediasiteIE(InfoExtractor):
 
         if presentation is None:
             raise ExtractorError(
-                'Mediasite says: %s' % player_options['PlayerPresentationStatusMessage'],
+                f"Mediasite says: {player_options['PlayerPresentationStatusMessage']}",
                 expected=True)
 
         thumbnails = []
@@ -369,7 +365,7 @@ class MediasiteCatalogIE(InfoExtractor):
             headers[anti_forgery_header] = anti_forgery_token
 
         catalog = self._download_json(
-            '%s/Catalog/Data/GetPresentationsForFolder' % mediasite_url,
+            f'{mediasite_url}/Catalog/Data/GetPresentationsForFolder',
             catalog_id, data=json.dumps(data).encode(), headers=headers)
 
         entries = []
@@ -380,7 +376,7 @@ class MediasiteCatalogIE(InfoExtractor):
             if not video_id:
                 continue
             entries.append(self.url_result(
-                '%s/Play/%s' % (mediasite_url, video_id),
+                f'{mediasite_url}/Play/{video_id}',
                 ie=MediasiteIE.ie_key(), video_id=video_id))
 
         title = try_get(
@@ -407,5 +403,5 @@ class MediasiteNamedCatalogIE(InfoExtractor):
             r'CatalogId\s*:\s*["\'](%s)' % _ID_RE, webpage, 'catalog id')
 
         return self.url_result(
-            '%s/Catalog/Full/%s' % (mediasite_url, catalog_id),
+            f'{mediasite_url}/Catalog/Full/{catalog_id}',
             ie=MediasiteCatalogIE.ie_key(), video_id=catalog_id)

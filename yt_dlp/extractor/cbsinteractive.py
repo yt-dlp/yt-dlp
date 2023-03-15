@@ -80,7 +80,7 @@ class CBSInteractiveIE(CBSIE):  # XXX: Do not subclass from concrete IE
         title = vdata['title']
         author = vdata.get('author')
         if author:
-            uploader = '%s %s' % (author['firstName'], author['lastName'])
+            uploader = f"{author['firstName']} {author['lastName']}"
             uploader_id = author.get('id')
         else:
             uploader = None

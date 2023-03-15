@@ -1,12 +1,7 @@
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    js_to_json,
-    smuggle_url,
-    try_get,
-)
+from ..utils import int_or_none, js_to_json, smuggle_url, try_get
 
 
 class NoovoIE(InfoExtractor):

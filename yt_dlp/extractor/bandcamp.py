@@ -207,7 +207,7 @@ class BandcampIE(InfoExtractor):
                             })
                         format_id = f.get('encoding_name') or format_id
                         stat = self._download_json(
-                            stat_url, track_id, 'Downloading %s JSON' % format_id,
+                            stat_url, track_id, f'Downloading {format_id} JSON',
                             transform_source=lambda s: s[s.index('{'):s.rindex('}') + 1],
                             fatal=False)
                         if not stat:
@@ -225,7 +225,7 @@ class BandcampIE(InfoExtractor):
                             'acodec': format_id.split('-')[0],
                         })
 
-        title = '%s - %s' % (artist, track) if artist else track
+        title = f'{artist} - {track}' if artist else track
 
         if not duration:
             duration = float_or_none(self._html_search_meta(
@@ -407,7 +407,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         title = show.get('audio_title') or 'Bandcamp Weekly'
         subtitle = show.get('subtitle')
         if subtitle:
-            title += ' - %s' % subtitle
+            title += f' - {subtitle}'
 
         return {
             'id': show_id,

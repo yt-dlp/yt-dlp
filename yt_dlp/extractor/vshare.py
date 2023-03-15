@@ -33,7 +33,7 @@ class VShareIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'https://vshare.io/v/%s/width-650/height-430/1' % video_id,
+            f'https://vshare.io/v/{video_id}/width-650/height-430/1',
             video_id, headers={'Referer': url})
 
         title = self._html_extract_title(webpage)
@@ -46,7 +46,7 @@ class VShareIE(InfoExtractor):
             raise ExtractorError(error, expected=True)
 
         info = self._parse_html5_media_entries(
-            url, '<video>%s</video>' % self._extract_packed(webpage),
+            url, f'<video>{self._extract_packed(webpage)}</video>',
             video_id)[0]
 
         info.update({

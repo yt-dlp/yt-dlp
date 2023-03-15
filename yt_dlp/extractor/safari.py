@@ -2,15 +2,8 @@ import json
 import re
 
 from .common import InfoExtractor
-
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    update_url_query,
-)
+from ..compat import compat_parse_qs, compat_urlparse
+from ..utils import ExtractorError, update_url_query
 
 
 class SafariBaseIE(InfoExtractor):
@@ -55,7 +48,7 @@ class SafariBaseIE(InfoExtractor):
         if (not auth.get('logged_in') and not auth.get('redirect_uri')
                 and credentials):
             raise ExtractorError(
-                'Unable to login: %s' % credentials, expected=True)
+                f'Unable to login: {credentials}', expected=True)
 
         # oreilly serves two same instances of the following cookies
         # in Set-Cookie header and expects first one to be actually set
@@ -125,7 +118,7 @@ class SafariIE(SafariBaseIE):
             partner_id = self._PARTNER_ID
             ui_id = self._UICONF_ID
         else:
-            video_id = '%s-%s' % (mobj.group('course_id'), mobj.group('part'))
+            video_id = f"{mobj.group('course_id')}-{mobj.group('part')}"
 
             webpage, urlh = self._download_webpage_handle(url, video_id)
 
@@ -145,14 +138,14 @@ class SafariIE(SafariBaseIE):
                 group='id')
 
         query = {
-            'wid': '_%s' % partner_id,
+            'wid': f'_{partner_id}',
             'uiconf_id': ui_id,
             'flashvars[referenceId]': reference_id,
         }
 
         if self.LOGGED_IN:
             kaltura_session = self._download_json(
-                '%s/player/kaltura_session/?reference_id=%s' % (self._API_BASE, reference_id),
+                f'{self._API_BASE}/player/kaltura_session/?reference_id={reference_id}',
                 video_id, 'Downloading kaltura session JSON',
                 'Unable to download kaltura session JSON', fatal=False,
                 headers={'Accept': 'application/json'})
@@ -181,7 +174,7 @@ class SafariApiIE(SafariBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         part = self._download_json(
-            url, '%s/%s' % (mobj.group('course_id'), mobj.group('part')),
+            url, f"{mobj.group('course_id')}/{mobj.group('part')}",
             'Downloading part JSON')
         web_url = part['web_url']
         if 'library/view' in web_url:
@@ -243,12 +236,12 @@ class SafariCourseIE(SafariBaseIE):
         course_id = self._match_id(url)
 
         course_json = self._download_json(
-            '%s/book/%s/?override_format=%s' % (self._API_BASE, course_id, self._API_FORMAT),
+            f'{self._API_BASE}/book/{course_id}/?override_format={self._API_FORMAT}',
             course_id, 'Downloading course JSON')
 
         if 'chapters' not in course_json:
             raise ExtractorError(
-                'No chapters found for course %s' % course_id, expected=True)
+                f'No chapters found for course {course_id}', expected=True)
 
         entries = [
             self.url_result(chapter, SafariApiIE.ie_key())

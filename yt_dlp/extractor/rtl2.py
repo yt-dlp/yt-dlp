@@ -2,15 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    strip_or_none,
-)
+from ..compat import compat_b64decode, compat_str
+from ..utils import ExtractorError, int_or_none, strip_or_none
 
 
 class RTL2IE(InfoExtractor):
@@ -147,7 +140,7 @@ class RTL2YouIE(RTL2YouBaseIE):
         series = video_data.get('formatTitle')
         title = episode = video_data.get('title') or series
         if series and series != title:
-            title = '%s - %s' % (series, title)
+            title = f'{series} - {title}'
 
         return {
             'id': video_id,
@@ -188,6 +181,6 @@ class RTL2YouSeriesIE(RTL2YouBaseIE):
             if not video_id:
                 continue
             entries.append(self.url_result(
-                'http://you.rtl2.de/video/%s/%s' % (series_id, video_id),
+                f'http://you.rtl2.de/video/{series_id}/{video_id}',
                 'RTL2You', video_id))
         return self.playlist_result(entries, series_id)

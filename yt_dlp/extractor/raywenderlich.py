@@ -72,7 +72,7 @@ class RayWenderlichIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         course_id, lesson_id = mobj.group('course_id', 'id')
-        display_id = '%s/%s' % (course_id, lesson_id)
+        display_id = f'{course_id}/{lesson_id}'
 
         webpage = self._download_webpage(url, display_id)
 
@@ -124,7 +124,7 @@ class RayWenderlichIE(InfoExtractor):
 
         return merge_dicts(info, self.url_result(
             VimeoIE._smuggle_referrer(
-                'https://player.vimeo.com/video/%s' % vimeo_id, url),
+                f'https://player.vimeo.com/video/{vimeo_id}', url),
             ie=VimeoIE.ie_key(), video_id=vimeo_id))
 
 

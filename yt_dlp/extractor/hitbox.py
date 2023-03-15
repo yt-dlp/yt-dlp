@@ -43,7 +43,7 @@ class HitboxIE(InfoExtractor):
     def _extract_metadata(self, url, video_id):
         thumb_base = 'https://edge.sf.hitbox.tv'
         metadata = self._download_json(
-            '%s/%s' % (url, video_id), video_id, 'Downloading metadata JSON')
+            f'{url}/{video_id}', video_id, 'Downloading metadata JSON')
 
         date = 'media_live_since'
         media_type = 'livestream'
@@ -90,7 +90,7 @@ class HitboxIE(InfoExtractor):
         video_id = self._match_id(url)
 
         player_config = self._download_json(
-            'https://www.smashcast.tv/api/player/config/video/%s' % video_id,
+            f'https://www.smashcast.tv/api/player/config/video/{video_id}',
             video_id, 'Downloading video JSON')
 
         formats = []
@@ -157,7 +157,7 @@ class HitboxLiveIE(HitboxIE):  # XXX: Do not subclass from concrete IE
         video_id = self._match_id(url)
 
         player_config = self._download_json(
-            'https://www.smashcast.tv/api/player/config/live/%s' % video_id,
+            f'https://www.smashcast.tv/api/player/config/live/{video_id}',
             video_id)
 
         formats = []
@@ -191,7 +191,7 @@ class HitboxLiveIE(HitboxIE):  # XXX: Do not subclass from concrete IE
                         })
                     else:
                         formats.append({
-                            'url': '%s/%s' % (base_url, stream_url),
+                            'url': f'{base_url}/{stream_url}',
                             'ext': 'mp4',
                             'tbr': bitrate,
                             'rtmp_live': True,

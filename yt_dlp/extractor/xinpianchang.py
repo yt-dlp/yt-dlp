@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    try_get,
-    update_url_query,
-    url_or_none,
-)
+from ..utils import int_or_none, try_get, update_url_query, url_or_none
 
 
 class XinpianchangIE(InfoExtractor):

@@ -5,11 +5,11 @@ from .theplatform import ThePlatformBaseIE
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
-    int_or_none,
     OnDemandPagedList,
+    int_or_none,
     try_get,
-    urljoin,
     update_url_query,
+    urljoin,
 )
 
 

@@ -1,12 +1,12 @@
 from .common import InfoExtractor
 from ..utils import (
-    HEADRequest,
     ExtractorError,
-    int_or_none,
-    update_url_query,
-    qualities,
-    get_element_by_attribute,
+    HEADRequest,
     clean_html,
+    get_element_by_attribute,
+    int_or_none,
+    qualities,
+    update_url_query,
 )
 
 

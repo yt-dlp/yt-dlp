@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    parse_count,
-    unified_strdate
-)
+from ..utils import parse_count, parse_duration, unified_strdate
 
 
 class NoodleMagazineIE(InfoExtractor):

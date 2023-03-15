@@ -1,14 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
-from ..utils import (
-    ExtractorError,
-    format_field,
-    int_or_none,
-    qualities,
-)
+from ..compat import compat_str, compat_urllib_parse_urlencode
+from ..utils import ExtractorError, format_field, int_or_none, qualities
 
 
 class FlickrIE(InfoExtractor):
@@ -52,7 +44,7 @@ class FlickrIE(InfoExtractor):
     def _call_api(self, method, video_id, api_key, note, secret=None):
         query = {
             'photo_id': video_id,
-            'method': 'flickr.%s' % method,
+            'method': f'flickr.{method}',
             'api_key': api_key,
             'format': 'json',
             'nojsoncallback': 1,

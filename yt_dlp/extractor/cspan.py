@@ -1,10 +1,12 @@
 import re
 
 from .common import InfoExtractor
+from .senategov import SenateISVPIE
+from .ustream import UstreamIE
 from ..compat import compat_HTMLParseError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     extract_attributes,
     find_xpath_attr,
     get_element_by_attribute,
@@ -19,8 +21,6 @@ from ..utils import (
     str_to_int,
     unescapeHTML,
 )
-from .senategov import SenateISVPIE
-from .ustream import UstreamIE
 
 
 class CSpanIE(InfoExtractor):
@@ -183,13 +183,13 @@ class CSpanIE(InfoExtractor):
             return d.get(attr, {}).get('#text')
 
         data = self._download_json(
-            'http://www.c-span.org/assets/player/ajax-player.php?os=android&html5=%s&id=%s' % (video_type, video_id),
+            f'http://www.c-span.org/assets/player/ajax-player.php?os=android&html5={video_type}&id={video_id}',
             video_id)['video']
         if data['@status'] != 'Success':
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, get_text_attr(data, 'error')), expected=True)
+            raise ExtractorError(f"{self.IE_NAME} said: {get_text_attr(data, 'error')}", expected=True)
 
         doc = self._download_xml(
-            'http://www.c-span.org/common/services/flashXml.php?%sid=%s' % (video_type, video_id),
+            f'http://www.c-span.org/common/services/flashXml.php?{video_type}id={video_id}',
             video_id)
 
         description = self._html_search_meta('description', webpage)
@@ -205,7 +205,7 @@ class CSpanIE(InfoExtractor):
             formats = []
             for quality in f.get('qualities', []):
                 formats.append({
-                    'format_id': '%s-%sp' % (get_text_attr(quality, 'bitrate'), get_text_attr(quality, 'height')),
+                    'format_id': f"{get_text_attr(quality, 'bitrate')}-{get_text_attr(quality, 'height')}p",
                     'url': unescapeHTML(get_text_attr(quality, 'file')),
                     'height': int_or_none(get_text_attr(quality, 'height')),
                     'tbr': int_or_none(get_text_attr(quality, 'bitrate')),

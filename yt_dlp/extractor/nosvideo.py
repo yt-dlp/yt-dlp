@@ -41,7 +41,7 @@ class NosVideoIE(InfoExtractor):
         webpage = self._download_webpage(req, video_id,
                                          'Downloading download page')
         if re.search(self._FILE_DELETED_REGEX, webpage) is not None:
-            raise ExtractorError('Video %s does not exist' % video_id,
+            raise ExtractorError(f'Video {video_id} does not exist',
                                  expected=True)
 
         xml_id = self._search_regex(r'php\|([^\|]+)\|', webpage, 'XML ID')

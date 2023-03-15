@@ -186,7 +186,7 @@ class TestSignature(unittest.TestCase):
 def t_factory(name, sig_func, url_pattern):
     def make_tfunc(url, sig_input, expected_sig):
         m = url_pattern.match(url)
-        assert m, '%r should follow URL format' % url
+        assert m, f'{url!r} should follow URL format'
         test_id = m.group('id')
 
         def test_func(self):

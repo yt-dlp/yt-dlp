@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    smuggle_url,
-    traverse_obj,
-)
+from ..utils import ExtractorError, smuggle_url, traverse_obj
 
 
 class NTVCoJpCUIE(InfoExtractor):

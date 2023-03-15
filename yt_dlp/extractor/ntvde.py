@@ -2,11 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    int_or_none,
-    js_to_json,
-    parse_duration,
-)
+from ..utils import int_or_none, js_to_json, parse_duration
 
 
 class NTVDeIE(InfoExtractor):
@@ -47,7 +43,7 @@ class NTVDeIE(InfoExtractor):
         if vdata.get('video'):
             formats.append({
                 'format_id': 'flash',
-                'url': 'rtmp://fms.n-tv.de/%s' % vdata['video'],
+                'url': f"rtmp://fms.n-tv.de/{vdata['video']}",
             })
         if vdata.get('videoMp4'):
             formats.append({

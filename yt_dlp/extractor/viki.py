@@ -50,7 +50,7 @@ class VikiBaseIE(InfoExtractor):
         path += '?' if '?' not in path else '&'
         query = f'/v{version}/{path}app={self._APP}'
         if self._token:
-            query += '&token=%s' % self._token
+            query += f'&token={self._token}'
         return query + ''.join(f'&{name}={val}' for name, val in kwargs.items())
 
     def _sign_query(self, path):
@@ -79,7 +79,7 @@ class VikiBaseIE(InfoExtractor):
     def _raise_error(self, error, fatal=True):
         if error is None:
             return
-        msg = '%s said: %s' % (self.IE_NAME, error)
+        msg = f'{self.IE_NAME} said: {error}'
         if fatal:
             raise ExtractorError(msg, expected=True)
         else:
@@ -236,7 +236,7 @@ class VikiIE(VikiBaseIE):
             title = 'Episode %d' % episode_number if video.get('type') == 'episode' else video.get('id') or video_id
             container_titles = try_get(video, lambda x: x['container']['titles'], dict) or {}
             container_title = self.dict_selection(container_titles, 'en')
-            title = '%s - %s' % (container_title, title)
+            title = f'{container_title} - {title}'
 
         thumbnails = [{
             'id': thumbnail_id,
@@ -244,7 +244,7 @@ class VikiIE(VikiBaseIE):
         } for thumbnail_id, thumbnail in (video.get('images') or {}).items() if thumbnail.get('url')]
 
         resp = self._call_api(
-            'playback_streams/%s.json?drms=dt3&device_id=%s' % (video_id, self._DEVICE_ID),
+            f'playback_streams/{video_id}.json?drms=dt3&device_id={self._DEVICE_ID}',
             video_id, 'Downloading video streams JSON')['main'][0]
 
         stream_id = try_get(resp, lambda x: x['properties']['track']['stream_id'])
@@ -338,7 +338,7 @@ class VikiChannelIE(VikiBaseIE):
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        channel = self._call_api('containers/%s.json' % channel_id, channel_id, 'Downloading channel JSON')
+        channel = self._call_api(f'containers/{channel_id}.json', channel_id, 'Downloading channel JSON')
         self._check_errors(channel)
         return self.playlist_result(
             self._entries(channel_id), channel_id,

@@ -1,22 +1,19 @@
-import re
 import itertools
+import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
-    find_xpath_attr,
-    xpath_attr,
-    xpath_with_ns,
-    xpath_text,
-    orderedSet,
-    update_url_query,
-    int_or_none,
-    float_or_none,
-    parse_iso8601,
     determine_ext,
+    find_xpath_attr,
+    float_or_none,
+    int_or_none,
+    orderedSet,
+    parse_iso8601,
+    update_url_query,
+    xpath_attr,
+    xpath_text,
+    xpath_with_ns,
 )
 
 
@@ -194,17 +191,16 @@ class LivestreamIE(InfoExtractor):
             if last_video is None:
                 info_url = feed_root_url
             else:
-                info_url = '{root}?&id={id}&newer=-1&type=video'.format(
-                    root=feed_root_url, id=last_video)
+                info_url = f'{feed_root_url}?&id={last_video}&newer=-1&type=video'
             videos_info = self._download_json(
-                info_url, event_id, 'Downloading page {0}'.format(i))['data']
+                info_url, event_id, f'Downloading page {i}')['data']
             videos_info = [v['data'] for v in videos_info if v['type'] == 'video']
             if not videos_info:
                 break
             for v in videos_info:
                 v_id = compat_str(v['id'])
                 entries.append(self.url_result(
-                    'http://livestream.com/accounts/%s/events/%s/videos/%s' % (account_id, event_id, v_id),
+                    f'http://livestream.com/accounts/{account_id}/events/{event_id}/videos/{v_id}',
                     'Livestream', v_id, v.get('caption')))
             last_video = videos_info[-1]['id']
         return self.playlist_result(entries, event_id, event_data['full_name'])
@@ -217,7 +213,7 @@ class LivestreamIE(InfoExtractor):
         api_url = self._API_URL_TEMPLATE % (account, event)
         if video_id:
             video_data = self._download_json(
-                api_url + '/videos/%s' % video_id, video_id)
+                api_url + f'/videos/{video_id}', video_id)
             return self._extract_video_info(video_data)
         else:
             event_data = self._download_json(api_url, video_id)
@@ -253,7 +249,7 @@ class LivestreamOriginalIE(InfoExtractor):
     }]
 
     def _extract_video_info(self, user, video_id):
-        api_url = 'http://x%sx.api.channel.livestream.com/2.0/clipdetails?extendedInfo=true&id=%s' % (user, video_id)
+        api_url = f'http://x{user}x.api.channel.livestream.com/2.0/clipdetails?extendedInfo=true&id={video_id}'
         info = self._download_xml(api_url, video_id)
 
         item = info.find('channel').find('item')
@@ -324,10 +320,10 @@ class LivestreamOriginalIE(InfoExtractor):
             return self._extract_folder(url, content_id)
         else:
             # this url is used on mobile devices
-            stream_url = 'http://x%sx.api.channel.livestream.com/3.0/getstream.json' % user
+            stream_url = f'http://x{user}x.api.channel.livestream.com/3.0/getstream.json'
             info = {}
             if content_id:
-                stream_url += '?id=%s' % content_id
+                stream_url += f'?id={content_id}'
                 info = self._extract_video_info(user, content_id)
             else:
                 content_id = user

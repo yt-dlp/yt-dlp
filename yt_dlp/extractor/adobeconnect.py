@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
+from ..compat import compat_parse_qs, compat_urlparse
 
 
 class AdobeConnectIE(InfoExtractor):

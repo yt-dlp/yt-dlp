@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import int_or_none, try_get, unified_timestamp
 
 
 class ParlviewIE(InfoExtractor):
@@ -42,7 +38,7 @@ class ParlviewIE(InfoExtractor):
         if not stream:
             self.raise_no_formats('No streams were detected')
         elif stream.get('streamType') != 'VOD':
-            self.raise_no_formats('Unknown type of stream was detected: "%s"' % str(stream.get('streamType')))
+            self.raise_no_formats(f"Unknown type of stream was detected: \"{str(stream.get('streamType'))}\"")
         formats = self._extract_m3u8_formats(stream['url'], video_id, 'mp4', 'm3u8_native')
 
         media_info = self._download_webpage(

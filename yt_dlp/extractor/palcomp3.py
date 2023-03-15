@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    str_or_none,
-    try_get,
-)
+from ..utils import int_or_none, str_or_none, try_get
 
 
 class PalcoMP3BaseIE(InfoExtractor):

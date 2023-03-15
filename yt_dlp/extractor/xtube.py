@@ -203,7 +203,7 @@ class XTubeUserIE(InfoExtractor):
 
             for video_id in orderedSet([video_id for _, video_id in re.findall(
                     r'data-plid=(["\'])(.+?)\1', html)]):
-                entries.append(self.url_result('xtube:%s' % video_id, XTubeIE.ie_key()))
+                entries.append(self.url_result(f'xtube:{video_id}', XTubeIE.ie_key()))
 
             page_count = int_or_none(page.get('pageCount'))
             if not page_count or pagenum == page_count:

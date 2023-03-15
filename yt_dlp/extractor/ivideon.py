@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlencode,
-    compat_urlparse,
-)
+from ..compat import compat_urllib_parse_urlencode, compat_urlparse
 from ..utils import qualities
 
 
@@ -37,7 +34,7 @@ class IvideonIE(InfoExtractor):
         server_id, camera_id = mobj.group('id'), mobj.group('camera_id')
         camera_name, description = None, None
         camera_url = compat_urlparse.urljoin(
-            url, '/tv/camera/%s/%s/' % (server_id, camera_id))
+            url, f'/tv/camera/{server_id}/{camera_id}/')
 
         webpage = self._download_webpage(camera_url, server_id, fatal=False)
         if webpage:

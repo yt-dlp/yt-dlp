@@ -1,15 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    urlencode_postdata,
-)
+from ..compat import compat_str, compat_urlparse
+from ..utils import ExtractorError, int_or_none, urlencode_postdata
 
 
 class LyndaBaseIE(InfoExtractor):
@@ -25,7 +18,7 @@ class LyndaBaseIE(InfoExtractor):
         for key in keys:
             error = json_string.get(key)
             if error:
-                raise ExtractorError('Unable to login: %s' % error, expected=True)
+                raise ExtractorError(f'Unable to login: {error}', expected=True)
 
     def _perform_login_step(self, form_html, fallback_action_url, extra_form_data, note, referrer_url):
         action_url = self._search_regex(
@@ -116,7 +109,7 @@ class LyndaIE(LyndaBaseIE):
 
     def _raise_unavailable(self, video_id):
         self.raise_login_required(
-            'Video %s is only available for members' % video_id)
+            f'Video {video_id} is only available for members')
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -154,7 +147,7 @@ class LyndaIE(LyndaBaseIE):
                         continue
                     formats.append({
                         'url': format_url,
-                        'format_id': '%s-%s' % (cdn, format_id) if cdn else format_id,
+                        'format_id': f'{cdn}-{format_id}' if cdn else format_id,
                         'height': int_or_none(format_id),
                     })
 
@@ -174,7 +167,7 @@ class LyndaIE(LyndaBaseIE):
 
         if 'Status' in video:
             raise ExtractorError(
-                'lynda returned error: %s' % video['Message'], expected=True)
+                f"lynda returned error: {video['Message']}", expected=True)
 
         if video.get('HasAccess') is False:
             self._raise_unavailable(video_id)
@@ -202,7 +195,7 @@ class LyndaIE(LyndaBaseIE):
                 formats.extend([{
                     'url': video_url,
                     'height': int_or_none(format_id),
-                    'format_id': '%s-%s' % (prioritized_stream_id, format_id),
+                    'format_id': f'{prioritized_stream_id}-{format_id}',
                 } for format_id, video_url in prioritized_stream.items()])
 
         self._check_formats(formats, video_id)
@@ -234,12 +227,12 @@ class LyndaIE(LyndaBaseIE):
             text = seq_current['Caption'].strip()
             if text:
                 seq_counter += 1
-                srt += '%s\r\n%s --> %s\r\n%s\r\n\r\n' % (seq_counter, appear_time, disappear_time, text)
+                srt += f'{seq_counter}\r\n{appear_time} --> {disappear_time}\r\n{text}\r\n\r\n'
         if srt:
             return srt
 
     def _get_subtitles(self, video_id):
-        url = 'https://www.lynda.com/ajax/player?videoId=%s&type=transcript' % video_id
+        url = f'https://www.lynda.com/ajax/player?videoId={video_id}&type=transcript'
         subs = self._download_webpage(
             url, video_id, 'Downloading subtitles JSON', fatal=False)
         if not subs or 'Status="NotFound"' in subs:
@@ -277,7 +270,7 @@ class LyndaCourseIE(LyndaBaseIE):
         item_template = 'https://www.lynda.com/%s/%%s-4.html' % course_path
 
         course = self._download_json(
-            'https://www.lynda.com/ajax/player?courseId=%s&type=course' % course_id,
+            f'https://www.lynda.com/ajax/player?courseId={course_id}&type=course',
             course_id, 'Downloading course JSON', fatal=False)
 
         if not course:
@@ -295,7 +288,7 @@ class LyndaCourseIE(LyndaBaseIE):
 
         if course.get('Status') == 'NotFound':
             raise ExtractorError(
-                'Course %s does not exist' % course_id, expected=True)
+                f'Course {course_id} does not exist', expected=True)
 
         unaccessible_videos = 0
         entries = []

@@ -1,8 +1,8 @@
-import re
 import json
-import uuid
 import random
+import re
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -10,10 +10,10 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     remove_end,
+    smuggle_url,
     strip_or_none,
     traverse_obj,
     try_get,
-    smuggle_url,
     unified_timestamp,
     unsmuggle_url,
     url_or_none,
@@ -82,7 +82,7 @@ class ViuIE(ViuBaseIE):
         # hls_file = video_data.get('hlsfile')
         hls_file = video_data.get('jwhlsfile')
         if url_path and tdirforwhole and hls_file:
-            m3u8_url = '%s/%s/%s' % (url_path, tdirforwhole, hls_file)
+            m3u8_url = f'{url_path}/{tdirforwhole}/{hls_file}'
         else:
             # m3u8_url = re.sub(
             #     r'(/hlsc_)[a-z]+(\d+\.m3u8)',

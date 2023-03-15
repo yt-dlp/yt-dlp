@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    dict_get,
-    try_get,
-    unified_strdate,
-)
+from ..utils import clean_html, dict_get, try_get, unified_strdate
 
 
 class CanalAlphaIE(InfoExtractor):

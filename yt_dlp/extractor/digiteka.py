@@ -65,7 +65,7 @@ class DigitekaIE(InfoExtractor):
             video_type = 'musique'
 
         deliver_info = self._download_json(
-            'http://www.ultimedia.com/deliver/video?video=%s&topic=%s' % (video_id, video_type),
+            f'http://www.ultimedia.com/deliver/video?video={video_id}&topic={video_type}',
             video_id)
 
         yt_id = deliver_info.get('yt_id')

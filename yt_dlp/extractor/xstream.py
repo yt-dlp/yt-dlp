@@ -2,11 +2,11 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    find_xpath_attr,
     int_or_none,
     parse_iso8601,
-    xpath_with_ns,
     xpath_text,
-    find_xpath_attr,
+    xpath_with_ns,
 )
 
 
@@ -71,7 +71,7 @@ class XstreamIE(InfoExtractor):
             if mobj:
                 formats.append({
                     'url': mobj.group('url'),
-                    'play_path': 'mp4:%s' % mobj.group('playpath'),
+                    'play_path': f"mp4:{mobj.group('playpath')}",
                     'app': mobj.group('app'),
                     'ext': 'flv',
                     'tbr': tbr,

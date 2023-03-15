@@ -106,7 +106,7 @@ class ESPNIE(OnceIE):
         video_id = self._match_id(url)
 
         clip = self._download_json(
-            'http://api-app.espn.com/v1/video/clips/%s' % video_id,
+            f'http://api-app.espn.com/v1/video/clips/{video_id}',
             video_id)['videos'][0]
 
         title = clip['headline']
@@ -123,7 +123,7 @@ class ESPNIE(OnceIE):
                 elif isinstance(source, dict):
                     traverse_source(
                         source,
-                        '%s-%s' % (base_source_id, source_id)
+                        f'{base_source_id}-{source_id}'
                         if base_source_id else source_id)
 
         def extract_source(source_url, source_id=None):
@@ -209,7 +209,7 @@ class ESPNArticleIE(InfoExtractor):
             webpage, 'video id', group='id')
 
         return self.url_result(
-            'http://espn.go.com/video/clip?id=%s' % video_id, ESPNIE.ie_key())
+            f'http://espn.go.com/video/clip?id={video_id}', ESPNIE.ie_key())
 
 
 class FiveThirtyEightIE(InfoExtractor):

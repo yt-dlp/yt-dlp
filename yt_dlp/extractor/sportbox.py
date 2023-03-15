@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    js_to_json,
-    merge_dicts,
-)
+from ..utils import determine_ext, int_or_none, js_to_json, merge_dicts
 
 
 class SportBoxIE(InfoExtractor):

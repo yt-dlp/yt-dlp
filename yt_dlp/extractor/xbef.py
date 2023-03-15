@@ -24,7 +24,7 @@ class XBefIE(InfoExtractor):
             r'<h1[^>]*>(.*?)</h1>', webpage, 'title')
 
         config_url_enc = self._download_webpage(
-            'http://xbef.com/Main/GetVideoURLEncoded/%s' % video_id, video_id,
+            f'http://xbef.com/Main/GetVideoURLEncoded/{video_id}', video_id,
             note='Retrieving config URL')
         config_url = compat_urllib_parse_unquote(config_url_enc)
         config = self._download_xml(

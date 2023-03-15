@@ -795,7 +795,7 @@ class InfoExtractor:
         if not self._downloader._first_webpage_request:
             sleep_interval = self.get_param('sleep_interval_requests') or 0
             if sleep_interval > 0:
-                self.to_screen('Sleeping %s seconds ...' % sleep_interval)
+                self.to_screen(f'Sleeping {sleep_interval} seconds ...')
                 time.sleep(sleep_interval)
         else:
             self._downloader._first_webpage_request = False
@@ -912,7 +912,7 @@ class InfoExtractor:
                 r'<iframe src="([^"]+)"', content,
                 'Websense information URL', default=None)
             if blocked_iframe:
-                msg += ' Visit %s for more details' % blocked_iframe
+                msg += f' Visit {blocked_iframe} for more details'
             raise ExtractorError(msg, expected=True)
         if '<title>The URL you requested has been blocked</title>' in first_block:
             msg = (
@@ -1129,11 +1129,11 @@ class InfoExtractor:
 
     def report_extraction(self, id_or_name):
         """Report information extraction."""
-        self.to_screen('%s: Extracting information' % id_or_name)
+        self.to_screen(f'{id_or_name}: Extracting information')
 
     def report_download_webpage(self, video_id):
         """Report webpage download."""
-        self.to_screen('%s: Downloading webpage' % video_id)
+        self.to_screen(f'{video_id}: Downloading webpage')
 
     def report_age_confirmation(self):
         """Report attempt to confirm age."""
@@ -1239,9 +1239,9 @@ class InfoExtractor:
         elif default is not NO_DEFAULT:
             return default
         elif fatal:
-            raise RegexNotFoundError('Unable to extract %s' % _name)
+            raise RegexNotFoundError(f'Unable to extract {_name}')
         else:
-            self.report_warning('unable to extract %s' % _name + bug_reports_message())
+            self.report_warning(f'unable to extract {_name}' + bug_reports_message())
             return None
 
     def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
@@ -1296,10 +1296,10 @@ class InfoExtractor:
                     password = info[2]
                 else:
                     raise netrc.NetrcParseError(
-                        'No authenticators for %s' % netrc_machine)
+                        f'No authenticators for {netrc_machine}')
             except (OSError, netrc.NetrcParseError) as err:
                 self.report_warning(
-                    'parsing .netrc: %s' % error_to_compat_str(err))
+                    f'parsing .netrc: {error_to_compat_str(err)}')
 
         return username, password
 
@@ -1334,7 +1334,7 @@ class InfoExtractor:
         if tfa is not None:
             return tfa
 
-        return getpass.getpass('Type %s and press [Return]: ' % note)
+        return getpass.getpass(f'Type {note} and press [Return]: ')
 
     # Helper functions for extracting OpenGraph info
     @staticmethod
@@ -1357,7 +1357,7 @@ class InfoExtractor:
     def _og_search_property(self, prop, html, name=None, **kargs):
         prop = variadic(prop)
         if name is None:
-            name = 'OpenGraph %s' % prop[0]
+            name = f'OpenGraph {prop[0]}'
         og_regexes = []
         for p in prop:
             og_regexes.extend(self._og_regexes(p))
@@ -1480,7 +1480,7 @@ class InfoExtractor:
         elif fatal:
             raise RegexNotFoundError('Unable to extract JSON-LD')
         else:
-            self.report_warning('unable to extract JSON-LD %s' % bug_reports_message())
+            self.report_warning(f'unable to extract JSON-LD {bug_reports_message()}')
             return {}
 
     def _json_ld(self, json_ld, video_id, fatal=True, expected_type=None):
@@ -1532,7 +1532,7 @@ class InfoExtractor:
                 count_kind = INTERACTION_TYPE_MAP.get(interaction_type.split('/')[-1])
                 if not count_kind:
                     continue
-                count_key = '%s_count' % count_kind
+                count_key = f'{count_kind}_count'
                 if info.get(count_key) is not None:
                     continue
                 info[count_key] = interaction_count
@@ -1696,7 +1696,7 @@ class InfoExtractor:
     def _form_hidden_inputs(self, form_id, html):
         form = self._search_regex(
             r'(?is)<form[^>]+?id=(["\'])%s\1[^>]*>(?P<form>.+?)</form>' % form_id,
-            html, '%s form' % form_id, group='form')
+            html, f'{form_id} form', group='form')
         return self._hidden_inputs(form)
 
     @classproperty(cache=True)
@@ -1726,7 +1726,7 @@ class InfoExtractor:
             formats[:] = filter(
                 lambda f: self._is_valid_url(
                     f['url'], video_id,
-                    item='%s video format' % f.get('format_id') if f.get('format_id') else 'video'),
+                    item=f"{f.get('format_id')} video format" if f.get('format_id') else 'video'),
                 formats)
 
     @staticmethod
@@ -1745,7 +1745,7 @@ class InfoExtractor:
         if not (url.startswith('http://') or url.startswith('https://')):
             return True
         try:
-            self._request_webpage(url, video_id, 'Checking %s URL' % item, headers=headers)
+            self._request_webpage(url, video_id, f'Checking {item} URL', headers=headers)
             return True
         except ExtractorError as e:
             self.to_screen(
@@ -2643,7 +2643,7 @@ class InfoExtractor:
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
                         else:
-                            self.report_warning('Unknown MIME type %s in DASH manifest' % mime_type)
+                            self.report_warning(f'Unknown MIME type {mime_type} in DASH manifest')
                             continue
 
                     base_url = ''
@@ -2681,7 +2681,7 @@ class InfoExtractor:
                             'asr': int_or_none(representation_attrib.get('audioSamplingRate')),
                             'fps': int_or_none(representation_attrib.get('frameRate')),
                             'language': lang if lang not in ('mul', 'und', 'zxx', 'mis') else None,
-                            'format_note': 'DASH %s' % content_type,
+                            'format_note': f'DASH {content_type}',
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
                             **codecs
@@ -2917,7 +2917,7 @@ class InfoExtractor:
                 fourcc = track.get('FourCC') or KNOWN_TAGS.get(track.get('AudioTag'))
                 # TODO: add support for WVC1 and WMAP
                 if fourcc not in ('H264', 'AVC1', 'AACL', 'TTML', 'EC-3'):
-                    self.report_warning('%s is not a supported codec' % fourcc)
+                    self.report_warning(f'{fourcc} is not a supported codec')
                     continue
                 tbr = int(track.attrib['Bitrate']) // 1000
                 # [1] does not mention Width and Height attributes. However,
@@ -3196,13 +3196,13 @@ class InfoExtractor:
         mobj = re.search(
             r'(?:(?:http|rtmp|rtsp)(?P<s>s)?:)?(?P<url>//[^?]+)', url)
         url_base = mobj.group('url')
-        http_base_url = '%s%s:%s' % ('http', mobj.group('s') or '', url_base)
+        http_base_url = f"{'http'}{mobj.group('s') or ''}:{url_base}"
         formats = []
 
         def manifest_url(manifest):
             m_url = f'{http_base_url}/{manifest}'
             if query:
-                m_url += '?%s' % query
+                m_url += f'?{query}'
             return m_url
 
         if 'm3u8' not in skip_protocols:
@@ -3224,7 +3224,7 @@ class InfoExtractor:
                     video_id, fatal=False)
                 for rtmp_format in rtmp_formats:
                     rtsp_format = rtmp_format.copy()
-                    rtsp_format['url'] = '%s/%s' % (rtmp_format['url'], rtmp_format['play_path'])
+                    rtsp_format['url'] = f"{rtmp_format['url']}/{rtmp_format['play_path']}"
                     del rtsp_format['play_path']
                     del rtsp_format['ext']
                     rtsp_format.update({

@@ -1,11 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_qs,
-    xpath_text,
     qualities,
+    xpath_text,
 )
 
 
@@ -74,7 +74,7 @@ class PladformIE(InfoExtractor):
 
         def fail(text):
             raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, text),
+                f'{self.IE_NAME} returned error: {text}',
                 expected=True)
 
         if not video:
@@ -112,7 +112,7 @@ class PladformIE(InfoExtractor):
                 fail(error)
 
         webpage = self._download_webpage(
-            'http://video.pladform.ru/catalog/video/videoid/%s' % video_id,
+            f'http://video.pladform.ru/catalog/video/videoid/{video_id}',
             video_id)
 
         title = self._og_search_title(webpage, fatal=False) or xpath_text(

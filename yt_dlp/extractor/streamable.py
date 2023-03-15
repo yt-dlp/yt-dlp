@@ -3,8 +3,8 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    try_get,
     parse_codecs,
+    try_get,
 )
 
 
@@ -59,7 +59,7 @@ class StreamableIE(InfoExtractor):
         # to return video info like the title properly sometimes, and doesn't
         # include info like the video duration
         video = self._download_json(
-            'https://ajax.streamable.com/videos/%s' % video_id, video_id)
+            f'https://ajax.streamable.com/videos/{video_id}', video_id)
 
         # Format IDs:
         # 0 The video is being uploaded

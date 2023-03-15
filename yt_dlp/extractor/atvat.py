@@ -1,12 +1,7 @@
 import datetime
 
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    jwt_encode_hs256,
-    try_get,
-    ExtractorError,
-)
+from ..utils import ExtractorError, float_or_none, jwt_encode_hs256, try_get
 
 
 class ATVAtIE(InfoExtractor):

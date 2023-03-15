@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    bool_or_none,
     ExtractorError,
+    bool_or_none,
     dict_get,
     float_or_none,
     int_or_none,
@@ -76,7 +76,7 @@ class GettrIE(GettrBaseIE):
     def _real_extract(self, url):
         post_id = self._match_id(url)
         webpage = self._download_webpage(url, post_id)
-        api_data = self._call_api('post/%s?incl="poststats|userinfo"' % post_id, post_id)
+        api_data = self._call_api(f'post/{post_id}?incl="poststats|userinfo"', post_id)
 
         post_data = api_data.get('data')
         user_data = try_get(api_data, lambda x: x['aux']['uinf'][post_data['uid']], dict) or {}
@@ -106,7 +106,7 @@ class GettrIE(GettrBaseIE):
             or self._search_regex(r'^(.+?) on GETTR', self._og_search_title(webpage, default=''), 'uploader', fatal=False))
 
         if uploader:
-            title = '%s - %s' % (uploader, title)
+            title = f'{uploader} - {title}'
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
@@ -177,7 +177,7 @@ class GettrStreamingIE(GettrBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._call_api('live/join/%s' % video_id, video_id, data={})
+        video_info = self._call_api(f'live/join/{video_id}', video_id, data={})
 
         live_info = video_info['broadcast']
         live_url = url_or_none(live_info.get('url'))

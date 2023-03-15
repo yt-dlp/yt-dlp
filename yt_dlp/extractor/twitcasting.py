@@ -5,8 +5,8 @@ import re
 from .common import InfoExtractor
 from ..dependencies import websockets
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
@@ -138,7 +138,7 @@ class TwitCastingIE(InfoExtractor):
             webpage, 'datetime', None))
 
         stream_server_data = self._download_json(
-            'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
+            f'https://twitcasting.tv/streamserver.php?target={uploader_id}&mode=client', video_id,
             'Downloading live info', fatal=False)
 
         is_live = 'data-status="online"' in webpage
@@ -188,7 +188,7 @@ class TwitCastingIE(InfoExtractor):
                 for mode, ws_url in streams.items():
                     formats.append({
                         'url': ws_url,
-                        'format_id': 'ws-%s' % mode,
+                        'format_id': f'ws-{mode}',
                         'ext': 'mp4',
                         'quality': qq(mode),
                         'source_preference': -10,
@@ -261,7 +261,7 @@ class TwitCastingLiveIE(InfoExtractor):
                     webpage, 'current live ID 2', default=None, group='video_id')
         if not current_live:
             raise ExtractorError('The user is not currently live')
-        return self.url_result('https://twitcasting.tv/%s/movie/%s' % (uploader_id, current_live))
+        return self.url_result(f'https://twitcasting.tv/{uploader_id}/movie/{current_live}')
 
 
 class TwitCastingUserIE(InfoExtractor):
@@ -272,7 +272,7 @@ class TwitCastingUserIE(InfoExtractor):
     }]
 
     def _entries(self, uploader_id):
-        base_url = next_url = 'https://twitcasting.tv/%s/show' % uploader_id
+        base_url = next_url = f'https://twitcasting.tv/{uploader_id}/show'
         for page_num in itertools.count(1):
             webpage = self._download_webpage(
                 next_url, uploader_id, query={'filter': 'watchable'}, note='Downloading page %d' % page_num)
@@ -292,4 +292,4 @@ class TwitCastingUserIE(InfoExtractor):
     def _real_extract(self, url):
         uploader_id = self._match_id(url)
         return self.playlist_result(
-            self._entries(uploader_id), uploader_id, '%s - Live History' % uploader_id)
+            self._entries(uploader_id), uploader_id, f'{uploader_id} - Live History')

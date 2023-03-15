@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
+    determine_ext,
     find_xpath_attr,
     int_or_none,
     js_to_json,
     unescapeHTML,
-    determine_ext,
 )
 
 
@@ -49,13 +49,13 @@ class HowStuffWorksIE(InfoExtractor):
         for video in clip_info.get('mp4', []):
             formats.append({
                 'url': video['src'],
-                'format_id': 'mp4-%s' % video['bitrate'],
+                'format_id': f"mp4-{video['bitrate']}",
                 'vbr': int_or_none(video['bitrate'].rstrip('k')),
             })
 
         if not formats:
             smil = self._download_xml(
-                'http://services.media.howstuffworks.com/videos/%s/smil-service.smil' % video_id,
+                f'http://services.media.howstuffworks.com/videos/{video_id}/smil-service.smil',
                 video_id, 'Downloading video SMIL')
 
             http_base = find_xpath_attr(
@@ -70,13 +70,13 @@ class HowStuffWorksIE(InfoExtractor):
                     './{0}body/{0}switch/{0}video'.format('{http://www.w3.org/2001/SMIL20/Language}')):
                 vbr = int_or_none(video.attrib['system-bitrate'], scale=1000)
                 formats.append({
-                    'url': '%s/%s%s' % (http_base, video.attrib['src'], URL_SUFFIX),
+                    'url': f"{http_base}/{video.attrib['src']}{URL_SUFFIX}",
                     'format_id': '%dk' % vbr,
                     'vbr': vbr,
                 })
 
         return {
-            'id': '%s' % video_id,
+            'id': f'{video_id}',
             'display_id': display_id,
             'title': unescapeHTML(clip_info['clip_title']),
             'description': unescapeHTML(clip_info.get('caption')),

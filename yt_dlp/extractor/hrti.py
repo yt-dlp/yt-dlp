@@ -3,8 +3,8 @@ import json
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     parse_age_limit,
     sanitized_Request,
@@ -81,7 +81,7 @@ class HRTiBaseIE(InfoExtractor):
         error_message = auth_info.get('error', {}).get('message')
         if error_message:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error_message),
+                f'{self.IE_NAME} said: {error_message}',
                 expected=True)
 
         self._token = auth_info['secure_streaming_token']
@@ -133,7 +133,7 @@ class HRTiIE(HRTiBaseIE):
         display_id = mobj.group('display_id') or video_id
 
         video = self._download_json(
-            '%s/video_id/%s/format/json' % (self._search_url, video_id),
+            f'{self._search_url}/video_id/{video_id}/format/json',
             display_id, 'Downloading video metadata JSON')['video'][0]
 
         title_info = video['title']
@@ -188,13 +188,13 @@ class HRTiPlaylistIE(HRTiBaseIE):
         display_id = mobj.group('display_id') or category_id
 
         response = self._download_json(
-            '%s/category_id/%s/format/json' % (self._search_url, category_id),
+            f'{self._search_url}/category_id/{category_id}/format/json',
             display_id, 'Downloading video metadata JSON')
 
         video_ids = try_get(
             response, lambda x: x['video_listings'][0]['alternatives'][0]['list'],
             list) or [video['id'] for video in response.get('videos', []) if video.get('id')]
 
-        entries = [self.url_result('hrti:%s' % video_id) for video_id in video_ids]
+        entries = [self.url_result(f'hrti:{video_id}') for video_id in video_ids]
 
         return self.playlist_result(entries, category_id, display_id)

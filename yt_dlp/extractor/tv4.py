@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-)
+from ..utils import int_or_none, parse_iso8601
 
 
 class TV4IE(InfoExtractor):
@@ -73,7 +70,7 @@ class TV4IE(InfoExtractor):
         video_id = self._match_id(url)
 
         info = self._download_json(
-            'https://playback-api.b17g.net/asset/%s' % video_id,
+            f'https://playback-api.b17g.net/asset/{video_id}',
             video_id, 'Downloading video info JSON', query={
                 'service': 'tv4',
                 'device': 'browser',

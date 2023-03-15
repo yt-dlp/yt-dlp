@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    parse_duration,
-    unified_strdate,
-)
+from ..utils import determine_ext, parse_duration, unified_strdate
 
 
 class HuffPostIE(InfoExtractor):
@@ -40,7 +36,7 @@ class HuffPostIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        api_url = 'http://embed.live.huffingtonpost.com/api/segments/%s.json' % video_id
+        api_url = f'http://embed.live.huffingtonpost.com/api/segments/{video_id}.json'
         data = self._download_json(api_url, video_id)['data']
 
         video_title = data['title']

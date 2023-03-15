@@ -1,5 +1,5 @@
-from ..utils import str_to_int
 from .keezmovies import KeezMoviesIE
+from ..utils import str_to_int
 
 
 class ExtremeTubeIE(KeezMoviesIE):  # XXX: Do not subclass from concrete IE

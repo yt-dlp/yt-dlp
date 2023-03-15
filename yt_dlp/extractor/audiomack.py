@@ -4,10 +4,7 @@ import time
 from .common import InfoExtractor
 from .soundcloud import SoundcloudIE
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    url_basename,
-)
+from ..utils import ExtractorError, url_basename
 
 
 class AudiomackIE(InfoExtractor):
@@ -56,7 +53,7 @@ class AudiomackIE(InfoExtractor):
 
         # API is inconsistent with errors
         if 'url' not in api_response or not api_response['url'] or 'error' in api_response:
-            raise ExtractorError('Invalid url %s' % url)
+            raise ExtractorError(f'Invalid url {url}')
 
         # Audiomack wraps a lot of soundcloud tracks in their branded wrapper
         # if so, pass the work off to the soundcloud extractor

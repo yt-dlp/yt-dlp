@@ -1,9 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import (
-    try_get,
-)
+from ..utils import try_get
 
 
 class AlJazeeraIE(InfoExtractor):

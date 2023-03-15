@@ -24,7 +24,7 @@ class YourUploadIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        embed_url = 'http://www.yourupload.com/embed/%s' % video_id
+        embed_url = f'http://www.yourupload.com/embed/{video_id}'
 
         webpage = self._download_webpage(embed_url, video_id)
 

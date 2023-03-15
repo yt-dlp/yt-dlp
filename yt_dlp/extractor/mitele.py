@@ -1,8 +1,5 @@
 from .telecinco import TelecincoIE
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-)
+from ..utils import int_or_none, parse_iso8601
 
 
 class MiTeleIE(TelecincoIE):  # XXX: Do not subclass from concrete IE

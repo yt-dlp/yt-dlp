@@ -5,13 +5,10 @@ import random
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     float_or_none,
     int_or_none,
     parse_duration,
@@ -27,7 +24,7 @@ from ..utils import (
 class PluralsightBaseIE(InfoExtractor):
     _API_BASE = 'https://app.pluralsight.com'
 
-    _GRAPHQL_EP = '%s/player/api/graphql' % _API_BASE
+    _GRAPHQL_EP = f'{_API_BASE}/player/api/graphql'
     _GRAPHQL_HEADERS = {
         'Content-Type': 'application/json;charset=UTF-8',
     }
@@ -105,7 +102,7 @@ query BootstrapPlayer {
             return course
 
         raise ExtractorError(
-            '%s said: %s' % (self.IE_NAME, response['error']['message']),
+            f"{self.IE_NAME} said: {response['error']['message']}",
             expected=True)
 
 
@@ -187,7 +184,7 @@ query viewClip {
             r'<span[^>]+class="field-validation-error"[^>]*>([^<]+)</span>',
             response, 'error message', default=None)
         if error:
-            raise ExtractorError('Unable to login: %s' % error, expected=True)
+            raise ExtractorError(f'Unable to login: {error}', expected=True)
 
         if all(not re.search(p, response) for p in (
                 r'__INITIAL_STATE__', r'["\']currentUser["\']',
@@ -196,7 +193,7 @@ query viewClip {
             BLOCKED = 'Your account has been blocked due to suspicious activity'
             if BLOCKED in response:
                 raise ExtractorError(
-                    'Unable to login: %s' % BLOCKED, expected=True)
+                    f'Unable to login: {BLOCKED}', expected=True)
             MUST_AGREE = 'To continue using Pluralsight, you must agree to'
             if any(p in response for p in (MUST_AGREE, '>Disagree<', '>Agree<')):
                 raise ExtractorError(
@@ -222,7 +219,7 @@ query viewClip {
                 'm': name,
             }
             captions = self._download_json(
-                '%s/player/retrieve-captions' % self._API_BASE, video_id,
+                f'{self._API_BASE}/player/retrieve-captions', video_id,
                 'Downloading captions JSON', 'Unable to download captions JSON',
                 fatal=False, data=json.dumps(captions_post).encode('utf-8'),
                 headers={'Content-Type': 'application/json;charset=utf-8'})
@@ -275,7 +272,7 @@ query viewClip {
         if any(not f for f in (author, name, clip_idx, course_name,)):
             raise ExtractorError('Invalid URL', expected=True)
 
-        display_id = '%s-%s' % (name, clip_idx)
+        display_id = f'{name}-{clip_idx}'
 
         course = self._download_course(course_name, url, display_id)
 
@@ -359,12 +356,12 @@ query viewClip {
                     'mediaType': ext,
                     'quality': '%dx%d' % (f['width'], f['height']),
                 }
-                format_id = '%s-%s' % (ext, quality)
+                format_id = f'{ext}-{quality}'
 
                 try:
                     viewclip = self._download_json(
                         self._GRAPHQL_EP, display_id,
-                        'Downloading %s viewclip graphql' % format_id,
+                        f'Downloading {format_id} viewclip graphql',
                         data=json.dumps({
                             'query': self.GRAPHQL_VIEWCLIP_TMPL % clip_post,
                             'variables': {}
@@ -373,8 +370,8 @@ query viewClip {
                 except ExtractorError:
                     # Still works but most likely will go soon
                     viewclip = self._download_json(
-                        '%s/video/clips/viewclip' % self._API_BASE, display_id,
-                        'Downloading %s viewclip JSON' % format_id, fatal=False,
+                        f'{self._API_BASE}/video/clips/viewclip', display_id,
+                        f'Downloading {format_id} viewclip JSON', fatal=False,
                         data=json.dumps(clip_post).encode('utf-8'),
                         headers={'Content-Type': 'application/json;charset=utf-8'})
 
@@ -404,7 +401,7 @@ query viewClip {
                     clip_f.update({
                         'url': clip_url,
                         'ext': ext,
-                        'format_id': '%s-%s' % (format_id, cdn) if cdn else format_id,
+                        'format_id': f'{format_id}-{cdn}' if cdn else format_id,
                         'quality': quality_key(quality),
                         'source_preference': int_or_none(clip_url_data.get('rank')),
                     })
@@ -472,7 +469,7 @@ class PluralsightCourseIE(PluralsightBaseIE):
                 if clip_index is None:
                     continue
                 clip_url = update_url_query(
-                    '%s/player' % self._API_BASE, query={
+                    f'{self._API_BASE}/player', query={
                         'mode': 'live',
                         'course': course_name,
                         'author': author,

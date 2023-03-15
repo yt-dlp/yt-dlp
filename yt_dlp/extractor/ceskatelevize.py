@@ -1,18 +1,15 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
-)
+from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
 from ..utils import (
+    USER_AGENTS,
     ExtractorError,
     float_or_none,
     sanitized_Request,
     str_or_none,
     traverse_obj,
     urlencode_postdata,
-    USER_AGENTS,
 )
 
 
@@ -128,7 +125,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 playlist_id, note='Downloading player', query=query)
 
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
-        if '%s</p>' % NOT_AVAILABLE_STRING in webpage:
+        if f'{NOT_AVAILABLE_STRING}</p>' in webpage:
             self.raise_geo_restricted(NOT_AVAILABLE_STRING)
         if any(not_found in webpage for not_found in ('Neplatný parametr pro videopřehrávač', 'IDEC nebyl nalezen', )):
             raise ExtractorError('no video with IDEC available', video_id=idec, expected=True)
@@ -203,11 +200,11 @@ class CeskaTelevizeIE(InfoExtractor):
                     if 'playerType=flash' in stream_url:
                         stream_formats = self._extract_m3u8_formats(
                             stream_url, playlist_id, 'mp4', 'm3u8_native',
-                            m3u8_id='hls-%s' % format_id, fatal=False)
+                            m3u8_id=f'hls-{format_id}', fatal=False)
                     else:
                         stream_formats = self._extract_mpd_formats(
                             stream_url, playlist_id,
-                            mpd_id='dash-%s' % format_id, fatal=False)
+                            mpd_id=f'dash-{format_id}', fatal=False)
                     if 'drmOnly=true' in stream_url:
                         for f in stream_formats:
                             f['has_drm'] = True
@@ -236,7 +233,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 if playlist_len == 1:
                     final_title = playlist_title or title
                 else:
-                    final_title = '%s (%s)' % (playlist_title, title)
+                    final_title = f'{playlist_title} ({title})'
 
                 entries.append({
                     'id': item_id,
@@ -282,7 +279,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 if m:
                     yield m.group(1)
                     start, stop = (_msectotimecode(int(t)) for t in m.groups()[1:])
-                    yield '{0} --> {1}'.format(start, stop)
+                    yield f'{start} --> {stop}'
                 else:
                     yield line
 

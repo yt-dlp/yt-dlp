@@ -1,11 +1,7 @@
 import itertools
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    try_get,
-    unified_strdate,
-)
+from ..utils import int_or_none, try_get, unified_strdate
 
 
 class CrowdBunkerIE(InfoExtractor):
@@ -99,7 +95,7 @@ class CrowdBunkerChannelIE(InfoExtractor):
                 if not v_id:
                     continue
                 yield self.url_result(
-                    'https://crowdbunker.com/v/%s' % v_id, ie=CrowdBunkerIE.ie_key(), video_id=v_id)
+                    f'https://crowdbunker.com/v/{v_id}', ie=CrowdBunkerIE.ie_key(), video_id=v_id)
             last = channel_json.get('last')
             if not last:
                 break

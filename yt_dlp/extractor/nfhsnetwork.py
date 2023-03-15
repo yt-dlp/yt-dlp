@@ -1,11 +1,5 @@
 from .common import InfoExtractor
-
-
-from ..utils import (
-    try_get,
-    unified_strdate,
-    unified_timestamp
-)
+from ..utils import try_get, unified_strdate, unified_timestamp
 
 
 class NFHSNetworkIE(InfoExtractor):
@@ -104,8 +98,8 @@ class NFHSNetworkIE(InfoExtractor):
             else "associations" if "association" in pubType
             else "affiliates" if (pubType == "publisher" or pubType == "affiliate")
             else "schools")
-        uploaderPage = 'https://www.nfhsnetwork.com/%s/%s' % (uploaderPrefix, publisher.get('slug'))
-        location = '%s, %s' % (data.get('city'), data.get('state_name'))
+        uploaderPage = f"https://www.nfhsnetwork.com/{uploaderPrefix}/{publisher.get('slug')}"
+        location = f"{data.get('city')}, {data.get('state_name')}"
         description = broadcast.get('description')
         isLive = broadcast.get('on_air') or broadcast.get('status') == 'on_air' or False
 
@@ -120,7 +114,7 @@ class NFHSNetworkIE(InfoExtractor):
         video_type = 'broadcasts' if isLive else 'vods'
         key = broadcast.get('key') if isLive else try_get(publisher, lambda x: x['vods'][0]['key'])
         m3u8_url = self._download_json(
-            'https://cfunity.nfhsnetwork.com/v2/%s/%s/url' % (video_type, key),
+            f'https://cfunity.nfhsnetwork.com/v2/{video_type}/{key}/url',
             video_id).get('video_url')
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', live=isLive)

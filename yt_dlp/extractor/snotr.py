@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    parse_filesize,
-    str_to_int,
-)
+from ..utils import parse_duration, parse_filesize, str_to_int
 
 
 class SnotrIE(InfoExtractor):

@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-
-from ..utils import (
-    parse_duration,
-    js_to_json,
-)
+from ..utils import js_to_json, parse_duration
 
 
 class EUScreenIE(InfoExtractor):
@@ -51,7 +47,7 @@ class EUScreenIE(InfoExtractor):
             'title': meta_json.get('originalTitle'),
             'alt_title': meta_json.get('title'),
             'duration': parse_duration(meta_json.get('duration')),
-            'description': '%s\n%s' % (meta_json.get('summaryOriginal', ''), meta_json.get('summaryEnglish', '')),
+            'description': f"{meta_json.get('summaryOriginal', '')}\n{meta_json.get('summaryEnglish', '')}",
             'series': meta_json.get('series') or meta_json.get('seriesEnglish'),
             'episode': meta_json.get('episodeNumber'),
             'uploader': meta_json.get('provider'),

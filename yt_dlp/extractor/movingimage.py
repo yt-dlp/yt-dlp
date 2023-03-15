@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    unescapeHTML,
-    parse_duration,
-)
+from ..utils import parse_duration, unescapeHTML
 
 
 class MovingImageIE(InfoExtractor):

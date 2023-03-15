@@ -1,8 +1,5 @@
 from .turner import TurnerBaseIE
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-)
+from ..utils import int_or_none, parse_iso8601
 
 
 class TruTVIE(TurnerBaseIE):
@@ -32,7 +29,7 @@ class TruTVIE(TurnerBaseIE):
             display_id = clip_slug
 
         data = self._download_json(
-            'https://api.trutv.com/v2/web/%s/%s/%s' % (path, series_slug, display_id),
+            f'https://api.trutv.com/v2/web/{path}/{series_slug}/{display_id}',
             display_id)
         video_data = data['episode'] if video_id else data['info']
         media_id = video_data['mediaId']

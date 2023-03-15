@@ -286,7 +286,7 @@ def write_json_file(obj, fn):
 def find_xpath_attr(node, xpath, key, val=None):
     """ Find the xpath xpath[@key=val] """
     assert re.match(r'^[a-zA-Z_-]+$', key)
-    expr = xpath + ('[@%s]' % key if val is None else f"[@{key}='{val}']")
+    expr = xpath + (f'[@{key}]' if val is None else f"[@{key}='{val}']")
     return node.find(expr)
 
 # On python2.6 the xml.etree.ElementTree.Element methods don't support
@@ -322,7 +322,7 @@ def xpath_element(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
             return default
         elif fatal:
             name = xpath if name is None else name
-            raise ExtractorError('Could not find XML element %s' % name)
+            raise ExtractorError(f'Could not find XML element {name}')
         else:
             return None
     return n
@@ -337,7 +337,7 @@ def xpath_text(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
             return default
         elif fatal:
             name = xpath if name is None else name
-            raise ExtractorError('Could not find XML element\'s text %s' % name)
+            raise ExtractorError(f'Could not find XML element\'s text {name}')
         else:
             return None
     return n.text
@@ -350,7 +350,7 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
             return default
         elif fatal:
             name = f'{xpath}[@{key}]' if name is None else name
-            raise ExtractorError('Could not find XML attribute %s' % name)
+            raise ExtractorError(f'Could not find XML attribute {name}')
         else:
             return None
     return n.attrib[key]
@@ -786,7 +786,7 @@ def extract_basic_auth(url):
         parts.hostname if parts.port is None
         else '%s:%d' % (parts.hostname, parts.port))))
     auth_payload = base64.b64encode(
-        ('%s:%s' % (parts.username, parts.password or '')).encode())
+        f"{parts.username}:{parts.password or ''}".encode())
     return url, f'Basic {auth_payload.decode()}'
 
 
@@ -833,7 +833,7 @@ def _htmlentity_transform(entity_with_semicolon):
         numstr = mobj.group(1)
         if numstr.startswith('x'):
             base = 16
-            numstr = '0%s' % numstr
+            numstr = f'0{numstr}'
         else:
             base = 10
         # See https://github.com/ytdl-org/youtube-dl/issues/7518
@@ -841,7 +841,7 @@ def _htmlentity_transform(entity_with_semicolon):
             return chr(int(numstr, base))
 
     # Unknown entity in name, return its literal representation
-    return '&%s;' % entity
+    return f'&{entity};'
 
 
 def unescapeHTML(s):
@@ -1144,7 +1144,7 @@ class ExtractorError(YoutubeDLError):
 class UnsupportedError(ExtractorError):
     def __init__(self, url):
         super().__init__(
-            'Unsupported URL: %s' % url, expected=True)
+            f'Unsupported URL: {url}', expected=True)
         self.url = url
 
 
@@ -1659,10 +1659,10 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 return line
             cookie_list = line.split('\t')
             if len(cookie_list) != self._ENTRY_LEN:
-                raise http.cookiejar.LoadError('invalid length %d' % len(cookie_list))
+                raise http.cookiejar.LoadError(f'invalid length {len(cookie_list)}')
             cookie = self._CookieFileEntry(*cookie_list)
             if cookie.expires_at and not cookie.expires_at.isdigit():
-                raise http.cookiejar.LoadError('invalid expires at %s' % cookie.expires_at)
+                raise http.cookiejar.LoadError(f'invalid expires at {cookie.expires_at}')
             return line
 
         cf = io.StringIO()
@@ -1998,7 +1998,7 @@ class DateRange:
         else:
             self.end = datetime.datetime.max.date()
         if self.start > self.end:
-            raise ValueError('Date range: "%s" , the start date must be before the end date' % self)
+            raise ValueError(f'Date range: "{self}" , the start date must be before the end date')
 
     @classmethod
     def day(cls, day):
@@ -2104,7 +2104,7 @@ def bytes_to_intlist(bs):
 def intlist_to_bytes(xs):
     if not xs:
         return b''
-    return struct.pack('%dB' % len(xs), *xs)
+    return struct.pack(f'{len(xs)}B', *xs)
 
 
 class LockingUnsupportedError(OSError):
@@ -2169,7 +2169,7 @@ if sys.platform == 'win32':
         assert f._lock_file_overlapped_p
         handle = msvcrt.get_osfhandle(f.fileno())
         if not UnlockFileEx(handle, 0, whole_low, whole_high, f._lock_file_overlapped_p):
-            raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
+            raise OSError(f'Unlocking file failed: {ctypes.FormatError()!r}')
 
 else:
     try:
@@ -3222,7 +3222,7 @@ def update_Request(req, url=None, data=None, headers=None, query=None):
 
 
 def _multipart_encode_impl(data, boundary):
-    content_type = 'multipart/form-data; boundary=%s' % boundary
+    content_type = f'multipart/form-data; boundary={boundary}'
 
     out = b''
     for k, v in data.items():
@@ -3734,7 +3734,7 @@ def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
 
 
 def encode_data_uri(data, mime_type):
-    return 'data:%s;base64,%s' % (mime_type, base64.b64encode(data).decode('ascii'))
+    return f"data:{mime_type};base64,{base64.b64encode(data).decode('ascii')}"
 
 
 def age_restricted(content_limit, age_limit):
@@ -3879,7 +3879,7 @@ def _match_one(filter_part, dct, incomplete):
                 if numeric_comparison is None:
                     numeric_comparison = parse_duration(comparison_value)
         if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
-            raise ValueError('Operator %s only supports string values!' % m['op'])
+            raise ValueError(f"Operator {m['op']} only supports string values!")
         if actual_value is None:
             return is_incomplete(m['key']) or m['none_inclusive']
         return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
@@ -3899,7 +3899,7 @@ def _match_one(filter_part, dct, incomplete):
             return True
         return op(actual_value)
 
-    raise ValueError('Invalid filter part %r' % filter_part)
+    raise ValueError(f'Invalid filter part {filter_part!r}')
 
 
 def match_str(filter_str, dct, incomplete=False):
@@ -4048,11 +4048,11 @@ def dfxp2srt(dfxp_data):
                         if self._applied_styles and self._applied_styles[-1].get(k) == v:
                             continue
                         if k == 'color':
-                            font += ' color="%s"' % v
+                            font += f' color="{v}"'
                         elif k == 'fontSize':
-                            font += ' size="%s"' % v
+                            font += f' size="{v}"'
                         elif k == 'fontFamily':
-                            font += ' face="%s"' % v
+                            font += f' face="{v}"'
                         elif k == 'fontWeight' and v == 'bold':
                             self._out += '<b>'
                             unclosed_elements.append('b')
@@ -4076,7 +4076,7 @@ def dfxp2srt(dfxp_data):
             if tag not in (_x('ttml:br'), 'br'):
                 unclosed_elements = self._unclosed_elements.pop()
                 for element in reversed(unclosed_elements):
-                    self._out += '</%s>' % element
+                    self._out += f'</{element}>'
                 if unclosed_elements and self._applied_styles:
                     self._applied_styles.pop()
 
@@ -4934,7 +4934,7 @@ class PerRequestProxyHandler(urllib.request.ProxyHandler):
     def __init__(self, proxies=None):
         # Set default handlers
         for type in ('http', 'https'):
-            setattr(self, '%s_open' % type,
+            setattr(self, f'{type}_open',
                     lambda r, proxy='__noproxy__', type=type, meth=self.proxy_open:
                         meth(r, proxy, type))
         urllib.request.ProxyHandler.__init__(self, proxies)
@@ -5020,7 +5020,7 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
 
     payload = int(binascii.hexlify(data[::-1]), 16)
     encrypted = pow(payload, exponent, modulus)
-    return '%x' % encrypted
+    return f'{encrypted:x}'
 
 
 def pkcs1pad(data, length):
@@ -6381,7 +6381,7 @@ class FormatSorter:
         for item in sort_list:
             match = re.match(self.regex, item)
             if match is None:
-                raise ExtractorError('Invalid format sort string "%s" given by extractor' % item)
+                raise ExtractorError(f'Invalid format sort string "{item}" given by extractor')
             field = match.group('field')
             if field is None:
                 continue
@@ -6409,9 +6409,9 @@ class FormatSorter:
 
     def print_verbose_info(self, write_debug):
         if self._sort_user:
-            write_debug('Sort order given by user: %s' % ', '.join(self._sort_user))
+            write_debug(f"Sort order given by user: {', '.join(self._sort_user)}")
         if self._sort_extractor:
-            write_debug('Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
+            write_debug(f"Sort order given by extractor: {', '.join(self._sort_extractor)}")
         write_debug('Formats sorted by: %s' % ', '.join(['%s%s%s' % (
             '+' if self._get_field_setting(field, 'reverse') else '', field,
             '%s%s(%s)' % ('~' if self._get_field_setting(field, 'closest') else ':',

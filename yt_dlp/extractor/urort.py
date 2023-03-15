@@ -28,7 +28,7 @@ class UrortIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        fstr = urllib.parse.quote("InternalBandUrl eq '%s'" % playlist_id)
+        fstr = urllib.parse.quote(f"InternalBandUrl eq '{playlist_id}'")
         json_url = 'http://urort.p3.no/breeze/urort/TrackDTOViews?$filter=%s&$orderby=Released%%20desc&$expand=Tags%%2CFiles' % fstr
         songs = self._download_json(json_url, playlist_id)
         entries = []
@@ -36,8 +36,8 @@ class UrortIE(InfoExtractor):
             formats = [{
                 'tbr': f.get('Quality'),
                 'ext': f['FileType'],
-                'format_id': '%s-%s' % (f['FileType'], f.get('Quality', '')),
-                'url': 'http://p3urort.blob.core.windows.net/tracks/%s' % f['FileRef'],
+                'format_id': f"{f['FileType']}-{f.get('Quality', '')}",
+                'url': f"http://p3urort.blob.core.windows.net/tracks/{f['FileRef']}",
                 'quality': 3 if f['FileType'] == 'mp3' else 2,
             } for f in s['Files']]
             e = {
@@ -45,7 +45,7 @@ class UrortIE(InfoExtractor):
                 'title': s['Title'],
                 'uploader_id': playlist_id,
                 'uploader': s.get('BandName', playlist_id),
-                'thumbnail': 'http://urort.p3.no/cloud/images/%s' % s['Image'],
+                'thumbnail': f"http://urort.p3.no/cloud/images/{s['Image']}",
                 'upload_date': unified_strdate(s.get('Released')),
                 'formats': formats,
             }

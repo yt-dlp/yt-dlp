@@ -26,7 +26,7 @@ class MyChannelsIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': 'minoto:%s' % minoto_id,
+            'url': f'minoto:{minoto_id}',
             'id': url_id,
             'title': extract_data_val('title', True),
             'description': extract_data_val('description'),

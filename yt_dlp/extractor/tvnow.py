@@ -6,8 +6,8 @@ from ..utils import (
     ExtractorError,
     get_element_by_id,
     int_or_none,
-    parse_iso8601,
     parse_duration,
+    parse_iso8601,
     str_or_none,
     try_get,
     update_url_query,
@@ -68,12 +68,12 @@ class TVNowBaseIE(InfoExtractor):
         else:
             if not self.get_param('allow_unplayable_formats') and info.get('isDrm'):
                 raise ExtractorError(
-                    'Video %s is DRM protected' % video_id, expected=True)
+                    f'Video {video_id} is DRM protected', expected=True)
             if info.get('geoblocked'):
                 raise self.raise_geo_restricted()
             if not info.get('free', True):
                 raise ExtractorError(
-                    'Video %s is not available for free' % video_id, expected=True)
+                    f'Video {video_id} is not available for free', expected=True)
 
         description = info.get('articleLong') or info.get('articleShort')
         timestamp = parse_iso8601(info.get('broadcastStartDate'), ' ')
@@ -82,7 +82,7 @@ class TVNowBaseIE(InfoExtractor):
         f = info.get('format', {})
 
         thumbnails = [{
-            'url': 'https://aistvnow-a.akamaihd.net/tvnow/movie/%s' % video_id,
+            'url': f'https://aistvnow-a.akamaihd.net/tvnow/movie/{video_id}',
         }]
         thumbnail = f.get('defaultImage169Format') or f.get('defaultImage169Logo')
         if thumbnail:
@@ -198,7 +198,7 @@ class TVNowNewIE(InfoExtractor):
         return self.url_result(
             # Rewrite new URLs to the old format and use extraction via old API
             # at api.tvnow.de as a loophole for bypassing premium content checks
-            '%s/%s/%s' % (base_url, show, episode),
+            f'{base_url}/{show}/{episode}',
             ie=TVNowIE.ie_key(), video_id=mobj.group('id'))
 
 
@@ -244,7 +244,7 @@ class TVNowFilmIE(TVNowBaseIE):
 
         webpage = self._download_webpage(url, display_id, fatal=False)
         if not webpage:
-            raise ExtractorError('Cannot download "%s"' % url, expected=True)
+            raise ExtractorError(f'Cannot download "{url}"', expected=True)
 
         json_text = get_element_by_id('now-web-state', webpage)
         if not json_text:
@@ -289,7 +289,7 @@ class TVNowNewBaseIE(InfoExtractor):
         error = result.get('error')
         if error:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} said: {error}', expected=True)
         return result
 
 
@@ -533,7 +533,7 @@ class TVNowListBaseIE(TVNowNewBaseIE):
                 item_url, ie=TVNowNewIE.ie_key(), video_id=video_id,
                 video_title=item_title))
 
-        return self.playlist_result(entries, '%s/%s' % (show_id, list_id))
+        return self.playlist_result(entries, f'{show_id}/{list_id}')
 
 
 class TVNowSeasonIE(TVNowListBaseIE):
@@ -565,7 +565,7 @@ class TVNowAnnualIE(TVNowListBaseIE):
     def _real_extract(self, url):
         _, show_id, year, month = self._match_valid_url(url).groups()
         return self._extract_items(
-            url, show_id, '%s-%s' % (year, month), {
+            url, show_id, f'{year}-{month}', {
                 'year': int(year),
                 'month': int(month),
             })

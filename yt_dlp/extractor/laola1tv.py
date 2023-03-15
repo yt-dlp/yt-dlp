@@ -4,12 +4,12 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    js_to_json,
     unified_strdate,
+    update_url_query,
     urlencode_postdata,
     xpath_element,
     xpath_text,
-    update_url_query,
-    js_to_json,
 )
 
 
@@ -44,10 +44,10 @@ class Laola1TvEmbedIE(InfoExtractor):
 
         if token_attrib['status'] != '0':
             raise ExtractorError(
-                'Token error: %s' % token_attrib['comment'], expected=True)
+                f"Token error: {token_attrib['comment']}", expected=True)
 
         formats = self._extract_akamai_formats(
-            '%s?hdnea=%s' % (token_attrib['url'], token_attrib['auth']),
+            f"{token_attrib['url']}?hdnea={token_attrib['auth']}",
             video_id)
         return formats
 
@@ -139,7 +139,7 @@ class Laola1TvBaseIE(Laola1TvEmbedIE):  # XXX: Do not subclass from concrete IE
         })
         error = config.get('error')
         if error:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
         video_data = config['video']
         title = video_data['title']

@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    try_get,
-    urlencode_postdata,
-)
+from ..utils import int_or_none, try_get, urlencode_postdata
 
 
 class HungamaIE(InfoExtractor):
@@ -90,7 +86,7 @@ class HungamaSongIE(InfoExtractor):
         audio_id = self._match_id(url)
 
         data = self._download_json(
-            'https://www.hungama.com/audio-player-data/track/%s' % audio_id,
+            f'https://www.hungama.com/audio-player-data/track/{audio_id}',
             audio_id, query={'_country': 'IN'})[0]
         track = data['song_name']
         artist = data.get('singer_name')
@@ -107,7 +103,7 @@ class HungamaSongIE(InfoExtractor):
                 'acodec': media_type,
             })
 
-        title = '%s - %s' % (artist, track) if artist else track
+        title = f'{artist} - {track}' if artist else track
         thumbnail = data.get('img_src') or data.get('album_image')
 
         return {

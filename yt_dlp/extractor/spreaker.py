@@ -21,15 +21,15 @@ def _extract_episode(data, episode_id=None):
 
     thumbnails = []
     for image in ('image_original', 'image_medium', 'image'):
-        image_url = url_or_none(data.get('%s_url' % image))
+        image_url = url_or_none(data.get(f'{image}_url'))
         if image_url:
             thumbnails.append({'url': image_url})
 
     def stats(key):
         return int_or_none(try_get(
             data,
-            (lambda x: x['%ss_count' % key],
-             lambda x: x['stats']['%ss' % key])))
+            (lambda x: x[f'{key}s_count'],
+             lambda x: x['stats'][f'{key}s'])))
 
     def duration(key):
         return float_or_none(data.get(key), scale=1000)
@@ -97,7 +97,7 @@ class SpreakerIE(InfoExtractor):
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         data = self._download_json(
-            'https://api.spreaker.com/v2/episodes/%s' % episode_id,
+            f'https://api.spreaker.com/v2/episodes/{episode_id}',
             episode_id)['response']['episode']
         return _extract_episode(data, episode_id)
 
@@ -116,7 +116,7 @@ class SpreakerPageIE(InfoExtractor):
             (r'data-episode_id=["\'](?P<id>\d+)',
              r'episode_id\s*:\s*(?P<id>\d+)'), webpage, 'episode id')
         return self.url_result(
-            'https://api.spreaker.com/episode/%s' % episode_id,
+            f'https://api.spreaker.com/episode/{episode_id}',
             ie=SpreakerIE.ie_key(), video_id=episode_id)
 
 
@@ -133,7 +133,7 @@ class SpreakerShowIE(InfoExtractor):
     def _entries(self, show_id):
         for page_num in itertools.count(1):
             episodes = self._download_json(
-                'https://api.spreaker.com/show/%s/episodes' % show_id,
+                f'https://api.spreaker.com/show/{show_id}/episodes',
                 show_id, note='Downloading JSON page %d' % page_num, query={
                     'page': page_num,
                     'max_per_page': 100,
@@ -169,5 +169,5 @@ class SpreakerShowPageIE(InfoExtractor):
         show_id = self._search_regex(
             r'show_id\s*:\s*(?P<id>\d+)', webpage, 'show id')
         return self.url_result(
-            'https://api.spreaker.com/show/%s' % show_id,
+            f'https://api.spreaker.com/show/{show_id}',
             ie=SpreakerShowIE.ie_key(), video_id=show_id)

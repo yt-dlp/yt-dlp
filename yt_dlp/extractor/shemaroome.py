@@ -1,11 +1,9 @@
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt, unpad_pkcs7
-from ..compat import (
-    compat_b64decode,
-)
+from ..compat import compat_b64decode
 from ..utils import (
-    bytes_to_intlist,
     ExtractorError,
+    bytes_to_intlist,
     intlist_to_bytes,
     unified_strdate,
 )

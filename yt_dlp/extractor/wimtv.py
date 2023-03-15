@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     parse_duration,
     urlencode_postdata,
-    ExtractorError,
 )
 
 
@@ -83,13 +83,13 @@ class WimTVIE(InfoExtractor):
             for var in data['vars']:
                 val = self._search_regex(var['regex'], temp, msg_id)
                 if not val:
-                    raise ExtractorError('%s not found' % var['variable'])
+                    raise ExtractorError(f"{var['variable']} not found")
                 self._player[var['variable']] = val
 
     def _generate_token(self):
         json = self._download_json(
             'https://platform.wim.tv/wimtv-server/oauth/token', 'Token generation',
-            headers={'Authorization': 'Basic %s' % self._player['app_auth']},
+            headers={'Authorization': f"Basic {self._player['app_auth']}"},
             data=urlencode_postdata({'grant_type': 'client_credentials'}))
         token = json.get('access_token')
         if not token:
@@ -120,7 +120,7 @@ class WimTVIE(InfoExtractor):
         json = self._download_json(
             'https://platform.wim.tv/wimtv-server/api/public/%s/%s/play' % (
                 stream_type, video_id), video_id,
-            headers={'Authorization': 'Bearer %s' % token,
+            headers={'Authorization': f'Bearer {token}',
                      'Content-Type': 'application/json'},
             data=bytes('{}', 'utf-8'))
 

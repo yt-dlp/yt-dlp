@@ -48,7 +48,7 @@ class DiggIE(InfoExtractor):
                     video_id, ie='Youtube', video_id=video_id)
             elif provider == 'jwplayer':
                 return self.url_result(
-                    'jwplatform:%s' % video_id, ie='JWPlatform',
+                    f'jwplatform:{video_id}', ie='JWPlatform',
                     video_id=video_id)
 
         return self.url_result(url, 'Generic')

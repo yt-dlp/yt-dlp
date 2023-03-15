@@ -217,7 +217,7 @@ class AfreecaTVIE(InfoExtractor):
         if result != 1:
             error = _ERRORS.get(result, 'You have failed to log in.')
             raise ExtractorError(
-                'Unable to login: %s said: %s' % (self.IE_NAME, error),
+                f'Unable to login: {self.IE_NAME} said: {error}',
                 expected=True)
 
     def _real_extract(self, url):
@@ -227,7 +227,7 @@ class AfreecaTVIE(InfoExtractor):
 
         if re.search(r'alert\(["\']This video has been deleted', webpage):
             raise ExtractorError(
-                'Video %s has been deleted' % video_id, expected=True)
+                f'Video {video_id} has been deleted', expected=True)
 
         station_id = self._search_regex(
             r'nStationNo\s*=\s*(\d+)', webpage, 'station')
@@ -274,14 +274,14 @@ class AfreecaTVIE(InfoExtractor):
             else:
                 error = flag
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} said: {error}', expected=True)
         else:
             raise ExtractorError('Unable to download video info')
 
         video_element = video_xml.findall('./track/video')[-1]
         if video_element is None or video_element.text is None:
             raise ExtractorError(
-                'Video %s does not exist' % video_id, expected=True)
+                f'Video {video_id} does not exist', expected=True)
 
         video_url = video_element.text.strip()
 
@@ -325,7 +325,7 @@ class AfreecaTVIE(InfoExtractor):
                     if parsed_date.year < 2000 or parsed_date.year >= 2100:
                         upload_date = None
                 file_duration = int_or_none(file_element.get('duration'))
-                format_id = key if key else '%s_%s' % (video_id, file_num)
+                format_id = key if key else f'{video_id}_{file_num}'
                 if determine_ext(file_url) == 'm3u8':
                     formats = self._extract_m3u8_formats(
                         file_url, video_id, 'mp4', entry_protocol='m3u8_native',

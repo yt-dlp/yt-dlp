@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    try_get,
-    unified_strdate,
-)
+from ..utils import try_get, unified_strdate
 
 
 class SkyNewsAUIE(InfoExtractor):

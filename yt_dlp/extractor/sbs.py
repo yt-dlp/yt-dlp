@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    smuggle_url,
-    ExtractorError,
-)
+from ..utils import ExtractorError, smuggle_url
 
 
 class SBSIE(InfoExtractor):
@@ -75,7 +72,7 @@ class SBSIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         player_params = self._download_json(
-            'http://www.sbs.com.au/api/video_pdkvars/id/%s?form=json' % video_id, video_id)
+            f'http://www.sbs.com.au/api/video_pdkvars/id/{video_id}?form=json', video_id)
 
         error = player_params.get('error')
         if error:
@@ -83,12 +80,12 @@ class SBSIE(InfoExtractor):
             video_data = error.get('results') or {}
             error_code = error.get('errorCode')
             if error_code == 'ComingSoon':
-                error_message = '%s is not yet available.' % video_data.get('title', '')
+                error_message = f"{video_data.get('title', '')} is not yet available."
             elif error_code in ('Forbidden', 'intranetAccessOnly'):
                 error_message = 'Sorry, This video cannot be accessed via this website'
             elif error_code == 'Expired':
-                error_message = 'Sorry, %s is no longer available.' % video_data.get('title', '')
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message), expected=True)
+                error_message = f"Sorry, {video_data.get('title', '')} is no longer available."
+            raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
 
         urls = player_params['releaseUrls']
         theplatform_url = (urls.get('progressive') or urls.get('html')

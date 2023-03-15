@@ -2,9 +2,9 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     extract_attributes,
-    ExtractorError,
     int_or_none,
     parse_age_limit,
     remove_end,
@@ -40,7 +40,7 @@ class DiscoveryGoBaseIE(InfoExtractor):
         formats = []
         for stream_kind in ('', 'hds'):
             suffix = STREAM_URL_SUFFIX.capitalize() if stream_kind else STREAM_URL_SUFFIX
-            stream_url = stream.get('%s%s' % (stream_kind, suffix))
+            stream_url = stream.get(f'{stream_kind}{suffix}')
             if not stream_url:
                 continue
             if stream_kind == '':

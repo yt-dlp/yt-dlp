@@ -70,7 +70,7 @@ class FoxNewsIE(AMPIE):
         host, video_id = self._match_valid_url(url).groups()
 
         info = self._extract_feed_info(
-            'http://%s/v/feed/video/%s.js?template=fox' % (host, video_id))
+            f'http://{host}/v/feed/video/{video_id}.js?template=fox')
         info['id'] = video_id
         return info
 

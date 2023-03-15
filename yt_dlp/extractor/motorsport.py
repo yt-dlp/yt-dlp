@@ -1,7 +1,5 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-)
+from ..compat import compat_urlparse
 
 
 class MotorsportIE(InfoExtractor):
@@ -47,5 +45,5 @@ class MotorsportIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'display_id': display_id,
-            'url': 'https://youtube.com/watch?v=%s' % youtube_id,
+            'url': f'https://youtube.com/watch?v={youtube_id}',
         }

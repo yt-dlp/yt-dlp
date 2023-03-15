@@ -6,15 +6,12 @@ import random
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import (
-    compat_HTTPError,
-    compat_b64decode,
-)
+from ..compat import compat_b64decode, compat_HTTPError
 from ..utils import (
+    ExtractorError,
     ass_subtitles_timecode,
     bytes_to_intlist,
     bytes_to_long,
-    ExtractorError,
     float_or_none,
     int_or_none,
     intlist_to_bytes,
@@ -150,7 +147,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
+        video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
             'Downloading player config JSON metadata',
@@ -223,7 +220,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             for quality, load_balancer_url in qualities.items():
                 load_balancer_data = self._download_json(
                     load_balancer_url, video_id,
-                    'Downloading %s %s JSON metadata' % (format_id, quality),
+                    f'Downloading {format_id} {quality} JSON metadata',
                     fatal=False) or {}
                 m3u8_url = load_balancer_data.get('location')
                 if not m3u8_url:
@@ -237,7 +234,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 formats.extend(m3u8_formats)
 
         video = (self._download_json(
-            self._API_BASE_URL + 'video/%s' % video_id, video_id,
+            self._API_BASE_URL + f'video/{video_id}', video_id,
             'Downloading additional video metadata', fatal=False) or {}).get('video') or {}
         show = video.get('show') or {}
 

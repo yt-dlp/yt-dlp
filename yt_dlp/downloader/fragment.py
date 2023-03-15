@@ -196,7 +196,7 @@ class FragmentFD(FileDownloader):
                         '.ytdl file is corrupt' if is_corrupt else
                         'Inconsistent state of incomplete fragment download')
                     self.report_warning(
-                        '%s. Restarting from the beginning ...' % message)
+                        f'{message}. Restarting from the beginning ...')
                     ctx['fragment_index'] = resume_len = 0
                     if 'ytdl_corrupt' in ctx:
                         del ctx['ytdl_corrupt']

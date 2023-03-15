@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
+from ..compat import compat_str, compat_urllib_parse_urlencode
 from ..utils import (
     clean_html,
     int_or_none,
@@ -73,7 +70,7 @@ class UOLIE(InfoExtractor):
         ver = video_data.get('revision', 2)
 
         uol_formats = self._download_json(
-            'https://croupier.mais.uol.com.br/v3/formats/%s/jsonp' % media_id,
+            f'https://croupier.mais.uol.com.br/v3/formats/{media_id}/jsonp',
             media_id)
         quality = qualities(['mobile', 'WEBM', '360p', '720p', '1080p'])
         formats = []

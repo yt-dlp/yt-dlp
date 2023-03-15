@@ -1,14 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    parse_qs,
-    try_get,
-    qualities,
-)
+from ..compat import compat_str
+from ..utils import determine_ext, int_or_none, parse_qs, qualities, try_get
 
 
 class SixPlayIE(InfoExtractor):
@@ -44,7 +36,7 @@ class SixPlayIE(InfoExtractor):
         }.get(domain, ('6play', 'm6web'))
 
         data = self._download_json(
-            'https://pc.middleware.6play.fr/6play/v2/platforms/m6group_web/services/%s/videos/clip_%s' % (service, video_id),
+            f'https://pc.middleware.6play.fr/6play/v2/platforms/m6group_web/services/{service}/videos/clip_{video_id}',
             video_id, headers={
                 'x-customer-name': consumer_name
             }, query={

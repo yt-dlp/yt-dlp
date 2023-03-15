@@ -6,9 +6,7 @@ import re
 import time
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_HTTPError,
-)
+from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -288,7 +286,7 @@ class NiconicoIE(InfoExtractor):
             session_api_endpoint['url'], video_id,
             query={'_format': 'json'},
             headers={'Content-Type': 'application/json'},
-            note='Downloading JSON metadata for %s' % info_dict['format_id'],
+            note=f"Downloading JSON metadata for {info_dict['format_id']}",
             data=json.dumps({
                 'session': {
                     'client_info': {
@@ -366,7 +364,7 @@ class NiconicoIE(InfoExtractor):
         vid_quality = traverse_obj(video_quality, ('metadata', 'bitrate'))
 
         return {
-            'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
+            'url': f"niconico_dmc:{video_id}/{video_quality['id']}/{audio_quality['id']}",
             'format_id': format_id,
             'format_note': join_nonempty('DMC', vid_qual_label, dmc_protocol.upper(), delim=' '),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
@@ -536,7 +534,7 @@ class NiconicoIE(InfoExtractor):
             comments = self._download_json(
                 api_url, video_id, data=json.dumps(post_data).encode(), fatal=False,
                 headers={
-                    'Referer': 'https://www.nicovideo.jp/watch/%s' % video_id,
+                    'Referer': f'https://www.nicovideo.jp/watch/{video_id}',
                     'Origin': 'https://www.nicovideo.jp',
                     'Content-Type': 'text/plain;charset=UTF-8',
                 },
@@ -861,12 +859,12 @@ class NiconicoUserIE(InfoExtractor):
             json_parsed = self._download_json(
                 self._API_URL % (list_id, self._PAGE_SIZE, page_num + 1), list_id,
                 headers=self._API_HEADERS,
-                note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
+                note=f"Downloading JSON metadata{' page %d' % page_num if page_num else ''}")
             if not page_num:
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
             for entry in json_parsed["data"]["items"]:
                 count += 1
-                yield self.url_result('https://www.nicovideo.jp/watch/%s' % entry['id'])
+                yield self.url_result(f"https://www.nicovideo.jp/watch/{entry['id']}")
             page_num += 1
 
     def _real_extract(self, url):

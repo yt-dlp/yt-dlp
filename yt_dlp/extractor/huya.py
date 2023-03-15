@@ -2,8 +2,8 @@ import hashlib
 import random
 import re
 
-from ..compat import compat_urlparse, compat_b64decode
-
+from .common import InfoExtractor
+from ..compat import compat_b64decode, compat_urlparse
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -12,8 +12,6 @@ from ..utils import (
     unescapeHTML,
     update_url_query,
 )
-
-from .common import InfoExtractor
 
 
 class HuyaLiveIE(InfoExtractor):

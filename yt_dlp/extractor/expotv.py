@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    unified_strdate,
-)
+from ..utils import int_or_none, unified_strdate
 
 
 class ExpoTVIE(InfoExtractor):
@@ -29,7 +26,7 @@ class ExpoTVIE(InfoExtractor):
         player_key = self._search_regex(
             r'<param name="playerKey" value="([^"]+)"', webpage, 'player key')
         config = self._download_json(
-            'http://client.expotv.com/video/config/%s/%s' % (video_id, player_key),
+            f'http://client.expotv.com/video/config/{video_id}/{player_key}',
             video_id, 'Downloading video configuration')
 
         formats = []

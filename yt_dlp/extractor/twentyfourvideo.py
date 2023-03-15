@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_iso8601,
-    int_or_none,
-    xpath_attr,
-    xpath_element,
-)
+from ..utils import int_or_none, parse_iso8601, xpath_attr, xpath_element
 
 
 class TwentyFourVideoIE(InfoExtractor):
@@ -68,7 +63,7 @@ class TwentyFourVideoIE(InfoExtractor):
         host = mobj.group('host')
 
         webpage = self._download_webpage(
-            'http://%s/video/view/%s' % (host, video_id), video_id)
+            f'http://{host}/video/view/{video_id}', video_id)
 
         title = self._og_search_title(webpage)
         description = self._html_search_regex(
@@ -98,7 +93,7 @@ class TwentyFourVideoIE(InfoExtractor):
             video_id, 'Downloading init XML')
 
         video_xml = self._download_xml(
-            'http://%s/video/xml/%s?mode=play' % (host, video_id),
+            f'http://{host}/video/xml/{video_id}?mode=play',
             video_id, 'Downloading video XML')
 
         video = xpath_element(video_xml, './/video', 'video', fatal=True)

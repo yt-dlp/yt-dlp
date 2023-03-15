@@ -4,8 +4,8 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     determine_protocol,
-    parse_duration,
     int_or_none,
+    parse_duration,
 )
 
 

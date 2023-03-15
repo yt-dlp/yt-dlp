@@ -1,15 +1,10 @@
-import time
 import hashlib
 import re
+import time
 import urllib
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    unescapeHTML,
-    unified_strdate,
-    urljoin,
-)
+from ..utils import ExtractorError, unescapeHTML, unified_strdate, urljoin
 
 
 class DouyuTVIE(InfoExtractor):

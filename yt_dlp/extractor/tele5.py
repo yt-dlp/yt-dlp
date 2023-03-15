@@ -1,9 +1,6 @@
 from .dplay import DPlayIE
 from ..compat import compat_urlparse
-from ..utils import (
-    ExtractorError,
-    extract_attributes,
-)
+from ..utils import ExtractorError, extract_attributes
 
 
 class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
@@ -79,7 +76,7 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
         endpoint = compat_urlparse.urlparse(player_info['endpoint']).hostname
         source_type = player_info.get('sourcetype')
         if source_type:
-            endpoint = '%s-%s' % (source_type, endpoint)
+            endpoint = f'{source_type}-{endpoint}'
         try:
             return self._get_disco_api_info(url, asset_id, endpoint, realm, country)
         except ExtractorError as e:

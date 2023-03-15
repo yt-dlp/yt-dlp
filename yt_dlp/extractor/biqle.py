@@ -1,12 +1,7 @@
 from .common import InfoExtractor
 from .vk import VKIE
 from ..compat import compat_b64decode
-from ..utils import (
-    int_or_none,
-    js_to_json,
-    traverse_obj,
-    unified_timestamp,
-)
+from ..utils import int_or_none, js_to_json, traverse_obj, unified_timestamp
 
 
 class BIQLEIE(InfoExtractor):

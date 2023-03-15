@@ -22,8 +22,8 @@ class PinterestBaseIE(InfoExtractor):
 
     def _call_api(self, resource, video_id, options):
         return self._download_json(
-            'https://www.pinterest.com/resource/%sResource/get/' % resource,
-            video_id, 'Download %s JSON metadata' % resource, query={
+            f'https://www.pinterest.com/resource/{resource}Resource/get/',
+            video_id, f'Download {resource} JSON metadata', query={
                 'data': json.dumps({'options': options})
             })['resource_response']
 

@@ -2,9 +2,8 @@ import random
 import string
 
 from .discoverygo import DiscoveryGoBaseIE
-from ..compat import compat_urllib_parse_unquote
+from ..compat import compat_HTTPError, compat_urllib_parse_unquote
 from ..utils import ExtractorError
-from ..compat import compat_HTTPError
 
 
 class DiscoveryIE(DiscoveryGoBaseIE):
@@ -74,7 +73,7 @@ class DiscoveryIE(DiscoveryGoBaseIE):
 
         if not access_token:
             access_token = self._download_json(
-                'https://%s.com/anonymous' % site, display_id,
+                f'https://{site}.com/anonymous', display_id,
                 'Downloading token JSON metadata', query={
                     'authRel': 'authorization',
                     'client_id': '3020a40c2356a645b4b4',

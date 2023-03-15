@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    encode_base_n,
     ExtractorError,
+    encode_base_n,
     int_or_none,
     merge_dicts,
     parse_duration,
@@ -65,7 +65,7 @@ class EpornerIE(InfoExtractor):
             return ''.join((encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8)))
 
         video = self._download_json(
-            'http://www.eporner.com/xhr/video/%s' % video_id,
+            f'http://www.eporner.com/xhr/video/{video_id}',
             display_id, note='Downloading video JSON',
             query={
                 'hash': calc_hash(hash),
@@ -76,7 +76,7 @@ class EpornerIE(InfoExtractor):
 
         if video.get('available') is False:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, video['message']), expected=True)
+                f"{self.IE_NAME} said: {video['message']}", expected=True)
 
         sources = video['sources']
 

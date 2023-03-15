@@ -132,7 +132,7 @@ class Zee5IE(InfoExtractor):
             'x-access-token': access_token_request['token']
         }
         if self._USER_TOKEN:
-            data['Authorization'] = 'bearer %s' % self._USER_TOKEN
+            data['Authorization'] = f'bearer {self._USER_TOKEN}'
         else:
             data['X-Z5-Guest-Token'] = self._DEVICE_ID
 
@@ -249,7 +249,7 @@ class Zee5SeriesIE(InfoExtractor):
                 for episode in try_get(episodes_json, lambda x: x['episode'], list) or []:
                     video_id = episode.get('id')
                     yield self.url_result(
-                        'zee5:%s' % video_id,
+                        f'zee5:{video_id}',
                         ie=Zee5IE.ie_key(), video_id=video_id)
                 next_url = url_or_none(episodes_json.get('next_episode_api'))
 

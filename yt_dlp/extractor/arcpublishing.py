@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    int_or_none,
-    parse_iso8601,
-    try_get,
-)
+from ..utils import extract_attributes, int_or_none, parse_iso8601, try_get
 
 
 class ArcPublishingIE(InfoExtractor):
@@ -79,7 +74,7 @@ class ArcPublishingIE(InfoExtractor):
             org = powa.get('data-org')
             uuid = powa.get('data-uuid')
             if org and uuid:
-                entries.append('arcpublishing:%s:%s' % (org, uuid))
+                entries.append(f'arcpublishing:{org}:{uuid}')
         return entries
 
     def _real_extract(self, url):
@@ -93,7 +88,7 @@ class ArcPublishingIE(InfoExtractor):
         if org == 'wapo':
             org = 'washpost'
         video = self._download_json(
-            'https://%s/v1/ansvideos/findByUuid' % (base_api_tmpl % org),
+            f'https://{base_api_tmpl % org}/v1/ansvideos/findByUuid',
             uuid, query={'uuid': uuid})[0]
         title = video['headlines']['basic']
         is_live = video.get('status') == 'live'

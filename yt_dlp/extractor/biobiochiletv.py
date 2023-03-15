@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    remove_end,
-)
+from ..utils import ExtractorError, remove_end
 
 
 class BioBioChileTVIE(InfoExtractor):

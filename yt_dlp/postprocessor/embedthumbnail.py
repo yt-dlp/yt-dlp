@@ -48,7 +48,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if mobj is None:
                 return guess()
         except PostProcessingError as err:
-            self.report_warning('unable to find the thumbnail resolution; %s' % error_to_compat_str(err))
+            self.report_warning(f'unable to find the thumbnail resolution; {error_to_compat_str(err)}')
             return guess()
         return int(mobj.group('w')), int(mobj.group('h'))
 
@@ -108,8 +108,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 new_stream -= 1
             options.extend([
                 '-attach', thumbnail_filename,
-                '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
-                '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
+                '-metadata:s:%d' % new_stream, f'mimetype={mimetype}',
+                '-metadata:s:%d' % new_stream, f'filename=cover.{thumbnail_ext}'])
 
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg(filename, temp_filename, options)
@@ -132,7 +132,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     meta.save()
                     temp_filename = filename
                 except Exception as err:
-                    self.report_warning('unable to embed using mutagen; %s' % error_to_compat_str(err))
+                    self.report_warning(f'unable to embed using mutagen; {error_to_compat_str(err)}')
                     success = False
 
             # Method 2: Use AtomicParsley
@@ -157,7 +157,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
 
                     self._report_run('atomicparsley', filename)
-                    self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
+                    self.write_debug(f'AtomicParsley command line: {shell_quote(cmd)}')
                     stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     if returncode:
                         self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {stderr.strip()}')
@@ -180,7 +180,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     if old_stream is not None:
                         options.extend(['-map', '-0:%d' % old_stream])
                         new_stream -= 1
-                    options.extend(['-disposition:%s' % new_stream, 'attached_pic'])
+                    options.extend([f'-disposition:{new_stream}', 'attached_pic'])
 
                     self._report_run('ffmpeg', filename)
                     self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
@@ -196,7 +196,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             f = {'opus': OggOpus, 'flac': FLAC, 'ogg': OggVorbis}[info['ext']](filename)
 
             pic = Picture()
-            pic.mime = 'image/%s' % imghdr.what(thumbnail_filename)
+            pic.mime = f'image/{imghdr.what(thumbnail_filename)}'
             with open(thumbnail_filename, 'rb') as thumbfile:
                 pic.data = thumbfile.read()
             pic.type = 3  # front cover

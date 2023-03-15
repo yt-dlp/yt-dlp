@@ -99,7 +99,7 @@ class AllocineIE(InfoExtractor):
         else:
             video_id = display_id
             media_data = self._download_json(
-                'http://www.allocine.fr/ws/AcVisiondataV5.ashx?media=%s' % video_id, display_id)
+                f'http://www.allocine.fr/ws/AcVisiondataV5.ashx?media={video_id}', display_id)
             title = remove_end(strip_or_none(self._html_extract_title(webpage), ' - AlloCiné'))
             for key, value in media_data['video'].items():
                 if not key.endswith('Path'):

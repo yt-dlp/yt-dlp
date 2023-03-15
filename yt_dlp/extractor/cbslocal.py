@@ -1,10 +1,7 @@
 from .anvato import AnvatoIE
 from .sendtonews import SendtoNewsIE
 from ..compat import compat_urlparse
-from ..utils import (
-    parse_iso8601,
-    unified_timestamp,
-)
+from ..utils import parse_iso8601, unified_timestamp
 
 
 class CBSLocalIE(AnvatoIE):  # XXX: Do not subclass from concrete IE

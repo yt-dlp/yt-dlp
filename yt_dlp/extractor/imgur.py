@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    js_to_json,
-    mimetype2ext,
-    ExtractorError,
-)
+from ..utils import ExtractorError, int_or_none, js_to_json, mimetype2ext
 
 
 class ImgurIE(InfoExtractor):
@@ -34,7 +29,7 @@ class ImgurIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'https://i.imgur.com/{id}.gifv'.format(id=video_id), video_id)
+            f'https://i.imgur.com/{video_id}.gifv', video_id)
 
         width = int_or_none(self._og_search_property(
             'video:width', webpage, default=None))
@@ -46,7 +41,7 @@ class ImgurIE(InfoExtractor):
             webpage, 'video elements', default=None)
         if not video_elements:
             raise ExtractorError(
-                'No sources found for video %s. Maybe an image?' % video_id,
+                f'No sources found for video {video_id}. Maybe an image?',
                 expected=True)
 
         formats = []
@@ -124,16 +119,16 @@ class ImgurGalleryIE(InfoExtractor):
         gallery_id = self._match_id(url)
 
         data = self._download_json(
-            'https://imgur.com/gallery/%s.json' % gallery_id,
+            f'https://imgur.com/gallery/{gallery_id}.json',
             gallery_id)['data']['image']
 
         if data.get('is_album'):
             entries = [
-                self.url_result('http://imgur.com/%s' % image['hash'], ImgurIE.ie_key(), image['hash'])
+                self.url_result(f"http://imgur.com/{image['hash']}", ImgurIE.ie_key(), image['hash'])
                 for image in data['album_images']['images'] if image.get('hash')]
             return self.playlist_result(entries, gallery_id, data.get('title'), data.get('description'))
 
-        return self.url_result('http://imgur.com/%s' % gallery_id, ImgurIE.ie_key(), gallery_id)
+        return self.url_result(f'http://imgur.com/{gallery_id}', ImgurIE.ie_key(), gallery_id)
 
 
 class ImgurAlbumIE(ImgurGalleryIE):  # XXX: Do not subclass from concrete IE

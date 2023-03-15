@@ -5,9 +5,9 @@ import re
 from .aws import AWSIE
 from ..compat import compat_HTTPError
 from ..utils import (
-    clean_html,
     ExtractorError,
     InAdvancePagedList,
+    clean_html,
     int_or_none,
     parse_iso8601,
     str_or_none,
@@ -127,7 +127,7 @@ class ShahidIE(ShahidBaseIE):
         #     })['productModel']
 
         response = self._download_json(
-            'http://api.shahid.net/api/v1_1/%s/%s' % (page_type, video_id),
+            f'http://api.shahid.net/api/v1_1/{page_type}/{video_id}',
             video_id, 'Downloading video JSON', query={
                 'apiKey': 'sh@hid0nlin3',
                 'hash': 'b2wMCTHpSmyxGqQjJFOycRmLSex+BpTK/ooxy6vHaqs=',

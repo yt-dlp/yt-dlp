@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    merge_dicts,
-)
+from ..utils import js_to_json, merge_dicts
 
 
 class NewsyIE(InfoExtractor):

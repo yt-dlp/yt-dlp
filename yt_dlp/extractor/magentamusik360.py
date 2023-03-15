@@ -30,7 +30,7 @@ class MagentaMusik360IE(InfoExtractor):
         if video_id == "None":
             webpage = self._download_webpage(url, video_id)
             video_id = self._html_search_regex(r'data-asset-id="([^"]+)"', webpage, 'video_id')
-        json = self._download_json("https://wcps.t-online.de/cvss/magentamusic/vodplayer/v3/player/58935/%s/Main%%20Movie" % video_id, video_id)
+        json = self._download_json(f"https://wcps.t-online.de/cvss/magentamusic/vodplayer/v3/player/58935/{video_id}/Main%20Movie", video_id)
         xml_url = json['content']['feature']['representations'][0]['contentPackages'][0]['media']['href']
         metadata = json['content']['feature'].get('metadata')
         title = None

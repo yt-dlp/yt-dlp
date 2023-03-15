@@ -1,23 +1,22 @@
 import json
 
-from .common import InfoExtractor
 from .brightcove import BrightcoveNewIE
-
+from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    JSON_LD_RE,
+    ExtractorError,
     base_url,
     clean_html,
     determine_ext,
     extract_attributes,
-    ExtractorError,
     get_element_by_class,
-    JSON_LD_RE,
     merge_dicts,
     parse_duration,
     smuggle_url,
     try_get,
-    url_or_none,
     url_basename,
+    url_or_none,
     urljoin,
 )
 

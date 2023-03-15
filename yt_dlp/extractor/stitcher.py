@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     clean_html,
     clean_podcast_url,
-    ExtractorError,
     int_or_none,
     str_or_none,
     try_get,
@@ -126,7 +126,7 @@ class StitcherShowIE(StitcherBaseIE):
     def _real_extract(self, url):
         show_slug = self._match_id(url)
         data = self._call_api(
-            'search/show/%s/allEpisodes' % show_slug, show_slug, {'count': 10000})
+            f'search/show/{show_slug}/allEpisodes', show_slug, {'count': 10000})
         show = try_get(data, lambda x: x['shows'][0], dict) or {}
         show_info = self._extract_show_info(show)
 

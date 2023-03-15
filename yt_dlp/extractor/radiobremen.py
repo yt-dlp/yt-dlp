@@ -24,7 +24,7 @@ class RadioBremenIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        meta_url = 'http://www.radiobremen.de/apps/php/mediathek/metadaten.php?id=%s' % video_id
+        meta_url = f'http://www.radiobremen.de/apps/php/mediathek/metadaten.php?id={video_id}'
         meta_doc = self._download_webpage(
             meta_url, video_id, 'Downloading metadata')
         title = self._html_search_regex(

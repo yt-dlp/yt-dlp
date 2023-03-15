@@ -150,7 +150,7 @@ class RTDocumentryPlaylistIE(InfoExtractor):
             if id not in v_url:
                 continue
             yield self.url_result(
-                'https://rtd.rt.com%s' % v_url,
+                f'https://rtd.rt.com{v_url}',
                 ie=RTDocumentryIE.ie_key())
 
     def _real_extract(self, url):

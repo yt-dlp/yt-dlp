@@ -3,12 +3,7 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    strip_jsonp,
-    unescapeHTML,
-)
+from ..utils import ExtractorError, clean_html, strip_jsonp, unescapeHTML
 
 
 class QQMusicIE(InfoExtractor):
@@ -74,7 +69,7 @@ class QQMusicIE(InfoExtractor):
         mid = self._match_id(url)
 
         detail_info_page = self._download_webpage(
-            'http://s.plcloud.music.qq.com/fcgi-bin/fcg_yqq_song_detail_info.fcg?songmid=%s&play=0' % mid,
+            f'http://s.plcloud.music.qq.com/fcgi-bin/fcg_yqq_song_detail_info.fcg?songmid={mid}&play=0',
             mid, note='Download song detail info',
             errnote='Unable to get song detail info', encoding='gbk')
 
@@ -107,7 +102,7 @@ class QQMusicIE(InfoExtractor):
         guid = self.m_r_get_ruin()
 
         vkey = self._download_json(
-            'http://base.music.qq.com/fcgi-bin/fcg_musicexpress.fcg?json=3&guid=%s' % guid,
+            f'http://base.music.qq.com/fcgi-bin/fcg_musicexpress.fcg?json=3&guid={guid}',
             mid, note='Retrieve vkey', errnote='Unable to get vkey',
             transform_source=strip_jsonp)['key']
 
@@ -149,7 +144,7 @@ class QQMusicIE(InfoExtractor):
 class QQPlaylistBaseIE(InfoExtractor):
     @staticmethod
     def qq_static_url(category, mid):
-        return 'http://y.qq.com/y/static/%s/%s/%s/%s.html' % (category, mid[-2], mid[-1], mid)
+        return f'http://y.qq.com/y/static/{category}/{mid[-2]}/{mid[-1]}/{mid}.html'
 
     def get_singer_all_songs(self, singmid, num):
         return self._download_webpage(
@@ -250,7 +245,7 @@ class QQMusicAlbumIE(QQPlaylistBaseIE):
         mid = self._match_id(url)
 
         album = self._download_json(
-            'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg?albummid=%s&format=json' % mid,
+            f'http://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg?albummid={mid}&format=json',
             mid, 'Download album page')['data']
 
         entries = [

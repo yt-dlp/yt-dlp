@@ -38,7 +38,7 @@ class C56IE(InfoExtractor):
             return self.url_result(sohu_video_info['url'], 'Sohu')
 
         page = self._download_json(
-            'http://vxml.56.com/json/%s/' % text_id, text_id, 'Downloading video info')
+            f'http://vxml.56.com/json/{text_id}/', text_id, 'Downloading video info')
 
         info = page['info']
 

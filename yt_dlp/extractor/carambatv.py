@@ -1,13 +1,7 @@
 from .common import InfoExtractor
-from ..compat import compat_str
-from ..utils import (
-    format_field,
-    float_or_none,
-    int_or_none,
-    try_get,
-)
-
 from .videomore import VideomoreIE
+from ..compat import compat_str
+from ..utils import float_or_none, format_field, int_or_none, try_get
 
 
 class CarambaTVIE(InfoExtractor):
@@ -31,12 +25,12 @@ class CarambaTVIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://video1.carambatv.ru/v/%s/videoinfo.js' % video_id,
+            f'http://video1.carambatv.ru/v/{video_id}/videoinfo.js',
             video_id)
 
         title = video['title']
 
-        base_url = video.get('video') or 'http://video1.carambatv.ru/v/%s/' % video_id
+        base_url = video.get('video') or f'http://video1.carambatv.ru/v/{video_id}/'
 
         formats = [{
             'url': base_url + f['fn'],
@@ -84,7 +78,7 @@ class CarambaTVPageIE(InfoExtractor):
                 r'getVMCode\s*\(\s*["\']?(\d+)', webpage, 'videomore id',
                 default=None)
             if videomore_id:
-                videomore_url = 'videomore:%s' % videomore_id
+                videomore_url = f'videomore:{videomore_id}'
         if videomore_url:
             title = self._og_search_title(webpage)
             return {
@@ -100,6 +94,6 @@ class CarambaTVPageIE(InfoExtractor):
             video_id = self._search_regex(
                 r'(?:video_id|crmb_vuid)\s*[:=]\s*["\']?(\d+)',
                 webpage, 'video id')
-            video_url = 'carambatv:%s' % video_id
+            video_url = f'carambatv:{video_id}'
 
         return self.url_result(video_url, CarambaTVIE.ie_key())

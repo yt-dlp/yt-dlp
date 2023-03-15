@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    int_or_none,
-    determine_protocol,
-)
+from ..utils import determine_protocol, int_or_none, parse_duration
 
 
 class SWRMediathekIE(InfoExtractor):
@@ -59,7 +55,7 @@ class SWRMediathekIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://swrmediathek.de/AjaxEntry?ekey=%s' % video_id,
+            f'http://swrmediathek.de/AjaxEntry?ekey={video_id}',
             video_id, 'Downloading video JSON')
 
         attr = video['attr']

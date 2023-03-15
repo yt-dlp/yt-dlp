@@ -12,10 +12,11 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
+    ExtractorError,
+    UnsupportedError,
     clean_html,
     dict_get,
     extract_attributes,
-    ExtractorError,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
@@ -29,7 +30,6 @@ from ..utils import (
     try_get,
     unescapeHTML,
     unsmuggle_url,
-    UnsupportedError,
     update_url_query,
     url_or_none,
 )
@@ -483,7 +483,7 @@ class BrightcoveLegacyIE(InfoExtractor):
                     enc_pub_id = player_key.split(',')[1].replace('~', '=')
                     publisher_id = struct.unpack('>Q', base64.urlsafe_b64decode(enc_pub_id))[0]
             if publisher_id:
-                brightcove_new_url = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s' % (publisher_id, video_id)
+                brightcove_new_url = f'http://players.brightcove.net/{publisher_id}/default_default/index.html?videoId={video_id}'
                 if referer:
                     brightcove_new_url = smuggle_url(brightcove_new_url, {'referrer': referer})
                 return self.url_result(brightcove_new_url, BrightcoveNewIE.ie_key(), video_id)
@@ -864,13 +864,13 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
 
         account_id, player_id, embed, content_type, video_id = self._match_valid_url(url).groups()
 
-        policy_key_id = '%s_%s' % (account_id, player_id)
+        policy_key_id = f'{account_id}_{player_id}'
         policy_key = self.cache.load('brightcove', policy_key_id)
         policy_key_extracted = False
         store_pk = lambda x: self.cache.store('brightcove', policy_key_id, x)
 
         def extract_policy_key():
-            base_url = 'http://players.brightcove.net/%s/%s_%s/' % (account_id, player_id, embed)
+            base_url = f'http://players.brightcove.net/{account_id}/{player_id}_{embed}/'
             config = self._download_json(
                 base_url + 'config.json', video_id, fatal=False) or {}
             policy_key = try_get(
@@ -895,7 +895,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             store_pk(policy_key)
             return policy_key
 
-        api_url = 'https://edge.api.brightcove.com/playback/v1/accounts/%s/%ss/%s' % (account_id, content_type, video_id)
+        api_url = f'https://edge.api.brightcove.com/playback/v1/accounts/{account_id}/{content_type}s/{video_id}'
         headers = {}
         referrer = smuggled_data.get('referrer')  # XXX: notice the spelling/case of the key
         if referrer:
@@ -908,7 +908,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             if not policy_key:
                 policy_key = extract_policy_key()
                 policy_key_extracted = True
-            headers['Accept'] = 'application/json;pk=%s' % policy_key
+            headers['Accept'] = f'application/json;pk={policy_key}'
             try:
                 json_data = self._download_json(api_url, video_id, headers=headers)
                 break
@@ -934,7 +934,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 custom_fields['bcadobepassresourceid'])
             json_data = self._download_json(
                 api_url, video_id, headers={
-                    'Accept': 'application/json;pk=%s' % policy_key
+                    'Accept': f'application/json;pk={policy_key}'
                 }, query={
                     'tveToken': tve_token,
                 })

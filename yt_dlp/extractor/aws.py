@@ -31,7 +31,7 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
         canonical_querystring = compat_urllib_parse_urlencode(query)
         canonical_headers = ''
         for header_name, header_value in sorted(headers.items()):
-            canonical_headers += '%s:%s\n' % (header_name.lower(), header_value)
+            canonical_headers += f'{header_name.lower()}:{header_value}\n'
         signed_headers = ';'.join([header.lower() for header in sorted(headers.keys())])
         canonical_request = '\n'.join([
             'GET',
@@ -65,11 +65,11 @@ class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
 
         # Task 4: http://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html
         headers['Authorization'] = ', '.join([
-            '%s Credential=%s/%s' % (self._AWS_ALGORITHM, aws_dict['access_key'], credential_scope),
-            'SignedHeaders=%s' % signed_headers,
-            'Signature=%s' % signature,
+            f"{self._AWS_ALGORITHM} Credential={aws_dict['access_key']}/{credential_scope}",
+            f'SignedHeaders={signed_headers}',
+            f'Signature={signature}',
         ])
 
         return self._download_json(
-            'https://%s%s%s' % (self._AWS_PROXY_HOST, aws_dict['uri'], '?' + canonical_querystring if canonical_querystring else ''),
+            f"https://{self._AWS_PROXY_HOST}{aws_dict['uri']}{'?' + canonical_querystring if canonical_querystring else ''}",
             video_id, headers=headers)

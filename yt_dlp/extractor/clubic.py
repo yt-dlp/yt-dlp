@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    qualities,
-)
+from ..utils import clean_html, qualities
 
 
 class ClubicIE(InfoExtractor):
@@ -26,7 +23,7 @@ class ClubicIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        player_url = 'http://player.m6web.fr/v1/player/clubic/%s.html' % video_id
+        player_url = f'http://player.m6web.fr/v1/player/clubic/{video_id}.html'
         player_page = self._download_webpage(player_url, video_id)
 
         config = self._parse_json(self._search_regex(

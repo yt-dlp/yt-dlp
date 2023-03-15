@@ -1,7 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    # ExtractorError,
-    # HEADRequest,
+from ..utils import (  # ExtractorError,; HEADRequest,
     int_or_none,
     qualities,
     unified_strdate,
@@ -97,8 +95,7 @@ class CanalplusIE(InfoExtractor):
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': '%s - %s' % (titrage['TITRE'],
-                                  titrage['SOUS_TITRE']),
+            'title': f"{titrage['TITRE']} - {titrage['SOUS_TITRE']}",
             'upload_date': unified_strdate(infos.get('PUBLICATION', {}).get('DATE')),
             'thumbnails': thumbnails,
             'description': infos.get('DESCRIPTION'),

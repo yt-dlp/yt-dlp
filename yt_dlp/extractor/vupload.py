@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
-    parse_duration,
-    parse_filesize,
     extract_attributes,
     int_or_none,
-    js_to_json
+    js_to_json,
+    parse_duration,
+    parse_filesize,
 )
 
 

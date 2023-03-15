@@ -4,15 +4,15 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     dict_get,
     int_or_none,
     merge_dicts,
-    parse_qs,
     parse_age_limit,
     parse_iso8601,
+    parse_qs,
     str_or_none,
     try_get,
     url_or_none,
@@ -36,7 +36,7 @@ class ERTFlixBaseIE(InfoExtractor):
             {'$headers': json.dumps(headers_as_param)},
             params)
         response = self._download_json(
-            'https://api.app.ertflix.gr/v%s/%s' % (str(api_version), method),
+            f'https://api.app.ertflix.gr/v{str(api_version)}/{method}',
             video_id, fatal=False, query=query, data=data, headers=headers)
         if try_get(response, lambda x: x['Result']['Success']) is True:
             return response
@@ -195,7 +195,7 @@ class ERTFlixIE(ERTFlixBaseIE):
             'timestamp': parse_iso8601(episode.get('PublishDate')),
             'duration': episode.get('DurationSeconds'),
             'age_limit': self._parse_age_rating(episode),
-            'url': 'ertflix:%s' % (codename, ),
+            'url': f'ertflix:{codename}',
         }
 
     @staticmethod

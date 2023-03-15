@@ -60,7 +60,7 @@ class DaftsexIE(InfoExtractor):
             webpage, 'player color', fatal=False) or ''
 
         embed_page = self._download_webpage(
-            'https://daxab.com/player/%s?color=%s' % (player_hash, player_color),
+            f'https://daxab.com/player/{player_hash}?color={player_color}',
             video_id, headers={'Referer': url})
         video_params = self._parse_json(
             self._search_regex(
@@ -68,7 +68,7 @@ class DaftsexIE(InfoExtractor):
                 embed_page, 'video parameters'),
             video_id, transform_source=js_to_json)
 
-        server_domain = 'https://%s' % compat_b64decode(video_params['server'][::-1]).decode('utf-8')
+        server_domain = f"https://{compat_b64decode(video_params['server'][::-1]).decode('utf-8')}"
 
         cdn_files = traverse_obj(video_params, ('video', 'cdn_files')) or {}
         if cdn_files:

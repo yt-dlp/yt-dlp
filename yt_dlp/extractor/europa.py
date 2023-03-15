@@ -7,7 +7,7 @@ from ..utils import (
     parse_qs,
     qualities,
     unified_strdate,
-    xpath_text
+    xpath_text,
 )
 
 
@@ -39,11 +39,11 @@ class EuropaIE(InfoExtractor):
         video_id = self._match_id(url)
 
         playlist = self._download_xml(
-            'http://ec.europa.eu/avservices/video/player/playlist.cfm?ID=%s' % video_id, video_id)
+            f'http://ec.europa.eu/avservices/video/player/playlist.cfm?ID={video_id}', video_id)
 
         def get_item(type_, preference):
             items = {}
-            for item in playlist.findall('./info/%s/item' % type_):
+            for item in playlist.findall(f'./info/{type_}/item'):
                 lang, label = xpath_text(item, 'lg', default=None), xpath_text(item, 'label', default=None)
                 if lang and label:
                     items[lang] = label.strip()

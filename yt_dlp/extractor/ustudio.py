@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    unified_strdate,
-    unescapeHTML,
-)
+from ..utils import int_or_none, unescapeHTML, unified_strdate
 
 
 class UstudioIE(InfoExtractor):
@@ -28,7 +24,7 @@ class UstudioIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).groups()
 
         config = self._download_xml(
-            'http://v1.ustudio.com/embed/%s/ustudio/config.xml' % video_id,
+            f'http://v1.ustudio.com/embed/{video_id}/ustudio/config.xml',
             display_id)
 
         def extract(kind):
@@ -36,7 +32,7 @@ class UstudioIE(InfoExtractor):
                 'url': unescapeHTML(item.attrib['url']),
                 'width': int_or_none(item.get('width')),
                 'height': int_or_none(item.get('height')),
-            } for item in config.findall('./qualities/quality/%s' % kind) if item.get('url')]
+            } for item in config.findall(f'./qualities/quality/{kind}') if item.get('url')]
 
         formats = extract('video')
 
@@ -80,7 +76,7 @@ class UstudioEmbedIE(InfoExtractor):
     def _real_extract(self, url):
         uploader_id, video_id = self._match_valid_url(url).groups()
         video_data = self._download_json(
-            'http://app.ustudio.com/embed/%s/%s/config.json' % (uploader_id, video_id),
+            f'http://app.ustudio.com/embed/{uploader_id}/{video_id}/config.json',
             video_id)['videos'][0]
         title = video_data['name']
 

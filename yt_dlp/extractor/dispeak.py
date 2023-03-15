@@ -55,7 +55,7 @@ class DigitallySpeakingIE(InfoExtractor):
         if video_root is None:
             http_host = xpath_text(metadata, 'httpHost', default=None)
             if http_host:
-                video_root = 'http://%s/' % http_host
+                video_root = f'http://{http_host}/'
         if video_root is None:
             # Hard-coded in http://evt.dispeak.com/ubm/gdc/sf16/custom/player2.js
             # Works for GPUTechConf, too
@@ -86,7 +86,7 @@ class DigitallySpeakingIE(InfoExtractor):
         audios = metadata.findall('./audios/audio')
         for audio in audios:
             formats.append({
-                'url': 'rtmp://%s/ondemand?ovpfv=1.1' % akamai_url,
+                'url': f'rtmp://{akamai_url}/ondemand?ovpfv=1.1',
                 'play_path': remove_end(audio.get('url'), '.flv'),
                 'ext': 'flv',
                 'vcodec': 'none',
@@ -95,14 +95,14 @@ class DigitallySpeakingIE(InfoExtractor):
             })
         for video_key, format_id, preference in (
                 ('slide', 'slides', -2), ('speaker', 'speaker', -1)):
-            video_path = xpath_text(metadata, './%sVideo' % video_key)
+            video_path = xpath_text(metadata, f'./{video_key}Video')
             if not video_path:
                 continue
             formats.append({
-                'url': 'rtmp://%s/ondemand?ovpfv=1.1' % akamai_url,
+                'url': f'rtmp://{akamai_url}/ondemand?ovpfv=1.1',
                 'play_path': remove_end(video_path, '.flv'),
                 'ext': 'flv',
-                'format_note': '%s video' % video_key,
+                'format_note': f'{video_key} video',
                 'quality': preference,
                 'format_id': format_id,
             })

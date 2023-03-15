@@ -77,6 +77,6 @@ class VRTIE(InfoExtractor):
             'thumbnail': attrs.get('data-posterimage'),
             'timestamp': timestamp,
             'duration': float_or_none(attrs.get('data-duration'), 1000),
-            'url': 'https://mediazone.vrt.be/api/v1/%s/assets/%s' % (client, asset_id),
+            'url': f'https://mediazone.vrt.be/api/v1/{client}/assets/{asset_id}',
             'ie_key': 'Canvas',
         }

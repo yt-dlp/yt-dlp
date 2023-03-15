@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    parse_qs,
-    remove_start,
-)
+from ..utils import clean_html, parse_qs, remove_start
 
 
 class Varzesh3IE(InfoExtractor):

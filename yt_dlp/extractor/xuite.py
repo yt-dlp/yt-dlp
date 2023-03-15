@@ -95,7 +95,7 @@ class XuiteIE(InfoExtractor):
             webpage, 'error message', default=None)
         if error_msg:
             raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, error_msg),
+                f'{self.IE_NAME} returned error: {error_msg}',
                 expected=True)
 
         media_info = self._parse_json(self._search_regex(

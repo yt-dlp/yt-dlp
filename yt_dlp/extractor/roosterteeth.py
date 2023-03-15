@@ -2,16 +2,16 @@ from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
+    LazyList,
     int_or_none,
     join_nonempty,
-    LazyList,
     parse_qs,
     str_or_none,
     traverse_obj,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    update_url_query,
 )
 
 
@@ -141,7 +141,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                 if self._parse_json(e.cause.read().decode(), display_id).get('access') is False:
                     self.raise_login_required(
-                        '%s is only available for FIRST members' % display_id)
+                        f'{display_id} is only available for FIRST members')
             raise
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(

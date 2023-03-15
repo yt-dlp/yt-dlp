@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-
 from ..utils import (
     int_or_none,
     mimetype2ext,
@@ -33,10 +32,10 @@ class VeoIE(InfoExtractor):
         video_id = self._match_id(url)
 
         metadata = self._download_json(
-            'https://app.veo.co/api/app/matches/%s' % video_id, video_id)
+            f'https://app.veo.co/api/app/matches/{video_id}', video_id)
 
         video_data = self._download_json(
-            'https://app.veo.co/api/app/matches/%s/videos' % video_id, video_id, 'Downloading video data')
+            f'https://app.veo.co/api/app/matches/{video_id}/videos', video_id, 'Downloading video data')
 
         formats = []
         for fmt in video_data:

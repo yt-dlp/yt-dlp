@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    parse_iso8601,
-)
+from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class AirMozillaIE(InfoExtractor):
@@ -33,7 +29,7 @@ class AirMozillaIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         video_id = self._html_search_regex(r'//vid\.ly/(.*?)/embed', webpage, 'id')
 
-        embed_script = self._download_webpage('https://vid.ly/{0}/embed'.format(video_id), video_id)
+        embed_script = self._download_webpage(f'https://vid.ly/{video_id}/embed', video_id)
         jwconfig = self._parse_json(self._search_regex(
             r'initCallback\((.*)\);', embed_script, 'metadata'), video_id)['config']
 

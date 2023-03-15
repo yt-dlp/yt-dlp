@@ -27,7 +27,7 @@ class CNBCIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
             'url': smuggle_url(
-                'http://link.theplatform.com/s/gZWlPC/media/guid/2408950221/%s?mbr=true&manifest=m3u' % video_id,
+                f'http://link.theplatform.com/s/gZWlPC/media/guid/2408950221/{video_id}?mbr=true&manifest=m3u',
                 {'force_smil_url': True}),
             'id': video_id,
         }

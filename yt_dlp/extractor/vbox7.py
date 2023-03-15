@@ -54,12 +54,12 @@ class Vbox7IE(InfoExtractor):
         video_id = self._match_id(url)
 
         response = self._download_json(
-            'https://www.vbox7.com/ajax/video/nextvideo.php?vid=%s' % video_id,
+            f'https://www.vbox7.com/ajax/video/nextvideo.php?vid={video_id}',
             video_id)
 
         if 'error' in response:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, response['error']), expected=True)
+                f"{self.IE_NAME} said: {response['error']}", expected=True)
 
         video = response['options']
 
@@ -72,7 +72,7 @@ class Vbox7IE(InfoExtractor):
         uploader = video.get('uploader')
 
         webpage = self._download_webpage(
-            'http://vbox7.com/play:%s' % video_id, video_id, fatal=None)
+            f'http://vbox7.com/play:{video_id}', video_id, fatal=None)
 
         info = {}
 

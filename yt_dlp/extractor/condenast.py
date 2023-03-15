@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urlparse,
-)
+from ..compat import compat_urllib_parse_urlparse, compat_urlparse
 from ..utils import (
     determine_ext,
     extract_attributes,
@@ -56,7 +53,7 @@ class CondeNastIE(InfoExtractor):
             )/(?P<id>[0-9a-f]{24})(?:/(?P<player_id>[0-9a-f]{24}))?(?:.+?\btarget=(?P<target>[^&]+))?|
             (?P<type>watch|series|video)/(?P<display_id>[^/?#]+)
         )''' % '|'.join(_SITES.keys())
-    IE_DESC = 'Condé Nast media group: %s' % ', '.join(sorted(_SITES.values()))
+    IE_DESC = f"Condé Nast media group: {', '.join(sorted(_SITES.values()))}"
 
     _EMBED_REGEX = [r'''(?x)
         <(?:iframe|script)[^>]+?src=(["\'])(?P<url>
@@ -111,7 +108,7 @@ class CondeNastIE(InfoExtractor):
             r'(?s)<div class="cne-series-info">.*?<h1>(.+?)</h1>',
             webpage, 'series title')
         url_object = compat_urllib_parse_urlparse(url)
-        base_url = '%s://%s' % (url_object.scheme, url_object.netloc)
+        base_url = f'{url_object.scheme}://{url_object.netloc}'
         m_paths = re.finditer(
             r'(?s)<p class="cne-thumb-title">.*?<a href="(/watch/.+?)["\?]', webpage)
         paths = orderedSet(m.group(1) for m in m_paths)
@@ -166,7 +163,7 @@ class CondeNastIE(InfoExtractor):
                 video_id, 'Downloading loader info', query=params)
         if not video_info:
             info_page = self._download_webpage(
-                'https://player.cnevids.com/inline/video/%s.js' % video_id,
+                f'https://player.cnevids.com/inline/video/{video_id}.js',
                 video_id, 'Downloading inline info', query={
                     'target': params.get('target', 'embedplayer')
                 })
@@ -192,7 +189,7 @@ class CondeNastIE(InfoExtractor):
                 continue
             quality = fdata.get('quality')
             formats.append({
-                'format_id': ext + ('-%s' % quality if quality else ''),
+                'format_id': ext + (f'-{quality}' if quality else ''),
                 'url': src,
                 'ext': ext,
                 'quality': 1 if quality == 'high' else 0,

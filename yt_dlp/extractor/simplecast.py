@@ -19,7 +19,7 @@ class SimplecastBaseIE(InfoExtractor):
 
     def _call_search_api(self, resource, resource_id, resource_url):
         return self._download_json(
-            'https://api.simplecast.com/%ss/search' % resource, resource_id,
+            f'https://api.simplecast.com/{resource}s/search', resource_id,
             data=urlencode_postdata({'url': resource_url}))
 
     def _parse_episode(self, episode):

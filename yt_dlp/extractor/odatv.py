@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    NO_DEFAULT,
-    remove_start
-)
+from ..utils import NO_DEFAULT, ExtractorError, remove_start
 
 
 class OdaTVIE(InfoExtractor):
@@ -37,7 +33,7 @@ class OdaTVIE(InfoExtractor):
             default=None if no_video else NO_DEFAULT, group='url')
 
         if no_video:
-            raise ExtractorError('Video %s does not exist' % video_id, expected=True)
+            raise ExtractorError(f'Video {video_id} does not exist', expected=True)
 
         return {
             'id': video_id,

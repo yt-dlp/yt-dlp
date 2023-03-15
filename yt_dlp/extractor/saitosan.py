@@ -47,14 +47,14 @@ class SaitosanIE(InfoExtractor):
 
         self._download_webpage(base, b_id, note='Polling socket')
         payload = '420["room_start_join",{"room_id":"%s"}]' % b_id
-        payload = '%s:%s' % (len(payload), payload)
+        payload = f'{len(payload)}:{payload}'
 
         self._download_webpage(base, b_id, data=payload, note='Polling socket with payload')
         response = self._download_socket_json(base, b_id, note='Polling socket')
         if not response.get('ok'):
             err = response.get('error') or {}
             raise ExtractorError(
-                '%s said: %s - %s' % (self.IE_NAME, err.get('code', '?'), err.get('msg', 'Unknown')) if err
+                f"{self.IE_NAME} said: {err.get('code', '?')} - {err.get('msg', 'Unknown')}" if err
                 else 'The socket reported that the broadcast could not be joined. Maybe it\'s offline or the URL is incorrect',
                 expected=True, video_id=b_id)
 

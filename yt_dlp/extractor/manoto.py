@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    traverse_obj
-)
-
+from ..utils import clean_html, int_or_none, traverse_obj
 
 _API_URL = 'https://dak1vd5vmi7x6.cloudfront.net/api/v1/publicrole/{}/{}?id={}'
 
@@ -98,7 +93,7 @@ class ManotoTVShowIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'https://www.manototv.com/episode/%s' % item['slideID'], ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
+                f"https://www.manototv.com/episode/{item['slideID']}", ie=ManotoTVIE.ie_key(), video_id=item['slideID'])
             for item in playlist]
         return self.playlist_result(entries, show_id, title, description)
 

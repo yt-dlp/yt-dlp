@@ -32,7 +32,7 @@ class RTVNHIE(InfoExtractor):
         formats.extend(rtmp_formats)
 
         for rtmp_format in rtmp_formats:
-            rtmp_url = '%s/%s' % (rtmp_format['url'], rtmp_format['play_path'])
+            rtmp_url = f"{rtmp_format['url']}/{rtmp_format['play_path']}"
             rtsp_format = rtmp_format.copy()
             del rtsp_format['play_path']
             del rtsp_format['ext']

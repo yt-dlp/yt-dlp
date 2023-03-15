@@ -125,9 +125,9 @@ class VoicyChannelIE(VoicyBaseIE):
         title = traverse_obj(first_article, ('ChannelName', ), expected_type=compat_str)
         speaker_name = traverse_obj(first_article, ('SpeakerName', ), expected_type=compat_str)
         if not title and speaker_name:
-            title = 'Uploads from %s' % speaker_name
+            title = f'Uploads from {speaker_name}'
         if not title:
-            title = 'Uploads from channel ID %s' % channel_id
+            title = f'Uploads from channel ID {channel_id}'
 
         articles = itertools.chain([first_article], articles) if first_article else articles
 

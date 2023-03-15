@@ -4,6 +4,7 @@ import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+
 from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
@@ -1090,7 +1091,7 @@ class TwitterIE(TwitterBaseIE):
             else:
                 is_amplify = card_name == 'amplify'
                 vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
-                content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
+                content_id = get_binding_value(f"{card_name if is_amplify else 'player'}_content_id")
                 formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
 
                 thumbnails = []
@@ -1187,9 +1188,9 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
         def _find_dimension(target):
             w = int_or_none(self._html_search_meta(
-                'twitter:%s:width' % target, webpage, fatal=False))
+                f'twitter:{target}:width', webpage, fatal=False))
             h = int_or_none(self._html_search_meta(
-                'twitter:%s:height' % target, webpage, fatal=False))
+                f'twitter:{target}:height', webpage, fatal=False))
             return w, h
 
         if thumbnail:

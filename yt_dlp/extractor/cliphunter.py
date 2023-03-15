@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    url_or_none,
-)
+from ..utils import int_or_none, url_or_none
 
 
 class CliphunterIE(InfoExtractor):
@@ -54,7 +51,7 @@ class CliphunterIE(InfoExtractor):
                 continue
             fmt = f.get('fmt')
             height = f.get('h')
-            format_id = '%s_%sp' % (fmt, height) if fmt and height else format_id
+            format_id = f'{fmt}_{height}p' if fmt and height else format_id
             formats.append({
                 'url': video_url,
                 'format_id': format_id,

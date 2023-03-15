@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    float_or_none,
-    qualities,
-    ExtractorError,
-)
+from ..utils import ExtractorError, float_or_none, int_or_none, qualities
 
 
 class GfycatIE(InfoExtractor):
@@ -85,7 +80,7 @@ class GfycatIE(InfoExtractor):
         video_id = self._match_id(url)
 
         gfy = self._download_json(
-            'https://api.gfycat.com/v1/gfycats/%s' % video_id,
+            f'https://api.gfycat.com/v1/gfycats/{video_id}',
             video_id, 'Downloading video info')
         if 'error' in gfy:
             raise ExtractorError('Gfycat said: ' + gfy['error'], expected=True)
@@ -114,10 +109,10 @@ class GfycatIE(InfoExtractor):
 
         formats = []
         for format_id in FORMATS:
-            video_url = gfy.get('%sUrl' % format_id)
+            video_url = gfy.get(f'{format_id}Url')
             if not video_url:
                 continue
-            filesize = int_or_none(gfy.get('%sSize' % format_id))
+            filesize = int_or_none(gfy.get(f'{format_id}Size'))
             formats.append({
                 'url': video_url,
                 'format_id': format_id,

@@ -1,9 +1,6 @@
 from .common import InfoExtractor
 from .nexx import NexxIE
-from ..utils import (
-    int_or_none,
-    str_or_none,
-)
+from ..utils import int_or_none, str_or_none
 
 
 class FunkIE(InfoExtractor):

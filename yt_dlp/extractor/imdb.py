@@ -73,7 +73,7 @@ class ImdbIE(InfoExtractor):
                 'key': base64.b64encode(json.dumps({
                     'type': 'VIDEO_PLAYER',
                     'subType': 'FORCE_LEGACY',
-                    'id': 'vi%s' % video_id,
+                    'id': f'vi{video_id}',
                 }).encode()).decode(),
             }), lambda x: x[0]['videoLegacyEncodings'])
         quality = qualities(('SD', '480p', '720p', '1080p'))

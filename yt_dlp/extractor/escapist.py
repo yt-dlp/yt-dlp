@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    clean_html,
-    int_or_none,
-    float_or_none,
-)
+from ..utils import clean_html, determine_ext, float_or_none, int_or_none
 
 
 def _decrypt_config(key, string):
@@ -92,7 +87,7 @@ class EscapistIE(InfoExtractor):
 
         formats = [{
             'url': video['src'],
-            'format_id': '%s-%sp' % (determine_ext(video['src']), video['res']),
+            'format_id': f"{determine_ext(video['src'])}-{video['res']}p",
             'height': int_or_none(video.get('res')),
         } for video in data['files']['videos']]
 

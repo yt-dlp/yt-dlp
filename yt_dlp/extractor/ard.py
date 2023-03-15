@@ -3,9 +3,10 @@ import re
 
 from .common import InfoExtractor
 from .generic import GenericIE
+from ..compat import compat_etree_fromstring
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_duration,
     qualities,
@@ -17,7 +18,6 @@ from ..utils import (
     url_or_none,
     xpath_text,
 )
-from ..compat import compat_etree_fromstring
 
 
 class ARDMediathekBaseIE(InfoExtractor):
@@ -133,12 +133,12 @@ class ARDMediathekBaseIE(InfoExtractor):
                             f = {
                                 'url': server,
                                 'play_path': stream_url,
-                                'format_id': 'a%s-rtmp-%s' % (num, quality),
+                                'format_id': f'a{num}-rtmp-{quality}',
                             }
                         else:
                             f = {
                                 'url': stream_url,
-                                'format_id': 'a%s-%s-%s' % (num, ext, quality)
+                                'format_id': f'a{num}-{ext}-{quality}'
                             }
                         m = re.search(
                             r'_(?P<width>\d+)x(?P<height>\d+)\.mp4$',
@@ -272,7 +272,7 @@ class ARDMediathekIE(ARDMediathekBaseIE):
                     (r'/play/(?:config|media|sola)/(\d+)', r'contentId["\']\s*:\s*(\d+)'),
                     webpage, 'media id', default=None)
             info = self._extract_media_info(
-                'http://www.ardmediathek.de/play/media/%s' % video_id,
+                f'http://www.ardmediathek.de/play/media/{video_id}',
                 webpage, video_id)
 
         info.update({
@@ -518,7 +518,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         # https://api-test.ardmediathek.de/public-gateway
         show_page = self._download_json(
             'https://api.ardmediathek.de/public-gateway',
-            '[Playlist] %s' % display_id,
+            f'[Playlist] {display_id}',
             data=graphQL,
             headers={'Content-Type': 'application/json'})['data']
         # align the structure of the returned data:

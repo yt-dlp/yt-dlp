@@ -3,8 +3,8 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
-    strip_or_none,
     str_or_none,
+    strip_or_none,
     traverse_obj,
     unified_timestamp,
 )
@@ -99,7 +99,7 @@ class KakaoIE(InfoExtractor):
             try:
                 fmt_url_json = self._download_json(
                     cdn_api_base, video_id, query=query,
-                    note='Downloading video URL for profile %s' % profile_name)
+                    note=f'Downloading video URL for profile {profile_name}')
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                     resp = self._parse_json(e.cause.read().decode(), video_id)

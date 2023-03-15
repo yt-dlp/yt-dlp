@@ -2,10 +2,7 @@ import base64
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-)
+from ..compat import compat_b64decode, compat_str
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -41,7 +38,7 @@ class OoyalaBaseIE(InfoExtractor):
         streams = auth_data.get('streams') or [{
             'delivery_type': 'hls',
             'url': {
-                'data': base64.b64encode(('http://player.ooyala.com/hls/player/all/%s.m3u8' % embed_code).encode()).decode(),
+                'data': base64.b64encode(f'http://player.ooyala.com/hls/player/all/{embed_code}.m3u8'.encode()).decode(),
             }
         }]
         for stream in streams:
@@ -176,7 +173,7 @@ class OoyalaIE(OoyalaBaseIE):
 
     @staticmethod
     def _url_for_embed_code(embed_code):
-        return 'http://player.ooyala.com/player.js?embedCode=%s' % embed_code
+        return f'http://player.ooyala.com/player.js?embedCode={embed_code}'
 
     @classmethod
     def _build_url_result(cls, embed_code):
@@ -189,7 +186,7 @@ class OoyalaIE(OoyalaBaseIE):
         domain = smuggled_data.get('domain')
         supportedformats = smuggled_data.get('supportedformats')
         embed_token = smuggled_data.get('embed_token')
-        content_tree_url = self._CONTENT_TREE_BASE + 'embed_code/%s/%s' % (embed_code, embed_code)
+        content_tree_url = self._CONTENT_TREE_BASE + f'embed_code/{embed_code}/{embed_code}'
         return self._extract(content_tree_url, embed_code, domain, supportedformats, embed_token)
 
 
@@ -226,5 +223,5 @@ class OoyalaExternalIE(OoyalaBaseIE):
 
     def _real_extract(self, url):
         partner_id, video_id, pcode = self._match_valid_url(url).groups()
-        content_tree_url = self._CONTENT_TREE_BASE + 'external_id/%s/%s:%s' % (pcode, partner_id, video_id)
+        content_tree_url = self._CONTENT_TREE_BASE + f'external_id/{pcode}/{partner_id}:{video_id}'
         return self._extract(content_tree_url, video_id)

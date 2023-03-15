@@ -58,7 +58,7 @@ class XFileShareIE(InfoExtractor):
         (r'xvideosharing\.com', 'XVideoSharing'),
     )
 
-    IE_DESC = 'XFileShare based sites: %s' % ', '.join(list(zip(*_SITES))[1])
+    IE_DESC = f"XFileShare based sites: {', '.join(list(zip(*_SITES))[1])}"
     _VALID_URL = (r'https?://(?:www\.)?(?P<host>%s)/(?:embed-)?(?P<id>[0-9a-zA-Z]+)'
                   % '|'.join(site for site in list(zip(*_SITES))[0]))
     _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:%s)/embed-[0-9a-zA-Z]+.*?)\1' % '|'.join(site for site in list(zip(*_SITES))[0])]
@@ -97,11 +97,11 @@ class XFileShareIE(InfoExtractor):
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
 
-        url = 'https://%s/' % host + ('embed-%s.html' % video_id if host in ('govid.me', 'vidlo.us') else video_id)
+        url = f'https://{host}/' + (f'embed-{video_id}.html' if host in ('govid.me', 'vidlo.us') else video_id)
         webpage = self._download_webpage(url, video_id)
 
         if any(re.search(p, webpage) for p in self._FILE_NOT_FOUND_REGEXES):
-            raise ExtractorError('Video %s does not exist' % video_id, expected=True)
+            raise ExtractorError(f'Video {video_id} does not exist', expected=True)
 
         fields = self._hidden_inputs(webpage)
 

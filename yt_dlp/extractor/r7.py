@@ -40,7 +40,7 @@ class R7IE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://player-api.r7.com/video/i/%s' % video_id, video_id)
+            f'http://player-api.r7.com/video/i/{video_id}', video_id)
 
         title = video['title']
 
@@ -105,4 +105,4 @@ class R7ArticleIE(InfoExtractor):
             r'<div[^>]+(?:id=["\']player-|class=["\']embed["\'][^>]+id=["\'])([\da-f]{24})',
             webpage, 'video id')
 
-        return self.url_result('http://player.r7.com/video/i/%s' % video_id, R7IE.ie_key())
+        return self.url_result(f'http://player.r7.com/video/i/{video_id}', R7IE.ie_key())

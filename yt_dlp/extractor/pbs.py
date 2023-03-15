@@ -3,17 +3,17 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    US_RATINGS,
     ExtractorError,
     determine_ext,
-    int_or_none,
     float_or_none,
+    int_or_none,
     js_to_json,
     orderedSet,
     strip_jsonp,
     strip_or_none,
     unified_strdate,
     url_or_none,
-    US_RATINGS,
 )
 
 
@@ -181,7 +181,7 @@ class PBSIE(InfoExtractor):
     )
 
     IE_NAME = 'pbs'
-    IE_DESC = 'Public Broadcasting Service (PBS) and member stations: %s' % ', '.join(list(zip(*_STATIONS))[1])
+    IE_DESC = f"Public Broadcasting Service (PBS) and member stations: {', '.join(list(zip(*_STATIONS))[1])}"
 
     _VALID_URL = r'''(?x)https?://
         (?:
@@ -538,7 +538,7 @@ class PBSIE(InfoExtractor):
 
         if isinstance(video_id, list):
             entries = [self.url_result(
-                'http://video.pbs.org/video/%s' % vid_id, 'PBS', vid_id)
+                f'http://video.pbs.org/video/{vid_id}', 'PBS', vid_id)
                 for vid_id in video_id]
             return self.playlist_result(entries, display_id)
 
@@ -567,11 +567,11 @@ class PBSIE(InfoExtractor):
         # Player pages may also serve different qualities
         for page in ('widget/partnerplayer', 'portalplayer'):
             player = self._download_webpage(
-                'http://player.pbs.org/%s/%s' % (page, video_id),
-                display_id, 'Downloading %s page' % page, fatal=False)
+                f'http://player.pbs.org/{page}/{video_id}',
+                display_id, f'Downloading {page} page', fatal=False)
             if player:
                 video_info = self._extract_video_data(
-                    player, '%s video data' % page, display_id, fatal=False)
+                    player, f'{page} video data', display_id, fatal=False)
                 if video_info:
                     extract_redirect_urls(video_info)
                     if not info:
@@ -602,7 +602,7 @@ class PBSIE(InfoExtractor):
             redirect_id = redirect.get('eeid')
 
             redirect_info = self._download_json(
-                '%s?format=json' % redirect['url'], display_id,
+                f"{redirect['url']}?format=json", display_id,
                 'Downloading %s video url info' % (redirect_id or num),
                 headers=self.geo_verification_headers())
 
@@ -613,7 +613,7 @@ class PBSIE(InfoExtractor):
                     self.raise_geo_restricted(
                         msg=message, countries=self._GEO_COUNTRIES)
                 raise ExtractorError(
-                    '%s said: %s' % (self.IE_NAME, message), expected=True)
+                    f'{self.IE_NAME} said: {message}', expected=True)
 
             format_url = redirect_info.get('url')
             if not format_url:
@@ -648,7 +648,7 @@ class PBSIE(InfoExtractor):
                 f_url = re.sub(r'\d+k|baseline', bitrate + 'k', http_url)
                 # This may produce invalid links sometimes (e.g.
                 # http://www.pbs.org/wgbh/frontline/film/suicide-plan)
-                if not self._is_valid_url(f_url, display_id, 'http-%sk video' % bitrate):
+                if not self._is_valid_url(f_url, display_id, f'http-{bitrate}k video'):
                     continue
                 f = m3u8_format.copy()
                 f.update({

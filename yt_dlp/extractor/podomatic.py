@@ -56,7 +56,7 @@ class PodomaticIE(InfoExtractor):
 
         video_url = data['downloadLink']
         if not video_url:
-            video_url = '%s/%s' % (data['streamer'].replace('rtmp', 'http'), data['mediaLocation'])
+            video_url = f"{data['streamer'].replace('rtmp', 'http')}/{data['mediaLocation']}"
         uploader = data['podcast']
         title = data['title']
         thumbnail = data['imageLocation']

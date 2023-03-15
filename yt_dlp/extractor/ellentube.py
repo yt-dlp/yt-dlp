@@ -31,7 +31,7 @@ class EllenTubeBaseIE(InfoExtractor):
 
         def get_insight(kind):
             return int_or_none(try_get(
-                data, lambda x: x['insight']['%ss' % kind]))
+                data, lambda x: x['insight'][f'{kind}s']))
 
         return {
             'extractor_key': EllenTubeIE.ie_key(),
@@ -79,7 +79,7 @@ class EllenTubeIE(EllenTubeBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            'https://api-prod.ellentube.com/ellenapi/api/item/%s' % video_id,
+            f'https://api-prod.ellentube.com/ellenapi/api/item/{video_id}',
             video_id)
         return self._extract_video(data, video_id)
 
@@ -96,7 +96,7 @@ class EllenTubeVideoIE(EllenTubeBaseIE):
         webpage = self._download_webpage(url, display_id)
         video_id = self._extract_data_config(webpage, display_id)['id']
         return self.url_result(
-            'ellentube:%s' % video_id, ie=EllenTubeIE.ie_key(),
+            f'ellentube:{video_id}', ie=EllenTubeIE.ie_key(),
             video_id=video_id)
 
 

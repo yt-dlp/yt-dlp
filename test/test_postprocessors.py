@@ -65,7 +65,7 @@ class TestExec(unittest.TestCase):
     def test_parse_cmd(self):
         pp = ExecPP(YoutubeDL(), '')
         info = {'filepath': 'file name'}
-        cmd = 'echo %s' % compat_shlex_quote(info['filepath'])
+        cmd = f"echo {compat_shlex_quote(info['filepath'])}"
 
         self.assertEqual(pp.parse_cmd('echo', info), cmd)
         self.assertEqual(pp.parse_cmd('echo {}', info), cmd)

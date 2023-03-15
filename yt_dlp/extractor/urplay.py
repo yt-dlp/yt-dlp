@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     ExtractorError,
-    int_or_none,
     ISO639Utils,
+    dict_get,
+    int_or_none,
     parse_age_limit,
     try_get,
     unified_timestamp,
@@ -98,7 +98,7 @@ class URPlayIE(InfoExtractor):
             file_http = v.get('location')
             if file_http:
                 formats.extend(self._extract_wowza_formats(
-                    'http://%s/%splaylist.m3u8' % (host, file_http),
+                    f'http://{host}/{file_http}playlist.m3u8',
                     video_id, skip_protocols=['f4m', 'rtmp', 'rtsp']))
 
         subtitles = {}
@@ -145,7 +145,7 @@ class URPlayIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': '%s : %s' % (series_title, episode) if series_title else episode,
+            'title': f'{series_title} : {episode}' if series_title else episode,
             'description': urplayer_data.get('description'),
             'thumbnails': thumbnails,
             'timestamp': unified_timestamp(urplayer_data.get('publishedAt')),

@@ -237,11 +237,11 @@ def expect_info_dict(self, got_dict, expected_dict):
         if expected_dict.get('ext'):
             mandatory_fields.extend(('url', 'ext'))
         for key in mandatory_fields:
-            self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
+            self.assertTrue(got_dict.get(key), f'Missing mandatory field {key}')
     # Check for mandatory fields that are automatically set by YoutubeDL
     if got_dict.get('_type', 'video') == 'video':
         for key in ['webpage_url', 'extractor', 'extractor_key']:
-            self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
+            self.assertTrue(got_dict.get(key), f'Missing field: {key}')
 
     test_info_dict = sanitize_got_info_dict(got_dict)
 
@@ -266,8 +266,7 @@ def expect_info_dict(self, got_dict, expected_dict):
         write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
         self.assertFalse(
             missing_keys,
-            'Missing keys in test definition: %s' % (
-                ', '.join(sorted(missing_keys))))
+            f"Missing keys in test definition: {', '.join(sorted(missing_keys))}")
 
 
 def assertRegexpMatches(self, text, regexp, msg=None):
@@ -276,9 +275,9 @@ def assertRegexpMatches(self, text, regexp, msg=None):
     else:
         m = re.match(regexp, text)
         if not m:
-            note = 'Regexp didn\'t match: %r not found' % (regexp)
+            note = f'Regexp didn\'t match: {regexp!r} not found'
             if len(text) < 1000:
-                note += ' in %r' % text
+                note += f' in {text!r}'
             if msg is None:
                 msg = note
             else:

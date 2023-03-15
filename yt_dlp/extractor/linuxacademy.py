@@ -2,14 +2,10 @@ import json
 import random
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_b64decode, compat_HTTPError, compat_str
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     js_to_json,
     parse_duration,
     try_get,
@@ -123,7 +119,7 @@ class LinuxAcademyIE(InfoExtractor):
                 error = self._parse_json(e.cause.read(), None)
                 message = error.get('description') or error['code']
                 raise ExtractorError(
-                    '%s said: %s' % (self.IE_NAME, message), expected=True)
+                    f'{self.IE_NAME} said: {message}', expected=True)
             raise
 
         callback_page, urlh = self._download_webpage_handle(
@@ -153,7 +149,7 @@ class LinuxAcademyIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         chapter_id, lecture_id, course_id = mobj.group('chapter_id', 'lesson_id', 'course_id')
-        item_id = course_id if course_id else '%s-%s' % (chapter_id, lecture_id)
+        item_id = course_id if course_id else f'{chapter_id}-{lecture_id}'
 
         webpage = self._download_webpage(url, item_id)
 

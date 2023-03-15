@@ -3,13 +3,13 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     clean_html,
     get_element_by_class,
+    js_to_json,
     parse_count,
     remove_end,
     unified_strdate,
-    js_to_json,
-    OnDemandPagedList,
 )
 
 

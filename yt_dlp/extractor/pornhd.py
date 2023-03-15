@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     js_to_json,
     merge_dicts,
@@ -67,7 +67,7 @@ class PornHdIE(InfoExtractor):
             message = self._html_search_regex(
                 r'(?s)<(div|p)[^>]+class="no-video"[^>]*>(?P<value>.+?)</\1',
                 webpage, 'error message', group='value')
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, message), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
 
         formats = []
         for format_id, video_url in sources.items():

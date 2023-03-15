@@ -5,11 +5,11 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     strip_or_none,
     traverse_obj,
-    try_get
+    try_get,
 )
 
 
@@ -154,7 +154,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             is_upcoming = try_get(video_json, lambda x: x['current_date'] < x['start_date'])
         if is_upcoming:
             self.raise_no_formats(
-                'This event will start at %s.' % video_json['live_label'] if video_json.get('live_label') else 'This event has not started yet.', expected=True)
+                f"This event will start at {video_json['live_label']}." if video_json.get('live_label') else 'This event has not started yet.', expected=True)
         if 'akamaized' in video_url:
             # For some videos hosted on Akamai's CDN (possibly AES-encrypted ones?), a session needs to at least be made via Conviva's API
             conviva_json_data = {
@@ -167,10 +167,10 @@ class RCTIPlusIE(RCTIPlusBaseIE):
                 'Creating Conviva session', 'Failed to create Conviva session',
                 fatal=False, data=json.dumps(conviva_json_data).encode('utf-8'))
             if conviva_json_res and conviva_json_res.get('err') != 'ok':
-                self.report_warning('Conviva said: %s' % str(conviva_json_res.get('err')))
+                self.report_warning(f"Conviva said: {str(conviva_json_res.get('err'))}")
 
         video_meta, meta_paths = self._call_api(
-            'https://api.rctiplus.com/api/v1/%s/%s' % (video_type, video_id), display_id, 'Downloading video metadata')
+            f'https://api.rctiplus.com/api/v1/{video_type}/{video_id}', display_id, 'Downloading video metadata')
 
         thumbnails, image_path = [], meta_paths.get('image_path', 'https://rstatic.akamaized.net/media/')
         if video_meta.get('portrait_image'):
@@ -261,7 +261,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
         total_pages = 0
         try:
             total_pages = self._call_api(
-                '%s&length=20&page=0' % url,
+                f'{url}&length=20&page=0',
                 display_id, note)[1]['pagination']['total_page']
         except ExtractorError as e:
             if 'not found' in str(e):
@@ -272,8 +272,8 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
         for page_num in range(1, total_pages + 1):
             episode_list = self._call_api(
-                '%s&length=20&page=%s' % (url, page_num),
-                display_id, '%s page %s' % (note, page_num))[0] or []
+                f'{url}&length=20&page={page_num}',
+                display_id, f'{note} page {page_num}')[0] or []
 
             for video_json in episode_list:
                 yield {

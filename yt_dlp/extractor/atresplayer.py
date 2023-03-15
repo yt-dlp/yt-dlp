@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    urlencode_postdata,
-)
+from ..utils import ExtractorError, int_or_none, urlencode_postdata
 
 
 class AtresPlayerIE(InfoExtractor):

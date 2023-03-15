@@ -3,8 +3,8 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     merge_dicts,
     parse_iso8601,
@@ -131,7 +131,7 @@ class NDRIE(NDRBaseIE):
             ndr_id = self._search_regex(r'%s([a-z]+\d+)(?!\.)\b' % (path, ), webpage, 'embed URL', default=None)
             # or try to use special knowledge!
             NDR_INFO_URL_TPL = 'https://www.ndr.de/info/%s-player.html'
-            embed_url = 'ndr:%s' % (ndr_id, ) if ndr_id else NDR_INFO_URL_TPL % (embed_url, )
+            embed_url = f'ndr:{ndr_id}' if ndr_id else NDR_INFO_URL_TPL % (embed_url, )
         if not embed_url:
             raise ExtractorError('Unable to extract embedUrl')
 
@@ -211,7 +211,7 @@ class NJoyIE(NDRBaseIE):
         return {
             '_type': 'url_transparent',
             'ie_key': 'NDREmbedBase',
-            'url': 'ndr:%s' % video_id,
+            'url': f'ndr:{video_id}',
             'display_id': display_id,
             'description': description,
             'title': display_id.replace('-', ' ').strip(),
@@ -234,7 +234,7 @@ class NDREmbedBaseIE(InfoExtractor):  # XXX: Conventionally, Concrete class name
         video_id = mobj.group('id') or mobj.group('id_s')
 
         ppjson = self._download_json(
-            'http://www.ndr.de/%s-ppjson.json' % video_id, video_id)
+            f'http://www.ndr.de/{video_id}-ppjson.json', video_id)
 
         playlist = ppjson['playlist']
 

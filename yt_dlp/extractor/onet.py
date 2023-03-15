@@ -2,13 +2,13 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
+    NO_DEFAULT,
     ExtractorError,
+    determine_ext,
     float_or_none,
     get_element_by_class,
     int_or_none,
     js_to_json,
-    NO_DEFAULT,
     parse_iso8601,
     remove_start,
     strip_or_none,
@@ -39,7 +39,7 @@ class OnetBaseIE(InfoExtractor):
         error = response.get('error')
         if error:
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error['message']), expected=True)
+                f"{self.IE_NAME} said: {error['message']}", expected=True)
 
         video = response['result'].get('0')
 
@@ -256,4 +256,4 @@ class OnetPlIE(InfoExtractor):
             mvp_id = self._search_mvp_id(webpage)
 
         return self.url_result(
-            'onetmvp:%s' % mvp_id, OnetMVPIE.ie_key(), video_id=mvp_id)
+            f'onetmvp:{mvp_id}', OnetMVPIE.ie_key(), video_id=mvp_id)

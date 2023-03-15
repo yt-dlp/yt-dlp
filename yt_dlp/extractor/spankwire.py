@@ -70,7 +70,7 @@ class SpankwireIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'https://www.spankwire.com/api/video/%s.json' % video_id, video_id)
+            f'https://www.spankwire.com/api/video/{video_id}.json', video_id)
 
         title = video['title']
 
@@ -106,7 +106,7 @@ class SpankwireIE(InfoExtractor):
 
         thumbnails = []
         for preference, t in enumerate(('', '2x'), start=0):
-            thumbnail_url = url_or_none(video.get('poster%s' % t))
+            thumbnail_url = url_or_none(video.get(f'poster{t}'))
             if not thumbnail_url:
                 continue
             thumbnails.append({
@@ -132,7 +132,7 @@ class SpankwireIE(InfoExtractor):
         info = {}
 
         webpage = self._download_webpage(
-            'https://www.spankwire.com/_/video%s/' % video_id, video_id,
+            f'https://www.spankwire.com/_/video{video_id}/', video_id,
             fatal=False)
         if webpage:
             info = self._search_json_ld(webpage, video_id, default={})

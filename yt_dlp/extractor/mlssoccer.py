@@ -109,6 +109,6 @@ class MLSSoccerIE(InfoExtractor):
         return {
             'id': id,
             '_type': 'url',
-            'url': 'https://players.brightcove.net/%s/default_default/index.html?videoId=%s' % (data_json['accountId'], data_json['videoId']),
+            'url': f"https://players.brightcove.net/{data_json['accountId']}/default_default/index.html?videoId={data_json['videoId']}",
             'ie_key': 'BrightcoveNew',
         }

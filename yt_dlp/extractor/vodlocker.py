@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     NO_DEFAULT,
+    ExtractorError,
     sanitized_Request,
     urlencode_postdata,
 )
@@ -30,7 +30,7 @@ class VodlockerIE(InfoExtractor):
                 '>File Not Found<',
                 'The file you were looking for could not be found, sorry for any inconvenience.<',
                 '>The file was removed')):
-            raise ExtractorError('Video %s does not exist' % video_id, expected=True)
+            raise ExtractorError(f'Video {video_id} does not exist', expected=True)
 
         fields = self._hidden_inputs(webpage)
 

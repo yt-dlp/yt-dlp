@@ -7,11 +7,7 @@ import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    try_get,
-)
+from ..utils import ExtractorError, int_or_none, try_get
 
 
 class SonyLIVIE(InfoExtractor):
@@ -70,7 +66,7 @@ class SonyLIVIE(InfoExtractor):
             if c == 'x':
                 t[i] = str(n)
             elif c == 'y':
-                t[i] = '{:x}'.format(3 & n | 8)
+                t[i] = f'{3 & n | 8:x}'
         return ''.join(t) + '-' + str(int(time.time() * 1000))
 
     def _perform_login(self, username, password):
@@ -116,7 +112,7 @@ class SonyLIVIE(InfoExtractor):
     def _call_api(self, version, path, video_id):
         try:
             return self._download_json(
-                'https://apiv2.sonyliv.com/AGL/%s/A/ENG/WEB/%s' % (version, path),
+                f'https://apiv2.sonyliv.com/AGL/{version}/A/ENG/WEB/{path}',
                 video_id, headers=self._HEADERS)['resultObj']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 406 and self._parse_json(
@@ -209,7 +205,7 @@ class SonyLIVSeriesIE(InfoExtractor):
                 lambda x: x['resultObj']['containers'][0]['containers'], list)
             for episode in episodes or []:
                 video_id = episode.get('id')
-                yield self.url_result('sonyliv:%s' % video_id, ie=SonyLIVIE.ie_key(), video_id=video_id)
+                yield self.url_result(f'sonyliv:{video_id}', ie=SonyLIVIE.ie_key(), video_id=video_id)
 
     def _real_extract(self, url):
         show_id = self._match_id(url)

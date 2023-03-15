@@ -26,7 +26,7 @@ class Canalc2IE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://www.canalc2.tv/video/%s' % video_id, video_id)
+            f'http://www.canalc2.tv/video/{video_id}', video_id)
 
         title = self._html_search_regex(
             r'(?s)class="[^"]*col_description[^"]*">.*?<h3>(.+?)</h3>',

@@ -1,12 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    qualities,
-    unescapeHTML,
-)
+from ..utils import determine_ext, int_or_none, qualities, unescapeHTML
 
 
 class GiantBombIE(InfoExtractor):

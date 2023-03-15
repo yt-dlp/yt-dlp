@@ -1,12 +1,8 @@
-from datetime import datetime
 import base64
+from datetime import datetime
 
 from .common import InfoExtractor
-from ..utils import (
-    HEADRequest,
-    int_or_none,
-    urlencode_postdata,
-)
+from ..utils import HEADRequest, int_or_none, urlencode_postdata
 
 
 class TenPlayIE(InfoExtractor):

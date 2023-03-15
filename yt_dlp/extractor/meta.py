@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from .pladform import PladformIE
-from ..utils import (
-    unescapeHTML,
-    int_or_none,
-    ExtractorError,
-)
+from ..utils import ExtractorError, int_or_none, unescapeHTML
 
 
 class METAIE(InfoExtractor):
@@ -42,11 +38,11 @@ class METAIE(InfoExtractor):
             # uppod st decryption algorithm is reverse engineered from function un(s) at uppod.js
             json_str = ''
             for i in range(0, len(st_html5), 3):
-                json_str += '&#x0%s;' % st_html5[i:i + 3]
+                json_str += f'&#x0{st_html5[i:i + 3]};'
             uppod_data = self._parse_json(unescapeHTML(json_str), video_id)
             error = uppod_data.get('customnotfound')
             if error:
-                raise ExtractorError('%s said: %s' % (self.IE_NAME, error), expected=True)
+                raise ExtractorError(f'{self.IE_NAME} said: {error}', expected=True)
 
             video_url = uppod_data['file']
             info = {

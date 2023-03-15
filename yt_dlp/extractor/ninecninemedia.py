@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    try_get,
-)
+from ..utils import float_or_none, int_or_none, parse_iso8601, try_get
 
 
 class NineCNineMediaIE(InfoExtractor):
@@ -22,7 +17,7 @@ class NineCNineMediaIE(InfoExtractor):
         title = content['Name']
         content_package = content['ContentPackages'][0]
         package_id = content_package['Id']
-        content_package_url = api_base_url + 'contentpackages/%s/' % package_id
+        content_package_url = api_base_url + f'contentpackages/{package_id}/'
         content_package = self._download_json(
             content_package_url, content_id, query={
                 '$include': '[HasClosedCaptions]',

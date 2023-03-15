@@ -83,7 +83,7 @@ class GoogleDriveIE(InfoExtractor):
             r'<iframe[^>]+src="https?://(?:video\.google\.com/get_player\?.*?docid=|(?:docs|drive)\.google\.com/file/d/)(?P<id>[a-zA-Z0-9_-]{28,})',
             webpage)
         if mobj:
-            yield 'https://drive.google.com/file/d/%s' % mobj.group('id')
+            yield f"https://drive.google.com/file/d/{mobj.group('id')}"
 
     def _download_subtitles_xml(self, video_id, subtitles_id, hl):
         if self._captions_xml:
@@ -209,8 +209,8 @@ class GoogleDriveIE(InfoExtractor):
 
         def request_source_file(source_url, kind):
             return self._request_webpage(
-                source_url, video_id, note='Requesting %s file' % kind,
-                errnote='Unable to request %s file' % kind, fatal=False)
+                source_url, video_id, note=f'Requesting {kind} file',
+                errnote=f'Unable to request {kind} file', fatal=False)
         urlh = request_source_file(source_url, 'source')
         if urlh:
             def add_source_format(urlh):

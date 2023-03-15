@@ -1,5 +1,6 @@
-from .common import InfoExtractor
 import re
+
+from .common import InfoExtractor
 
 
 class ToypicsIE(InfoExtractor):

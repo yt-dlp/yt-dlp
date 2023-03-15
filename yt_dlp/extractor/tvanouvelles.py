@@ -1,7 +1,7 @@
 import re
 
-from .common import InfoExtractor
 from .brightcove import BrightcoveNewIE
+from .common import InfoExtractor
 
 
 class TVANouvellesIE(InfoExtractor):
@@ -51,7 +51,7 @@ class TVANouvellesArticleIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                'http://www.tvanouvelles.ca/videos/%s' % mobj.group('id'),
+                f"http://www.tvanouvelles.ca/videos/{mobj.group('id')}",
                 ie=TVANouvellesIE.ie_key(), video_id=mobj.group('id'))
             for mobj in re.finditer(
                 r'data-video-id=(["\'])?(?P<id>\d+)', webpage)]

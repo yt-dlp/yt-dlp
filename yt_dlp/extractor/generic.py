@@ -2172,7 +2172,7 @@ class GenericIE(InfoExtractor):
 
     def report_following_redirect(self, new_url):
         """Report information extraction."""
-        self._downloader.to_screen('[redirect] Following redirect to %s' % new_url)
+        self._downloader.to_screen(f'[redirect] Following redirect to {new_url}')
 
     def report_detected(self, name, num=1, note=None):
         if num > 1:
@@ -2333,11 +2333,11 @@ class GenericIE(InfoExtractor):
                     if default_search == 'auto_warning':
                         if re.match(r'^(?:url|URL)$', url):
                             raise ExtractorError(
-                                'Invalid URL:  %r . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ' % url,
+                                f'Invalid URL:  {url!r} . Call yt-dlp like this:  yt-dlp -v "https://www.youtube.com/watch?v=BaW_jenozKc"  ',
                                 expected=True)
                         else:
                             self.report_warning(
-                                'Falling back to youtube search for  %s . Set --default-search "auto" to suppress this warning.' % url)
+                                f'Falling back to youtube search for  {url} . Set --default-search "auto" to suppress this warning.')
                     return self.url_result('ytsearch:' + url)
 
             if default_search in ('error', 'fixup_error'):
@@ -2419,7 +2419,7 @@ class GenericIE(InfoExtractor):
 
         if not self.get_param('test', False) and not is_intentional:
             force = self.get_param('force_generic_extractor', False)
-            self.report_warning('%s generic information extractor' % ('Forcing' if force else 'Falling back on'))
+            self.report_warning(f"{'Forcing' if force else 'Falling back on'} generic information extractor")
 
         first_bytes = full_response.read(512)
 

@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    join_nonempty,
-    xpath_text,
-)
+from ..utils import determine_ext, join_nonempty, xpath_text
 
 
 class WebcasterIE(InfoExtractor):
@@ -35,7 +31,7 @@ class WebcasterIE(InfoExtractor):
         formats = []
         for format_id in (None, 'noise'):
             track_tag = join_nonempty('track', format_id, delim='_')
-            for track in video.findall('.//iphone/%s' % track_tag):
+            for track in video.findall(f'.//iphone/{track_tag}'):
                 track_url = track.text
                 if not track_url:
                     continue

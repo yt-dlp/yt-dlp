@@ -1,9 +1,7 @@
 from __future__ import unicode_literals
+
 from .common import InfoExtractor
-from ..utils import (
-    traverse_obj,
-    unified_strdate,
-)
+from ..utils import traverse_obj, unified_strdate
 
 
 class MastersIE(InfoExtractor):

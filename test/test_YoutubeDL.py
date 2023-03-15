@@ -849,7 +849,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('Hello %(title1)s', 'Hello $PATH')
         test('Hello %(title2)s', 'Hello %PATH%')
         test('%(title3)s', ('foo/bar\\test', 'foo⧸bar⧹test'))
-        test('folder/%(title3)s', ('folder/foo/bar\\test', 'folder%sfoo⧸bar⧹test' % os.path.sep))
+        test('folder/%(title3)s', ('folder/foo/bar\\test', f'folder{os.path.sep}foo⧸bar⧹test'))
 
     def test_format_note(self):
         ydl = YoutubeDL()
@@ -879,14 +879,14 @@ class TestYoutubeDL(unittest.TestCase):
             ydl.post_process(filename, {'filepath': filename})
 
         run_pp({'keepvideo': True}, SimplePP)
-        self.assertTrue(os.path.exists(filename), '%s doesn\'t exist' % filename)
-        self.assertTrue(os.path.exists(audiofile), '%s doesn\'t exist' % audiofile)
+        self.assertTrue(os.path.exists(filename), f'{filename} doesn\'t exist')
+        self.assertTrue(os.path.exists(audiofile), f'{audiofile} doesn\'t exist')
         os.unlink(filename)
         os.unlink(audiofile)
 
         run_pp({'keepvideo': False}, SimplePP)
-        self.assertFalse(os.path.exists(filename), '%s exists' % filename)
-        self.assertTrue(os.path.exists(audiofile), '%s doesn\'t exist' % audiofile)
+        self.assertFalse(os.path.exists(filename), f'{filename} exists')
+        self.assertTrue(os.path.exists(audiofile), f'{audiofile} doesn\'t exist')
         os.unlink(audiofile)
 
         class ModifierPP(PostProcessor):
@@ -896,7 +896,7 @@ class TestYoutubeDL(unittest.TestCase):
                 return [], info
 
         run_pp({'keepvideo': False}, ModifierPP)
-        self.assertTrue(os.path.exists(filename), '%s doesn\'t exist' % filename)
+        self.assertTrue(os.path.exists(filename), f'{filename} doesn\'t exist')
         os.unlink(filename)
 
     def test_match_filter(self):
@@ -1173,7 +1173,7 @@ class TestYoutubeDL(unittest.TestCase):
                     })
                 return {
                     'id': video_id,
-                    'title': 'Video %s' % video_id,
+                    'title': f'Video {video_id}',
                     'formats': formats,
                 }
 
@@ -1187,8 +1187,8 @@ class TestYoutubeDL(unittest.TestCase):
                         '_type': 'url_transparent',
                         'ie_key': VideoIE.ie_key(),
                         'id': video_id,
-                        'url': 'video:%s' % video_id,
-                        'title': 'Video Transparent %s' % video_id,
+                        'url': f'video:{video_id}',
+                        'title': f'Video Transparent {video_id}',
                     }
 
             def _real_extract(self, url):

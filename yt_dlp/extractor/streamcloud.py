@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    urlencode_postdata,
-)
+from ..utils import ExtractorError, urlencode_postdata
 
 
 class StreamcloudIE(InfoExtractor):
@@ -27,13 +24,13 @@ class StreamcloudIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        url = 'http://streamcloud.eu/%s' % video_id
+        url = f'http://streamcloud.eu/{video_id}'
 
         orig_webpage = self._download_webpage(url, video_id)
 
         if '>File Not Found<' in orig_webpage:
             raise ExtractorError(
-                'Video %s does not exist' % video_id, expected=True)
+                f'Video {video_id} does not exist', expected=True)
 
         fields = re.findall(r'''(?x)<input\s+
             type="(?:hidden|submit)"\s+
@@ -59,7 +56,7 @@ class StreamcloudIE(InfoExtractor):
                 r'(?s)<div[^>]+class=(["\']).*?msgboxinfo.*?\1[^>]*>(?P<message>.+?)</div>',
                 webpage, 'message', default=None, group='message')
             if message:
-                raise ExtractorError('%s said: %s' % (self.IE_NAME, message), expected=True)
+                raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
             raise
         thumbnail = self._search_regex(
             r'image:\s*"([^"]+)"', webpage, 'thumbnail URL', fatal=False)

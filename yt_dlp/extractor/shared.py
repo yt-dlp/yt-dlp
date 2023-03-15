@@ -23,7 +23,7 @@ class SharedBaseIE(InfoExtractor):
 
         if self._FILE_NOT_FOUND in webpage:
             raise ExtractorError(
-                'Video %s does not exist' % video_id, expected=True)
+                f'Video {video_id} does not exist', expected=True)
 
         video_url = self._extract_video_url(webpage, video_id, url)
 

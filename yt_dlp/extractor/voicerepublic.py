@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    determine_ext,
-    int_or_none,
-    urljoin,
-)
+from ..utils import ExtractorError, determine_ext, int_or_none, urljoin
 
 
 class VoiceRepublicIE(InfoExtractor):

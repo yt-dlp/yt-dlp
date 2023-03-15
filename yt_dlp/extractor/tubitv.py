@@ -6,8 +6,8 @@ from ..utils import (
     int_or_none,
     js_to_json,
     sanitized_Request,
-    urlencode_postdata,
     traverse_obj,
+    urlencode_postdata,
 )
 
 
@@ -160,7 +160,7 @@ class TubiTvShowIE(InfoExtractor):
             if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
                 continue
             yield self.url_result(
-                'tubitv:%s' % episode_id,
+                f'tubitv:{episode_id}',
                 ie=TubiTvIE.ie_key(), video_id=episode_id)
 
     def _real_extract(self, url):

@@ -36,7 +36,7 @@ class PornotubeIE(InfoExtractor):
             })['tokenKey']
 
         video_url = self._download_json(
-            'https://api.aebn.net/delivery/v1/clips/%s/MP4' % video_id,
+            f'https://api.aebn.net/delivery/v1/clips/{video_id}/MP4',
             video_id, note='Downloading delivery information',
             headers={'Authorization': token})['mediaUrl']
 

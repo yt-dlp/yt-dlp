@@ -4,11 +4,11 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    format_field,
     float_or_none,
+    format_field,
     int_or_none,
     str_or_none,
-    traverse_obj
+    traverse_obj,
 )
 
 
@@ -136,7 +136,7 @@ class MedalTVIE(InfoExtractor):
                     expected=True, video_id=video_id)
             else:
                 self.raise_no_formats(
-                    'An unknown error occurred ({0}).'.format(error),
+                    f'An unknown error occurred ({error}).',
                     video_id=video_id)
 
         # Necessary because the id of the author is not known in advance.

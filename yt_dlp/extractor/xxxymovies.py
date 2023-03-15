@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    int_or_none,
-)
+from ..utils import int_or_none, parse_duration
 
 
 class XXXYMoviesIE(InfoExtractor):

@@ -1,10 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    parse_iso8601,
-    int_or_none,
-    ExtractorError,
-)
+from ..utils import ExtractorError, int_or_none, parse_iso8601
 
 
 class TheInterceptIE(InfoExtractor):
@@ -35,7 +31,7 @@ class TheInterceptIE(InfoExtractor):
             if post['slug'] == display_id:
                 return {
                     '_type': 'url_transparent',
-                    'url': 'jwplatform:%s' % post['fov_videoid'],
+                    'url': f"jwplatform:{post['fov_videoid']}",
                     'id': compat_str(post['ID']),
                     'display_id': display_id,
                     'title': post['title'],

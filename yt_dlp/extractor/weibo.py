@@ -1,18 +1,10 @@
-from .common import InfoExtractor
-
 import json
 import random
 import re
 
-from ..compat import (
-    compat_parse_qs,
-    compat_str,
-)
-from ..utils import (
-    js_to_json,
-    strip_jsonp,
-    urlencode_postdata,
-)
+from .common import InfoExtractor
+from ..compat import compat_parse_qs, compat_str
+from ..utils import js_to_json, strip_jsonp, urlencode_postdata
 
 
 class WeiboIE(InfoExtractor):

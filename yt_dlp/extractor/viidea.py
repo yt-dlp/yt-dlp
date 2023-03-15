@@ -1,17 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    js_to_json,
-    parse_duration,
-    parse_iso8601,
-)
+from ..compat import compat_HTTPError, compat_str, compat_urlparse
+from ..utils import ExtractorError, js_to_json, parse_duration, parse_iso8601
 
 
 class ViideaIE(InfoExtractor):
@@ -130,7 +121,7 @@ class ViideaIE(InfoExtractor):
 
         try:
             lecture_data = self._download_json(
-                '%s/site/api/lecture/%s?format=json' % (base_url, lecture_id),
+                f'{base_url}/site/api/lecture/{lecture_id}?format=json',
                 lecture_id)['lecture'][0]
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
@@ -155,13 +146,13 @@ class ViideaIE(InfoExtractor):
             multipart = len(parts) > 1
 
             def extract_part(part_id):
-                smil_url = '%s/%s/video/%s/smil.xml' % (base_url, lecture_slug, part_id)
+                smil_url = f'{base_url}/{lecture_slug}/video/{part_id}/smil.xml'
                 smil = self._download_smil(smil_url, lecture_id)
                 info = self._parse_smil(smil, smil_url, lecture_id)
-                info['id'] = lecture_id if not multipart else '%s_part%s' % (lecture_id, part_id)
-                info['display_id'] = lecture_slug if not multipart else '%s_part%s' % (lecture_slug, part_id)
+                info['id'] = lecture_id if not multipart else f'{lecture_id}_part{part_id}'
+                info['display_id'] = lecture_slug if not multipart else f'{lecture_slug}_part{part_id}'
                 if multipart:
-                    info['title'] += ' (Part %s)' % part_id
+                    info['title'] += f' (Part {part_id})'
                 switch = smil.find('.//switch')
                 if switch is not None:
                     info['duration'] = parse_duration(switch.attrib.get('dur'))
@@ -187,7 +178,7 @@ class ViideaIE(InfoExtractor):
         # It's probably a playlist
         if not parts or lecture_type == 'evt':
             playlist_webpage = self._download_webpage(
-                '%s/site/ajax/drilldown/?id=%s' % (base_url, lecture_id), lecture_id)
+                f'{base_url}/site/ajax/drilldown/?id={lecture_id}', lecture_id)
             entries = [
                 self.url_result(compat_urlparse.urljoin(url, video_url), 'Viidea')
                 for _, video_url in re.findall(

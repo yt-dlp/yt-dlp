@@ -184,7 +184,7 @@ class Channel9IE(InfoExtractor):
 
             if not formats and not slides and not zip_file:
                 self.raise_no_formats(
-                    'None of recording, slides or zip are available for %s' % content_path)
+                    f'None of recording, slides or zip are available for {content_path}')
 
             subtitles = {}
             for caption in content_data.get('Captions', []):

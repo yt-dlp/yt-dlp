@@ -2,12 +2,7 @@ import random
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    xpath_text,
-    int_or_none,
-    ExtractorError,
-    sanitized_Request,
-)
+from ..utils import ExtractorError, int_or_none, sanitized_Request, xpath_text
 
 
 class MioMioIE(InfoExtractor):
@@ -58,11 +53,11 @@ class MioMioIE(InfoExtractor):
 
         # skipping the following page causes lags and eventually connection drop-outs
         self._request_webpage(
-            'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/xml.php?id=%s&r=%s' % (id, random.randint(100, 999)),
+            f'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/xml.php?id={id}&r={random.randint(100, 999)}',
             video_id)
 
         vid_config_request = sanitized_Request(
-            'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/sina.php?{0}'.format(xml_config),
+            f'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/sina.php?{xml_config}',
             headers=http_headers)
 
         # the following xml contains the actual configuration information on the video file(s)
@@ -80,8 +75,8 @@ class MioMioIE(InfoExtractor):
             segment_id = video_id
             segment_title = title
             if order:
-                segment_id += '-%s' % order
-                segment_title += ' part %s' % order
+                segment_id += f'-{order}'
+                segment_title += f' part {order}'
             entries.append({
                 'id': segment_id,
                 'url': segment_url,
@@ -119,7 +114,7 @@ class MioMioIE(InfoExtractor):
             entries = self._parse_html5_media_entries(player_url, player_webpage, video_id)
             http_headers = {'Referer': player_url}
         else:
-            http_headers = {'Referer': 'http://www.miomio.tv%s' % mioplayer_path}
+            http_headers = {'Referer': f'http://www.miomio.tv{mioplayer_path}'}
             entries = self._extract_mioplayer(webpage, video_id, title, http_headers)
 
         if len(entries) == 1:

@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    sanitized_Request,
-)
+from ..utils import float_or_none, int_or_none, parse_iso8601, sanitized_Request
 
 
 class EitbIE(InfoExtractor):
@@ -30,7 +25,7 @@ class EitbIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://mam.eitb.eus/mam/REST/ServiceMultiweb/Video/MULTIWEBTV/%s/' % video_id,
+            f'http://mam.eitb.eus/mam/REST/ServiceMultiweb/Video/MULTIWEBTV/{video_id}/',
             video_id, 'Downloading video JSON')
 
         media = video['web_media'][0]
@@ -63,12 +58,12 @@ class EitbIE(InfoExtractor):
                 token = token_data.get('token')
                 if token:
                     formats.extend(self._extract_m3u8_formats(
-                        '%s?hdnts=%s' % (hls_url, token), video_id, m3u8_id='hls', fatal=False))
+                        f'{hls_url}?hdnts={token}', video_id, m3u8_id='hls', fatal=False))
 
         hds_url = media.get('HDS_SURL')
         if hds_url:
             formats.extend(self._extract_f4m_formats(
-                '%s?hdcore=3.7.0' % hds_url.replace('euskalsvod', 'euskalvod'),
+                f"{hds_url.replace('euskalsvod', 'euskalvod')}?hdcore=3.7.0",
                 video_id, f4m_id='hds', fatal=False))
 
         return {

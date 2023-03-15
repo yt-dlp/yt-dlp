@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     int_or_none,
     join_nonempty,
     parse_iso8601,
@@ -65,7 +65,7 @@ class PikselIE(InfoExtractor):
 
     def _call_api(self, app_token, resource, display_id, query, fatal=True):
         response = (self._download_json(
-            'http://player.piksel.com/ws/ws_%s/api/%s/mode/json/apiv/5' % (resource, app_token),
+            f'http://player.piksel.com/ws/ws_{resource}/api/{app_token}/mode/json/apiv/5',
             display_id, query=query, fatal=fatal) or {}).get('response')
         failure = try_get(response, lambda x: x['failure']['reason'])
         if failure:

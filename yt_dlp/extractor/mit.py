@@ -1,13 +1,9 @@
-import re
 import json
+import re
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    get_element_by_id,
-)
+from ..utils import ExtractorError, clean_html, get_element_by_id
 
 
 class TechTVMITIE(InfoExtractor):
@@ -28,7 +24,7 @@ class TechTVMITIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         raw_page = self._download_webpage(
-            'http://techtv.mit.edu/videos/%s' % video_id, video_id)
+            f'http://techtv.mit.edu/videos/{video_id}', video_id)
         clean_page = re.compile(r'<!--.*?-->', re.S).sub('', raw_page)
 
         base_url = self._proto_relative_url(self._search_regex(

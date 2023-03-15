@@ -1,11 +1,6 @@
-from ..utils import (
-    unified_strdate
-)
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_str
-)
+from ..compat import compat_str, compat_urllib_parse_unquote
+from ..utils import unified_strdate
 
 
 class MediaKlikkIE(InfoExtractor):
@@ -77,7 +72,7 @@ class MediaKlikkIE(InfoExtractor):
             self._html_search_regex(r'<h\d+\b[^>]+\bclass="article_title">([^<]+)<', webpage, 'title')
 
         upload_date = unified_strdate(
-            '%s-%s-%s' % (mobj.group('year'), mobj.group('month'), mobj.group('day')))
+            f"{mobj.group('year')}-{mobj.group('month')}-{mobj.group('day')}")
         if not upload_date:
             upload_date = unified_strdate(self._html_search_regex(
                 r'<p+\b[^>]+\bclass="article_date">([^<]+)<', webpage, 'upload date', default=None))

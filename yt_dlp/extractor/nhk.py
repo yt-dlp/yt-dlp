@@ -6,7 +6,7 @@ from ..utils import (
     traverse_obj,
     unescapeHTML,
     unified_timestamp,
-    urljoin
+    urljoin,
 )
 
 
@@ -55,7 +55,7 @@ class NhkBaseIE(InfoExtractor):
 
         info = {
             'id': episode_id + '-' + lang,
-            'title': '%s - %s' % (series, title) if series and title else title,
+            'title': f'{series} - {title}' if series and title else title,
             'description': get_clean_field('description'),
             'thumbnails': thumbnails,
             'series': series,
@@ -73,7 +73,7 @@ class NhkBaseIE(InfoExtractor):
             if fetch_episode:
                 audio_path = episode['audio']['audio']
                 info['formats'] = self._extract_m3u8_formats(
-                    'https://nhkworld-vh.akamaihd.net/i%s/master.m3u8' % audio_path,
+                    f'https://nhkworld-vh.akamaihd.net/i{audio_path}/master.m3u8',
                     episode_id, 'm4a', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:

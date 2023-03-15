@@ -127,14 +127,14 @@ query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!)
     __typename
   }
 }'''},
-            'Downloading page {0}'.format(page + 1))
+            f'Downloading page {page + 1}')
         if data is None:
             raise ExtractorError(f'Failed to retrieve video list for page {page + 1}')
 
         media = data['media']
 
         for entry in media:
-            yield self.url_result('murrtube:{0}'.format(entry['id']), MurrtubeIE.ie_key())
+            yield self.url_result(f"murrtube:{entry['id']}", MurrtubeIE.ie_key())
 
     def _real_extract(self, url):
         username = self._match_id(url)

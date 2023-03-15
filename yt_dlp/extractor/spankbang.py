@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     merge_dicts,
     parse_duration,
     parse_resolution,
@@ -72,12 +72,12 @@ class SpankBangIE(InfoExtractor):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id') or mobj.group('id_2')
         webpage = self._download_webpage(
-            url.replace('/%s/embed' % video_id, '/%s/video' % video_id),
+            url.replace(f'/{video_id}/embed', f'/{video_id}/video'),
             video_id, headers={'Cookie': 'country=US'})
 
         if re.search(r'<[^>]+\b(?:id|class)=["\']video_removed', webpage):
             raise ExtractorError(
-                'Video %s is not available' % video_id, expected=True)
+                f'Video {video_id} is not available', expected=True)
 
         formats = []
 

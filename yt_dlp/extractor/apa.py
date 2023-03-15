@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    url_or_none,
-)
+from ..utils import determine_ext, int_or_none, url_or_none
 
 
 class APAIE(InfoExtractor):
@@ -34,7 +30,7 @@ class APAIE(InfoExtractor):
         video_id, base_url = mobj.group('id', 'base_url')
 
         webpage = self._download_webpage(
-            '%s/player/%s' % (base_url, video_id), video_id)
+            f'{base_url}/player/{video_id}', video_id)
 
         jwplatform_id = self._search_regex(
             r'media[iI]d\s*:\s*["\'](?P<id>[a-zA-Z0-9]{8})', webpage,

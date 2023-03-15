@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    clean_html,
-    float_or_none,
-    int_or_none,
-    try_get,
-)
+from ..utils import clean_html, float_or_none, int_or_none, try_get
 
 
 class HitRecordIE(InfoExtractor):
@@ -34,7 +29,7 @@ class HitRecordIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'https://hitrecord.org/api/web/records/%s' % video_id, video_id)
+            f'https://hitrecord.org/api/web/records/{video_id}', video_id)
 
         title = video['title']
         video_url = video['source_url']['mp4_url']

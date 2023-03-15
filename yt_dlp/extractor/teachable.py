@@ -3,10 +3,10 @@ import re
 from .common import InfoExtractor
 from .wistia import WistiaIE
 from ..utils import (
-    clean_html,
     ExtractorError,
-    int_or_none,
+    clean_html,
     get_element_by_class,
+    int_or_none,
     strip_or_none,
     urlencode_postdata,
     urljoin,
@@ -43,8 +43,8 @@ class TeachableBaseIE(InfoExtractor):
             return
 
         login_page, urlh = self._download_webpage_handle(
-            'https://%s/sign_in' % site, None,
-            'Downloading %s login page' % site)
+            f'https://{site}/sign_in', None,
+            f'Downloading {site} login page')
 
         def is_logged(webpage):
             return any(re.search(p, webpage) for p in (
@@ -73,7 +73,7 @@ class TeachableBaseIE(InfoExtractor):
             post_url = urljoin(login_url, post_url)
 
         response = self._download_webpage(
-            post_url, None, 'Logging in to %s' % site,
+            post_url, None, f'Logging in to {site}',
             data=urlencode_postdata(login_form),
             headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -93,7 +93,7 @@ class TeachableBaseIE(InfoExtractor):
         message = get_element_by_class('alert', response)
         if message is not None:
             raise ExtractorError(
-                'Unable to login: %s' % clean_html(message), expected=True)
+                f'Unable to login: {clean_html(message)}', expected=True)
 
         raise ExtractorError('Unable to log in')
 
@@ -258,7 +258,7 @@ class TeachableCourseIE(TeachableBaseIE):
 
         webpage = self._download_webpage(url, course_id)
 
-        url_base = 'https://%s/' % site
+        url_base = f'https://{site}/'
 
         entries = []
 

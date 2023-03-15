@@ -68,7 +68,7 @@ class CloserToTruthIE(InfoExtractor):
                 entry_ids.add(entry_id)
                 entries.append({
                     '_type': 'url_transparent',
-                    'url': 'kaltura:%s:%s' % (partner_id, entry_id),
+                    'url': f'kaltura:{partner_id}:{entry_id}',
                     'ie_key': 'Kaltura',
                     'title': mobj.group('title'),
                 })
@@ -82,7 +82,7 @@ class CloserToTruthIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'display_id': display_id,
-            'url': 'kaltura:%s:%s' % (partner_id, entry_id),
+            'url': f'kaltura:{partner_id}:{entry_id}',
             'ie_key': 'Kaltura',
             'title': title
         }

@@ -66,7 +66,6 @@ from ..utils import (
     variadic,
 )
 
-
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
@@ -489,7 +488,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'PENDING\+(\d+)', consent.value, 'consent', default=None)
         if not consent_id:
             consent_id = random.randint(100, 999)
-        self._set_cookie('.youtube.com', 'CONSENT', 'YES+cb.20210328-17-p0.en+FX+%s' % consent_id)
+        self._set_cookie('.youtube.com', 'CONSENT', f'YES+cb.20210328-17-p0.en+FX+{consent_id}')
 
     def _initialize_pref(self):
         cookies = self._get_cookies('https://www.youtube.com/')
@@ -770,7 +769,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         for alert_type, alert_message in (warnings + errors[:-1]):
             self.report_warning(f'YouTube said: {alert_type} - {alert_message}', only_once=only_once)
         if errors:
-            raise ExtractorError('YouTube said: %s' % errors[-1][1], expected=expected)
+            raise ExtractorError(f'YouTube said: {errors[-1][1]}', expected=expected)
 
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
@@ -885,7 +884,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             if start:
                 return datetime_from_str(start)
             try:
-                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')))
+                return datetime_from_str(f"now-{mobj.group('time')}{mobj.group('unit')}")
             except ValueError:
                 return None
 
@@ -2897,7 +2896,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if id_m:
                 break
         else:
-            raise ExtractorError('Cannot identify player %r' % player_url)
+            raise ExtractorError(f'Cannot identify player {player_url!r}')
         return id_m.group('id')
 
     def _load_player(self, video_id, player_url, fatal=True):
@@ -2906,7 +2905,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             code = self._download_webpage(
                 player_url, video_id, fatal=fatal,
                 note='Downloading player ' + player_id,
-                errnote='Download of %s failed' % player_url)
+                errnote=f'Download of {player_url} failed')
             if code:
                 self._code_cache[player_id] = code
         return self._code_cache.get(player_id)
@@ -3298,7 +3297,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sort_text = str_or_none(sort_menu_item.get('title'))
                 if not sort_text:
                     sort_text = 'top comments' if comment_sort_index == 0 else 'newest first'
-                self.to_screen('Sorting comments by %s' % sort_text.lower())
+                self.to_screen(f'Sorting comments by {sort_text.lower()}')
                 break
             return _continuation
 
@@ -3509,7 +3508,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             item_id=video_id, ep='player', query=yt_query,
             ytcfg=player_ytcfg, headers=headers, fatal=True,
             default_client=client,
-            note='Downloading %s player API JSON' % client.replace('_', ' ').strip()
+            note=f"Downloading {client.replace('_', ' ').strip()} player API JSON"
         ) or None
 
     def _get_requested_clients(self, url, smuggled_data):
@@ -3977,7 +3976,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             expected_type=str)
         if multifeed_metadata_list and not smuggled_data.get('force_singlefeed'):
             if self.get_param('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+                self.to_screen(f'Downloading just video {video_id} because of --no-playlist')
             else:
                 entries = []
                 feed_ids = []
@@ -3998,12 +3997,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     feed_title = feed_entry('title')
                     title = video_title
                     if feed_title:
-                        title += ' (%s)' % feed_title
+                        title += f' ({feed_title})'
                     entries.append({
                         '_type': 'url_transparent',
                         'ie_key': 'Youtube',
                         'url': smuggle_url(
-                            '%swatch?v=%s' % (base_url, feed_data['id'][0]),
+                            f"{base_url}watch?v={feed_data['id'][0]}",
                             {'force_singlefeed': True}),
                         'title': title,
                     })
@@ -4517,7 +4516,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = renderer.get('playlistId')
             if playlist_id:
                 yield self.url_result(
-                    'https://www.youtube.com/playlist?list=%s' % playlist_id,
+                    f'https://www.youtube.com/playlist?list={playlist_id}',
                     ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
                     video_title=title)
                 continue
@@ -4641,7 +4640,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             post_renderer, lambda x: x['backstageAttachment']['playlistRenderer']['playlistId'], str)
         if playlist_id:
             yield self.url_result(
-                'https://www.youtube.com/playlist?list=%s' % playlist_id,
+                f'https://www.youtube.com/playlist?list={playlist_id}',
                 ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
         # inline video links
         runs = try_get(post_renderer, lambda x: x['contentText']['runs'], list) or []

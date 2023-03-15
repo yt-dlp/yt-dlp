@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    traverse_obj,
-    unified_timestamp,
-)
+from ..utils import ExtractorError, traverse_obj, unified_timestamp
 
 
 class HSEShowBaseInfoExtractor(InfoExtractor):

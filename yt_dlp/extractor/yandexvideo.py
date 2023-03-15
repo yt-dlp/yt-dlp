@@ -92,7 +92,7 @@ class YandexVideoIE(InfoExtractor):
 }''' % video_id).encode(), fatal=False)), lambda x: x['player']['content'])
         if not player or player.get('error'):
             player = self._download_json(
-                'https://frontend.vh.yandex.ru/v23/player/%s.json' % video_id,
+                f'https://frontend.vh.yandex.ru/v23/player/{video_id}.json',
                 video_id, query={
                     'stream_options': 'hires',
                     'disable_trackings': 1,

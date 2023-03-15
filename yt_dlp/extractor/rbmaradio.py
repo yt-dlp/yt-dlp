@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    clean_html,
-    int_or_none,
-    unified_timestamp,
-    update_url_query,
-)
+from ..utils import clean_html, int_or_none, unified_timestamp, update_url_query
 
 
 class RBMARadioIE(InfoExtractor):
@@ -42,7 +37,7 @@ class RBMARadioIE(InfoExtractor):
 
         show_title = episode.get('showTitle')
         if show_title:
-            title = '%s - %s' % (show_title, title)
+            title = f'{show_title} - {title}'
 
         formats = [{
             'url': update_url_query(episode['audioURL'], query={'cbr': abr}),

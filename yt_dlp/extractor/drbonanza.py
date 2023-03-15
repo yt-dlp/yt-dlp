@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    parse_duration,
-    unescapeHTML,
-)
+from ..utils import js_to_json, parse_duration, unescapeHTML
 
 
 class DRBonanzaIE(InfoExtractor):

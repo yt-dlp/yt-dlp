@@ -2,11 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    int_or_none,
-    parse_filesize,
-    unified_strdate,
-)
+from ..utils import int_or_none, parse_filesize, unified_strdate
 
 
 class EsriVideoIE(InfoExtractor):
@@ -38,7 +34,7 @@ class EsriVideoIE(InfoExtractor):
                 formats.append({
                     'url': compat_urlparse.urljoin(url, video_url),
                     'ext': ext.lower(),
-                    'format_id': '%s-%s' % (ext.lower(), height),
+                    'format_id': f'{ext.lower()}-{height}',
                     'width': int(width),
                     'height': int(height),
                     'filesize_approx': parse_filesize(filesize),

@@ -6,10 +6,10 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
-    unified_timestamp,
     str_or_none,
     strip_or_none,
     try_get,
+    unified_timestamp,
 )
 
 
@@ -119,7 +119,7 @@ class SVTIE(SVTBaseIE):
         article_id = mobj.group('id')
 
         info = self._download_json(
-            'http://www.svt.se/wd?widgetId=%s&articleId=%s&format=json&type=embed&output=json' % (widget_id, article_id),
+            f'http://www.svt.se/wd?widgetId={widget_id}&articleId={article_id}&format=json&type=embed&output=json',
             article_id)
 
         info_dict = self._extract_video(info['video'], article_id)
@@ -200,7 +200,7 @@ class SVTPlayIE(SVTPlayBaseIE):
 
     def _extract_by_video_id(self, video_id, webpage=None):
         data = self._download_json(
-            'https://api.svt.se/videoplayer-api/video/%s' % video_id,
+            f'https://api.svt.se/videoplayer-api/video/{video_id}',
             video_id, headers=self.geo_verification_headers())
         info_dict = self._extract_video(data, video_id)
         if not info_dict.get('title'):
@@ -340,7 +340,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
         season_name = season_name or season_id
 
         if title and season_name:
-            title = '%s - %s' % (title, season_name)
+            title = f'{title} - {season_name}'
         elif season_id:
             title = season_id
 

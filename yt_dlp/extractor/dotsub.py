@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-)
+from ..utils import float_or_none, int_or_none
 
 
 class DotsubIE(InfoExtractor):
@@ -45,7 +42,7 @@ class DotsubIE(InfoExtractor):
         video_id = self._match_id(url)
 
         info = self._download_json(
-            'https://dotsub.com/api/media/%s/metadata' % video_id, video_id)
+            f'https://dotsub.com/api/media/{video_id}/metadata', video_id)
         video_url = info.get('mediaURI')
 
         if not video_url:

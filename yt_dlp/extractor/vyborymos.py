@@ -25,17 +25,17 @@ class VyboryMosIE(InfoExtractor):
         station_id = self._match_id(url)
 
         channels = self._download_json(
-            'http://vybory.mos.ru/account/channels?station_id=%s' % station_id,
+            f'http://vybory.mos.ru/account/channels?station_id={station_id}',
             station_id, 'Downloading channels JSON')
 
         formats = []
         for cam_num, (sid, hosts, name, _) in enumerate(channels, 1):
             for num, host in enumerate(hosts, 1):
                 formats.append({
-                    'url': 'http://%s/master.m3u8?sid=%s' % (host, sid),
+                    'url': f'http://{host}/master.m3u8?sid={sid}',
                     'ext': 'mp4',
                     'format_id': 'camera%d-host%d' % (cam_num, num),
-                    'format_note': '%s, %s' % (name, host),
+                    'format_note': f'{name}, {host}',
                 })
 
         info = self._download_json(

@@ -72,7 +72,7 @@ class IwaraIE(IwaraBaseIE):
         # ecchi is 'sexy' in Japanese
         age_limit = 18 if hostname.split('.')[0] == 'ecchi' else 0
 
-        video_data = self._download_json('http://www.iwara.tv/api/video/%s' % video_id, video_id)
+        video_data = self._download_json(f'http://www.iwara.tv/api/video/{video_id}', video_id)
 
         if not video_data:
             iframe_url = self._html_search_regex(

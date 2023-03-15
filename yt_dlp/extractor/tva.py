@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    smuggle_url,
-    strip_or_none,
-)
+from ..utils import float_or_none, int_or_none, smuggle_url, strip_or_none
 
 
 class TVAIE(InfoExtractor):

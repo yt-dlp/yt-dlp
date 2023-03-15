@@ -1,19 +1,16 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
+    ExtractorError,
+    GeoRestrictedError,
+    HEADRequest,
     clean_html,
     determine_ext,
-    ExtractorError,
     filter_dict,
     find_xpath_attr,
     fix_xml_ampersands,
-    GeoRestrictedError,
-    HEADRequest,
     int_or_none,
     join_nonempty,
     parse_duration,

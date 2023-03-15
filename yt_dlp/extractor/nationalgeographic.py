@@ -1,9 +1,6 @@
 from .common import InfoExtractor
 from .fox import FOXIE
-from ..utils import (
-    smuggle_url,
-    url_basename,
-)
+from ..utils import smuggle_url, url_basename
 
 
 class NationalGeographicVideoIE(InfoExtractor):
@@ -53,7 +50,7 @@ class NationalGeographicVideoIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': 'ThePlatform',
             'url': smuggle_url(
-                'http://link.theplatform.com/s/ngs/media/guid/2423130747/%s?mbr=true' % guid,
+                f'http://link.theplatform.com/s/ngs/media/guid/2423130747/{guid}?mbr=true',
                 {'force_smil_url': True}),
             'id': guid,
         }

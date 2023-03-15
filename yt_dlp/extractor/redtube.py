@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     merge_dicts,
     str_to_int,
@@ -39,7 +39,7 @@ class RedTubeIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'http://www.redtube.com/%s' % video_id, video_id)
+            f'http://www.redtube.com/{video_id}', video_id)
 
         ERRORS = (
             (('video-deleted-info', '>This video has been removed'), 'has been removed'),
@@ -49,7 +49,7 @@ class RedTubeIE(InfoExtractor):
         for patterns, message in ERRORS:
             if any(p in webpage for p in patterns):
                 raise ExtractorError(
-                    'Video %s %s' % (video_id, message), expected=True)
+                    f'Video {video_id} {message}', expected=True)
 
         info = self._search_json_ld(webpage, video_id, default={})
 

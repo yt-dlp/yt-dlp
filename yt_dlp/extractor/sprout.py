@@ -1,9 +1,5 @@
 from .adobepass import AdobePassIE
-from ..utils import (
-    int_or_none,
-    smuggle_url,
-    update_url_query,
-)
+from ..utils import int_or_none, smuggle_url, update_url_query
 
 
 class SproutIE(AdobePassIE):

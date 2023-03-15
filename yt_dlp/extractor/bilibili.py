@@ -583,7 +583,7 @@ class BilibiliCategoryIE(InfoExtractor):
     def _fetch_page(self, api_url, num_pages, query, page_num):
         parsed_json = self._download_json(
             api_url, query, query={'Search_key': query, 'pn': page_num},
-            note='Extracting results from page %s of %s' % (page_num, num_pages))
+            note=f'Extracting results from page {page_num} of {num_pages}')
 
         video_list = traverse_obj(parsed_json, ('data', 'archives'), expected_type=list)
         if not video_list:
@@ -591,7 +591,7 @@ class BilibiliCategoryIE(InfoExtractor):
 
         for video in video_list:
             yield self.url_result(
-                'https://www.bilibili.com/video/%s' % video['bvid'], 'BiliBili', video['bvid'])
+                f"https://www.bilibili.com/video/{video['bvid']}", 'BiliBili', video['bvid'])
 
     def _entries(self, category, subcategory, query):
         # map of categories : subcategories : RIDs
@@ -627,7 +627,7 @@ class BilibiliCategoryIE(InfoExtractor):
 
     def _real_extract(self, url):
         category, subcategory = urllib.parse.urlparse(url).path.split('/')[2:4]
-        query = '%s: %s' % (category, subcategory)
+        query = f'{category}: {subcategory}'
 
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
 
@@ -787,7 +787,7 @@ class BiliBiliPlayerIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         return self.url_result(
-            'http://www.bilibili.tv/video/av%s/' % video_id,
+            f'http://www.bilibili.tv/video/av{video_id}/',
             ie=BiliBiliIE.ie_key(), video_id=video_id)
 
 

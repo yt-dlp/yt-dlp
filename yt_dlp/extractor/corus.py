@@ -1,10 +1,5 @@
 from .theplatform import ThePlatformFeedIE
-from ..utils import (
-    dict_get,
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-)
+from ..utils import ExtractorError, dict_get, float_or_none, int_or_none
 
 
 class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
@@ -96,7 +91,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
         if path != 'series':
             path = 'migration/' + path
         video = self._download_json(
-            'https://globalcontent.corusappservices.com/templates/%s/playlist/' % path,
+            f'https://globalcontent.corusappservices.com/templates/{path}/playlist/',
             video_id, query={'byId': video_id},
             headers={'Accept': 'application/json'})[0]
         title = video['title']
@@ -107,7 +102,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             if not smil_url:
                 continue
             source_type = source.get('type')
-            note = 'Downloading%s smil file' % (' ' + source_type if source_type else '')
+            note = f"Downloading{' ' + source_type if source_type else ''} smil file"
             resp = self._download_webpage(
                 smil_url, video_id, note, fatal=False,
                 headers=self.geo_verification_headers())

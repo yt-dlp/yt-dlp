@@ -2,12 +2,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    js_to_json,
-    url_or_none,
-)
+from ..utils import determine_ext, extract_attributes, js_to_json, url_or_none
 
 
 class TV2DKIE(InfoExtractor):
@@ -82,7 +77,7 @@ class TV2DKIE(InfoExtractor):
 
         def add_entry(partner_id, kaltura_id):
             entries.append(self.url_result(
-                'kaltura:%s:%s' % (partner_id, kaltura_id), 'Kaltura',
+                f'kaltura:{partner_id}:{kaltura_id}', 'Kaltura',
                 video_id=kaltura_id))
 
         for video_el in re.findall(r'(?s)<[^>]+\bdata-entryid\s*=[^>]*>', webpage):

@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    int_or_none,
-    qualities,
-    determine_ext,
-)
+from ..utils import determine_ext, int_or_none, parse_duration, qualities
 
 
 class SunPornoIE(InfoExtractor):
@@ -32,7 +27,7 @@ class SunPornoIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://www.sunporno.com/videos/%s' % video_id, video_id)
+            f'http://www.sunporno.com/videos/{video_id}', video_id)
 
         title = self._html_extract_title(webpage)
         description = self._html_search_meta(

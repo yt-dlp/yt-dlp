@@ -1,13 +1,9 @@
 import hashlib
 import random
 
-from ..compat import compat_str
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    try_get,
-)
+from ..compat import compat_str
+from ..utils import clean_html, int_or_none, try_get
 
 
 class JamendoIE(InfoExtractor):
@@ -47,13 +43,13 @@ class JamendoIE(InfoExtractor):
     }]
 
     def _call_api(self, resource, resource_id, fatal=True):
-        path = '/api/%ss' % resource
+        path = f'/api/{resource}s'
         rand = compat_str(random.random())
         return self._download_json(
             'https://www.jamendo.com' + path, resource_id, fatal=fatal, query={
                 'id[]': resource_id,
             }, headers={
-                'X-Jam-Call': '$%s*%s~' % (hashlib.sha1((path + rand).encode()).hexdigest(), rand)
+                'X-Jam-Call': f'${hashlib.sha1((path + rand).encode()).hexdigest()}*{rand}~'
             })[0]
 
     def _real_extract(self, url):

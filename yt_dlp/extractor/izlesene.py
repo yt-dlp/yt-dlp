@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -55,7 +52,7 @@ class IzleseneIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage('http://www.izlesene.com/video/%s' % video_id, video_id)
+        webpage = self._download_webpage(f'http://www.izlesene.com/video/{video_id}', video_id)
 
         video = self._parse_json(
             self._search_regex(
@@ -73,7 +70,7 @@ class IzleseneIE(InfoExtractor):
             quality = stream.get('value')
             height = int_or_none(quality)
             formats.append({
-                'format_id': '%sp' % quality if quality else 'sd',
+                'format_id': f'{quality}p' if quality else 'sd',
                 'url': compat_urllib_parse_unquote(source_url),
                 'ext': ext,
                 'height': height,

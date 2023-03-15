@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     mimetype2ext,
     parse_iso8601,
@@ -18,12 +18,12 @@ class AMPIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
             'Unable to download Akamai AMP feed')
         item = feed.get('channel', {}).get('item')
         if not item:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, feed['error']))
+            raise ExtractorError(f"{self.IE_NAME} said: {feed['error']}")
 
         video_id = item['guid']
 
         def get_media_node(name, default=None):
-            media_name = 'media-%s' % name
+            media_name = f'media-{name}'
             media_group = item.get('media-group') or item
             return media_group.get(media_name) or item.get(media_name) or item.get(name, default)
 

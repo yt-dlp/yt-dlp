@@ -1,16 +1,13 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    parse_iso8601,
-    parse_duration,
-)
+from ..utils import parse_duration, parse_iso8601
 
 
 class SkyNewsArabiaBaseIE(InfoExtractor):
     _IMAGE_BASE_URL = 'http://www.skynewsarabia.com/web/images'
 
     def _call_api(self, path, value):
-        return self._download_json('http://api.skynewsarabia.com/web/rest/v2/%s/%s.json' % (path, value), value)
+        return self._download_json(f'http://api.skynewsarabia.com/web/rest/v2/{path}/{value}.json', value)
 
     def _get_limelight_media_id(self, url):
         return self._search_regex(r'/media/[^/]+/([a-z0-9]{32})', url, 'limelight media id')
@@ -23,7 +20,7 @@ class SkyNewsArabiaBaseIE(InfoExtractor):
         topic = video_data.get('topicTitle')
         return {
             '_type': 'url_transparent',
-            'url': 'limelight:media:%s' % self._get_limelight_media_id(video_data['videoUrl'][0]['url']),
+            'url': f"limelight:media:{self._get_limelight_media_id(video_data['videoUrl'][0]['url'])}",
             'id': video_id,
             'title': video_data['headline'],
             'description': video_data.get('summary'),
@@ -32,7 +29,7 @@ class SkyNewsArabiaBaseIE(InfoExtractor):
             'duration': parse_duration(video_data.get('runTime')),
             'tags': video_data.get('tags', []),
             'categories': [topic] if topic else [],
-            'webpage_url': 'http://www.skynewsarabia.com/web/video/%s' % video_id,
+            'webpage_url': f'http://www.skynewsarabia.com/web/video/{video_id}',
             'ie_key': 'LimelightMedia',
         }
 
@@ -99,7 +96,7 @@ class SkyNewsArabiaArticleIE(SkyNewsArabiaBaseIE):
             topic = article_data.get('topicTitle')
             return {
                 '_type': 'url_transparent',
-                'url': 'limelight:media:%s' % self._get_limelight_media_id(media_asset['videoUrl'][0]['url']),
+                'url': f"limelight:media:{self._get_limelight_media_id(media_asset['videoUrl'][0]['url'])}",
                 'id': article_id,
                 'title': article_data['headline'],
                 'description': article_data.get('summary'),

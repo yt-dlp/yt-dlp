@@ -34,7 +34,7 @@ class HowcastIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'ie_key': 'Ooyala',
-            'url': 'ooyala:%s' % embed_code,
+            'url': f'ooyala:{embed_code}',
             'id': video_id,
             'timestamp': parse_iso8601(self._html_search_meta(
                 'article:published_time', webpage, 'timestamp')),

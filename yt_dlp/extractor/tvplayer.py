@@ -1,13 +1,10 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_HTTPError, compat_str
 from ..utils import (
+    ExtractorError,
     extract_attributes,
     try_get,
     urlencode_postdata,
-    ExtractorError,
 )
 
 
@@ -68,7 +65,7 @@ class TVPlayerIE(InfoExtractor):
                 response = self._parse_json(
                     e.cause.read().decode(), resource_id)['tvplayer']['response']
                 raise ExtractorError(
-                    '%s said: %s' % (self.IE_NAME, response['error']), expected=True)
+                    f"{self.IE_NAME} said: {response['error']}", expected=True)
             raise
 
         formats = self._extract_m3u8_formats(response['stream'], display_id, 'mp4')

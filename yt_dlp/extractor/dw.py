@@ -1,10 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    unified_strdate,
-    url_or_none,
-)
 from ..compat import compat_urlparse
+from ..utils import int_or_none, unified_strdate, url_or_none
 
 
 class DWIE(InfoExtractor):
@@ -58,7 +54,7 @@ class DWIE(InfoExtractor):
             formats = [{'url': hidden_inputs['file_name']}]
         else:
             formats = self._extract_smil_formats(
-                'http://www.dw.com/smil/v-%s' % media_id, media_id,
+                f'http://www.dw.com/smil/v-{media_id}', media_id,
                 transform_source=lambda s: s.replace(
                     'rtmp://tv-od.dw.de/flash/',
                     'http://tv-download.dw.de/dwtv_video/flv/'))

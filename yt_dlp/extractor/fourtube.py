@@ -21,12 +21,11 @@ from ..utils import (
 
 class FourTubeBaseIE(InfoExtractor):
     def _extract_formats(self, url, video_id, media_id, sources):
-        token_url = 'https://%s/%s/desktop/%s' % (
-            self._TKN_HOST, media_id, '+'.join(sources))
+        token_url = f"https://{self._TKN_HOST}/{media_id}/desktop/{'+'.join(sources)}"
 
         parsed_url = compat_urlparse.urlparse(url)
         tokens = self._download_json(token_url, video_id, data=b'', headers={
-            'Origin': '%s://%s' % (parsed_url.scheme, parsed_url.hostname),
+            'Origin': f'{parsed_url.scheme}://{parsed_url.hostname}',
             'Referer': url,
         })
         formats = [{
@@ -89,9 +88,9 @@ class FourTubeBaseIE(InfoExtractor):
             params_js = self._search_regex(
                 r'\$\.ajax\(url,\ opts\);\s*\}\s*\}\)\(([0-9,\[\] ]+)\)',
                 player_js, 'initialization parameters')
-            params = self._parse_json('[%s]' % params_js, video_id)
+            params = self._parse_json(f'[{params_js}]', video_id)
             media_id = params[0]
-            sources = ['%s' % p for p in params[2]]
+            sources = [f'{p}' for p in params[2]]
 
         formats = self._extract_formats(url, video_id, media_id, sources)
 

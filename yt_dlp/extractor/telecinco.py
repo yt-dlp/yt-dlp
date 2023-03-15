@@ -2,12 +2,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    str_or_none,
-    try_get,
-)
+from ..utils import clean_html, int_or_none, str_or_none, try_get
 
 
 class TelecincoIE(InfoExtractor):

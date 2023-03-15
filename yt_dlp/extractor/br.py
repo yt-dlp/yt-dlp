@@ -2,8 +2,8 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_duration,
     parse_iso8601,
@@ -145,7 +145,7 @@ class BRIE(InfoExtractor):
                     http_format_info = format_info.copy()
                     http_format_info.update({
                         'url': format_url,
-                        'format_id': 'http-%s' % asset_type,
+                        'format_id': f'http-{asset_type}',
                     })
                     formats.append(http_format_info)
                 server_prefix = xpath_text(asset, 'serverPrefix')
@@ -154,7 +154,7 @@ class BRIE(InfoExtractor):
                     rtmp_format_info.update({
                         'url': server_prefix,
                         'play_path': xpath_text(asset, 'fileName'),
-                        'format_id': 'rtmp-%s' % asset_type,
+                        'format_id': f'rtmp-{asset_type}',
                     })
                     formats.append(rtmp_format_info)
         return formats

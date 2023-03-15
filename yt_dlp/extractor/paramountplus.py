@@ -1,12 +1,8 @@
 import itertools
 
-from .common import InfoExtractor
 from .cbs import CBSBaseIE
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    url_or_none,
-)
+from .common import InfoExtractor
+from ..utils import ExtractorError, int_or_none, url_or_none
 
 
 class ParamountPlusIE(CBSBaseIE):
@@ -193,7 +189,7 @@ class ParamountPlusSeriesIE(InfoExtractor):
                 return
             for episode in show_json['result']['data']:
                 yield self.url_result(
-                    'https://www.paramountplus.com%s' % episode['url'],
+                    f"https://www.paramountplus.com{episode['url']}",
                     ie=ParamountPlusIE.ie_key(), video_id=episode['content_id'])
 
     def _real_extract(self, url):

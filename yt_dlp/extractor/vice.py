@@ -7,15 +7,12 @@ import time
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_HTTPError, compat_str
 from ..utils import (
-    clean_html,
     ExtractorError,
-    int_or_none,
     OnDemandPagedList,
+    clean_html,
+    int_or_none,
     parse_age_limit,
     str_or_none,
     try_get,
@@ -137,7 +134,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
         try:
             preplay = self._download_json(
-                'https://vms.vice.com/%s/video/preplay/%s' % (locale, video_id),
+                f'https://vms.vice.com/{locale}/video/preplay/{video_id}',
                 video_id, query=query)
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code in (400, 401):
@@ -308,7 +305,7 @@ class ViceArticleIE(ViceBaseIE):
             r'embedCode=([^&\'"]+)', body,
             'ooyala embed code', default=None)
         if embed_code:
-            return _url_res('ooyala:%s' % embed_code, 'Ooyala')
+            return _url_res(f'ooyala:{embed_code}', 'Ooyala')
 
         youtube_url = YoutubeIE._extract_url(body)
         if youtube_url:

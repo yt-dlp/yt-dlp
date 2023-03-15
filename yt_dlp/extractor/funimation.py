@@ -199,16 +199,16 @@ class FunimationIE(FunimationBaseIE):
                 continue
             thumbnails.append({'url': fmt.get('poster')})
             duration = max(duration, fmt.get('duration', 0))
-            format_name = '%s %s (%s)' % (version, lang, experience_id)
+            format_name = f'{version} {lang} ({experience_id})'
             self.extract_subtitles(
                 subtitles, experience_id, display_id=display_id, format_name=format_name,
                 episode=episode if experience_id == initial_experience_id else episode_id)
 
             headers = {}
             if self._TOKEN:
-                headers['Authorization'] = 'Token %s' % self._TOKEN
+                headers['Authorization'] = f'Token {self._TOKEN}'
             page = self._download_json(
-                'https://www.funimation.com/api/showexperience/%s/' % experience_id,
+                f'https://www.funimation.com/api/showexperience/{experience_id}/',
                 display_id, headers=headers, expected_status=403, query={
                     'pinst_id': ''.join(random.choices(string.digits + string.ascii_letters, k=8)),
                 }, note=f'Downloading {format_name} JSON')
@@ -227,11 +227,11 @@ class FunimationIE(FunimationBaseIE):
                 source_type = source.get('videoType') or determine_ext(source_url)
                 if source_type == 'm3u8':
                     current_formats.extend(self._extract_m3u8_formats(
-                        source_url, display_id, 'mp4', m3u8_id='%s-%s' % (experience_id, 'hls'), fatal=False,
+                        source_url, display_id, 'mp4', m3u8_id=f"{experience_id}-{'hls'}", fatal=False,
                         note=f'Downloading {format_name} m3u8 information'))
                 else:
                     current_formats.append({
-                        'format_id': '%s-%s' % (experience_id, source_type),
+                        'format_id': f'{experience_id}-{source_type}',
                         'url': source_url,
                     })
                 for f in current_formats:
@@ -343,7 +343,7 @@ class FunimationShowIE(FunimationBaseIE):
             'title': show_info['name'],
             'entries': orderedSet(
                 self.url_result(
-                    '%s/%s' % (base_url, vod_item.get('episodeSlug')), FunimationPageIE.ie_key(),
+                    f"{base_url}/{vod_item.get('episodeSlug')}", FunimationPageIE.ie_key(),
                     vod_item.get('episodeId'), vod_item.get('episodeName'))
                 for vod_item in sorted(vod_items, key=lambda x: x.get('episodeOrder', -1))),
         }

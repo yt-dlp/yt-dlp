@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    InAdvancePagedList,
-    int_or_none,
-    orderedSet,
-    unified_strdate,
-)
+from ..utils import InAdvancePagedList, int_or_none, orderedSet, unified_strdate
 
 
 class JableIE(InfoExtractor):

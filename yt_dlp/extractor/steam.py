@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    ExtractorError,
-    get_element_by_class,
-)
+from ..utils import ExtractorError, extract_attributes, get_element_by_class
 
 
 class SteamIE(InfoExtractor):
@@ -103,7 +99,7 @@ class SteamIE(InfoExtractor):
                 entry['thumbnail'] = movie.get('data-poster')
                 for quality in ('', '-hd'):
                     for ext in ('webm', 'mp4'):
-                        video_url = movie.get('data-%s%s-source' % (ext, quality))
+                        video_url = movie.get(f'data-{ext}{quality}-source')
                         if video_url:
                             formats.append({
                                 'format_id': ext + quality,

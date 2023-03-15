@@ -1038,7 +1038,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for m3u8_file, m3u8_url, expected_formats, expected_subs in _TEST_CASES:
-            with open('./test/testdata/m3u8/%s.m3u8' % m3u8_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/m3u8/{m3u8_file}.m3u8', encoding='utf-8') as f:
                 formats, subs = self.ie._parse_m3u8_formats_and_subtitles(
                     f.read(), m3u8_url, ext='mp4')
                 self.ie._sort_formats(formats)
@@ -1383,7 +1383,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with open('./test/testdata/mpd/%s.mpd' % mpd_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/mpd/{mpd_file}.mpd', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_mpd_formats_and_subtitles(
                     compat_etree_fromstring(f.read().encode()),
                     mpd_base_url=mpd_base_url, mpd_url=mpd_url)
@@ -1860,7 +1860,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for ism_file, ism_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with open('./test/testdata/ism/%s.Manifest' % ism_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/ism/{ism_file}.Manifest', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_ism_formats_and_subtitles(
                     compat_etree_fromstring(f.read().encode()), ism_url=ism_url)
                 self.ie._sort_formats(formats)
@@ -1886,7 +1886,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for f4m_file, f4m_url, expected_formats in _TEST_CASES:
-            with open('./test/testdata/f4m/%s.f4m' % f4m_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/f4m/{f4m_file}.f4m', encoding='utf-8') as f:
                 formats = self.ie._parse_f4m_formats(
                     compat_etree_fromstring(f.read().encode()),
                     f4m_url, None)
@@ -1933,7 +1933,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for xspf_file, xspf_url, expected_entries in _TEST_CASES:
-            with open('./test/testdata/xspf/%s.xspf' % xspf_file, encoding='utf-8') as f:
+            with open(f'./test/testdata/xspf/{xspf_file}.xspf', encoding='utf-8') as f:
                 entries = self.ie._parse_xspf(
                     compat_etree_fromstring(f.read().encode()),
                     xspf_file, xspf_url=xspf_url, xspf_base_url=xspf_url)

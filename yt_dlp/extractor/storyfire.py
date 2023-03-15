@@ -1,12 +1,7 @@
 import functools
 
 from .common import InfoExtractor
-from ..utils import (
-    format_field,
-    int_or_none,
-    OnDemandPagedList,
-    smuggle_url,
-)
+from ..utils import OnDemandPagedList, format_field, int_or_none, smuggle_url
 
 
 class StoryFireBaseIE(InfoExtractor):
@@ -14,8 +9,8 @@ class StoryFireBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, resource, query=None):
         return self._download_json(
-            'https://storyfire.com/app/%s/%s' % (path, video_id), video_id,
-            'Downloading %s JSON metadata' % resource, query=query)
+            f'https://storyfire.com/app/{path}/{video_id}', video_id,
+            f'Downloading {resource} JSON metadata', query=query)
 
     def _parse_video(self, video):
         title = video['title']

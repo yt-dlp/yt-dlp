@@ -4,6 +4,7 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    OnDemandPagedList,
     format_field,
     int_or_none,
     parse_resolution,
@@ -12,7 +13,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
     urljoin,
-    OnDemandPagedList,
 )
 
 
@@ -1186,7 +1186,7 @@ class PeerTubeIE(InfoExtractor):
         subtitles = {}
         for e in data:
             language_id = try_get(e, lambda x: x['language']['id'], compat_str)
-            caption_url = urljoin('https://%s' % host, e.get('captionPath'))
+            caption_url = urljoin(f'https://{host}', e.get('captionPath'))
             if not caption_url:
                 continue
             subtitles.setdefault(language_id or 'en', []).append({
@@ -1264,7 +1264,7 @@ class PeerTubeIE(InfoExtractor):
         else:
             age_limit = None
 
-        webpage_url = 'https://%s/videos/watch/%s' % (host, video_id)
+        webpage_url = f'https://{host}/videos/watch/{video_id}'
 
         return {
             'id': video_id,

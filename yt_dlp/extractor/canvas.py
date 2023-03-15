@@ -1,6 +1,5 @@
 import json
 
-
 from .common import InfoExtractor
 from .gigya import GigyaBaseIE
 from ..compat import compat_HTTPError
@@ -15,7 +14,7 @@ from ..utils import (
     str_or_none,
     strip_or_none,
     url_or_none,
-    urlencode_postdata
+    urlencode_postdata,
 )
 
 
@@ -65,12 +64,12 @@ class CanvasIE(InfoExtractor):
             headers = self.geo_verification_headers()
             headers.update({'Content-Type': 'application/json; charset=utf-8'})
             vrtPlayerToken = self._download_json(
-                '%s/tokens' % self._REST_API_BASE, video_id,
+                f'{self._REST_API_BASE}/tokens', video_id,
                 'Downloading token', headers=headers, data=json.dumps({
                     'identityToken': vrtnutoken
                 }).encode('utf-8'))['vrtPlayerToken']
             data = self._download_json(
-                '%s/videos/%s' % (self._REST_API_BASE, video_id),
+                f'{self._REST_API_BASE}/videos/{video_id}',
                 video_id, 'Downloading video JSON', query={
                     'vrtPlayerToken': vrtPlayerToken,
                     'client': 'null',
@@ -212,7 +211,7 @@ class CanvasEenIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': 'https://mediazone.vrt.be/api/v1/%s/assets/%s' % (site_id, video_id),
+            'url': f'https://mediazone.vrt.be/api/v1/{site_id}/assets/{video_id}',
             'ie_key': CanvasIE.ie_key(),
             'id': video_id,
             'display_id': display_id,
@@ -327,7 +326,7 @@ class VrtNUIE(GigyaBaseIE):
         info = self._search_json_ld(webpage, display_id, default={})
         return merge_dicts(info, {
             '_type': 'url_transparent',
-            'url': 'https://mediazone.vrt.be/api/v1/vrtvideo/assets/%s' % video_id,
+            'url': f'https://mediazone.vrt.be/api/v1/vrtvideo/assets/{video_id}',
             'ie_key': CanvasIE.ie_key(),
             'id': video_id,
             'display_id': display_id,
@@ -374,7 +373,7 @@ class DagelijkseKostIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': 'https://mediazone.vrt.be/api/v1/dako/assets/%s' % video_id,
+            'url': f'https://mediazone.vrt.be/api/v1/dako/assets/{video_id}',
             'ie_key': CanvasIE.ie_key(),
             'id': video_id,
             'display_id': display_id,

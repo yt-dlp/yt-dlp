@@ -22,7 +22,7 @@ class RozhlasIE(InfoExtractor):
         audio_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://prehravac.rozhlas.cz/audio/%s' % audio_id, audio_id)
+            f'http://prehravac.rozhlas.cz/audio/{audio_id}', audio_id)
 
         title = self._html_search_regex(
             r'<h3>(.+?)</h3>\s*<p[^>]*>.*?</p>\s*<div[^>]+id=["\']player-track',
@@ -36,7 +36,7 @@ class RozhlasIE(InfoExtractor):
 
         return {
             'id': audio_id,
-            'url': 'http://media.rozhlas.cz/_audio/%s.mp3' % audio_id,
+            'url': f'http://media.rozhlas.cz/_audio/{audio_id}.mp3',
             'title': title,
             'description': description,
             'duration': duration,

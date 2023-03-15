@@ -1,6 +1,6 @@
-import hmac
-import hashlib
 import base64
+import hashlib
+import hmac
 
 from .common import InfoExtractor
 from ..utils import (
@@ -187,7 +187,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             ['og:description', 'twitter:description'], webpage)
 
         podcast_title = audio_data.get('podcast', {}).get('title')
-        title = ('%s: %s' % (podcast_title, episode_title)
+        title = (f'{podcast_title}: {episode_title}'
                  if podcast_title else episode_title)
 
         episode = audio_data.get('podcast', {}).get('episode') or ''
