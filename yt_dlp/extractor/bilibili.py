@@ -133,7 +133,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/video/[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:.*?&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -287,9 +287,15 @@ class BiliBiliIE(BilibiliBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
 
-        video_data = initial_state['videoData']
+        if 'videoData' in initial_state:
+            is_festival = False
+            play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+            video_data = initial_state['videoData']
+        else:
+            is_festival = True
+            video_data = initial_state['videoInfo']
+
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
@@ -315,6 +321,32 @@ class BiliBiliIE(BilibiliBaseIE):
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
 
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
+
+        if is_festival:
+            play_info = self._download_json(
+                'https://api.bilibili.com/x/player/playurl', video_id,
+                query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
+                note='Extracting festival video formats')['data']
+            return {
+                'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
+                'formats': self.extract_formats(play_info),
+                '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
+                'title': title,
+                'description': traverse_obj(initial_state, ('videoInfo', 'desc')),
+                'view_count': traverse_obj(initial_state, ('videoInfo', 'viewCount')),
+                'uploader': traverse_obj(initial_state, ('videoInfo', 'upName')),
+                'uploader_id': traverse_obj(initial_state, ('videoInfo', 'upMid')),
+                'like_count': traverse_obj(initial_state, ('videoStatus', 'like')),
+                #'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
+                #'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
+                #'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
+                'timestamp': traverse_obj(initial_state, ('videoInfo', 'pubdate')),
+                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'chapters': self._get_chapters(aid, cid),
+                'subtitles': self.extract_subtitles(video_id, aid, cid),
+                '__post_extractor': self.extract_comments(aid),
+                'http_headers': {'Referer': url},
+            }
 
         return {
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
