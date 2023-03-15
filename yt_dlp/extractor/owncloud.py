@@ -1,7 +1,9 @@
-import urllib.parse
+import re
 
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import (
+from urllib.parse import urlparse, urljoin
+
+from .common import InfoExtractor
+from ..utils import (
     determine_ext,
     ExtractorError,
     url_or_none,
@@ -10,14 +12,11 @@ from yt_dlp.utils import (
 
 
 class OwnCloudIE(InfoExtractor):
-    _INSTANCES_RE = r'''(?:
-                            sciebo\.de|
-                            [^\.]+\.sciebo\.de|
-                            cloud\.uni-koblenz-landau\.de|
-                        )'''
-    _VALID_URL = rf'''(?x)
-        (?P<server>https?://{_INSTANCES_RE})/s/
-        (?P<id>[\w\-\.]+)'''
+    _INSTANCES_RE = '|'.join((
+        r'(?:[^\.]+\.)?sciebo\.de',
+        r'cloud\.uni-koblenz-landau\.de',
+    ))
+    _VALID_URL = rf'https?://(?:{_INSTANCES_RE})/s/(?P<id>[\w.-]+)'
 
     _TESTS = [
         {
@@ -28,61 +27,54 @@ class OwnCloudIE(InfoExtractor):
                 'title': 'CmvpJST.mp4',
             },
         },
+        {
+            'url': 'https://ruhr-uni-bochum.sciebo.de/s/WNDuFu0XuFtmm3f',
+            'info_dict': {
+                'id': 'WNDuFu0XuFtmm3f',
+                'ext': 'mp4',
+                'title': 'CmvpJST.mp4',
+            },
+            'params': {
+                'videopassword': '12345',
+            },
+        },
     ]
 
     def _real_extract(self, url):
-        server, video_id = self._match_valid_url(url).group('server', 'id')
+        video_id = self._match_id(url)
+        webpage, urlh = self._download_webpage_handle(url, video_id)
 
-        webpage, urlh = self._download_webpage_handle(f'{server}/s/{video_id}', video_id, 'Downloading webpage')
-
-        if self._search_regex(r'<label[^>]+?for="(password)"', webpage, 'password field',
-                              fatal=False, default=None):
-            # Password protected
-            webpage, urlh = self._verify_video_password(webpage, urlh.geturl(), video_id)
+        if re.search(r'<label[^>]+for="password"', webpage):
+            webpage = self._verify_video_password(webpage, urlh.geturl(), video_id)
 
         hidden_inputs = self._hidden_inputs(webpage)
-        title = hidden_inputs['filename']
+        title = hidden_inputs.get('filename')
 
         return {
             'id': video_id,
             'title': title,
-            'url': url_or_none(hidden_inputs.get('downloadURL') or self._extend_to_download_url(urlh.geturl())),
+            'url': (url_or_none(hidden_inputs.get('downloadURL')
+                    or urlparse(url)._replace(path=urljoin(urlparse(url).path, 'download')).geturl())),
             'ext': determine_ext(title),
         }
 
-    def _extend_to_download_url(self, url: str) -> str:
-        # Adds /download to the end of the URL path
-        url_parts = list(urllib.parse.urlparse(url))
-        url_parts[2] = url_parts[2].rstrip('/') + '/download'
-        return urllib.parse.urlunparse(url_parts)
-
     def _verify_video_password(self, webpage, url, video_id):
-        password = self._downloader.params.get('videopassword')
+        password = self.get_param('videopassword')
         if password is None:
             raise ExtractorError(
                 'This video is protected by a password, use the --video-password option',
-                expected=True
-            )
+                expected=True)
 
-        data = urlencode_postdata(
-            {
-                'requesttoken': self._search_regex(
-                    r'<input[^>]+?name="requesttoken" value="([^\"]+)"', webpage, 'requesttoken'
-                ),
+        validation_response = self._download_webpage(
+            url, video_id, 'Validating Password', 'Wrong password?',
+            data=urlencode_postdata({
+                'requesttoken': self._hidden_inputs(webpage)['requesttoken'],
                 'password': password,
-            }
-        )
+            }))
 
-        validation_response, urlh = self._download_webpage_handle(
-            url, video_id, note='Validating Password...', errnote='Wrong password?', data=data
-        )
-
-        if self._search_regex(r'<label[^>]+?for="(password)"', validation_response,
-                              'password field', fatal=False, default=None):
-            # Still password protected
+        if re.search(r'<label[^>]+for="password"', validation_response):
             warning = self._search_regex(
-                r'<div[^>]+?class="warning">([^<]*)</div>', validation_response, 'warning',
-                fatal=False, default="The password is wrong. Try again.",
-            )
-            raise ExtractorError(f'Login failed, {self.IE_NAME} said: {warning!r}', expected=True)
-        return validation_response, urlh
+                r'<div[^>]+class="warning">([^<]*)</div>', validation_response,
+                'warning', default='The password is wrong')
+            raise ExtractorError(f'Opening the video failed, {self.IE_NAME} said: {warning!r}', expected=True)
+        return validation_response
