@@ -1059,7 +1059,7 @@ class TikTokLiveIE(TikTokBaseIE):
         live_info = self._call_api(
             'https://webcast.tiktok.com/webcast/room/info', 'room_id', room_id, uploader, key='data')
 
-        get_quality = qualities(('SD1', 'ld', 'SD2', 'sd', 'HD1', 'hd', 'FULL_HD1', 'uhd', 'ORIGION', 'origin', 'fallback'))
+        get_quality = qualities(('SD1', 'ld', 'SD2', 'sd', 'HD1', 'hd', 'FULL_HD1', 'uhd', 'ORIGION', 'origin'))
         parse_inner = lambda x: self._parse_json(x, None)
 
         for quality, stream in traverse_obj(live_info, (
@@ -1131,14 +1131,15 @@ class TikTokLiveIE(TikTokBaseIE):
                     'protocol': 'm3u8_native',
                     'format_id': 'hls-fallback',
                     'vcodec': 'h264',
-                    'quality': get_quality('fallback'),  # FLV URLs may be 404, so prefer fallback
+                    'quality': get_quality('origin'),
                 })
 
         return {
             'id': room_id,
             'uploader': uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id')),
-            'formats': formats,
             'is_live': True,
+            'formats': formats,
+            '_format_sort_fields': ('quality', 'ext'),
             **traverse_obj(live_info, {
                 'title': 'title',
                 'uploader_id': (('ownerInfo', 'owner'), 'id', {str_or_none}),
