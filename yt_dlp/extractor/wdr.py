@@ -59,7 +59,7 @@ class WDRIE(InfoExtractor):
 
         formats = []
         subtitles = {}
-        
+
         # list to track the urls and ensure that not a second manifest url with the same value is added
         avoid_duplicate_manifest_urls = []
 
@@ -77,11 +77,11 @@ class WDRIE(InfoExtractor):
                 continue
             if not isinstance(media, dict):
                 continue
-            
+
             for tag_name, medium_url in media.items():
                 if tag_name not in ('videoURL', 'audioURL'):
                     continue
-                    
+
                 if medium_url not in avoid_duplicate_manifest_urls:
                     avoid_duplicate_manifest_urls.append(medium_url)
                 else:
