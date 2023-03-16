@@ -997,8 +997,8 @@ class TikTokLiveIE(TikTokBaseIE):
     _TESTS = [{
         'url': 'https://www.tiktok.com/@weathernewslive/live',
         'info_dict': {
-            'id': '7207852669225601793',
-            'ext': 'flv',
+            'id': '7210809319192726273',
+            'ext': 'mp4',
             'title': r're:ウェザーニュースLiVE[\d\s:-]*',
             'creator': 'ウェザーニュースLiVE',
             'uploader': 'weathernewslive',
@@ -1007,11 +1007,12 @@ class TikTokLiveIE(TikTokBaseIE):
             'live_status': 'is_live',
             'concurrent_view_count': int,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.tiktok.com/@pilarmagenta/live',
         'info_dict': {
             'id': '7209423610325322522',
-            'ext': 'flv',
+            'ext': 'mp4',
             'title': str,
             'creator': 'Pilarmagenta',
             'uploader': 'pilarmagenta',
