@@ -566,7 +566,7 @@ class TikTokIE(TikTokBaseIE):
             self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
-        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
+        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
         if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
@@ -1046,7 +1046,7 @@ class TikTokLiveIE(TikTokBaseIE):
     def _real_extract(self, url):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
         webpage = self._download_webpage(
-            url, uploader or room_id, headers={'User-Agent': 'User-Agent:Mozilla/5.0'}, fatal=not room_id)
+            url, uploader or room_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=not room_id)
 
         if webpage:
             data = try_call(lambda: self._get_sigi_state(webpage, uploader or room_id))
