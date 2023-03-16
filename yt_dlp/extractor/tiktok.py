@@ -12,6 +12,7 @@ from ..utils import (
     LazyList,
     UnsupportedError,
     UserNotLive,
+    format_field,
     get_element_by_id,
     get_first,
     int_or_none,
@@ -1001,6 +1002,7 @@ class TikTokLiveIE(TikTokBaseIE):
             'creator': 'ウェザーニュースLiVE',
             'uploader': 'weathernewslive',
             'uploader_id': '6621496731283095554',
+            'uploader_url': 'https://www.tiktok.com/@weathernewslive',
             'live_status': 'is_live',
             'concurrent_view_count': int,
         },
@@ -1013,6 +1015,7 @@ class TikTokLiveIE(TikTokBaseIE):
             'creator': 'Pilarmagenta',
             'uploader': 'pilarmagenta',
             'uploader_id': '6624846890674683909',
+            'uploader_url': 'https://www.tiktok.com/@pilarmagenta',
             'live_status': 'is_live',
             'concurrent_view_count': int,
         },
@@ -1050,7 +1053,9 @@ class TikTokLiveIE(TikTokBaseIE):
             room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
                        or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
                        or room_id)
-            uploader = uploader or traverse_obj(data, ('UserModule', 'users', ..., 'uniqueId', {str}), get_all=False)
+            uploader = uploader or traverse_obj(
+                data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
+                ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
 
         if not room_id:
             raise UserNotLive(video_id=uploader)
@@ -1134,9 +1139,12 @@ class TikTokLiveIE(TikTokBaseIE):
                     'quality': get_quality('origin'),
                 })
 
+        uploader = uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id'))
+
         return {
             'id': room_id,
-            'uploader': uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id')),
+            'uploader': uploader,
+            'uploader_url': format_field(uploader, None, self._UPLOADER_URL_FORMAT) or None,
             'is_live': True,
             'formats': formats,
             '_format_sort_fields': ('quality', 'ext'),
