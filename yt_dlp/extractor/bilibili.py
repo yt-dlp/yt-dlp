@@ -296,6 +296,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'uploader_id': '37',
             'view_count': int,
             'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
         'params': {'skip_download': True},
     }, {
@@ -313,6 +314,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'uploader_id': '8469526',
             'view_count': int,
             'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
         'params': {'skip_download': True},
     }]
@@ -361,6 +363,10 @@ class BiliBiliIE(BilibiliBaseIE):
                 'https://api.bilibili.com/x/player/playurl', video_id,
                 query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
                 note='Extracting festival video formats')['data']
+
+            thumbnail = traverse_obj(
+                initial_state, ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'), get_all=False)
+
             return {
                 'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
                 'formats': self.extract_formats(play_info),
@@ -371,6 +377,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'uploader': traverse_obj(initial_state, ('videoInfo', 'upName')),
                 'uploader_id': str_or_none(traverse_obj(initial_state, ('videoInfo', 'upMid'))),
                 'like_count': traverse_obj(initial_state, ('videoStatus', 'like')),
+                'thumbnail': thumbnail,
                 'timestamp': traverse_obj(initial_state, ('videoInfo', 'pubdate')),
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
                 'chapters': self._get_chapters(aid, cid),
