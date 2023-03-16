@@ -1,6 +1,7 @@
 import itertools
 import json
 import random
+import re
 import string
 import time
 
@@ -12,15 +13,18 @@ from ..utils import (
     LazyList,
     UnsupportedError,
     UserNotLive,
+    format_field,
     get_element_by_id,
     get_first,
     int_or_none,
     join_nonempty,
+    merge_dicts,
     qualities,
     remove_start,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    try_call,
     try_get,
     url_or_none,
 )
@@ -563,7 +567,7 @@ class TikTokIE(TikTokBaseIE):
             self.report_warning(f'{e}; trying with webpage')
 
         url = self._create_url(user_id, video_id)
-        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
+        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
         if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
@@ -983,40 +987,173 @@ class TikTokVMIE(InfoExtractor):
         return self.url_result(new_url)
 
 
-class TikTokLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/live'
+class TikTokLiveIE(TikTokBaseIE):
+    _VALID_URL = r'''(?x)https?://(?:
+        (?:www\.)?tiktok\.com/@(?P<uploader>[\w.-]+)/live|
+        m\.tiktok\.com/share/live/(?P<id>\d+)
+    )'''
     IE_NAME = 'tiktok:live'
 
     _TESTS = [{
+        'url': 'https://www.tiktok.com/@weathernewslive/live',
+        'info_dict': {
+            'id': '7210809319192726273',
+            'ext': 'mp4',
+            'title': r're:ウェザーニュースLiVE[\d\s:-]*',
+            'creator': 'ウェザーニュースLiVE',
+            'uploader': 'weathernewslive',
+            'uploader_id': '6621496731283095554',
+            'uploader_url': 'https://www.tiktok.com/@weathernewslive',
+            'live_status': 'is_live',
+            'concurrent_view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.tiktok.com/@pilarmagenta/live',
+        'info_dict': {
+            'id': '7209423610325322522',
+            'ext': 'mp4',
+            'title': str,
+            'creator': 'Pilarmagenta',
+            'uploader': 'pilarmagenta',
+            'uploader_id': '6624846890674683909',
+            'uploader_url': 'https://www.tiktok.com/@pilarmagenta',
+            'live_status': 'is_live',
+            'concurrent_view_count': int,
+        },
+        'skip': 'Livestream',
+    }, {
+        'url': 'https://m.tiktok.com/share/live/7209423610325322522/?language=en',
+        'only_matching': True,
+    }, {
         'url': 'https://www.tiktok.com/@iris04201/live',
         'only_matching': True,
     }]
 
+    def _call_api(self, url, param, room_id, uploader, key=None):
+        response = traverse_obj(self._download_json(
+            url, room_id, fatal=False, query={
+                'aid': '1988',
+                param: room_id,
+            }), (key, {dict}), default={})
+
+        # status == 2 if live else 4
+        if int_or_none(response.get('status')) == 2:
+            return response
+        # If room_id is obtained via mobile share URL and cannot be refreshed, do not wait for live
+        elif not uploader:
+            raise ExtractorError('This livestream has ended', expected=True)
+        raise UserNotLive(video_id=uploader)
+
     def _real_extract(self, url):
-        uploader = self._match_id(url)
-        webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
-        room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
+        uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
+        webpage = self._download_webpage(
+            url, uploader or room_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=not room_id)
+
+        if webpage:
+            data = try_call(lambda: self._get_sigi_state(webpage, uploader or room_id))
+            room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
+                       or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
+                       or room_id)
+            uploader = uploader or traverse_obj(
+                data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
+                ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
+
         if not room_id:
             raise UserNotLive(video_id=uploader)
-        live_info = traverse_obj(self._download_json(
-            'https://www.tiktok.com/api/live/detail/', room_id, query={
-                'aid': '1988',
-                'roomID': room_id,
-            }), 'LiveRoomInfo', expected_type=dict, default={})
 
-        if 'status' not in live_info:
-            raise ExtractorError('Unexpected response from TikTok API')
-        # status = 2 if live else 4
-        if not int_or_none(live_info['status']) == 2:
-            raise UserNotLive(video_id=uploader)
+        formats = []
+        live_info = self._call_api(
+            'https://webcast.tiktok.com/webcast/room/info', 'room_id', room_id, uploader, key='data')
+
+        get_quality = qualities(('SD1', 'ld', 'SD2', 'sd', 'HD1', 'hd', 'FULL_HD1', 'uhd', 'ORIGION', 'origin'))
+        parse_inner = lambda x: self._parse_json(x, None)
+
+        for quality, stream in traverse_obj(live_info, (
+                'stream_url', 'live_core_sdk_data', 'pull_data', 'stream_data',
+                {parse_inner}, 'data', {dict}), default={}).items():
+
+            sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
+                'vcodec': ('VCodec', {str}),
+                'tbr': ('vbitrate', {lambda x: int_or_none(x, 1000)}),
+                'resolution': ('resolution', {lambda x: re.match(r'(?i)\d+x\d+|\d+p', x).group().lower()}),
+            }))
+
+            flv_url = traverse_obj(stream, ('main', 'flv', {url_or_none}))
+            if flv_url:
+                formats.append({
+                    'url': flv_url,
+                    'ext': 'flv',
+                    'format_id': f'flv-{quality}',
+                    'quality': get_quality(quality),
+                    **sdk_params,
+                })
+
+            hls_url = traverse_obj(stream, ('main', 'hls', {url_or_none}))
+            if hls_url:
+                formats.append({
+                    'url': hls_url,
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'format_id': f'hls-{quality}',
+                    'quality': get_quality(quality),
+                    **sdk_params,
+                })
+
+        def get_vcodec(*keys):
+            return traverse_obj(live_info, (
+                'stream_url', *keys, {parse_inner}, 'VCodec', {str}))
+
+        for stream in ('hls', 'rtmp'):
+            stream_url = traverse_obj(live_info, ('stream_url', f'{stream}_pull_url', {url_or_none}))
+            if stream_url:
+                formats.append({
+                    'url': stream_url,
+                    'ext': 'mp4' if stream == 'hls' else 'flv',
+                    'protocol': 'm3u8_native' if stream == 'hls' else 'https',
+                    'format_id': f'{stream}-pull',
+                    'vcodec': get_vcodec(f'{stream}_pull_url_params'),
+                    'quality': get_quality('ORIGION'),
+                })
+
+        for f_id, f_url in traverse_obj(live_info, ('stream_url', 'flv_pull_url', {dict}), default={}).items():
+            if not url_or_none(f_url):
+                continue
+            formats.append({
+                'url': f_url,
+                'ext': 'flv',
+                'format_id': f'flv-{f_id}'.lower(),
+                'vcodec': get_vcodec('flv_pull_url_params', f_id),
+                'quality': get_quality(f_id),
+            })
+
+        # If uploader is a guest on another's livestream, primary endpoint will not have m3u8 URLs
+        if not traverse_obj(formats, lambda _, v: v['ext'] == 'mp4'):
+            live_info = merge_dicts(live_info, self._call_api(
+                'https://www.tiktok.com/api/live/detail/', 'roomID', room_id, uploader, key='LiveRoomInfo'))
+            if url_or_none(live_info.get('liveUrl')):
+                formats.append({
+                    'url': live_info['liveUrl'],
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'format_id': 'hls-fallback',
+                    'vcodec': 'h264',
+                    'quality': get_quality('origin'),
+                })
+
+        uploader = uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id'))
 
         return {
             'id': room_id,
-            'title': live_info.get('title') or self._html_search_meta(['og:title', 'twitter:title'], webpage, default=''),
             'uploader': uploader,
-            'uploader_id': traverse_obj(live_info, ('ownerInfo', 'id')),
-            'creator': traverse_obj(live_info, ('ownerInfo', 'nickname')),
-            'concurrent_view_count': traverse_obj(live_info, ('liveRoomStats', 'userCount'), expected_type=int),
-            'formats': self._extract_m3u8_formats(live_info['liveUrl'], room_id, 'mp4', live=True),
+            'uploader_url': format_field(uploader, None, self._UPLOADER_URL_FORMAT) or None,
             'is_live': True,
+            'formats': formats,
+            '_format_sort_fields': ('quality', 'ext'),
+            **traverse_obj(live_info, {
+                'title': 'title',
+                'uploader_id': (('ownerInfo', 'owner'), 'id', {str_or_none}),
+                'creator': (('ownerInfo', 'owner'), 'nickname'),
+                'concurrent_view_count': (('user_count', ('liveRoomStats', 'userCount')), {int_or_none}),
+            }, get_all=False),
         }
