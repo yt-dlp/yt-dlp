@@ -1121,7 +1121,7 @@ class TikTokLiveIE(TikTokBaseIE):
             formats.append({
                 'url': f_url,
                 'ext': 'flv',
-                'format_id': f'flv-{f_id}',
+                'format_id': f'flv-{f_id}'.lower(),
                 'vcodec': get_vcodec('flv_pull_url_params', f_id),
                 'quality': get_quality(f_id),
             })
