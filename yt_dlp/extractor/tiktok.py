@@ -1,6 +1,7 @@
 import itertools
 import json
 import random
+import re
 import string
 import time
 
@@ -1074,7 +1075,7 @@ class TikTokLiveIE(TikTokBaseIE):
             sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
                 'vcodec': ('VCodec', {str}),
                 'tbr': ('vbitrate', {lambda x: int_or_none(x, 1000)}),
-                'resolution': ('resolution', {str}),
+                'resolution': ('resolution', {lambda x: re.match(r'(?i)\d+x\d+|\d+p', x).group().lower()}),
             }))
 
             flv_url = traverse_obj(stream, ('main', 'flv', {url_or_none}))
