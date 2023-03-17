@@ -91,7 +91,6 @@ class DRTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
         'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/p4-nyheder-2019-06-26-17-30-9',
         'only_matching': True,
@@ -116,7 +115,6 @@ class DRTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
         'url': 'https://www.dr.dk/drtv/episode/bonderoeven_71769',
         'only_matching': True,
@@ -291,10 +289,11 @@ class DRTVIE(InfoExtractor):
                                 f['vcodec'] = 'none'
                         formats.extend(f4m_formats)
                     elif target == 'HLS':
-                        formats.extend(self._extract_m3u8_formats(
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
                             uri, video_id, 'mp4', entry_protocol='m3u8_native',
-                            quality=preference, m3u8_id=format_id,
-                            fatal=False))
+                            quality=preference, m3u8_id=format_id, fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
                     else:
                         bitrate = link.get('Bitrate')
                         if bitrate:
