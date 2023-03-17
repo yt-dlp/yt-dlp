@@ -80,7 +80,7 @@ class DRTVIE(InfoExtractor):
             'description': 'md5:8c66dcbc1669bbc6f873879880f37f2a',
             'timestamp': 1546628400,
             'upload_date': '20190104',
-            'duration': 3504.618,
+            'duration': 3504.619,
             'formats': 'mincount:20',
             'release_year': 2017,
             'season_id': 'urn:dr:mu:bundle:5afc03ad6187a4065ca5fd35',
@@ -91,6 +91,7 @@ class DRTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
         'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/p4-nyheder-2019-06-26-17-30-9',
         'only_matching': True,
@@ -101,18 +102,21 @@ class DRTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Bonderøven 2019 (1:8)',
             'description': 'md5:b6dcfe9b6f0bea6703e9a0092739a5bd',
-            'timestamp': 1603188600,
-            'upload_date': '20201020',
+            'timestamp': 1654856100,
+            'upload_date': '20220610',
             'duration': 2576.6,
             'season': 'Bonderøven 2019',
             'season_id': 'urn:dr:mu:bundle:5c201667a11fa01ca4528ce5',
             'release_year': 2019,
             'season_number': 2019,
-            'series': 'Frank & Kastaniegaarden'
+            'series': 'Frank & Kastaniegaarden',
+            'episode_number': 1,
+            'episode': 'Episode 1',
         },
         'params': {
             'skip_download': True,
         },
+        'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
         'url': 'https://www.dr.dk/drtv/episode/bonderoeven_71769',
         'only_matching': True,
@@ -123,22 +127,19 @@ class DRTVIE(InfoExtractor):
         'url': 'https://www.dr.dk/drtv/program/jagten_220924',
         'only_matching': True,
     }, {
-        'url': 'https://www.dr.dk/lyd/p4aarhus/regionale-nyheder-ar4/regionale-nyheder-2022-05-05-12-30-3',
+        'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/regionale-nyheder-2023-03-14-10-30-9',
         'info_dict': {
-            'id': 'urn:dr:mu:programcard:6265cb2571401424d0360113',
-            'title': "Regionale nyheder",
             'ext': 'mp4',
+            'id': '14802310112',
+            'timestamp': 1678786200,
             'duration': 120.043,
-            'series': 'P4 Østjylland regionale nyheder',
-            'timestamp': 1651746600,
-            'season': 'Regionale nyheder',
+            'season_id': 'urn:dr:mu:bundle:63a4f7c87140143504b6710f',
+            'series': 'P4 København regionale nyheder',
+            'upload_date': '20230314',
             'release_year': 0,
-            'season_id': 'urn:dr:mu:bundle:61c26889539f0201586b73c5',
-            'description': '',
-            'upload_date': '20220505',
-        },
-        'params': {
-            'skip_download': True,
+            'description': 'Hør seneste regionale nyheder fra P4 København.',
+            'season': 'Regionale nyheder',
+            'title': 'Regionale nyheder',
         },
     }]
 
