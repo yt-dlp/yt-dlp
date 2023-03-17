@@ -25,7 +25,7 @@ class DRTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:www\.)?dr\.dk/(?:tv/se|nyheder|(?:radio|lyd)(?:/ondemand)?)/(?:[^/]+/)*|
+                            (?:www\.)?dr\.dk/(?:tv/se|nyheder|(?P<radio>radio|lyd)(?:/ondemand)?)/(?:[^/]+/)*|
                             (?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/(?:se|episode|program)/
                         )
                         (?P<id>[\da-z_-]+)
@@ -144,7 +144,7 @@ class DRTVIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        raw_video_id = self._match_id(url)
+        raw_video_id, is_radio_url = self._match_valid_url(url).group('id', 'radio')
 
         webpage = self._download_webpage(url, raw_video_id)
 
