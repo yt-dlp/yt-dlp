@@ -303,9 +303,9 @@ class BiliBiliIE(BilibiliBaseIE):
 
         part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
         if is_anthology and not part_id and self._yes_playlist(video_id, video_id):
-            return self.playlist_from_matches(
-                page_list_json, video_id, title, ie=BiliBiliIE,
-                getter=lambda entry: f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}')
+            return self.playlist_result((
+                self.url_result(f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}', BiliBiliIE, None, title + f' p{entry["page"]:02d} {traverse_obj(entry, "part") or ""}')
+                for entry in page_list_json), video_id)
 
         if is_anthology:
             part_id = part_id or 1
