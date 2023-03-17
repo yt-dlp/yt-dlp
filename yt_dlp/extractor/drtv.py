@@ -170,15 +170,25 @@ class DRTVIE(InfoExtractor):
             programcard_url = '%s/%s' % (_PROGRAMCARD_BASE, video_id)
         else:
             programcard_url = _PROGRAMCARD_BASE
-            page = self._parse_json(
-                self._search_regex(
-                    r'data\s*=\s*({.+?})\s*(?:;|</script)', webpage,
-                    'data'), '1')['cache']['page']
-            page = page[list(page.keys())[0]]
-            item = try_get(
-                page, (lambda x: x['item'], lambda x: x['entries'][0]['item']),
-                dict)
-            video_id = item['customId'].split(':')[-1]
+            is_radio_url = 'dr.dk/lyd' in url
+            if is_radio_url:
+                json_string = self._search_regex(
+                    r'__NEXT_DATA__[^>]*>(.*)<\/script>',
+                    webpage,
+                    'next_data'
+                )
+                json_blob = self._parse_json(json_string, '1')
+                video_id = json_blob['props']['pageProps']['episode']['productionNumber']
+            else:
+                page = self._parse_json(
+                    self._search_regex(
+                        r'data\s*=\s*({.+?})\s*(?:;|</script)', webpage,
+                        'data'), '1')['cache']['page']
+                page = page[list(page.keys())[0]]
+                item = try_get(
+                    page, (lambda x: x['item'], lambda x: x['entries'][0]['item']),
+                    dict)
+                video_id = item['customId'].split(':')[-1]
             query['productionnumber'] = video_id
 
         data = self._download_json(
