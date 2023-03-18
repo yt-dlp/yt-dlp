@@ -5,6 +5,7 @@ import hashlib
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    int_or_none,
     mimetype2ext,
     traverse_obj,
     unified_timestamp,
