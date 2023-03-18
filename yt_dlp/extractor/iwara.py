@@ -69,7 +69,7 @@ class IwaraIE(InfoExtractor):
                 'format_id': 'name',
                 'url': ('src', ('view', 'download'), {self._proto_relative_url}),
                 'ext': ('type', {mimetype2ext}),
-                'preference': ('name', {lambda x: int_or_none(x) or 1e4}),
+                'quality': ('name', {lambda x: int_or_none(x) or 1e4}),
                 'height': ('name', {int_or_none}),
             }, get_all=False)
 
