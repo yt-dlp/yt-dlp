@@ -2724,17 +2724,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
                 expected_type=dict)
-            _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
-            is_live = live_status == 'is_live'
-            start_time = time.time()
+            with lock:
+                _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
+                is_live = live_status == 'is_live'
+                start_time = time.time()
 
         def mpd_feed(format_id, delay):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
             for retry in self.RetryManager(fatal=False):
-                with lock:
-                    refetch_manifest(format_id, delay)
+                refetch_manifest(format_id, delay)
 
                 f = next((f for f in formats if f['format_id'] == format_id), None)
                 if not f:
