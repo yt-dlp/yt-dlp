@@ -183,7 +183,7 @@ class ZingMp3IE(ZingMp3BaseIE):
             if item.get('msg') == 'Sorry, this content is not available in your country.':
                 self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
             else:
-                self.report_warning('The song is only for VIP accounts.')
+                self.raise_no_formats('The song is only for VIP accounts.')
 
         lyric = item.get('lyric') or self._call_api('lyric', {'id': item_id}, fatal=False).get('file')
 
