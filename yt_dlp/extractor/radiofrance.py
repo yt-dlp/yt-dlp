@@ -1,9 +1,9 @@
+import itertools
 import re
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    OnDemandPagedList,
     join_nonempty,
     parse_duration,
     traverse_obj,
@@ -239,6 +239,25 @@ class RadioFrancePodcastIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _generate_playlist_entries(self, podcast_id, podcast_response):
+        for page_num in itertools.count(2):
+            for episode in podcast_response['items']:
+                yield self.url_result(
+                    f'https://www.radiofrance.fr/{episode["path"]}', FranceCultureIE, **traverse_obj(episode, {
+                        'title': 'title',
+                        'description': 'standFirst',
+                        'timestamp': 'publishedDate',
+                        'thumbnail': ('visual', 'src'),
+                    }))
+
+            next_cursor = podcast_response['next']
+            if not next_cursor:
+                break
+
+            podcast_response = self._download_json(
+                    f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
+                    note=f'Downloading page {page_num}', query={'pageCursor': next_cursor})
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
@@ -247,32 +266,10 @@ class RadioFrancePodcastIE(InfoExtractor):
             query={'value': urllib.parse.urlparse(url).path})['content']
 
         podcast_id = metadata['id']
-        episode_response = metadata['expressions']
 
-        def page_func(page_num):
-            nonlocal episode_response
-            next_cursor = episode_response['next']
-
-            if page_num > 0:
-                if not next_cursor:
-                    return []
-
-                episode_response = self._download_json(
-                    f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
-                    note=f'Downloading page {page_num}', query={'pageCursor': next_cursor})
-
-            return [
-                self.url_result(
-                    f'https://www.radiofrance.fr/{episode["path"]}', FranceCultureIE, **traverse_obj(episode, {
-                        'title': 'title',
-                        'description': 'standFirst',
-                        'timestamp': 'publishedDate',
-                        'thumbnail': ('visual', 'src'),
-                    })) for episode in episode_response['items'] if episode.get('path')]
-
-        entries = OnDemandPagedList(page_func, metadata['expressions']['pageSize'])
         return self.playlist_result(
-            entries, podcast_id, display_id=display_id, **traverse_obj(metadata, {
+            self._generate_playlist_entries(podcast_id, metadata['expressions']), podcast_id,
+            display_id=display_id, **traverse_obj(metadata, {
                 'title': 'title',
                 'description': 'standFirst',
                 'thumbnail': ('visual', 'src'),
@@ -296,6 +293,28 @@ class RadioFranceProfileIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _generate_playlist_entries(self, profile_id, profile_response):
+        for page_num in itertools.count(2):
+            for entry in profile_response['items']:
+                yield self.url_result(
+                    f'https://www.radiofrance.fr/{entry["path"]}', **traverse_obj(entry, {
+                        'title': 'title',
+                        'description': 'standFirst',
+                        'timestamp': 'publishedDate',
+                        'thumbnail': ('visual', 'src'),
+                    }))
+
+            next_cursor = profile_response['pagination']['next']
+            if not next_cursor:
+                break
+
+            profile_response = self._download_json(
+                f'https://www.radiofrance.fr/api/v2.1/taxonomy/{profile_id}/documents', profile_id,
+                note=f'Downloading page {page_num}', query={
+                    'relation': 'personality',
+                    'cursor': next_cursor
+                })
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
@@ -304,35 +323,10 @@ class RadioFranceProfileIE(InfoExtractor):
             query={'value': urllib.parse.urlparse(url).path})['content']
 
         profile_id = metadata['id']
-        profile_response = metadata['documents']
 
-        def page_func(page_num):
-            nonlocal profile_response
-            next_cursor = profile_response['pagination']['next']
-
-            if page_num > 0:
-                if not next_cursor:
-                    return []
-
-                profile_response = self._download_json(
-                    f'https://www.radiofrance.fr/api/v2.1/taxonomy/{profile_id}/documents', profile_id,
-                    note=f'Downloading page {page_num}', query={
-                        'relation': 'personality',
-                        'cursor': next_cursor
-                    })
-
-            return [
-                self.url_result(
-                    f'https://www.radiofrance.fr/{entry["path"]}', **traverse_obj(entry, {
-                        'title': 'title',
-                        'description': 'standFirst',
-                        'timestamp': 'publishedDate',
-                        'thumbnail': ('visual', 'src'),
-                    })) for entry in profile_response['items'] if entry.get('path')]
-
-        entries = OnDemandPagedList(page_func, metadata['documents']['pagination']['pageSize'])
         return self.playlist_result(
-            entries, profile_id, display_id=display_id, **traverse_obj(metadata, {
+            self._generate_playlist_entries(profile_id, metadata['documents']), profile_id,
+            display_id=display_id, **traverse_obj(metadata, {
                 'title': 'name',
                 'description': 'role',
                 'thumbnail': ('visual', 'src'),
