@@ -58,7 +58,7 @@ class IwaraIE(InfoExtractor):
     def _extract_formats(self, video_id, fileurl):
         up = urllib.parse.urlparse(fileurl)
         q = urllib.parse.parse_qs(up.query)
-        paths = up.path.split('/')
+        paths = up.path.rstrip('/').split('/')
         # https://github.com/yt-dlp/yt-dlp/issues/6549#issuecomment-1473771047
         x_version = hashlib.sha1('_'.join((paths[-1], q['expires'][0], '5nFp9kmbNnHdAFhaqMvt')).encode()).hexdigest()
 
@@ -66,10 +66,10 @@ class IwaraIE(InfoExtractor):
         for fmt in files:
             yield traverse_obj(fmt, {
                 'format_id': 'name',
-                'url': ('src', ('view', 'download'), {lambda x: self._proto_relative_url(x, 'https:')}),
+                'url': ('src', ('view', 'download'), {self._proto_relative_url}),
                 'ext': ('type', {mimetype2ext}),
-                'preference': ('name', {lambda x: int(x) if x.isdigit() else 1e4}),
-                'height': ('name', {lambda x: int(x)}),
+                'preference': ('name', {lambda x: int_or_none(x) or 1e4}),
+                'height': ('name', {int_or_none}),
             }, get_all=False)
 
     def _real_extract(self, url):
@@ -90,9 +90,8 @@ class IwaraIE(InfoExtractor):
                 'comment_count': 'numComments',
                 'timestamp': ('createdAt', {unified_timestamp}),
                 'modified_timestamp': ('updatedAt', {unified_timestamp}),
-                'thumbnail': (
-                    'file', 'id', {str},
-                    {lambda x: f'https://files.iwara.tv/image/thumbnail/{x}/thumbnail-00.jpg'}),
+                'thumbnail': ('file', 'id', {str}, {
+                    lambda x: f'https://files.iwara.tv/image/thumbnail/{x}/thumbnail-00.jpg'}),
             }),
             'formats': list(self._extract_formats(video_id, video_data.get('fileUrl'))),
         }
@@ -133,9 +132,8 @@ class IwaraUserIE(InfoExtractor):
                 'user': user_id,
                 'limit': self._PER_PAGE,
             })
-        yield from (
-            self.url_result(f'https://iwara.tv/video/{x}')
-            for x in traverse_obj(videos, ('results', ..., 'id')))
+        for x in traverse_obj(videos, ('results', ..., 'id')):
+            yield self.url_result(f'https://iwara.tv/video/{x}')
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -166,16 +164,11 @@ class IwaraPlaylistIE(InfoExtractor):
     }]
 
     def _entries(self, playlist_id, first_page, page):
-        videos = first_page if page == 0 else self._download_json(
-            'https://api.iwara.tv/videos', playlist_id,
-            note=f'Downloading page {page}',
-            query={
-                'page': page,
-                'limit': self._PER_PAGE,
-            })
-        yield from (
-            self.url_result(f'https://iwara.tv/video/{x}')
-            for x in traverse_obj(videos, ('results', ..., 'id')))
+        videos = self._download_json(
+            'https://api.iwara.tv/videos', playlist_id, f'Downloading page {page}',
+            query={'page': page, 'limit': self._PER_PAGE}) if page else first_page
+        for x in traverse_obj(videos, ('results', ..., 'id')):
+            yield self.url_result(f'https://iwara.tv/video/{x}')
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
