@@ -2790,9 +2790,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
                 if expire_fast and not is_live:
-                    return False, last_seq
+                    return False
                 elif old_mpd_url == mpd_url:
-                    return True, last_seq
+                    return True
+
             if manifestless_orig_fmt:
                 fmt_info = manifestless_orig_fmt
             else:
@@ -2803,7 +2804,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     fmts = None
                 if not fmts:
                     no_fragment_score += 2
-                    return False, last_seq
+                    return False
                 fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
             fragments = fmt_info['fragments']
             fragment_base_url = fmt_info['fragment_base_url']
@@ -2830,13 +2831,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
             else:
                 should_continue = _extract_sequence_from_mpd(True, no_fragment_score > 15)
+                last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+
                 no_fragment_score += 2
                 if not should_continue:
                     continue
 
             last_fragment = fragments[-1]
-            last_seq = int(re.search(r'(?:/|^)sq/(\d+)', last_fragment['path']).group(1))
-
             known_fragment = next(
                 (fragment for fragment in fragments if f'sq/{known_idx}' in fragment['path']), None)
             if known_fragment and known_fragment['end'] > section_end:
