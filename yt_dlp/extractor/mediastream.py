@@ -264,7 +264,7 @@ class CaracolTvPlayIE(InfoExtractor):
 
 
 class Canal1IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^.]+\.)?canal1\.com\.co/(?:[^?&])+/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.|noticias\.)?canal1\.com\.co/(?:[^?&])+/(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://canal1.com.co/noticias/napa-i-una-cadena-de-produccion-de-arroz-que-se-quedo-en-veremos-y-abandonada-en-el-departamento-del-choco/',
