@@ -36,7 +36,7 @@ class RTFVPlayBaseIE(InfoExtractor):
 
 
 class RTVCPlayIE(RTFVPlayBaseIE):
-    _VALID_URL = RTFVPlayBaseIE._BASE_VALID_URL + r'/(?P<category>[^/]+)/(?:[^?#]+/)?(?P<id>[\w-]+)'
+    _VALID_URL = RTFVPlayBaseIE._BASE_VALID_URL + r'/(?P<category>(?!embed)[^/]+)/(?:[^?#]+/)?(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://www.rtvcplay.co/en-vivo/canal-institucional',
