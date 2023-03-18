@@ -13,9 +13,9 @@
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
+ ### This is a fork of [yt-dlp](https://github.com/yt-dlp/yt-dlp) which provides daily builds for testing purposes, that are experimental in nature. Please DO NOT ask for support from the official repository. Report the issue here please. 
 
-This fork provides daily builds, which are experimental in nature.
+yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
 
 <!-- MANPAGE: MOVE "USAGE AND OPTIONS" SECTION HERE -->
 
