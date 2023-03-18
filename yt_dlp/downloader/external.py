@@ -104,6 +104,7 @@ class ExternalFD(FragmentFD):
         return all((
             not info_dict.get('to_stdout') or Features.TO_STDOUT in cls.SUPPORTED_FEATURES,
             '+' not in info_dict['protocol'] or Features.MULTIPLE_FORMATS in cls.SUPPORTED_FEATURES,
+            not traverse_obj(info_dict, ('hls_aes', ...), 'extra_param_to_segment_url'),
             all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+')),
         ))
 
@@ -175,7 +176,7 @@ class ExternalFD(FragmentFD):
         return 0
 
     def _call_process(self, cmd, info_dict):
-        return Popen.run(cmd, text=True, stderr=subprocess.PIPE)
+        return Popen.run(cmd, text=True, stderr=subprocess.PIPE if self._CAPTURE_STDERR else None)
 
 
 class CurlFD(ExternalFD):

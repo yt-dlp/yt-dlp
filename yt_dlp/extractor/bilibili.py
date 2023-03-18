@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
+from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -80,7 +81,7 @@ class BilibiliBaseIE(InfoExtractor):
                          f'{line["content"]}\n\n')
         return srt_data
 
-    def _get_subtitles(self, video_id, initial_state, cid):
+    def _get_subtitles(self, video_id, aid, cid):
         subtitles = {
             'danmaku': [{
                 'ext': 'xml',
@@ -88,7 +89,8 @@ class BilibiliBaseIE(InfoExtractor):
             }]
         }
 
-        for s in traverse_obj(initial_state, ('videoData', 'subtitle', 'list')) or []:
+        video_info_json = self._download_json(f'https://api.bilibili.com/x/player/v2?aid={aid}&cid={cid}', video_id)
+        for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
@@ -330,7 +332,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'chapters': self._get_chapters(aid, cid),
-            'subtitles': self.extract_subtitles(video_id, initial_state, cid),
+            'subtitles': self.extract_subtitles(video_id, aid, cid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
         }
@@ -893,22 +895,15 @@ class BiliIntlBaseIE(InfoExtractor):
         }
 
     def _perform_login(self, username, password):
-        try:
-            from Cryptodome.PublicKey import RSA
-            from Cryptodome.Cipher import PKCS1_v1_5
-        except ImportError:
-            try:
-                from Crypto.PublicKey import RSA
-                from Crypto.Cipher import PKCS1_v1_5
-            except ImportError:
-                raise ExtractorError('pycryptodomex not found. Please install', expected=True)
+        if not Cryptodome.RSA:
+            raise ExtractorError('pycryptodomex not found. Please install', expected=True)
 
         key_data = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/key?lang=en-US', None,
             note='Downloading login key', errnote='Unable to download login key')['data']
 
-        public_key = RSA.importKey(key_data['key'])
-        password_hash = PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
+        public_key = Cryptodome.RSA.importKey(key_data['key'])
+        password_hash = Cryptodome.PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
         login_post = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None, data=urlencode_postdata({
                 'username': username,
@@ -939,6 +934,19 @@ class BiliIntlIE(BiliIntlBaseIE):
             'episode': 'Episode 2',
             'timestamp': 1602259500,
             'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 76.242,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 76.242,
+                'end_time': 161.161,
+                'title': 'Intro'
+            }, {
+                'start_time': 1325.742,
+                'end_time': 1403.903,
+                'title': 'Outro'
+            }],
         }
     }, {
         # Non-Bstation page
@@ -953,6 +961,19 @@ class BiliIntlIE(BiliIntlBaseIE):
             'episode': 'Episode 3',
             'upload_date': '20211219',
             'timestamp': 1639928700,
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 88.0,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 88.0,
+                'end_time': 156.0,
+                'title': 'Intro'
+            }, {
+                'start_time': 1173.0,
+                'end_time': 1259.535,
+                'title': 'Outro'
+            }],
         }
     }, {
         # Subtitle with empty content
@@ -976,6 +997,20 @@ class BiliIntlIE(BiliIntlBaseIE):
             'upload_date': '20221212',
             'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
         }
+    }, {
+        # episode id without intro and outro
+        'url': 'https://www.bilibili.tv/en/play/1048837/11246489',
+        'info_dict': {
+            'id': '11246489',
+            'ext': 'mp4',
+            'title': 'E1 - Operation \'Strix\' <Owl>',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'timestamp': 1649516400,
+            'thumbnail': 'https://pic.bstarstatic.com/ogv/62cb1de23ada17fb70fbe7bdd6ff29c29da02a64.png',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'upload_date': '20220409',
+        },
     }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
         'only_matching': True,
@@ -1028,12 +1063,31 @@ class BiliIntlIE(BiliIntlBaseIE):
     def _real_extract(self, url):
         season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
         video_id = ep_id or aid
+        chapters = None
+
+        if ep_id:
+            intro_ending_json = self._call_api(
+                f'/web/v2/ogv/play/episode?episode_id={ep_id}&platform=web',
+                video_id, fatal=False) or {}
+            if intro_ending_json.get('skip'):
+                # FIXME: start time and end time seems a bit off a few second even it corrext based on ogv.*.js
+                # ref: https://p.bstarstatic.com/fe-static/bstar-web-new/assets/ogv.2b147442.js
+                chapters = [{
+                    'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_start_time')), 1000),
+                    'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_end_time')), 1000),
+                    'title': 'Intro'
+                }, {
+                    'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_start_time')), 1000),
+                    'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_end_time')), 1000),
+                    'title': 'Outro'
+                }]
 
         return {
             'id': video_id,
             **self._extract_video_metadata(url, video_id, season_id),
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
+            'chapters': chapters
         }
 
 
