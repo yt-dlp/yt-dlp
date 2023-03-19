@@ -2068,7 +2068,7 @@ with yt_dlp.YoutubeDL() as ydl:
 ```python
 import yt_dlp
 
-URL = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
 def format_selector(ctx):
     """ Select the best video and the best audio that won't result in an mkv.
