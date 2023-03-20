@@ -3790,8 +3790,8 @@ class YoutubeDL:
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
             delim=' '))
-        self.report_warning('**!! You are running an unofficial daily build of yt-dlp !!**')
-        self.report_warning('**!! Please DO NOT ask on github.com/yt-dlp/yt-dlp for support !!**')
+        self.report_warning('**!!    You are running an unofficial daily build of yt-dlp       !!**')
+        self.report_warning('**!!    Please DO NOT ask on github.com/yt-dlp/yt-dlp for support !!**')
 
         if not _IN_CLI:
             write_debug(f'params: {self.params}')
