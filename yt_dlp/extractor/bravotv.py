@@ -9,6 +9,7 @@ from ..utils import (
     remove_end,
     str_or_none,
     traverse_obj,
+    unescapeHTML,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -117,6 +118,8 @@ class BravoTVIE(AdobePassIE):
             account_id = tve['data-mpx-media-account-id']
             metadata = traverse_obj(
                 tve, ('data-normalized-video', {lambda x: self._parse_json(x, None)}, {dict}))
+            metadata = self._parse_json(
+                tve.get('data-normalized-video', ''), display_id, fatal=False, transform_source=unescapeHTML)
             video_id = tve.get('data-guid') or metadata['guid']
             if tve.get('data-entitlement') == 'auth':
                 auth = traverse_obj(settings, ('tve_adobe_auth', {dict})) or {}
