@@ -65,8 +65,26 @@ class RadioFranceIE(InfoExtractor):
         }
 
 
-class FranceCultureIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/(?:franceculture|fip|francemusique|mouv|franceinter|franceinfo)/podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d{6,})($|[?#])'
+class RadioFranceBase(InfoExtractor):
+    _VALID_URL_BASE = r'https?://(?:www\.)?radiofrance\.fr'
+
+    _STATIONS = (
+        'franceculture',
+        'franceinfo',
+        'franceinter',
+        'francemusique',
+        'fip',
+        'mouv',
+    )
+
+
+class FranceCultureIE(RadioFranceBase):
+    _VALID_URL = rf'''(?x)
+        {RadioFranceBase._VALID_URL_BASE}
+        /(?:{"|".join(RadioFranceBase._STATIONS)})
+        /podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d{{6,}})($|[?#])
+    '''
+
     _TESTS = [
         {
             'url': 'https://www.radiofrance.fr/franceculture/podcasts/science-en-questions/la-physique-d-einstein-aiderait-elle-a-comprendre-le-cerveau-8440487',
@@ -76,7 +94,7 @@ class FranceCultureIE(InfoExtractor):
                 'ext': 'mp3',
                 'title': 'La physique d’Einstein aiderait-elle à comprendre le cerveau ?',
                 'description': 'Existerait-il un pont conceptuel entre la physique de l’espace-temps et les neurosciences ?',
-                'thumbnail': 'https://cdn.radiofrance.fr/s3/cruiser-production/2022/05/d184e7a3-4827-4494-bf94-04ed7b120db4/1200x630_gettyimages-200171095-001.jpg',
+                'thumbnail': r're:^https?://.*\.(?:jpg|png)',
                 'upload_date': '20220514',
                 'duration': 2750,
             },
@@ -128,13 +146,12 @@ class FranceCultureIE(InfoExtractor):
         }
 
 
-class RadioFranceLiveIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://
-                    (?:www\.|embed\.)?radiofrance\.fr/
-                    (?P<id>franceculture|fip|francemusique|mouv|franceinter|franceinfo)
-                    (?:/player/direct)?/?(?:[#?]|$)
-                '''
+class RadioFranceLiveIE(RadioFranceBase):
+    _VALID_URL = rf'''(?x)
+        https?://(?:www\.|embed\.)?radiofrance\.fr
+        /(?P<id>{"|".join(RadioFranceBase._STATIONS)})
+        (?:/player/direct)?/?(?:[#?]|$)
+    '''
 
     _TESTS = [{
         'url': 'https://www.radiofrance.fr/franceinter/',
@@ -200,13 +217,12 @@ class RadioFranceLiveIE(InfoExtractor):
         }
 
 
-class RadioFrancePodcastIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                https?://
-                (?:www\.)?radiofrance\.fr
-                /(?:franceculture|fip|francemusique|mouv|franceinter|franceinfo)
-                /podcasts/(?P<id>[\w-]+)/?(?:[?#]|$)
-            '''
+class RadioFrancePodcastIE(RadioFranceBase):
+    _VALID_URL = rf'''(?x)
+        {RadioFranceBase._VALID_URL_BASE}
+        /(?:{"|".join(RadioFranceBase._STATIONS)})
+        /podcasts/(?P<id>[\w-]+)/?(?:[?#]|$)
+    '''
 
     _TESTS = [{
         'url': 'https://www.radiofrance.fr/franceinfo/podcasts/le-billet-vert',
@@ -237,7 +253,20 @@ class RadioFrancePodcastIE(InfoExtractor):
         },
         'playlist_count': 1,
     }, {
+        'url': 'https://www.radiofrance.fr/fip/podcasts/certains-l-aiment-fip',
+        'info_dict': {
+            'id': '143dff38-e956-4a5d-8576-1c0b7242b99e',
+            'display_id': 'certains-l-aiment-fip',
+            'title': 'Certains l’aiment Fip',
+            'description': 'md5:ff974672ba00d4fd5be80fb001c5b27e',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_mincount': 321,
+    }, {
         'url': 'https://www.radiofrance.fr/franceinter/podcasts/le-7-9',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.radiofrance.fr/mouv/podcasts/dirty-mix',
         'only_matching': True,
     }]
 
@@ -278,8 +307,8 @@ class RadioFrancePodcastIE(InfoExtractor):
             }))
 
 
-class RadioFranceProfileIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/personnes/(?P<id>[\w-]+)'
+class RadioFranceProfileIE(RadioFranceBase):
+    _VALID_URL = rf'{RadioFranceBase._VALID_URL_BASE}/personnes/(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://www.radiofrance.fr/personnes/thomas-pesquet?p=3',
@@ -335,11 +364,11 @@ class RadioFranceProfileIE(InfoExtractor):
             }))
 
 
-class RadioFranceProgramScheduleIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-        https?://(?:www\.)?radiofrance\.fr/
-        (?P<station>franceculture|fip|francemusique|mouv|franceinter)/
-        grille-programmes(?:\?date=(?P<date>[\d-]+))?
+class RadioFranceProgramScheduleIE(RadioFranceBase):
+    _VALID_URL = rf'''(?x)
+        {RadioFranceBase._VALID_URL_BASE}
+        /(?P<station>{"|".join(RadioFranceBase._STATIONS)})
+        /grille-programmes(?:\?date=(?P<date>[\d-]+))?
     '''
 
     _TESTS = [{
@@ -356,6 +385,20 @@ class RadioFranceProgramScheduleIE(InfoExtractor):
             'upload_date': '20230201',
         },
         'playlist_count': 25,
+    }, {
+        'url': 'https://www.radiofrance.fr/mouv/grille-programmes?date=19-03-2023',
+        'info_dict': {
+            'id': 'mouv-program-20230319',
+            'upload_date': '20230319',
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://www.radiofrance.fr/francemusique/grille-programmes?date=18-03-2023',
+        'info_dict': {
+            'id': 'francemusique-program-20230318',
+            'upload_date': '20230318',
+        },
+        'playlist_count': 15,
     }, {
         'url': 'https://www.radiofrance.fr/franceculture/grille-programmes',
         'only_matching': True,
