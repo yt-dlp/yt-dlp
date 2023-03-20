@@ -2186,30 +2186,21 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
-    def _extra_manifest_info(self, info, manifest_url, is_info_dict=True):
-        extra_info = {}
-
+    def _extra_manifest_info(self, info, manifest_url):
         if self._configuration_arg('fragment_query'):
             query_string = urllib.parse.urlparse(manifest_url).query
             if query_string:
-                extra_info['extra_param_to_segment_url'] = query_string
+                info['extra_param_to_segment_url'] = query_string
 
         hex_or_none = lambda x: x if re.fullmatch(r'(?i)(0x)?[\da-f]+', x) else None
-        extra_info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key', []), {
-            'uri': (0, {url_or_none}),
-            'key': (0, {hex_or_none}),
-            'iv': (1, {hex_or_none}),
+        info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key'), {
+            'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
         }) or None
-
-        info.update(extra_info)
 
         if self._configuration_arg('variant_query'):
             query = parse_qs(manifest_url)
-            if is_info_dict:
-                for fmt in info['formats']:
-                    fmt['url'] = update_url_query(fmt['url'], query)
-            else:
-                info['url'] = update_url_query(info['url'], query)
+            for fmt in self._downloader._get_formats(info):
+                fmt['url'] = update_url_query(fmt['url'], query)
 
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
@@ -2611,7 +2602,7 @@ class GenericIE(InfoExtractor):
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
                 for fmt in formats:
-                    self._extra_manifest_info(fmt, src, is_info_dict=False)
+                    self._extra_manifest_info(fmt, src)
 
                 if not formats:
                     formats.append({
