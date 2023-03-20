@@ -2233,3 +2233,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-yt-dlp) for instructions o
 
 # WIKI
 See the [Wiki](https://github.com/yt-dlp/yt-dlp/wiki) for more information
+
+<div align="right">
+<table><td>
+<a href="#start-of-content">👆 Scroll to top</a>
+</td></table>
+</div>
