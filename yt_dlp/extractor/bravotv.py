@@ -116,8 +116,6 @@ class BravoTVIE(AdobePassIE):
         if tve:
             account_pid = tve.get('data-mpx-media-account-pid') or 'HNK2IC'
             account_id = tve['data-mpx-media-account-id']
-            metadata = traverse_obj(
-                tve, ('data-normalized-video', {lambda x: self._parse_json(x, None)}, {dict}))
             metadata = self._parse_json(
                 tve.get('data-normalized-video', ''), display_id, fatal=False, transform_source=unescapeHTML)
             video_id = tve.get('data-guid') or metadata['guid']
