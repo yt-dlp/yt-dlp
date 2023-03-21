@@ -2192,7 +2192,7 @@ class GenericIE(InfoExtractor):
             if query_string:
                 info['extra_param_to_segment_url'] = query_string
 
-        hex_or_none = lambda x: x if re.fullmatch(r'(?i)(0x)?[\da-f]+', x) else None
+        hex_or_none = lambda x: x if re.fullmatch(r'(0x)?[\da-f]+', x, re.IGNORECASE) else None
         info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key'), {
             'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
         }) or None
