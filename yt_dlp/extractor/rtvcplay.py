@@ -139,22 +139,23 @@ class RTVCPlayIE(RTVCPlayBaseIE):
         webpage = self._download_webpage(url, video_id)
 
         hydration = self._search_json(
-            r'window.__RTVCPLAY_STATE__\s*=', webpage, 'hydration', video_id, transform_source=js_to_json)
+            r'window\.__RTVCPLAY_STATE__\s*=', webpage, 'hydration',
+            video_id, transform_source=js_to_json)['content']['currentContent']
 
-        asset_id = traverse_obj(hydration, ('content', 'currentContent', 'video', 'assetid'))
+        asset_id = traverse_obj(hydration, ('video', 'assetid'))
         if asset_id:
-            hls_url = hydration['content']['currentContent']['base_url_hls'].replace('[node:field_asset_id]', asset_id)
+            hls_url = hydration['base_url_hls'].replace('[node:field_asset_id]', asset_id)
         else:
-            hls_url = traverse_obj(hydration, ('content', 'currentContent', 'channel', 'hls'))
+            hls_url = traverse_obj(hydration, ('channel', 'hls'))
 
         metadata = {
             'thumbnail': traverse_obj(
-                hydration, ('content', 'currentContent', 'channel', 'image', 'logo', 'path'),
-                ('content', 'currentContent', 'resource', 'image', 'cover_desktop', 'path')),
-            **traverse_obj(hydration, ('content', 'currentContent', {
+                hydration, ('channel', 'image', 'logo', 'path'),
+                ('resource', 'image', 'cover_desktop', 'path')),
+            **traverse_obj(hydration, {
                 'title': 'title',
                 'description': 'description',
-            })),
+            }),
         }
 
         # Probably it's a program's page
