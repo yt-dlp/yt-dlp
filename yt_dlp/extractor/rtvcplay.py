@@ -176,20 +176,22 @@ class RTVCPlayIE(RTVCPlayBaseIE):
                     'season_number': 'season',
                 })) for episode in podcast_episodes], video_id, **metadata)
 
-            entries = []
-            for season in seasons:
-                for episode in season['contents']:
-                    entries.append(self.url_result(urljoin(url, episode['slug']), **{
+            entries = [
+                self.url_result(
+                    urljoin(url, episode['slug']), url_transparent=True, **{
                         **traverse_obj(season, {
                             'season': 'title',
-                            'season_number': 'season',
+                            'season_number': ('season', {int_or_none}),
                         }),
                         **traverse_obj(episode, {
                             'title': 'title',
                             'thumbnail': ('image', 'cover', 'path'),
-                            'episode_number': 'chapter_number',
+                            'episode_number': ('chapter_number', {int_or_none}),
                         })
-                    }))
+                    })
+                for season in seasons
+                for episode in traverse_obj(season, ('contents', ...))
+            ]
 
             return self.playlist_result(entries, video_id, **metadata)
 
