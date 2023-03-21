@@ -128,10 +128,11 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
         return self.playlist_result(entries, playlist_id, title, description)
 
 
-class PolskieRadioIE(InfoExtractor):
-    # new next.js sites, excluding radiokierowcow.pl
-    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>\d+)'
+class PolskieRadioIE(PolskieRadioBaseExtractor):
+    # new next.js sites
+    _VALID_URL = r'https?://(?:[^/]+\.)?(?:polskieradio(?:24)|radiokierowcow)?\.pl/artykul/(?P<id>\d+)'
     _TESTS = [{
+        # articleData, attachments
         'url': 'https://jedynka.polskieradio.pl/artykul/1587943',
         'info_dict': {
             'id': '1587943',
@@ -146,6 +147,31 @@ class PolskieRadioIE(InfoExtractor):
                 'title': 'md5:d4623290d4ac983bf924061c75c23a0d',
             },
         }],
+    }, {
+        # post, legacy html players
+        'url': 'https://trojka.polskieradio.pl/artykul/2589163,Czy-wciaz-otrzymujemy-zdjecia-z-sond-Voyager',
+        'info_dict': {
+            'id': '2589163',
+            'title': 'Czy wciąż otrzymujemy zdjęcia z sond Voyager?',
+            'description': 'md5:cf1a7f348d63a2db9c0d7a63d1669473',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '2577880',
+                'ext': 'mp3',
+                'title': 'md5:a57d10a0c02abd34dd675cb33707ad5a',
+                'duration': 321,
+            },
+        }],
+    }, {
+        # data, legacy
+        'url': 'https://radiokierowcow.pl/artykul/2694529',
+        'info_dict': {
+            'id': '2694529',
+            'title': 'Zielona fala reliktem przeszłości?',
+            'description': 'md5:f20a9a7ed9cb58916c54add94eae3bc0',
+        },
+        'playlist_count': 3,
     }, {
         'url': 'https://trojka.polskieradio.pl/artykul/1632955',
         'only_matching': True,
@@ -164,7 +190,8 @@ class PolskieRadioIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
 
         article_data = traverse_obj(
-            self._search_nextjs_data(webpage, playlist_id), ('props', 'pageProps', 'data', 'articleData'))
+            self._search_nextjs_data(webpage, playlist_id), (
+                'props', 'pageProps', (('data', 'articleData'), 'post', 'data')), get_all=False)
 
         title = strip_or_none(article_data['title'])
 
@@ -176,7 +203,13 @@ class PolskieRadioIE(InfoExtractor):
             'id': self._search_regex(
                 r'([a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12})', entry['file'], 'entry id'),
             'title': strip_or_none(entry.get('description')) or title,
-        } for entry in article_data.get('attachments') or () if entry['fileType'] in ('Audio', )]
+        } for entry in article_data.get('attachments') or () if entry.get('fileType') in ('Audio', )]
+
+        if not entries:
+            # some legacy articles have no json attachments, but players in body
+            entries = self._extract_webpage_player_entries(article_data['content'], playlist_id, {
+                'title': title,
+            })
 
         return self.playlist_result(entries, playlist_id, title, description)
 
@@ -567,39 +600,3 @@ class PolskieRadioPodcastIE(PolskieRadioPodcastBaseExtractor):
                 'Content-Type': 'application/json',
             })
         return self._parse_episode(data[0])
-
-
-class PolskieRadioRadioKierowcowIE(PolskieRadioBaseExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiokierowcow\.pl/artykul/(?P<id>[0-9]+)'
-    IE_NAME = 'polskieradio:kierowcow'
-
-    _TESTS = [{
-        'url': 'https://radiokierowcow.pl/artykul/2694529',
-        'info_dict': {
-            'id': '2694529',
-            'title': 'Zielona fala reliktem przeszłości?',
-            'description': 'md5:343950a8717c9818fdfd4bd2b8ca9ff2',
-        },
-        'playlist_count': 3,
-    }]
-
-    def _real_extract(self, url):
-        media_id = self._match_id(url)
-        webpage = self._download_webpage(url, media_id)
-        nextjs_build = self._search_nextjs_data(webpage, media_id)['buildId']
-        article = self._download_json(
-            f'https://radiokierowcow.pl/_next/data/{nextjs_build}/artykul/{media_id}.json?articleId={media_id}',
-            media_id)
-        data = article['pageProps']['data']
-        title = data['title']
-        entries = self._extract_webpage_player_entries(data['content'], media_id, {
-            'title': title,
-        })
-
-        return {
-            '_type': 'playlist',
-            'id': media_id,
-            'entries': entries,
-            'title': title,
-            'description': data.get('lead'),
-        }
