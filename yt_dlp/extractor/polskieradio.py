@@ -130,7 +130,7 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
 
 class PolskieRadioIE(PolskieRadioBaseExtractor):
     # new next.js sites
-    _VALID_URL = r'https?://(?:[^/]+\.)?(?:polskieradio(?:24)|radiokierowcow)?\.pl/artykul/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?(?:polskieradio(?:24)?|radiokierowcow)\.pl/artykul/(?P<id>\d+)'
     _TESTS = [{
         # articleData, attachments
         'url': 'https://jedynka.polskieradio.pl/artykul/1587943',
