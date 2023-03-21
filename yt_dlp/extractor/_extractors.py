@@ -527,7 +527,6 @@ from .ellentube import (
 )
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
-from .ettutv import EttuTvIE
 from .embedly import EmbedlyIE
 from .engadget import EngadgetIE
 from .epicon import (
@@ -554,6 +553,7 @@ from .espn import (
     ESPNCricInfoIE,
 )
 from .esri import EsriVideoIE
+from .ettutv import EttuTvIE
 from .europa import EuropaIE, EuroParlWebstreamIE
 from .europeantour import EuropeanTourIE
 from .eurosport import EurosportIE
