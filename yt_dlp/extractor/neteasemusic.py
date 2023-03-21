@@ -151,13 +151,27 @@ class NetEaseMusicBaseIE(InfoExtractor):
 
 
 class NetEaseMusicIE(NetEaseMusicBaseIE):
-    _FORMATS = [
-        {'format': 'standard', 'quality':'l', 'br':128000},
-        {'format': 'higher', 'quality':'m', 'br':192000},
-        {'format': 'exhigh', 'quality':'h', 'br':320000},
-        {'format': 'lossless', 'quality':'sq', 'br':350000},
-        {'format': 'hires', 'quality':'hr', 'br':999000}
-    ]
+    _FORMATS = [{
+        'format': 'standard',
+        'quality': 'l',
+        'br': 128000
+    }, {
+        'format': 'higher',
+        'quality': 'm',
+        'br': 192000
+    }, {
+        'format': 'exhigh',
+        'quality': 'h',
+        'br': 320000
+    }, {
+        'format': 'lossless',
+        'quality': 'sq',
+        'br': 350000
+    }, {
+        'format': 'hires',
+        'quality': 'hr',
+        'br': 999000
+    }]
     IE_NAME = 'netease:song'
     IE_DESC = '网易云音乐'
     _VALID_URL = r'https?://(y\.)?music\.163\.com/(?:[#m]/)?song\?.*?\bid=(?P<id>[0-9]+)'
