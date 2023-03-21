@@ -240,7 +240,7 @@ class RTVCPlayEmbedIE(RTVCPlayBaseIE):
         }
 
 
-class RTVCKalturaIE(RTFVPlayBaseIE):
+class RTVCKalturaIE(RTVCPlayBaseIE):
     _VALID_URL = r'https?://media\.rtvc\.gov\.co/kalturartvc/(?P<id>[\w-]+)'
 
     _TESTS = [{
