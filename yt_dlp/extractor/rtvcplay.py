@@ -169,12 +169,13 @@ class RTVCPlayIE(RTVCPlayBaseIE):
                 if not podcast_episodes:
                     raise ExtractorError('Could not find asset_id nor program playlist nor podcast episodes')
 
-                return self.playlist_result([self.url_result(episode['file'], **traverse_obj(episode, {
-                    'title': 'title',
-                    'description': ('description', {clean_html}),
-                    'episode_number': ('chapter_number', {lambda x: int_or_none(float_or_none(x))}),
-                    'season_number': 'season',
-                })) for episode in podcast_episodes], video_id, **metadata)
+                return self.playlist_result([
+                    self.url_result(episode['file'], url_transparent=True, **traverse_obj(episode, {
+                        'title': 'title',
+                        'description': ('description', {clean_html}),
+                        'episode_number': ('chapter_number', {lambda x: int_or_none(float_or_none(x))}),
+                        'season_number': 'season',
+                    })) for episode in podcast_episodes], video_id, **metadata)
 
             entries = [
                 self.url_result(
