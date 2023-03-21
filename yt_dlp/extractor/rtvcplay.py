@@ -149,15 +149,11 @@ class RTVCPlayIE(RTVCPlayBaseIE):
         else:
             hls_url = traverse_obj(hydration, ('channel', 'hls'))
 
-        metadata = {
-            'thumbnail': traverse_obj(
-                hydration, ('channel', 'image', 'logo', 'path'),
-                ('resource', 'image', 'cover_desktop', 'path')),
-            **traverse_obj(hydration, {
-                'title': 'title',
-                'description': 'description',
-            }),
-        }
+        metadata = traverse_obj(hydration, {
+            'title': 'title',
+            'description': 'description',
+            'thumbnail': ((('channel', 'image', 'logo'), ('resource', 'image', 'cover_desktop')), 'path'),
+        }, get_all=False)
 
         # Probably it's a program's page
         if not hls_url:
