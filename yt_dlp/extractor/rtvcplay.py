@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor, ExtractorError
 from ..utils import (
+    clean_html,
     int_or_none,
     float_or_none,
     js_to_json,
@@ -170,7 +171,7 @@ class RTVCPlayIE(RTVCPlayBaseIE):
 
                 return self.playlist_result([self.url_result(episode['file'], **traverse_obj(episode, {
                     'title': 'title',
-                    'description': 'description',
+                    'description': ('description', {clean_html}),
                     'episode_number': ('chapter_number', {lambda x: int_or_none(float_or_none(x))}),
                     'season_number': 'season',
                 })) for episode in podcast_episodes], video_id, **metadata)
