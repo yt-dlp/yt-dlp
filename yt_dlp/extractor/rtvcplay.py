@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 
-class RTFVPlayBaseIE(InfoExtractor):
+class RTVCPlayBaseIE(InfoExtractor):
     _BASE_VALID_URL = r'https?://(?:www\.)?rtvcplay\.co'
 
     def _extract_player_config(self, webpage, video_id):
@@ -35,8 +35,8 @@ class RTFVPlayBaseIE(InfoExtractor):
         return formats, subtitles
 
 
-class RTVCPlayIE(RTFVPlayBaseIE):
-    _VALID_URL = RTFVPlayBaseIE._BASE_VALID_URL + r'/(?P<category>(?!embed)[^/]+)/(?:[^?#]+/)?(?P<id>[\w-]+)'
+class RTVCPlayIE(RTVCPlayBaseIE):
+    _VALID_URL = RTVCPlayBaseIE._BASE_VALID_URL + r'/(?P<category>(?!embed)[^/]+)/(?:[^?#]+/)?(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://www.rtvcplay.co/en-vivo/canal-institucional',
@@ -202,8 +202,8 @@ class RTVCPlayIE(RTFVPlayBaseIE):
         }
 
 
-class RTVCPlayEmbedIE(RTFVPlayBaseIE):
-    _VALID_URL = RTFVPlayBaseIE._BASE_VALID_URL + r'/embed/(?P<id>[\w-]+)'
+class RTVCPlayEmbedIE(RTVCPlayBaseIE):
+    _VALID_URL = RTVCPlayBaseIE._BASE_VALID_URL + r'/embed/(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://www.rtvcplay.co/embed/72b0e699-248b-4929-a4a8-3782702fa7f9',
