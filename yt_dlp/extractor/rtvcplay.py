@@ -165,7 +165,7 @@ class RTVCPlayIE(RTVCPlayBaseIE):
                 hydration, ('widgets', lambda _, y: y['type'] == 'seasonList', 'contents'),
                 get_all=False)
             if not seasons:
-                podcast_episodes = traverse_obj(hydration, ('content', 'currentContent', 'audios'))
+                podcast_episodes = hydration.get('audios')
                 if not podcast_episodes:
                     raise ExtractorError('Could not find asset_id nor program playlist nor podcast episodes')
 
