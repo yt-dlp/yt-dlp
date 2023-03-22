@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
+from ..utils import get_domain
 
 
 class AeonCoIE(InfoExtractor):
@@ -30,11 +31,41 @@ class AeonCoIE(InfoExtractor):
             'uploader_url': 'https://vimeo.com/user140352216',
             'duration': 1344
         }
+    }, {
+        'url': 'https://aeon.co/videos/chew-over-the-prisoners-dilemma-and-see-if-you-can-find-the-rational-path-out',
+        'md5': '1cfda0bf3ae24df17d00f2c0cb6cc21b',
+        'info_dict': {
+            'id': 'emyi4z-O0ls',
+            'ext': 'mp4',
+            'title': 'How to outsmart the Prisoner’s Dilemma - Lucas Husted',
+            'thumbnail': 'https://i.ytimg.com/vi_webp/emyi4z-O0ls/maxresdefault.webp',
+            'uploader': 'TED-Ed',
+            'uploader_id': '@TEDEd',
+            'uploader_url': 'http://www.youtube.com/@TEDEd',
+            'duration': 344,
+            'upload_date': '20200827',
+            'channel_id': 'UCsooa4yRKGN_zEE8iknghZA',
+            'playable_in_embed': True,
+            'description': 'md5:c0959524f08cb60f96fd010f3dfb17f3',
+            'categories': ['Education'],
+            'like_count': int,
+            'channel': 'TED-Ed',
+            'chapters': [{'start_time': 0.0, 'title': 'Intro', 'end_time': 60.0}, {'start_time': 60.0, 'title': 'The Prisoners Dilemma', 'end_time': 120.0}, {'start_time': 120.0, 'title': 'The Nash Equilibrium', 'end_time': 166.0}, {'start_time': 166.0, 'title': 'The Infinite Prisoners Dilemma', 'end_time': 199.0}, {'start_time': 199.0, 'title': 'Delta', 'end_time': 246.0}, {'start_time': 246.0, 'title': 'Spare', 'end_time': 284.0}, {'start_time': 284.0, 'title': 'Conclusion', 'end_time': 344}],
+            'channel_url': 'https://www.youtube.com/channel/UCsooa4yRKGN_zEE8iknghZA',
+            'tags': 'count:26',
+            'availability': 'public',
+            'channel_follower_count': int,
+            'view_count': int,
+            'age_limit': 0,
+            'live_status': 'not_live',
+            'comment_count': int,
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        vimeo_id = self._search_regex(r'hosterId":\s*"(?P<id>[0-9]+)', webpage, 'vimeo id')
-        vimeo_url = VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{vimeo_id}', 'https://aeon.co')
-        return self.url_result(vimeo_url, VimeoIE)
+        embed_url = self._search_regex(r'"embedUrl": *"([^"]+)"', webpage, 'url')
+        if get_domain(embed_url) == 'vimeo.com':
+            embed_url = VimeoIE._smuggle_referrer(embed_url, 'https://aeon.co')
+        return self.url_result(embed_url)
