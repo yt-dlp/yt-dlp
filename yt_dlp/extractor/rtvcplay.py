@@ -173,7 +173,7 @@ class RTVCPlayIE(RTVCPlayBaseIE):
                     self.url_result(episode['file'], url_transparent=True, **traverse_obj(episode, {
                         'title': 'title',
                         'description': ('description', {clean_html}),
-                        'episode_number': ('chapter_number', {lambda x: int_or_none(float_or_none(x))}),
+                        'episode_number': ('chapter_number', {float_or_none}, {int_or_none}),
                         'season_number': ('season', {int_or_none}),
                     })) for episode in podcast_episodes], video_id, **metadata)
 
