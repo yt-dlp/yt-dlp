@@ -174,22 +174,21 @@ class RTVCPlayIE(RTVCPlayBaseIE):
                         'title': 'title',
                         'description': ('description', {clean_html}),
                         'episode_number': ('chapter_number', {lambda x: int_or_none(float_or_none(x))}),
-                        'season_number': 'season',
+                        'season_number': ('season', {int_or_none}),
                     })) for episode in podcast_episodes], video_id, **metadata)
 
             entries = [
                 self.url_result(
-                    urljoin(url, episode['slug']), url_transparent=True, **{
-                        **traverse_obj(season, {
+                    urljoin(
+                        url, episode['slug']), url_transparent=True, **traverse_obj(season, {
                             'season': 'title',
                             'season_number': ('season', {int_or_none}),
-                        }),
-                        **traverse_obj(episode, {
+                        }), **traverse_obj(episode, {
                             'title': 'title',
                             'thumbnail': ('image', 'cover', 'path'),
                             'episode_number': ('chapter_number', {int_or_none}),
                         })
-                    })
+                )
                 for season in seasons
                 for episode in traverse_obj(season, ('contents', ...))
             ]
