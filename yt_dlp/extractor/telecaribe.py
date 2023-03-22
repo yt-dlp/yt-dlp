@@ -54,11 +54,11 @@ class TelecaribePlayIE(InfoExtractor):
 
     def _download_player_webpage(self, webpage, display_id):
         page_id = self._search_regex(
-            (r'window\.firstPageId\s*=\s*["\']([^"\']+)', r'<div[^>]+id="pageBackground_([^"]+)'),
+            (r'window\.firstPageId\s*=\s*["\']([^"\']+)', r'<div[^>]+id\s*=\s*"pageBackground_([^"]+)'),
             webpage, 'page_id')
 
         props = self._download_json(self._search_regex(
-            rf'<link[^>]+href="([^"]+)"[^>]+id="features_{page_id}"',
+            rf'<link[^>]+href\s*=\s*"([^"]+)"[^>]+id\s*=\s*"features_{page_id}"',
             webpage, 'json_props_url'), display_id)['props']['render']['compProps']
 
         return self._download_webpage(traverse_obj(props, (..., 'url'))[-1], display_id)
@@ -76,7 +76,7 @@ class TelecaribePlayIE(InfoExtractor):
 
         if not livestream_url:
             return self.playlist_from_matches(
-                re.findall(r'<a[^>]+href="([^"]+\.mp4)', player), display_id,
+                re.findall(r'<a[^>]+href\s*=\s*"([^"]+\.mp4)', player), display_id,
                 self._get_clean_title(self._og_search_title(webpage)))
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
