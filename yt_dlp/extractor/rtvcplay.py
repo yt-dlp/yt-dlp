@@ -3,11 +3,14 @@ import re
 from .common import InfoExtractor, ExtractorError
 from ..utils import (
     clean_html,
+    determine_ext,
     int_or_none,
     float_or_none,
     js_to_json,
+    mimetype2ext,
     traverse_obj,
     urljoin,
+    url_or_none,
 )
 
 
@@ -21,17 +24,18 @@ class RTVCPlayBaseIE(InfoExtractor):
 
     def _extract_formats_and_subtitles_player_config(self, player_config, video_id):
         formats, subtitles = [], {}
-        for source_type in traverse_obj(player_config, 'sources') or ():
-            for media_source in traverse_obj(player_config, ('sources', source_type)) or ():
-                if source_type == 'hls':
-                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                        media_source.get('url'), video_id, 'mp4', fatal=False)
-                    formats.extend(fmts)
-                    self._merge_subtitles(subs, target=subtitles)
-                else:
-                    formats.append({
-                        'url': media_source.get('url'),
-                    })
+        for source in traverse_obj(player_config, ('sources', ..., lambda _, v: url_or_none(v['url']))):
+            ext = mimetype2ext(source.get('mimetype'), default=determine_ext(source['url']))
+            if ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    source['url'], video_id, 'mp4', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            else:
+                formats.append({
+                    'url': source['url'],
+                    'ext': ext,
+                })
 
         return formats, subtitles
 
