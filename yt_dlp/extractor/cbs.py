@@ -169,7 +169,7 @@ class CBSIE(CBSBaseIE):
 
 
 class ParamountPressExpressIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?paramountpressexpress\.com(?:/[\w-]+)+/(?P<yt>yt-)?video/?\?watch=(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?paramountpressexpress\.com(?:/[\w-]+)+/(?P<yt>yt-)?video/?\?watch=(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.paramountpressexpress.com/cbs-entertainment/shows/survivor/video/?watch=pnzew7e2hx',
         'md5': '56631dbcadaab980d1fc47cb7b76cba4',
