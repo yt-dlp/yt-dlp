@@ -2186,7 +2186,8 @@ class GenericIE(InfoExtractor):
         self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
     def _extra_manifest_info(self, info, manifest_url):
-        if self._configuration_arg('fragment_query'):
+        fragment_query = self._configuration_arg('fragment_query', [None], casesense=True)[0]
+        if fragment_query is not None:
             fragment_query = self._configuration_arg('fragment_query', casesense=True)[0]
             info['extra_param_to_segment_url'] = (
                 urllib.parse.urlparse(fragment_query).query or fragment_query
@@ -2197,8 +2198,8 @@ class GenericIE(InfoExtractor):
             'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
         }) or None
 
-        if self._configuration_arg('variant_query'):
-            variant_query = self._configuration_arg('variant_query', casesense=True)[0]
+        variant_query = self._configuration_arg('variant_query', [None], casesense=True)[0]
+        if variant_query is not None:
             query = urllib.parse.parse_qs(
                 urllib.parse.urlparse(variant_query).query or variant_query
                 or urllib.parse.urlparse(manifest_url).query)
