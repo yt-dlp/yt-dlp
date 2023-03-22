@@ -162,7 +162,7 @@ class RTVCPlayIE(RTVCPlayBaseIE):
         # Probably it's a program's page
         if not hls_url:
             seasons = traverse_obj(
-                hydration, ('content', 'currentContent', 'widgets', lambda _, y: y['type'] == 'seasonList', 'contents'),
+                hydration, ('widgets', lambda _, y: y['type'] == 'seasonList', 'contents'),
                 get_all=False)
             if not seasons:
                 podcast_episodes = traverse_obj(hydration, ('content', 'currentContent', 'audios'))
