@@ -60,7 +60,7 @@ class HollywoodReporterPlaylistIE(InfoExtractor):
             webpage = self._download_webpage(
                 f'https://www.hollywoodreporter.com/vcategory/{slug}-{pl_id}/page/{page}/',
                 pl_id, note=f'Downloading playlist page {page}')
-            section = get_element_by_class('video-playlist-river', webpage)
+            section = get_element_by_class('video-playlist-river', webpage) or ''
 
             for url in re.findall(r'<a[^>]+href="([^"]+)"[^>]+class="c-title__link', section):
                 yield self.url_result(url, HollywoodReporterIE)
