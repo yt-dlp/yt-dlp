@@ -13,6 +13,7 @@ from ..utils import (
     LazyList,
     UnsupportedError,
     UserNotLive,
+    determine_ext,
     format_field,
     get_element_by_id,
     get_first,
@@ -219,7 +220,15 @@ class TikTokBaseIE(InfoExtractor):
                 'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
                 **add_meta, **parsed_meta,
                 'format_note': join_nonempty(
-                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' ')
+                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' '),
+                **({  # fixup slideshow formats
+                    'format_note': 'Music track',
+                    'ext': 'mp3',
+                    'acodec': 'mp3',
+                    'vcodec': 'none',
+                    'width': None,
+                    'height': None,
+                } if determine_ext(url) == 'mp3' else {})
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
