@@ -8,8 +8,10 @@ from ..utils import (
     UnsupportedError,
     clean_html,
     determine_ext,
+    format_field,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     parse_count,
     parse_iso8601,
     traverse_obj,
@@ -165,7 +167,13 @@ class RumbleEmbedIE(InfoExtractor):
 
         formats = []
         for ext, ext_info in (video.get('ua') or {}).items():
-            for height, video_info in (ext_info or {}).items():
+            if isinstance(ext_info, dict):
+                for height, video_info in ext_info.items():
+                    if not traverse_obj(video_info, ('meta', 'h', {int_or_none})):
+                        video_info.setdefault('meta', {})['h'] = height
+                ext_info = ext_info.values()
+
+            for video_info in ext_info:
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
@@ -183,7 +191,7 @@ class RumbleEmbedIE(InfoExtractor):
                     'ext': ext,
                     'acodec': 'none' if timeline else None,
                     'url': video_info['url'],
-                    'format_id': '%s-%sp' % (ext, height),
+                    'format_id': join_nonempty(ext, format_field(meta, 'h', '%sp')),
                     'format_note': 'Timeline' if timeline else None,
                     'fps': None if timeline else video.get('fps'),
                     **traverse_obj(meta, {
@@ -270,6 +278,24 @@ class RumbleIE(InfoExtractor):
             'channel_url': 'https://rumble.com/c/Redacted',
             'live_status': 'not_live',
             'thumbnail': 'https://sp.rmbl.ws/s8/1/d/x/2/O/dx2Oi.qR4e-small-The-U.S.-CANNOT-hide-this-i.jpg',
+        },
+    }, {
+        'url': 'https://rumble.com/v2e7fju-the-covid-twitter-files-drop-protecting-fauci-while-censoring-the-truth-wma.html',
+        'info_dict': {
+            'id': 'v2blzyy',
+            'ext': 'mp4',
+            'live_status': 'was_live',
+            'release_timestamp': 1679446804,
+            'description': 'md5:2ac4908ccfecfb921f8ffa4b30c1e636',
+            'release_date': '20230322',
+            'timestamp': 1679445692,
+            'duration': 4435,
+            'upload_date': '20230322',
+            'title': 'The Covid Twitter Files Drop: Protecting Fauci While Censoring The Truth w/Matt Taibbi',
+            'uploader': 'Kim Iversen',
+            'channel_url': 'https://rumble.com/c/KimIversen',
+            'channel': 'Kim Iversen',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/6/b/w/O/6bwOi.qR4e-small-The-Covid-Twitter-Files-Dro.jpg',
         },
     }]
 
