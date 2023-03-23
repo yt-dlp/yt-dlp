@@ -1393,6 +1393,7 @@ from .periscope import (
     PeriscopeIE,
     PeriscopeUserIE,
 )
+from .pgatour import PGATourIE
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
