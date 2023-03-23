@@ -563,6 +563,28 @@ class TikTokIE(TikTokBaseIE):
         },
         'skip': 'This video is unavailable',
     }, {
+        # slideshow audio-only mp3 format
+        'url': 'https://www.tiktok.com/@_le_cannibale_/video/7139980461132074283',
+        'info_dict': {
+            'id': '7139980461132074283',
+            'ext': 'mp3',
+            'title': 'TikTok video #7139980461132074283',
+            'description': '',
+            'creator': 'Antaura',
+            'uploader': '_le_cannibale_',
+            'uploader_id': '6604511138619654149',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAoShJqaw_5gvy48y3azFeFcT4jeyKWbB0VVYasOCt2tTLwjNFIaDcHAM4D-QGXFOP',
+            'artist': 'nathan !',
+            'track': 'grahamscott canon',
+            'upload_date': '20220905',
+            'timestamp': 1662406249,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
+    }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
