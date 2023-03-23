@@ -24,7 +24,6 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_duration,
-    parse_qs,
     parse_resolution,
     smuggle_url,
     str_or_none,
@@ -2187,18 +2186,23 @@ class GenericIE(InfoExtractor):
         self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
     def _extra_manifest_info(self, info, manifest_url):
-        if self._configuration_arg('fragment_query'):
-            query_string = urllib.parse.urlparse(manifest_url).query
-            if query_string:
-                info['extra_param_to_segment_url'] = query_string
+        fragment_query = self._configuration_arg('fragment_query', [None], casesense=True)[0]
+        if fragment_query is not None:
+            fragment_query = self._configuration_arg('fragment_query', casesense=True)[0]
+            info['extra_param_to_segment_url'] = (
+                urllib.parse.urlparse(fragment_query).query or fragment_query
+                or urllib.parse.urlparse(manifest_url).query or None)
 
         hex_or_none = lambda x: x if re.fullmatch(r'(0x)?[\da-f]+', x, re.IGNORECASE) else None
-        info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key'), {
+        info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key', casesense=True), {
             'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
         }) or None
 
-        if self._configuration_arg('variant_query'):
-            query = parse_qs(manifest_url)
+        variant_query = self._configuration_arg('variant_query', [None], casesense=True)[0]
+        if variant_query is not None:
+            query = urllib.parse.parse_qs(
+                urllib.parse.urlparse(variant_query).query or variant_query
+                or urllib.parse.urlparse(manifest_url).query)
             for fmt in self._downloader._get_formats(info):
                 fmt['url'] = update_url_query(fmt['url'], query)
 
