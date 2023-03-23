@@ -2188,7 +2188,6 @@ class GenericIE(InfoExtractor):
     def _extra_manifest_info(self, info, manifest_url):
         fragment_query = self._configuration_arg('fragment_query', [None], casesense=True)[0]
         if fragment_query is not None:
-            fragment_query = self._configuration_arg('fragment_query', casesense=True)[0]
             info['extra_param_to_segment_url'] = (
                 urllib.parse.urlparse(fragment_query).query or fragment_query
                 or urllib.parse.urlparse(manifest_url).query or None)
