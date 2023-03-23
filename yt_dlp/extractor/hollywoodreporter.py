@@ -1,10 +1,11 @@
-import itertools
+import functools
 import re
 
 from .common import InfoExtractor
 from .jwplatform import JWPlatformIE
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_class,
@@ -55,20 +56,17 @@ class HollywoodReporterPlaylistIE(InfoExtractor):
         }
     }]
 
-    def _entries(self, slug, pl_id):
-        for page in itertools.count(1):
-            webpage = self._download_webpage(
-                f'https://www.hollywoodreporter.com/vcategory/{slug}-{pl_id}/page/{page}/',
-                pl_id, note=f'Downloading playlist page {page}')
-            section = get_element_by_class('video-playlist-river', webpage) or ''
+    def _fetch_page(self, slug, pl_id, page):
+        page += 1
+        webpage = self._download_webpage(
+            f'https://www.hollywoodreporter.com/vcategory/{slug}-{pl_id}/page/{page}/',
+            pl_id, note=f'Downloading playlist page {page}')
+        section = get_element_by_class('video-playlist-river', webpage) or ''
 
-            for url in re.findall(r'<a[^>]+href="([^"]+)"[^>]+class="c-title__link', section):
-                yield self.url_result(url, HollywoodReporterIE)
-
-            button = get_element_by_class('more-stories-button', webpage) or ''
-            if not self._search_regex(r'<a[^>]+href="([^"]+/page/\d+/)"', button, 'button', default=None):
-                break
+        for url in re.findall(r'<a[^>]+href="([^"]+)"[^>]+class="c-title__link', section):
+            yield self.url_result(url, HollywoodReporterIE)
 
     def _real_extract(self, url):
         slug, pl_id = self._match_valid_url(url).group('slug', 'id')
-        return self.playlist_result(self._entries(slug, pl_id), pl_id, slug)
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(self._fetch_page, slug, pl_id), 15), pl_id, slug)
