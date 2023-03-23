@@ -13,6 +13,7 @@ from ..utils import (
     LazyList,
     UnsupportedError,
     UserNotLive,
+    determine_ext,
     format_field,
     get_element_by_id,
     get_first,
@@ -204,6 +205,16 @@ class TikTokBaseIE(InfoExtractor):
 
         known_resolutions = {}
 
+        def mp3_meta(url):
+            return {
+                'format_note': 'Music track',
+                'ext': 'mp3',
+                'acodec': 'mp3',
+                'vcodec': 'none',
+                'width': None,
+                'height': None,
+            } if determine_ext(url) == 'mp3' else {}
+
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
             if res:
@@ -219,7 +230,8 @@ class TikTokBaseIE(InfoExtractor):
                 'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
                 **add_meta, **parsed_meta,
                 'format_note': join_nonempty(
-                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' ')
+                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' '),
+                **mp3_meta(url),
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
@@ -553,6 +565,28 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
         },
         'skip': 'This video is unavailable',
+    }, {
+        # slideshow audio-only mp3 format
+        'url': 'https://www.tiktok.com/@_le_cannibale_/video/7139980461132074283',
+        'info_dict': {
+            'id': '7139980461132074283',
+            'ext': 'mp3',
+            'title': 'TikTok video #7139980461132074283',
+            'description': '',
+            'creator': 'Antaura',
+            'uploader': '_le_cannibale_',
+            'uploader_id': '6604511138619654149',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAoShJqaw_5gvy48y3azFeFcT4jeyKWbB0VVYasOCt2tTLwjNFIaDcHAM4D-QGXFOP',
+            'artist': 'nathan !',
+            'track': 'grahamscott canon',
+            'upload_date': '20220905',
+            'timestamp': 1662406249,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
