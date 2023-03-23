@@ -1,5 +1,7 @@
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from .theplatform import ThePlatformFeedIE
+from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
     extract_attributes,
@@ -258,7 +260,7 @@ class ParamountPressExpressIE(InfoExtractor):
     def _real_extract(self, url):
         display_id, is_youtube = self._match_valid_url(url).group('id', 'yt')
         if is_youtube:
-            return self.url_result(display_id, 'Youtube')
+            return self.url_result(display_id, YoutubeIE)
 
         webpage = self._download_webpage(url, display_id)
         video_id = self._search_regex(
@@ -272,4 +274,4 @@ class ParamountPressExpressIE(InfoExtractor):
 
         return self.url_result(smuggle_url(
             f'https://players.brightcove.net/{account_id}/{player_id}_{embed}/index.html?videoId={video_id}',
-            {'token': token}), 'BrightcoveNew')
+            {'token': token}), BrightcoveNewIE)
