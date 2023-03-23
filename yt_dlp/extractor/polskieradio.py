@@ -245,6 +245,15 @@ class PolskieRadioAuditionIE(InfoExtractor):
             'thumbnail': r're:https://static\.prsa\.pl/images/.+',
         },
         'playlist_mincount': 722,
+    }, {
+        # some articles were "promoted to main page" and thus link to old frontend
+        'url': 'https://trojka.polskieradio.pl/audycja/305',
+        'info_dict': {
+            'id': '305',
+            'title': 'Co w mowie piszczy?',
+            'thumbnail': r're:https://static\.prsa\.pl/images/.+',
+        },
+        'playlist_count': 1523,
     }]
 
     def _call_lp3(self, path, query, video_id, note):
@@ -285,7 +294,6 @@ class PolskieRadioAuditionIE(InfoExtractor):
             for article in page['data']:
                 yield {
                     '_type': 'url_transparent',
-                    'ie_key': PolskieRadioIE.ie_key(),
                     'id': str(article['id']),
                     'url': article['url'],
                     'title': article.get('shortTitle'),
