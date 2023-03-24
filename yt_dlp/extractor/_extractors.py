@@ -2431,6 +2431,8 @@ from .zingmp3 import (
     ZingMp3HubIE,
     ZingMp3LiveRadioIE,
     ZingMp3PostCastEpisodeIE,
+    ZingMp3PostCastCategoriesIE,
+    ZingMp3PostCastNewIE,
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE

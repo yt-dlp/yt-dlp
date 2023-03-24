@@ -32,6 +32,9 @@ class ZingMp3BaseIE(InfoExtractor):
         'album': '/api/v2/page/get/playlist',
         'pgr': '/api/v2/page/get/podcast-program',
         'pgr-list': '/api/v2/podcast/episode/get/list',
+        'cgr': '/api/v2/page/get/podcast-category',
+        'cgr-list': '/api/v2/podcast/program/get/list-by-cate',
+        'cgrs': '/api/v2/page/get/podcast-categories',
         # Chart
         'zing-chart': '/api/v2/page/get/chart-home',
         'zing-chart-tuan': '/api/v2/page/get/week-chart',
@@ -42,6 +45,10 @@ class ZingMp3BaseIE(InfoExtractor):
         'user-list-song': '/api/v2/song/get/list',
         'user-list-video': '/api/v2/video/get/list',
         'hub': '/api/v2/page/get/hub-detail',
+        'new-release': '/api/v2/chart/get/new-release',
+        'top100': '/api/v2/page/get/top-100',
+        'podcast-discover': '/api/v2/podcast/program/get/list-by-type',
+        'top-podcast': '/api/v2/podcast/program/get/top-episode',
     }
 
     def _api_url(self, url_type, params):
@@ -266,7 +273,7 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
 
 
 class ZingMp3ChartHomeIE(ZingMp3BaseIE):
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:zing-chart|moi-phat-hanh))/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:zing-chart|moi-phat-hanh|top100|podcast-discover))/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://zingmp3.vn/zing-chart',
         'info_dict': {
@@ -279,13 +286,42 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
             'id': 'moi-phat-hanh',
         },
         'playlist_mincount': 100,
+    }, {
+        'url': 'https://zingmp3.vn/top100',
+        'info_dict': {
+            'id': 'top100',
+        },
+        'playlist_mincount': 50,
+    }, {
+        'url': 'https://zingmp3.vn/podcast-discover',
+        'info_dict': {
+            'id': 'podcast-discover',
+        },
+        'playlist_mincount': 150,
+    }, {
+        'url': 'https://zingmp3.vn/cgr',
+        'info_dict': {
+            'id': 'podcast-discover',
+        },
+        'playlist_mincount': 150,
     }]
-    IE_NAME = 'zingmp3:chart-home'
 
     def _real_extract(self, url):
         url_type = self._match_id(url)
-        data = self._call_api(url_type, {'id': url_type})
-        items = traverse_obj(data, ('RTChart', 'items') if url_type == 'zing-chart' else 'items')
+        params = {'id': url_type}
+        if url_type == 'podcast-discover':
+            params.update({'type': 'discover'})
+        data = self._call_api(url_type, params)
+        items = []
+        if url_type == 'top100':
+            self.IE_NAME = 'zingmp3:top100'
+            items.extend(traverse_obj(data, (lambda _, v: v['items'], 'items', ...)))
+        elif url_type == 'podcast-discover':
+            self.IE_NAME = 'zingmp3:postcast-discover'
+            items.extend(traverse_obj(data, 'items'))
+        else:
+            self.IE_NAME = 'zingmp3:chart-home'
+            items.extend(traverse_obj(data, ('RTChart', 'items') if url_type == 'zing-chart' else 'items'))
         return self.playlist_result(self._parse_items(items), url_type)
 
 
@@ -369,7 +405,7 @@ class ZingMp3ChartMusicVideoIE(ZingMp3BaseIE):
 
 
 class ZingMp3UserIE(ZingMp3BaseIE):
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<user>[^/]+)/(?P<type>bai-hat|single|album|video)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<user>[^/]+)/(?P<type>bai-hat|single|album|video|song)/?(?:[?#]|$)'
     IE_NAME = 'zingmp3:user'
     _TESTS = [{
         'url': 'https://zingmp3.vn/Mr-Siro/bai-hat',
@@ -403,6 +439,18 @@ class ZingMp3UserIE(ZingMp3BaseIE):
             'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
         },
         'playlist_mincount': 15,
+    }, {
+        'url': 'https://zingmp3.vn/new-release/song',
+        'info_dict': {
+            'id': 'new-release-song',
+        },
+        'playlist_mincount': 50,
+    }, {
+        'url': 'https://zingmp3.vn/new-release/album',
+        'info_dict': {
+            'id': 'new-release-album',
+        },
+        'playlist_mincount': 20,
     }]
 
     def _fetch_page(self, user_id, url_type, page):
@@ -415,20 +463,29 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         })
 
     def _real_extract(self, url):
-        user_alias, url_type = self._match_valid_url(url).group('user', 'type')
+        alias, url_type = self._match_valid_url(url).group('user', 'type')
         if not url_type:
             url_type = 'bai-hat'
 
-        user_info = self._call_api('info-artist', {}, user_alias, query={'alias': user_alias})
-        if url_type in ('bai-hat', 'video'):
-            entries = self._paged_list(user_info['id'], url_type)
+        user_info = self._call_api('info-artist', {}, alias, query={'alias': alias})
+
+        # Handle for new-release
+        if alias == 'new-release' and url_type in ('song', 'album'):
+            self._IE_NAME = 'zingmp3:NewRelease'
+            _id = f'{alias}-{url_type}'
+            data = self._call_api('new-release', params={"type": url_type}, display_id=_id)
+            return self.playlist_result(self._parse_items(data), _id)
         else:
-            entries = self._parse_items(traverse_obj(user_info, (
-                'sections',
-                lambda _, v: v['sectionId'] == 'aAlbum' if url_type == 'album' else v['sectionId'] == 'aSingle',
-                'items', ...)))
-        return self.playlist_result(
-            entries, user_info['id'], f'{user_info.get("name")} - {url_type}', user_info.get('biography'))
+            # Handle for user/artist
+            if url_type in ('bai-hat', 'video'):
+                entries = self._paged_list(user_info['id'], url_type)
+            else:
+                entries = self._parse_items(traverse_obj(user_info, (
+                    'sections',
+                    lambda _, v: v['sectionId'] == 'aAlbum' if url_type == 'album' else v['sectionId'] == 'aSingle',
+                    'items', ...)))
+            return self.playlist_result(
+                entries, user_info['id'], f'{user_info.get("name")} - {url_type}', user_info.get('biography'))
 
 
 class ZingMp3HubIE(ZingMp3BaseIE):
@@ -517,11 +574,19 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
 
 class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
     IE_NAME = 'zingmp3:PostcastEpisode'
-    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'pgr'
+    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'pgr|cgr'
     _TESTS = [{
         'url': 'https://zingmp3.vn/pgr/How2Money-x-Doctor-Housing/6BUUFAEO.html',
         'info_dict': {
             'id': '6BUUFAEO',
+            'title': 'How2Money x Doctor Housing',
+            'description': 'md5:3c1eb04aaa28fee0805629d9b766d05c'
+        },
+        'playlist_mincount': 20,
+    }, {
+        'url': 'https://zingmp3.vn/cgr/Am-nhac/IWZ980AO.html',
+        'info_dict': {
+            'id': 'IWZ980AO',
             'title': 'How2Money x Doctor Housing',
             'description': 'md5:3c1eb04aaa28fee0805629d9b766d05c'
         },
@@ -538,6 +603,48 @@ class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
     def _real_extract(self, url):
         post_cast_id, url_type = self._match_valid_url(url).group('id', 'type')
         post_cast_info = self._call_api(url_type, {'id': post_cast_id})
-        entries = self._paged_list(post_cast_id, 'pgr-list')
+        entries = self._paged_list(post_cast_id, 'pgr-list' if url_type == 'pgr' else 'cgr-list')
         return self.playlist_result(
             entries, post_cast_id, post_cast_info.get('title'), post_cast_info.get('description'))
+
+
+class ZingMp3PostCastCategoriesIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:postcast-categories'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:cgr|top-podcast))/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://zingmp3.vn/cgr',
+        'info_dict': {
+            'id': 'cgr',
+        },
+        'playlist_mincount': 5,
+    }, {
+        'url': 'https://zingmp3.vn/top-podcast',
+        'info_dict': {
+            'id': 'top-podcast',
+        },
+        'playlist_mincount': 50,
+    }]
+
+    def _real_extract(self, url):
+        url_type = self._match_id(url)
+        data = self._call_api('cgrs' if url_type == 'cgr' else url_type, {'id': url_type})
+        items = traverse_obj(data, 'items')
+        return self.playlist_result(self._parse_items(items), url_type)
+
+
+class ZingMp3PostCastNewIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:postcast-new'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>podcast-new)/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://zingmp3.vn/podcast-new',
+        'info_dict': {
+            'id': 'podcast-new',
+        },
+        'playlist_mincount': 5,
+    }]
+
+    def _real_extract(self, url):
+        url_type = self._match_id(url)
+        data = self._call_api('podcast-discover', {'id': url_type, 'type': 'new'})
+        items = traverse_obj(data, 'items')
+        return self.playlist_result(self._parse_items(items), url_type)
