@@ -256,12 +256,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with: # 3.10 is used because I don't need win7 support
+        with: # 3.11 is used because I don't need win7 support
           python-version: "3.11"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python -m pip install -U pip setuptools wheel py2exe
           pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.9.0-py3-none-any.whl" -r requirements.txt
+
       - name: Prepare
         run: |
           python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
