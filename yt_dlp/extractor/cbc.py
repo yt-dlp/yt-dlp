@@ -16,6 +16,8 @@ from ..utils import (
     strip_or_none,
     try_get,
     ExtractorError,
+    get_element_by_id,
+    parse_iso8601
 )
 
 
@@ -404,7 +406,7 @@ class CBCGemIE(InfoExtractor):
 
 class CBCGemPlaylistIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:playlist'
-    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))/?(?:[?#]|$)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))/?(?:[?#]|$)'
     _TESTS = [{
         # TV show playlist, all public videos
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
@@ -473,7 +475,7 @@ class CBCGemPlaylistIE(InfoExtractor):
 
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
-    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>\d+)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/live(?:-event)?/(?P<id>\d+)'
     _TEST = {
         'url': 'https://gem.cbc.ca/live/920604739687',
         'info_dict': {
@@ -490,32 +492,32 @@ class CBCGemLiveIE(InfoExtractor):
         'skip': 'Live might have ended',
     }
 
-    # It's unclear where the chars at the end come from, but they appear to be
-    # constant. Might need updating in the future.
-    # There are two URLs, some livestreams are in one, and some
-    # in the other. The JSON schema is the same for both.
-    _API_URLS = ['https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT', 'https://tpfeed.cbc.ca/f/ExhSPC/FNiv9xQx_BnT']
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        video_info = json.loads(get_element_by_id('__NEXT_DATA__', webpage))['props']['pageProps']['data']
 
-        for api_url in self._API_URLS:
+        # Two types of metadata JSON
+        if not video_info.get('formattedIdMedia'):
             video_info = next((
-                stream for stream in self._download_json(api_url, video_id)['entries']
-                if stream.get('guid') == video_id), None)
-            if video_info:
-                break
-        else:
+                item for item in video_info['freeTv']['items']
+                if item.get('key') == video_id), None)
+
+        video_stream_id = video_info.get('formattedIdMedia')
+        if not video_stream_id:
             raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
+
+        stream_data = self._download_json(
+            f'https://services.radio-canada.ca/media/validation/v2/?appCode=mpx&connectionType=hd&deviceType=ipad&idMedia={video_stream_id}&multibitrate=true&output=json&tech=hls&manifestType=desktop',
+            video_id)
 
         return {
             '_type': 'url_transparent',
-            'ie_key': 'ThePlatform',
-            'url': video_info['content'][0]['url'],
-            'id': video_id,
+            'url': stream_data['url'],
+            'ie_key': 'Generic',
+            'is_live': True,
             'title': video_info.get('title'),
             'description': video_info.get('description'),
-            'tags': try_get(video_info, lambda x: x['keywords'].split(', ')),
-            'thumbnail': video_info.get('cbc$staticImage'),
-            'is_live': True,
+            'thumbnail': try_get(video_info, lambda x: x['images']['card']['url'], str),
+            'timestamp': parse_iso8601(video_info.get('airDate'))
         }
