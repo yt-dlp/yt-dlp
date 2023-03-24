@@ -2983,6 +2983,8 @@ class InfoExtractor:
                         'protocol': 'ism',
                         'fragments': fragments,
                         'has_drm': ism_doc.find('Protection') is not None,
+                        'language': stream_language,
+                        'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,
