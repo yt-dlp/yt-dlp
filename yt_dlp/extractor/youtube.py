@@ -4759,7 +4759,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 break
             continuation_token = continuation.get('continuation')
             if continuation_token is not None and continuation_token in seen_continuations:
-                self.report_warning('Detected YouTube feed looping - assuming end of feed.')
+                self.write_debug('Detected YouTube feed looping - assuming end of feed.')
                 break
             seen_continuations.add(continuation_token)
             headers = self.generate_api_headers(
