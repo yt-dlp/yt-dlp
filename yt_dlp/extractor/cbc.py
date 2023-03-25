@@ -526,8 +526,8 @@ class CBCGemLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_key = self._match_valid_url(url).group('id', 'key')
-        webpage = self._download_webpage(url, video_key)
-        video_info = self._search_nextjs_data(webpage, video_key)['props']['pageProps']['data']
+        webpage = self._download_webpage(url, video_id)
+        video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
         # Two types of metadata JSON
         if not video_info.get('formattedIdMedia'):
