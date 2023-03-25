@@ -475,7 +475,7 @@ class CBCGemPlaylistIE(InfoExtractor):
 
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
-    _VALID_URL = r'https?://gem\.cbc\.ca/live(?:-event)?/(?P<id>\d+)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?P<id>live(?:-event)?/(?P<key>\d+))'
     _TESTS = [
         {
             'url': 'https://gem.cbc.ca/live/920604739687',
@@ -525,14 +525,16 @@ class CBCGemLiveIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
+        match = self._match_valid_url(url)
+        video_id = match.group('id')
+        video_key = match.group('key')
+        webpage = self._download_webpage(url, video_key)
+        video_info = self._search_nextjs_data(webpage, video_key)['props']['pageProps']['data']
 
         # Two types of metadata JSON
         if not video_info.get('formattedIdMedia'):
             video_info = traverse_obj(
-                video_info, ('freeTv', 'items', lambda _, v: v['key'] == video_id, {dict}),
+                video_info, ('freeTv', 'items', lambda _, v: v['key'] == video_key, {dict}),
                 get_all=False, default={})
 
         video_stream_id = video_info.get('formattedIdMedia')
@@ -540,7 +542,7 @@ class CBCGemLiveIE(InfoExtractor):
             raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
         stream_data = self._download_json(
-            'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
+            'https://services.radio-canada.ca/media/validation/v2/', video_key, query={
                 'appCode': 'mpx',
                 'connectionType': 'hd',
                 'deviceType': 'ipad',
@@ -552,10 +554,10 @@ class CBCGemLiveIE(InfoExtractor):
             })
 
         return {
-            'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(stream_data['url'], video_key, 'mp4', live=True),
             'is_live': True,
             **traverse_obj(video_info, {
-                'id': 'url',
                 'title': 'title',
                 'description': 'description',
                 'thumbnail': ('images', 'card', 'url'),
