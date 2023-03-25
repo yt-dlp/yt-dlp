@@ -3385,11 +3385,10 @@ def js_to_json(code, vars={}, *, strict=False):
                 else escape)
 
     def template_substitute(match):
-        stringified = js_to_json(match.group(1), vars, strict=strict)
-        loaded = json.loads(stringified)
-        if isinstance(loaded, str):
-            return loaded
-        return stringified
+        evaluated = js_to_json(match.group(1), vars, strict=strict)
+        if evaluated[0] == '"':
+            return json.loads(evaluated)
+        return evaluated
 
     def fix_kv(m):
         v = m.group(0)
