@@ -525,9 +525,7 @@ class CBCGemLiveIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url)
-        video_id = match.group('id')
-        video_key = match.group('key')
+        video_id, video_key = self._match_valid_url(url).group('id', 'key')
         webpage = self._download_webpage(url, video_key)
         video_info = self._search_nextjs_data(webpage, video_key)['props']['pageProps']['data']
 
