@@ -495,7 +495,7 @@ class CBCGemLiveIE(InfoExtractor):
         {
             'url': 'https://gem.cbc.ca/live/44',
             'info_dict': {
-                'id': 'live/44',
+                'id': 'live-44',
                 'ext': 'mp4',
                 'is_live': True,
                 'title': r're:^Ottawa [0-9\-: ]+',
@@ -509,7 +509,7 @@ class CBCGemLiveIE(InfoExtractor):
         {
             'url': 'https://gem.cbc.ca/live-event/10835',
             'info_dict': {
-                'id': 'live-event/10835',
+                'id': 'live-event-10835',
                 'ext': 'mp4',
                 'is_live': True,
                 'title': r're:^The National \| Biden’s trip wraps up, Paltrow testifies, Bird flu [0-9\-: ]+',
@@ -526,6 +526,7 @@ class CBCGemLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_key = self._match_valid_url(url).group('id', 'key')
+        video_id = video_id.replace('/', '-')
         webpage = self._download_webpage(url, video_id)
         video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
