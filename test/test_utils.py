@@ -1195,6 +1195,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(js_to_json('`${name}${name}`', {'name': '"X"'}), '"XX"')
         self.assertEqual(js_to_json('`${name}${name}`', {'name': '5'}), '"55"')
         self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
+        self.assertEqual(js_to_json('`${name}`', {}), '"name"')
 
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
