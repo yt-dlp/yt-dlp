@@ -2,10 +2,12 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    js_to_json,
+    UnsupportedError,
     extract_attributes,
-    try_get,
     int_or_none,
+    js_to_json,
+    parse_iso8601,
+    try_get,
 )
 
 
@@ -60,6 +62,17 @@ class TagesschauIE(InfoExtractor):
             'id': 'audio-29417-1',
             'ext': 'mp3',
             'title': 'EU-Gipfel: Im Verbrennerstreit hat Deutschland maximalen Schaden angerichtet',
+        },
+    }, {
+        'url': 'https://www.tagesschau.de/multimedia/audio/podcast-11km-327.html',
+        'info_dict': {
+            'id': 'podcast-11km-327',
+            'ext': 'mp3',
+            'title': 'Gewalt in der Kita – Wenn Erzieher:innen schweigen',
+            'upload_date': '20230322',
+            'timestamp': 1679482808,
+            'thumbnail': 'https://www.tagesschau.de/multimedia/audio/podcast-11km-329~_v-original.jpg',
+            'description': 'md5:dad059931fe4b3693e3656e93a249848',
         },
     }, {
         'url': 'http://www.tagesschau.de/multimedia/sendung/tsg-3771.html',
@@ -119,7 +132,7 @@ class TagesschauIE(InfoExtractor):
                 formats = []
                 if media_url.endswith('master.m3u8'):
                     formats = self._extract_m3u8_formats(media_url, video_id, 'mp4', m3u8_id='hls')
-                elif media_url.endswith('.hi.mp3') and media_url.startswith('https://download'):
+                elif media_url.endswith('.mp3'):
                     formats = [{
                         'url': media_url,
                         'vcodec': 'none',
@@ -132,20 +145,19 @@ class TagesschauIE(InfoExtractor):
                     'duration': int_or_none(try_get(video, lambda x: x['mc']['_duration'])),
                     'formats': formats
                 })
+
+        if not entries:
+            raise UnsupportedError(url)
+
         if len(entries) > 1:
             return self.playlist_result(entries, display_id, title)
-        formats = entries[0]['formats']
-        video_info = self._search_json_ld(webpage, video_id)
-        description = video_info.get('description')
-        thumbnail = self._og_search_thumbnail(webpage) or video_info.get('thumbnail')
-        timestamp = video_info.get('timestamp')
-        title = title or video_info.get('description')
 
         return {
             'id': display_id,
             'title': title,
-            'thumbnail': thumbnail,
-            'formats': formats,
-            'timestamp': timestamp,
-            'description': description,
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'formats': entries[0]['formats'],
+            'timestamp': parse_iso8601(self._html_search_meta('date', webpage)),
+            'description': self._og_search_description(webpage),
+            'duration': entries[0]['duration'],
         }
