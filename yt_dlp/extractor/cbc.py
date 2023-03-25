@@ -475,7 +475,7 @@ class CBCGemPlaylistIE(InfoExtractor):
 
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
-    _VALID_URL = r'https?://gem\.cbc\.ca/(?P<id>live(?:-event)?/(?P<key>\d+))'
+    _VALID_URL = r'https?://gem\.cbc\.ca/live(?:-event)?/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://gem.cbc.ca/live/920604739687',
@@ -495,7 +495,7 @@ class CBCGemLiveIE(InfoExtractor):
         {
             'url': 'https://gem.cbc.ca/live/44',
             'info_dict': {
-                'id': 'live-44',
+                'id': '44',
                 'ext': 'mp4',
                 'is_live': True,
                 'title': r're:^Ottawa [0-9\-: ]+',
@@ -509,7 +509,7 @@ class CBCGemLiveIE(InfoExtractor):
         {
             'url': 'https://gem.cbc.ca/live-event/10835',
             'info_dict': {
-                'id': 'live-event-10835',
+                'id': '10835',
                 'ext': 'mp4',
                 'is_live': True,
                 'title': r're:^The National \| Biden’s trip wraps up, Paltrow testifies, Bird flu [0-9\-: ]+',
@@ -525,7 +525,7 @@ class CBCGemLiveIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id, video_key = self._match_valid_url(url).group('id', 'key')
+        video_id = self._match_id(url)
         video_id = video_id.replace('/', '-')
         webpage = self._download_webpage(url, video_id)
         video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
@@ -533,7 +533,10 @@ class CBCGemLiveIE(InfoExtractor):
         # Two types of metadata JSON
         if not video_info.get('formattedIdMedia'):
             video_info = traverse_obj(
-                video_info, ('freeTv', 'items', lambda _, v: v['key'] == video_key, {dict}),
+                video_info,
+                ('freeTv', 'items', lambda _, v: v['key'] == video_id, {dict}),
+                # Sub-level for Olympic Channel and CBC News Explore
+                ('streams', ..., 'items', lambda _, v: v['key'] == video_id, {dict}),
                 get_all=False, default={})
 
         video_stream_id = video_info.get('formattedIdMedia')
