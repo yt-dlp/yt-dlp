@@ -553,7 +553,7 @@ class CBCGemLiveIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(stream_data['url'], video_key, 'mp4', live=True),
+            'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
             'is_live': True,
             **traverse_obj(video_info, {
                 'title': 'title',
