@@ -455,21 +455,28 @@ class TwitchVodIE(TwitchBaseIE):
             vod_id = 'v%s' % vod_id
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
         is_live = None
+        thumbnails = None
         if thumbnail:
             if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
-                is_live, thumbnail = True, None
+                is_live, thumbnails = True, None
             else:
                 is_live = False
-                for p in ('width', 'height'):
-                    thumbnail = thumbnail.replace('{%s}' % p, '0')
-                thumbnail = re.sub(r"(\d+)x(\d+)\.jpg", "0x0.jpg", thumbnail)
+                # for p in ('width', 'height'):
+                    # thumbnail = thumbnail.replace('{%s}' % p, '0')
+                common_res = [(0, 0), (160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
+                thumbnails = [{
+                    'url': re.sub(r'\d+x\d+\.jpg', f'{w}x{h}.jpg', thumbnail),
+                    'width': w,
+                    'height': h,
+                } for w, h in common_res]
+                thumbnails.append({'url': thumbnail})
 
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
@@ -1043,7 +1050,14 @@ class TwitchStreamIE(TwitchBaseIE):
         thumbnail = url_or_none(try_get(
             gql, lambda x: x[2]['data']['user']['stream']['previewImageURL'],
             compat_str))
-        thumbnail = re.sub(r"(\d+)x(\d+)\.jpg", "0x0.jpg", thumbnail)
+        common_res = [(0, 0), (160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
+        thumbnails = [{
+            'url': re.sub(r'\d+x\d+\.jpg', f'{w}x{h}.jpg', thumbnail),
+            'width': w,
+            'height': h,
+        } for w, h in common_res] if thumbnail else None
+        if thumbnails:
+            thumbnails.append({'url': thumbnail})
 
         title = uploader or channel_name
         stream_type = stream.get('type')
@@ -1055,7 +1069,7 @@ class TwitchStreamIE(TwitchBaseIE):
             'display_id': channel_name,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'uploader': uploader,
             'uploader_id': channel_name,
             'timestamp': timestamp,
