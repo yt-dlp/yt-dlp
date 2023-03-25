@@ -16,7 +16,6 @@ from ..utils import (
     merge_dicts,
     multipart_encode,
     parse_duration,
-    random_birthday,
     traverse_obj,
     try_call,
     try_get,
@@ -90,11 +89,10 @@ class CDAIE(InfoExtractor):
     }]
 
     def _download_age_confirm_page(self, url, video_id, *args, **kwargs):
-        form_data = random_birthday('rok', 'miesiac', 'dzien')
-        form_data.update({'return': url, 'module': 'video', 'module_id': video_id})
+        form_data = {'age_confirm': ''}
         data, content_type = multipart_encode(form_data)
         return self._download_webpage(
-            urljoin(url, '/a/validatebirth'), video_id, *args,
+            url, video_id, *args,
             data=data, headers={
                 'Referer': url,
                 'Content-Type': content_type,
@@ -209,7 +207,7 @@ class CDAIE(InfoExtractor):
             self.raise_geo_restricted()
 
         need_confirm_age = False
-        if self._html_search_regex(r'(<form[^>]+action="[^"]*/a/validatebirth[^"]*")',
+        if self._html_search_regex(r'(<button[^>]+name="[^"]*age_confirm[^"]*")',
                                    webpage, 'birthday validate form', default=None):
             webpage = self._download_age_confirm_page(
                 url, video_id, note='Confirming age')
