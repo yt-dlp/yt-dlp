@@ -1962,6 +1962,7 @@ from .traileraddict import TrailerAddictIE
 from .triller import (
     TrillerIE,
     TrillerUserIE,
+    TrillerShortIE,
 )
 from .trilulilu import TriluliluIE
 from .trovo import (

@@ -5,6 +5,8 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    HEADRequest,
+    UnsupportedError,
     determine_ext,
     int_or_none,
     parse_resolution,
@@ -291,3 +293,37 @@ class TrillerUserIE(TrillerBaseIE):
             username, note='Downloading user info', headers=self._API_HEADERS)['user'])
 
         return self.playlist_result(self._entries(username, user_id), user_id, username)
+
+
+class TrillerShortIE(InfoExtractor):
+    _VALID_URL = r'https?://v\.triller\.co/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://v.triller.co/WWZNWk',
+        'md5': '5eb8dc2c971bd8cd794ec9e8d5e9d101',
+        'info_dict': {
+            'id': '66210052',
+            'ext': 'mp4',
+            'title': 'md5:2dfc89d154cd91a4a18cd9582ba03e16',
+            'display_id': 'f4480e1f-fb4e-45b9-a44c-9e6c679ce7eb',
+            'thumbnail': r're:^https://uploads\.cdn\.triller\.co/.+\.jpg$',
+            'description': 'md5:2dfc89d154cd91a4a18cd9582ba03e16',
+            'uploader': 'statefairent',
+            'uploader_id': '487545193',
+            'creator': 'Official Summer Fair of LA',
+            'timestamp': 1629655457,
+            'upload_date': '20210822',
+            'duration': 19,
+            'view_count': int,
+            'like_count': int,
+            'artist': 'Unknown',
+            'track': 'Unknown',
+            'uploader_url': 'https://triller.co/@statefairent',
+            'comment_count': int,
+        },
+    }]
+
+    def _real_extract(self, url):
+        real_url = self._request_webpage(HEADRequest(url), self._match_id(url)).geturl()
+        if self.suitable(real_url):  # Prevent infinite loop in case redirect fails
+            raise UnsupportedError(real_url)
+        return self.url_result(real_url)
