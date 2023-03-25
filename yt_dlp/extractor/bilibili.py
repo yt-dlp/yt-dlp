@@ -324,13 +324,12 @@ class BiliBiliIE(BilibiliBaseIE):
         webpage = self._download_webpage(url, video_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
 
-        if 'videoData' in initial_state:
-            is_festival = False
+        is_festival = 'videoData' not in initial_state
+        if is_festival:
+            video_data = initial_state['videoInfo']
+        else:
             play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
             video_data = initial_state['videoData']
-        else:
-            is_festival = True
-            video_data = initial_state['videoInfo']
 
         video_id, title = video_data['bvid'], video_data.get('title')
 
