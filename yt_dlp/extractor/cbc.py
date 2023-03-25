@@ -540,7 +540,7 @@ class CBCGemLiveIE(InfoExtractor):
             raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
         stream_data = self._download_json(
-            'https://services.radio-canada.ca/media/validation/v2/', video_key, query={
+            'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
                 'appCode': 'mpx',
                 'connectionType': 'hd',
                 'deviceType': 'ipad',
