@@ -8,16 +8,16 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
+    ExtractorError,
     int_or_none,
     join_nonempty,
     js_to_json,
     orderedSet,
+    parse_iso8601,
     smuggle_url,
     strip_or_none,
+    traverse_obj,
     try_get,
-    ExtractorError,
-    get_element_by_id,
-    parse_iso8601
 )
 
 
@@ -476,48 +476,89 @@ class CBCGemPlaylistIE(InfoExtractor):
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
     _VALID_URL = r'https?://gem\.cbc\.ca/live(?:-event)?/(?P<id>\d+)'
-    _TEST = {
-        'url': 'https://gem.cbc.ca/live/920604739687',
-        'info_dict': {
-            'title': 'Ottawa',
-            'description': 'The live TV channel and local programming from Ottawa',
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
-            'is_live': True,
-            'id': 'AyqZwxRqh8EH',
-            'ext': 'mp4',
-            'timestamp': 1492106160,
-            'upload_date': '20170413',
-            'uploader': 'CBCC-NEW',
+    _TESTS = [
+        {
+            'url': 'https://gem.cbc.ca/live/920604739687',
+            'info_dict': {
+                'title': 'Ottawa',
+                'description': 'The live TV channel and local programming from Ottawa',
+                'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
+                'is_live': True,
+                'id': 'AyqZwxRqh8EH',
+                'ext': 'mp4',
+                'timestamp': 1492106160,
+                'upload_date': '20170413',
+                'uploader': 'CBCC-NEW',
+            },
+            'skip': 'Live might have ended',
         },
-        'skip': 'Live might have ended',
-    }
+        {
+            'url': 'https://gem.cbc.ca/live/44',
+            'info_dict': {
+                'id': 'live/44',
+                'ext': 'mp4',
+                'is_live': True,
+                'title': r're:^Ottawa [0-9\-: ]+',
+                'description': 'The live TV channel and local programming from Ottawa',
+                'live_status': 'is_live',
+                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*'
+            },
+            'params': {'skip_download': True},
+            'skip': 'Live might have ended',
+        },
+        {
+            'url': 'https://gem.cbc.ca/live-event/10835',
+            'info_dict': {
+                'id': 'live-event/10835',
+                'ext': 'mp4',
+                'is_live': True,
+                'title': r're:^The National \| Biden’s trip wraps up, Paltrow testifies, Bird flu [0-9\-: ]+',
+                'description': 'March 24, 2023 | President Biden’s Ottawa visit ends with big pledges from both countries. Plus, Gwyneth Paltrow testifies in her ski collision trial.',
+                'live_status': 'is_live',
+                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*',
+                'timestamp': 1679706000,
+                'upload_date': '20230325',
+            },
+            'params': {'skip_download': True},
+            'skip': 'Live might have ended',
+        }
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        video_info = json.loads(get_element_by_id('__NEXT_DATA__', webpage))['props']['pageProps']['data']
+        video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
         # Two types of metadata JSON
         if not video_info.get('formattedIdMedia'):
-            video_info = next((
-                item for item in video_info['freeTv']['items']
-                if item.get('key') == video_id), None)
+            video_info = traverse_obj(
+                video_info, ('freeTv', 'items', lambda _, v: v['key'] == video_id, {dict}),
+                get_all=False, default={})
 
         video_stream_id = video_info.get('formattedIdMedia')
         if not video_stream_id:
             raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
         stream_data = self._download_json(
-            f'https://services.radio-canada.ca/media/validation/v2/?appCode=mpx&connectionType=hd&deviceType=ipad&idMedia={video_stream_id}&multibitrate=true&output=json&tech=hls&manifestType=desktop',
-            video_id)
+            'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
+                'appCode': 'mpx',
+                'connectionType': 'hd',
+                'deviceType': 'ipad',
+                'idMedia': video_stream_id,
+                'multibitrate': 'true',
+                'output': 'json',
+                'tech': 'hls',
+                'manifestType': 'desktop',
+            })
 
         return {
-            '_type': 'url_transparent',
-            'url': stream_data['url'],
-            'ie_key': 'Generic',
+            'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
             'is_live': True,
-            'title': video_info.get('title'),
-            'description': video_info.get('description'),
-            'thumbnail': try_get(video_info, lambda x: x['images']['card']['url'], str),
-            'timestamp': parse_iso8601(video_info.get('airDate'))
+            **traverse_obj(video_info, {
+                'id': 'url',
+                'title': 'title',
+                'description': 'description',
+                'thumbnail': ('images', 'card', 'url'),
+                'timestamp': ('airDate', {parse_iso8601}),
+            })
         }
