@@ -462,6 +462,7 @@ class TwitchVodIE(TwitchBaseIE):
                 is_live = False
                 for p in ('width', 'height'):
                     thumbnail = thumbnail.replace('{%s}' % p, '0')
+                thumbnail = re.sub(r"(\d+)x(\d+)\.jpg", "0x0.jpg", thumbnail)
 
         return {
             'id': vod_id,
@@ -1042,6 +1043,7 @@ class TwitchStreamIE(TwitchBaseIE):
         thumbnail = url_or_none(try_get(
             gql, lambda x: x[2]['data']['user']['stream']['previewImageURL'],
             compat_str))
+        thumbnail = re.sub(r"(\d+)x(\d+)\.jpg", "0x0.jpg", thumbnail)
 
         title = uploader or channel_name
         stream_type = stream.get('type')
