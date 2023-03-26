@@ -71,7 +71,7 @@ class TrillerBaseIE(InfoExtractor):
             raise ExtractorError('This video is private', expected=True)
         elif traverse_obj(user_info, 'blocked_by_user', 'blocking_user'):
             raise ExtractorError('The author of the video is blocked', expected=True)
-        return str_or_none(user_info['user_id'])
+        return user_info
 
     def _parse_video_info(self, video_info, username, user_id, display_id=None):
         video_id = str(video_info['id'])
@@ -125,7 +125,7 @@ class TrillerBaseIE(InfoExtractor):
             'id': video_id,
             'display_id': display_id,
             'uploader': username,
-            'uploader_id': user_id,
+            'uploader_id': user_id or traverse_obj(video_info, ('user', 'user_id', {str_or_none})),
             'webpage_url': urljoin(f'https://triller.co/@{username}/video/', display_id),
             'uploader_url': f'https://triller.co/@{username}',
             'extractor_key': TrillerIE.ie_key(),
@@ -231,9 +231,9 @@ class TrillerIE(TrillerBaseIE):
             f'{self._API_BASE_URL}/api/videos/{display_id}', display_id,
             headers=self._API_HEADERS)['videos'][0]
 
-        user_id = self._check_user_info(video_info['user'])
+        self._check_user_info(video_info.get('user') or {})
 
-        return self._parse_video_info(video_info, username, user_id, display_id)
+        return self._parse_video_info(video_info, username, None, display_id)
 
 
 class TrillerUserIE(TrillerBaseIE):
@@ -244,6 +244,7 @@ class TrillerUserIE(TrillerBaseIE):
         'info_dict': {
             'id': '18992236',
             'title': 'theestallion',
+            'thumbnail': r're:^https://uploads\.cdn\.triller\.co/.+\.jpg$',
         },
     }, {
         'url': 'https://triller.co/@charlidamelio',
@@ -251,6 +252,7 @@ class TrillerUserIE(TrillerBaseIE):
         'info_dict': {
             'id': '1875551',
             'title': 'charlidamelio',
+            'thumbnail': r're:^https://uploads\.cdn\.triller\.co/.+\.jpg$',
         },
     }]
 
@@ -285,11 +287,16 @@ class TrillerUserIE(TrillerBaseIE):
     def _real_extract(self, url):
         username = self._match_id(url)
 
-        user_id = self._check_user_info(self._download_json(
+        user_info = self._check_user_info(self._download_json(
             f'{self._API_BASE_URL}/api/users/by_username/{username}',
             username, note='Downloading user info', headers=self._API_HEADERS)['user'])
 
-        return self.playlist_result(self._entries(username, user_id), user_id, username)
+        user_id = str_or_none(user_info.get('user_id'))
+        if not user_id:
+            raise ExtractorError('Unable to extract user ID')
+
+        return self.playlist_result(
+            self._entries(username, user_id), user_id, username, thumbnail=user_info.get('avatar_url'))
 
 
 class TrillerShortIE(InfoExtractor):
