@@ -23,6 +23,7 @@ class CrunchyrollBaseIE(InfoExtractor):
     _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
     _AUTH_HEADERS = None
+    _CMS_EXPIRY = None
     _BASIC_AUTH = None
     _QUERY = None
 
@@ -95,17 +96,34 @@ class CrunchyrollBaseIE(InfoExtractor):
         self._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
         self._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
-    def _call_api(self, endpoint, internal_id, lang, note='api'):
+    def _call_api(self, endpoint, internal_id, lang, note='api', query={}, prefix=True):
         self._update_query(lang)
         self._update_auth()
 
-        endpoint = remove_start(endpoint, 'cms:').lstrip('/')
-        if not endpoint.startswith('content/v2/cms/'):
-            endpoint = f'content/v2/cms/{endpoint}'
+        if not endpoint.startswith('/'):
+            endpoint = f'/{endpoint}'
+        if prefix and not endpoint.startswith('/content/v2/cms/'):
+            endpoint = f'/content/v2/cms/{endpoint}'
 
         return self._download_json(
-            f'{self._BASE_URL}/{endpoint}', internal_id, f'Downloading {note} JSON',
-            headers=self._AUTH_HEADERS, query=self._QUERY[lang])
+            f'{self._BASE_URL}{endpoint}', internal_id, f'Downloading {note} JSON',
+            headers=self._AUTH_HEADERS, query={**self._QUERY[lang], **query})
+
+    def _call_api_signed(self, endpoint, internal_id, lang, note='api'):
+        if not self._CMS_EXPIRY or self._CMS_EXPIRY <= time_seconds():
+            response = self._call_api('index/v2', None, lang, 'signed policy', prefix=False)['cms_web']
+            self._CMS_QUERY = {
+                'Policy': response['policy'],
+                'Signature': response['signature'],
+                'Key-Pair-Id': response['key_pair_id'],
+            }
+            self._CMS_BUCKET = response['bucket']
+            self._CMS_EXPIRY = parse_iso8601(response['expires']) - 10
+
+        if not endpoint.startswith('/cms/v2'):
+            endpoint = f'/cms/v2{self._CMS_BUCKET}/{endpoint}'
+
+        return self._call_api(endpoint, internal_id, lang, f'signed {note}', self._CMS_QUERY, prefix=False)
 
 
 class CrunchyrollBetaIE(CrunchyrollBaseIE):
@@ -209,34 +227,10 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError('No item with the provided id could be found', expected=True)
 
-        def raise_for_premium_required(object_type):
-            if not traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')) or response.get('streams_link'):
-                return
-            message = f'This {object_type} is for premium members only'
-            if self.is_logged_in:
-                raise ExtractorError(message, expected=True)
-            self.raise_login_required(message)
-
         object_type = response.get('type')
         if object_type == 'episode':
-            raise_for_premium_required(object_type)
             result = self._transform_episode_response(response)
-            result['formats'], result['subtitles'] = self._extract_streams(
-                response['streams_link'], lang, internal_id)
-
-            # if no intro chapter is available, a 403 without usable data is returned
-            intro_chapter = self._download_json(
-                f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
-                internal_id, note='Downloading chapter info', fatal=False, errnote=False)
-            if isinstance(intro_chapter, dict):
-                result['chapters'] = [{
-                    'title': 'Intro',
-                    'start_time': float_or_none(intro_chapter.get('startTime')),
-                    'end_time': float_or_none(intro_chapter.get('endTime')),
-                }]
-
         elif object_type == 'movie':
-            raise_for_premium_required(object_type)
             result = traverse_obj(response, {
                 'id': 'id',
                 'title': ('title', {str}),
@@ -249,24 +243,43 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'duration': ('movie_metadata', 'duration_ms', {lambda x: float_or_none(x, 1000)}),
                 'age_limit': ('movie_metadata', 'maturity_ratings', -1, {parse_age_limit}),
             })
-            result['formats'], result['subtitles'] = self._extract_streams(
-                response['streams_link'], lang, internal_id)
-
         elif object_type == 'movie_listing':
             raise ExtractorError('Movie listing object is not yet supported', expected=True)
-
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
+
+        # There might be multiple audio languages for one object (`<object>_metadata.versions`),
+        # so we need to get the id from `streams_link` instead or we dont know which language to choose
+        # We also need to transform from unsigned to signed
+        streams_link = remove_start(response['streams_link'], '/content/v2/cms/')
+        if not streams_link and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
+            message = f'This {object_type} is for premium members only'
+            if self.is_logged_in:
+                raise ExtractorError(message, expected=True)
+            self.raise_login_required(message)
+
+        result['formats'], result['subtitles'] = self._extract_streams(streams_link, lang, internal_id)
+
+        # if no intro chapter is available, a 403 without usable data is returned
+        intro_chapter = self._download_json(
+            f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
+            internal_id, note='Downloading chapter info', fatal=False, errnote=False)
+        if isinstance(intro_chapter, dict):
+            result['chapters'] = [{
+                'title': 'Intro',
+                'start_time': float_or_none(intro_chapter.get('startTime')),
+                'end_time': float_or_none(intro_chapter.get('endTime')),
+            }]
 
         return result
 
     def _extract_streams(self, path, lang='', display_id=None):
-        stream_response = self._call_api(path, display_id, lang, 'stream info')
-        get_streams = lambda *names: (traverse_obj(stream_response, (*names, {dict})) or {}).items()
+        stream_response = self._call_api_signed(path, display_id, lang, 'stream info')
+        get_streams = lambda name: (traverse_obj(stream_response, (name, {dict})) or {}).items()
 
         requested_formats = self._configuration_arg('format') or ['adaptive_hls']
         available_formats = {}
-        for stream_type, streams in get_streams('data', 0):
+        for stream_type, streams in get_streams('streams'):
             if stream_type not in requested_formats:
                 continue
             for stream in streams.values():
@@ -314,7 +327,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             lang: [{
                 'url': subtitle_data.get('url'),
                 'ext': subtitle_data.get('format'),
-            }] for lang, subtitle_data in get_streams('meta', 'subtitles')
+            }] for lang, subtitle_data in get_streams('subtitles')
         }
 
         return formats, subtitles
@@ -379,19 +392,18 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
 
         def entries():
-            seasons_response = self._call_api(f'series/{internal_id}/seasons', internal_id, lang, 'seasons')
-            for season in seasons_response['data']:
-                episodes_response = self._call_api(
-                    f'seasons/{season["id"]}/episodes', season["id"], lang, 'episode list')
-                for episode_response in traverse_obj(episodes_response, ('data', ..., {dict})):
+            seasons_response = self._call_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
+            for season in seasons_response['items']:
+                episodes_response = self._call_api_signed(
+                    f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
+                for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
                     yield self.url_result(
                         f'https://www.crunchyroll.com/{lang}watch/{episode_response["id"]}',
                         CrunchyrollBetaIE, **CrunchyrollBetaIE._transform_episode_response(episode_response))
 
-        series_response = traverse_obj(self._call_api(f'series/{internal_id}', internal_id, lang, 'series'), ('data', 0))
         return self.playlist_result(
             entries(), internal_id,
-            **traverse_obj(series_response, {
+            **traverse_obj(self._call_api(f'series/{internal_id}', internal_id, lang, 'series'), ('data', 0, {
                 'title': ('title', {str}),
                 'description': ('description', {lambda x: x.replace(r'\r\n', '\n')}),
                 'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
@@ -400,4 +412,4 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
                     'width': ('width', {int_or_none}),
                     'height': ('height', {int_or_none}),
                 })
-            }))
+            })))
