@@ -2983,6 +2983,8 @@ class InfoExtractor:
                         'protocol': 'ism',
                         'fragments': fragments,
                         'has_drm': ism_doc.find('Protection') is not None,
+                        'language': stream_language,
+                        'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,
@@ -3513,8 +3515,8 @@ class InfoExtractor:
     @classmethod
     def is_single_video(cls, url):
         """Returns whether the URL is of a single video, None if unknown"""
-        assert cls.suitable(url), 'The URL must be suitable for the extractor'
-        return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
+        if cls.suitable(url):
+            return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
 
     @classmethod
     def is_suitable(cls, age_limit):
