@@ -221,6 +221,16 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
+        'url': 'https://www.crunchyroll.com/watch/G62PEZ2E6',
+        'info_dict': {
+            'id': 'G62PEZ2E6',
+            'description': 'md5:8d2f8b6b9dd77d87810882e7d2ee5608',
+            'age_limit': 13,
+            'duration': 65.138,
+            'title': 'Garakowa -Restore the World-',
+        },
+        'playlist_mincount': 5,
+    }, {
         'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y',
         'only_matching': True,
     }, {
@@ -239,21 +249,24 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         object_type = response.get('type')
         if object_type == 'episode':
             result = self._transform_episode_response(response)
+
         elif object_type == 'movie':
-            result = traverse_obj(response, {
-                'id': 'id',
-                'title': ('title', {str}),
-                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n')}),
-                'thumbnails': ('images', 'thumbnail', ..., ..., {
-                    'url': ('source', {url_or_none}),
-                    'width': ('width', {int_or_none}),
-                    'height': ('height', {int_or_none}),
-                }),
-                'duration': ('movie_metadata', 'duration_ms', {lambda x: float_or_none(x, 1000)}),
-                'age_limit': ('movie_metadata', 'maturity_ratings', -1, {parse_age_limit}),
-            })
+            result = self._transform_movie_response(response)
+
         elif object_type == 'movie_listing':
-            raise ExtractorError('Movie listing object is not yet supported', expected=True)
+            first_movie_id = traverse_obj(response, ('movie_listing_metadata', 'first_movie_id'))
+            if not self._yes_playlist(internal_id, first_movie_id):
+                return self.url_result(f'{self._BASE_URL}/{lang}watch/{first_movie_id}', CrunchyrollBetaIE, first_movie_id)
+
+            def entries():
+                movies = self._call_api(f'movie_listings/{internal_id}/movies', internal_id, lang, 'movie list')
+                for movie_response in traverse_obj(movies, ('data', ...)):
+                    yield self.url_result(
+                        f'{self._BASE_URL}/{lang}watch/{movie_response["id"]}',
+                        CrunchyrollBetaIE, **self._transform_movie_response(movie_response))
+
+            return self.playlist_result(entries(), **self._transform_movie_response(response))
+
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
 
@@ -379,7 +392,27 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'episode_number': ('sequence_number', {float_or_none}),
                 'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
                 'language': ('audio_locale', {str}),
-            })
+            }),
+        }
+
+    @staticmethod
+    def _transform_movie_response(data):
+        metadata = traverse_obj(data, (('movie_metadata', 'movie_listing_metadata', None), {dict}), get_all=False) or {}
+        return {
+            'id': data['id'],
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n')}),
+                'thumbnails': ('images', 'thumbnail', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
+            **traverse_obj(metadata, {
+                'duration': ('duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
+            }),
         }
 
 
@@ -415,7 +448,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
                     f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
                     yield self.url_result(
-                        f'https://www.crunchyroll.com/{lang}watch/{episode_response["id"]}',
+                        f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}',
                         CrunchyrollBetaIE, **CrunchyrollBetaIE._transform_episode_response(episode_response))
 
         return self.playlist_result(
