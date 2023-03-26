@@ -222,9 +222,6 @@ class CDAIE(InfoExtractor):
             (?:<\1[^>]*>[^<]*</\1>|(?!</\1>)(?:.|\n))*?
             <(span|meta)[^>]+itemprop=(["\'])name\4[^>]*>(?P<uploader>[^<]+)</\3>
         ''', webpage, 'uploader', default=None, group='uploader')
-        view_count = self._search_regex(
-            r'Odsłony:(?:\s|&nbsp;)*([0-9]+)', webpage,
-            'view_count', default=None)
         average_rating = self._search_regex(
             (r'<(?:span|meta)[^>]+itemprop=(["\'])ratingValue\1[^>]*>(?P<rating_value>[0-9.]+)',
              r'<span[^>]+\bclass=["\']rating["\'][^>]*>(?P<rating_value>[0-9.]+)'), webpage, 'rating', fatal=False,
@@ -235,7 +232,6 @@ class CDAIE(InfoExtractor):
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
             'uploader': uploader,
-            'view_count': int_or_none(view_count),
             'average_rating': float_or_none(average_rating),
             'thumbnail': self._og_search_thumbnail(webpage),
             'formats': formats,
