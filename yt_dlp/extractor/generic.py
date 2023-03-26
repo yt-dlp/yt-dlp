@@ -15,6 +15,7 @@ from ..utils import (
     UnsupportedError,
     determine_ext,
     dict_get,
+    extract_basic_auth,
     format_field,
     int_or_none,
     is_html,
@@ -31,6 +32,7 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
+    update_url_query,
     url_or_none,
     urljoin,
     variadic,
@@ -2183,12 +2185,25 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
-    def _fragment_query(self, url):
-        if self._configuration_arg('fragment_query'):
-            query_string = urllib.parse.urlparse(url).query
-            if query_string:
-                return {'extra_param_to_segment_url': query_string}
-        return {}
+    def _extra_manifest_info(self, info, manifest_url):
+        fragment_query = self._configuration_arg('fragment_query', [None], casesense=True)[0]
+        if fragment_query is not None:
+            info['extra_param_to_segment_url'] = (
+                urllib.parse.urlparse(fragment_query).query or fragment_query
+                or urllib.parse.urlparse(manifest_url).query or None)
+
+        hex_or_none = lambda x: x if re.fullmatch(r'(0x)?[\da-f]+', x, re.IGNORECASE) else None
+        info['hls_aes'] = traverse_obj(self._configuration_arg('hls_key', casesense=True), {
+            'uri': (0, {url_or_none}), 'key': (0, {hex_or_none}), 'iv': (1, {hex_or_none}),
+        }) or None
+
+        variant_query = self._configuration_arg('variant_query', [None], casesense=True)[0]
+        if variant_query is not None:
+            query = urllib.parse.parse_qs(
+                urllib.parse.urlparse(variant_query).query or variant_query
+                or urllib.parse.urlparse(manifest_url).query)
+            for fmt in self._downloader._get_formats(info):
+                fmt['url'] = update_url_query(fmt['url'], query)
 
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
@@ -2372,9 +2387,8 @@ class GenericIE(InfoExtractor):
             **smuggled_data.get('http_headers', {})
         })
         new_url = full_response.geturl()
-        if new_url == urllib.parse.urlparse(url)._replace(scheme='https').geturl():
-            url = new_url
-        elif url != new_url:
+        url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
+        if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
             if force_videoid:
                 new_url = smuggle_url(new_url, {'force_videoid': force_videoid})
@@ -2393,14 +2407,13 @@ class GenericIE(InfoExtractor):
             self.report_detected('direct video link')
             headers = smuggled_data.get('http_headers', {})
             format_id = str(m.group('format_id'))
+            ext = determine_ext(url)
             subtitles = {}
-            if format_id.endswith('mpegurl'):
+            if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
-                info_dict.update(self._fragment_query(url))
-            elif format_id.endswith('mpd') or format_id.endswith('dash+xml'):
+            elif format_id.endswith('mpd') or format_id.endswith('dash+xml') or ext == 'mpd':
                 formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
-                info_dict.update(self._fragment_query(url))
-            elif format_id == 'f4m':
+            elif format_id == 'f4m' or ext == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
             else:
                 formats = [{
@@ -2414,6 +2427,7 @@ class GenericIE(InfoExtractor):
                 'subtitles': subtitles,
                 'http_headers': headers or None,
             })
+            self._extra_manifest_info(info_dict, url)
             return info_dict
 
         if not self.get_param('test', False) and not is_intentional:
@@ -2426,7 +2440,7 @@ class GenericIE(InfoExtractor):
         if first_bytes.startswith(b'#EXTM3U'):
             self.report_detected('M3U playlist')
             info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
-            info_dict.update(self._fragment_query(url))
+            self._extra_manifest_info(info_dict, url)
             return info_dict
 
         # Maybe it's a direct link to a video?
@@ -2477,7 +2491,7 @@ class GenericIE(InfoExtractor):
                     doc,
                     mpd_base_url=full_response.geturl().rpartition('/')[0],
                     mpd_url=url)
-                info_dict.update(self._fragment_query(url))
+                self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
                 return info_dict
             elif re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
@@ -2591,7 +2605,7 @@ class GenericIE(InfoExtractor):
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
                 for fmt in formats:
-                    fmt.update(self._fragment_query(src))
+                    self._extra_manifest_info(fmt, src)
 
                 if not formats:
                     formats.append({
@@ -2794,10 +2808,10 @@ class GenericIE(InfoExtractor):
                 return [self._extract_xspf_playlist(video_url, video_id)]
             elif ext == 'm3u8':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', headers=headers)
-                entry_info_dict.update(self._fragment_query(video_url))
+                self._extra_manifest_info(entry_info_dict, video_url)
             elif ext == 'mpd':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id, headers=headers)
-                entry_info_dict.update(self._fragment_query(video_url))
+                self._extra_manifest_info(entry_info_dict, video_url)
             elif ext == 'f4m':
                 entry_info_dict['formats'] = self._extract_f4m_formats(video_url, video_id, headers=headers)
             elif re.search(r'(?i)\.(?:ism|smil)/manifest', video_url) and video_url != url:

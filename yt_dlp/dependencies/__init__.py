@@ -73,7 +73,7 @@ available_dependencies = {k: v for k, v in all_dependencies.items() if v}
 
 
 # Deprecated
-Cryptodome_AES = Cryptodome.Cipher.AES if Cryptodome else None
+Cryptodome_AES = Cryptodome.AES
 
 
 __all__ = [

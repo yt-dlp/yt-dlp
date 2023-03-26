@@ -1190,6 +1190,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
 
+    def test_js_to_json_template_literal(self):
+        self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '"X"'}), '"XX"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '5'}), '"55"')
+        self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
+        self.assertEqual(js_to_json('`${name}`', {}), '"name"')
+
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
         self.assertEqual(extract_attributes("<e x='y'>"), {'x': 'y'})

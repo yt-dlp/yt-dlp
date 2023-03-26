@@ -21,6 +21,7 @@ class NTVRuIE(InfoExtractor):
             'description': 'Командующий Черноморским флотом провел переговоры в штабе ВМС Украины',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 136,
+            'view_count': int,
         },
     }, {
         'url': 'http://www.ntv.ru/video/novosti/750370/',
@@ -32,6 +33,7 @@ class NTVRuIE(InfoExtractor):
             'description': 'Родные пассажиров пропавшего Boeing не верят в трагический исход',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 172,
+            'view_count': int,
         },
     }, {
         'url': 'http://www.ntv.ru/peredacha/segodnya/m23700/o232416',
@@ -43,6 +45,7 @@ class NTVRuIE(InfoExtractor):
             'description': '«Сегодня». 21 марта 2014 года. 16:00',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 1496,
+            'view_count': int,
         },
     }, {
         'url': 'https://www.ntv.ru/kino/Koma_film/m70281/o336036/video/',
@@ -54,6 +57,7 @@ class NTVRuIE(InfoExtractor):
             'description': 'Остросюжетный фильм «Кома»',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 5592,
+            'view_count': int,
         },
     }, {
         'url': 'http://www.ntv.ru/serial/Delo_vrachey/m31760/o233916/',
@@ -65,6 +69,7 @@ class NTVRuIE(InfoExtractor):
             'description': '«Дело врачей»: «Деревце жизни»',
             'thumbnail': r're:^http://.*\.jpg',
             'duration': 2590,
+            'view_count': int,
         },
     }, {
         # Schemeless file URL
@@ -115,6 +120,14 @@ class NTVRuIE(InfoExtractor):
                 'url': file_,
                 'filesize': int_or_none(xpath_text(video, './%ssize' % format_id)),
             })
+        hls_manifest = xpath_text(video, './playback/hls')
+        if hls_manifest:
+            formats.extend(self._extract_m3u8_formats(
+                hls_manifest, video_id, m3u8_id='hls', fatal=False))
+        dash_manifest = xpath_text(video, './playback/dash')
+        if dash_manifest:
+            formats.extend(self._extract_mpd_formats(
+                dash_manifest, video_id, mpd_id='dash', fatal=False))
 
         return {
             'id': xpath_text(video, './id'),

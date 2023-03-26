@@ -593,21 +593,43 @@ def clean_html(html):
 
 
 class LenientJSONDecoder(json.JSONDecoder):
-    def __init__(self, *args, transform_source=None, ignore_extra=False, **kwargs):
+    # TODO: Write tests
+    def __init__(self, *args, transform_source=None, ignore_extra=False, close_objects=0, **kwargs):
         self.transform_source, self.ignore_extra = transform_source, ignore_extra
+        self._close_attempts = 2 * close_objects
         super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def _close_object(err):
+        doc = err.doc[:err.pos]
+        # We need to add comma first to get the correct error message
+        if err.msg.startswith('Expecting \',\''):
+            return doc + ','
+        elif not doc.endswith(','):
+            return
+
+        if err.msg.startswith('Expecting property name'):
+            return doc[:-1] + '}'
+        elif err.msg.startswith('Expecting value'):
+            return doc[:-1] + ']'
 
     def decode(self, s):
         if self.transform_source:
             s = self.transform_source(s)
-        try:
-            if self.ignore_extra:
-                return self.raw_decode(s.lstrip())[0]
-            return super().decode(s)
-        except json.JSONDecodeError as e:
-            if e.pos is not None:
+        for attempt in range(self._close_attempts + 1):
+            try:
+                if self.ignore_extra:
+                    return self.raw_decode(s.lstrip())[0]
+                return super().decode(s)
+            except json.JSONDecodeError as e:
+                if e.pos is None:
+                    raise
+                elif attempt < self._close_attempts:
+                    s = self._close_object(e)
+                    if s is not None:
+                        continue
                 raise type(e)(f'{e.msg} in {s[e.pos-10:e.pos+10]!r}', s, e.pos)
-            raise
+        assert False, 'Too many attempts to decode JSON'
 
 
 def sanitize_open(filename, open_mode):
@@ -879,6 +901,7 @@ class Popen(subprocess.Popen):
             env = os.environ.copy()
         self._fix_pyinstaller_ld_path(env)
 
+        self.__text_mode = kwargs.get('encoding') or kwargs.get('errors') or text or kwargs.get('universal_newlines')
         if text is True:
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
@@ -900,7 +923,7 @@ class Popen(subprocess.Popen):
     @classmethod
     def run(cls, *args, timeout=None, **kwargs):
         with cls(*args, **kwargs) as proc:
-            default = '' if proc.text_mode else b''
+            default = '' if proc.__text_mode else b''
             stdout, stderr = proc.communicate_or_kill(timeout=timeout)
             return stdout or default, stderr or default, proc.returncode
 
@@ -1207,8 +1230,8 @@ class ExistingVideoReached(DownloadCancelled):
 
 
 class RejectedVideoReached(DownloadCancelled):
-    """ --break-on-reject triggered """
-    msg = 'Encountered a video that did not match filter, stopping due to --break-on-reject'
+    """ --break-match-filter triggered """
+    msg = 'Encountered a video that did not match filter, stopping due to --break-match-filter'
 
 
 class MaxDownloadsReached(DownloadCancelled):
@@ -1438,19 +1461,16 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
                     raise original_ioerror
             resp = urllib.request.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # deflate
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
             resp = urllib.request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # brotli
         if resp.headers.get('Content-encoding', '') == 'br':
             resp = urllib.request.addinfourl(
                 io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
         # https://github.com/ytdl-org/youtube-dl/issues/6457).
         if 300 <= resp.code < 400:
@@ -2037,6 +2057,9 @@ def get_windows_version():
 def write_string(s, out=None, encoding=None):
     assert isinstance(s, str)
     out = out or sys.stderr
+    # `sys.stderr` might be `None` (Ref: https://github.com/pyinstaller/pyinstaller/pull/7217)
+    if not out:
+        return
 
     if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
@@ -3022,8 +3045,10 @@ class PlaylistEntries:
                 if not entry:
                     continue
                 try:
-                    # TODO: Add auto-generated fields
-                    self.ydl._match_entry(entry, incomplete=True, silent=True)
+                    # The item may have just been added to archive. Don't break due to it
+                    if not self.ydl.params.get('lazy_playlist'):
+                        # TODO: Add auto-generated fields
+                        self.ydl._match_entry(entry, incomplete=True, silent=True)
                 except (ExistingVideoReached, RejectedVideoReached):
                     return
 
@@ -3152,14 +3177,28 @@ def urlencode_postdata(*args, **kargs):
     return urllib.parse.urlencode(*args, **kargs).encode('ascii')
 
 
+def update_url(url, *, query_update=None, **kwargs):
+    """Replace URL components specified by kwargs
+       @param url           str or parse url tuple
+       @param query_update  update query
+       @returns             str
+    """
+    if isinstance(url, str):
+        if not kwargs and not query_update:
+            return url
+        else:
+            url = urllib.parse.urlparse(url)
+    if query_update:
+        assert 'query' not in kwargs, 'query_update and query cannot be specified at the same time'
+        kwargs['query'] = urllib.parse.urlencode({
+            **urllib.parse.parse_qs(url.query),
+            **query_update
+        }, True)
+    return urllib.parse.urlunparse(url._replace(**kwargs))
+
+
 def update_url_query(url, query):
-    if not query:
-        return url
-    parsed_url = urllib.parse.urlparse(url)
-    qs = urllib.parse.parse_qs(parsed_url.query)
-    qs.update(query)
-    return urllib.parse.urlunparse(parsed_url._replace(
-        query=urllib.parse.urlencode(qs, True)))
+    return update_url(url, query_update=query)
 
 
 def update_Request(req, url=None, data=None, headers=None, query=None):
@@ -3327,7 +3366,7 @@ def strip_jsonp(code):
 
 def js_to_json(code, vars={}, *, strict=False):
     # vars is a dict of var, val pairs to substitute
-    STRING_QUOTES = '\'"'
+    STRING_QUOTES = '\'"`'
     STRING_RE = '|'.join(rf'{q}(?:\\.|[^\\{q}])*{q}' for q in STRING_QUOTES)
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
     SKIP_RE = fr'\s*(?:{COMMENT_RE})?\s*'
@@ -3345,6 +3384,12 @@ def js_to_json(code, vars={}, *, strict=False):
                 else '' if escape == '\n'
                 else escape)
 
+    def template_substitute(match):
+        evaluated = js_to_json(match.group(1), vars, strict=strict)
+        if evaluated[0] == '"':
+            return json.loads(evaluated)
+        return evaluated
+
     def fix_kv(m):
         v = m.group(0)
         if v in ('true', 'false', 'null'):
@@ -3355,7 +3400,8 @@ def js_to_json(code, vars={}, *, strict=False):
             return ''
 
         if v[0] in STRING_QUOTES:
-            escaped = re.sub(r'(?s)(")|\\(.)', process_escape, v[1:-1])
+            v = re.sub(r'(?s)\${([^}]+)}', template_substitute, v[1:-1]) if v[0] == '`' else v[1:-1]
+            escaped = re.sub(r'(?s)(")|\\(.)', process_escape, v)
             return f'"{escaped}"'
 
         for regex, base in INTEGER_TABLE:
@@ -3653,7 +3699,8 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
         },
     }
 
-    sanitize_codec = functools.partial(try_get, getter=lambda x: x[0].split('.')[0].replace('0', ''))
+    sanitize_codec = functools.partial(
+        try_get, getter=lambda x: x[0].split('.')[0].replace('0', '').lower())
     vcodec, acodec = sanitize_codec(vcodecs), sanitize_codec(acodecs)
 
     for ext in preferences or COMPATIBLE_CODECS.keys():
@@ -3874,16 +3921,21 @@ def match_str(filter_str, dct, incomplete=False):
         for filter_part in re.split(r'(?<!\\)&', filter_str))
 
 
-def match_filter_func(filters):
-    if not filters:
+def match_filter_func(filters, breaking_filters=None):
+    if not filters and not breaking_filters:
         return None
-    filters = set(variadic(filters))
+    breaking_filters = match_filter_func(breaking_filters) or (lambda _, __: None)
+    filters = set(variadic(filters or []))
 
     interactive = '-' in filters
     if interactive:
         filters.remove('-')
 
     def _match_func(info_dict, incomplete=False):
+        ret = breaking_filters(info_dict, incomplete)
+        if ret is not None:
+            raise RejectedVideoReached(ret)
+
         if not filters or any(match_str(f, info_dict, incomplete) for f in filters):
             return NO_DEFAULT if interactive and not incomplete else None
         else:
@@ -3918,7 +3970,7 @@ class download_range_func:
                 and self.chapters == other.chapters and self.ranges == other.ranges)
 
     def __repr__(self):
-        return f'{type(self).__name__}({self.chapters}, {self.ranges})'
+        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges})'
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -5373,8 +5425,8 @@ def random_uuidv4():
 def make_dir(path, to_screen=None):
     try:
         dn = os.path.dirname(path)
-        if dn and not os.path.exists(dn):
-            os.makedirs(dn)
+        if dn:
+            os.makedirs(dn, exist_ok=True)
         return True
     except OSError as err:
         if callable(to_screen) is not None:
@@ -6019,6 +6071,20 @@ class classproperty:
         elif cls not in self._cache:
             self._cache[cls] = self.func(cls)
         return self._cache[cls]
+
+
+class function_with_repr:
+    def __init__(self, func, repr_=None):
+        functools.update_wrapper(self, func)
+        self.func, self.__repr = func, repr_
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def __repr__(self):
+        if self.__repr:
+            return self.__repr
+        return f'{self.func.__module__}.{self.func.__qualname__}'
 
 
 class Namespace(types.SimpleNamespace):

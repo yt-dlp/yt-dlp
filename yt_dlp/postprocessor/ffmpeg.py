@@ -302,6 +302,11 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
+    def _fixup_chapters(self, info):
+        last_chapter = traverse_obj(info, ('chapters', -1))
+        if last_chapter and not last_chapter.get('end_time'):
+            last_chapter['end_time'] = self._get_real_video_duration(info['filepath'])
+
     def _get_real_video_duration(self, filepath, fatal=True):
         try:
             duration = float_or_none(
@@ -508,8 +513,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         if acodec != 'copy':
             more_opts = self._quality_args(acodec)
 
-        # not os.path.splitext, since the latter does not work on unicode in all setups
-        temp_path = new_path = f'{path.rpartition(".")[0]}.{extension}'
+        temp_path = new_path = replace_extension(path, extension, information['ext'])
 
         if new_path == path:
             if acodec == 'copy':
@@ -679,6 +683,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        self._fixup_chapters(info)
         filename, metadata_filename = info['filepath'], None
         files_to_delete, options = [], []
         if self._add_chapters and info.get('chapters'):
@@ -1041,6 +1046,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        self._fixup_chapters(info)
         chapters = info.get('chapters') or []
         if not chapters:
             self.to_screen('Chapter information is unavailable')

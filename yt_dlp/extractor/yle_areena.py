@@ -61,7 +61,22 @@ class YleAreenaIE(InfoExtractor):
                 'age_limit': 0,
                 'webpage_url': 'https://areena.yle.fi/1-2158940'
             }
-        }
+        },
+        {
+            'url': 'https://areena.yle.fi/1-64829589',
+            'info_dict': {
+                'id': '1-64829589',
+                'ext': 'mp4',
+                'title': 'HKO & Mälkki & Tanner',
+                'description': 'md5:b4f1b1af2c6569b33f75179a86eea156',
+                'series': 'Helsingin kaupunginorkesterin konsertteja',
+                'thumbnail': r're:^https?://.+\.jpg$',
+                'release_date': '20230120',
+            },
+            'params': {
+                'skip_download': 'm3u8',
+            },
+        },
     ]
 
     def _real_extract(self, url):
@@ -91,12 +106,22 @@ class YleAreenaIE(InfoExtractor):
                     'name': sub.get('kind'),
                 })
 
+        kaltura_id = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id'), expected_type=str)
+        if kaltura_id:
+            info_dict = {
+                '_type': 'url_transparent',
+                'url': smuggle_url(f'kaltura:1955031:{kaltura_id}', {'source_url': url}),
+                'ie_key': KalturaIE.ie_key(),
+            }
+        else:
+            info_dict = {
+                'id': video_id,
+                'formats': self._extract_m3u8_formats(
+                    video_data['data']['ongoing_ondemand']['manifest_url'], video_id, 'mp4', m3u8_id='hls'),
+            }
+
         return {
-            '_type': 'url_transparent',
-            'url': smuggle_url(
-                f'kaltura:1955031:{video_data["data"]["ongoing_ondemand"]["kaltura"]["id"]}',
-                {'source_url': url}),
-            'ie_key': KalturaIE.ie_key(),
+            **info_dict,
             'title': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str)
                       or episode or info.get('title')),
             'description': description,

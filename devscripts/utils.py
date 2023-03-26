@@ -1,5 +1,6 @@
 import argparse
 import functools
+import subprocess
 
 
 def read_file(fname):
@@ -12,8 +13,8 @@ def write_file(fname, content, mode='w'):
         return f.write(content)
 
 
-# Get the version without importing the package
 def read_version(fname='yt_dlp/version.py'):
+    """Get the version without importing the package"""
     exec(compile(read_file(fname), fname, 'exec'))
     return locals()['__version__']
 
@@ -33,3 +34,13 @@ def get_filename_args(has_infile=False, default_outfile=None):
 
 def compose_functions(*functions):
     return lambda x: functools.reduce(lambda y, f: f(y), functions, x)
+
+
+def run_process(*args, **kwargs):
+    kwargs.setdefault('text', True)
+    kwargs.setdefault('check', True)
+    kwargs.setdefault('capture_output', True)
+    if kwargs['text']:
+        kwargs.setdefault('encoding', 'utf-8')
+        kwargs.setdefault('errors', 'replace')
+    return subprocess.run(args, **kwargs)

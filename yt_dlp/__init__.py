@@ -318,10 +318,6 @@ def validate_options(opts):
     if outtmpl_default == '':
         opts.skip_download = None
         del opts.outtmpl['default']
-    if outtmpl_default and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
-        raise ValueError(
-            'Cannot download a video and extract audio into the same file! '
-            f'Use "{outtmpl_default}.%(ext)s" instead of "{outtmpl_default}" as the output template')
 
     def parse_chapters(name, value):
         chapters, ranges = [], []
@@ -407,7 +403,7 @@ def validate_options(opts):
         except Exception:
             raise ValueError('unsupported geo-bypass country or ip-block')
 
-    opts.match_filter = match_filter_func(opts.match_filter)
+    opts.match_filter = match_filter_func(opts.match_filter, opts.breaking_match_filter)
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
@@ -935,7 +931,7 @@ def _real_main(argv=None):
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        updater = Updater(ydl)
+        updater = Updater(ydl, opts.update_self if isinstance(opts.update_self, str) else None)
         if opts.update_self and updater.update() and actual_use:
             if updater.cmd:
                 return updater.restart()
@@ -956,6 +952,8 @@ def _real_main(argv=None):
         parser.destroy()
         try:
             if opts.load_info_filename is not None:
+                if all_urls:
+                    ydl.report_warning('URLs are ignored due to --load-info-json')
                 return ydl.download_with_info_file(expand_path(opts.load_info_filename))
             else:
                 return ydl.download(all_urls)
