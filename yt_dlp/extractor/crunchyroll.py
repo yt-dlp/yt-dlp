@@ -280,13 +280,13 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'end_time': float_or_none(intro_chapter.get('endTime')),
             }]
 
-        rating = response.get('rating')
-        if rating:
-            def calculate_count(item):
-                return parse_count(''.join((item['displayed'], item.get('unit') or '')))
+        def calculate_count(item):
+            return parse_count(''.join((item['displayed'], item.get('unit') or '')))
 
-            result['like_count'] = traverse_obj(rating, ('up', {calculate_count}))
-            result['dislike_count'] = traverse_obj(rating, ('down', {calculate_count}))
+        result.update(traverse_obj(response, ('rating', {
+            'like_count': ('up', {calculate_count}),
+            'dislike_count': ('down', {calculate_count}),
+        })))
 
         return result
 
