@@ -28,10 +28,10 @@ class TrillerBaseIE(InfoExtractor):
         if self._API_HEADERS.get('Authorization'):
             return
 
-        self._API_HEADERS['Content-Type'] = 'application/json'
+        headers = {**self._API_HEADERS, 'Content-Type': 'application/json'}
         user_check = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/api/user/is-valid-username', None, note='Checking username',
-            fatal=False, expected_status=400, headers=self._API_HEADERS,
+            fatal=False, expected_status=400, headers=headers,
             data=json.dumps({'username': username}, separators=(',', ':')).encode()), 'status')
 
         if user_check:  # endpoint returns `"status":false` if username exists
@@ -39,7 +39,7 @@ class TrillerBaseIE(InfoExtractor):
 
         login = self._download_json(
             f'{self._API_BASE_URL}/user/auth', None, note='Logging in', fatal=False,
-            expected_status=400, headers=self._API_HEADERS, data=json.dumps({
+            expected_status=400, headers=headers, data=json.dumps({
                 'username': username,
                 'password': password,
             }, separators=(',', ':')).encode()) or {}
@@ -49,7 +49,6 @@ class TrillerBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to login: Incorrect password', expected=True)
             raise ExtractorError('Unable to login')
 
-        self._API_HEADERS.pop('Content-Type', None)
         self._API_HEADERS['Authorization'] = f'Bearer {login["auth_token"]}'
 
     def _get_comments(self, video_id, limit=15):
