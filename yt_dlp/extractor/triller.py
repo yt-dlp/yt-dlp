@@ -99,10 +99,8 @@ class TrillerBaseIE(InfoExtractor):
             formats.append({
                 **format_info(video['url']),
                 **parse_resolution(video.get('resolution')),
-                **traverse_obj(video, {
-                    'vcodec': 'codec',
-                    'vbr': ('bitrate', {lambda x: int_or_none(x, 1000)}),
-                }),
+                'vcodec': video.get('codec'),
+                'vbr': int_or_none(video.get('bitrate'), 1000),
             })
 
         video_url = traverse_obj(video_info, 'video_url', 'stream_url', expected_type=url_or_none)
@@ -111,10 +109,10 @@ class TrillerBaseIE(InfoExtractor):
                 **format_info(video_url),
                 'vcodec': 'h264',
                 **traverse_obj(video_info, {
-                    'width': ('width', {int_or_none}),
-                    'height': ('height', {int_or_none}),
-                    'filesize': ('filesize', {int_or_none}),
-                }),
+                    'width': 'width',
+                    'height': 'height',
+                    'filesize': 'filesize',
+                }, expected_type=int_or_none),
             })
 
         audio_url = url_or_none(video_info.get('audio_url'))
