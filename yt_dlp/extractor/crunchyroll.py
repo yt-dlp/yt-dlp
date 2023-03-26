@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     parse_age_limit,
+    parse_count,
     parse_iso8601,
     qualities,
     remove_start,
@@ -153,6 +154,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'chapters': 'count:2',
             'age_limit': 14,
+            'like_count': int,
+            'dislike_count': int,
         },
         'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
@@ -175,6 +178,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'episode_number': 0,
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'age_limit': 14,
+            'like_count': int,
+            'dislike_count': int,
         },
         'params': {'skip_download': True},
     }, {
@@ -197,6 +202,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'timestamp': 1672839000,
             'upload_date': '20230104',
             'age_limit': 14,
+            'like_count': int,
+            'dislike_count': int,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -209,6 +216,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'duration': 3996.104,
             'age_limit': 13,
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'like_count': int,
+            'dislike_count': int,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -223,7 +232,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
 
         response = traverse_obj(self._call_api(
-            f'objects/{internal_id}', internal_id, lang, 'object info'), ('data', 0, {dict}))
+            f'objects/{internal_id}', internal_id, lang, 'object info', {'ratings': 'true'}), ('data', 0, {dict}))
         if not response:
             raise ExtractorError('No item with the provided id could be found', expected=True)
 
@@ -270,6 +279,14 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'start_time': float_or_none(intro_chapter.get('startTime')),
                 'end_time': float_or_none(intro_chapter.get('endTime')),
             }]
+
+        rating = response.get('rating')
+        if rating:
+            def calculate_count(item):
+                return parse_count(''.join((item['displayed'], item.get('unit') or '')))
+
+            result['like_count'] = traverse_obj(rating, ('up', {calculate_count}))
+            result['dislike_count'] = traverse_obj(rating, ('down', {calculate_count}))
 
         return result
 
