@@ -532,10 +532,7 @@ class CBCGemLiveIE(InfoExtractor):
         # Two types of metadata JSON
         if not video_info.get('formattedIdMedia'):
             video_info = traverse_obj(
-                video_info,
-                ('freeTv', 'items', lambda _, v: v['key'] == video_id, {dict}),
-                # Sub-level for Olympic Channel and CBC News Explore
-                ('streams', ..., 'items', lambda _, v: v['key'] == video_id, {dict}),
+                video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
                 get_all=False, default={})
 
         video_stream_id = video_info.get('formattedIdMedia')
