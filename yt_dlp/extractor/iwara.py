@@ -2,7 +2,7 @@ import functools
 import urllib.parse
 import hashlib
 
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -191,18 +191,7 @@ class IwaraPlaylistIE(IwaraPlaylistBaseIE):
             page_0, playlist_id)
 
 
-class IwaraSearchIE(IwaraPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?iwara\.tv/search\?query=(?P<id>[^&#]+)'
-    IE_NAME = 'iwara:search'
-
-    _TESTS = [{
-        'url': 'https://www.iwara.tv/search?query=version',
-        'info_dict': {
-            'id': 'version',
-        },
-        'playlist_mincount': 11000,
-    }]
-
+class IwaraSearchBaseIE(IwaraPlaylistBaseIE):
     def _request_page(self, page, playlist_id):
         return self._download_json(
             'https://api.iwara.tv/search', playlist_id,
@@ -214,8 +203,35 @@ class IwaraSearchIE(IwaraPlaylistBaseIE):
                 'limit': self._PER_PAGE,
             })
 
+
+class IwaraSearchIE(IwaraSearchBaseIE, SearchInfoExtractor):
+    IE_NAME = 'iwara:search'
+    _SEARCH_KEY = 'iwara'
+
+    _TESTS = [{
+        'url': 'iwaraall:version',
+        'info_dict': {
+            'id': 'version',
+        },
+        'playlist_mincount': 11000,
+    }]
+
+    def _search_results(self, query):
+        return self._paged_list(query, query, None, query)['entries']
+
+
+class IwaraSearchURLIE(IwaraSearchBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?iwara\.tv/search\?query=(?P<id>[^&#]+)'
+    IE_DESC = None  # do not list
+
+    _TESTS = [{
+        'url': 'https://www.iwara.tv/search?query=version',
+        'info_dict': {
+            'id': 'version',
+        },
+        'playlist_mincount': 11000,
+    }]
+
     def _real_extract(self, url):
         playlist_id = traverse_obj(parse_qs(url), ('query', 0)) or urllib.parse.unquote(self._match_id(url))
-        return self._paged_list(
-            playlist_id, playlist_id,
-            None, playlist_id)
+        return self._paged_list(playlist_id, playlist_id, None, playlist_id)

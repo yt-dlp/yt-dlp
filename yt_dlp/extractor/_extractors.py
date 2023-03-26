@@ -827,6 +827,7 @@ from .iwara import (
     IwaraPlaylistIE,
     IwaraUserIE,
     IwaraSearchIE,
+    IwaraSearchURLIE,
 )
 from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
