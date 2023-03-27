@@ -1,4 +1,5 @@
 import base64
+from urllib.error import HTTPError
 
 from .common import InfoExtractor
 from ..utils import (
@@ -24,7 +25,7 @@ class CrunchyrollBaseIE(InfoExtractor):
     _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
     _AUTH_HEADERS = None
-    _CMS_EXPIRY = None
+    _API_ENDPOINT = None
     _BASIC_AUTH = None
     _QUERY = None
 
@@ -97,22 +98,103 @@ class CrunchyrollBaseIE(InfoExtractor):
         self._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
         self._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
-    def _call_api(self, endpoint, internal_id, lang, note='api', query={}, prefix=True):
+    def _call_base_api(self, endpoint, internal_id, lang, note=None, query={}):
         self._update_query(lang)
         self._update_auth()
 
         if not endpoint.startswith('/'):
             endpoint = f'/{endpoint}'
-        if prefix and not endpoint.startswith('/content/v2/cms/'):
-            endpoint = f'/content/v2/cms/{endpoint}'
+
+        if not note:
+            note = f'Calling API: {endpoint}'
 
         return self._download_json(
-            f'{self._BASE_URL}{endpoint}', internal_id, f'Downloading {note} JSON',
+            f'{self._BASE_URL}{endpoint}', internal_id, note,
             headers=self._AUTH_HEADERS, query={**self._QUERY[lang], **query})
 
-    def _call_api_signed(self, endpoint, internal_id, lang, note='api'):
+    def _call_api(self, path, internal_id, lang, note='api', query={}):
+        if not path.startswith(f'/content/v2/{self._API_ENDPOINT}/'):
+            path = f'/content/v2/{self._API_ENDPOINT}/{path}'
+
+        try:
+            result = self._call_base_api(
+                path, internal_id, lang, f'Downloading {note} JSON ({self._API_ENDPOINT})', query=query)
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.code == 404:
+                return None
+            raise
+
+        if not result:
+            raise ExtractorError(f'Unexpected response when downloading {note}')
+        return result
+
+    def _extract_formats(self, stream_response, display_id=None):
+        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
+        available_formats = {}
+        for stream_type, streams in traverse_obj(
+                stream_response, (('streams', ('data', 0)), {dict}), get_all=False).items() or ():
+            if stream_type not in requested_formats:
+                continue
+            for stream in streams.values():
+                if not stream.get('url'):
+                    continue
+                hardsub_lang = stream.get('hardsub_locale') or ''
+                format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
+                available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
+
+        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
+        if '' in available_formats and 'all' not in requested_hardsubs:
+            full_format_langs = set(requested_hardsubs)
+            self.to_screen(
+                'To get all formats of a hardsub language, use '
+                '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
+                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
+                only_once=True)
+        else:
+            full_format_langs = set(map(str.lower, available_formats))
+
+        audio_locale = traverse_obj(stream_response, ((None, 'meta'), 'audio_locale'), get_all=False)
+        hardsub_preference = qualities(requested_hardsubs[::-1])
+        formats = []
+        for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
+            if stream_type.endswith('hls'):
+                if hardsub_lang.lower() in full_format_langs:
+                    adaptive_formats = self._extract_m3u8_formats(
+                        stream_url, display_id, 'mp4', m3u8_id=format_id,
+                        fatal=False, note=f'Downloading {format_id} HLS manifest')
+                else:
+                    adaptive_formats = (self._m3u8_meta_format(stream_url, ext='mp4', m3u8_id=format_id),)
+            elif stream_type.endswith('dash'):
+                adaptive_formats = self._extract_mpd_formats(
+                    stream_url, display_id, mpd_id=format_id,
+                    fatal=False, note=f'Downloading {format_id} MPD manifest')
+            else:
+                self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
+                continue
+            for f in adaptive_formats:
+                if f.get('acodec') != 'none':
+                    f['language'] = audio_locale
+                f['quality'] = hardsub_preference(hardsub_lang.lower())
+            formats.extend(adaptive_formats)
+
+        return formats
+
+    def _extract_subtitles(self, data):
+        return {
+            subtitle.get('locale'): [{
+                'url': subtitle.get('url'),
+                'ext': subtitle.get('format'),
+            }] for subtitle in traverse_obj(data, ((None, 'meta'), 'subtitles', ..., {dict}))
+        }
+
+
+class CrunchyrollCmsBaseIE(CrunchyrollBaseIE):
+    _API_ENDPOINT = 'cms'
+    _CMS_EXPIRY = None
+
+    def _call_cms_api_signed(self, path, internal_id, lang, note='api'):
         if not self._CMS_EXPIRY or self._CMS_EXPIRY <= time_seconds():
-            response = self._call_api('index/v2', None, lang, 'signed policy', prefix=False)['cms_web']
+            response = self._call_base_api('index/v2', None, lang, 'Retrieving signed policy')['cms_web']
             self._CMS_QUERY = {
                 'Policy': response['policy'],
                 'Signature': response['signature'],
@@ -121,18 +203,19 @@ class CrunchyrollBaseIE(InfoExtractor):
             self._CMS_BUCKET = response['bucket']
             self._CMS_EXPIRY = parse_iso8601(response['expires']) - 10
 
-        if not endpoint.startswith('/cms/v2'):
-            endpoint = f'/cms/v2{self._CMS_BUCKET}/{endpoint}'
+        if not path.startswith('/cms/v2'):
+            path = f'/cms/v2{self._CMS_BUCKET}/{path}'
 
-        return self._call_api(endpoint, internal_id, lang, f'signed {note}', self._CMS_QUERY, prefix=False)
+        return self._call_base_api(
+            path, internal_id, lang, f'Downloading {note} JSON (signed cms)', query=self._CMS_QUERY)
 
 
-class CrunchyrollBetaIE(CrunchyrollBaseIE):
+class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
     IE_NAME = 'crunchyroll'
     _VALID_URL = r'''(?x)
         https?://(?:beta\.|www\.)?crunchyroll\.com/
         (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
-        watch/(?P<id>\w+)'''
+        watch/(?!concert|musicvideo)(?P<id>\w+)'''
     _TESTS = [{
         # Premium only
         'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
@@ -216,8 +299,6 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'duration': 3996.104,
             'age_limit': 13,
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
-            'like_count': int,
-            'dislike_count': int,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -241,6 +322,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
     def _real_extract(self, url):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
 
+        # We need to use unsigned API call to allow ratings query string
         response = traverse_obj(self._call_api(
             f'objects/{internal_id}', internal_id, lang, 'object info', {'ratings': 'true'}), ('data', 0, {dict}))
         if not response:
@@ -272,15 +354,18 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
 
         # There might be multiple audio languages for one object (`<object>_metadata.versions`),
         # so we need to get the id from `streams_link` instead or we dont know which language to choose
-        # We also need to transform from unsigned to signed
-        streams_link = remove_start(response['streams_link'], '/content/v2/cms/')
+        streams_link = response.get('streams_link')
         if not streams_link and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
             message = f'This {object_type} is for premium members only'
             if self.is_logged_in:
                 raise ExtractorError(message, expected=True)
             self.raise_login_required(message)
 
-        result['formats'], result['subtitles'] = self._extract_streams(streams_link, lang, internal_id)
+        # We need go from unsigned to signed api to avoid getting soft banned
+        stream_response = self._call_cms_api_signed(remove_start(
+            streams_link, '/content/v2/cms/'), internal_id, lang, 'stream info')
+        result['formats'] = self._extract_formats(stream_response, internal_id)
+        result['subtitles'] = self._extract_subtitles(stream_response)
 
         # if no intro chapter is available, a 403 without usable data is returned
         intro_chapter = self._download_json(
@@ -296,71 +381,13 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         def calculate_count(item):
             return parse_count(''.join((item['displayed'], item.get('unit') or '')))
 
+        self.write_debug(f'rating: {response}')
         result.update(traverse_obj(response, ('rating', {
             'like_count': ('up', {calculate_count}),
             'dislike_count': ('down', {calculate_count}),
         })))
 
         return result
-
-    def _extract_streams(self, path, lang='', display_id=None):
-        stream_response = self._call_api_signed(path, display_id, lang, 'stream info')
-        get_streams = lambda name: (traverse_obj(stream_response, (name, {dict})) or {}).items()
-
-        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
-        available_formats = {}
-        for stream_type, streams in get_streams('streams'):
-            if stream_type not in requested_formats:
-                continue
-            for stream in streams.values():
-                if not stream.get('url'):
-                    continue
-                hardsub_lang = stream.get('hardsub_locale') or ''
-                format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
-                available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
-
-        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
-        if '' in available_formats and 'all' not in requested_hardsubs:
-            full_format_langs = set(requested_hardsubs)
-            self.to_screen(
-                'To get all formats of a hardsub language, use '
-                '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
-                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
-                only_once=True)
-        else:
-            full_format_langs = set(map(str.lower, available_formats))
-
-        hardsub_preference = qualities(requested_hardsubs[::-1])
-        formats = []
-        for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
-            if stream_type.endswith('hls'):
-                if hardsub_lang.lower() in full_format_langs:
-                    adaptive_formats = self._extract_m3u8_formats(
-                        stream_url, display_id, 'mp4', m3u8_id=format_id,
-                        fatal=False, note=f'Downloading {format_id} HLS manifest')
-                else:
-                    adaptive_formats = (self._m3u8_meta_format(stream_url, ext='mp4', m3u8_id=format_id),)
-            elif stream_type.endswith('dash'):
-                adaptive_formats = self._extract_mpd_formats(
-                    stream_url, display_id, mpd_id=format_id,
-                    fatal=False, note=f'Downloading {format_id} MPD manifest')
-            else:
-                self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
-                continue
-            for f in adaptive_formats:
-                if f.get('acodec') != 'none':
-                    f['language'] = stream_response.get('audio_locale')
-                f['quality'] = hardsub_preference(hardsub_lang.lower())
-            formats.extend(adaptive_formats)
-
-        subtitles = {
-            lang: [{
-                'url': subtitle_data.get('url'),
-                'ext': subtitle_data.get('format'),
-            }] for lang, subtitle_data in get_streams('subtitles')
-        }
-
-        return formats, subtitles
 
     @staticmethod
     def _transform_episode_response(data):
@@ -416,7 +443,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         }
 
 
-class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
+class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
     IE_NAME = 'crunchyroll:playlist'
     _VALID_URL = r'''(?x)
         https?://(?:beta\.|www\.)?crunchyroll\.com/
@@ -442,9 +469,9 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
 
         def entries():
-            seasons_response = self._call_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
-            for season in seasons_response['items']:
-                episodes_response = self._call_api_signed(
+            seasons_response = self._call_cms_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
+            for season in traverse_obj(seasons_response, ('items', ..., {dict})):
+                episodes_response = self._call_cms_api_signed(
                     f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
                     yield self.url_result(
