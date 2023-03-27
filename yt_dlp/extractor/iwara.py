@@ -7,6 +7,7 @@ from ..utils import (
     OnDemandPagedList,
     int_or_none,
     mimetype2ext,
+    qualities,
     traverse_obj,
     unified_timestamp,
 )
@@ -63,13 +64,17 @@ class IwaraIE(InfoExtractor):
         # https://github.com/yt-dlp/yt-dlp/issues/6549#issuecomment-1473771047
         x_version = hashlib.sha1('_'.join((paths[-1], q['expires'][0], '5nFp9kmbNnHdAFhaqMvt')).encode()).hexdigest()
 
+        preference = qualities([
+            'preview', '360', '540', 'Source'
+        ])
+
         files = self._download_json(fileurl, video_id, headers={'X-Version': x_version})
         for fmt in files:
             yield traverse_obj(fmt, {
                 'format_id': 'name',
                 'url': ('src', ('view', 'download'), {self._proto_relative_url}),
                 'ext': ('type', {mimetype2ext}),
-                'quality': ('name', {lambda x: int_or_none(x) or 1e4}),
+                'quality': ('name', {lambda x: preference(x)}),
                 'height': ('name', {int_or_none}),
             }, get_all=False)
 
