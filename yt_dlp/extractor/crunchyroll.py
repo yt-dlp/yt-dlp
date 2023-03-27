@@ -487,3 +487,139 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
                     'height': ('height', {int_or_none}),
                 })
             })))
+
+
+class CrunchyrollMusicIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:music'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?crunchyroll\.com/
+        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        watch/(?P<type>concert|musicvideo)/(?P<id>\w{10})'''
+    _TESTS = [{
+        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'MV88BB7F2C',
+            'display_id': 'crossing-field',
+            'title': 'Crossing Field',
+            'track': 'Crossing Field',
+            'artist': 'LiSA',
+            'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'genre': ['Anime'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'MC2E2AC135',
+            'display_id': 'live-is-smile-always-364joker-at-yokohama-arena',
+            'title': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
+            'track': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
+            'artist': 'LiSA',
+            'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'description': 'md5:747444e7e6300907b7a43f0a0503072e',
+            'genre': ['J-Pop'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C/crossing-field',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135/live-is-smile-always-364joker-at-yokohama-arena',
+        'only_matching': True,
+    }]
+    _API_ENDPOINT = 'music'
+
+    def _real_extract(self, url):
+        lang, internal_id, object_type = self._match_valid_url(url).group('lang', 'id', 'type')
+        path, name = {
+            'concert': ('concerts', 'concert info'),
+            'musicvideo': ('music_videos', 'music video info'),
+        }[object_type]
+        response = traverse_obj(self._call_api(f'{path}/{internal_id}', internal_id, lang, name), ('data', 0, {dict}))
+        if not response:
+            raise ExtractorError('No item with the provided id could be found', expected=True)
+
+        streams_link = response.get('streams_link')
+        if not streams_link and response.get('isPremiumOnly'):
+            message = f'This {response.get("type") or "media"} is for premium members only'
+            if self.is_logged_in:
+                raise ExtractorError(message, expected=True)
+            self.raise_login_required(message)
+
+        result = self._transform_music_response(response)
+        stream_response = self._call_api(streams_link, internal_id, lang, 'stream info')
+        result['formats'] = self._extract_formats(stream_response, internal_id)
+
+        return result
+
+    @staticmethod
+    def _transform_music_response(data):
+        return {
+            'id': data['id'],
+            **traverse_obj(data, {
+                'display_id': 'slug',
+                'title': 'title',
+                'track': 'title',
+                'artist': ('artist', 'name'),
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n') or None}),
+                'thumbnails': ('images', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+                'genre': ('genres', ..., 'displayValue'),
+                'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
+            }),
+        }
+
+
+class CrunchyrollArtistIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:artist'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?crunchyroll\.com/
+        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        artist/(?P<id>\w{10})'''
+    _TESTS = [{
+        'url': 'https://www.crunchyroll.com/artist/MA179CB50D',
+        'info_dict': {
+            'id': 'MA179CB50D',
+            'title': 'LiSA',
+            'genre': ['J-Pop', 'Anime', 'Rock'],
+            'description': 'md5:16d87de61a55c3f7d6c454b73285938e',
+        },
+        'playlist_mincount': 83,
+    }, {
+        'url': 'https://www.crunchyroll.com/artist/MA179CB50D/lisa',
+        'only_matching': True,
+    }]
+    _API_ENDPOINT = 'music'
+
+    def _real_extract(self, url):
+        lang, internal_id = self._match_valid_url(url).group('lang', 'id')
+        response = traverse_obj(self._call_api(
+            f'artists/{internal_id}', internal_id, lang, 'artist info'), ('data', 0))
+
+        def entries():
+            for attribute, path in [('concerts', 'concert'), ('videos', 'musicvideo')]:
+                for internal_id in traverse_obj(response, (attribute, ...)):
+                    yield self.url_result(f'{self._BASE_URL}/watch/{path}/{internal_id}', CrunchyrollMusicIE, internal_id)
+
+        return self.playlist_result(entries(), **self._transform_artist_response(response))
+
+    @staticmethod
+    def _transform_artist_response(data):
+        return {
+            'id': data['id'],
+            **traverse_obj(data, {
+                'title': 'name',
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n')}),
+                'thumbnails': ('images', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+                'genre': ('genres', ..., 'displayValue'),
+            }),
+        }
