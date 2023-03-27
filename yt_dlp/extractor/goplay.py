@@ -40,6 +40,22 @@ class GoPlayIE(InfoExtractor):
             'title': 'A Family for the Holidays',
         },
         'skip': 'This video is only available for registered users'
+    }, {
+        'url': 'https://www.goplay.be/video/de-mol/de-mol-s11/de-mol-s11-aflevering-1#autoplay',
+        'info_dict': {
+            'id': '03eb8f2f-153e-41cb-9805-0d3a29dab656',
+            'ext': 'mp4',
+            'title': 'S11 - Aflevering 1',
+            'episode': 'Episode 1',
+            'series': 'De Mol',
+            'season_number': 11,
+            'episode_number': 1,
+            'season': 'Season 11'
+        },
+        'params': {
+            'skip_download': True
+        },
+        'skip': 'This video is only available for registered users'
     }]
 
     _id_token = None
