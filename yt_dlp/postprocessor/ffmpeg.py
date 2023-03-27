@@ -809,7 +809,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             new_stream -= 1
 
         yield (
-            '-attach', infofn,
+            '-attach', self._ffmpeg_filename_argument(infofn),
             f'-metadata:s:{new_stream}', 'mimetype=application/json',
             f'-metadata:s:{new_stream}', 'filename=info.json',
         )
