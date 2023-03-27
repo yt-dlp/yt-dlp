@@ -82,7 +82,9 @@ class IwaraIE(InfoExtractor):
         video_data = self._download_json(f'http://api.iwara.tv/video/{video_id}', video_id)
 
         if not video_data.get('fileUrl'):
-            raise ExtractorError('No fileUrl attribute, file is unplayable')
+            if video_data.get('embedUrl'):
+                return self.url_result(video_data.get('embedUrl'))
+            raise ExtractorError('This video is unplayable', expected=True)
 
         return {
             'id': video_id,
