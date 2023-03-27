@@ -27,7 +27,7 @@ class CrunchyrollBaseIE(InfoExtractor):
     _AUTH_HEADERS = None
     _API_ENDPOINT = None
     _BASIC_AUTH = None
-    _QUERY = None
+    _QUERY = {}
 
     @property
     def is_logged_in(self):
@@ -63,40 +63,37 @@ class CrunchyrollBaseIE(InfoExtractor):
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
     def _update_query(self, lang):
-        if not self._QUERY:
-            self._QUERY = {}
-
-        if lang in self._QUERY:
+        if lang in CrunchyrollBaseIE._QUERY:
             return
 
         webpage = self._download_webpage(
             f'{self._BASE_URL}/{lang}', None, note=f'Retrieving main page (lang={lang or None})')
 
         initial_state = self._search_json(r'__INITIAL_STATE__\s*=', webpage, 'initial state', None)
-        self._QUERY[lang] = traverse_obj(initial_state, {
+        CrunchyrollBaseIE._QUERY[lang] = traverse_obj(initial_state, {
             'locale': ('localization', 'locale'),
         }) or None
 
-        if self._BASIC_AUTH:
+        if CrunchyrollBaseIE._BASIC_AUTH:
             return
 
         app_config = self._search_json(r'__APP_CONFIG__\s*=', webpage, 'app config', None)
         cx_api_param = app_config['cxApiParams']['accountAuthClientId' if self.is_logged_in else 'anonClientId']
         self.write_debug(f'Using cxApiParam={cx_api_param}')
-        self._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
+        CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
 
     def _update_auth(self):
-        if self._AUTH_HEADERS and self._AUTH_REFRESH > time_seconds():
+        if CrunchyrollBaseIE._AUTH_HEADERS and CrunchyrollBaseIE._AUTH_REFRESH > time_seconds():
             return
 
-        assert self._BASIC_AUTH, '_update_query needs to be called at least one time beforehand'
+        assert CrunchyrollBaseIE._BASIC_AUTH, '_update_query needs to be called at least one time beforehand'
         grant_type = 'etp_rt_cookie' if self.is_logged_in else 'client_id'
         auth_response = self._download_json(
             f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
-            headers={'Authorization': self._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
+            headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
 
-        self._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
-        self._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
+        CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
+        CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
     def _call_base_api(self, endpoint, internal_id, lang, note=None, query={}):
         self._update_query(lang)
@@ -110,7 +107,7 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         return self._download_json(
             f'{self._BASE_URL}{endpoint}', internal_id, note,
-            headers=self._AUTH_HEADERS, query={**self._QUERY[lang], **query})
+            headers=CrunchyrollBaseIE._AUTH_HEADERS, query={**CrunchyrollBaseIE._QUERY[lang], **query})
 
     def _call_api(self, path, internal_id, lang, note='api', query={}):
         if not path.startswith(f'/content/v2/{self._API_ENDPOINT}/'):
@@ -193,21 +190,21 @@ class CrunchyrollCmsBaseIE(CrunchyrollBaseIE):
     _CMS_EXPIRY = None
 
     def _call_cms_api_signed(self, path, internal_id, lang, note='api'):
-        if not self._CMS_EXPIRY or self._CMS_EXPIRY <= time_seconds():
+        if not CrunchyrollCmsBaseIE._CMS_EXPIRY or CrunchyrollCmsBaseIE._CMS_EXPIRY <= time_seconds():
             response = self._call_base_api('index/v2', None, lang, 'Retrieving signed policy')['cms_web']
-            self._CMS_QUERY = {
+            CrunchyrollCmsBaseIE._CMS_QUERY = {
                 'Policy': response['policy'],
                 'Signature': response['signature'],
                 'Key-Pair-Id': response['key_pair_id'],
             }
-            self._CMS_BUCKET = response['bucket']
-            self._CMS_EXPIRY = parse_iso8601(response['expires']) - 10
+            CrunchyrollCmsBaseIE._CMS_BUCKET = response['bucket']
+            CrunchyrollCmsBaseIE._CMS_EXPIRY = parse_iso8601(response['expires']) - 10
 
         if not path.startswith('/cms/v2'):
-            path = f'/cms/v2{self._CMS_BUCKET}/{path}'
+            path = f'/cms/v2{CrunchyrollCmsBaseIE._CMS_BUCKET}/{path}'
 
         return self._call_base_api(
-            path, internal_id, lang, f'Downloading {note} JSON (signed cms)', query=self._CMS_QUERY)
+            path, internal_id, lang, f'Downloading {note} JSON (signed cms)', query=CrunchyrollCmsBaseIE._CMS_QUERY)
 
 
 class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
