@@ -65,9 +65,7 @@ class IwaraIE(InfoExtractor):
         # https://github.com/yt-dlp/yt-dlp/issues/6549#issuecomment-1473771047
         x_version = hashlib.sha1('_'.join((paths[-1], q['expires'][0], '5nFp9kmbNnHdAFhaqMvt')).encode()).hexdigest()
 
-        preference = qualities([
-            'preview', '360', '540', 'Source'
-        ])
+        preference = qualities(['preview', '360', '540', 'Source'])
 
         files = self._download_json(fileurl, video_id, headers={'X-Version': x_version})
         for fmt in files:
@@ -75,7 +73,7 @@ class IwaraIE(InfoExtractor):
                 'format_id': 'name',
                 'url': ('src', ('view', 'download'), {self._proto_relative_url}),
                 'ext': ('type', {mimetype2ext}),
-                'quality': ('name', {lambda x: preference(x)}),
+                'quality': ('name', {preference}),
                 'height': ('name', {int_or_none}),
             }, get_all=False)
 
