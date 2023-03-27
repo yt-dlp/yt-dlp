@@ -79,8 +79,22 @@ class GoPlayIE(InfoExtractor):
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
             video_id, headers={'Authorization': 'Bearer %s' % self._id_token})
 
-        formats, subs = self._extract_m3u8_formats_and_subtitles(
-            api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
+        if 'manifestUrls' in api:
+            formats, subs = self._extract_m3u8_formats_and_subtitles(
+                api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
+        else:
+            assert 'ssai' in api, 'expecting Google SSAI stream'
+
+            ssai_content_source_id = api['ssai']['contentSourceID']
+            ssai_video_id = api['ssai']['videoID']
+
+            dai = self._download_json(
+                f'https://dai.google.com/ondemand/dash/content/{ssai_content_source_id}/vid/{ssai_video_id}/streams',
+                video_id, data=b'{"api-key":"null"}',
+                headers={'content-type': 'application/json'})
+
+            formats, subs = self._extract_mpd_formats_and_subtitles(
+                dai['stream_manifest'], video_id)
 
         info_dict.update({
             'id': video_id,
