@@ -14,11 +14,16 @@ class RecurbateIE(InfoExtractor):
             'title': 'Performer zsnicole33 show on 2022-10-25 20:23, Chaturbate Archive – Recurbate',
             'age_limit': 18,
         },
+        'skip': 'Website require membership.',
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        try:
+            webpage = self._download_webpage(url, video_id)
+        except ExtractorError as e:
+            if e.cause.code == 403:
+                self.raise_login_required(method='cookies')
         title = self._html_extract_title(webpage, 'title')
         token = self._html_search_regex(r'data-token="([^"]+)"', webpage, 'token')
 
