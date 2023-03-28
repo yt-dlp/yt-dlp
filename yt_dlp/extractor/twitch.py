@@ -463,22 +463,18 @@ class TwitchVodIE(TwitchBaseIE):
             vod_id = 'v%s' % vod_id
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
         is_live = None
-        thumbnails = None
         if thumbnail:
             if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
-                is_live = True
+                is_live, thumbnail = True, None
             else:
                 is_live = False
-                # for p in ('width', 'height'):
-                    # thumbnail = thumbnail.replace('{%s}' % p, '0')
-                thumbnails = self._get_thumbnails(thumbnail)
 
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
-            'thumbnails': thumbnails,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
@@ -1052,7 +1048,6 @@ class TwitchStreamIE(TwitchBaseIE):
         thumbnail = url_or_none(try_get(
             gql, lambda x: x[2]['data']['user']['stream']['previewImageURL'],
             compat_str))
-        thumbnails = self._get_thumbnails(thumbnail)
 
         title = uploader or channel_name
         stream_type = stream.get('type')
@@ -1064,7 +1059,7 @@ class TwitchStreamIE(TwitchBaseIE):
             'display_id': channel_name,
             'title': title,
             'description': description,
-            'thumbnails': thumbnails,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': uploader,
             'uploader_id': channel_name,
             'timestamp': timestamp,
