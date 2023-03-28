@@ -179,6 +179,14 @@ class TwitchBaseIE(InfoExtractor):
             video_id, ops,
             'Downloading %s access token GraphQL' % token_kind)['data'][method]
 
+    def _get_thumbnails(self, thumbnail):
+        return [{
+            'url': re.sub(r'\d+x\d+\.jpg', '0x0.jpg', thumbnail),
+            'preference': 1,
+        }, {
+            'url': thumbnail,
+        }] if thumbnail else None
+
 
 class TwitchVodIE(TwitchBaseIE):
     IE_NAME = 'twitch:vod'
@@ -458,15 +466,12 @@ class TwitchVodIE(TwitchBaseIE):
         thumbnails = None
         if thumbnail:
             if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
-                is_live, thumbnails = True, None
+                is_live = True
             else:
                 is_live = False
                 # for p in ('width', 'height'):
                     # thumbnail = thumbnail.replace('{%s}' % p, '0')
-                thumbnails = [
-                    {'url': re.sub(r'\d+x\d+\.jpg', '0x0.jpg', thumbnail), 'preference': 1},
-                    {'url': thumbnail},
-                ]
+                thumbnails = self._get_thumbnails(thumbnail)
 
         return {
             'id': vod_id,
@@ -1047,10 +1052,7 @@ class TwitchStreamIE(TwitchBaseIE):
         thumbnail = url_or_none(try_get(
             gql, lambda x: x[2]['data']['user']['stream']['previewImageURL'],
             compat_str))
-        thumbnails = [
-            {'url': re.sub(r'\d+x\d+\.jpg', '0x0.jpg', thumbnail), 'preference': 1},
-            {'url': thumbnail},
-        ] if thumbnail else None
+        thumbnails = self._get_thumbnails(thumbnail)
 
         title = uploader or channel_name
         stream_type = stream.get('type')
