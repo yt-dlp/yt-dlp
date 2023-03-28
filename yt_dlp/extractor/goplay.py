@@ -118,6 +118,10 @@ class GoPlayIE(InfoExtractor):
             periods = self._extract_mpd_formats_and_subtitles(
                 dai['stream_manifest'], video_id, multi_period=True)
 
+            # skip pre-roll and mid-roll ads
+            periods = [period for period in periods
+                       if '-ad-' not in period['id']]
+
             for period in periods:
                 period.update(info_dict)
 
