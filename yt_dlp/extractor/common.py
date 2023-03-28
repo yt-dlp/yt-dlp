@@ -2499,7 +2499,7 @@ class InfoExtractor:
 
     def _extract_mpd_formats_and_subtitles(
             self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
-            fatal=True, data=None, headers={}, query={}):
+            fatal=True, data=None, headers={}, query={}, multi_period=False):
 
         if self.get_param('ignore_no_formats_error'):
             fatal = False
@@ -2520,7 +2520,7 @@ class InfoExtractor:
         mpd_base_url = base_url(mpd_url)
 
         return self._parse_mpd_formats_and_subtitles(
-            mpd_doc, mpd_id, mpd_base_url, mpd_url)
+            mpd_doc, mpd_id, mpd_base_url, mpd_url, multi_period)
 
     def _parse_mpd_formats(self, *args, **kwargs):
         fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
@@ -2529,7 +2529,7 @@ class InfoExtractor:
         return fmts
 
     def _parse_mpd_formats_and_subtitles(
-            self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
+            self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None, multi_period=False):
         """
         Parse formats from MPD manifest.
         References:
@@ -2608,9 +2608,14 @@ class InfoExtractor:
             return ms_info
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
-        formats, subtitles = [], {}
         stream_numbers = collections.defaultdict(int)
-        for period in mpd_doc.findall(_add_ns('Period')):
+        period_entries = []
+        for period_idx, period in enumerate(mpd_doc.findall(_add_ns('Period'))):
+            period_entry = {
+                'id': period.get('id', f'period-{period_idx}'),
+                'formats': [],
+                'subtitles': {}
+            }
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
                 'start_number': 1,
@@ -2860,11 +2865,26 @@ class InfoExtractor:
                     if content_type in ('video', 'audio', 'image/jpeg'):
                         f['manifest_stream_number'] = stream_numbers[f['url']]
                         stream_numbers[f['url']] += 1
-                        formats.append(f)
+                        period_entry['formats'].append(f)
                     elif content_type == 'text':
-                        subtitles.setdefault(lang or 'und', []).append(f)
+                        period_entry['subtitles'].setdefault(lang or 'und', []).append(f)
+            if period_entry['formats'] or period_entry['subtitles']:
+                period_entries.append(period_entry)
 
-        return formats, subtitles
+        if multi_period:
+            return period_entries
+        else:
+            if len(period_entries) > 1:
+                self.report_warning(bug_reports_message(
+                    'Ignoring multiple periods found in the DASH manifest; '
+                    'if part of the video is missing,'
+                ), only_once=True)
+            # backwards compatibility: concatenate all formats and subtitles
+            formats, subtitles = [], {}
+            for period in period_entries:
+                formats += period['formats']
+                subtitles.update(period['subtitles'])
+            return formats, subtitles
 
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)
