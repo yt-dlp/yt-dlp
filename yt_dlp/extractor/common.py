@@ -2497,9 +2497,13 @@ class InfoExtractor:
             self._report_ignoring_subs('DASH')
         return fmts
 
-    def _extract_mpd_formats_and_subtitles(
+    def _extract_mpd_formats_and_subtitles(self, *args, **kwargs):
+        periods = self._extract_mpd_periods(*args, **kwargs)
+        return self._merge_mpd_periods(periods)
+
+    def _extract_mpd_periods(
             self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
-            fatal=True, data=None, headers={}, query={}, multi_period=False):
+            fatal=True, data=None, headers={}, query={}):
 
         if self.get_param('ignore_no_formats_error'):
             fatal = False
@@ -2510,17 +2514,16 @@ class InfoExtractor:
             errnote='Failed to download MPD manifest' if errnote is None else errnote,
             fatal=fatal, data=data, headers=headers, query=query)
         if res is False:
-            return [], {}
+            return []
         mpd_doc, urlh = res
         if mpd_doc is None:
-            return [], {}
+            return []
 
         # We could have been redirected to a new url when we retrieved our mpd file.
         mpd_url = urlh.geturl()
         mpd_base_url = base_url(mpd_url)
 
-        return self._parse_mpd_formats_and_subtitles(
-            mpd_doc, mpd_id, mpd_base_url, mpd_url, multi_period)
+        return self._parse_mpd_periods(mpd_doc, mpd_id, mpd_base_url, mpd_url)
 
     def _parse_mpd_formats(self, *args, **kwargs):
         fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
@@ -2528,8 +2531,26 @@ class InfoExtractor:
             self._report_ignoring_subs('DASH')
         return fmts
 
-    def _parse_mpd_formats_and_subtitles(
-            self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None, multi_period=False):
+    def _parse_mpd_formats_and_subtitles(self, *args, **kwargs):
+        periods = self._parse_mpd_periods(*args, **kwargs)
+        return self._merge_mpd_periods(periods)
+
+    def _merge_mpd_periods(self, periods):
+        """ Merge all formats and subtitles from an MPD manifest. """
+        if len(periods) > 1:
+            self.report_warning(bug_reports_message(
+                'Ignoring multiple periods found in the DASH manifest; '
+                'if part of the video is missing,'
+            ), only_once=True)
+
+        # backwards compatibility: concatenate all formats and subtitles
+        formats, subtitles = [], {}
+        for period in periods:
+            formats += period['formats']
+            subtitles.update(period['subtitles'])
+        return formats, subtitles
+
+    def _parse_mpd_periods(self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
         """
         Parse formats from MPD manifest.
         References:
@@ -2871,20 +2892,7 @@ class InfoExtractor:
             if period_entry['formats'] or period_entry['subtitles']:
                 period_entries.append(period_entry)
 
-        if multi_period:
-            return period_entries
-        else:
-            if len(period_entries) > 1:
-                self.report_warning(bug_reports_message(
-                    'Ignoring multiple periods found in the DASH manifest; '
-                    'if part of the video is missing,'
-                ), only_once=True)
-            # backwards compatibility: concatenate all formats and subtitles
-            formats, subtitles = [], {}
-            for period in period_entries:
-                formats += period['formats']
-                subtitles.update(period['subtitles'])
-            return formats, subtitles
+        return period_entries
 
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)

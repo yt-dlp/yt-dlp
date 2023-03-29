@@ -115,8 +115,7 @@ class GoPlayIE(InfoExtractor):
                 video_id, data=b'{"api-key":"null"}',
                 headers={'content-type': 'application/json'})
 
-            periods = self._extract_mpd_formats_and_subtitles(
-                dai['stream_manifest'], video_id, multi_period=True)
+            periods = self._extract_mpd_periods(dai['stream_manifest'], video_id)
 
             # skip pre-roll and mid-roll ads
             periods = [period for period in periods
