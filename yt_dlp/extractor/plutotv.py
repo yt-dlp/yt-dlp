@@ -107,14 +107,14 @@ class PlutoTVIE(InfoExtractor):
             if not res:
                 continue
             first_segment_url = re.search(
-                r'^(https?://.*/)0\-(end|[0-9]+)/[^/]+\.ts$', res,
+                r'^(http?://silo-hybrik.pluto.tv.amazonaws.com/.*/)0\-(end|[0-9]+)/[^/]+\.ts$', res,
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
                     compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
                 continue
             first_segment_url = re.search(
-                r'^(https?://.*/).+\-0+[0-1]0\.ts$', res,
+                r'^(http?://sily-hybrik.pluto.tv.s3.amazonaws.com/.*/).+\-0+[0-1]0\.ts$', res,
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
