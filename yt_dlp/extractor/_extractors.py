@@ -260,6 +260,9 @@ from .brightcove import (
     BrightcoveLegacyIE,
     BrightcoveNewIE,
 )
+from .brilliantpala import (
+    BrilliantpalaCourseContentPageIE,
+)
 from .businessinsider import BusinessInsiderIE
 from .bundesliga import BundesligaIE
 from .buzzfeed import BuzzFeedIE
