@@ -302,14 +302,14 @@ from .cbs import (
     CBSIE,
     ParamountPressExpressIE,
 )
-from .cbslocal import (
-    CBSLocalIE,
-    CBSLocalArticleIE,
-)
 from .cbsinteractive import CBSInteractiveIE
 from .cbsnews import (
     CBSNewsEmbedIE,
     CBSNewsIE,
+    CBSLocalIE,
+    CBSLocalArticleIE,
+    CBSLocalLiveIE,
+    CBSNewsLiveIE,
     CBSNewsLiveVideoIE,
 )
 from .cbssports import (
