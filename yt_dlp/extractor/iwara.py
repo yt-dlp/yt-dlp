@@ -15,7 +15,7 @@ from ..utils import (
 
 class IwaraIE(InfoExtractor):
     IE_NAME = 'iwara'
-    _VALID_URL = r'https?://(?:www\.)?iwara\.tv/video/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.|ecchi\.)?iwara\.tv/videos?/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         # this video cannot be played because of migration
         'only_matching': True,
