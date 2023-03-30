@@ -22,8 +22,9 @@ class RecurbateIE(InfoExtractor):
         try:
             webpage = self._download_webpage(url, video_id)
         except ExtractorError as e:
-            if e.cause.code == 403:
-                self.raise_login_required(method='cookies')
+            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                self.raise_login_required()
+            raise
         title = self._html_extract_title(webpage, 'title')
         token = self._html_search_regex(r'data-token="([^"]+)"', webpage, 'token')
 
@@ -34,7 +35,7 @@ class RecurbateIE(InfoExtractor):
         if not entries:
             if 'shall_signin' in video_webpage[:20]:
                 self.raise_login_required(method='cookies')
-            raise ExtractorError('No media links found')
+            self.raise_no_formats('No media links found')
         return merge_dicts({
             'id': video_id,
             'title': title,
