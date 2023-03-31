@@ -239,6 +239,7 @@ class InfoExtractor:
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
+                    MPD formats can have the field: is_dash_periods
 
     url:            Final video URL.
     ext:            Video filename extension.
@@ -2490,6 +2491,36 @@ class InfoExtractor:
                 'formats': formats,
             })
         return entries
+
+    def _merge_multi_period_mpd_formats(self, periods):
+        # merge periods by concatenating fragments
+        # require almost all parameters to be the same
+        shared_keys = [k for k in periods[0]['formats'][0].keys()
+                       if k not in ('format_id', 'fragments', 'manifest_stream_number')]
+
+        # create merged formats
+        stream_numbers = collections.defaultdict(int)
+        groups = {}
+        formats = []
+        for period in periods:
+            for f in period['formats']:
+                format_key = tuple(f[k] for k in shared_keys)
+                if 'fragments' not in f or format_key not in groups:
+                    # unmergeable format, or first period of this format
+                    mf = {}
+                    mf.update(f)
+                    mf['manifest_stream_number'] = stream_numbers[mf['url']]
+                    formats.append(mf)
+                    # keep track of mergeable formats
+                    if 'fragments' in f:
+                        mf['is_dash_periods'] = True
+                        mf['fragments'] = f['fragments'].copy()
+                        groups[format_key] = mf
+                else:
+                    # follow-up period of a mergeable format
+                    groups[format_key]['fragments'] += f['fragments']
+
+        return formats
 
     def _extract_mpd_formats(self, *args, **kwargs):
         fmts, subs = self._extract_mpd_formats_and_subtitles(*args, **kwargs)

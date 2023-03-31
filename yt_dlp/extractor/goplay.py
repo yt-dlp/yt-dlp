@@ -99,11 +99,6 @@ class GoPlayIE(InfoExtractor):
             formats, subs = self._extract_m3u8_formats_and_subtitles(
                 api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
 
-            info_dict.update({
-                'id': video_id,
-                'formats': formats,
-            })
-
         else:
             assert 'ssai' in api, 'expecting Google SSAI stream'
 
@@ -121,15 +116,12 @@ class GoPlayIE(InfoExtractor):
             periods = [period for period in periods
                        if '-ad-' not in period['id']]
 
-            for period in periods:
-                period.update(info_dict)
+            formats = self._merge_multi_period_mpd_formats(periods)
 
-            info_dict.update({
-                '_type': 'multi_video',
-                'id': video_id,
-                'entries': periods,
-            })
-
+        info_dict.update({
+            'id': video_id,
+            'formats': formats,
+        })
         return info_dict
 
 
