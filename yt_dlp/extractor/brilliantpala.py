@@ -54,6 +54,18 @@ class BrilliantpalaCourseContentPageIE(BrilliantpalaIE):
     _TESTS = [{
         'url': 'https://elearn.brilliantpala.org/courses/42/contents/12345/',
         'only_matching': True,
+    }, {
+        'url': 'https://elearn.brilliantpala.org/courses/98/contents/36683/',
+        'info_dict': {
+            'id': '23577',
+            'ext': 'mp4',
+            'title': 'Physical World, Units and Measurements  - 1',
+            'thumbnail': 'https://d1j3vi2u94ebt0.cloudfront.net/institute/brilliantpalalms/chapter_contents/26237/e657f81b90874be19795c7ea081f8d5c.png',
+            'live_status': 'not_live',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -78,7 +90,8 @@ class BrilliantpalaCourseContentPageIE(BrilliantpalaIE):
                 'title': dict_get(content_json, 'title', ''),
                 'formats': formats,
                 'http_headers': {'X-Key': hashlib.sha256(username.encode('ascii')).hexdigest()},
-                'thumbnail': content_json.get('cover_image')
+                'thumbnail': content_json.get('cover_image'),
+                'live_status': 'not_live',
             }
             entries.append(entry)
 
