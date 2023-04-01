@@ -41,6 +41,9 @@ class YoukuIE(InfoExtractor):
             'tags': list,
         },
     }, {
+        'url': 'http://player.youku.com/player.php/sid/XNDgyMDQ2NTQw/v.swf',
+        'only_matching': True,
+    }, {
         'url': 'https://v.youku.com/v_show/id_XNTA2NTA0MjA1Mg==.html',
         'info_dict': {
             'id': 'XNTA2NTA0MjA1Mg',
