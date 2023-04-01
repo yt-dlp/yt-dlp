@@ -53,14 +53,14 @@ class CBSNewsBaseIE(InfoExtractor):
     def _get_video_url(self, item):
         return traverse_obj(item, 'video', 'video2', expected_type=url_or_none)
 
-    def _extract_playlist(self, webpage):
+    def _extract_playlist(self, webpage, playlist_id):
         entries = []
         for embed_url in re.findall(r'<iframe[^>]+data-src="(https?://(?:www\.)?cbsnews\.com/embed/video/[^#]*#[^"]+)"', webpage):
             entries.append(self.url_result(embed_url, CBSNewsEmbedIE))
         if entries:
             return self.playlist_result(
-                entries, playlist_title=self._html_search_meta(['og:title', 'twitter:title'], webpage),
-                playlist_description=self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage))
+                entries, playlist_id, self._html_search_meta(['og:title', 'twitter:title'], webpage),
+                self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage))
 
     def _extract_video(self, item, video_url, video_id):
         if mimetype2ext(item.get('format'), default=determine_ext(video_url)) == 'mp4':
@@ -87,6 +87,11 @@ class CBSNewsBaseIE(InfoExtractor):
                 }],
             } if url_or_none(subs_url) else None
 
+        episode_meta = traverse_obj(item, {
+            'season_number': ('season', {int_or_none}),
+            'episode_number': ('episode', {int_or_none}),
+        }) if item.get('isFullEpisode') else {}
+
         return {
             'id': video_id,
             'formats': formats,
@@ -95,12 +100,11 @@ class CBSNewsBaseIE(InfoExtractor):
                 'description': 'dek',
                 'timestamp': ('timestamp', {lambda x: float_or_none(x, 1000)}),
                 'duration': ('duration', {float_or_none}),
-                'season_number': ('season', {int_or_none}),
-                'episode_number': ('episode', {int_or_none}),
                 'subtitles': ('captions', {get_subtitles}),
                 'thumbnail': ('images', ('hd', 'sd'), {url_or_none}),
                 'is_live': ('type', {lambda x: x == 'live'}),
             }, get_all=False),
+            **episode_meta,
         }
 
 
@@ -113,9 +117,11 @@ class CBSNewsEmbedIE(CBSNewsBaseIE):
             'id': '6ZP4cXvo9FaX3VLH7MF4CgY30JFpY_GA',
             'ext': 'mp4',
             'title': 'Cops investigate gorilla incident at Cincinnati Zoo',
+            'description': 'md5:fee7441ab8aaeb3c693482394738102b',
             'duration': 350,
             'timestamp': 1464719713,
             'upload_date': '20160531',
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -159,10 +165,7 @@ class CBSNewsIE(CBSNewsBaseIE):
                 'timestamp': 1476046464,
                 'upload_date': '20161009',
             },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            },
+            'skip': 'This video is no longer available',
         },
         {
             'url': 'https://www.cbsnews.com/video/fort-hood-shooting-army-downplays-mental-illness-as-cause-of-attack/',
@@ -173,24 +176,23 @@ class CBSNewsIE(CBSNewsBaseIE):
                 'description': 'md5:4a6983e480542d8b333a947bfc64ddc7',
                 'upload_date': '20140404',
                 'timestamp': 1396650660,
-                'uploader': 'CBSI-NEW',
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'duration': 205,
                 'subtitles': {
                     'en': [{
-                        'ext': 'ttml',
+                        'ext': 'dfxp',
                     }],
                 },
             },
             'params': {
-                # m3u8 download
-                'skip_download': True,
+                'skip_download': 'm3u8',
             },
         },
         {
             # 48 hours
             'url': 'http://www.cbsnews.com/news/maria-ridulph-murder-will-the-nations-oldest-cold-case-to-go-to-trial-ever-get-solved/',
             'info_dict': {
+                'id': 'maria-ridulph-murder-will-the-nations-oldest-cold-case-to-go-to-trial-ever-get-solved',
                 'title': 'Cold as Ice',
                 'description': 'Can a childhood memory solve the 1957 murder of 7-year-old Maria Ridulph?',
             },
@@ -222,7 +224,7 @@ class CBSNewsIE(CBSNewsBaseIE):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        playlist = self._extract_playlist(webpage)
+        playlist = self._extract_playlist(webpage, display_id)
         if playlist:
             return playlist
 
@@ -251,7 +253,7 @@ class CBSLocalBaseIE(CBSNewsBaseIE):
                 webpage, 'Anvato URL', default=None)
 
             if not anv_params:
-                playlist = self._extract_playlist(webpage)
+                playlist = self._extract_playlist(webpage, display_id)
                 if playlist:
                     return playlist
                 self.raise_no_formats('No video content was found', expected=True, video_id=video_id)
@@ -287,7 +289,7 @@ class CBSLocalIE(CBSLocalBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        # cbsnews.com video via defaultPlayload JSON
+        # cbsnews.com video via defaultPayload JSON
         'url': 'https://www.cbsnews.com/newyork/live/video/20230330171655-the-city-is-sounding-the-alarm-on-dangerous-social-media-challenges/',
         'info_dict': {
             'id': 'sJqfw7YvgSC6ant2zVmzt3y1jYKoL5J3',
@@ -298,10 +300,6 @@ class CBSLocalIE(CBSLocalBaseIE):
             'duration': 41.0,
             'timestamp': 1680196615,
             'upload_date': '20230330',
-            'episode_number': 1,
-            'episode': 'Episode 1',
-            'season_number': 1,
-            'season': 'Season 1',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -312,21 +310,12 @@ class CBSLocalArticleIE(CBSLocalBaseIE):
     _TESTS = [{
         # Anvato video via iframe embed
         'url': 'https://www.cbsnews.com/newyork/news/mta-station-agents-leaving-their-booths-to-provide-more-direct-customer-service/',
+        'playlist_count': 2,
         'info_dict': {
-            'id': '6376579',
-            'ext': 'mp4',
-            'title': 'MTA station agents leaving their booths today',
-            'description': 'md5:a1d6c2a713edc994911fe344a28a434b',
-            'uploader': 'CBS',
-            'duration': 167,
-            'timestamp': 1680173385,
-            'upload_date': '20230330',
-            'categories': 'count:4',
-            'tags': 'count:10',
-            'thumbnail': 're:^https?://.*',
-            '_old_archive_ids': ['cbsnewsembed 6376579'],
+            'id': 'mta-station-agents-leaving-their-booths-to-provide-more-direct-customer-service',
+            'title': 'MTA station agents begin leaving their booths to provide more direct customer service',
+            'description': 'The more than 2,200 agents will provide face-to-face customer service to passengers.',
         },
-        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.cbsnews.com/losangeles/news/safety-advocates-say-fatal-car-seat-failures-are-public-health-crisis/',
         'md5': 'f0ee3081e3843f575fccef901199b212',
