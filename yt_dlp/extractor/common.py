@@ -6,6 +6,7 @@ import http.client
 import http.cookiejar
 import http.cookies
 import inspect
+import io
 import itertools
 import json
 import math
@@ -13,6 +14,7 @@ import netrc
 import os
 import random
 import re
+import subprocess
 import sys
 import time
 import types
@@ -34,6 +36,7 @@ from ..utils import (
     GeoUtils,
     HEADRequest,
     LenientJSONDecoder,
+    Popen,
     RegexNotFoundError,
     RetryManager,
     UnsupportedError,
@@ -70,6 +73,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     str_to_int,
+    stream_netrc,
     strip_or_none,
     traverse_obj,
     truncate_string,
@@ -525,7 +529,7 @@ class InfoExtractor:
     _EMBED_REGEX = []
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
-        password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
         return {
             None: '',
             'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
@@ -1303,20 +1307,53 @@ class InfoExtractor:
 
         return username, password
 
+    def _get_netrc_cmd_info(self, target=None):
+        username = None
+        password = None
+
+        target = target or self._NETRC_MACHINE
+
+        cmd = self.get_param('netrc_cmd', None)
+        if cmd is None:
+            raise netrc.NetrcParseError('No netrc command specified')
+        cmd_formated = cmd.format(target)
+        try:
+            stdout, stderr, err_code = Popen.run(cmd_formated, text=True, shell=True,
+                                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output = io.StringIO(stdout)
+            info = stream_netrc(output).authenticators(target)
+            output.close()
+            if err_code != 0:
+                self.report_warning(f'Command returned an error: {stderr}')
+            elif info is not None:
+                username = info[0]
+                password = info[2]
+            else:
+                self.report_warning(
+                    f'The netrc command ({cmd}) gave us no output but did not return an error code')
+        except (OSError, netrc.NetrcParseError) as err:
+            self.report_warning('parsing .netrc: {}'.format(error_to_compat_str(err)))
+
+        return username, password, err_code
+
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
         """
         Get the login info as (username, password)
         First look for the manually specified credentials using username_option
         and password_option as keys in params dictionary. If no such credentials
-        available look in the netrc file using the netrc_machine or _NETRC_MACHINE
-        value.
+        are available try the netrc_cmd if it is defined or look in the
+        netrc file using the netrc_machine or _NETRC_MACHINE value.
         If there's no info available, return (None, None)
         """
 
-        # Attempt to use provided username and password or .netrc data
+        # Attempt to use provided username and password, netrc-cmd or .netrc data
         username = self.get_param(username_option)
         if username is not None:
             password = self.get_param(password_option)
+        elif self.get_param('netrc_cmd'):
+            username, password, errcode = self._get_netrc_cmd_info(netrc_machine)
+            if errcode != 0:
+                return None, None
         else:
             username, password = self._get_netrc_login_info(netrc_machine)
 

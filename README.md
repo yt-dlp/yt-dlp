@@ -50,6 +50,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [CONFIGURATION](#configuration)
     * [Configuration file encoding](#configuration-file-encoding)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
+	* [Authentication with a custom shell command](#authentication-with-a-custom-shell-command)
     * [Notes about environment variables](#notes-about-environment-variables)
 * [OUTPUT TEMPLATE](#output-template)
     * [Output template examples](#output-template-examples)
@@ -901,6 +902,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --netrc-location PATH           Location of .netrc authentication data;
                                     either the path or its containing directory.
                                     Defaults to ~/.netrc
+    --netrc-cmd NETRC_CMD           Command to execute to get the credentials
+                                    credentials for an extractor.
     --video-password PASSWORD       Video password (vimeo, youku)
     --ap-mso MSO                    Adobe Pass multiple-system operator (TV
                                     provider) identifier, use --ap-list-mso for
@@ -1213,6 +1216,14 @@ machine twitch login my_twitch_account_name password my_twitch_password
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
 The default location of the .netrc file is `~` (see below).
+
+### Authentication with a custom shell command
+
+As an alternative to using the `.netrc` file, which has the disadvantage of keeping your passwords in a plain text file, you can configure a custom shell command to provide the credentials for an extractor. This is done by providing the `--netrc-cmd` parameter, it shall output the credentials in the netrc format and return `0` on success, other values will be treated as an error. `{}` in the command will be replaced by the name of the extractor to make it possible to select the credentials for the right extractor.
+E.g. for using the `pass` password manager:
+```
+yt-dlp --netrc-cmd "pass ytldp/youtube" https://www.youtube.com/watch?v=BaW_jenozKc
+```
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation

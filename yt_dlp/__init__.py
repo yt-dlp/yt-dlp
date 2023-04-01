@@ -736,6 +736,7 @@ def parse_options(argv=None):
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
+        'netrc_cmd': opts.netrc_cmd,
         'username': opts.username,
         'password': opts.password,
         'twofactor': opts.twofactor,
