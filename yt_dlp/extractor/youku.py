@@ -27,6 +27,24 @@ class YoukuIE(InfoExtractor):
     '''
 
     _TESTS = [{
+        'url': 'http://v.youku.com/v_show/id_XNjA1NzA2Njgw.html',
+        'note': 'Video protected with password',
+        'info_dict': {
+            'id': 'XNjA1NzA2Njgw',
+            'ext': 'mp4',
+            'title': '邢義田复旦讲座之想象中的胡人—从“左衽孔子”说起',
+            'duration': 7264.5,
+            'thumbnail': r're:^https?://.*',
+            'uploader': 'FoxJin1006',
+            'uploader_id': '322014285',
+            'uploader_url': 'http://i.youku.com/u/UMTI4ODA1NzE0MA==',
+            'tags': list,
+            'skip': '404',
+        },
+        'params': {
+            'videopassword': '100600',
+        },
+    }, {
         # /play/get.json contains streams with "channel_type":"tail"
         'url': 'http://v.youku.com/v_show/id_XOTUxMzg4NDMy.html',
         'info_dict': {
