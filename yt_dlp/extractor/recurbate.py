@@ -25,7 +25,7 @@ class RecurbateIE(InfoExtractor):
             webpage = self._download_webpage(url, video_id)
         except ExtractorError as e:
             if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
-                self.raise_login_required()
+                self.raise_login_required(msg='This video is only available for registered users; Set your authenticated browser user agent via the --user-agent parameter.', method='cookies')
             raise
         title = self._html_extract_title(webpage, 'title')
         token = self._html_search_regex(r'data-token="([^"]+)"', webpage, 'token')
@@ -34,10 +34,6 @@ class RecurbateIE(InfoExtractor):
         video_webpage = self._download_webpage(video_url, video_id)
 
         entries = self._parse_html5_media_entries(video_url, video_webpage, video_id)
-        if not entries:
-            if 'shall_signin' in video_webpage[:20]:
-                self.raise_login_required(method='cookies')
-            self.raise_no_formats('No media links found')
         return merge_dicts({
             'id': video_id,
             'title': title,
