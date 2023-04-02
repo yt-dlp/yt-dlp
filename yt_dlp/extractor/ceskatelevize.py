@@ -119,12 +119,10 @@ class CeskaTelevizeIE(InfoExtractor):
                         type_ = 'bonus'
             if not idec:
                 raise ExtractorError('Failed to find IDEC id')
-            iframe_hash = self._download_webpage(
-                'https://www.ceskatelevize.cz/v-api/iframe-hash/',
-                playlist_id, note='Getting IFRAME hash')
-            query = {'hash': iframe_hash, 'origin': 'iVysilani', 'autoStart': 'true', type_: idec, }
+            sidp = playlist_id.rsplit('-')[0]
+            query = {'origin': 'iVysilani', 'autoStart': 'true', 'sidp': sidp, type_: idec, }
             webpage = self._download_webpage(
-                'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php',
+                'https://player.ceskatelevize.cz/',
                 playlist_id, note='Downloading player', query=query)
 
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
@@ -133,29 +131,9 @@ class CeskaTelevizeIE(InfoExtractor):
         if any(not_found in webpage for not_found in ('Neplatný parametr pro videopřehrávač', 'IDEC nebyl nalezen', )):
             raise ExtractorError('no video with IDEC available', video_id=idec, expected=True)
 
-        type_ = None
-        episode_id = None
-
-        playlist = self._parse_json(
-            self._search_regex(
-                r'getPlaylistUrl\(\[({.+?})\]', webpage, 'playlist',
-                default='{}'), playlist_id)
-        if playlist:
-            type_ = playlist.get('type')
-            episode_id = playlist.get('id')
-
-        if not type_:
-            type_ = self._html_search_regex(
-                r'getPlaylistUrl\(\[\{"type":"(.+?)","id":".+?"\}\],',
-                webpage, 'type')
-        if not episode_id:
-            episode_id = self._html_search_regex(
-                r'getPlaylistUrl\(\[\{"type":".+?","id":"(.+?)"\}\],',
-                webpage, 'episode_id')
-
         data = {
-            'playlist[0][type]': type_,
-            'playlist[0][id]': episode_id,
+            'playlist[0][type]': 'episode',
+            'playlist[0][id]': idec,
             'requestUrl': parsed_url.path,
             'requestSource': 'iVysilani',
         }
@@ -231,7 +209,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 if item.get('type') == 'VOD':
                     subs = item.get('subtitles')
                     if subs:
-                        subtitles = self.extract_subtitles(episode_id, subs)
+                        subtitles = self.extract_subtitles(idec, subs)
 
                 if playlist_len == 1:
                     final_title = playlist_title or title
