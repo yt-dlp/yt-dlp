@@ -261,7 +261,8 @@ from .brightcove import (
     BrightcoveNewIE,
 )
 from .brilliantpala import (
-    BrilliantpalaCourseContentPageIE,
+    BrilliantpalaElearnIE,
+    BrilliantpalaClassesIE,
 )
 from .businessinsider import BusinessInsiderIE
 from .bundesliga import BundesligaIE

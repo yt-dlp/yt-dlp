@@ -11,7 +11,14 @@ from ..utils import (
 
 class BrilliantpalaIE(InfoExtractor):
     _NETRC_MACHINE = 'brilliantpala'
-    _LOGIN_API = 'https://elearn.brilliantpala.org/login/'
+    _DOMAIN = '{subdomain}.brilliantpala.org'
+
+    def _initialize_pre_login(self):
+        self._HOMEPAGE = f'https://{self._DOMAIN}'
+        self._LOGIN_API = f'{self._HOMEPAGE}/login/'
+        self._LOGOUT_DEVICES_API = f'{self._HOMEPAGE}/logout_devices/?next=/'
+        self._CONTENT_API = f'{self._HOMEPAGE}/api/v2.4/contents/{{content_id}}/'
+        self._HLS_AES_URI = f'{self._HOMEPAGE}/api/v2.5/video_contents/{{content_id}}/key/'
 
     def _get_logged_in_username(self, webpage):
         if self._LOGIN_API == self._og_search_property('url', webpage):
@@ -26,7 +33,7 @@ class BrilliantpalaIE(InfoExtractor):
             'username': username,
             'password': password,
         })
-        self._set_cookie('elearn.brilliantpala.org', 'csrftoken', login_form['csrfmiddlewaretoken'])
+        self._set_cookie(self._DOMAIN, 'csrftoken', login_form['csrfmiddlewaretoken'])
 
         logged_page = self._download_webpage(
             self._LOGIN_API, None, note='Logging in', headers={'Referer': self._LOGIN_API},
@@ -42,13 +49,42 @@ class BrilliantpalaIE(InfoExtractor):
                 group='button_text', fatal=False, default=''):
             logout_device_form = self._hidden_inputs(logged_page)
             self._download_webpage(
-                'https://elearn.brilliantpala.org/logout_devices/?next=/', None,
-                note='Logging out other devices', data=urlencode_postdata(logout_device_form),
-                headers={'Referer': self._LOGIN_API})
+                self._LOGOUT_DEVICES_API, None, headers={'Referer': self._LOGIN_API},
+                note='Logging out other devices', data=urlencode_postdata(logout_device_form))
+
+    def _real_extract(self, url):
+        course_id, content_id = self._match_valid_url(url).group('course_id', 'content_id')
+        video_id = f'{course_id}-{content_id}'
+
+        username = self._get_logged_in_username(self._download_webpage(url, video_id))
+
+        content_json = self._download_json(
+            self._CONTENT_API.format(content_id=content_id), video_id,
+            note='Fetching content info', errnote='Unable to fetch content info')
+
+        entries = []
+        for stream in traverse_obj(content_json, ('video', 'streams')):
+            formats = self._extract_m3u8_formats(
+                m3u8_url=stream['url'], video_id=video_id)
+            for format in formats:
+                format['hls_aes'] = {
+                    'uri': self._HLS_AES_URI.format(content_id=content_id)}
+            entry = {
+                'id': str(stream['id']),
+                'title': dict_get(content_json, 'title', ''),
+                'formats': formats,
+                'http_headers': {'X-Key': hashlib.sha256(username.encode('ascii')).hexdigest()},
+                'thumbnail': content_json.get('cover_image'),
+                'live_status': 'not_live',
+            }
+            entries.append(entry)
+
+        return self.playlist_result(
+            entries, playlist_id=video_id, playlist_title=content_json.get('title'))
 
 
-class BrilliantpalaCourseContentPageIE(BrilliantpalaIE):
-    IE_NAME = 'Brilliantpala:CourseContent'
+class BrilliantpalaElearnIE(BrilliantpalaIE):
+    IE_NAME = 'Brilliantpala:Elearn'
     IE_DESC = 'VoD on elearn.brilliantpala.org'
     _VALID_URL = r'https?://elearn\.brilliantpala\.org/courses/(?P<course_id>\d+)/contents/(?P<content_id>\d+)/?'
     _TESTS = [{
@@ -68,32 +104,36 @@ class BrilliantpalaCourseContentPageIE(BrilliantpalaIE):
         },
     }]
 
-    def _real_extract(self, url):
-        course_id, content_id = self._match_valid_url(url).group('course_id', 'content_id')
-        video_id = f'{course_id}-{content_id}'
+    _SUBDOMIAN = 'elearn'
 
-        username = self._get_logged_in_username(self._download_webpage(url, video_id))
+    def _initialize_pre_login(self):
+        self._DOMAIN = super()._DOMAIN.format(subdomain=self._SUBDOMIAN)
+        super()._initialize_pre_login()
 
-        content_json = self._download_json(
-            f'https://elearn.brilliantpala.org/api/v2.4/contents/{content_id}/',
-            video_id, note='Fetching content info', errnote='Unable to fetch content info')
 
-        entries = []
-        for stream in traverse_obj(content_json, ('video', 'streams')):
-            formats = self._extract_m3u8_formats(
-                m3u8_url=stream['url'], video_id=video_id)
-            for format in formats:
-                format['hls_aes'] = {
-                    'uri': f'https://elearn.brilliantpala.org/api/v2.5/video_contents/{content_id}/key/'}
-            entry = {
-                'id': str(stream['id']),
-                'title': dict_get(content_json, 'title', ''),
-                'formats': formats,
-                'http_headers': {'X-Key': hashlib.sha256(username.encode('ascii')).hexdigest()},
-                'thumbnail': content_json.get('cover_image'),
-                'live_status': 'not_live',
-            }
-            entries.append(entry)
+class BrilliantpalaClassesIE(BrilliantpalaIE):
+    IE_NAME = 'Brilliantpala:Classes'
+    IE_DESC = 'VoD on classes.brilliantpala.org'
+    _VALID_URL = r'https?://classes\.brilliantpala\.org/courses/(?P<course_id>\d+)/contents/(?P<content_id>\d+)/?'
+    _TESTS = [{
+        'url': 'https://classes.brilliantpala.org/courses/42/contents/12345/',
+        'only_matching': True,
+    }, {
+        'url': 'https://classes.brilliantpala.org/courses/416/contents/25445/',
+        'info_dict': {
+            'id': '9128',
+            'ext': 'mp4',
+            'title': 'Motion in a Straight Line - Class 1',
+            'thumbnail': 'https://d3e4y8hquds3ek.cloudfront.net/institute/brilliantpalaelearn/chapter_contents/ff5ba838d0ec43419f67387fe1a01fa8.png',
+            'live_status': 'not_live',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
 
-        return self.playlist_result(
-            entries, playlist_id=video_id, playlist_title=content_json.get('title'))
+    _SUBDOMIAN = 'classes'
+
+    def _initialize_pre_login(self):
+        self._DOMAIN = super()._DOMAIN.format(subdomain=self._SUBDOMIAN)
+        super()._initialize_pre_login()
