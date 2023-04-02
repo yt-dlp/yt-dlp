@@ -444,6 +444,7 @@ from .deezer import (
 )
 from .democracynow import DemocracynowIE
 from .detik import DetikEmbedIE
+from .dlf import DLFIE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
