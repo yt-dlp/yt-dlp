@@ -172,7 +172,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'ext': 'mp3',
                 'display_id': 'wdr3-gespraech-am-samstag/audio-schriftstellerin-juli-zeh-100',
                 'title': 'Schriftstellerin Juli Zeh',
-                'alt_title': 'WDR 3 GesprÃ¤ch am Samstag',
+                'alt_title': 'WDR 3 Gespräch am Samstag',
                 'upload_date': '20160312',
                 'description': 'md5:e127d320bc2b1f149be697ce044a3dd7',
                 'is_live': False,
@@ -240,7 +240,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'info_dict': {
                 'id': 'mdb-1556012',
                 'ext': 'mp4',
-                'title': 'DHB-VizeprÃ¤sident Bob Hanning - "Die Weltspitze ist extrem breit"',
+                'title': 'DHB-Vizepräsident Bob Hanning - "Die Weltspitze ist extrem breit"',
                 'upload_date': '20180111',
             },
             'params': {
