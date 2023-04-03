@@ -16,6 +16,7 @@ from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
+    network_exceptions,
     remove_end,
     remove_start,
     sanitized_Request,
@@ -258,8 +259,8 @@ class Updater:
             self.ydl.to_screen((
                 f'Available version: {self._label(self.target_channel, self.latest_version)}, ' if self.target_tag == 'latest' else ''
             ) + f'Current version: {self._label(CHANNEL, self.current_version)}')
-        except Exception:
-            return self._report_network_error('obtain version info', delim='; Please try again later or')
+        except network_exceptions as e:
+            return self._report_network_error(f'obtain version info ({e})', delim='; Please try again later or')
 
         if not is_non_updateable():
             self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
@@ -303,7 +304,7 @@ class Updater:
 
         try:
             newcontent = self._download(self.release_name, self._tag)
-        except Exception as e:
+        except network_exceptions as e:
             if isinstance(e, urllib.error.HTTPError) and e.code == 404:
                 return self._report_error(
                     f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
