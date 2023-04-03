@@ -323,7 +323,7 @@ def create_parser():
         help='Print program version and exit')
     general.add_option(
         '-U', '--update',
-        action='store_true', dest='update_self',
+        action='store_const', dest='update_self', const=CHANNEL,
         help=format_field(
             is_non_updateable(), None, 'Check if updates are available. %s',
             default=f'Update this program to the latest {CHANNEL} version'))
@@ -335,9 +335,9 @@ def create_parser():
         '--update-to',
         action='store', dest='update_self', metavar='[CHANNEL]@[TAG]',
         help=(
-            'Upgrade/downgrade to a specific version. CHANNEL and TAG defaults to '
-            f'"{CHANNEL}" and "latest" respectively if omitted; See "UPDATE" for details. '
-            f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
+            'Upgrade/downgrade to a specific version. CHANNEL can be a repository as well. '
+            f'CHANNEL and TAG default to "{CHANNEL.partition("@")[0]}" and "latest" respectively if omitted; '
+            f'See "UPDATE" for details. Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',

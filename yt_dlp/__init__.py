@@ -933,7 +933,7 @@ def _real_main(argv=None):
             ydl.cache.remove()
 
         try:
-            updater = Updater(ydl, opts.update_self if isinstance(opts.update_self, str) else None)
+            updater = Updater(ydl, opts.update_self)
             if opts.update_self and updater.update() and actual_use:
                 if updater.cmd:
                     return updater.restart()
