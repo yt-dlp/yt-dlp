@@ -188,21 +188,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      # NB: In order to create a universal2 application, the version of python3 in /usr/bin has to be used
+      # NB: Building universal2 does not work with python from actions/setup-python
       - name: Install Requirements
         run: |
           brew install coreutils
-          /usr/bin/python3 -m pip install -U --user pip Pyinstaller==5.8 -r requirements.txt
+          python3 -m pip install -U --user pip setuptools wheel
+          # We need to ignore wheels otherwise we break universal2 builds
+          python3 -m pip install -U --user --no-binary :all: Pyinstaller -r requirements.txt
 
       - name: Prepare
         run: |
-          /usr/bin/python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
-          /usr/bin/python3 devscripts/make_lazy_extractors.py
+          python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+          python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
+          python3 pyinst.py --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
-          /usr/bin/python3 pyinst.py --target-architecture universal2
+          python3 pyinst.py --target-architecture universal2
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -232,7 +234,8 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip Pyinstaller -r requirements.txt
+          python3 -m pip install -U --user pip setuptools wheel
+          python3 -m pip install -U --user Pyinstaller -r requirements.txt
 
       - name: Prepare
         run: |
