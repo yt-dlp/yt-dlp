@@ -54,9 +54,7 @@ jobs:
           cat >> ./RELEASE_NOTES << EOF
           #### A description of the various files are in the [README](https://github.com/yt-dlp/yt-dlp#release-files)
           ---
-          <details><summary><h3>Changelog</h3></summary>
-          $(python ./devscripts/make_changelog.py -vv)
-          </details>
+          $(python ./devscripts/make_changelog.py -vv --collapsible)
           EOF
           printf '%s\n\n' '**This is an automated nightly pre-release build**' >> ./NIGHTLY_NOTES
           cat ./RELEASE_NOTES >> ./NIGHTLY_NOTES
