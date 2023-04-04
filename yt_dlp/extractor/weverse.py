@@ -173,6 +173,13 @@ class WeverseIE(WeverseBaseIE):
                     fmt['extra_param_to_segment_url'] = urllib.parse.urlencode(query)
             formats.extend(fmts)
 
+        has_drm = traverse_obj(vod, ('meta', 'provider', 'name', {str.lower})) == 'drm'
+        if has_drm and formats:
+            self.report_warning(
+                'Requested content is DRM-protected, only a 30-second preview is available', video_id)
+        elif has_drm and not formats:
+            self.report_drm(video_id)
+
         return {
             'id': video_id,
             'uploader_id': uploader_id,
