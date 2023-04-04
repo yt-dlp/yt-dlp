@@ -178,8 +178,8 @@ class WeverseIE(WeverseBaseIE):
             'uploader_id': uploader_id,
             'formats': formats,
             **traverse_obj(post, {
-                'title': (None, (('extension', 'mediaInfo', 'title'), 'title'), {str}),
-                'description': (None, (('extension', 'mediaInfo', 'body'), 'body'), {str}),
+                'title': ((('extension', 'mediaInfo', 'title'), 'title'), {str}),
+                'description': ((('extension', 'mediaInfo', 'body'), 'body'), {str}),
                 'uploader': ('author', 'profileName', {str}),
                 'duration': ('extension', 'video', 'playTime', {float_or_none}),
                 'timestamp': ('extension', 'video', 'onAirStartAt', {lambda x: int_or_none(x, 1000)}),
