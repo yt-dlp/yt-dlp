@@ -164,9 +164,9 @@ class WeverseIE(WeverseBaseIE):
         for stream in traverse_obj(vod, ('streams', lambda _, v: v['type'] == 'HLS' and url_or_none(v['source']))):
             query = {}
             for param in traverse_obj(stream, ('keys', lambda _, v: v['type'] == 'param' and v['name'])):
-                query.update({param['name']: param.get('value', '')})
+                query[param['name']] = param.get('value', '')
             fmts = self._extract_m3u8_formats(
-                stream['source'], video_id, 'mp4', m3u8_id='hls', fatal=False, query=query) or []
+                stream['source'], video_id, 'mp4', m3u8_id='hls', fatal=False, query=query)
             if query:
                 for fmt in fmts:
                     fmt['url'] = update_url_query(fmt['url'], query)
