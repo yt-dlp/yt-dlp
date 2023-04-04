@@ -2,12 +2,14 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
 import uuid
 
 from .common import InfoExtractor
+from .naver import NaverBaseIE
 from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
@@ -120,6 +122,43 @@ class WeverseIE(WeverseBaseIE):
             'duration': 3102,
             'thumbnail': r're:^https?://.*\.jpe?g$',
         },
+    }, {
+        'url': 'https://weverse.io/lesserafim/live/2-102331763',
+        'md5': 'e46125c08b13a6c8c1f4565035cca987',
+        'info_dict': {
+            'id': '2-102331763',
+            'ext': 'mp4',
+            'title': '🎂김채원 생신🎂',
+            'description': '🎂김채원 생신🎂',
+            'uploader': 'LE SSERAFIM ',
+            'uploader_id': 'lesserafim',
+            'timestamp': 1659353400,
+            'upload_date': '20220801',
+            'release_timestamp': 1659353400,
+            'release_date': '20220801',
+            'duration': 3006,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'subtitles': {
+                'id_ID': [{
+                    'url': r're:^https?://.+\.ttml',
+                    'name': 'Bahasa Indonesia',
+                    'ext': 'ttml'
+                }, {
+                    'url': r're:^https?://.+\.vtt',
+                    'name': 'Bahasa Indonesia',
+                    'ext': 'vtt',
+                }],
+                'en_US': [{
+                    'url': r're:^https?://.+\.ttml',
+                    'name': 'English',
+                    'ext': 'ttml'
+                }, {
+                    'url': r're:^https?://.+\.vtt',
+                    'name': 'English',
+                    'ext': 'vtt'
+                }],
+            },
+        },
     }]
 
     def _real_extract(self, url):
@@ -180,6 +219,13 @@ class WeverseIE(WeverseBaseIE):
         elif has_drm and not formats:
             self.report_drm(video_id)
 
+        def get_subs(caption_url):
+            subs_ext_re = r'\.(?:ttml|vtt)'
+            replace_ext = lambda x, y: re.sub(subs_ext_re, y, x)
+            if re.search(subs_ext_re, caption_url):
+                return [replace_ext(caption_url, '.ttml'), replace_ext(caption_url, '.vtt')]
+            return [caption_url]
+
         return {
             'id': video_id,
             'uploader_id': uploader_id,
@@ -194,6 +240,7 @@ class WeverseIE(WeverseBaseIE):
                 'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
                 'is_live': ('extension', 'video', 'type', {lambda x: x != 'VOD'})
             }, get_all=False),
+            **NaverBaseIE.process_subtitles(vod, get_subs),
         }
 
 
