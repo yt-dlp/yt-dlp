@@ -13,6 +13,7 @@ from .naver import NaverBaseIE
 from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     float_or_none,
     int_or_none,
     str_or_none,
@@ -102,6 +103,32 @@ class WeverseBaseIE(InfoExtractor):
     def _call_post_api(self, video_id):
         return self._call_api(f'/post/v1.0/post-{video_id}?fieldSet=postV1', video_id)
 
+    def _get_formats(self, data, video_id):
+        formats = traverse_obj(data, ('videos', 'list', lambda _, v: url_or_none(v['source']), {
+            'url': 'source',
+            'width': ('encodingOption', 'width', {int_or_none}),
+            'height': ('encodingOption', 'height', {int_or_none}),
+            'vcodec': 'type',
+            'vbr': ('bitrate', 'video', {int_or_none}),
+            'abr': ('bitrate', 'audio', {int_or_none}),
+            'filesize': ('size', {int_or_none}),
+            'format_id': ('encodingOption', 'id', {str_or_none}),
+        }))
+
+        for stream in traverse_obj(data, ('streams', lambda _, v: v['type'] == 'HLS' and url_or_none(v['source']))):
+            query = {}
+            for param in traverse_obj(stream, ('keys', lambda _, v: v['type'] == 'param' and v['name'])):
+                query[param['name']] = param.get('value', '')
+            fmts = self._extract_m3u8_formats(
+                stream['source'], video_id, 'mp4', m3u8_id='hls', fatal=False, query=query)
+            if query:
+                for fmt in fmts:
+                    fmt['url'] = update_url_query(fmt['url'], query)
+                    fmt['extra_param_to_segment_url'] = urllib.parse.urlencode(query)
+            formats.extend(fmts)
+
+        return formats
+
 
 class WeverseIE(WeverseBaseIE):
     _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
@@ -159,65 +186,73 @@ class WeverseIE(WeverseBaseIE):
                 }],
             },
         },
+    }, {
+        'url': 'https://weverse.io/treasure/live/2-117230416',
+        'info_dict': {
+            'id': '2-117230416',
+            'ext': 'mp4',
+            'title': r're:스껄도려님 첫 스무살 생파🦋',
+            'description': '',
+            'uploader': 'TREASURE',
+            'uploader_id': 'treasure',
+            'timestamp': 1680667639,
+            'upload_date': '20230405',
+            'release_timestamp': 1680667651,
+            'release_date': '20230405',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'live_status': 'is_live',
+        },
+        'skip': 'Livestream has ended',
     }]
 
     def _real_extract(self, url):
         uploader_id, video_id = self._match_valid_url(url).group('artist', 'id')
         post = self._call_post_api(video_id)
         api_video_id = post['extension']['video']['videoId']
-        infra_video_id = post['extension']['video']['infraVideoId']
 
-        in_key = self._call_api(
-            f'/video/v1.0/vod/{api_video_id}/inKey?preview=false', video_id,
-            data=b'{}', note='Downloading VOD API key')['inKey']
+        is_live = traverse_obj(post, ('extension', 'video', 'type', {str.lower})) == 'live'
+        if is_live:
+            video_info = self._call_api(
+                f'/video/v1.0/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
+                video_id, note='Downloading live JSON')
+            if not traverse_obj(video_info, ('status', {str.lower})) == 'onair':
+                raise UserNotLive(video_id=uploader_id)
+            playback = self._parse_json(video_info['lipPlayback'], video_id)
+            m3u8_url = traverse_obj(playback, (
+                'media', lambda _, v: v['protocol'] == 'HLS', 'path', {url_or_none}), get_all=False)
+            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True)
 
-        vod = self._download_json(
-            f'https://global.apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/{infra_video_id}', video_id,
-            note='Downloading VOD JSON', query={
-                'key': in_key,
-                'sid': traverse_obj(post, ('extension', 'video', 'serviceId')) or '2070',
-                'pid': str(uuid.uuid4()),
-                'nonce': int(time.time() * 1000),
-                'devt': 'html5_pc',
-                'prv': 'Y' if post.get('membershipOnly') else 'N',
-                'aup': 'N',
-                'stpb': 'N',
-                'cpl': 'en',
-                'env': 'prod',
-                'lc': 'en',
-                'adi': '[{"adSystem":"null"}]',
-                'adu': '/',
-            })
+        else:
+            infra_video_id = post['extension']['video']['infraVideoId']
+            in_key = self._call_api(
+                f'/video/v1.0/vod/{api_video_id}/inKey?preview=false', video_id,
+                data=b'{}', note='Downloading VOD API key')['inKey']
 
-        formats = traverse_obj(vod, ('videos', 'list', lambda _, v: url_or_none(v['source']), {
-            'url': 'source',
-            'width': ('encodingOption', 'width', {int_or_none}),
-            'height': ('encodingOption', 'height', {int_or_none}),
-            'vcodec': 'type',
-            'vbr': ('bitrate', 'video', {int_or_none}),
-            'abr': ('bitrate', 'audio', {int_or_none}),
-            'filesize': ('size', {int_or_none}),
-            'format_id': ('encodingOption', 'id', {str_or_none}),
-        }))
+            video_info = self._download_json(
+                f'https://global.apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/{infra_video_id}',
+                video_id, note='Downloading VOD JSON', query={
+                    'key': in_key,
+                    'sid': traverse_obj(post, ('extension', 'video', 'serviceId')) or '2070',
+                    'pid': str(uuid.uuid4()),
+                    'nonce': int(time.time() * 1000),
+                    'devt': 'html5_pc',
+                    'prv': 'Y' if post.get('membershipOnly') else 'N',
+                    'aup': 'N',
+                    'stpb': 'N',
+                    'cpl': 'en',
+                    'env': 'prod',
+                    'lc': 'en',
+                    'adi': '[{"adSystem":"null"}]',
+                    'adu': '/',
+                })
 
-        for stream in traverse_obj(vod, ('streams', lambda _, v: v['type'] == 'HLS' and url_or_none(v['source']))):
-            query = {}
-            for param in traverse_obj(stream, ('keys', lambda _, v: v['type'] == 'param' and v['name'])):
-                query[param['name']] = param.get('value', '')
-            fmts = self._extract_m3u8_formats(
-                stream['source'], video_id, 'mp4', m3u8_id='hls', fatal=False, query=query)
-            if query:
-                for fmt in fmts:
-                    fmt['url'] = update_url_query(fmt['url'], query)
-                    fmt['extra_param_to_segment_url'] = urllib.parse.urlencode(query)
-            formats.extend(fmts)
-
-        has_drm = traverse_obj(vod, ('meta', 'provider', 'name', {str.lower})) == 'drm'
-        if has_drm and formats:
-            self.report_warning(
-                'Requested content is DRM-protected, only a 30-second preview is available', video_id)
-        elif has_drm and not formats:
-            self.report_drm(video_id)
+            formats = self._get_formats(video_info, video_id)
+            has_drm = traverse_obj(video_info, ('meta', 'provider', 'name', {str.lower})) == 'drm'
+            if has_drm and formats:
+                self.report_warning(
+                    'Requested content is DRM-protected, only a 30-second preview is available', video_id)
+            elif has_drm and not formats:
+                self.report_drm(video_id)
 
         def get_subs(caption_url):
             subs_ext_re = r'\.(?:ttml|vtt)'
@@ -230,6 +265,7 @@ class WeverseIE(WeverseBaseIE):
             'id': video_id,
             'uploader_id': uploader_id,
             'formats': formats,
+            'is_live': is_live,
             **traverse_obj(post, {
                 'title': ((('extension', 'mediaInfo', 'title'), 'title'), {str}),
                 'description': ((('extension', 'mediaInfo', 'body'), 'body'), {str}),
@@ -238,9 +274,8 @@ class WeverseIE(WeverseBaseIE):
                 'timestamp': ('extension', 'video', 'onAirStartAt', {lambda x: int_or_none(x, 1000)}),
                 'release_timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
                 'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
-                'is_live': ('extension', 'video', 'type', {lambda x: x != 'VOD'})
             }, get_all=False),
-            **NaverBaseIE.process_subtitles(vod, get_subs),
+            **NaverBaseIE.process_subtitles(video_info, get_subs),
         }
 
 
