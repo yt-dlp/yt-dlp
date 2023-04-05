@@ -2292,6 +2292,7 @@ from .weiqitv import WeiqiTVIE
 from .weverse import (
     WeverseIE,
     WeverseMediaIE,
+    WeverseMomentIE,
 )
 from .wikimedia import WikimediaIE
 from .willow import WillowIE

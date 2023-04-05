@@ -129,6 +129,13 @@ class WeverseBaseIE(InfoExtractor):
 
         return formats
 
+    def _get_subs(self, caption_url):
+        subs_ext_re = r'\.(?:ttml|vtt)'
+        replace_ext = lambda x, y: re.sub(subs_ext_re, y, x)
+        if re.search(subs_ext_re, caption_url):
+            return [replace_ext(caption_url, '.ttml'), replace_ext(caption_url, '.vtt')]
+        return [caption_url]
+
 
 class WeverseIE(WeverseBaseIE):
     _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
@@ -254,13 +261,6 @@ class WeverseIE(WeverseBaseIE):
             elif has_drm and not formats:
                 self.report_drm(video_id)
 
-        def get_subs(caption_url):
-            subs_ext_re = r'\.(?:ttml|vtt)'
-            replace_ext = lambda x, y: re.sub(subs_ext_re, y, x)
-            if re.search(subs_ext_re, caption_url):
-                return [replace_ext(caption_url, '.ttml'), replace_ext(caption_url, '.vtt')]
-            return [caption_url]
-
         return {
             'id': video_id,
             'uploader_id': uploader_id,
@@ -275,7 +275,7 @@ class WeverseIE(WeverseBaseIE):
                 'release_timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
                 'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
             }, get_all=False),
-            **NaverBaseIE.process_subtitles(video_info, get_subs),
+            **NaverBaseIE.process_subtitles(video_info, self._get_subs),
         }
 
 
@@ -344,3 +344,45 @@ class WeverseMediaIE(WeverseBaseIE):
             raise ExtractorError(f'Unsupported media type "{media_type}"')
 
         self.raise_no_formats('No video content found in webpage')
+
+
+class WeverseMomentIE(WeverseBaseIE):
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/moment/[\da-f]+/post/(?P<id>[\d-]+)'
+    _TESTS = [{
+        'url': 'https://weverse.io/secretnumber/moment/66a07e164b56a696ee71c99315ffe27b/post/1-117229444',
+        'md5': '87733ac19a54081b7dfc2442036d282b',
+        'info_dict': {
+            'id': '1-117229444',
+            'ext': 'mp4',
+            'title': '今日もめっちゃいい天気☀️🌤️',
+            'uploader': '레아',
+            'uploader_id': 'secretnumber',
+            'duration': 10,
+            'upload_date': '20230405',
+            'timestamp': 1680653968,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+        },
+        'skip': 'Moment has expired',
+    }]
+
+    def _real_extract(self, url):
+        uploader_id, video_id = self._match_valid_url(url).group('artist', 'id')
+        post = self._call_post_api(video_id)
+        api_video_id = post['extension']['moment']['video']['videoId']
+        video_info = self._call_api(
+            f'/cvideo/v1.0/cvideo-{api_video_id}/playInfo?videoId={api_video_id}', video_id,
+            note='Downloading moment JSON')['playInfo']
+
+        return {
+            'id': video_id,
+            'uploader_id': uploader_id,
+            'formats': self._get_formats(video_info, video_id),
+            **traverse_obj(post, {
+                'title': ((('extension', 'moment', 'body'), 'body'), {str}),
+                'uploader': ('author', 'profileName', {str}),
+                'duration': ('extension', 'moment', 'video', 'uploadInfo', 'playTime', {float_or_none}),
+                'timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
+                'thumbnail': ('extension', 'moment', 'video', 'uploadInfo', 'imageUrl', {url_or_none}),
+            }, get_all=False),
+            **NaverBaseIE.process_subtitles(video_info, self._get_subs),
+        }
