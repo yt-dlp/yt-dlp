@@ -66,7 +66,8 @@ class DLFIE(DLFBaseIE):
             },
             'params': {
                 'skip_download': 'm3u8'
-            }
+            },
+            'skip': 'This webpage no longer exists'
         }, {
             'url': 'https://www.deutschlandfunk.de/russische-athleten-kehren-zurueck-auf-die-sportbuehne-ein-gefaehrlicher-tueroeffner-dlf-d9cc1856-100.html',
             'info_dict': {
