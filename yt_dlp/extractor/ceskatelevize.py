@@ -120,7 +120,7 @@ class CeskaTelevizeIE(InfoExtractor):
             if not idec:
                 raise ExtractorError('Failed to find IDEC id')
             sidp = playlist_id.rsplit('-')[0]
-            query = {'origin': 'iVysilani', 'autoStart': 'true', 'sidp': sidp, type_: idec, }
+            query = {'origin': 'iVysilani', 'autoStart': 'true', 'sidp': sidp, type_: idec}
             webpage = self._download_webpage(
                 'https://player.ceskatelevize.cz/',
                 playlist_id, note='Downloading player', query=query)
