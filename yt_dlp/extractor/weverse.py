@@ -173,24 +173,15 @@ class WeverseIE(WeverseBaseIE):
             'duration': 3006,
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'subtitles': {
-                'id_ID': [{
-                    'url': r're:^https?://.+\.ttml',
-                    'name': 'Bahasa Indonesia',
-                    'ext': 'ttml'
-                }, {
-                    'url': r're:^https?://.+\.vtt',
-                    'name': 'Bahasa Indonesia',
-                    'ext': 'vtt',
-                }],
-                'en_US': [{
-                    'url': r're:^https?://.+\.ttml',
-                    'name': 'English',
-                    'ext': 'ttml'
-                }, {
-                    'url': r're:^https?://.+\.vtt',
-                    'name': 'English',
-                    'ext': 'vtt'
-                }],
+                'id_ID': 'count:2',
+                'en_US': 'count:2',
+                'es_ES': 'count:2',
+                'vi_VN': 'count:2',
+                'th_TH': 'count:2',
+                'zh_CN': 'count:2',
+                'zh_TW': 'count:2',
+                'ja_JP': 'count:2',
+                'ko_KR': 'count:2',
             },
         },
     }, {
