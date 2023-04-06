@@ -160,10 +160,16 @@ class WeverseBaseIE(InfoExtractor):
         }, get_all=False)
 
     def _extract_availability(self, data):
-        return self._availability(**traverse_obj(data, ((None, ('extension', 'video')), {
+        return self._availability(**traverse_obj(data, ((('extension', 'video'), None), {
             'needs_premium': 'paid',
             'needs_subscription': 'membershipOnly',
         }), get_all=False, expected_type=bool), needs_auth=True)
+
+    def _extract_live_status(self, data):
+        data = traverse_obj(data, ('extension', 'video', {dict})) or {}
+        if traverse_obj(data, ('type', {str.lower})) == 'live':
+            return 'is_live' if traverse_obj(data, ('status', {str.lower})) == 'onair' else 'post_live'
+        return 'was_live' if data.get('liveToVod') else 'not_live'
 
 
 class WeverseIE(WeverseBaseIE):
@@ -192,6 +198,7 @@ class WeverseIE(WeverseBaseIE):
             'like_count': int,
             'comment_count': int,
             'availability': 'needs_auth',
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://weverse.io/lesserafim/live/2-102331763',
@@ -217,6 +224,7 @@ class WeverseIE(WeverseBaseIE):
             'like_count': int,
             'comment_count': int,
             'availability': 'needs_auth',
+            'live_status': 'was_live',
             'subtitles': {
                 'id_ID': 'count:2',
                 'en_US': 'count:2',
@@ -260,19 +268,24 @@ class WeverseIE(WeverseBaseIE):
         channel, video_id = self._match_valid_url(url).group('artist', 'id')
         post = self._call_post_api(video_id)
         api_video_id = post['extension']['video']['videoId']
+        availability = self._extract_availability(post)
+        live_status = self._extract_live_status(post)
 
-        is_live = traverse_obj(post, ('extension', 'video', 'type', {str.lower})) == 'live'
-        if is_live:
+        if live_status == 'is_live':
             video_info = self._call_api(
                 f'/video/v1.0/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
                 video_id, note='Downloading live JSON')
-            if traverse_obj(video_info, ('status', {str.lower})) != 'onair':
-                self.raise_no_formats(
-                    'Livestream has ended and downloadable VOD is not available', expected=True)
             playback = self._parse_json(video_info['lipPlayback'], video_id)
             m3u8_url = traverse_obj(playback, (
                 'media', lambda _, v: v['protocol'] == 'HLS', 'path', {url_or_none}), get_all=False)
             formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True)
+
+        elif live_status == 'post_live':
+            video_info, formats = {}, []
+            if availability in ('premium_only', 'subscriber_only'):
+                self.report_drm(video_id)
+            self.raise_no_formats(
+                'Livestream has ended and downloadable VOD is not available', expected=True)
 
         else:
             infra_video_id = post['extension']['video']['infraVideoId']
@@ -311,8 +324,8 @@ class WeverseIE(WeverseBaseIE):
             'channel': channel,
             'channel_url': f'https://weverse.io/{channel}',
             'formats': formats,
-            'is_live': is_live,
-            'availability': self._extract_availability(post),
+            'availability': availability,
+            'live_status': live_status,
             **self._parse_post_meta(post),
             **NaverBaseIE.process_subtitles(video_info, self._get_subs),
         }
@@ -372,6 +385,7 @@ class WeverseMediaIE(WeverseBaseIE):
             'like_count': int,
             'comment_count': int,
             'availability': 'needs_auth',
+            'live_status': 'not_live',
         },
     }]
 
@@ -466,7 +480,8 @@ class WeverseTabBaseIE(WeverseBaseIE):
                     f'https://weverse.io/{channel}/{self._PATH}/{post["postId"]}',
                     self._RESULT_IE, post['postId'], **self._parse_post_meta(post),
                     channel=channel, channel_url=f'https://weverse.io/{channel}',
-                    availability=self._extract_availability(post))
+                    availability=self._extract_availability(post),
+                    live_status=self._extract_live_status(post))
 
             query['after'] = traverse_obj(posts, ('paging', 'nextParams', 'after', {str}))
             if not query['after']:
