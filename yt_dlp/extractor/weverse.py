@@ -533,7 +533,32 @@ class WeverseMediaTabIE(WeverseTabBaseIE):
 class WeverseLiveIE(WeverseBaseIE):
     _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
     _TESTS = [{
-        'url': 'https://weverse.io/billlie',
+        'url': 'https://weverse.io/purplekiss',
+        'info_dict': {
+            'id': '3-116560493',
+            'ext': 'mp4',
+            'title': r're:모하냥🫶🏻',
+            'description': '내일은 금요일~><',
+            'uploader': '채인',
+            'uploader_id': '1ffb1d9d904d6b3db2783f876eb9229d',
+            'channel': 'purplekiss',
+            'channel_id': '35',
+            'channel_url': 'https://weverse.io/purplekiss',
+            'creator': 'PURPLE KISS',
+            'timestamp': 1680780892,
+            'upload_date': '20230406',
+            'release_timestamp': 1680780883,
+            'release_date': '20230406',
+            'thumbnail': 'https://weverse-live.pstatic.net/v1.0/live/62044/thumb',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'availability': 'needs_auth',
+            'live_status': 'is_live',
+        },
+        'skip': 'Livestream has ended',
+    }, {
+        'url': 'https://weverse.io/billlie/',
         'only_matching': True,
     }]
 
