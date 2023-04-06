@@ -3984,7 +3984,7 @@ class YoutubeDL:
             # that way it will silently go on when used with unsupporting IE
             return ret
         elif not subtitles:
-            self.to_screen('[info] There\'s no subtitles for the requested languages')
+            self.to_screen('[info] There are no subtitles for the requested languages')
             return ret
         sub_filename_base = self.prepare_filename(info_dict, 'subtitle')
         if not sub_filename_base:
