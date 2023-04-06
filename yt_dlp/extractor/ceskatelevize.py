@@ -1,4 +1,5 @@
 import re
+import json
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
@@ -8,6 +9,7 @@ from ..utils import (
     float_or_none,
     str_or_none,
     traverse_obj,
+    unescapeHTML,
     urlencode_postdata,
 )
 
@@ -19,9 +21,9 @@ USER_AGENTS = {
 class CeskaTelevizeIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
     _TESTS = [{
-        'url': 'http://www.ceskatelevize.cz/ivysilani/10441294653-hyde-park-civilizace/215411058090502/bonus/20641-bonus-01-en',
+        'url': 'https://www.ceskatelevize.cz/porady/10441294653-hyde-park-civilizace/bonus/20641/',
         'info_dict': {
-            'id': '61924494877028507',
+            'id': '20641',
             'ext': 'mp4',
             'title': 'Bonus 01 - En - Hyde Park Civilizace',
             'description': 'English Subtittles',
@@ -34,7 +36,7 @@ class CeskaTelevizeIE(InfoExtractor):
         },
     }, {
         # live stream
-        'url': 'http://www.ceskatelevize.cz/zive/ct1/',
+        'url': 'https://www.ceskatelevize.cz/zive/ct1/',
         'info_dict': {
             'id': '102',
             'ext': 'mp4',
@@ -48,7 +50,7 @@ class CeskaTelevizeIE(InfoExtractor):
         },
     }, {
         # another
-        'url': 'http://www.ceskatelevize.cz/ivysilani/zive/ct4/',
+        'url': 'https://www.ceskatelevize.cz/zive/sport/',
         'only_matching': True,
         'info_dict': {
             'id': '402',
@@ -106,7 +108,7 @@ class CeskaTelevizeIE(InfoExtractor):
         if playlist_description:
             playlist_description = playlist_description.replace('\xa0', ' ')
 
-        type_ = 'IDEC'
+        type_ = 'episode'
         if re.search(r'(^/porady|/zive)/', parsed_url.path):
             next_data = self._search_nextjs_data(webpage, playlist_id)
             if '/zive/' in parsed_url.path:
@@ -119,11 +121,65 @@ class CeskaTelevizeIE(InfoExtractor):
                         type_ = 'bonus'
             if not idec:
                 raise ExtractorError('Failed to find IDEC id')
-            sidp = playlist_id.rsplit('-')[0]
+            sidp = self._search_regex(r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/([0-9]+)-', url, playlist_id, default=playlist_id)
+            sidp = sidp.rsplit('-')[0]
             query = {'origin': 'iVysilani', 'autoStart': 'true', 'sidp': sidp, type_: idec}
             webpage = self._download_webpage(
                 'https://player.ceskatelevize.cz/',
                 playlist_id, note='Downloading player', query=query)
+            playlistpage_url = 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/'
+            data = {
+                'playlist[0][type]': type_,
+                'playlist[0][id]': idec,
+                'requestUrl': parsed_url.path,
+                'requestSource': 'iVysilani',
+            }
+        elif parsed_url.path == '/' and parsed_url.fragment == 'live':
+            if self._search_regex(r'(?s)<section[^>]+id=[\'"]live[\'"][^>]+data-ctcomp-data=\'([^\']+)\'[^>]*>', webpage, 'live video player', default=None):
+                # CT4
+                ctcomp_data = self._parse_json(
+                    self._search_regex(
+                        r'(?s)<section[^>]+id=[\'"]live[\'"][^>]+data-ctcomp-data=\'([^\']+)\'[^>]*>',
+                        webpage, 'ctcomp data', fatal=True),
+                    playlist_id, transform_source=unescapeHTML)
+                current_item = traverse_obj(ctcomp_data, ('items', ctcomp_data.get('currentItem'), 'items', 0, 'video', 'data', 'source', 'playlist', 0))
+                playlistpage_url = 'https://playlist.ceskatelevize.cz/'
+                data = {
+                    'contentType': 'live',
+                    'items': [{
+                        'id': current_item.get('id'),
+                        'key': current_item.get('key'),
+                        'assetId': current_item.get('assetId'),
+                        'playerType': 'dash',
+                        'date': current_item.get('date'),
+                        'requestSource': current_item.get('requestSource'),
+                        'drm': current_item.get('drm'),
+                        'quality': current_item.get('quality'),
+                    }]
+                }
+                data = {'data': json.dumps(data).encode('utf-8')}
+            else:
+                # CT24
+                lvp_url = self._search_regex(
+                    r'(?s)<div[^>]+id=[\'"]live-video-player[\'"][^>]+data-url=[\'"]([^\'"]+)[\'"][^>]*>',
+                    webpage, 'live video player', fatal=True)
+                lvp_hash = self._search_regex(
+                    r'(?s)media_ivysilani: *{ *hash *: *[\'"]([0-9a-f]+)[\'"] *}',
+                    webpage, 'live video hash', fatal=True)
+                lvp_url += '&hash=' + lvp_hash
+                webpage = self._download_webpage(unescapeHTML(lvp_url), playlist_id)
+                playlistpage = self._search_regex(
+                    r'(?s)getPlaylistUrl\((\[[^\]]+\])[,\)]',
+                    webpage, 'playlist params', fatal=True)
+                playlistpage_params = self._parse_json(playlistpage, playlist_id)[0]
+                playlistpage_url = 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/'
+                idec = playlistpage_params.get('id')
+                data = {
+                    'playlist[0][type]': playlistpage_params.get('type'),
+                    'playlist[0][id]': idec,
+                    'requestUrl': '/ivysilani/embed/iFramePlayer.php',
+                    'requestSource': 'iVysilani',
+                }
 
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
         if '%s</p>' % NOT_AVAILABLE_STRING in webpage:
@@ -131,20 +187,10 @@ class CeskaTelevizeIE(InfoExtractor):
         if any(not_found in webpage for not_found in ('Neplatný parametr pro videopřehrávač', 'IDEC nebyl nalezen', )):
             raise ExtractorError('no video with IDEC available', video_id=idec, expected=True)
 
-        data = {
-            'playlist[0][type]': 'episode',
-            'playlist[0][id]': idec,
-            'requestUrl': parsed_url.path,
-            'requestSource': 'iVysilani',
-        }
-
         entries = []
 
         for user_agent in (None, USER_AGENTS['Safari']):
-            req = Request(
-                'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
-                data=urlencode_postdata(data))
-
+            req = Request(playlistpage_url, data=urlencode_postdata(data))
             req.headers['Content-type'] = 'application/x-www-form-urlencoded'
             req.headers['x-addr'] = '127.0.0.1'
             req.headers['X-Requested-With'] = 'XMLHttpRequest'
@@ -157,18 +203,19 @@ class CeskaTelevizeIE(InfoExtractor):
             if not playlistpage:
                 continue
 
-            playlist_url = playlistpage['url']
-            if playlist_url == 'error_region':
-                raise ExtractorError(NOT_AVAILABLE_STRING, expected=True)
+            playlist_url = playlistpage.get('url')
+            if playlist_url:
+                if playlist_url == 'error_region':
+                    raise ExtractorError(NOT_AVAILABLE_STRING, expected=True)
+                req = Request(compat_urllib_parse_unquote(playlist_url))
+                req.headers['Referer'] = url
+                playlist = self._download_json(req, playlist_id, fatal=False)
+                if not playlist:
+                    continue
+                playlist = playlist.get('playlist')
+            else:
+                playlist = traverse_obj(playlistpage, ('RESULT', 'playlist'))
 
-            req = Request(compat_urllib_parse_unquote(playlist_url))
-            req.headers['Referer'] = url
-
-            playlist = self._download_json(req, playlist_id, fatal=False)
-            if not playlist:
-                continue
-
-            playlist = playlist.get('playlist')
             if not isinstance(playlist, list):
                 continue
 
@@ -200,7 +247,7 @@ class CeskaTelevizeIE(InfoExtractor):
                     continue
 
                 item_id = str_or_none(item.get('id') or item['assetId'])
-                title = item['title']
+                title = item.get('title') or 'live'
 
                 duration = float_or_none(item.get('duration'))
                 thumbnail = item.get('previewImageUrl')
