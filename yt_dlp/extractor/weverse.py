@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import itertools
 import json
 import re
 import time
@@ -136,6 +137,17 @@ class WeverseBaseIE(InfoExtractor):
             return [replace_ext(caption_url, '.ttml'), replace_ext(caption_url, '.vtt')]
         return [caption_url]
 
+    def _parse_post_meta(self, metadata):
+        return traverse_obj(metadata, {
+            'title': ((('extension', 'mediaInfo', 'title'), 'title'), {str}),
+            'description': ((('extension', 'mediaInfo', 'body'), 'body'), {str}),
+            'uploader': ('author', 'profileName', {str}),
+            'duration': ('extension', 'video', 'playTime', {float_or_none}),
+            'timestamp': ('extension', 'video', 'onAirStartAt', {lambda x: int_or_none(x, 1000)}),
+            'release_timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
+            'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
+        }, get_all=False)
+
 
 class WeverseIE(WeverseBaseIE):
     _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
@@ -257,15 +269,7 @@ class WeverseIE(WeverseBaseIE):
             'uploader_id': uploader_id,
             'formats': formats,
             'is_live': is_live,
-            **traverse_obj(post, {
-                'title': ((('extension', 'mediaInfo', 'title'), 'title'), {str}),
-                'description': ((('extension', 'mediaInfo', 'body'), 'body'), {str}),
-                'uploader': ('author', 'profileName', {str}),
-                'duration': ('extension', 'video', 'playTime', {float_or_none}),
-                'timestamp': ('extension', 'video', 'onAirStartAt', {lambda x: int_or_none(x, 1000)}),
-                'release_timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
-                'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
-            }, get_all=False),
+            **self._parse_post_meta(post),
             **NaverBaseIE.process_subtitles(video_info, self._get_subs),
         }
 
@@ -377,3 +381,87 @@ class WeverseMomentIE(WeverseBaseIE):
             }, get_all=False),
             **NaverBaseIE.process_subtitles(video_info, self._get_subs),
         }
+
+
+class WeverseTabBaseIE(WeverseBaseIE):
+    _ENDPOINT = None
+    _PATH = None
+    _QUERY = {}
+    _RESULT_IE = None
+
+    def _entries(self, channel_id, uploader_id, first_page):
+        query = {**self._QUERY}
+
+        for page in itertools.count(1):
+            posts = first_page if page == 1 else self._call_api(
+                update_url_query(self._ENDPOINT % channel_id, query), uploader_id,
+                note=f'Downloading {self._PATH} tab page {page}')
+
+            for post in traverse_obj(posts, ('data', lambda _, v: v['postId'])):
+                yield self.url_result(
+                    f'https://weverse.io/{uploader_id}/{self._PATH}/{post["postId"]}',
+                    self._RESULT_IE, post['postId'], **self._parse_post_meta(post),
+                    uploader_id=uploader_id, channel_id=channel_id)
+
+            query['after'] = traverse_obj(posts, ('paging', 'nextParams', 'after', {str}))
+            if not query['after']:
+                break
+
+    def _real_extract(self, url):
+        uploader_id = self._match_id(url)
+        channel_id = str(self._call_api(
+            f'/community/v1.0/communityIdUrlPathByUrlPathArtistCode?keyword={uploader_id}', uploader_id,
+            note='Fetching community ID')['communityId'])
+
+        first_page = self._call_api(
+            update_url_query(f'{self._ENDPOINT % channel_id}', self._QUERY), uploader_id,
+            note=f'Downloading {self._PATH} tab page 1')
+
+        return self.playlist_result(
+            self._entries(channel_id, uploader_id, first_page), f'{uploader_id}-{self._PATH}',
+            **traverse_obj(first_page, ('data', ..., {
+                'playlist_title': ('community', 'communityName', {str}),
+                'thumbnail': ('author', 'profileImageUrl', {url_or_none}),
+            }), get_all=False))
+
+
+class WeverseLiveTabIE(WeverseTabBaseIE):
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/live/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://weverse.io/billlie/live/',
+        'playlist_mincount': 55,
+        'info_dict': {
+            'id': 'billlie-live',
+            'title': 'Billlie',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+        },
+    }]
+
+    _ENDPOINT = '/post/v1.0/community-%s/liveTabPosts'
+    _PATH = 'live'
+    _QUERY = {'fieldSet': 'postsV1'}
+    _RESULT_IE = WeverseIE
+
+
+class WeverseMediaTabIE(WeverseTabBaseIE):
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/media(?:/|/all|/new)?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://weverse.io/billlie/media/',
+        'playlist_mincount': 231,
+        'info_dict': {
+            'id': 'billlie-media',
+            'title': 'Billlie',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+        },
+    }, {
+        'url': 'https://weverse.io/lesserafim/media/all',
+        'only_matching': True,
+    }, {
+        'url': 'https://weverse.io/lesserafim/media/new',
+        'only_matching': True,
+    }]
+
+    _ENDPOINT = '/media/v1.0/community-%s/more'
+    _PATH = 'media'
+    _QUERY = {'fieldSet': 'postsV1', 'filterType': 'RECENT'}
+    _RESULT_IE = WeverseMediaIE
