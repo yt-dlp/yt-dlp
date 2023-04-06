@@ -142,16 +142,22 @@ class WeverseBaseIE(InfoExtractor):
             'title': ((('extension', 'mediaInfo', 'title'), 'title'), {str}),
             'description': ((('extension', 'mediaInfo', 'body'), 'body'), {str}),
             'uploader': ('author', 'profileName', {str}),
+            'uploader_id': ('author', 'memberId', {str}),
+            'creator': ('community', 'communityName', {str}),
+            'channel_id': (('community', 'author'), 'communityId', {str_or_none}),
             'duration': ('extension', 'video', 'playTime', {float_or_none}),
-            'timestamp': ('extension', 'video', 'onAirStartAt', {lambda x: int_or_none(x, 1000)}),
-            'release_timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
+            'timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
+            'release_timestamp': ('extension', 'video', 'onAirStartAt', {lambda x: int_or_none(x, 1000)}),
             'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
+            'view_count': ('extension', 'video', 'playCount', {int_or_none}),
+            'like_count': ('extension', 'video', 'likeCount', {int_or_none}),
+            'comment_count': ('commentCount', {int_or_none}),
         }, get_all=False)
 
-    def _get_community_id(self, uploader_id):
+    def _get_community_id(self, channel):
         return str(self._call_api(
-            f'/community/v1.0/communityIdUrlPathByUrlPathArtistCode?keyword={uploader_id}',
-            uploader_id, note='Fetching community ID')['communityId'])
+            f'/community/v1.0/communityIdUrlPathByUrlPathArtistCode?keyword={channel}',
+            channel, note='Fetching community ID')['communityId'])
 
 
 class WeverseIE(WeverseBaseIE):
@@ -165,13 +171,20 @@ class WeverseIE(WeverseBaseIE):
             'title': '행복한 평이루💜',
             'description': '',
             'uploader': 'Billlie',
-            'uploader_id': 'billlie',
-            'timestamp': 1666262058,
+            'uploader_id': '5ae14aed7b7cdc65fa87c41fe06cc936',
+            'channel': 'billlie',
+            'channel_id': '72',
+            'channel_url': 'https://weverse.io/billlie',
+            'creator': 'Billlie',
+            'timestamp': 1666262062,
             'upload_date': '20221020',
-            'release_timestamp': 1666262062,
+            'release_timestamp': 1666262058,
             'release_date': '20221020',
             'duration': 3102,
             'thumbnail': r're:^https?://.*\.jpe?g$',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
         },
     }, {
         'url': 'https://weverse.io/lesserafim/live/2-102331763',
@@ -182,13 +195,20 @@ class WeverseIE(WeverseBaseIE):
             'title': '🎂김채원 생신🎂',
             'description': '🎂김채원 생신🎂',
             'uploader': 'LE SSERAFIM ',
-            'uploader_id': 'lesserafim',
+            'uploader_id': 'd26ddc1e258488a0a2b795218d14d59d',
+            'channel': 'lesserafim',
+            'channel_id': '47',
+            'channel_url': 'https://weverse.io/lesserafim',
+            'creator': 'LE SSERAFIM',
             'timestamp': 1659353400,
             'upload_date': '20220801',
             'release_timestamp': 1659353400,
             'release_date': '20220801',
             'duration': 3006,
             'thumbnail': r're:^https?://.*\.jpe?g$',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
             'subtitles': {
                 'id_ID': 'count:2',
                 'en_US': 'count:2',
@@ -209,19 +229,26 @@ class WeverseIE(WeverseBaseIE):
             'title': r're:스껄도려님 첫 스무살 생파🦋',
             'description': '',
             'uploader': 'TREASURE',
-            'uploader_id': 'treasure',
-            'timestamp': 1680667639,
+            'uploader_id': '77eabbc449ca37f7970054a136f60082',
+            'channel': 'treasure',
+            'channel_id': '20',
+            'channel_url': 'https://weverse.io/treasure',
+            'creator': 'TREASURE',
+            'timestamp': 1680667651,
             'upload_date': '20230405',
-            'release_timestamp': 1680667651,
+            'release_timestamp': 1680667639,
             'release_date': '20230405',
             'thumbnail': r're:^https?://.*\.jpe?g$',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
             'live_status': 'is_live',
         },
         'skip': 'Livestream has ended',
     }]
 
     def _real_extract(self, url):
-        uploader_id, video_id = self._match_valid_url(url).group('artist', 'id')
+        channel, video_id = self._match_valid_url(url).group('artist', 'id')
         post = self._call_post_api(video_id)
         api_video_id = post['extension']['video']['videoId']
 
@@ -231,7 +258,7 @@ class WeverseIE(WeverseBaseIE):
                 f'/video/v1.0/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
                 video_id, note='Downloading live JSON')
             if not traverse_obj(video_info, ('status', {str.lower})) == 'onair':
-                raise UserNotLive(video_id=uploader_id)
+                raise UserNotLive(video_id=channel)
             playback = self._parse_json(video_info['lipPlayback'], video_id)
             m3u8_url = traverse_obj(playback, (
                 'media', lambda _, v: v['protocol'] == 'HLS', 'path', {url_or_none}), get_all=False)
@@ -271,7 +298,8 @@ class WeverseIE(WeverseBaseIE):
 
         return {
             'id': video_id,
-            'uploader_id': uploader_id,
+            'channel': channel,
+            'channel_url': f'https://weverse.io/{channel}',
             'formats': formats,
             'is_live': is_live,
             **self._parse_post_meta(post),
@@ -318,24 +346,31 @@ class WeverseMediaIE(WeverseBaseIE):
             'title': 'From. SUHYEON🌸',
             'description': 'Billlie 멤버별 독점 영상 공개💙💜',
             'uploader': 'Billlie_official',
-            'uploader_id': 'billlie',
+            'uploader_id': 'f569c6e92f7eaffef0a395037dcaa54f',
+            'channel': 'billlie',
+            'channel_id': '72',
+            'channel_url': 'https://weverse.io/billlie',
+            'creator': 'Billlie',
             'timestamp': 1662174000,
             'upload_date': '20220903',
             'release_timestamp': 1662174000,
             'release_date': '20220903',
             'duration': 17.0,
             'thumbnail': r're:^https?://.*\.jpe?g$',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
         },
     }]
 
     def _real_extract(self, url):
-        uploader_id, video_id = self._match_valid_url(url).group('artist', 'id')
+        channel, video_id = self._match_valid_url(url).group('artist', 'id')
         post = self._call_post_api(video_id)
         media_type = traverse_obj(post, ('extension', 'mediaInfo', 'mediaType', {str.lower}))
         youtube_id = traverse_obj(post, ('extension', 'youtube', 'youtubeVideoId', {str}))
 
         if media_type == 'vod':
-            return self.url_result(f'https://weverse.io/{uploader_id}/live/{video_id}', WeverseIE)
+            return self.url_result(f'https://weverse.io/{channel}/live/{video_id}', WeverseIE)
         elif media_type == 'youtube' and youtube_id:
             return self.url_result(youtube_id, YoutubeIE)
         elif media_type == 'image':
@@ -347,7 +382,7 @@ class WeverseMediaIE(WeverseBaseIE):
 
 
 class WeverseMomentIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/moment/[\da-f]+/post/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/moment/(?P<uid>[\da-f]+)/post/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/secretnumber/moment/66a07e164b56a696ee71c99315ffe27b/post/1-117229444',
         'md5': '87733ac19a54081b7dfc2442036d282b',
@@ -356,17 +391,22 @@ class WeverseMomentIE(WeverseBaseIE):
             'ext': 'mp4',
             'title': '今日もめっちゃいい天気☀️🌤️',
             'uploader': '레아',
-            'uploader_id': 'secretnumber',
+            'uploader_id': '66a07e164b56a696ee71c99315ffe27b',
+            'channel': 'secretnumber',
+            'channel_id': '56',
+            'creator': 'SECRET NUMBER',
             'duration': 10,
             'upload_date': '20230405',
             'timestamp': 1680653968,
             'thumbnail': r're:^https?://.*\.jpe?g$',
+            'like_count': int,
+            'comment_count': int,
         },
         'skip': 'Moment has expired',
     }]
 
     def _real_extract(self, url):
-        uploader_id, video_id = self._match_valid_url(url).group('artist', 'id')
+        channel, uploader_id, video_id = self._match_valid_url(url).group('artist', 'uid', 'id')
         post = self._call_post_api(video_id)
         api_video_id = post['extension']['moment']['video']['videoId']
         video_info = self._call_api(
@@ -375,14 +415,19 @@ class WeverseMomentIE(WeverseBaseIE):
 
         return {
             'id': video_id,
+            'channel': channel,
             'uploader_id': uploader_id,
             'formats': self._get_formats(video_info, video_id),
             **traverse_obj(post, {
                 'title': ((('extension', 'moment', 'body'), 'body'), {str}),
                 'uploader': ('author', 'profileName', {str}),
+                'creator': (('community', 'author'), 'communityName', {str}),
+                'channel_id': (('community', 'author'), 'communityId', {str_or_none}),
                 'duration': ('extension', 'moment', 'video', 'uploadInfo', 'playTime', {float_or_none}),
                 'timestamp': ('publishedAt', {lambda x: int_or_none(x, 1000)}),
                 'thumbnail': ('extension', 'moment', 'video', 'uploadInfo', 'imageUrl', {url_or_none}),
+                'like_count': ('emotionCount', {int_or_none}),
+                'comment_count': ('commentCount', {int_or_none}),
             }, get_all=False),
             **NaverBaseIE.process_subtitles(video_info, self._get_subs),
         }
@@ -394,34 +439,34 @@ class WeverseTabBaseIE(WeverseBaseIE):
     _QUERY = {}
     _RESULT_IE = None
 
-    def _entries(self, channel_id, uploader_id, first_page):
+    def _entries(self, channel_id, channel, first_page):
         query = {**self._QUERY}
 
         for page in itertools.count(1):
             posts = first_page if page == 1 else self._call_api(
-                update_url_query(self._ENDPOINT % channel_id, query), uploader_id,
+                update_url_query(self._ENDPOINT % channel_id, query), channel,
                 note=f'Downloading {self._PATH} tab page {page}')
 
             for post in traverse_obj(posts, ('data', lambda _, v: v['postId'])):
                 yield self.url_result(
-                    f'https://weverse.io/{uploader_id}/{self._PATH}/{post["postId"]}',
+                    f'https://weverse.io/{channel}/{self._PATH}/{post["postId"]}',
                     self._RESULT_IE, post['postId'], **self._parse_post_meta(post),
-                    uploader_id=uploader_id, channel_id=channel_id)
+                    channel=channel, channel_url=f'https://weverse.io/{channel}')
 
             query['after'] = traverse_obj(posts, ('paging', 'nextParams', 'after', {str}))
             if not query['after']:
                 break
 
     def _real_extract(self, url):
-        uploader_id = self._match_id(url)
-        channel_id = self._get_community_id(uploader_id)
+        channel = self._match_id(url)
+        channel_id = self._get_community_id(channel)
 
         first_page = self._call_api(
-            update_url_query(f'{self._ENDPOINT % channel_id}', self._QUERY), uploader_id,
+            update_url_query(f'{self._ENDPOINT % channel_id}', self._QUERY), channel,
             note=f'Downloading {self._PATH} tab page 1')
 
         return self.playlist_result(
-            self._entries(channel_id, uploader_id, first_page), f'{uploader_id}-{self._PATH}',
+            self._entries(channel_id, channel, first_page), f'{channel}-{self._PATH}',
             **traverse_obj(first_page, ('data', ..., {
                 'playlist_title': ('community', 'communityName', {str}),
                 'thumbnail': ('author', 'profileImageUrl', {url_or_none}),
@@ -478,19 +523,19 @@ class WeverseLiveIE(WeverseBaseIE):
     }]
 
     def _real_extract(self, url):
-        uploader_id = self._match_id(url)
-        channel_id = self._get_community_id(uploader_id)
+        channel = self._match_id(url)
+        channel_id = self._get_community_id(channel)
 
         video_id = traverse_obj(
             self._call_api(update_url_query(f'/post/v1.0/community-{channel_id}/liveTab', {
                 'debugMessage': 'true',
                 'fields': 'onAirLivePosts.fieldSet(postsV1).limit(10),reservedLivePosts.fieldSet(postsV1).limit(10)',
-            }), uploader_id, note='Downloading live JSON'), (
+            }), channel, note='Downloading live JSON'), (
                 ('onAirLivePosts', 'reservedLivePosts'), 'data',
                 lambda _, v: v['extension']['video']['status'].lower() == 'onair', 'postId', {str}),
             get_all=False)
 
         if not video_id:
-            raise UserNotLive(video_id=uploader_id)
+            raise UserNotLive(video_id=channel)
 
-        return self.url_result(f'https://weverse.io/{uploader_id}/live/{video_id}', WeverseIE)
+        return self.url_result(f'https://weverse.io/{channel}/live/{video_id}', WeverseIE)
