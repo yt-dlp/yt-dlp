@@ -2295,6 +2295,7 @@ from .weverse import (
     WeverseMomentIE,
     WeverseLiveTabIE,
     WeverseMediaTabIE,
+    WeverseLiveIE,
 )
 from .wikimedia import WikimediaIE
 from .willow import WillowIE

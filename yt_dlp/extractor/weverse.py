@@ -148,6 +148,11 @@ class WeverseBaseIE(InfoExtractor):
             'thumbnail': ('extension', (('mediaInfo', 'thumbnail', 'url'), ('video', 'thumb')), {url_or_none}),
         }, get_all=False)
 
+    def _get_community_id(self, uploader_id):
+        return str(self._call_api(
+            f'/community/v1.0/communityIdUrlPathByUrlPathArtistCode?keyword={uploader_id}',
+            uploader_id, note='Fetching community ID')['communityId'])
+
 
 class WeverseIE(WeverseBaseIE):
     _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
@@ -409,9 +414,7 @@ class WeverseTabBaseIE(WeverseBaseIE):
 
     def _real_extract(self, url):
         uploader_id = self._match_id(url)
-        channel_id = str(self._call_api(
-            f'/community/v1.0/communityIdUrlPathByUrlPathArtistCode?keyword={uploader_id}', uploader_id,
-            note='Fetching community ID')['communityId'])
+        channel_id = self._get_community_id(uploader_id)
 
         first_page = self._call_api(
             update_url_query(f'{self._ENDPOINT % channel_id}', self._QUERY), uploader_id,
@@ -465,3 +468,29 @@ class WeverseMediaTabIE(WeverseTabBaseIE):
     _PATH = 'media'
     _QUERY = {'fieldSet': 'postsV1', 'filterType': 'RECENT'}
     _RESULT_IE = WeverseMediaIE
+
+
+class WeverseLiveIE(WeverseBaseIE):
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://weverse.io/billlie',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        uploader_id = self._match_id(url)
+        channel_id = self._get_community_id(uploader_id)
+
+        video_id = traverse_obj(
+            self._call_api(update_url_query(f'/post/v1.0/community-{channel_id}/liveTab', {
+                'debugMessage': 'true',
+                'fields': 'onAirLivePosts.fieldSet(postsV1).limit(10),reservedLivePosts.fieldSet(postsV1).limit(10)',
+            }), uploader_id, note='Downloading live JSON'), (
+                ('onAirLivePosts', 'reservedLivePosts'), 'data',
+                lambda _, v: v['extension']['video']['status'].lower() == 'onair', 'postId', {str}),
+            get_all=False)
+
+        if not video_id:
+            raise UserNotLive(video_id=uploader_id)
+
+        return self.url_result(f'https://weverse.io/{uploader_id}/live/{video_id}', WeverseIE)
