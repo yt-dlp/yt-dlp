@@ -104,6 +104,11 @@ class WeverseBaseIE(InfoExtractor):
     def _call_post_api(self, video_id):
         return self._call_api(f'/post/v1.0/post-{video_id}?fieldSet=postV1', video_id)
 
+    def _get_community_id(self, channel):
+        return str(self._call_api(
+            f'/community/v1.0/communityIdUrlPathByUrlPathArtistCode?keyword={channel}',
+            channel, note='Fetching community ID')['communityId'])
+
     def _get_formats(self, data, video_id):
         formats = traverse_obj(data, ('videos', 'list', lambda _, v: url_or_none(v['source']), {
             'url': 'source',
@@ -154,10 +159,11 @@ class WeverseBaseIE(InfoExtractor):
             'comment_count': ('commentCount', {int_or_none}),
         }, get_all=False)
 
-    def _get_community_id(self, channel):
-        return str(self._call_api(
-            f'/community/v1.0/communityIdUrlPathByUrlPathArtistCode?keyword={channel}',
-            channel, note='Fetching community ID')['communityId'])
+    def _extract_availability(self, data):
+        return self._availability(**traverse_obj(data, ((None, ('extension', 'video')), {
+            'needs_premium': 'paid',
+            'needs_subscription': 'membershipOnly',
+        }), get_all=False, expected_type=bool), needs_auth=True)
 
 
 class WeverseIE(WeverseBaseIE):
@@ -185,6 +191,7 @@ class WeverseIE(WeverseBaseIE):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
+            'availability': 'needs_auth',
         },
     }, {
         'url': 'https://weverse.io/lesserafim/live/2-102331763',
@@ -209,6 +216,7 @@ class WeverseIE(WeverseBaseIE):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
+            'availability': 'needs_auth',
             'subtitles': {
                 'id_ID': 'count:2',
                 'en_US': 'count:2',
@@ -242,6 +250,7 @@ class WeverseIE(WeverseBaseIE):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
+            'availability': 'needs_auth',
             'live_status': 'is_live',
         },
         'skip': 'Livestream has ended',
@@ -303,6 +312,7 @@ class WeverseIE(WeverseBaseIE):
             'channel_url': f'https://weverse.io/{channel}',
             'formats': formats,
             'is_live': is_live,
+            'availability': self._extract_availability(post),
             **self._parse_post_meta(post),
             **NaverBaseIE.process_subtitles(video_info, self._get_subs),
         }
@@ -361,6 +371,7 @@ class WeverseMediaIE(WeverseBaseIE):
             'view_count': int,
             'like_count': int,
             'comment_count': int,
+            'availability': 'needs_auth',
         },
     }]
 
@@ -402,6 +413,7 @@ class WeverseMomentIE(WeverseBaseIE):
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'like_count': int,
             'comment_count': int,
+            'availability': 'needs_auth',
         },
         'skip': 'Moment has expired',
     }]
@@ -419,6 +431,7 @@ class WeverseMomentIE(WeverseBaseIE):
             'channel': channel,
             'uploader_id': uploader_id,
             'formats': self._get_formats(video_info, video_id),
+            'availability': self._extract_availability(post),
             **traverse_obj(post, {
                 'title': ((('extension', 'moment', 'body'), 'body'), {str}),
                 'uploader': ('author', 'profileName', {str}),
@@ -452,7 +465,8 @@ class WeverseTabBaseIE(WeverseBaseIE):
                 yield self.url_result(
                     f'https://weverse.io/{channel}/{self._PATH}/{post["postId"]}',
                     self._RESULT_IE, post['postId'], **self._parse_post_meta(post),
-                    channel=channel, channel_url=f'https://weverse.io/{channel}')
+                    channel=channel, channel_url=f'https://weverse.io/{channel}',
+                    availability=self._extract_availability(post))
 
             query['after'] = traverse_obj(posts, ('paging', 'nextParams', 'after', {str}))
             if not query['after']:
