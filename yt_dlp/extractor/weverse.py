@@ -257,8 +257,9 @@ class WeverseIE(WeverseBaseIE):
             video_info = self._call_api(
                 f'/video/v1.0/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
                 video_id, note='Downloading live JSON')
-            if not traverse_obj(video_info, ('status', {str.lower})) == 'onair':
-                raise UserNotLive(video_id=channel)
+            if traverse_obj(video_info, ('status', {str.lower})) != 'onair':
+                self.raise_no_formats(
+                    'Livestream has ended and downloadable VOD is not available', expected=True)
             playback = self._parse_json(video_info['lipPlayback'], video_id)
             m3u8_url = traverse_obj(playback, (
                 'media', lambda _, v: v['protocol'] == 'HLS', 'path', {url_or_none}), get_all=False)
