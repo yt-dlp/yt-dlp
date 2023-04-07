@@ -75,8 +75,8 @@ class ZoomIE(InfoExtractor):
                 'height': int_or_none(traverse_obj(data, ('viewResolvtions', 1))),
                 'format_id': str_or_none(traverse_obj(data, ('recording', 'id'))),
                 'ext': 'mp4',
-                'filesize_approx': parse_filesize(
-                    traverse_obj(data, ('recording', 'fileSizeInMB'), expected_type=str_or_none)),
+                'filesize_approx': traverse_obj(data, (
+                    'recording', 'fileSizeInMB', {str_or_none}, {parse_filesize})),
                 'preference': 0
             })
 
@@ -93,7 +93,7 @@ class ZoomIE(InfoExtractor):
 
         return {
             'id': play_id,
-            'title': traverse_obj(data, ('meet', 'topic'), expected_type=str_or_none),
+            'title': str_or_none(traverse_obj(data, ('meet', 'topic'))),
             'subtitles': subtitles,
             'formats': formats,
             'http_headers': {
