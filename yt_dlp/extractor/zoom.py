@@ -75,8 +75,7 @@ class ZoomIE(InfoExtractor):
                 'height': int_or_none(traverse_obj(data, ('viewResolvtions', 1))),
                 'format_id': str_or_none(traverse_obj(data, ('recording', 'id'))),
                 'ext': 'mp4',
-                'filesize_approx': traverse_obj(data, (
-                    'recording', 'fileSizeInMB', {str_or_none}, {parse_filesize})),
+                'filesize_approx': parse_filesize(str_or_none(traverse_obj(data, ('recording', 'fileSizeInMB')))),
                 'preference': 0
             })
 
