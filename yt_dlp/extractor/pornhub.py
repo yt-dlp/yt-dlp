@@ -815,4 +815,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
 
         self._login(host)
 
+        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
+        self._set_cookie('thumbzilla.com', 'accessAgeDisclaimerTZ', '1')
+
         return self.playlist_result(self._entries(mobj.group('url'), host, item_id), item_id)
