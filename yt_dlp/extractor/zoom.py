@@ -5,6 +5,7 @@ from ..utils import (
     str_or_none,
     js_to_json,
     parse_filesize,
+    traverse_obj,
     urlencode_postdata,
     urljoin,
 )
@@ -53,48 +54,45 @@ class ZoomIE(InfoExtractor):
             r'(?s)window\.__data__\s*=\s*({.+?});',
             webpage, 'data'), play_id, js_to_json)
 
-        info = self._download_json(
-            base_url + 'nws/recording/1.0/play/info/' + data['fileId'], play_id
-        )
-
-        result = info.get('result', {})
+        data = self._download_json(
+            f'{base_url}nws/recording/1.0/play/info/{data["fileId"]}', play_id)['result']
 
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
-            if result.get('%sUrl' % _type):
+            if data.get('%sUrl' % _type):
                 subtitles[_type] = [{
-                    'url': urljoin(base_url, result['%sUrl' % _type]),
+                    'url': urljoin(base_url, data['%sUrl' % _type]),
                     'ext': 'vtt',
                 }]
 
         formats = []
 
-        if result.get('viewMp4Url'):
+        if data.get('viewMp4Url'):
             formats.append({
                 'format_note': 'Camera stream',
-                'url': str_or_none(result.get('viewMp4Url')),
-                'width': int_or_none(result.get('viewResolvtions')[0]),
-                'height': int_or_none(result.get('viewResolvtions')[1]),
-                'format_id': str_or_none(result.get('recording', {}).get('id')),
+                'url': str_or_none(data.get('viewMp4Url')),
+                'width': int_or_none(traverse_obj(data, ('viewResolvtions', 0))),
+                'height': int_or_none(traverse_obj(data, ('viewResolvtions', 1))),
+                'format_id': str_or_none(traverse_obj(data, ('recording', 'id'))),
                 'ext': 'mp4',
-                'filesize_approx': parse_filesize(result.get('recording', {}).get('fileSizeInMB')),
+                'filesize_approx': parse_filesize(traverse_obj(data, ('recording', 'fileSizeInMB'), expected_type=str_or_none)),
                 'preference': 0
             })
 
-        if result.get('shareMp4Url'):
+        if data.get('shareMp4Url'):
             formats.append({
                 'format_note': 'Screen share stream',
-                'url': str_or_none(result.get('shareMp4Url')),
-                'width': int_or_none(result.get('shareResolvtions')[0]),
-                'height': int_or_none(result.get('shareResolvtions')[1]),
-                'format_id': str_or_none(result.get('shareVideo', {}).get('id')),
+                'url': str_or_none(data.get('shareMp4Url')),
+                'width': int_or_none(traverse_obj(data, ('shareResolvtions', 0))),
+                'height': int_or_none(traverse_obj(data, ('shareResolvtions', 1))),
+                'format_id': str_or_none(traverse_obj(data, ('shareVideo', 'id'))),
                 'ext': 'mp4',
                 'preference': -1
             })
 
         return {
             'id': play_id,
-            'title': result.get('meet', {}).get('topic'),
+            'title': traverse_obj(data, ('meet', 'topic'), expected_type=str_or_none),
             'subtitles': subtitles,
             'formats': formats,
             'http_headers': {
