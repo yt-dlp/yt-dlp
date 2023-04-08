@@ -236,10 +236,14 @@ class InfoExtractor:
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader
+                    MPD formats can have the additional fields:
+                    * is_dash_periods  True if the format is the result of merging
+                                 multiple DASH periods.
+                    * dash_period_id  The period ID from the DASH manifest.
+                    * dash_period_idx  The number of the period in the DASH manifest.
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
-                    MPD formats can have the field: is_dash_periods
 
     url:            Final video URL.
     ext:            Video filename extension.
@@ -2553,7 +2557,8 @@ class InfoExtractor:
             # merge periods by concatenating fragments
             # require almost all parameters to be the same
             shared_keys = [k for k in periods[0]['formats'][0].keys()
-                           if k not in ('format_id', 'fragments', 'manifest_stream_number')]
+                           if k not in ('format_id', 'fragments', 'manifest_stream_number',
+                                        'dash_period_id', 'dash_period_idx')]
 
             # create merged formats
             stream_numbers = collections.defaultdict(int)
@@ -2927,6 +2932,8 @@ class InfoExtractor:
                         f['url'] = base_url
                     if content_type in ('video', 'audio', 'image/jpeg'):
                         f['manifest_stream_number'] = stream_numbers[f['url']]
+                        f['dash_period_id'] = period_entry['id']
+                        f['dash_period_idx'] = period_idx
                         stream_numbers[f['url']] += 1
                         period_entry['formats'].append(f)
                     elif content_type == 'text':
