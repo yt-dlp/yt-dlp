@@ -293,9 +293,9 @@ class TikTokBaseIE(InfoExtractor):
                     'url': cover_url,
                 })
 
-        stats_info = aweme_detail.get('statistics', {})
-        author_info = aweme_detail.get('author', {})
-        music_info = aweme_detail.get('music', {})
+        stats_info = aweme_detail.get('statistics') or {}
+        author_info = aweme_detail.get('author') or {}
+        music_info = aweme_detail.get('music') or {}
         user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
                                                              'sec_uid', 'id', 'uid', 'unique_id',
                                                              expected_type=str_or_none, get_all=False))
@@ -317,21 +317,27 @@ class TikTokBaseIE(InfoExtractor):
             'extractor_key': TikTokIE.ie_key(),
             'extractor': TikTokIE.IE_NAME,
             'webpage_url': self._create_url(author_info.get('uid'), aweme_id),
-            'title': aweme_detail.get('desc'),
-            'description': aweme_detail.get('desc'),
-            'view_count': int_or_none(stats_info.get('play_count')),
-            'like_count': int_or_none(stats_info.get('digg_count')),
-            'repost_count': int_or_none(stats_info.get('share_count')),
-            'comment_count': int_or_none(stats_info.get('comment_count')),
-            'uploader': str_or_none(author_info.get('unique_id')),
-            'creator': str_or_none(author_info.get('nickname')),
-            'uploader_id': str_or_none(author_info.get('uid')),
+            **traverse_obj(aweme_detail, {
+                'title': ('desc', {str}),
+                'description': ('desc', {str}),
+                'timestamp': ('create_time', {int_or_none}),
+            }),
+            **traverse_obj(stats_info, {
+                'view_count': 'play_count',
+                'like_count': 'digg_count',
+                'repost_count': 'share_count',
+                'comment_count': 'comment_count',
+            }, expected_type=int_or_none),
+            **traverse_obj(author_info, {
+                'uploader': 'unique_id',
+                'uploader_id': 'uid',
+                'creator': 'nickname',
+                'channel_id': 'sec_uid',
+            }, expected_type=str_or_none),
             'uploader_url': user_url,
-            'channel_id': str_or_none(author_info.get('sec_uid')),
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
             'artist': music_author or None,
-            'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
             'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
             'thumbnails': thumbnails,
