@@ -2534,62 +2534,56 @@ class InfoExtractor:
         fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
         if subs:
             self._report_ignoring_subs('DASH')
+        if any(f.get('is_dash_periods') for f in fmts):
+            self.report_warning(bug_reports_message(
+                'Ignoring multiple periods found in the DASH manifest; '
+                'if part of the video is missing,'
+            ), only_once=True)
         return fmts
 
     def _parse_mpd_formats_and_subtitles(self, *args, **kwargs):
         periods = self._parse_mpd_periods(*args, **kwargs)
         return self._merge_mpd_periods(periods)
 
-    def _merge_mpd_periods(self, periods, concat_similar=False):
+    def _merge_mpd_periods(self, periods):
         """
-        Combine all formats and subtitles from an MPD manifest into a single list.
-        Concatenate streams with similar formats if concat_similar == True.
+        Combine all formats and subtitles from an MPD manifest into a single list,
+        by concatenate streams with similar formats.
         """
-        if len(periods) > 1 and not concat_similar:
-            self.report_warning(bug_reports_message(
-                'Ignoring multiple periods found in the DASH manifest; '
-                'if part of the video is missing,'
-            ), only_once=True)
-
         formats, subtitles = [], {}
 
-        if concat_similar:
-            # merge periods by concatenating fragments
-            # require almost all parameters to be the same
-            shared_keys = [k for k in periods[0]['formats'][0].keys()
-                           if k not in ('format_id', 'fragments', 'manifest_stream_number',
-                                        'dash_period_id', 'dash_period_idx')]
+        # merge periods by concatenating fragments
+        # require almost all parameters to be the same
+        shared_keys = [k for k in periods[0]['formats'][0].keys()
+                       if k not in ('format_id', 'fragments', 'manifest_stream_number',
+                                    'dash_period_id', 'dash_period_idx')]
 
-            # create merged formats
-            stream_numbers = collections.defaultdict(int)
-            groups = {}
-            formats = []
-            for period in periods:
-                for f in period['formats']:
-                    format_key = tuple(f[k] for k in shared_keys)
-                    if 'fragments' not in f or format_key not in groups:
-                        # unmergeable format, or first period of this format
-                        mf = {}
-                        mf.update(f)
-                        mf['manifest_stream_number'] = stream_numbers[mf['url']]
-                        formats.append(mf)
-                        # keep track of mergeable formats
-                        if 'fragments' in f:
-                            mf['is_dash_periods'] = True
-                            mf['fragments'] = f['fragments'].copy()
-                            groups[format_key] = mf
-                    else:
-                        # follow-up period of a mergeable format
-                        groups[format_key]['fragments'] += f['fragments']
-        else:
-            # backwards compatibility: concatenate all formats and subtitles
-            for period in periods:
-                formats += period['formats']
+        # create merged formats
+        stream_numbers = collections.defaultdict(int)
+        groups = {}
+        formats = []
+        for period in periods:
+            for f in period['formats']:
+                format_key = tuple(f[k] for k in shared_keys)
+                if 'fragments' not in f or format_key not in groups:
+                    # unmergeable format, or first period of this format
+                    mf = {}
+                    mf.update(f)
+                    mf['manifest_stream_number'] = stream_numbers[mf['url']]
+                    formats.append(mf)
+                    # keep track of mergeable formats
+                    if 'fragments' in f:
+                        mf['is_dash_periods'] = True
+                        mf['fragments'] = f['fragments'].copy()
+                        groups[format_key] = mf
+                else:
+                    # follow-up period of a mergeable format
+                    groups[format_key]['fragments'] += f['fragments']
 
         for period in periods:
             subtitles.update(period['subtitles'])
 
-        if len(subtitles) > 0 and len(periods) > 1 and concat_similar:
+        if len(subtitles) > 0 and len(periods) > 1:
             self.report_warning(bug_reports_message(
                 'Ignoring multiple periods found in the DASH manifest; '
                 'if part of the subtitles are missing,'

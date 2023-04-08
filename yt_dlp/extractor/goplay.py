@@ -116,7 +116,7 @@ class GoPlayIE(InfoExtractor):
             periods = [period for period in periods
                        if '-ad-' not in period['id']]
 
-            formats, subtitles = self._merge_mpd_periods(periods, concat_similar=True)
+            formats, subtitles = self._merge_mpd_periods(periods)
 
         info_dict.update({
             'id': video_id,
