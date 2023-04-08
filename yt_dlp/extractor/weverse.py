@@ -167,8 +167,13 @@ class WeverseBaseIE(InfoExtractor):
 
     def _extract_live_status(self, data):
         data = traverse_obj(data, ('extension', 'video', {dict})) or {}
-        if traverse_obj(data, ('type', {str.lower})) == 'live':
-            return 'is_live' if traverse_obj(data, ('status', {str.lower})) == 'onair' else 'post_live'
+        if data.get('type') == 'LIVE':
+            return traverse_obj({
+                'ONAIR': 'is_live',
+                'DONE': 'post_live',
+                'STANDBY': 'is_upcoming',
+                'DELAY': 'is_upcoming',
+            }, (data.get('status'), {str})) or 'is_live'
         return 'was_live' if data.get('liveToVod') else 'not_live'
 
 
@@ -271,7 +276,10 @@ class WeverseIE(WeverseBaseIE):
         availability = self._extract_availability(post)
         live_status = self._extract_live_status(post)
 
-        if live_status == 'is_live':
+        if live_status == 'is_upcoming':
+            raise UserNotLive(video_id=video_id)
+
+        elif live_status == 'is_live':
             video_info = self._call_api(
                 f'/video/v1.0/lives/{api_video_id}/playInfo?preview.format=json&preview.version=v2',
                 video_id, note='Downloading live JSON')
@@ -587,7 +595,7 @@ class WeverseLiveIE(WeverseBaseIE):
                 'fields': 'onAirLivePosts.fieldSet(postsV1).limit(10),reservedLivePosts.fieldSet(postsV1).limit(10)',
             }), channel, note='Downloading live JSON'), (
                 ('onAirLivePosts', 'reservedLivePosts'), 'data',
-                lambda _, v: v['extension']['video']['status'].lower() == 'onair', 'postId', {str}),
+                lambda _, v: self._extract_live_status(v) == 'is_live', 'postId', {str}),
             get_all=False)
 
         if not video_id:
