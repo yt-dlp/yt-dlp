@@ -287,13 +287,11 @@ class TikTokBaseIE(InfoExtractor):
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
                          'origin_cover', 'dynamic_cover'):
-            cover = video_info.get(cover_id)
-            if cover:
-                for cover_url in cover['url_list']:
-                    thumbnails.append({
-                        'id': cover_id,
-                        'url': cover_url,
-                    })
+            for cover_url in traverse_obj(video_info, (cover_id, 'url_list', ...)):
+                thumbnails.append({
+                    'id': cover_id,
+                    'url': cover_url,
+                })
 
         stats_info = aweme_detail.get('statistics', {})
         author_info = aweme_detail.get('author', {})
