@@ -58,6 +58,10 @@ class PornHubBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._logged_in = False
 
+    def _set_age_cookies(self, host):
+        self._set_cookie(host, 'age_verified', '1')
+        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
+
     def _login(self, host):
         if self._logged_in:
             return
@@ -267,10 +271,7 @@ class PornHubIE(PornHubBaseIE):
         video_id = mobj.group('id')
 
         self._login(host)
-
-        self._set_cookie(host, 'age_verified', '1')
-        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
-        self._set_cookie('thumbzilla.com', 'accessAgeDisclaimerTZ', '1')
+        self._set_age_cookies(host)
 
         def dl_webpage(platform):
             self._set_cookie(host, 'platform', platform)
@@ -571,6 +572,7 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
         mobj = self._match_valid_url(url)
         user_id = mobj.group('id')
         videos_url = '%s/videos' % mobj.group('url')
+        self._set_age_cookies(mobj.group('host'))
         page = self._extract_page(url)
         if page:
             videos_url = update_url_query(videos_url, {'page': page})
@@ -635,6 +637,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
         item_id = mobj.group('id')
 
         self._login(host)
+        self._set_age_cookies(host)
 
         return self.playlist_result(self._entries(url, host, item_id), item_id)
 
@@ -814,8 +817,6 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
         item_id = mobj.group('id')
 
         self._login(host)
-
-        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
-        self._set_cookie('thumbzilla.com', 'accessAgeDisclaimerTZ', '1')
+        self._set_age_cookies(host)
 
         return self.playlist_result(self._entries(mobj.group('url'), host, item_id), item_id)
