@@ -476,7 +476,7 @@ class WeverseTabBaseIE(WeverseBaseIE):
     _RESULT_IE = None
 
     def _entries(self, channel_id, channel, first_page):
-        query = {**self._QUERY}
+        query = self._QUERY.copy()
 
         for page in itertools.count(1):
             posts = first_page if page == 1 else self._call_api(
@@ -500,7 +500,7 @@ class WeverseTabBaseIE(WeverseBaseIE):
         channel_id = self._get_community_id(channel)
 
         first_page = self._call_api(
-            update_url_query(f'{self._ENDPOINT % channel_id}', self._QUERY), channel,
+            update_url_query(self._ENDPOINT % channel_id, self._QUERY), channel,
             note=f'Downloading {self._PATH} tab page 1')
 
         return self.playlist_result(
