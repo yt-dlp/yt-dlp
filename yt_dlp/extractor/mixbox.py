@@ -1,6 +1,9 @@
 import hashlib
 import re
 
+from ..utils import (
+    ExtractorError,
+)
 from .common import InfoExtractor
 
 
@@ -32,12 +35,11 @@ class MixBoxHomepageIE(InfoExtractor):
                 note='Fetching asset js file', errnote='Unable to fetch asset js file')
             live_video_key, live_video_url = self._search_regex(
                 r'LIVE_VIDEO_key:\s*"(?P<key>[\dA-Z]{64})".+LIVE_VIDEO_url:\s*"(?P<url>https://[^"]+)"',
-                asset_js_content, name='live video info', fatal=False,
-                group=('key', 'url'), default=(None, None))
+                asset_js_content, name='live video info', group=('key', 'url'), default=(None, None))
             if live_video_key and live_video_url:
                 break
         if not live_video_key or not live_video_url:
-            self.raise_no_formats('no live video info found')
+            raise ExtractorError('Cannot find live video info', expected=True)
 
         a_string = 'just a meaningless but non-empty string'
         bearer_token = hashlib.sha256((live_video_key + a_string).encode()).hexdigest().upper()
@@ -49,11 +51,15 @@ class MixBoxHomepageIE(InfoExtractor):
 
         m3u8_url = live_video_json.get('url')
         if not m3u8_url:
-            self.raise_no_formats('no m3u8 playlist found')
+            formats = []
+            live_status = 'is_upcoming'
+        else:
+            formats = self._extract_m3u8_formats(m3u8_url, video_id=video_id, ext='ts')
+            live_status = 'is_live'
 
         return {
             'id': video_id,
             'title': 'MixBox',
-            'formats': self._extract_m3u8_formats(m3u8_url, video_id=video_id, ext='ts'),
-            'live_status': 'is_live',
+            'formats': formats,
+            'live_status': live_status,
         }
