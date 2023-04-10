@@ -113,15 +113,16 @@ class CeskaTelevizeIE(InfoExtractor):
             next_data = self._search_nextjs_data(webpage, playlist_id)
             if '/zive/' in parsed_url.path:
                 idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'liveBroadcast', 'current', 'idec'), get_all=False)
+                sidp = traverse_obj(next_data, ('props', 'pageProps', 'data', 'liveBroadcast', 'current', 'showId'), get_all=False)
             else:
                 idec = traverse_obj(next_data, ('props', 'pageProps', 'data', ('show', 'mediaMeta'), 'idec'), get_all=False)
                 if not idec:
                     idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'videobonusDetail', 'bonusId'), get_all=False)
                     if idec:
                         type_ = 'bonus'
+                sidp = self._search_regex(r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/([0-9]+)-', url, playlist_id, default=playlist_id)
             if not idec:
                 raise ExtractorError('Failed to find IDEC id')
-            sidp = self._search_regex(r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/([0-9]+)-', url, playlist_id, default=playlist_id)
             sidp = sidp.rsplit('-')[0]
             query = {'origin': 'iVysilani', 'autoStart': 'true', 'sidp': sidp, type_: idec}
             webpage = self._download_webpage(
