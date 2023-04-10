@@ -23,12 +23,13 @@ class CeskaTelevizeIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.ceskatelevize.cz/porady/10441294653-hyde-park-civilizace/bonus/20641/',
         'info_dict': {
-            'id': '20641',
+            'id': '61924494877028507',
             'ext': 'mp4',
             'title': 'Bonus 01 - En - Hyde Park Civilizace',
             'description': 'English Subtittles',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 81.3,
+            'live_status': 'not_live',
         },
         'params': {
             # m3u8 download
@@ -37,12 +38,15 @@ class CeskaTelevizeIE(InfoExtractor):
     }, {
         # live stream
         'url': 'https://www.ceskatelevize.cz/zive/ct1/',
+        'only_matching': True,
         'info_dict': {
-            'id': '102',
+            'id': '61924494878124436',
             'ext': 'mp4',
-            'title': r'ČT1 - živé vysílání online',
+            'title': r're:^ČT1 - živé vysílání online \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'description': 'Sledujte živé vysílání kanálu ČT1 online. Vybírat si můžete i z dalších kanálů České televize na kterémkoli z vašich zařízení.',
-            'is_live': True,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 5373.3,
+            'live_status': 'is_live',
         },
         'params': {
             # m3u8 download
@@ -53,15 +57,16 @@ class CeskaTelevizeIE(InfoExtractor):
         'url': 'https://www.ceskatelevize.cz/zive/sport/',
         'only_matching': True,
         'info_dict': {
-            'id': '402',
+            'id': '422',
             'ext': 'mp4',
             'title': r're:^ČT Sport \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-            'is_live': True,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'live_status': 'is_live',
         },
-        # 'skip': 'Georestricted to Czech Republic',
-    }, {
-        'url': 'http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?hash=d6a3e1370d2e4fa76296b90bad4dfc19673b641e&IDEC=217 562 22150/0004&channelID=1&width=100%25',
-        'only_matching': True,
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
     }, {
         # video with 18+ caution trailer
         'url': 'http://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
@@ -76,6 +81,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Bogotart - Queer (Varování 18+)',
                 'duration': 11.9,
+                'live_status': 'not_live',
             },
         }, {
             'info_dict': {
@@ -84,6 +90,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 'title': 'Bogotart - Queer (Queer)',
                 'thumbnail': r're:^https?://.*\.jpg',
                 'duration': 1558.3,
+                'live_status': 'not_live',
             },
         }],
         'params': {
@@ -93,7 +100,19 @@ class CeskaTelevizeIE(InfoExtractor):
     }, {
         # iframe embed
         'url': 'http://www.ceskatelevize.cz/porady/10614999031-neviditelni/21251212048/',
-        'only_matching': True,
+        'info_dict': {
+            'id': '61924494877628660',
+            'ext': 'mp4',
+            'title': 'Epizoda 1/13 - Neviditelní',
+            'description': 'Vypadají jako my, mluví jako my, ale mají něco navíc – gen, který jim umožňuje dýchat vodu. Aniž to tušíme, žijí mezi námi.',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 3576.8,
+            'live_status': 'not_live',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -109,11 +128,13 @@ class CeskaTelevizeIE(InfoExtractor):
             playlist_description = playlist_description.replace('\xa0', ' ')
 
         type_ = 'episode'
+        is_live = False
         if re.search(r'(^/porady|/zive)/', parsed_url.path):
             next_data = self._search_nextjs_data(webpage, playlist_id)
             if '/zive/' in parsed_url.path:
                 idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'liveBroadcast', 'current', 'idec'), get_all=False)
                 sidp = traverse_obj(next_data, ('props', 'pageProps', 'data', 'liveBroadcast', 'current', 'showId'), get_all=False)
+                is_live = True
             else:
                 idec = traverse_obj(next_data, ('props', 'pageProps', 'data', ('show', 'mediaMeta'), 'idec'), get_all=False)
                 if not idec:
@@ -138,6 +159,7 @@ class CeskaTelevizeIE(InfoExtractor):
         elif parsed_url.path == '/' and parsed_url.fragment == 'live':
             if self._search_regex(r'(?s)<section[^>]+id=[\'"]live[\'"][^>]+data-ctcomp-data=\'([^\']+)\'[^>]*>', webpage, 'live video player', default=None):
                 # CT4
+                is_live = True
                 ctcomp_data = self._parse_json(
                     self._search_regex(
                         r'(?s)<section[^>]+id=[\'"]live[\'"][^>]+data-ctcomp-data=\'([^\']+)\'[^>]*>',
@@ -161,6 +183,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 data = {'data': json.dumps(data).encode('utf-8')}
             else:
                 # CT24
+                is_live = True
                 lvp_url = self._search_regex(
                     r'(?s)<div[^>]+id=[\'"]live-video-player[\'"][^>]+data-url=[\'"]([^\'"]+)[\'"][^>]*>',
                     webpage, 'live video player', fatal=True)
@@ -223,7 +246,6 @@ class CeskaTelevizeIE(InfoExtractor):
             playlist_len = len(playlist)
 
             for num, item in enumerate(playlist):
-                is_live = item.get('type') == 'LIVE'
                 formats = []
                 for format_id, stream_url in item.get('streamUrls', {}).items():
                     if 'playerType=flash' in stream_url:
@@ -272,7 +294,7 @@ class CeskaTelevizeIE(InfoExtractor):
                     'duration': duration,
                     'formats': formats,
                     'subtitles': subtitles,
-                    'is_live': is_live,
+                    'live_status': 'is_live' if is_live else 'not_live',
                 })
 
         if len(entries) == 1:
