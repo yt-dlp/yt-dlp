@@ -477,7 +477,7 @@ class NiconicoIE(InfoExtractor):
         user_id_str = session_api_data.get('serviceUserId')
 
         thread_ids = traverse_obj(api_data, ('comment', 'threads', lambda _, v: v['isActive']))
-        legacy_danmaku = self._extract_legacy_comments(video_id, thread_ids, user_id_str, comment_user_key)
+        legacy_danmaku = self._extract_legacy_comments(video_id, thread_ids, user_id_str, comment_user_key) or []
 
         new_comments = traverse_obj(api_data, ('comment', 'nvComment'))
         new_danmaku = self._extract_new_comments(
