@@ -2209,6 +2209,10 @@ class GenericIE(InfoExtractor):
         m3u8_url = traverse_obj(self._downloader._get_formats(info), (
             lambda _, v: v['protocol'] == 'm3u8_native', 'url'), get_all=False)
         if m3u8_url:
+            is_live = self._configuration_arg('is_live', [None])[0]
+            if is_live is not None:
+                info['live_status'] = 'not_live' if is_live == 'false' else 'is_live'
+                return
             headers = traverse_obj(info, (
                 (None, ('formats', ...)), 'http_headers', {dict}), get_all=False) or {}
             duration = self._extract_m3u8_vod_duration(
