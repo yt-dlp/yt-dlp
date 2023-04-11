@@ -1,9 +1,9 @@
-import re
-
 from .common import InfoExtractor
 
 
-class HrefLiIE(InfoExtractor):
+class HrefLiRedirectIE(InfoExtractor):
+    IE_NAME = 'href.li'
+    IE_DESC = False  # Do not list
     _VALID_URL = r'https?://href\.li/\?(?P<url>.+)'
 
     _TESTS = [{

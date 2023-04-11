@@ -734,7 +734,7 @@ from .hotstar import (
 )
 from .howcast import HowcastIE
 from .howstuffworks import HowStuffWorksIE
-from .hrefli import HrefLiIE
+from .hrefli import HrefLiRedirectIE
 from .hrfensehen import HRFernsehenIE
 from .hrti import (
     HRTiIE,
