@@ -944,10 +944,6 @@ from .limelight import (
     LimelightChannelIE,
     LimelightChannelListIE,
 )
-from .line import (
-    LineLiveIE,
-    LineLiveChannelIE,
-)
 from .linkedin import (
     LinkedInIE,
     LinkedInLearningIE,
