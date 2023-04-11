@@ -12,4 +12,4 @@ class HrefLiIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result(re.fullmatch(self._VALID_URL, url).group('url'))
+        return self.url_result(self._match_valid_url(url).group('url'))
