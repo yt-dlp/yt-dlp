@@ -867,7 +867,7 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            # Video.js embed, multiple formats
+            # Youtube embed, formerly: Video.js embed, multiple formats
             'url': 'http://ortcam.com/solidworks-урок-6-настройка-чертежа_33f9b7351.html',
             'info_dict': {
                 'id': 'yygqldloqIk',
@@ -894,6 +894,7 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             },
+            'skip': '404 Not Found',
         },
         # rtl.nl embed
         {
@@ -2167,6 +2168,33 @@ class GenericIE(InfoExtractor):
                 'thumbnail': 'https://i.shoosh.co/contents/videos_screenshots/284000/284002/preview.mp4.jpg',
                 'height': 720,
                 'age_limit': 18,
+            },
+        },
+        {
+            'note': 'Live HLS direct link',
+            'url': 'https://d18j67ugtrocuq.cloudfront.net/out/v1/2767aec339144787926bd0322f72c6e9/index.m3u8',
+            'info_dict': {
+                'id': 'index',
+                'title': r're:index',
+                'ext': 'mp4',
+                'live_status': 'is_live',
+            },
+            'params': {
+                'skip_download': 'm3u8',
+            },
+        },
+        {
+            'note': 'Video.js VOD HLS',
+            'url': 'https://gist.githubusercontent.com/bashonly/2aae0862c50f4a4b84f220c315767208/raw/e3380d413749dabbe804c9c2d8fd9a45142475c7/videojs_hls_test.html',
+            'info_dict': {
+                'id': 'videojs_hls_test',
+                'title': 'video',
+                'ext': 'mp4',
+                'age_limit': 0,
+                'duration': 1800,
+            },
+            'params': {
+                'skip_download': 'm3u8',
             },
         },
     ]
