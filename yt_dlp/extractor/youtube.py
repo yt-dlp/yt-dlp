@@ -3789,15 +3789,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if single_stream and dct.get('ext'):
                 dct['container'] = dct['ext'] + '_dash'
 
-            if dct['filesize']:
+            if all_formats and dct['filesize']:
                 yield {
                     **dct,
                     'format_id': f'{dct["format_id"]}-dashy' if all_formats else dct['format_id'],
                     'protocol': 'http_dash_segments',
                     'fragments': build_fragments(dct),
                 }
-                if not all_formats:
-                    continue
             dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
             yield dct
 
