@@ -27,6 +27,9 @@ class YoukuIE(InfoExtractor):
     '''
 
     _TESTS = [{
+        'url': 'http://player.youku.com/player.php/sid/XNDgyMDQ2NTQw/v.swf',
+        'only_matching': True,
+    }, {
         'url': 'http://v.youku.com/v_show/id_XNjA1NzA2Njgw.html',
         'note': 'Video protected with password',
         'info_dict': {
@@ -58,9 +61,6 @@ class YoukuIE(InfoExtractor):
             'uploader_url': 'https://www.youku.com/profile/index/?uid=UMTUzODYyNDg0',
             'tags': list,
         },
-    }, {
-        'url': 'http://player.youku.com/player.php/sid/XNDgyMDQ2NTQw/v.swf',
-        'only_matching': True,
     }, {
         'url': 'https://v.youku.com/v_show/id_XNTA2NTA0MjA1Mg==.html',
         'info_dict': {
