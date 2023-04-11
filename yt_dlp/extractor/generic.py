@@ -2205,6 +2205,19 @@ class GenericIE(InfoExtractor):
             for fmt in self._downloader._get_formats(info):
                 fmt['url'] = update_url_query(fmt['url'], query)
 
+        # Attempt to detect live HLS or set VOD duration
+        m3u8_url = traverse_obj(self._downloader._get_formats(info), (
+            lambda _, v: v['protocol'] == 'm3u8_native', 'url'), get_all=False)
+        if m3u8_url:
+            headers = traverse_obj(info, (
+                (None, ('formats', ...)), 'http_headers', {dict}), get_all=False) or {}
+            duration = self._extract_m3u8_vod_duration(
+                m3u8_url, info.get('id'), headers=headers, note='Checking m3u8 live status',
+                errnote='Failed to download m3u8 media playlist')
+            if not duration:
+                info['live_status'] = 'is_live'
+            info['duration'] = info.get('duration') or duration
+
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
             'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
@@ -2580,8 +2593,7 @@ class GenericIE(InfoExtractor):
             varname = mobj.group(1)
             sources = variadic(self._parse_json(
                 mobj.group(2), video_id, transform_source=js_to_json, fatal=False) or [])
-            formats = []
-            subtitles = {}
+            formats, subtitles, src = [], {}, None
             for source in sources:
                 src = source.get('src')
                 if not src or not isinstance(src, str):
@@ -2604,8 +2616,6 @@ class GenericIE(InfoExtractor):
                         m3u8_id='hls', fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
-                for fmt in formats:
-                    self._extra_manifest_info(fmt, src)
 
                 if not formats:
                     formats.append({
@@ -2621,11 +2631,11 @@ class GenericIE(InfoExtractor):
             for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
                 sub = self._parse_json(
                     sub_match.group(1), video_id, transform_source=js_to_json, fatal=False) or {}
-                src = str_or_none(sub.get('src'))
-                if not src:
+                sub_src = str_or_none(sub.get('src'))
+                if not sub_src:
                     continue
                 subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
-                    'url': urllib.parse.urljoin(url, src),
+                    'url': urllib.parse.urljoin(url, sub_src),
                     'name': sub.get('label'),
                     'http_headers': {
                         'Referer': actual_url,
@@ -2633,7 +2643,10 @@ class GenericIE(InfoExtractor):
                 })
             if formats or subtitles:
                 self.report_detected('video.js embed')
-                return [{'formats': formats, 'subtitles': subtitles}]
+                info_dict = {'formats': formats, 'subtitles': subtitles}
+                if formats:
+                    self._extra_manifest_info(info_dict, src)
+                return [info_dict]
 
         # Look for generic KVS player (before json-ld bc of some urls that break otherwise)
         found = self._search_regex((
