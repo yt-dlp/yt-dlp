@@ -349,8 +349,9 @@ class CBCGemIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/assets/' + video_id, video_id,
-                                         expected_status=426)
+        video_info = self._download_json(
+            f'https://services.radio-canada.ca/ott/cbc-api/v2/assets/{video_id}',
+            video_id, expected_status=426)
 
         email, password = self._get_login_info()
         if email and password:
