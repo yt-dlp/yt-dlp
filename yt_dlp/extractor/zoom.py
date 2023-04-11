@@ -5,6 +5,7 @@ from ..utils import (
     str_or_none,
     js_to_json,
     parse_filesize,
+    traverse_obj,
     urlencode_postdata,
     urljoin,
 )
@@ -53,6 +54,9 @@ class ZoomIE(InfoExtractor):
             r'(?s)window\.__data__\s*=\s*({.+?});',
             webpage, 'data'), play_id, js_to_json)
 
+        data = self._download_json(
+            f'{base_url}nws/recording/1.0/play/info/{data["fileId"]}', play_id)['result']
+
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
             if data.get('%sUrl' % _type):
@@ -67,11 +71,11 @@ class ZoomIE(InfoExtractor):
             formats.append({
                 'format_note': 'Camera stream',
                 'url': str_or_none(data.get('viewMp4Url')),
-                'width': int_or_none(data.get('viewResolvtionsWidth')),
-                'height': int_or_none(data.get('viewResolvtionsHeight')),
-                'format_id': str_or_none(data.get('recordingId')),
+                'width': int_or_none(traverse_obj(data, ('viewResolvtions', 0))),
+                'height': int_or_none(traverse_obj(data, ('viewResolvtions', 1))),
+                'format_id': str_or_none(traverse_obj(data, ('recording', 'id'))),
                 'ext': 'mp4',
-                'filesize_approx': parse_filesize(data.get('fileSize')),
+                'filesize_approx': parse_filesize(str_or_none(traverse_obj(data, ('recording', 'fileSizeInMB')))),
                 'preference': 0
             })
 
@@ -79,16 +83,16 @@ class ZoomIE(InfoExtractor):
             formats.append({
                 'format_note': 'Screen share stream',
                 'url': str_or_none(data.get('shareMp4Url')),
-                'width': int_or_none(data.get('shareResolvtionsWidth')),
-                'height': int_or_none(data.get('shareResolvtionsHeight')),
-                'format_id': str_or_none(data.get('shareVideoId')),
+                'width': int_or_none(traverse_obj(data, ('shareResolvtions', 0))),
+                'height': int_or_none(traverse_obj(data, ('shareResolvtions', 1))),
+                'format_id': str_or_none(traverse_obj(data, ('shareVideo', 'id'))),
                 'ext': 'mp4',
                 'preference': -1
             })
 
         return {
             'id': play_id,
-            'title': data.get('topic'),
+            'title': str_or_none(traverse_obj(data, ('meet', 'topic'))),
             'subtitles': subtitles,
             'formats': formats,
             'http_headers': {
