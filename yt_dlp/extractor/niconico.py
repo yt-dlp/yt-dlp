@@ -501,7 +501,7 @@ class NiconicoIE(InfoExtractor):
             'userkey': user_key,
         } if user_id and user_key else {'user_id': ''}
 
-        api_url = next(iter(set(traverse_obj(threads, (..., 'server')))))
+        api_url = traverse_obj(threads, (..., 'server'), get_all=False)
 
         # Request Start
         post_data = [{'ping': {'content': 'rs:0'}}]
