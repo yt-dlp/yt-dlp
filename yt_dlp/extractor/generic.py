@@ -14,6 +14,7 @@ from ..utils import (
     ExtractorError,
     UnsupportedError,
     determine_ext,
+    determine_protocol,
     dict_get,
     extract_basic_auth,
     format_field,
@@ -2234,18 +2235,17 @@ class GenericIE(InfoExtractor):
                 fmt['url'] = update_url_query(fmt['url'], query)
 
         # Attempt to detect live HLS or set VOD duration
-        m3u8_url = traverse_obj(self._downloader._get_formats(info), (
-            lambda _, v: v['protocol'] == 'm3u8_native', 'url'), get_all=False)
-        if m3u8_url:
+        m3u8_format = next((f for f in self._downloader._get_formats(info)
+                            if determine_protocol(f) == 'm3u8_native'), None)
+        if m3u8_format:
             is_live = self._configuration_arg('is_live', [None])[0]
             if is_live is not None:
                 info['live_status'] = 'not_live' if is_live == 'false' else 'is_live'
                 return
-            headers = traverse_obj(info, (
-                (None, ('formats', ...)), 'http_headers', {dict}), get_all=False) or {}
+            headers = m3u8_format.get('http_headers') or info.get('http_headers')
             duration = self._extract_m3u8_vod_duration(
-                m3u8_url, info.get('id'), headers=headers, note='Checking m3u8 live status',
-                errnote='Failed to download m3u8 media playlist')
+                m3u8_format['url'], info.get('id'), note='Checking m3u8 live status',
+                errnote='Failed to download m3u8 media playlist', headers=headers)
             if not duration:
                 info['live_status'] = 'is_live'
             info['duration'] = info.get('duration') or duration
