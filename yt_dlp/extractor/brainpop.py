@@ -12,6 +12,7 @@ from ..utils import (
 
 class BrainPOPBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'brainpop'
+    _ORIGIN = ''  # So that _VALID_URL doesn't crash
     _LOGIN_ERRORS = {
         1502: 'The username and password you entered did not match.',  # LOGIN_FAILED
         1503: 'Payment method is expired.',  # LOGIN_FAILED_ACCOUNT_NOT_ACTIVE
