@@ -361,7 +361,7 @@ class TikTokBaseIE(InfoExtractor):
         width = int_or_none(video_info.get('width'))
         height = int_or_none(video_info.get('height'))
 
-        for play_url in traverse_obj(video_info, ('playAddr', (({list}, ..., 'src'), ({str})), {url_or_none})):
+        for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
             formats.append({
                 'url': self._proto_relative_url(play_url),
                 'ext': 'mp4',
