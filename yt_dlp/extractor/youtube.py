@@ -3316,9 +3316,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
+                is_pinned = bool(traverse_obj(comment_renderer, 'pinnedCommentBadge'))
+                comment_id = comment['id']
+                if is_pinned:
+                    tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/6290
-                if comment['id'] in tracker['seen_comment_ids']:
+                if comment_id in tracker['seen_comment_ids']:
+                    if comment_id in tracker['pinned_comment_ids'] and not is_pinned:
+                        # Pinned comments may appear a second time in newest first sort
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/6712
+                        continue
                     self.report_warning('Detected YouTube comments looping. Stopping comment extraction as we probably cannot get any more.')
                     yield
                 else:
@@ -3348,7 +3356,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 current_page_thread=0,
                 total_parent_comments=0,
                 total_reply_comments=0,
-                seen_comment_ids=set())
+                seen_comment_ids=set(),
+                pinned_comment_ids=set()
+            )
 
         # TODO: Deprecated
         # YouTube comments have a max depth of 2
@@ -3779,15 +3789,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if single_stream and dct.get('ext'):
                 dct['container'] = dct['ext'] + '_dash'
 
-            if dct['filesize']:
+            if all_formats and dct['filesize']:
                 yield {
                     **dct,
                     'format_id': f'{dct["format_id"]}-dashy' if all_formats else dct['format_id'],
                     'protocol': 'http_dash_segments',
                     'fragments': build_fragments(dct),
                 }
-                if not all_formats:
-                    continue
             dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
             yield dct
 

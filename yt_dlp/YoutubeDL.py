@@ -1932,7 +1932,7 @@ class YoutubeDL:
             '!=': operator.ne,
         }
         operator_rex = re.compile(r'''(?x)\s*
-            (?P<key>width|height|tbr|abr|vbr|asr|filesize|filesize_approx|fps)\s*
+            (?P<key>[\w.-]+)\s*
             (?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
             (?P<value>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)\s*
             ''' % '|'.join(map(re.escape, OPERATORS.keys())))
@@ -3312,7 +3312,7 @@ class YoutubeDL:
                                      or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
-                        ffmpeg_fixup(info_dict.get('is_live') and downloader == 'DashSegmentsFD',
+                        ffmpeg_fixup(info_dict.get('is_live') and downloader == 'dashsegments',
                                      'Possible duplicate MOOV atoms', FFmpegFixupDuplicateMoovPP)
 
                     ffmpeg_fixup(downloader == 'web_socket_fragment', 'Malformed timestamps detected', FFmpegFixupTimestampPP)
