@@ -3,7 +3,7 @@ from ..utils import int_or_none, urljoin
 
 
 class PornezIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pornez\.net/(video(?P<id>[0-9]+)|watch)/'
+    _VALID_URL = r'https?://(?:www\.)?pornez\.net/(?:video(?P<id>[0-9]+)|watch)/'
     _TEST = {
         'url': 'https://pornez.net/video344819/mistresst-funny_penis_names-wmv/',
         'md5': '2e19a0a1cff3a5dbea0ef1b9e80bcbbc',
