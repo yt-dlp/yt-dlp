@@ -1232,6 +1232,7 @@ from .nhk import (
     NhkForSchoolBangumiIE,
     NhkForSchoolSubjectIE,
     NhkForSchoolProgramListIE,
+    NhkRadiruIE,
 )
 from .nhl import NHLIE
 from .nick import (

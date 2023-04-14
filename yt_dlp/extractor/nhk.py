@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 from .common import InfoExtractor
 from ..utils import (
@@ -334,3 +335,73 @@ class NhkForSchoolProgramListIE(InfoExtractor):
             for x in traverse_obj(bangumi_list, ('part', ..., 'part-video-dasid')) or []]
 
         return self.playlist_result(bangumis, program_id, title, description)
+
+class NhkRadiruIE(InfoExtractor):
+    _GEO_COUNTRIES = ['JP']
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/player/ondemand\.html\?p=(?P<id>[0-9]+_[0-9]+_[0-9]+)'
+    _TESTS = [{
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3853544',
+        'info_dict': {
+            'channel': 'NHK-FM',
+            'description': '今回の前半は「ＮＥＷジャズ」特集と題して、曲名や演奏者の名前に「ＮＥＷ」がつく演奏や、新人の初リーダー作などを集めて聴いていく。',
+            'ext': 'm4a',
+            'id': '0449_01_3853544',
+            'series': 'ジャズ・トゥナイト',
+            'thumbnail': 'https://www.nhk.or.jp/prog/img/449/g449.jpg',
+            'timestamp': 1680962400,
+            'title': 'ジャズ・トゥナイト　ＮＥＷジャズ特集',
+            'upload_date': '20230408',
+            'was_live': True,
+        },
+        'skip': 'Episode removed on 2023-04-16',
+    }]
+# https://www.nhk.or.jp/radionews/ known not working - doesnt use same api
+# https://www.nhk.or.jp/s-media/news/podcast/list/v1/all.xml podcast feed if you need it
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        ids = video_id.split('_')
+        site_id = ids[0]
+        corner_id = ids[1]
+        headline_id = ids[2]
+
+        json_url = f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{site_id}_{corner_id}.json'
+        meta = self._download_json(json_url, f'{site_id}_{corner_id}').get('main')
+
+        series = meta.get('program_name')
+        channel = meta.get('media_name')
+
+        detail_list = meta.get('detail_list')
+        headline = next((i for i in detail_list if i.get('headline_id') == headline_id), None)
+
+        file = next((i for i in headline.get('file_list') if i.get('file_id') == headline_id), None)
+        # this will break if there's an episode with multiple files, but i don't think that's ever actually the case
+        
+        url = file.get('file_name')
+        title = file.get('file_title')
+        description = file.get('file_title_sub')
+        webpage_url = file.get('share_url')
+
+        thumbnail = headline.get('headline_image') or meta.get('thumbnail_c') or meta.get('thumbnail_p')
+
+        time_format = '%Y-%m-%dT%H:%M:%S%z'
+        aa_vinfo4 = file.get('aa_vinfo4')
+        # there are open_time/close_time variables in there, but they're when it was put on vod/when it gets taken off
+        # theres also an onair_date var, but >natural language that doesnt have half of what we need anyway
+        start_time = datetime.strptime(aa_vinfo4.split('_')[0],  time_format).timestamp() or None
+
+        formats = self._extract_m3u8_formats(url, video_id)
+
+        return {
+            'container': 'm4a_dash', # force fixup so seeking works
+            'channel': channel,
+            'description': description,
+            'formats': formats,
+            'id': video_id,
+            'series': series,
+            'thumbnail': thumbnail,
+            'timestamp': start_time,
+            'title': title,
+            'was_live': True,
+            'webpage_url': webpage_url,
+        }
