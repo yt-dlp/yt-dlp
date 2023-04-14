@@ -2023,8 +2023,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'categories': ['Music'],
                 'channel_url': 'https://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
-                'channel': 'Stephen',
-                'uploader': 'Stephen',  # TODO: should be "Stephen - Topic"
+                'channel': 'Stephen',  # TODO: should be "Stephen - Topic"
+                'uploader': 'Stephen',
                 'availability': 'public',
                 'creator': 'Stephen',
                 'duration': 169,
@@ -2082,9 +2082,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 7,
                 'playable_in_embed': True,
                 'live_status': 'not_live',
-                'channel': 'ElevageOrVert',
+                'channel': 'l\'Or Vert asbl',
                 'channel_follower_count': int,
-                'uploader': 'ElevageOrVert',
+                'uploader': 'l\'Or Vert asbl',
                 'uploader_url': 'https://www.youtube.com/@ElevageOrVert',
                 'uploader_id': '@ElevageOrVert',
             },
@@ -5626,7 +5626,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'Wq15eF5vCbI',  # This will keep changing
+            'id': 'AlTsmyW4auo',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -5991,7 +5991,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_count': 3,
     }, {
         # Shorts tab with channel with handle
-        # TODO: fix description
+        # TODO: fix channel description
         'url': 'https://www.youtube.com/@NotJustBikes/shorts',
         'info_dict': {
             'id': 'UC0intLFzLaudFG-xAvUEO-A',
@@ -6151,6 +6151,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'channel_follower_count': int,
                 'playlist_count': int,
                 'uploader': 'PewDiePie',
+                'uploader_url': 'https://www.youtube.com/@PewDiePie',
+                'uploader_id': '@PewDiePie',
             }
         }],
         'params': {'extract_flat': True},
