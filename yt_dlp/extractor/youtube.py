@@ -1041,7 +1041,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'description': description,
             'duration': duration,
             'channel_id': channel_id,
-            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')  # TODO
+            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')
                         or self._get_text(reel_header_renderer, 'channelTitleText')),
             'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
