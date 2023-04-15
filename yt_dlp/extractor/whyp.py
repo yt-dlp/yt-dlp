@@ -9,7 +9,7 @@ class WhypIE(InfoExtractor):
         'md5': 'c1187b42ebf8605284e3dc92aeb33d16',
         'info_dict': {
             'url': 'https://cdn.whyp.it/50eb17cc-e9ff-4e18-b89b-dc9206a95cb1.mp3',
-            'id': 'home-page-example-track-b4kq7',
+            'id': '18337',
             'title': 'Home Page Example Track',
             'description': 'Just an example track for the home page!\n\nCredit: https://file-examples.com/index.php/sample-audio-files/sample-mp3-download/',
             'ext': 'mp3',
@@ -23,15 +23,15 @@ class WhypIE(InfoExtractor):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        display_id = mobj.group('display_id')
+        unique_id = mobj.group('number_id')
 
-        webpage = self._download_webpage(url, display_id)
+        webpage = self._download_webpage(url, unique_id)
 
-        data = self._search_nuxt_data(webpage, display_id)['rawTrack']
+        data = self._search_nuxt_data(webpage, unique_id)['rawTrack']
 
         return {
             'url': data['audio_url'],
-            'id': display_id,
+            'id': unique_id,
             'title': data.get('title'),
             'description': data.get('description'),
             'duration': data.get('duration'),
