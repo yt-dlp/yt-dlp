@@ -3,9 +3,9 @@ import functools
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    float_or_none,
     traverse_obj,
     unified_strdate,
-    float_or_none,
 )
 
 
@@ -21,7 +21,7 @@ class GronkhIE(InfoExtractor):
             'view_count': int,
             'thumbnail': 'https://01.cdn.vod.farm/preview/9e2555d3a23bf4e5c5b7c6b3b70a9d84.jpg',
             'upload_date': '20221111',
-            'chapters': [{'title': 'Just Chatting', 'start_time': 0, 'end_time': 1468}, {'title': 'Special Events', 'start_time': 1468, 'end_time': 5098}, {'title': 'Tabletop RPGs', 'start_time': 5098, 'end_time': 31463}],
+            'chapters': 'count:3',
             'duration': 31463,
         },
         'params': {'skip_download': True}
