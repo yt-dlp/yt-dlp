@@ -354,9 +354,11 @@ class NhkRadiruIE(InfoExtractor):
             'id': '0449_01_3853544',
             'series': 'ジャズ・トゥナイト',
             'thumbnail': 'https://www.nhk.or.jp/prog/img/449/g449.jpg',
-            'timestamp': 1680962400,
+            'timestamp': 1680969600,
             'title': 'ジャズ・トゥナイト　ＮＥＷジャズ特集',
             'upload_date': '20230408',
+            'release_timestamp': 1680962400,
+            'release_date': '20230408',
             'was_live': True,
         },
     }, {
@@ -376,6 +378,14 @@ class NhkRadiruIE(InfoExtractor):
 # https://www.nhk.or.jp/radionews/ known not working - doesnt use same api
 # https://www.nhk.or.jp/s-media/news/podcast/list/v1/all.xml podcast feed if you need it
 
+    def _decode_time(self, time):
+        time_format = '%Y-%m-%dT%H:%M:%S%z'
+        try:
+            return datetime.strptime(time, time_format).timestamp()
+        except Exception:
+            # oh well, didnt work
+            pass
+
     def _extract_episode_info(self, headline, programme_id):
         file = headline['file_list'][0]
         # this will break if there's an episode with multiple files, but i don't think that's ever actually the case
@@ -392,15 +402,12 @@ class NhkRadiruIE(InfoExtractor):
         info['container'] = 'm4a_dash'  # force fixup so seeking works
         info['was_live'] = True  # it's radio catch-up
 
-        time_format = '%Y-%m-%dT%H:%M:%S%z'
         aa_vinfo4 = file.get('aa_vinfo4')
-        # there are open_time/close_time variables in there, but they're when it was put on vod/when it gets taken off
-        # theres also an onair_date var, but it's natural language that doesnt have half of what we need anyway
-        try:
-            info['timestamp'] = datetime.strptime(aa_vinfo4.split('_')[0], time_format).timestamp()
-        except Exception:
-            # oh well, didnt work
-            pass
+        # have to use whatever this is to get an actual air date
+        # there is an onair_date var, but it's natural language that doesnt have half of what we need anyway
+        info['release_timestamp'] = self._decode_time(aa_vinfo4.split('_')[0])
+        # open_time is when it was put on vod
+        info['timestamp'] = self._decode_time(file.get('open_time'))
 
         return info
 
