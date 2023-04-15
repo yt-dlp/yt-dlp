@@ -340,7 +340,7 @@ class NhkForSchoolProgramListIE(InfoExtractor):
 class NhkRadiruIE(InfoExtractor):
     _GEO_COUNTRIES = ['JP']
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
-    _VALID_URL = r'https://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<id>(?P<site>\d+)_(?P<corner>\d+)(?:_(?P<headline>\d+))?)'
+    _VALID_URL = r'https://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<id>(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?)'
     # match https://www.nhk.or.jp/radio/player/ondemand.html (player) or https://www.nhk.or.jp/radio/ondemand/detail.html (programme page)
     # then grab contents of p and split the numbers up into what they are in the api
     _TESTS = [{
@@ -373,7 +373,24 @@ class NhkRadiruIE(InfoExtractor):
         },
         'playlist_mincount': 3,  # airs every weekday so this should _hopefully_ be okay forever
         'skip_download': True,
-    },
+    }, {
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',  # one with letters in the id
+        '_type': 'video',
+        'skip': 'Expires on 2024-03-31',
+        'info_dict': {
+            'id': 'F300_06_3738470',
+            'ext': 'm4a',
+            'title': '有島武郎「一房のぶどう」',
+            'description': '朗読：川野一宇（ラジオ深夜便アンカー）\r\n\r\n（2016年12月8日放送「ラジオ深夜便『アンカー朗読シリーズ』」より）',
+            'channel': 'NHKラジオ第1、NHK-FM',
+            'timestamp': 1635757200,
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F300/img/corner/box_109_thumbnail.jpg',
+            'release_date': '20161207',
+            'series': 'らじる文庫 by ラジオ深夜便 ',
+            'release_timestamp': 1481126700,
+            'upload_date': '20211101',
+        }
+    }
     ]
 # https://www.nhk.or.jp/radionews/ known not working - doesnt use same api
 # https://www.nhk.or.jp/s-media/news/podcast/list/v1/all.xml podcast feed if you need it
