@@ -108,10 +108,8 @@ class URPlayIE(InfoExtractor):
             if code is None:
                 return
             lang = code.lower()
-            # bypass for Persian
-            if lang != "per":
-                if not ISO639Utils.long2short(lang):
-                    lang = ISO639Utils.short2long(lang)
+            if not ISO639Utils.long2short(lang):
+                lang = ISO639Utils.short2long(lang)
             return lang or None
 
         for langpkg in urplayer_data['streamingInfo']:
