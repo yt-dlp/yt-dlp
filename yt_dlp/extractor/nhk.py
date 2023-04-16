@@ -340,9 +340,10 @@ class NhkForSchoolProgramListIE(InfoExtractor):
 class NhkRadiruIE(InfoExtractor):
     _GEO_COUNTRIES = ['JP']
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/radio(?:(?P<news>news/?$)|(?:/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?))'
     # match https://www.nhk.or.jp/radio/player/ondemand.html (player) or https://www.nhk.or.jp/radio/ondemand/detail.html (programme page)
     # then grab contents of p and split the numbers up into what they are in the api
+    # or: https://www.nhk.or.jp/radionews/ (special child)
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3853544',
         'skip': 'Episode expired on 2023-04-16',
@@ -387,9 +388,33 @@ class NhkRadiruIE(InfoExtractor):
             'release_timestamp': 1481126700,
             'upload_date': '20211101',
         }
+    }, {
+        'url': 'https://www.nhk.or.jp/radionews/',
+        'playlist_mincount': 5,  # airs daily, on-the-hour most hours
+        'skip_download': True,
+        'info_dict': {
+            'id': 'F261_01',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
+            'description': '日本、そして世界の動きを　わかりやすく、深く多角的にお伝えします。\r\n２４時間３６５日放送を続けるラジオ第１放送。\r\nいざという時には、命を守る情報を最優先でお伝えします。',
+            'channel': 'NHKラジオ第1',
+            'title': 'NHKラジオニュース',
+        }
+    }, {
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',  # news
+        'skip': 'Expires on 2023-04-17',
+        'info_dict': {
+            'id': 'F261_01_3855109',
+            'ext': 'm4a',
+            'channel': 'NHKラジオ第1',
+            'timestamp': 1681635900,
+            'release_date': '20230416',
+            'series': 'NHKラジオニュース',
+            'title': '午後６時のNHKニュース',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
+            'upload_date': '20230416',
+            'release_timestamp': 1681635600,
+        },
     }]
-# https://www.nhk.or.jp/radionews/ known not working - doesnt use same api
-# https://www.nhk.or.jp/s-media/news/podcast/list/v1/all.xml podcast feed if you need it
 
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
@@ -411,12 +436,21 @@ class NhkRadiruIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
+        site_id, corner_id, headline_id, is_news_page = self._match_valid_url(url).group('site', 'corner', 'headline', 'news')
+
+        if is_news_page:
+            site_id = 'F261'
+            corner_id = '01'
+            # news page has zero metadata in the url, have to set it ourself
 
         programme_id = f'{site_id}_{corner_id}'
-        meta = self._download_json(
-            f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json',
-            programme_id)['main']
+
+        if site_id == "F261":
+            json_url = 'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json'
+        else:
+            json_url = f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json'
+
+        meta = self._download_json(json_url, programme_id)['main']
 
         series_meta = traverse_obj(meta, {
             'title': 'program_name',
