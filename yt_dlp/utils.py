@@ -4093,6 +4093,9 @@ def dfxp2srt(dfxp_data):
         def close(self):
             return self._out.strip()
 
+    # KLUDGE: confirm convert-subs works for dxfp with correct encoding. Note will not match actual UTF-16, given longer encoding.
+    dfxp_data = dfxp_data.replace(b'encoding=\'UTF-16\'', b'encoding=\'UTF-8\'')
+
     def parse_node(node):
         target = TTMLPElementParser()
         parser = xml.etree.ElementTree.XMLParser(target=target)
