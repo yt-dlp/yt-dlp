@@ -3658,18 +3658,22 @@ class InfoExtractor:
             'start_time': start_function(chapter),
             'title': title_function(chapter),
         } for chapter in chapter_list or []]
-        if not strict:
+        if strict:
+            warn = self.report_warning
+        else:
+            warn = self.write_debug
             chapter_list.sort(key=lambda c: c['start_time'] or 0)
 
         chapters = [{'start_time': 0}]
         for idx, chapter in enumerate(chapter_list):
             if chapter['start_time'] is None:
-                self.report_warning(f'Incomplete chapter {idx}')
+                warn(f'Incomplete chapter {idx}')
             elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
                 chapters.append(chapter)
             elif chapter not in chapters:
-                self.report_warning(
-                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
+                issue = (f'{chapter["start_time"]} > {duration}' if chapter['start_time'] > duration
+                         else f'{chapter["start_time"]} < {chapters[-1]["start_time"]}')
+                warn(f'Invalid start time ({issue}) for chapter "{chapter["title"]}"')
         return chapters[1:]
 
     def _extract_chapters_from_description(self, description, duration):

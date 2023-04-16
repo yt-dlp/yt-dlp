@@ -8,6 +8,7 @@ from ..utils import (
     OnDemandPagedList,
     int_or_none,
     mimetype2ext,
+    qualities,
     traverse_obj,
     unified_timestamp,
 )
@@ -64,25 +65,32 @@ class IwaraIE(InfoExtractor):
         # https://github.com/yt-dlp/yt-dlp/issues/6549#issuecomment-1473771047
         x_version = hashlib.sha1('_'.join((paths[-1], q['expires'][0], '5nFp9kmbNnHdAFhaqMvt')).encode()).hexdigest()
 
+        preference = qualities(['preview', '360', '540', 'Source'])
+
         files = self._download_json(fileurl, video_id, headers={'X-Version': x_version})
         for fmt in files:
             yield traverse_obj(fmt, {
                 'format_id': 'name',
                 'url': ('src', ('view', 'download'), {self._proto_relative_url}),
                 'ext': ('type', {mimetype2ext}),
-                'quality': ('name', {lambda x: int_or_none(x) or 1e4}),
+                'quality': ('name', {preference}),
                 'height': ('name', {int_or_none}),
             }, get_all=False)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_data = self._download_json(f'http://api.iwara.tv/video/{video_id}', video_id, expected_status=lambda x: True)
+        video_data = self._download_json(f'https://api.iwara.tv/video/{video_id}', video_id, expected_status=lambda x: True)
         errmsg = video_data.get('message')
         # at this point we can actually get uploaded user info, but do we need it?
         if errmsg == 'errors.privateVideo':
             self.raise_login_required('Private video. Login if you have permissions to watch')
         elif errmsg:
             raise ExtractorError(f'Iwara says: {errmsg}')
+
+        if not video_data.get('fileUrl'):
+            if video_data.get('embedUrl'):
+                return self.url_result(video_data.get('embedUrl'))
+            raise ExtractorError('This video is unplayable', expected=True)
 
         return {
             'id': video_id,
