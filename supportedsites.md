@@ -1661,7 +1661,6 @@
  - **wetv:episode**
  - **WeTvSeries**
  - **whowatch**
- - **whyp.it**
  - **wikimedia.org**
  - **Willow**
  - **WimTV**

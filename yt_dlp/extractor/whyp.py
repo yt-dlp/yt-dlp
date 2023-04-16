@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class WhypIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?whyp\.it/tracks/(?P<number_id>[0-9_-]+)/(?P<display_id>[a-zA-Z0-9_-]+)'
+    _VALID_URL = r'https?://(?:www\.)?whyp\.it/tracks/(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.whyp.it/tracks/18337/home-page-example-track-b4kq7',
         'md5': 'c1187b42ebf8605284e3dc92aeb33d16',
@@ -22,8 +22,7 @@ class WhypIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        unique_id = mobj.group('number_id')
+        unique_id = self._match_id(url)
 
         webpage = self._download_webpage(url, unique_id)
 
@@ -32,14 +31,15 @@ class WhypIE(InfoExtractor):
         return {
             'url': data['audio_url'],
             'id': unique_id,
-            'title': data.get('title'),
-            'description': data.get('description'),
-            'duration': data.get('duration'),
-            'uploader': traverse_obj(data, ('user', 'username')),
-            'uploader_id': traverse_obj(data, ('user', 'id')),
-            'thumbnail': data.get('artwork_url'),
+            **traverse_obj(data, {
+                'title': 'title',
+                'description': 'description',
+                'duration': ('duration', {float_or_none}),
+                'uploader': ('user', 'username'),
+                'uploader_id': ('user', 'id', {str_or_none}),
+                'thumbnail': ('artwork_url', {url_or_none}),
+            }),
             'ext': 'mp3',
             'vcodec': 'none',
-            # Need referer header otherwise get 403 error from cdn
             'http_headers': {'Referer': 'https://whyp.it/'},
         }
