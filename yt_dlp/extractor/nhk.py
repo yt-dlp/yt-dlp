@@ -10,6 +10,7 @@ from ..utils import (
     url_or_none
 )
 
+
 class NhkBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
     _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/ondemand'
@@ -428,6 +429,7 @@ class NhkRadiruIE(InfoExtractor):
                 traverse_obj(meta, (
                     'detail_list', lambda _, v: v['headline_id'] == headline_id), get_all=False),
                 programme_id, series_meta)
+
         def entries():
             for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
                 yield self._extract_episode_info(headline, programme_id, series_meta)
