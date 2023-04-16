@@ -1,5 +1,4 @@
 import re
-from datetime import datetime
 
 from .common import InfoExtractor
 from ..utils import (
@@ -7,9 +6,9 @@ from ..utils import (
     traverse_obj,
     unescapeHTML,
     unified_timestamp,
-    urljoin
+    urljoin,
+    url_or_none
 )
-
 
 class NhkBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
@@ -340,13 +339,12 @@ class NhkForSchoolProgramListIE(InfoExtractor):
 class NhkRadiruIE(InfoExtractor):
     _GEO_COUNTRIES = ['JP']
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
-    _VALID_URL = r'https://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<id>(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?)'
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
     # match https://www.nhk.or.jp/radio/player/ondemand.html (player) or https://www.nhk.or.jp/radio/ondemand/detail.html (programme page)
     # then grab contents of p and split the numbers up into what they are in the api
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3853544',
         'skip': 'Episode expired on 2023-04-16',
-        '_type': 'video',
         'info_dict': {
             'channel': 'NHK-FM',
             'description': '今回の前半は「ＮＥＷジャズ」特集と題して、曲名や演奏者の名前に「ＮＥＷ」がつく演奏や、新人の初リーダー作などを集めて聴いていく。',
@@ -363,7 +361,6 @@ class NhkRadiruIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.nhk.or.jp/radio/ondemand/detail.html?p=0458_01',
-        '_type': 'playlist',
         'info_dict': {
             'id': '0458_01',
             'title': 'ベストオブクラシック',
@@ -375,8 +372,7 @@ class NhkRadiruIE(InfoExtractor):
         'skip_download': True,
     }, {
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',  # one with letters in the id
-        '_type': 'video',
-        'skip': 'Expires on 2024-03-31',
+        'note': 'Expires on 2024-03-31',
         'info_dict': {
             'id': 'F300_06_3738470',
             'ext': 'm4a',
@@ -390,85 +386,50 @@ class NhkRadiruIE(InfoExtractor):
             'release_timestamp': 1481126700,
             'upload_date': '20211101',
         }
-    }
-    ]
+    }]
 # https://www.nhk.or.jp/radionews/ known not working - doesnt use same api
 # https://www.nhk.or.jp/s-media/news/podcast/list/v1/all.xml podcast feed if you need it
 
-    def _decode_time(self, time):
-        time_format = '%Y-%m-%dT%H:%M:%S%z'
-        try:
-            return datetime.strptime(time, time_format).timestamp()
-        except Exception:
-            # oh well, didnt work
-            pass
-
-    def _extract_episode_info(self, headline, programme_id):
-        file = headline['file_list'][0]
-        # this will break if there's an episode with multiple files, but i don't think that's ever actually the case
-
-        info = {}
-
-        url = file['file_name']
-        info['id'] = programme_id + '_' + headline['headline_id']
-        info['formats'] = self._extract_m3u8_formats(url, info['id'])
-        info['title'] = file.get('file_title')
-        info['description'] = file.get('file_title_sub')
-        # info['webpage_url'] = file.get('share_url')
-        info['thumbnail'] = headline.get('headline_image')
-        info['container'] = 'm4a_dash'  # force fixup so seeking works
-        info['was_live'] = True  # it's radio catch-up
-
-        aa_vinfo4 = file.get('aa_vinfo4')
-        # have to use whatever this is to get an actual air date
-        # there is an onair_date var, but it's natural language that doesnt have half of what we need anyway
-        info['release_timestamp'] = self._decode_time(aa_vinfo4.split('_')[0])
-        # open_time is when it was put on vod
-        info['timestamp'] = self._decode_time(file.get('open_time'))
-
-        return info
+    def _extract_episode_info(self, headline, programme_id, series_meta):
+        episode_id = f'{programme_id}_{headline["headline_id"]}'
+        episode = traverse_obj(headline, ('file_list', 0, {dict}))
+        return {
+            **series_meta,
+            'id': episode_id,
+            'formats': self._extract_m3u8_formats(episode.get('file_name'), episode_id, fatal=False),
+            'container': 'm4a_dash',  # force fixup, AAC-only HLS
+            'was_live': True,
+            'series': series_meta.get('title'),
+            'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
+            **traverse_obj(episode, {
+                'title': 'file_title',
+                'description': 'file_title_sub',
+                'timestamp': ('open_time', {unified_timestamp}),
+                'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
+            }),
+        }
 
     def _real_extract(self, url):
-        video_id, site_id, corner_id, headline_id = self._match_valid_url(url).groups()
+        site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
 
         programme_id = f'{site_id}_{corner_id}'
-        json_url = f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json'
-        meta = self._download_json(json_url, programme_id)['main']
+        meta = self._download_json(
+            f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json',
+            programme_id)['main']
 
-        series = meta.get('program_name')
-        channel = meta.get('media_name')
-        thumbnail = meta.get('thumbnail_c') or meta.get('thumbnail_p')
+        series_meta = traverse_obj(meta, {
+            'title': 'program_name',
+            'channel': 'media_name',
+            'thumbnail': (('thumbnail_c', 'thumbnail_p'), {url_or_none}),
+        }, get_all=False)
 
-        detail_list = meta.get('detail_list')
-
-        result = None
-
-        # if it's 0123_45_6789 - a specific episode (as opposed to 0123_45 - the whole programme)
-        if headline_id is not None:
-            # we are downloading a single episode
-            headline = (next((i for i in detail_list if i.get('headline_id') == headline_id), None))
-            result = self._extract_episode_info(headline, programme_id)
-            result['series'] = series
-            result['channel'] = channel
-            result['thumbnail'] = result.get('thumbnail') or thumbnail
-        else:
-            # we are downloading a whole playlist/show
-            series_description = meta.get('site_detail')
-            # series_url = meta.get('share_url')
-            result = {
-                '_type': 'playlist',
-                'channel': channel,
-                'thumbnail': thumbnail,
-                'title': series,
-                'description': series_description,
-                # 'webpage_url': series_url,
-                'id': video_id,
-                'entries': [],
-            }
-            for headline in detail_list:
-                ep = self._extract_episode_info(headline, programme_id)
-                ep['series'] = series
-                ep['channel'] = channel
-                ep['thumbnail'] = ep.get('thumbnail') or thumbnail
-                result['entries'].append(ep)
-        return result
+        if headline_id:
+            return self._extract_episode_info(
+                traverse_obj(meta, (
+                    'detail_list', lambda _, v: v['headline_id'] == headline_id), get_all=False),
+                programme_id, series_meta)
+        def entries():
+            for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
+                yield self._extract_episode_info(headline, programme_id, series_meta)
+        return self.playlist_result(
+            entries(), programme_id, playlist_description=meta.get('site_detail'), **series_meta)
