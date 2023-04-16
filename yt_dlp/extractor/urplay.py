@@ -112,8 +112,8 @@ class URPlayIE(InfoExtractor):
                 lang = ISO639Utils.short2long(lang)
             return lang or None
 
-        for langpkg in urplayer_data['streamingInfo']:
-            for k, v in urplayer_data['streamingInfo'].get(langpkg).items():
+        for langpkg in urplayer_data['streamingInfo'].values():
+            for k, v in langpkg.items():
                 if (k in ('sd', 'hd') or not isinstance(v, dict)):
                     continue
                 lang, sttl_url = (v.get(kk) for kk in ('language', 'location', ))
