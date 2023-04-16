@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import traverse_obj, float_or_none, str_or_none, url_or_none
 
 
 class WhypIE(InfoExtractor):
@@ -15,7 +15,7 @@ class WhypIE(InfoExtractor):
             'ext': 'mp3',
             'duration': 52.82,
             'uploader': 'Brad',
-            'uploader_id': 1,
+            'uploader_id': '1',
             'thumbnail': 'https://cdn.whyp.it/a537bb36-3373-4c61-96c8-27fc1b2f427a.jpg',
             'vcodec': 'none',
         }
