@@ -133,7 +133,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:.*?&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:[^#]+&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -364,15 +364,12 @@ class BiliBiliIE(BilibiliBaseIE):
                 query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
                 note='Extracting festival video formats')['data']
 
-            festival_info.update({
-                'duration': float_or_none(play_info.get('timelength'), scale=1000),
-                **traverse_obj(initial_state, {
-                    'uploader': ('videoInfo', 'upName'),
-                    'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
-                    'like_count': ('videoStatus', 'like', {int_or_none}),
-                    'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
-                }, get_all=False),
-            })
+            festival_info = traverse_obj(initial_state, {
+                'uploader': ('videoInfo', 'upName'),
+                'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
+                'like_count': ('videoStatus', 'like', {int_or_none}),
+                'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
+            }, get_all=False)
 
         return {
             **traverse_obj(initial_state, {
