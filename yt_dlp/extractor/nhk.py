@@ -341,14 +341,12 @@ class NhkRadiruIE(InfoExtractor):
     _GEO_COUNTRIES = ['JP']
     IE_DESC = 'NHK らじる (Radiru/Rajiru)'
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
-    # match https://www.nhk.or.jp/radio/player/ondemand.html (player) or https://www.nhk.or.jp/radio/ondemand/detail.html (programme page)
-    # then grab contents of p and split the numbers up into what they are in the api
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3853544',
         'skip': 'Episode expired on 2023-04-16',
         'info_dict': {
             'channel': 'NHK-FM',
-            'description': '今回の前半は「ＮＥＷジャズ」特集と題して、曲名や演奏者の名前に「ＮＥＷ」がつく演奏や、新人の初リーダー作などを集めて聴いていく。',
+            'description': 'md5:94b08bdeadde81a97df4ec882acce3e9',
             'ext': 'm4a',
             'id': '0449_01_3853544',
             'series': 'ジャズ・トゥナイト',
@@ -361,6 +359,7 @@ class NhkRadiruIE(InfoExtractor):
             'was_live': True,
         },
     }, {
+        # playlist, airs every weekday so it should _hopefully_ be okay forever
         'url': 'https://www.nhk.or.jp/radio/ondemand/detail.html?p=0458_01',
         'info_dict': {
             'id': '0458_01',
@@ -369,10 +368,10 @@ class NhkRadiruIE(InfoExtractor):
             'channel': 'NHK-FM',
             'thumbnail': 'https://www.nhk.or.jp/prog/img/458/g458.jpg',
         },
-        'playlist_mincount': 3,  # airs every weekday so this should _hopefully_ be okay forever
-        'skip_download': True,
+        'playlist_mincount': 3,
     }, {
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',  # one with letters in the id
+        # one with letters in the id
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',
         'note': 'Expires on 2024-03-31',
         'info_dict': {
             'id': 'F300_06_3738470',
@@ -388,7 +387,8 @@ class NhkRadiruIE(InfoExtractor):
             'upload_date': '20211101',
         }
     }, {
-        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',  # news
+        # news
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
         'skip': 'Expires on 2023-04-17',
         'info_dict': {
             'id': 'F261_01_3855109',
@@ -427,7 +427,7 @@ class NhkRadiruIE(InfoExtractor):
         site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
         programme_id = f'{site_id}_{corner_id}'
 
-        if site_id == "F261":
+        if site_id == 'F261':
             json_url = 'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json'
         else:
             json_url = f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json'
@@ -449,6 +449,7 @@ class NhkRadiruIE(InfoExtractor):
         def entries():
             for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
                 yield self._extract_episode_info(headline, programme_id, series_meta)
+
         return self.playlist_result(
             entries(), programme_id, playlist_description=meta.get('site_detail'), **series_meta)
 
@@ -456,17 +457,17 @@ class NhkRadiruIE(InfoExtractor):
 class NhkRadioNewsPageIE(InfoExtractor):
     _VALID_URL = r'https?://www\.nhk\.or\.jp/radionews/?'
     _TESTS = [{
+        # airs daily, on-the-hour most hours
         'url': 'https://www.nhk.or.jp/radionews/',
-        'playlist_mincount': 5,  # airs daily, on-the-hour most hours
-        'skip_download': True,
+        'playlist_mincount': 5,
         'info_dict': {
             'id': 'F261_01',
             'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
-            'description': '日本、そして世界の動きを　わかりやすく、深く多角的にお伝えします。\r\n２４時間３６５日放送を続けるラジオ第１放送。\r\nいざという時には、命を守る情報を最優先でお伝えします。',
+            'description': 'md5:bf2c5b397e44bc7eb26de98d8f15d79d',
             'channel': 'NHKラジオ第1',
             'title': 'NHKラジオニュース',
         }
     }]
 
     def _real_extract(self, url):
-        return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=F261_01')
+        return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=F261_01', NhkRadiruIE)
