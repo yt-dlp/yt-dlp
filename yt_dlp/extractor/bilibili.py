@@ -357,48 +357,42 @@ class BiliBiliIE(BilibiliBaseIE):
 
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
+        festival_info = {}
         if is_festival:
             play_info = self._download_json(
                 'https://api.bilibili.com/x/player/playurl', video_id,
                 query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
                 note='Extracting festival video formats')['data']
 
-            thumbnail = traverse_obj(
-                initial_state, ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'), get_all=False)
-
-            return {
-                'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
-                'formats': self.extract_formats(play_info),
-                '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
-                'title': title,
-                'description': traverse_obj(initial_state, ('videoInfo', 'desc')),
-                'view_count': traverse_obj(initial_state, ('videoInfo', 'viewCount')),
-                'uploader': traverse_obj(initial_state, ('videoInfo', 'upName')),
-                'uploader_id': str_or_none(traverse_obj(initial_state, ('videoInfo', 'upMid'))),
-                'like_count': traverse_obj(initial_state, ('videoStatus', 'like')),
-                'thumbnail': thumbnail,
-                'timestamp': traverse_obj(initial_state, ('videoInfo', 'pubdate')),
+            festival_info.update({
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
-                'chapters': self._get_chapters(aid, cid),
-                'subtitles': self.extract_subtitles(video_id, aid, cid),
-                '__post_extractor': self.extract_comments(aid),
-                'http_headers': {'Referer': url},
-            }
+                **traverse_obj(initial_state, {
+                    'uploader': ('videoInfo', 'upName'),
+                    'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
+                    'like_count': ('videoStatus', 'like', {int_or_none}),
+                    'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
+                }, get_all=False),
+            })
 
         return {
+            **traverse_obj(initial_state, {
+                'uploader': ('upData', 'name'),
+                'uploader_id': ('upData', 'mid', {str_or_none}),
+                'like_count': ('videoData', 'stat', 'like', {int_or_none}),
+                'tags': ('tags', ..., 'tag_name'),
+                'thumbnail': ('videoData', 'pic', {url_or_none}),
+            }),
+            **festival_info,
+            **traverse_obj(video_data, {
+                'description': 'desc',
+                'timestamp': ('pubdate', {int_or_none}),
+                'view_count': (('viewCount', ('stat', 'view')), {int_or_none}),
+                'comment_count': ('stat', 'reply', {int_or_none}),
+            }, get_all=False),
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             'formats': self.extract_formats(play_info),
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
-            'description': traverse_obj(initial_state, ('videoData', 'desc')),
-            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
-            'uploader': traverse_obj(initial_state, ('upData', 'name')),
-            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
-            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
-            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
-            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
-            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
-            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'chapters': self._get_chapters(aid, cid),
             'subtitles': self.extract_subtitles(video_id, aid, cid),
