@@ -57,7 +57,7 @@ class RottenTomatoesIE(InfoExtractor):
             'thumbnail': traverse_obj(video_info, (0, 'image')),
             'formats': self._extract_m3u8_formats(
                 traverse_obj(video_info, (0, 'file')), video_id, 'mp4', 'm3u8_native',
-                m3u8_id=video_info[0].get('type'), note='Downloading m3u8 information',
+                m3u8_id=traverse_obj(video_info, (0, 'type')), note='Downloading m3u8 information',
                 errnote='Unable to download m3u8 information'),
             'duration': parse_duration(traverse_obj(video_info, (0, 'durationInSeconds'),
                                                     default=traverse_obj(video_info, (0, 'duration'))))
