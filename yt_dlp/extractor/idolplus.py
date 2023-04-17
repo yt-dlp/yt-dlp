@@ -3,7 +3,7 @@ from ..utils import traverse_obj, try_call, url_or_none
 
 
 class IdolPlusIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?idolplus\.com/z[us]/contents/?\?(?:[^#]+&)?albumId=(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?idolplus\.com/z[us]/(?:concert/|contents/?\?(?:[^#]+&)?albumId=)(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://idolplus.com/zs/contents?albumId=M012077298PPV00',
         'md5': '2ace3f4661c943a2f7e79f0b88cea1e7',
@@ -33,6 +33,16 @@ class IdolPlusIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Hanteo Music Awards 2022 DAY2',
             'release_date': '20230211',
+            'formats': 'count:5',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://idolplus.com/zs/concert/M012323039PPV00',
+        'info_dict': {
+            'id': 'M012323039PPV00',
+            'ext': 'mp4',
+            'title': 'CIRCLE CHART MUSIC AWARDS 2022',
+            'release_date': '20230218',
             'formats': 'count:5',
         },
         'params': {'skip_download': 'm3u8'},
