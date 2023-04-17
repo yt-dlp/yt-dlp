@@ -2187,13 +2187,11 @@ else:
                 fcntl.lockf(f, flags)
 
         def _unlock_file(f):
-            try:
-                fcntl.flock(f, fcntl.LOCK_UN)
-            except OSError:
-                try:
-                    fcntl.lockf(f, fcntl.LOCK_UN)
-                except OSError:  # Workaround for non-blocking only filesystems like virtiofs
-                    fcntl.flock(f, fcntl.LOCK_UN | fcntl.LOCK_NB)
+            with contextlib.suppress(OSError):
+                return fcntl.flock(f, fcntl.LOCK_UN)
+            with contextlib.suppress(OSError):
+                return fcntl.lockf(f, fcntl.LOCK_UN)  # AOSP does not have flock()
+            return fcntl.flock(f, fcntl.LOCK_UN | fcntl.LOCK_NB)  # virtiofs needs LOCK_NB on unlocking
 
     except ImportError:
 
