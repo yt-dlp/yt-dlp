@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    float_or_none,
     HEADRequest,
+    float_or_none,
     int_or_none,
     parse_duration,
     parse_iso8601,
@@ -136,6 +136,7 @@ class SBSIE(InfoExtractor):
                 'timestamp': (('datePublished', ('publication', 'startDate')), {parse_iso8601}),
                 'release_year': ('releaseYear', {int_or_none}),
                 'duration': ('duration', ({float_or_none}, {parse_duration})),
+                'is_live': ('liveStream', {bool}),
                 'age_limit': (
                     ('classificationID', 'contentRating'), {str.upper}, {self._AUS_TV_PARENTAL_GUIDELINES.get}),
             }, get_all=False),
