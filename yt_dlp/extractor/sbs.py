@@ -1,23 +1,14 @@
 
-import sys
-
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
 from ..utils import (
-    error_to_compat_str,
-    ExtractorError,
     float_or_none,
-    GeoRestrictedError,
+    HEADRequest,
     int_or_none,
     parse_duration,
     parse_iso8601,
     traverse_obj,
     update_url_query,
     url_or_none,
-    variadic,
 )
 
 
@@ -54,8 +45,8 @@ class SBSIE(InfoExtractor):
             'timestamp': 1408613220,
             'upload_date': '20140821',
             'uploader': 'SBSC',
-            'tags': [],
-            'categories': [],
+            'tags': None,
+            'categories': None,
         },
         'expected_warnings': ['Unable to download JSON metadata'],
     }, {
@@ -94,74 +85,7 @@ class SBSIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def __handle_request_webpage_error(self, err, video_id=None, errnote=None, fatal=True):
-        if errnote is False:
-            return False
-        if errnote is None:
-            errnote = 'Unable to download webpage'
-
-        errmsg = '%s: %s' % (errnote, error_to_compat_str(err))
-        if fatal:
-            raise ExtractorError(errmsg, sys.exc_info()[2], cause=err, video_id=video_id)
-        else:
-            self._downloader.report_warning(errmsg)
-            return False
-
-    def _download_webpage_handle(self, url, video_id, *args, **kwargs):
-        # note, errnote, fatal, encoding, data, headers={}, query, expected_status
-        # specialised to detect geo-block
-
-        errnote = args[2] if len(args) > 2 else kwargs.get('errnote')
-        fatal = args[3] if len(args) > 3 else kwargs.get('fatal')
-        exp = args[7] if len(args) > 7 else kwargs.get('expected_status')
-
-        exp = variadic(exp or [], allowed_types=(compat_str, ))
-        if 403 not in exp and '403' not in exp:
-            exp = list(exp)
-            exp.append(403)
-        else:
-            exp = None
-
-        if exp:
-            if len(args) > 7:
-                args = list(args)
-                args[7] = exp
-            else:
-                kwargs['expected_status'] = exp
-
-        ret = super(SBSIE, self)._download_webpage_handle(url, video_id, *args, **kwargs)
-        if ret is False:
-            return ret
-        webpage, urlh = ret
-
-        if urlh.getcode() == 403:
-            if urlh.headers.get('x-error-reason') == 'geo-blocked':
-                countries = ['AU']
-                if fatal:
-                    self.raise_geo_restricted(countries=countries)
-                err = GeoRestrictedError(
-                    'This Australian content is not available from your location due to geo restriction',
-                    countries=countries)
-            else:
-                err = compat_HTTPError(urlh.geturl(), 403, 'HTTP Error 403: Forbidden', urlh.headers, urlh)
-            ret = self.__handle_request_webpage_error(err, video_id, errnote, fatal)
-
-        return ret
-
-    def _extract_m3u8_formats(self, m3u8_url, video_id, *args, **kwargs):
-        # ext, entry_protocol, preference, m3u8_id, note, errnote, fatal,
-        # live, data, headers, query
-        entry_protocol = args[1] if len(args) > 1 else kwargs.get('entry_protocol')
-        if not entry_protocol:
-            entry_protocol = 'm3u8_native'
-            if len(args) > 1:
-                args = list(args)
-                args[1] = entry_protocol
-            else:
-                kwargs['entry_protocol'] = entry_protocol
-
-        return super(SBSIE, self)._extract_m3u8_formats(m3u8_url, video_id, *args, **kwargs)
-
+    _GEO_COUNTRIES = ['AU']
     _AUS_TV_PARENTAL_GUIDELINES = {
         'P': 0,
         'C': 7,
@@ -174,87 +98,62 @@ class SBSIE(InfoExtractor):
     }
     _PLAYER_API = 'https://www.sbs.com.au/api/v3'
     _CATALOGUE_API = 'https://catalogue.pr.sbsod.com/'
-
-    def _call_api(self, video_id, path, query=None, data=None, headers=None, fatal=True):
-        return self._download_json(update_url_query(
-            self._CATALOGUE_API + path, query),
-            video_id, headers=headers, fatal=fatal) or {}
-
-    def _get_smil_url(self, video_id):
-        return update_url_query(
-            self._PLAYER_API + 'video_smil', {'id': video_id})
-
-    def _get_player_data(self, video_id, headers=None, fatal=False):
-        return self._download_json(update_url_query(
-            self._PLAYER_API + 'video_stream', {'id': video_id, 'context': 'tv'}),
-            video_id, headers=headers, fatal=fatal) or {}
+    _GEO_CHECK_URL = 'https://sbs-vod-prod-01.akamized.net/'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        # get media links directly though later metadata may contain contentUrl
-        smil_url = self._get_smil_url(video_id)
-        formats, subtitles = self._extract_smil_formats_and_subtitles(smil_url, video_id, fatal=False) or ([], {})
+        formats, subtitles = self._extract_smil_formats_and_subtitles(
+            update_url_query(f'{self._PLAYER_API}/video_smil', {'id': video_id}), video_id)
 
-        # try for metadata from the same source
-        player_data = self._get_player_data(video_id, fatal=False)
-        media = traverse_obj(player_data, 'video_object', expected_type=dict) or {}
-        # get, or add, metadata from catalogue
-        media.update(self._call_api(video_id, 'mpx-media/' + video_id, fatal=not media))
+        if not formats:
+            urlh = self._request_webpage(
+                HEADRequest(f'{self._GEO_CHECK_URL}'), video_id,
+                note='checking geo-restriction', fatal=False, expected_status=403)
+            if urlh and 'geo-blocked' in urlh.headers.get_all('x-error-reason'):
+                self.raise_geo_restricted(countries=['AU'])
+            self.raise_no_formats('No formats are available', video_id=video_id)
 
-        # utils candidate for use with traverse_obj()
-        def txt_or_none(s):
-            return (s.strip() or None) if isinstance(s, compat_str) else None
+        media = traverse_obj(self._download_json(
+            f'{self._PLAYER_API}/video_stream', video_id, fatal=False,
+            query={'id': video_id, 'context': 'tv'}), ('video_object', {dict})) or {}
 
-        # expected_type fn for thumbs
-        def xlate_thumb(t):
-            u = url_or_none(t.get('contentUrl'))
-            return u and {
-                'id': t.get('name'),
-                'url': u,
-                'width': int_or_none(t.get('width')),
-                'height': int_or_none(t.get('height')),
-            }
+        media.update(self._download_json(
+            f'{self._CATALOGUE_API}/mpx-media/{video_id}',
+            video_id, fatal=not media) or {})
 
-        # may be numeric or timecoded
-        def really_parse_duration(d):
-            result = float_or_none(d)
-            if result is None:
-                result = parse_duration(d)
-            return result
-
-        def traverse_media(*args, **kwargs):
-            if 'expected_type' not in kwargs:
-                kwargs['expected_type'] = txt_or_none
-            return traverse_obj(media, *args, **kwargs)
+        # For named episodes, use the catalogue's title to set episode, rather than generic 'Episode N'.
+        if traverse_obj(media, ('partOfSeries', {dict})):
+            epName = traverse_obj(media, ('title', {str})) or None
+            media.update({'epName': epName})
 
         return {
             'id': video_id,
-            'title': media['name'],
+            **traverse_obj(media, {
+                'title': ('name', {str}),
+                'description': ('description', {str}),
+                'channel': ('taxonomy', 'channel', 'name', {str}),
+                'series': ((('partOfSeries', 'name'), 'seriesTitle'), {str}),
+                'series_id': ((('partOfSeries', 'uuid'), 'seriesID'), {str}),
+                'season_number': ((('partOfSeries', None), 'seasonNumber'), {int_or_none}),
+                'episode': ('epName', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'timestamp': (('datePublished', ('publication', 'startDate')), {parse_iso8601}),
+                'release_year': ('releaseYear', {int_or_none}),
+                'duration': ('duration', ({float_or_none}, {parse_duration})),
+                'age_limit': (
+                    ('classificationID', 'contentRating'), {str.upper}, {self._AUS_TV_PARENTAL_GUIDELINES.get}),
+            }, get_all=False),
+            **traverse_obj(media, {
+                'categories': (('genres', ...), ('taxonomy', ('genre', 'subgenre'), 'name'), {str}),
+                'tags': (('consumerAdviceTexts', ('sbsSubCertification', 'consumerAdvice')), ..., {str}),
+                'thumbnails': ('thumbnails', lambda _, v: url_or_none(v['contentUrl']), {
+                    'id': ('name', {str}),
+                    'url': 'contentUrl',
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
             'formats': formats,
-            'description': traverse_media('description'),
-            'categories': traverse_media(
-                ('genres', Ellipsis), ('taxonomy', ('genre', 'subgenre'), 'name')),
-            'tags': traverse_media(
-                (('consumerAdviceTexts', ('sbsSubCertification', 'consumerAdvice')), Ellipsis)),
-            'age_limit': self._AUS_TV_PARENTAL_GUIDELINES.get(traverse_media(
-                'classificationID', 'contentRating', default='').upper()),
-            'thumbnails': traverse_media(('thumbnails', Ellipsis),
-                                         expected_type=xlate_thumb),
-            'duration': traverse_media('duration',
-                                       expected_type=really_parse_duration),
-            'series': traverse_media(('partOfSeries', 'name'), 'seriesTitle'),
-            'series_id': traverse_media(('partOfSeries', 'uuid'), 'seriesID'),
-            'season_number': traverse_media(
-                (('partOfSeries', None), 'seasonNumber'),
-                expected_type=int_or_none, get_all=False),
-            'episode_number': traverse_media('episodeNumber',
-                                             expected_type=int_or_none),
-            'release_year': traverse_media('releaseYear',
-                                           expected_type=int_or_none),
             'subtitles': subtitles,
-            'timestamp': traverse_media(
-                'datePublished', ('publication', 'startDate'),
-                expected_type=parse_iso8601),
-            'channel': traverse_media(('taxonomy', 'channel', 'name')),
             'uploader': 'SBSC',
         }
