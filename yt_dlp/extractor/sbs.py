@@ -4,7 +4,6 @@ import sys
 from .common import InfoExtractor
 from ..compat import (
     compat_HTTPError,
-    compat_kwargs,
     compat_str,
 )
 from ..utils import (
@@ -129,7 +128,6 @@ class SBSIE(InfoExtractor):
                 args[7] = exp
             else:
                 kwargs['expected_status'] = exp
-                kwargs = compat_kwargs(kwargs)
 
         ret = super(SBSIE, self)._download_webpage_handle(url, video_id, *args, **kwargs)
         if ret is False:
@@ -161,7 +159,6 @@ class SBSIE(InfoExtractor):
                 args[1] = entry_protocol
             else:
                 kwargs['entry_protocol'] = entry_protocol
-                kwargs = compat_kwargs(kwargs)
 
         return super(SBSIE, self)._extract_m3u8_formats(m3u8_url, video_id, *args, **kwargs)
 
@@ -228,7 +225,6 @@ class SBSIE(InfoExtractor):
         def traverse_media(*args, **kwargs):
             if 'expected_type' not in kwargs:
                 kwargs['expected_type'] = txt_or_none
-                kwargs = compat_kwargs(kwargs)
             return traverse_obj(media, *args, **kwargs)
 
         return {
