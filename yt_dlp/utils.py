@@ -4093,7 +4093,8 @@ def dfxp2srt(dfxp_data):
         def close(self):
             return self._out.strip()
 
-    # KLUDGE: confirm convert-subs works for dxfp with correct encoding. Note will not match actual UTF-16, given longer encoding.
+    # Fix UTF-8 encoded file wrongly marked as UTF-16. See https://github.com/yt-dlp/yt-dlp/issues/6543#issuecomment-1477169870
+    # This will not trigger false positives since only UTF-8 text is being replaced
     dfxp_data = dfxp_data.replace(b'encoding=\'UTF-16\'', b'encoding=\'UTF-8\'')
 
     def parse_node(node):
