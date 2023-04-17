@@ -97,8 +97,6 @@ class SBSIE(InfoExtractor):
         'R18+': 18,
     }
     _PLAYER_API = 'https://www.sbs.com.au/api/v3'
-    _CATALOGUE_API = 'https://catalogue.pr.sbsod.com/'
-    _GEO_CHECK_URL = 'https://sbs-vod-prod-01.akamized.net/'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -107,7 +105,7 @@ class SBSIE(InfoExtractor):
 
         if not formats:
             urlh = self._request_webpage(
-                HEADRequest(f'{self._GEO_CHECK_URL}'), video_id,
+                HEADRequest('https://sbs-vod-prod-01.akamized.net/'), video_id,
                 note='checking geo-restriction', fatal=False, expected_status=403)
             if urlh and 'geo-blocked' in urlh.headers.get_all('x-error-reason'):
                 self.raise_geo_restricted(countries=['AU'])
@@ -118,13 +116,12 @@ class SBSIE(InfoExtractor):
             query={'id': video_id, 'context': 'tv'}), ('video_object', {dict})) or {}
 
         media.update(self._download_json(
-            f'{self._CATALOGUE_API}/mpx-media/{video_id}',
+            f'https://catalogue.pr.sbsod.com/mpx-media/{video_id}',
             video_id, fatal=not media) or {})
 
         # For named episodes, use the catalogue's title to set episode, rather than generic 'Episode N'.
         if traverse_obj(media, ('partOfSeries', {dict})):
-            epName = traverse_obj(media, ('title', {str})) or None
-            media.update({'epName': epName})
+            media['epName'] = traverse_obj(media, ('title', {str}))
 
         return {
             'id': video_id,
@@ -134,7 +131,7 @@ class SBSIE(InfoExtractor):
                 'channel': ('taxonomy', 'channel', 'name', {str}),
                 'series': ((('partOfSeries', 'name'), 'seriesTitle'), {str}),
                 'series_id': ((('partOfSeries', 'uuid'), 'seriesID'), {str}),
-                'season_number': ((('partOfSeries', None), 'seasonNumber'), {int_or_none}),
+                'season_number': ('seasonNumber', {int_or_none}),
                 'episode': ('epName', {str}),
                 'episode_number': ('episodeNumber', {int_or_none}),
                 'timestamp': (('datePublished', ('publication', 'startDate')), {parse_iso8601}),
