@@ -2192,9 +2192,8 @@ else:
             except OSError:
                 try:
                     fcntl.lockf(f, fcntl.LOCK_UN)
-                except OSError: # Workaround for non-blocking only filesystems like virtiofs
+                except OSError:  # Workaround for non-blocking only filesystems like virtiofs
                     fcntl.flock(f, fcntl.LOCK_UN | fcntl.LOCK_NB)
-
 
     except ImportError:
 
