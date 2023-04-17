@@ -15,7 +15,6 @@ from ..utils import (
     int_or_none,
     parse_duration,
     parse_iso8601,
-    smuggle_url,
     traverse_obj,
     update_url_query,
     url_or_none,
@@ -45,7 +44,7 @@ class SBSIE(InfoExtractor):
         # Original URL is handled by the generic IE which finds the iframe:
         # http://www.sbs.com.au/thefeed/blog/2014/08/21/dingo-conservation
         'url': 'http://www.sbs.com.au/ondemand/video/single/320403011771/?source=drupal&vertical=thefeed',
-        'md5': 'e49d0290cb4f40d893b8dfe760dce6b0',
+        'md5': '31f84a7a19b53635db63c73f8ab0c4a7',
         'info_dict': {
             'id': '320403011771',  # '_rFBPRPO4pMR',
             'ext': 'mp4',
@@ -56,6 +55,8 @@ class SBSIE(InfoExtractor):
             'timestamp': 1408613220,
             'upload_date': '20140821',
             'uploader': 'SBSC',
+            'tags': [],
+            'categories': [],
         },
         'expected_warnings': ['Unable to download JSON metadata'],
     }, {
