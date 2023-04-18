@@ -104,10 +104,12 @@ class SBSIE(InfoExtractor):
 
         if not formats:
             urlh = self._request_webpage(
-                HEADRequest('https://sbs-vod-prod-01.akamized.net/'), video_id,
-                note='checking geo-restriction', fatal=False, expected_status=403)
-            if urlh and 'geo-blocked' in urlh.headers.get_all('x-error-reason'):
-                self.raise_geo_restricted(countries=['AU'])
+                HEADRequest('https://sbs-vod-prod-01.akamaized.net/'), video_id,
+                note='Checking geo-restriction', fatal=False, expected_status=403)
+            if urlh:
+                error_reasons = urlh.headers.get_all('x-error-reason') or []
+                if 'geo-blocked' in error_reasons:
+                    self.raise_geo_restricted(countries=['AU'])
             self.raise_no_formats('No formats are available', video_id=video_id)
 
         media = traverse_obj(self._download_json(
