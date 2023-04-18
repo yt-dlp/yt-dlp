@@ -3,7 +3,7 @@ from ..utils import int_or_none, urljoin
 
 
 class PornezIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pornez\.net/(?:video(?P<id>[0-9]+)|watch)/'
+    _VALID_URL = r'https?://(?:www\.)?pornez\.net/(?:video(?P<id>\w+)|watch)/'
     _TEST = {
         'url': 'https://pornez.net/video344819/mistresst-funny_penis_names-wmv/',
         'md5': '2e19a0a1cff3a5dbea0ef1b9e80bcbbc',
@@ -20,10 +20,8 @@ class PornezIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         if video_id is None:
-            # For https://pornez.net/watch/leana+lovings+stiff+for+stepdaughter/
             video_id = self._search_regex(
-                r"<link rel='shortlink' href='.+pornez.net/\?p=\d+' ?\/>", webpage, 'link', group=0)
-            video_id = video_id.split("'")[3].split("=", 1)[1]
+                r'<link[^>]+\bhref=["\']https?://pornez.net/\?p=(\w+)["\']', webpage, 'id')
         iframe_src = self._html_search_regex(
             r'<iframe[^>]+src="([^"]+)"', webpage, 'iframe', fatal=True)
         iframe_src = urljoin('https://pornez.net', iframe_src)
