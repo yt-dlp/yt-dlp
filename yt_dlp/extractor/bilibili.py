@@ -134,7 +134,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/video/[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -282,19 +282,60 @@ class BiliBiliIE(BilibiliBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
         'params': {'skip_download': True},
+    }, {
+        'note': 'video redirects to festival page',
+        'url': 'https://www.bilibili.com/video/BV1wP4y1P72h',
+        'info_dict': {
+            'id': 'BV1wP4y1P72h',
+            'ext': 'mp4',
+            'title': '牛虎年相交之际，一首传统民族打击乐《牛斗虎》祝大家新春快乐，虎年大吉！【bilibili音乐虎闹新春】',
+            'timestamp': 1643947497,
+            'upload_date': '20220204',
+            'description': 'md5:8681a0d4d2c06b4ae27e59c8080a7fe6',
+            'uploader': '叨叨冯聊音乐',
+            'duration': 246.719,
+            'uploader_id': '528182630',
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
+    }, {
+        'note': 'newer festival video',
+        'url': 'https://www.bilibili.com/festival/2023honkaiimpact3gala?bvid=BV1ay4y1d77f',
+        'info_dict': {
+            'id': 'BV1ay4y1d77f',
+            'ext': 'mp4',
+            'title': '【崩坏3新春剧场】为特别的你送上祝福！',
+            'timestamp': 1674273600,
+            'upload_date': '20230121',
+            'description': 'md5:58af66d15c6a0122dc30c8adfd828dd8',
+            'uploader': '果蝇轰',
+            'duration': 1111.722,
+            'uploader_id': '8469526',
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
 
-        video_data = initial_state['videoData']
+        is_festival = 'videoData' not in initial_state
+        if is_festival:
+            video_data = initial_state['videoInfo']
+        else:
+            play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+            video_data = initial_state['videoData']
+
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        page_list_json = traverse_obj(
+        page_list_json = not is_festival and traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
                 fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
@@ -317,20 +358,39 @@ class BiliBiliIE(BilibiliBaseIE):
 
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
+        festival_info = {}
+        if is_festival:
+            play_info = self._download_json(
+                'https://api.bilibili.com/x/player/playurl', video_id,
+                query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
+                note='Extracting festival video formats')['data']
+
+            festival_info = traverse_obj(initial_state, {
+                'uploader': ('videoInfo', 'upName'),
+                'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
+                'like_count': ('videoStatus', 'like', {int_or_none}),
+                'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
+            }, get_all=False)
+
         return {
+            **traverse_obj(initial_state, {
+                'uploader': ('upData', 'name'),
+                'uploader_id': ('upData', 'mid', {str_or_none}),
+                'like_count': ('videoData', 'stat', 'like', {int_or_none}),
+                'tags': ('tags', ..., 'tag_name'),
+                'thumbnail': ('videoData', 'pic', {url_or_none}),
+            }),
+            **festival_info,
+            **traverse_obj(video_data, {
+                'description': 'desc',
+                'timestamp': ('pubdate', {int_or_none}),
+                'view_count': (('viewCount', ('stat', 'view')), {int_or_none}),
+                'comment_count': ('stat', 'reply', {int_or_none}),
+            }, get_all=False),
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             'formats': self.extract_formats(play_info),
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
-            'description': traverse_obj(initial_state, ('videoData', 'desc')),
-            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
-            'uploader': traverse_obj(initial_state, ('upData', 'name')),
-            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
-            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
-            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
-            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
-            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
-            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'chapters': self._get_chapters(aid, cid),
             'subtitles': self.extract_subtitles(video_id, aid, cid),
