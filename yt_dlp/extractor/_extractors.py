@@ -1786,6 +1786,7 @@ from .spike import (
     BellatorIE,
     ParamountNetworkIE,
 )
+from .stageplus import StagePlusVODConcertIE
 from .startrek import StarTrekIE
 from .stitcher import (
     StitcherIE,
