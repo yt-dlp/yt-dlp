@@ -56,7 +56,7 @@ class RottenTomatoesIE(InfoExtractor):
 
 
 class RottenTomatoesPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rottentomatoes\.com/m/(?P<id>[^/]+)(?:/trailers)?'
+    _VALID_URL = r'https?://(?:www\.)?rottentomatoes\.com/m/(?P<id>[^/]+)(?:/trailers)?/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'http://www.rottentomatoes.com/m/toy_story_3',
