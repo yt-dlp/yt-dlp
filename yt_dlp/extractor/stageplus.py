@@ -52,6 +52,7 @@ class StagePlusVODConcertIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }]
 
+    # TODO: Prune this after livestream and/or album extractors are added
     _GRAPHQL_QUERY = '''query videoDetailPage($videoId: ID!, $sliderItemsFirst: Int = 24) {
   node(id: $videoId) {
     __typename
