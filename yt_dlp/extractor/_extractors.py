@@ -1593,7 +1593,10 @@ from .rokfin import (
     RokfinSearchIE,
 )
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
-from .rottentomatoes import RottenTomatoesIE
+from .rottentomatoes import (
+    RottenTomatoesIE,
+    RottenTomatoesPlaylistIE,
+)
 from .rozhlas import (
     RozhlasIE,
     RozhlasVltavaIE,
