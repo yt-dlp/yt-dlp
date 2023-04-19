@@ -13,7 +13,7 @@ on:
         default: true
         type: boolean
       linux_arm:
-        default: true
+        default: false
         type: boolean
       macos:
         default: true
@@ -51,7 +51,7 @@ on:
         type: boolean
       linux_arm:
         description: yt-dlp_linux_aarch64, yt-dlp_linux_armv7l
-        default: true
+        default: false
         type: boolean
       macos:
         description: yt-dlp_macos, yt-dlp_macos.zip
