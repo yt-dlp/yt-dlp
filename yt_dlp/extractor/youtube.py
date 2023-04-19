@@ -2831,13 +2831,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
             else:
                 should_continue = _extract_sequence_from_mpd(True, no_fragment_score > 15)
-                last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
-
                 no_fragment_score += 2
                 if not should_continue:
                     continue
 
             last_fragment = fragments[-1]
+            last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+
             known_fragment = next(
                 (fragment for fragment in fragments if f'sq/{known_idx}' in fragment['path']), None)
             if known_fragment and known_fragment['end'] > section_end:
