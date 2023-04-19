@@ -1,19 +1,22 @@
+import json
+import re
 from .common import InfoExtractor
+from ..utils import clean_html, float_or_none, get_element_by_class, js_to_json
 
 
 class WeVidiIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?wevidi\.net/watch/(?P<id>[0-9A-Za-z_-]{11})'
     _TESTS = [{
-        'url': 'https://wevidi.net/watch/UOxjNMyp70w',
-        'md5': '59ec2ae20f1168f449f0b19f62296c3b',
+        'url': 'https://wevidi.net/watch/2th7UO5F4KV',
+        'md5': 'b913d1ff5bbad499e2c7ef4aa6d829d7',
         'info_dict': {
-            'id': 'UOxjNMyp70w',
+            'id': '2th7UO5F4KV',
             'ext': 'mp4',
-            'title': 'Serious Talk: YouTube Alternatives and Free Speech',
+            'title': 'YouTube Alternative: WeVidi - customizable channels & more',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'description': 'md5:def38c01923e9143cf586ac8ac4229ed',
-            'uploader': 'AliTZ13',
-            'duration': 423.339,
+            'description': 'md5:73a27d0a87d49fbcc5584566326ebeed',
+            'uploader': 'eclecRC',
+            'duration': 932.098,
         }
     }, {
         'url': 'https://wevidi.net/watch/ievRuuQHbPS',
@@ -39,9 +42,21 @@ class WeVidiIE(InfoExtractor):
             'uploader': 'WeVidi',
             'duration': 41.972,
         }
+    }, {
+        'url': 'https://wevidi.net/watch/wJnRqDHNe_u',
+        'md5': 'c8f263dd47e66cc17546b3abf47b5a77',
+        'info_dict': {
+            'id': 'wJnRqDHNe_u',
+            'ext': 'mp4',
+            'title': 'Gissy Talks: YouTube Alternatives',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'md5:e65036f0d4af80e0af191bd11af5195e',
+            'uploader': 'GissyEva',
+            'duration': 630.451,
+        }
     }]
 
-    def _extract_formats(self, webpage):
+    def _extract_formats(self, wvplayer_props):
         # Taken from WeVidi player JS: https://wevidi.net/layouts/default/static/player.min.js
         resolution_map = {
             1: '144p',
@@ -52,18 +67,18 @@ class WeVidiIE(InfoExtractor):
             6: '1080p'
         }
 
-        srcUID = self._search_regex(r'srcUID: "([0-9A-Za-z_-]{11})"', webpage, 'srcUID')
-        srcVID = self._search_regex(r'srcVID: "([0-9A-Za-z_-]{11})"', webpage, 'srcVID')
-        srcNAME = self._search_regex(r'srcNAME: "([0-9A-Za-z_-]{11})"', webpage, 'srcNAME')
-        resolutions = [int(x) for x in self._search_regex(r'resolutions: \[([\d, ]+)]', webpage, 'resolutions').split(', ') if int(x) > 0]
+        srcUID = wvplayer_props.get('srcUID')
+        srcVID = wvplayer_props.get('srcVID')
+        srcNAME = wvplayer_props.get('srcNAME')
+        resolutions = [res for res in wvplayer_props.get('resolutions') if res > 0]
         formats = []
-        for resolution in resolutions:
-            format_id = str(-(resolution // -2) - 1)
+        for res in resolutions:
+            format_id = str(-(res // -2) - 1)
             formats.append({
                 'acodec': 'mp4a.40.2',
                 'ext': 'mp4',
                 'format_id': format_id,
-                'resolution': resolution_map[resolution],
+                'resolution': resolution_map.get(res),
                 'url': f'https://www.wevidi.net/videoplayback/{srcVID}/{srcUID}/{srcNAME}/{format_id}',
                 'vcodec': 'avc1.42E01E',
             })
@@ -74,15 +89,17 @@ class WeVidiIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<strong class="video_title">(.+?)</strong>', webpage, 'title')
-        formats = self._extract_formats(webpage)
+        title = get_element_by_class('video_title', webpage)
+        wvplayer_props = json.loads(js_to_json(self._search_regex(
+            r'WVPlayer\(({.+?)autoplay', webpage,
+            'wvplayer_props', flags=re.DOTALL) + '}'))
 
         return {
             'id': video_id,
             'title': title,
-            'description': self._html_search_regex(r'<div class="descr_long">(.+?)</div>', webpage, 'description'),
-            'uploader': self._html_search_regex(r'<a href="/user/(.+?)" class="username">', webpage, 'uploader', fatal=False),
-            'formats': self._extract_formats(webpage),
+            'description': clean_html(get_element_by_class('descr_long', webpage)),
+            'uploader': get_element_by_class('username', webpage),
+            'formats': self._extract_formats(wvplayer_props),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'duration': float(self._search_regex(r'duration: ([\d.]+)', webpage, 'duration')),
+            'duration': float_or_none(wvplayer_props.get('duration')),
         }
