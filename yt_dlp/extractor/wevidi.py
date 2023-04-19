@@ -3,21 +3,43 @@ from .common import InfoExtractor
 
 class WeVidiIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?wevidi\.net/watch/(?P<id>[0-9A-Za-z_-]{11})'
-    # _TESTS = [{
-    #     'url': 'https://wevidi.net/watch/UOxjNMyp70w',
-    #     'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
-    #     'info_dict': {
-    #         'id': '42',
-    #         'ext': 'mp4',
-    #         'title': 'Video title goes here',
-    #         'thumbnail': r're:^https?://.*\.jpg$',
-    #         # TODO more properties, either as:
-    #         # * A value
-    #         # * MD5 checksum; start the string with md5:
-    #         # * A regular expression; start the string with re:
-    #         # * Any Python type, e.g. int or float
-    #     }
-    # }]
+    _TESTS = [{
+        'url': 'https://wevidi.net/watch/UOxjNMyp70w',
+        'md5': '59ec2ae20f1168f449f0b19f62296c3b',
+        'info_dict': {
+            'id': 'UOxjNMyp70w',
+            'ext': 'mp4',
+            'title': 'Serious Talk: YouTube Alternatives and Free Speech',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'md5:def38c01923e9143cf586ac8ac4229ed',
+            'uploader': 'AliTZ13',
+            'duration': 423.339,
+        }
+    }, {
+        'url': 'https://wevidi.net/watch/ievRuuQHbPS',
+        'md5': 'ce8a94989a959bff9003fa27ee572935',
+        'info_dict': {
+            'id': 'ievRuuQHbPS',
+            'ext': 'mp4',
+            'title': 'WeVidi Playlists',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'md5:32cdfca272687390d9bd9b0c9c6153ee',
+            'uploader': 'WeVidi',
+            'duration': 36.1999,
+        }
+    }, {
+        'url': 'https://wevidi.net/watch/PcMzDWaQSWb',
+        'md5': '55ee0d3434be5d9e5cc76b83f2bb57ec',
+        'info_dict': {
+            'id': 'PcMzDWaQSWb',
+            'ext': 'mp4',
+            'title': 'Cat blep',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'md5:e2c9e2b54b8bb424cc64937c8fdc068f',
+            'uploader': 'WeVidi',
+            'duration': 41.972,
+        }
+    }]
 
     def _extract_formats(self, webpage):
         # Taken from WeVidi player JS: https://wevidi.net/layouts/default/static/player.min.js
@@ -61,4 +83,6 @@ class WeVidiIE(InfoExtractor):
             'description': self._html_search_regex(r'<div class="descr_long">(.+?)</div>', webpage, 'description'),
             'uploader': self._html_search_regex(r'<a href="/user/(.+?)" class="username">', webpage, 'uploader', fatal=False),
             'formats': self._extract_formats(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'duration': float(self._search_regex(r'duration: ([\d.]+)', webpage, 'duration')),
         }
