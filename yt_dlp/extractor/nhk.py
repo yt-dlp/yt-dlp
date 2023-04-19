@@ -407,6 +407,7 @@ class NhkRadiruIE(InfoExtractor):
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
         episode = traverse_obj(headline, ('file_list', 0, {dict}))
+
         return {
             **series_meta,
             'id': episode_id,
@@ -455,7 +456,7 @@ class NhkRadiruIE(InfoExtractor):
 
 
 class NhkRadioNewsPageIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/radionews/?'
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/radionews/?(?:$|[?#])'
     _TESTS = [{
         # airs daily, on-the-hour most hours
         'url': 'https://www.nhk.or.jp/radionews/',
