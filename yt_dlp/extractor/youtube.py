@@ -6300,19 +6300,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 if not extra_tabs and selected_tab_id != 'videos':
                     # Channel does not have streams, shorts or videos tabs
                     if item_id[:2] != 'UC':
-                        raise ExtractorError('This channel has no uploads', expected=True)
+                        self.to_screen('This channel has no uploads')
+                        sys.exit(0)
 
                     # Topic channels don't have /videos. Use the equivalent playlist instead
                     pl_id = f'UU{item_id[2:]}'
                     pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
-                    try:
-                        data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True, webpage_fatal=True)
-                    except ExtractorError:
-                        raise ExtractorError('This channel has no uploads', expected=True)
-                    else:
-                        item_id, url = pl_id, pl_url
-                        self.to_screen(
-                            f'The channel does not have a videos, shorts, or live tab. Redirecting to playlist {pl_id} instead')
+                    data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True, webpage_fatal=True)
+                    item_id, url = pl_id, pl_url
+                    self.to_screen(
+                        f'The channel does not have a videos, shorts, or live tab. Redirecting to playlist {pl_id} instead')
 
                 elif extra_tabs and selected_tab_id != 'videos':
                     # When there are shorts/live tabs but not videos tab
