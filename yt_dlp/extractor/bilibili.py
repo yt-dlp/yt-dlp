@@ -26,6 +26,7 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    unified_timestamp,
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
@@ -133,7 +134,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/video/[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -281,19 +282,60 @@ class BiliBiliIE(BilibiliBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
         'params': {'skip_download': True},
+    }, {
+        'note': 'video redirects to festival page',
+        'url': 'https://www.bilibili.com/video/BV1wP4y1P72h',
+        'info_dict': {
+            'id': 'BV1wP4y1P72h',
+            'ext': 'mp4',
+            'title': '牛虎年相交之际，一首传统民族打击乐《牛斗虎》祝大家新春快乐，虎年大吉！【bilibili音乐虎闹新春】',
+            'timestamp': 1643947497,
+            'upload_date': '20220204',
+            'description': 'md5:8681a0d4d2c06b4ae27e59c8080a7fe6',
+            'uploader': '叨叨冯聊音乐',
+            'duration': 246.719,
+            'uploader_id': '528182630',
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
+    }, {
+        'note': 'newer festival video',
+        'url': 'https://www.bilibili.com/festival/2023honkaiimpact3gala?bvid=BV1ay4y1d77f',
+        'info_dict': {
+            'id': 'BV1ay4y1d77f',
+            'ext': 'mp4',
+            'title': '【崩坏3新春剧场】为特别的你送上祝福！',
+            'timestamp': 1674273600,
+            'upload_date': '20230121',
+            'description': 'md5:58af66d15c6a0122dc30c8adfd828dd8',
+            'uploader': '果蝇轰',
+            'duration': 1111.722,
+            'uploader_id': '8469526',
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
 
-        video_data = initial_state['videoData']
+        is_festival = 'videoData' not in initial_state
+        if is_festival:
+            video_data = initial_state['videoInfo']
+        else:
+            play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+            video_data = initial_state['videoData']
+
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        page_list_json = traverse_obj(
+        page_list_json = not is_festival and traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
                 fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
@@ -316,20 +358,39 @@ class BiliBiliIE(BilibiliBaseIE):
 
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
+        festival_info = {}
+        if is_festival:
+            play_info = self._download_json(
+                'https://api.bilibili.com/x/player/playurl', video_id,
+                query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
+                note='Extracting festival video formats')['data']
+
+            festival_info = traverse_obj(initial_state, {
+                'uploader': ('videoInfo', 'upName'),
+                'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
+                'like_count': ('videoStatus', 'like', {int_or_none}),
+                'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
+            }, get_all=False)
+
         return {
+            **traverse_obj(initial_state, {
+                'uploader': ('upData', 'name'),
+                'uploader_id': ('upData', 'mid', {str_or_none}),
+                'like_count': ('videoData', 'stat', 'like', {int_or_none}),
+                'tags': ('tags', ..., 'tag_name'),
+                'thumbnail': ('videoData', 'pic', {url_or_none}),
+            }),
+            **festival_info,
+            **traverse_obj(video_data, {
+                'description': 'desc',
+                'timestamp': ('pubdate', {int_or_none}),
+                'view_count': (('viewCount', ('stat', 'view')), {int_or_none}),
+                'comment_count': ('stat', 'reply', {int_or_none}),
+            }, get_all=False),
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             'formats': self.extract_formats(play_info),
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
-            'description': traverse_obj(initial_state, ('videoData', 'desc')),
-            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
-            'uploader': traverse_obj(initial_state, ('upData', 'name')),
-            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
-            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
-            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
-            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
-            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
-            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'chapters': self._get_chapters(aid, cid),
             'subtitles': self.extract_subtitles(video_id, aid, cid),
@@ -996,6 +1057,53 @@ class BiliIntlIE(BiliIntlBaseIE):
             'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
             'upload_date': '20221212',
             'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
+        },
+    }, {
+        # episode comment extraction
+        'url': 'https://www.bilibili.tv/en/play/34580/340317',
+        'info_dict': {
+            'id': '340317',
+            'ext': 'mp4',
+            'timestamp': 1604057820,
+            'upload_date': '20201030',
+            'episode_number': 5,
+            'title': 'E5 - My Own Steel',
+            'description': 'md5:2b17ab10aebb33e3c2a54da9e8e487e2',
+            'thumbnail': r're:https?://pic\.bstarstatic\.com/ogv/.+\.png$',
+            'episode': 'Episode 5',
+            'comment_count': int,
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 61.0,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 61.0,
+                'end_time': 134.0,
+                'title': 'Intro'
+            }, {
+                'start_time': 1290.0,
+                'end_time': 1379.0,
+                'title': 'Outro'
+            }],
+        },
+        'params': {
+            'getcomments': True
+        }
+    }, {
+        # user generated content comment extraction
+        'url': 'https://www.bilibili.tv/en/video/2045730385',
+        'info_dict': {
+            'id': '2045730385',
+            'ext': 'mp4',
+            'description': 'md5:693b6f3967fb4e7e7764ea817857c33a',
+            'timestamp': 1667891924,
+            'upload_date': '20221108',
+            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan - Bstation',
+            'comment_count': int,
+            'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
+        },
+        'params': {
+            'getcomments': True
         }
     }, {
         # episode id without intro and outro
@@ -1055,10 +1163,68 @@ class BiliIntlIE(BiliIntlBaseIE):
 
         # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
         return merge_dicts(
-            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id), {
+            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id, fatal=False), {
                 'title': self._html_search_meta('og:title', webpage),
                 'description': self._html_search_meta('og:description', webpage)
             })
+
+    def _get_comments_reply(self, root_id, next_id=0, display_id=None):
+        comment_api_raw_data = self._download_json(
+            'https://api.bilibili.tv/reply/web/detail', display_id,
+            note=f'Downloading reply comment of {root_id} - {next_id}',
+            query={
+                'platform': 'web',
+                'ps': 20,  # comment's reply per page (default: 3)
+                'root': root_id,
+                'next': next_id,
+            })
+
+        for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)):
+            yield {
+                'author': traverse_obj(replies, ('member', 'name')),
+                'author_id': traverse_obj(replies, ('member', 'mid')),
+                'author_thumbnail': traverse_obj(replies, ('member', 'face')),
+                'text': traverse_obj(replies, ('content', 'message')),
+                'id': replies.get('rpid'),
+                'like_count': int_or_none(replies.get('like_count')),
+                'parent': replies.get('parent'),
+                'timestamp': unified_timestamp(replies.get('ctime_text'))
+            }
+
+        if not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
+            yield from self._get_comments_reply(
+                root_id, comment_api_raw_data['data']['cursor']['next'], display_id)
+
+    def _get_comments(self, video_id, ep_id):
+        for i in itertools.count(0):
+            comment_api_raw_data = self._download_json(
+                'https://api.bilibili.tv/reply/web/root', video_id,
+                note=f'Downloading comment page {i + 1}',
+                query={
+                    'platform': 'web',
+                    'pn': i,  # page number
+                    'ps': 20,  # comment per page (default: 20)
+                    'oid': video_id,
+                    'type': 3 if ep_id else 1,  # 1: user generated content, 3: series content
+                    'sort_type': 1,  # 1: best, 2: recent
+                })
+
+            for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)):
+                yield {
+                    'author': traverse_obj(replies, ('member', 'name')),
+                    'author_id': traverse_obj(replies, ('member', 'mid')),
+                    'author_thumbnail': traverse_obj(replies, ('member', 'face')),
+                    'text': traverse_obj(replies, ('content', 'message')),
+                    'id': replies.get('rpid'),
+                    'like_count': int_or_none(replies.get('like_count')),
+                    'timestamp': unified_timestamp(replies.get('ctime_text')),
+                    'author_is_uploader': bool(traverse_obj(replies, ('member', 'type'))),
+                }
+                if replies.get('count'):
+                    yield from self._get_comments_reply(replies.get('rpid'), display_id=video_id)
+
+            if traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
+                break
 
     def _real_extract(self, url):
         season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
@@ -1087,7 +1253,8 @@ class BiliIntlIE(BiliIntlBaseIE):
             **self._extract_video_metadata(url, video_id, season_id),
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
-            'chapters': chapters
+            'chapters': chapters,
+            '__post_extractor': self.extract_comments(video_id, ep_id)
         }
 
 

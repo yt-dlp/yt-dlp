@@ -302,6 +302,11 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
+    def _fixup_chapters(self, info):
+        last_chapter = traverse_obj(info, ('chapters', -1))
+        if last_chapter and not last_chapter.get('end_time'):
+            last_chapter['end_time'] = self._get_real_video_duration(info['filepath'])
+
     def _get_real_video_duration(self, filepath, fatal=True):
         try:
             duration = float_or_none(
@@ -678,6 +683,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        self._fixup_chapters(info)
         filename, metadata_filename = info['filepath'], None
         files_to_delete, options = [], []
         if self._add_chapters and info.get('chapters'):
@@ -803,7 +809,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             new_stream -= 1
 
         yield (
-            '-attach', infofn,
+            '-attach', self._ffmpeg_filename_argument(infofn),
             f'-metadata:s:{new_stream}', 'mimetype=application/json',
             f'-metadata:s:{new_stream}', 'filename=info.json',
         )
@@ -892,8 +898,11 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         if all(self._needs_fixup(info)):
+            args = ['-f', 'mp4']
+            if self.get_audio_codec(info['filepath']) == 'aac':
+                args.extend(['-bsf:a', 'aac_adtstoasc'])
             self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
-                *self.stream_copy_opts(), '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
+                *self.stream_copy_opts(), *args])
         return [], info
 
 
@@ -1040,6 +1049,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        self._fixup_chapters(info)
         chapters = info.get('chapters') or []
         if not chapters:
             self.to_screen('Chapter information is unavailable')
