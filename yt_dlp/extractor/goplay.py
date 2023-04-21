@@ -93,7 +93,10 @@ class GoPlayIE(InfoExtractor):
 
         api = self._download_json(
             f'https://api.goplay.be/web/v1/videos/long-form/{video_id}',
-            video_id, headers={'Authorization': 'Bearer %s' % self._id_token})
+            video_id, headers={
+                'Authorization': 'Bearer %s' % self._id_token,
+                **self.geo_verification_headers(),
+            })
 
         if 'manifestUrls' in api:
             formats, subs = self._extract_m3u8_formats_and_subtitles(
