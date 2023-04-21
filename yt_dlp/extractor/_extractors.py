@@ -298,10 +298,7 @@ from .cbc import (
     CBCGemPlaylistIE,
     CBCGemLiveIE,
 )
-from .cbs import (
-    CBSIE,
-    ParamountPressExpressIE,
-)
+from .cbs import CBSIE
 from .cbslocal import (
     CBSLocalIE,
     CBSLocalArticleIE,
@@ -498,6 +495,7 @@ from .deuxm import (
     DeuxMIE,
     DeuxMNewsIE
 )
+from .discogs import DiscogsReleasePlaylistIE
 from .digitalconcerthall import DigitalConcertHallIE
 from .discovery import DiscoveryIE
 from .disney import DisneyIE
@@ -719,10 +717,6 @@ from .hidive import HiDiveIE
 from .historicfilms import HistoricFilmsIE
 from .hitbox import HitboxIE, HitboxLiveIE
 from .hitrecord import HitRecordIE
-from .hollywoodreporter import (
-    HollywoodReporterIE,
-    HollywoodReporterPlaylistIE,
-)
 from .holodex import HolodexIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
@@ -1302,7 +1296,6 @@ from .nrl import NRLTVIE
 from .ntvcojp import NTVCoJpCUIE
 from .ntvde import NTVDeIE
 from .ntvru import NTVRuIE
-from .nubilesporn import NubilesPornIE
 from .nytimes import (
     NYTimesIE,
     NYTimesArticleIE,
@@ -1397,7 +1390,6 @@ from .periscope import (
     PeriscopeIE,
     PeriscopeUserIE,
 )
-from .pgatour import PGATourIE
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
@@ -1855,10 +1847,7 @@ from .teachertube import (
     TeacherTubeUserIE,
 )
 from .teachingchannel import TeachingChannelIE
-from .teamcoco import (
-    TeamcocoIE,
-    ConanClassicIE,
-)
+from .teamcoco import TeamcocoIE
 from .teamtreehouse import TeamTreeHouseIE
 from .techtalks import TechTalksIE
 from .ted import (
