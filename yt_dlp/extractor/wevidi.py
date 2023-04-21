@@ -1,7 +1,5 @@
-import json
-import re
 from .common import InfoExtractor
-from ..utils import clean_html, float_or_none, get_element_by_class, js_to_json
+from ..utils import clean_html, float_or_none, get_element_by_class, js_to_json, traverse_obj
 
 
 class WeVidiIE(InfoExtractor):
@@ -53,6 +51,18 @@ class WeVidiIE(InfoExtractor):
             'description': 'md5:e65036f0d4af80e0af191bd11af5195e',
             'uploader': 'GissyEva',
             'duration': 630.451,
+        }
+    }, {
+        'url': 'https://wevidi.net/watch/4m1c4yJR_yc',
+        'md5': 'c63ce5ca6990dce86855fc02ca5bc1ed',
+        'info_dict': {
+            'id': '4m1c4yJR_yc',
+            'ext': 'mp4',
+            'title': 'Enough of that! - Awesome Exilez Podcast',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'md5:96af99dd63468b2dfab3020560e3e9b2',
+            'uploader': 'eclecRC',
+            'duration': 6.804,
         }
     }]
 
