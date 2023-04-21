@@ -14,6 +14,7 @@ from ..utils import (
     ExtractorError,
     UnsupportedError,
     determine_ext,
+    determine_protocol,
     dict_get,
     extract_basic_auth,
     format_field,
@@ -867,7 +868,7 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            # Video.js embed, multiple formats
+            # Youtube embed, formerly: Video.js embed, multiple formats
             'url': 'http://ortcam.com/solidworks-урок-6-настройка-чертежа_33f9b7351.html',
             'info_dict': {
                 'id': 'yygqldloqIk',
@@ -894,6 +895,7 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             },
+            'skip': '404 Not Found',
         },
         # rtl.nl embed
         {
@@ -2169,6 +2171,33 @@ class GenericIE(InfoExtractor):
                 'age_limit': 18,
             },
         },
+        {
+            'note': 'Live HLS direct link',
+            'url': 'https://d18j67ugtrocuq.cloudfront.net/out/v1/2767aec339144787926bd0322f72c6e9/index.m3u8',
+            'info_dict': {
+                'id': 'index',
+                'title': r're:index',
+                'ext': 'mp4',
+                'live_status': 'is_live',
+            },
+            'params': {
+                'skip_download': 'm3u8',
+            },
+        },
+        {
+            'note': 'Video.js VOD HLS',
+            'url': 'https://gist.githubusercontent.com/bashonly/2aae0862c50f4a4b84f220c315767208/raw/e3380d413749dabbe804c9c2d8fd9a45142475c7/videojs_hls_test.html',
+            'info_dict': {
+                'id': 'videojs_hls_test',
+                'title': 'video',
+                'ext': 'mp4',
+                'age_limit': 0,
+                'duration': 1800,
+            },
+            'params': {
+                'skip_download': 'm3u8',
+            },
+        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -2204,6 +2233,22 @@ class GenericIE(InfoExtractor):
                 or urllib.parse.urlparse(manifest_url).query)
             for fmt in self._downloader._get_formats(info):
                 fmt['url'] = update_url_query(fmt['url'], query)
+
+        # Attempt to detect live HLS or set VOD duration
+        m3u8_format = next((f for f in self._downloader._get_formats(info)
+                            if determine_protocol(f) == 'm3u8_native'), None)
+        if m3u8_format:
+            is_live = self._configuration_arg('is_live', [None])[0]
+            if is_live is not None:
+                info['live_status'] = 'not_live' if is_live == 'false' else 'is_live'
+                return
+            headers = m3u8_format.get('http_headers') or info.get('http_headers')
+            duration = self._extract_m3u8_vod_duration(
+                m3u8_format['url'], info.get('id'), note='Checking m3u8 live status',
+                errnote='Failed to download m3u8 media playlist', headers=headers)
+            if not duration:
+                info['live_status'] = 'is_live'
+            info['duration'] = info.get('duration') or duration
 
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
@@ -2580,8 +2625,7 @@ class GenericIE(InfoExtractor):
             varname = mobj.group(1)
             sources = variadic(self._parse_json(
                 mobj.group(2), video_id, transform_source=js_to_json, fatal=False) or [])
-            formats = []
-            subtitles = {}
+            formats, subtitles, src = [], {}, None
             for source in sources:
                 src = source.get('src')
                 if not src or not isinstance(src, str):
@@ -2604,8 +2648,6 @@ class GenericIE(InfoExtractor):
                         m3u8_id='hls', fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
-                for fmt in formats:
-                    self._extra_manifest_info(fmt, src)
 
                 if not formats:
                     formats.append({
@@ -2621,11 +2663,11 @@ class GenericIE(InfoExtractor):
             for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
                 sub = self._parse_json(
                     sub_match.group(1), video_id, transform_source=js_to_json, fatal=False) or {}
-                src = str_or_none(sub.get('src'))
-                if not src:
+                sub_src = str_or_none(sub.get('src'))
+                if not sub_src:
                     continue
                 subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
-                    'url': urllib.parse.urljoin(url, src),
+                    'url': urllib.parse.urljoin(url, sub_src),
                     'name': sub.get('label'),
                     'http_headers': {
                         'Referer': actual_url,
@@ -2633,7 +2675,10 @@ class GenericIE(InfoExtractor):
                 })
             if formats or subtitles:
                 self.report_detected('video.js embed')
-                return [{'formats': formats, 'subtitles': subtitles}]
+                info_dict = {'formats': formats, 'subtitles': subtitles}
+                if formats:
+                    self._extra_manifest_info(info_dict, src)
+                return [info_dict]
 
         # Look for generic KVS player (before json-ld bc of some urls that break otherwise)
         found = self._search_regex((
