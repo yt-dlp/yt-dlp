@@ -5,7 +5,7 @@ from ..utils import clean_html, float_or_none, get_element_by_class, js_to_json
 
 
 class WeVidiIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?wevidi\.net/watch/(?P<id>[0-9A-Za-z_-]{11})'
+    _VALID_URL = r'https?://(?:www\.)?wevidi\.net/watch/(?P<id>[\w-]{11})'
     _TESTS = [{
         'url': 'https://wevidi.net/watch/2th7UO5F4KV',
         'md5': 'b913d1ff5bbad499e2c7ef4aa6d829d7',
@@ -67,19 +67,16 @@ class WeVidiIE(InfoExtractor):
             6: '1080p'
         }
 
-        srcUID = wvplayer_props.get('srcUID')
-        srcVID = wvplayer_props.get('srcVID')
-        srcNAME = wvplayer_props.get('srcNAME')
-        resolutions = [res for res in wvplayer_props.get('resolutions') if res > 0]
+        src_path = f'{wvplayer_props["srcVID"]}/{wvplayer_props["srcUID"]}/{wvplayer_props["srcNAME"]}'
         formats = []
-        for res in resolutions:
+        for res in traverse_obj(wvplayer_props, ('resolutions', ..., {int}, {lambda x: x or None})):
             format_id = str(-(res // -2) - 1)
             formats.append({
                 'acodec': 'mp4a.40.2',
                 'ext': 'mp4',
                 'format_id': format_id,
                 'resolution': resolution_map.get(res),
-                'url': f'https://www.wevidi.net/videoplayback/{srcVID}/{srcUID}/{srcNAME}/{format_id}',
+                'url': f'https://www.wevidi.net/videoplayback/{src_path}/{format_id}',
                 'vcodec': 'avc1.42E01E',
             })
 
@@ -89,16 +86,15 @@ class WeVidiIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = get_element_by_class('video_title', webpage)
-        wvplayer_props = json.loads(js_to_json(self._search_regex(
-            r'WVPlayer\(({.+?)autoplay', webpage,
-            'wvplayer_props', flags=re.DOTALL) + '}'))
+        wvplayer_props = self._search_json(
+            r'WVPlayer\(', webpage, 'player', video_id,
+            transform_source=lambda x: js_to_json(x.replace('||', '}')))
 
         return {
             'id': video_id,
-            'title': title,
+            'title': clean_html(get_element_by_class('video_title', webpage)),
             'description': clean_html(get_element_by_class('descr_long', webpage)),
-            'uploader': get_element_by_class('username', webpage),
+            'uploader': clean_html(get_element_by_class('username', webpage)),
             'formats': self._extract_formats(wvplayer_props),
             'thumbnail': self._og_search_thumbnail(webpage),
             'duration': float_or_none(wvplayer_props.get('duration')),
