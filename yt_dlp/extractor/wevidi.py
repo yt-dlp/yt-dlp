@@ -69,28 +69,25 @@ class WeVidiIE(InfoExtractor):
     def _extract_formats(self, wvplayer_props):
         # Taken from WeVidi player JS: https://wevidi.net/layouts/default/static/player.min.js
         resolution_map = {
-            1: '144p',
-            2: '240p',
-            3: '360p',
-            4: '480p',
-            5: '720p',
-            6: '1080p'
+            1: 144,
+            2: 240,
+            3: 360,
+            4: 480,
+            5: 720,
+            6: 1080
         }
 
         src_path = f'{wvplayer_props["srcVID"]}/{wvplayer_props["srcUID"]}/{wvplayer_props["srcNAME"]}'
-        formats = []
         for res in traverse_obj(wvplayer_props, ('resolutions', ..., {int}, {lambda x: x or None})):
             format_id = str(-(res // -2) - 1)
-            formats.append({
+            yield {
                 'acodec': 'mp4a.40.2',
                 'ext': 'mp4',
                 'format_id': format_id,
-                'resolution': resolution_map.get(res),
+                'height': resolution_map.get(res),
                 'url': f'https://www.wevidi.net/videoplayback/{src_path}/{format_id}',
                 'vcodec': 'avc1.42E01E',
-            })
-
-        return formats
+            }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -105,7 +102,7 @@ class WeVidiIE(InfoExtractor):
             'title': clean_html(get_element_by_class('video_title', webpage)),
             'description': clean_html(get_element_by_class('descr_long', webpage)),
             'uploader': clean_html(get_element_by_class('username', webpage)),
-            'formats': self._extract_formats(wvplayer_props),
+            'formats': list(self._extract_formats(wvplayer_props)),
             'thumbnail': self._og_search_thumbnail(webpage),
             'duration': float_or_none(wvplayer_props.get('duration')),
         }
