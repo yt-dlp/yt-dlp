@@ -408,6 +408,23 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         (?(playlist)/(?P<season>\d+)?/?(?:[?#]|$))'''
 
     _TESTS = [{
+        'url': 'https://www.ardmediathek.de/video/filme-im-mdr/wolfsland-die-traurigen-schwestern/mdr-fernsehen/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy8xZGY0ZGJmZS00ZWQwLTRmMGItYjhhYy0wOGQ4ZmYxNjVhZDI',
+        'md5': '3fd5fead7a370a819341129c8d713136',
+        'info_dict': {
+            'display_id': 'filme-im-mdr/wolfsland-die-traurigen-schwestern/mdr-fernsehen',
+            'id': '12172961',
+            'title': 'Wolfsland - Die traurigen Schwestern',
+            'description': r're:^Als der Polizeiobermeister Raaben',
+            'duration': 5241,
+            'thumbnail': '',
+            'timestamp': 1670710500,
+            'upload_date': '20221210',
+            'ext': 'mp4',
+            'age_limit': 12,
+        'episode': 'Wolfsland - Die traurigen Schwestern',
+        'series': 'Filme im MDR'
+        },
+    }, {
         'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
         'md5': 'a1dc75a39c61601b980648f7c9f9f71d',
         'info_dict': {
