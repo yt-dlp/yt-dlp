@@ -181,7 +181,7 @@ class TwitchBaseIE(InfoExtractor):
 
     def _get_thumbnails(self, thumbnail):
         return [{
-            'url': re.sub(r'\d+x\d+(\.\w+)($|(?=[?#]))', '0x0\g<1>', thumbnail),
+            'url': re.sub(r'\d+x\d+(\.\w+)($|(?=[?#]))', r'0x0\g<1>', thumbnail),
             'preference': 1,
         }, {
             'url': thumbnail,
