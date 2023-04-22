@@ -456,13 +456,6 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'thumbnail': '',
         },
     }, {
-        'url': 'https://www.ardmediathek.de/sendung/beforeigners/beforeigners/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw/1',
-        'playlist_count': 6,
-        'info_dict': {
-            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw',
-            'title': 'beforeigners/beforeigners/staffel-1',
-        },
-    }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
         'only_matching': True,
     }, {
