@@ -441,7 +441,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         'skip': 'Error',
     }, {
         'url': 'https://www.ardmediathek.de/video/tagesschau-oder-tagesschau-20-00-uhr/das-erste/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhZ2Vzc2NoYXUvZmM4ZDUxMjgtOTE0ZC00Y2MzLTgzNzAtNDZkNGNiZWJkOTll',
-        'md5': 'f1837e563323b8a642a8ddeff0131f51',
+        'md5': '1e73ded21cb79bac065117e80c81dc88',
         'info_dict': {
             'id': '10049223',
             'ext': 'mp4',
@@ -449,6 +449,11 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'timestamp': 1636398000,
             'description': 'md5:39578c7b96c9fe50afdf5674ad985e6b',
             'upload_date': '20211108',
+            'display_id': 'tagesschau-oder-tagesschau-20-00-uhr/das-erste',
+            'duration': 915,
+            'episode': 'tagesschau, 20:00 Uhr',
+            'series': 'tagesschau',
+            'thumbnail': '',
         },
     }, {
         'url': 'https://www.ardmediathek.de/sendung/beforeigners/beforeigners/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw/1',
