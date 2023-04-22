@@ -408,7 +408,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     used multiple times and inside other
                                     configuration files
     --flat-playlist                 Do not extract the videos of a playlist,
-                                    only list them
+                                    only list them. (Note that less data is fetched,
+                                    possibly affecting other options.)
     --no-flat-playlist              Extract the videos of a playlist
     --live-from-start               Download livestreams from the start.
                                     Currently only supported for YouTube
