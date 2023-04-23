@@ -421,8 +421,8 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'upload_date': '20221210',
             'ext': 'mp4',
             'age_limit': 12,
-        'episode': 'Wolfsland - Die traurigen Schwestern',
-        'series': 'Filme im MDR'
+            'episode': 'Wolfsland - Die traurigen Schwestern',
+            'series': 'Filme im MDR'
         },
     }, {
         'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
@@ -664,6 +664,6 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         if not info.get('thumbnail'):
             webpage = self._download_webpage(url, display_id, fatal=False) or ''
             info['thumbnail'] = (
-                    self._og_search_thumbnail(webpage, default=None)
-                    or self._html_search_meta('thumbnailUrl', webpage, default=None))
+                self._og_search_thumbnail(webpage, default=None)
+                or self._html_search_meta('thumbnailUrl', webpage, default=None))
         return info
