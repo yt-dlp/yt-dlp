@@ -362,7 +362,7 @@ class ChromeCookieDecryptor:
 
     Sources:
     - [1] https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/
-    - [2] https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/key_storage_linux.cc
+    - [2] https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_linux.cc
         - KeyStorageLinux::CreateService
     """
 
@@ -396,7 +396,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
     @staticmethod
     def derive_key(password):
         # values from
-        # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_linux.cc
+        # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_linux.cc
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1, key_length=16)
 
     def decrypt(self, encrypted_value):
@@ -429,7 +429,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
     @staticmethod
     def derive_key(password):
         # values from
-        # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_mac.mm
+        # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_mac.mm
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1003, key_length=16)
 
     def decrypt(self, encrypted_value):
@@ -447,7 +447,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
         else:
             self._cookie_counts['other'] += 1
             # other prefixes are considered 'old data' which were stored as plaintext
-            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_mac.mm
+            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_mac.mm
             return encrypted_value
 
 
@@ -467,7 +467,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
 
-            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
+            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
             #   kNonceLength
             nonce_length = 96 // 8
             # boringssl
@@ -484,7 +484,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
         else:
             self._cookie_counts['other'] += 1
             # any other prefix means the data is DPAPI encrypted
-            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
+            # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
             return _decrypt_windows_dpapi(encrypted_value, self._logger).decode()
 
 
@@ -672,7 +672,7 @@ class _LinuxDesktopEnvironment(Enum):
 
 class _LinuxKeyring(Enum):
     """
-    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/key_storage_util_linux.h
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.h
     SelectedLinuxBackend
     """
     KWALLET = auto()
@@ -725,7 +725,7 @@ def _get_linux_desktop_environment(env):
 
 def _choose_linux_keyring(logger):
     """
-    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/key_storage_util_linux.cc
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.cc
     SelectBackend
     """
     desktop_environment = _get_linux_desktop_environment(os.environ)
@@ -742,7 +742,7 @@ def _choose_linux_keyring(logger):
 def _get_kwallet_network_wallet(logger):
     """ The name of the wallet used to store network passwords.
 
-    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/kwallet_dbus.cc
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/kwallet_dbus.cc
     KWalletDBus::NetworkWallet
     which does a dbus call to the following function:
     https://api.kde.org/frameworks/kwallet/html/classKWallet_1_1Wallet.html
@@ -799,8 +799,8 @@ def _get_kwallet_password(browser_keyring_name, logger):
                 # checks hasEntry. To verify this:
                 # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
                 # while starting chrome.
-                # this may be a bug as the intended behaviour is to generate a random password and store
-                # it, but that doesn't matter here.
+                # this was identified as a bug later and fixed in
+                # https://chromium.googlesource.com/chromium/src/+/bbd54702284caca1f92d656fdcadf2ccca6f4165%5E%21/#F0
                 return b''
             else:
                 logger.debug('password found')
