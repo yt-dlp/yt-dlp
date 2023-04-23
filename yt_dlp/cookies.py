@@ -684,10 +684,11 @@ class _LinuxKeyring(Enum):
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.h
     SelectedLinuxBackend
     """
+    KWALLET4 = auto()  # this value is just called KWALLET in the chromium source but it is for KDE4 only
     KWALLET5 = auto()
     KWALLET6 = auto()
-    GNOMEKEYRING = auto()
-    BASICTEXT = auto()
+    GNOME_KEYRING = auto()
+    BASIC_TEXT = auto()
 
 
 SUPPORTED_KEYRINGS = _LinuxKeyring.__members__.keys()
@@ -768,21 +769,34 @@ def _get_linux_desktop_environment(env, logger):
 
 def _choose_linux_keyring(logger):
     """
-    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.cc
-    SelectBackend
+    SelectBackend in [1]
+
+    There is currently support for forcing chromium to use BASIC_TEXT by creating a file called
+    `Disable Local Encryption` [1] in the user data dir. The function to write this file (`WriteBackendUse()` [1])
+    does not appear to be called anywhere other than in tests, so the user would have to create this file manually
+    and so would be aware enough to tell yt-dlp to use the BASIC_TEXT keyring.
+
+    References:
+        - [1] https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.cc
     """
     desktop_environment = _get_linux_desktop_environment(os.environ, logger)
     logger.debug(f'detected desktop environment: {desktop_environment.name}')
-    if desktop_environment in (_LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.KDE4, _LinuxDesktopEnvironment.KDE5, _LinuxDesktopEnvironment.KDE6):
+    if desktop_environment == _LinuxDesktopEnvironment.KDE4:
+        linux_keyring = _LinuxKeyring.KWALLET4
+    elif desktop_environment == _LinuxDesktopEnvironment.KDE5:
         linux_keyring = _LinuxKeyring.KWALLET5
-    elif desktop_environment == _LinuxDesktopEnvironment.OTHER:
-        linux_keyring = _LinuxKeyring.BASICTEXT
+    elif desktop_environment == _LinuxDesktopEnvironment.KDE6:
+        linux_keyring = _LinuxKeyring.KWALLET6
+    elif desktop_environment in (
+        _LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.LXQT, _LinuxDesktopEnvironment.OTHER
+    ):
+        linux_keyring = _LinuxKeyring.BASIC_TEXT
     else:
-        linux_keyring = _LinuxKeyring.GNOMEKEYRING
+        linux_keyring = _LinuxKeyring.GNOME_KEYRING
     return linux_keyring
 
 
-def _get_kwallet_network_wallet(logger):
+def _get_kwallet_network_wallet(keyring, logger):
     """ The name of the wallet used to store network passwords.
 
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/kwallet_dbus.cc
@@ -793,10 +807,22 @@ def _get_kwallet_network_wallet(logger):
     """
     default_wallet = 'kdewallet'
     try:
+        if keyring == _LinuxKeyring.KWALLET4:
+            service_name = 'org.kde.kwalletd'
+            wallet_path = '/modules/kwalletd'
+        elif keyring == _LinuxKeyring.KWALLET5:
+            service_name = 'org.kde.kwalletd5'
+            wallet_path = '/modules/kwalletd5'
+        elif keyring == _LinuxKeyring.KWALLET6:
+            service_name = 'org.kde.kwalletd6'
+            wallet_path = '/modules/kwalletd6'
+        else:
+            raise ValueError(keyring)
+
         stdout, _, returncode = Popen.run([
             'dbus-send', '--session', '--print-reply=literal',
-            '--dest=org.kde.kwalletd5',
-            '/modules/kwalletd5',
+            f'--dest={service_name}',
+            wallet_path,
             'org.kde.KWallet.networkWallet'
         ], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -811,8 +837,8 @@ def _get_kwallet_network_wallet(logger):
         return default_wallet
 
 
-def _get_kwallet_password(browser_keyring_name, logger):
-    logger.debug('using kwallet-query to obtain password from kwallet')
+def _get_kwallet_password(browser_keyring_name, keyring, logger):
+    logger.debug(f'using kwallet-query to obtain password from {keyring.name}')
 
     if shutil.which('kwallet-query') is None:
         logger.error('kwallet-query command not found. KWallet and kwallet-query '
@@ -820,7 +846,7 @@ def _get_kwallet_password(browser_keyring_name, logger):
                      'included in the kwallet package for your distribution')
         return b''
 
-    network_wallet = _get_kwallet_network_wallet(logger)
+    network_wallet = _get_kwallet_network_wallet(keyring, logger)
 
     try:
         stdout, _, returncode = Popen.run([
@@ -881,11 +907,11 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     keyring = _LinuxKeyring[keyring] if keyring else _choose_linux_keyring(logger)
     logger.debug(f'Chosen keyring: {keyring.name}')
 
-    if keyring == _LinuxKeyring.KWALLET5:
-        return _get_kwallet_password(browser_keyring_name, logger)
-    elif keyring == _LinuxKeyring.GNOMEKEYRING:
+    if keyring in (_LinuxKeyring.KWALLET4, _LinuxKeyring.KWALLET5, _LinuxKeyring.KWALLET6):
+        return _get_kwallet_password(browser_keyring_name, keyring, logger)
+    elif keyring == _LinuxKeyring.GNOME_KEYRING:
         return _get_gnome_keyring_password(browser_keyring_name, logger)
-    elif keyring == _LinuxKeyring.BASICTEXT:
+    elif keyring == _LinuxKeyring.BASIC_TEXT:
         # when basic text is chosen, all cookies are stored as v10 (so no keyring password is required)
         return None
     assert False, f'Unknown keyring {keyring}'
