@@ -15,7 +15,7 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
     url_or_none,
-    xpath_text,
+    xpath_text, update_url,
 )
 from ..compat import compat_etree_fromstring
 
@@ -416,7 +416,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'title': 'Wolfsland - Die traurigen Schwestern',
             'description': r're:^Als der Polizeiobermeister Raaben',
             'duration': 5241,
-            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:efa186f7b0054957?&ch=b09581b1bc37d0eb',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:efa186f7b0054957',
             'timestamp': 1670710500,
             'upload_date': '20221210',
             'ext': 'mp4',
@@ -453,7 +453,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'duration': 915,
             'episode': 'tagesschau, 20:00 Uhr',
             'series': 'tagesschau',
-            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:fbb21142783b0a49?&ch=ee69108ae344f678',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:fbb21142783b0a49',
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -658,7 +658,9 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'description': description,
             'timestamp': unified_timestamp(player_page.get('broadcastedOn')),
             'series': try_get(player_page, lambda x: x['show']['title']),
-            'thumbnail': media_collection.get('_previewImage') or try_get(player_page, lambda x: x['image']['src'].replace('w={width}', '')) or self.get_thumbnail_from_html(display_id, url),
+            'thumbnail': (media_collection.get('_previewImage')
+                          or try_get(player_page, lambda x: update_url(x['image']['src'], query=None, fragment=None))
+                          or self.get_thumbnail_from_html(display_id, url)),
         })
         info.update(self._ARD_extract_episode_info(info['title']))
         return info
