@@ -416,7 +416,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'title': 'Wolfsland - Die traurigen Schwestern',
             'description': r're:^Als der Polizeiobermeister Raaben',
             'duration': 5241,
-            'thumbnail': '',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:efa186f7b0054957?w=1280&ch=b09581b1bc37d0eb&imwidth=1280',
             'timestamp': 1670710500,
             'upload_date': '20221210',
             'ext': 'mp4',
@@ -657,4 +657,9 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'series': try_get(player_page, lambda x: x['show']['title']),
         })
         info.update(self._ARD_extract_episode_info(info['title']))
+        if not info.get('thumbnail'):
+            webpage = self._download_webpage(url, display_id, fatal=False) or ''
+            info['thumbnail'] = (
+                    self._og_search_thumbnail(webpage, default=None)
+                    or self._html_search_meta('thumbnailUrl', webpage, default=None))
         return info
