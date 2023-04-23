@@ -1540,7 +1540,8 @@ The available fields are:
  - `hasvid`: Gives priority to formats that have a video stream
  - `hasaud`: Gives priority to formats that have an audio stream
  - `ie_pref`: The format preference
- - `lang`: The language preference
+ - `lang`: The language preference (note that this is an internal value set by the extractor)
+ - `lang_match`: The language
  - `quality`: The quality of the format
  - `source`: The preference of the source
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)

@@ -6249,6 +6249,7 @@ class FormatSorter:
         'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
         'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
         'lang': {'convert': 'float', 'field': 'language_preference', 'default': -1},
+        'lang_match': {'convert': 'string', 'field': 'language', 'type': 'exact_match'},
         'quality': {'convert': 'float', 'default': -1},
         'filesize': {'convert': 'bytes'},
         'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
