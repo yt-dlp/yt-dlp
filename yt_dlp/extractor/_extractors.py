@@ -422,6 +422,10 @@ from .cybrary import (
     CybraryIE,
     CybraryCourseIE
 )
+from .dacast import (
+    DacastIE,
+    DacastPlaylistIE,
+)
 from .daftsex import DaftsexIE
 from .dailymail import DailyMailIE
 from .dailymotion import (
