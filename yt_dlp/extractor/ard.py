@@ -658,7 +658,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'description': description,
             'timestamp': unified_timestamp(player_page.get('broadcastedOn')),
             'series': try_get(player_page, lambda x: x['show']['title']),
-            'thumbnail': try_get(player_page, lambda x: x['image']['src'].replace('w={width}', '')),
+            'thumbnail': media_collection.get('_previewImage') or try_get(player_page, lambda x: x['image']['src'].replace('w={width}', '')),
         })
         info.update(self._ARD_extract_episode_info(info['title']))
         if not info.get('thumbnail'):
