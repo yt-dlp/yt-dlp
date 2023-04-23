@@ -415,6 +415,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
 
         else:
+            self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
             self._cookie_counts['other'] += 1
             return None
 
@@ -445,6 +446,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
 
         else:
+            self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
             self._cookie_counts['other'] += 1
             # other prefixes are considered 'old data' which were stored as plaintext
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_mac.mm
@@ -482,6 +484,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_gcm(ciphertext, self._v10_key, nonce, authentication_tag, self._logger)
 
         else:
+            self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
             self._cookie_counts['other'] += 1
             # any other prefix means the data is DPAPI encrypted
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
