@@ -617,6 +617,9 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
     show {
       title
     }
+    image {
+      src
+    }
     synopsis
     title
     tracking {
@@ -655,6 +658,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'description': description,
             'timestamp': unified_timestamp(player_page.get('broadcastedOn')),
             'series': try_get(player_page, lambda x: x['show']['title']),
+            'thumbnail': try_get(player_page, lambda x: x['image']['src'].replace('{width}', '1280')),
         })
         info.update(self._ARD_extract_episode_info(info['title']))
         if not info.get('thumbnail'):
