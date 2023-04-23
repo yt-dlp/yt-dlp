@@ -666,11 +666,17 @@ class _LinuxDesktopEnvironment(Enum):
     """
     OTHER = auto()
     CINNAMON = auto()
+    DEEPIN = auto()
     GNOME = auto()
-    KDE = auto()
+    KDE3 = auto()
+    KDE4 = auto()
+    KDE5 = auto()
+    KDE6 = auto()
     PANTHEON = auto()
+    UKUI = auto()
     UNITY = auto()
     XFCE = auto()
+    LXQT = auto()
 
 
 class _LinuxKeyring(Enum):
@@ -678,7 +684,8 @@ class _LinuxKeyring(Enum):
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.h
     SelectedLinuxBackend
     """
-    KWALLET = auto()
+    KWALLET5 = auto()
+    KWALLET6 = auto()
     GNOMEKEYRING = auto()
     BASICTEXT = auto()
 
@@ -686,7 +693,7 @@ class _LinuxKeyring(Enum):
 SUPPORTED_KEYRINGS = _LinuxKeyring.__members__.keys()
 
 
-def _get_linux_desktop_environment(env):
+def _get_linux_desktop_environment(env, logger):
     """
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/base/nix/xdg_util.cc
     GetDesktopEnvironment
@@ -701,28 +708,61 @@ def _get_linux_desktop_environment(env):
                 return _LinuxDesktopEnvironment.GNOME
             else:
                 return _LinuxDesktopEnvironment.UNITY
+        elif xdg_current_desktop == 'Deepin':
+            return _LinuxDesktopEnvironment.DEEPIN
         elif xdg_current_desktop == 'GNOME':
             return _LinuxDesktopEnvironment.GNOME
         elif xdg_current_desktop == 'X-Cinnamon':
             return _LinuxDesktopEnvironment.CINNAMON
         elif xdg_current_desktop == 'KDE':
-            return _LinuxDesktopEnvironment.KDE
+            kde_version = env.get('KDE_SESSION_VERSION', None)
+            if kde_version == '5':
+                return _LinuxDesktopEnvironment.KDE5
+            elif kde_version == '6':
+                return _LinuxDesktopEnvironment.KDE6
+            elif kde_version == '4':
+                return _LinuxDesktopEnvironment.KDE4
+            else:
+                logger.info(f'unknown KDE version: "{kde_version}". Assuming KDE4')
+                return _LinuxDesktopEnvironment.KDE4
         elif xdg_current_desktop == 'Pantheon':
             return _LinuxDesktopEnvironment.PANTHEON
         elif xdg_current_desktop == 'XFCE':
             return _LinuxDesktopEnvironment.XFCE
+        elif xdg_current_desktop == 'UKUI':
+            return _LinuxDesktopEnvironment.UKUI
+        elif xdg_current_desktop == 'LXQt':
+            return _LinuxDesktopEnvironment.LXQT
+        else:
+            logger.info(f'XDG_CURRENT_DESKTOP is set to an unknown value: "{xdg_current_desktop}"')
+
     elif desktop_session is not None:
-        if desktop_session in ('mate', 'gnome'):
+        if desktop_session == 'deepin':
+            return _LinuxDesktopEnvironment.DEEPIN
+        elif desktop_session in ('mate', 'gnome'):
             return _LinuxDesktopEnvironment.GNOME
-        elif 'kde' in desktop_session:
-            return _LinuxDesktopEnvironment.KDE
-        elif 'xfce' in desktop_session:
+        elif desktop_session in ('kde4', 'kde-plasma'):
+            return _LinuxDesktopEnvironment.KDE4
+        elif desktop_session == 'kde':
+            if 'KDE_SESSION_VERSION' in env:
+                return _LinuxDesktopEnvironment.KDE4
+            else:
+                return _LinuxDesktopEnvironment.KDE3
+        elif 'xfce' in desktop_session or desktop_session == 'xubuntu':
             return _LinuxDesktopEnvironment.XFCE
+        elif desktop_session == 'ukui':
+            return _LinuxDesktopEnvironment.UKUI
+        else:
+            logger.info(f'DESKTOP_SESSION is set to an unknown value: "{desktop_session}"')
+
     else:
         if 'GNOME_DESKTOP_SESSION_ID' in env:
             return _LinuxDesktopEnvironment.GNOME
         elif 'KDE_FULL_SESSION' in env:
-            return _LinuxDesktopEnvironment.KDE
+            if 'KDE_SESSION_VERSION' in env:
+                return _LinuxDesktopEnvironment.KDE4
+            else:
+                return _LinuxDesktopEnvironment.KDE3
     return _LinuxDesktopEnvironment.OTHER
 
 
@@ -731,10 +771,10 @@ def _choose_linux_keyring(logger):
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.cc
     SelectBackend
     """
-    desktop_environment = _get_linux_desktop_environment(os.environ)
+    desktop_environment = _get_linux_desktop_environment(os.environ, logger)
     logger.debug(f'detected desktop environment: {desktop_environment.name}')
-    if desktop_environment == _LinuxDesktopEnvironment.KDE:
-        linux_keyring = _LinuxKeyring.KWALLET
+    if desktop_environment in (_LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.KDE4, _LinuxDesktopEnvironment.KDE5, _LinuxDesktopEnvironment.KDE6):
+        linux_keyring = _LinuxKeyring.KWALLET5
     elif desktop_environment == _LinuxDesktopEnvironment.OTHER:
         linux_keyring = _LinuxKeyring.BASICTEXT
     else:
@@ -841,7 +881,7 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     keyring = _LinuxKeyring[keyring] if keyring else _choose_linux_keyring(logger)
     logger.debug(f'Chosen keyring: {keyring.name}')
 
-    if keyring == _LinuxKeyring.KWALLET:
+    if keyring == _LinuxKeyring.KWALLET5:
         return _get_kwallet_password(browser_keyring_name, logger)
     elif keyring == _LinuxKeyring.GNOMEKEYRING:
         return _get_gnome_keyring_password(browser_keyring_name, logger)
