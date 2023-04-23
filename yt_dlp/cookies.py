@@ -347,7 +347,9 @@ class ChromeCookieDecryptor:
         Linux:
         - cookies are either v10 or v11
             - v10: AES-CBC encrypted with a fixed key
+                - also attempts empty password if decryption fails
             - v11: AES-CBC encrypted with an OS protected key (keyring)
+                - also attempts empty password if decryption fails
             - v11 keys can be stored in various places depending on the activate desktop environment [2]
 
         Mac:
@@ -463,7 +465,6 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
 
         else:
-            self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
             self._cookie_counts['other'] += 1
             # other prefixes are considered 'old data' which were stored as plaintext
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_mac.mm
@@ -501,7 +502,6 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_gcm(ciphertext, self._v10_key, nonce, authentication_tag, self._logger)
 
         else:
-            self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
             self._cookie_counts['other'] += 1
             # any other prefix means the data is DPAPI encrypted
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
@@ -887,6 +887,7 @@ def _get_kwallet_password(browser_keyring_name, keyring, logger):
                 # while starting chrome.
                 # this was identified as a bug later and fixed in
                 # https://chromium.googlesource.com/chromium/src/+/bbd54702284caca1f92d656fdcadf2ccca6f4165%5E%21/#F0
+                # https://chromium.googlesource.com/chromium/src/+/5463af3c39d7f5b6d11db7fbd51e38cc1974d764
                 return b''
             else:
                 logger.debug('password found')
