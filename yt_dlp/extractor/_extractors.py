@@ -685,6 +685,13 @@ from .gfycat import GfycatIE
 from .giantbomb import GiantBombIE
 from .giga import GigaIE
 from .glide import GlideIE
+from .globalplayer import (
+    GlobalPlayerLiveIE,
+    GlobalPlayerLivePlaylistIE,
+    GlobalPlayerAudioIE,
+    GlobalPlayerAudioEpisodeIE,
+    GlobalPlayerVideoIE
+)
 from .globo import (
     GloboIE,
     GloboArticleIE,
