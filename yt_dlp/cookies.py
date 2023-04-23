@@ -936,6 +936,10 @@ def _get_mac_keyring_password(browser_keyring_name, logger):
 
 
 def _get_windows_v10_key(browser_root, logger):
+    """
+    References:
+        - [1] https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/os_crypt_win.cc
+    """
     path = _find_most_recently_used_file(browser_root, 'Local State', logger)
     if path is None:
         logger.error('could not find local state file')
@@ -944,11 +948,13 @@ def _get_windows_v10_key(browser_root, logger):
     with open(path, encoding='utf8') as f:
         data = json.load(f)
     try:
+        # kOsCryptEncryptedKeyPrefName in [1]
         base64_key = data['os_crypt']['encrypted_key']
     except KeyError:
         logger.error('no encrypted key in Local State')
         return None
     encrypted_key = base64.b64decode(base64_key)
+    # kDPAPIKeyPrefix in [1]
     prefix = b'DPAPI'
     if not encrypted_key.startswith(prefix):
         logger.error('invalid key')
