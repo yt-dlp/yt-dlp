@@ -384,6 +384,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger, *, keyring=None):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
+        self._empty_key = self.derive_key(b'')
         self._cookie_counts = {'v10': 0, 'v11': 0, 'other': 0}
         self._browser_keyring_name = browser_keyring_name
         self._keyring = keyring
@@ -400,19 +401,35 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1, key_length=16)
 
     def decrypt(self, encrypted_value):
+        """
+
+        following the same approach as the fix in [1]: if cookies fail to decrypt then attempt to decrypt
+        with an empty password. The failure detection is not the same as what chromium uses so the
+        results won't be perfect
+
+        References:
+            - [1] https://chromium.googlesource.com/chromium/src/+/bbd54702284caca1f92d656fdcadf2ccca6f4165%5E%21/
+                - a bugfix to try an empty password as a fallback
+        """
         version = encrypted_value[:3]
         ciphertext = encrypted_value[3:]
 
         if version == b'v10':
             self._cookie_counts['v10'] += 1
-            return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
+            plaintext = _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
+            if plaintext is None:
+                plaintext = _decrypt_aes_cbc(ciphertext, self._empty_key, self._logger)
+            return plaintext
 
         elif version == b'v11':
             self._cookie_counts['v11'] += 1
             if self._v11_key is None:
                 self._logger.warning('cannot decrypt v11 cookies: no key found', only_once=True)
                 return None
-            return _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
+            plaintext = _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
+            if plaintext is None:
+                plaintext = _decrypt_aes_cbc(ciphertext, self._empty_key, self._logger)
+            return plaintext
 
         else:
             self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
