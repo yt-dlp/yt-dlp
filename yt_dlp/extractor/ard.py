@@ -658,12 +658,13 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'description': description,
             'timestamp': unified_timestamp(player_page.get('broadcastedOn')),
             'series': try_get(player_page, lambda x: x['show']['title']),
-            'thumbnail': media_collection.get('_previewImage') or try_get(player_page, lambda x: x['image']['src'].replace('w={width}', '')),
+            'thumbnail': media_collection.get('_previewImage') or try_get(player_page, lambda x: x['image']['src'].replace('w={width}', '')) or self.get_thumbnail_from_html(display_id, url),
         })
         info.update(self._ARD_extract_episode_info(info['title']))
-        if not info.get('thumbnail'):
-            webpage = self._download_webpage(url, display_id, fatal=False) or ''
-            info['thumbnail'] = (
-                self._og_search_thumbnail(webpage, default=None)
-                or self._html_search_meta('thumbnailUrl', webpage, default=None))
         return info
+
+    def get_thumbnail_from_html(self, display_id, url):
+        webpage = self._download_webpage(url, display_id, fatal=False) or ''
+        return (
+            self._og_search_thumbnail(webpage, default=None)
+            or self._html_search_meta('thumbnailUrl', webpage, default=None))
