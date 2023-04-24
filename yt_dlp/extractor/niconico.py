@@ -692,8 +692,9 @@ class NiconicoSeriesIE(InfoExtractor):
         if title:
             title = unescapeHTML(title)
         json_data = next(self._yield_json_ld(webpage, None, fatal=False))
-        playlist = [self.url_result(item['url']) for item in json_data['itemListElement']]
-        return self.playlist_result(playlist, list_id, title)
+        return self.playlist_from_matches(
+            [item['url'] for item in json_data['itemListElement']],
+            playlist_id=list_id, playlist_title=title, ie=NiconicoIE.ie_key())
 
 
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
