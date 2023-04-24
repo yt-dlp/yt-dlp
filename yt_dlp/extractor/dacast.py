@@ -12,8 +12,26 @@ from ..utils import (
 )
 
 
-class DacastIE(InfoExtractor):
-    _VALID_URL = r'https?://iframe\.dacast\.com/vod/(?P<user_id>[\w-]+)/(?P<id>[\w-]+)'
+class DacastBaseIE(InfoExtractor):
+    _URL_TYPE = None
+    _VALID_URL_TMPL = r'https?://iframe\.dacast\.com/%s/(?P<user_id>[\w-]+)/(?P<id>[\w-]+)'
+    _API_INFO_URL = 'https://playback.dacast.com/content/info'
+
+    @classmethod
+    def _get_url_from_id(cls, content_id):
+        user_id, media_id = content_id.split(f'-{cls._URL_TYPE}-')
+        return f'https://iframe.dacast.com/{cls._URL_TYPE}/{user_id}/{media_id}'
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for content_id in re.findall(
+                rf'<script[^>]+\bsrc=["\']https://player\.dacast\.com/js/player\.js\?contentId=([\w-]+-{cls._URL_TYPE}-[\w-]+)["\']', webpage):
+            yield cls._get_url_from_id(content_id)
+
+
+class DacastVODIE(DacastBaseIE):
+    _URL_TYPE = 'vod'
+    _VALID_URL = DacastBaseIE._VALID_URL_TMPL % _URL_TYPE
     _TESTS = [{
         'url': 'https://iframe.dacast.com/vod/acae82153ef4d7a7344ae4eaa86af534/1c6143e3-5a06-371d-8695-19b96ea49090',
         'info_dict': {
@@ -26,23 +44,10 @@ class DacastIE(InfoExtractor):
         'params': {'skip_download': 'm3u8'},
     }]
 
-    @staticmethod
-    def _get_url_from_id(content_id):
-        url_type = 'playlist' if '-playlist-' in content_id else 'vod'
-        user_id, media_id = content_id.split(f'-{url_type}-')
-        return f'https://iframe.dacast.com/{url_type}/{user_id}/{media_id}'
-
-    @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        for content_id in re.findall(
-                r'<script[^>]+\bsrc=["\']https://player\.dacast\.com/js/player\.js\?contentId=([\w-]+-vod-[\w-]+)["\']', webpage):
-            yield DacastIE._get_url_from_id(content_id)
-
     def _real_extract(self, url):
         user_id, video_id = self._match_valid_url(url).group('user_id', 'id')
         query = {'contentId': f'{user_id}-vod-{video_id}', 'provider': 'universe'}
-        info = self._download_json(
-            'https://playback.dacast.com/content/info', video_id, query=query, fatal=False)
+        info = self._download_json(self._API_INFO_URL, video_id, query=query, fatal=False)
         access = self._download_json(
             'https://playback.dacast.com/content/access', video_id,
             note='Downloading access JSON', query=query, expected_status=403)
@@ -88,8 +93,9 @@ class DacastIE(InfoExtractor):
         }
 
 
-class DacastPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://iframe\.dacast\.com/playlist/(?P<user_id>[\w-]+)/(?P<id>[\w-]+)'
+class DacastPlaylistIE(DacastBaseIE):
+    _URL_TYPE = 'playlist'
+    _VALID_URL = DacastBaseIE._VALID_URL_TMPL % _URL_TYPE
     _TESTS = [{
         'url': 'https://iframe.dacast.com/playlist/943bb1ab3c03695ba85330d92d6d226e/b632eb053cac17a9c9a02bcfc827f2d8',
         'playlist_mincount': 28,
@@ -99,16 +105,10 @@ class DacastPlaylistIE(InfoExtractor):
         },
     }]
 
-    @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        for content_id in re.findall(
-                r'<script[^>]+\bsrc=["\']https://player\.dacast\.com/js/player\.js\?contentId=([\w-]+-playlist-[\w-]+)["\']', webpage):
-            yield DacastIE._get_url_from_id(content_id)
-
     def _real_extract(self, url):
         user_id, playlist_id = self._match_valid_url(url).group('user_id', 'id')
         info = self._download_json(
-            'https://playback.dacast.com/content/info', playlist_id, query={
+            self._API_INFO_URL, playlist_id, note='Downloading playlist JSON', query={
                 'contentId': f'{user_id}-playlist-{playlist_id}',
                 'provider': 'universe',
             })['contentInfo']
@@ -116,6 +116,6 @@ class DacastPlaylistIE(InfoExtractor):
         def entries(info):
             for video in traverse_obj(info, ('features', 'playlist', 'contents', lambda _, v: v['id'])):
                 yield self.url_result(
-                    DacastIE._get_url_from_id(video['id']), DacastIE, video['id'], video.get('title'))
+                    DacastVODIE._get_url_from_id(video['id']), DacastVODIE, video['id'], video.get('title'))
 
         return self.playlist_result(entries(info), playlist_id, info.get('title'))

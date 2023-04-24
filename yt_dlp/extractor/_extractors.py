@@ -423,7 +423,7 @@ from .cybrary import (
     CybraryCourseIE
 )
 from .dacast import (
-    DacastIE,
+    DacastVODIE,
     DacastPlaylistIE,
 )
 from .daftsex import DaftsexIE
