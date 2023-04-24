@@ -822,6 +822,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title&foo|baz)s.bar', 'baz.bar')
         test('%(x,id&foo|baz)s.bar', 'foo.bar')
         test('%(x,title&foo|baz)s.bar', 'baz.bar')
+        test('%(title&\n|)s', '\n')
 
         # Laziness
         def gen():

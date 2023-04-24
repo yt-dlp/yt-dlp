@@ -243,7 +243,7 @@ def create_parser():
         if multiple_keys:
             allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
+            fr'(?is)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')

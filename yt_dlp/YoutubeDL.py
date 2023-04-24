@@ -1156,7 +1156,7 @@ class YoutubeDL:
         }
         MATH_FIELD_RE = rf'(?:{FIELD_RE}|-?{NUMBER_RE})'
         MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
-        INTERNAL_FORMAT_RE = re.compile(rf'''(?x)
+        INTERNAL_FORMAT_RE = re.compile(rf'''(?xs)
             (?P<negate>-)?
             (?P<fields>{FIELD_RE})
             (?P<maths>(?:{MATH_OPERATORS_RE}{MATH_FIELD_RE})*)
