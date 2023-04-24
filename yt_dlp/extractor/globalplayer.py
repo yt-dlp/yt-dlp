@@ -17,6 +17,10 @@ class GlobalPlayerBaseIE(InfoExtractor):
         data = self._search_nextjs_data(webpage, video_id)
         return traverse_obj(data, ('props', 'pageProps'))
 
+    def _request_ext(self, url, video_id):
+        urlh = self._request_webpage(url, video_id, note='Determining source extension')
+        return urlhandle_detect_ext(urlh)
+
     def _extract_audio(self, episode, series):
         return {
             'vcodec': 'none',
@@ -80,10 +84,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         station = self._get_pageProps(url, video_id)['station']
-
         url = station['streamUrl']
-        urlh = self._request_webpage(url, video_id, note='Determining source extension')
-        ext = urlhandle_detect_ext(urlh)
 
         display_id = [station.get('brandSlug'), station.get('slug')]
         if None not in display_id:
@@ -95,7 +96,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'id': station['id'],
             'display_id': display_id,
             'url': url,
-            'ext': ext,
+            'ext': self._request_ext(url, video_id),
             'vcodec': 'none',
             'is_live': True,
             **traverse_obj(station, {
@@ -127,14 +128,11 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         station = self._get_pageProps(url, video_id)['playlistData']
-
         url = station['streamUrl']
-        urlh = self._request_webpage(url, video_id, note='Determining source extension')
-        ext = urlhandle_detect_ext(urlh)
 
         return {
             'url': url,
-            'ext': ext,
+            'ext': self._request_ext(url, video_id),
             'vcodec': 'none',
             'is_live': True,
             **traverse_obj(station, {
