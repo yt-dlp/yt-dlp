@@ -2016,7 +2016,7 @@ Line 1
                          msg='nested `...` queries should work')
         self.assertCountEqual(traverse_obj(_TEST_DATA, (..., ..., 'index')), range(4),
                               msg='`...` query result should be flattened')
-        self.assertEqual(traverse_obj(range(4), ...), range(4),
+        self.assertEqual(traverse_obj(range(4), ...), list(range(4)),
                          msg='`...` should accept iterables')
 
         # Test function as key
