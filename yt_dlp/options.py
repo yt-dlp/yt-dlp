@@ -34,6 +34,7 @@ from .utils import (
     join_nonempty,
     orderedSet_from_options,
     remove_end,
+    variadic,
     write_string,
 )
 from .version import CHANNEL, __version__
@@ -250,7 +251,7 @@ def create_parser():
             if multiple_args:
                 val = [val, *value[1:]]
         elif default_key is not None:
-            keys, val = default_key if isinstance(default_key, list) else [default_key], value
+            keys, val = variadic(default_key), value
         else:
             raise optparse.OptionValueError(
                 f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
@@ -441,9 +442,8 @@ def create_parser():
     general.add_option(
         '--no-colors', '--no-colours',
         action='store_const', dest='color', const={
-            'screen': 'nocolor',
-            'stdout': 'nocolor',
-            'stderr': 'nocolor',
+            'stdout': 'no_color',
+            'stderr': 'no_color',
         },
         help=optparse.SUPPRESS_HELP)
     general.add_option(
@@ -451,14 +451,14 @@ def create_parser():
         dest='color', metavar='[STREAM:]POLICY', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'screen|stdout|stderr',
-            'default_key': ['screen', 'stdout', 'stderr'],
+            'allowed_keys': 'stdout|stderr',
+            'default_key': ['stdout', 'stderr'],
             'process': str.strip,
         }, help=(
             'A mapping with output stream names as keys and their respective color policy as values. '
             'Can also just be a single color policy, in which case it applies to all outputs. '
-            'STREAM is one of "screen", "stdout" and "stderr". '
-            'POLICY is one of "always", "auto" (default), "nocolor" and "never"'))
+            'STREAM is one of "stdout" and "stderr". '
+            'POLICY is one of "always", "auto" (default), "no_color" and "never"'))
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',

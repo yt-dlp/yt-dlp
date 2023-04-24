@@ -419,9 +419,8 @@ class YoutubeDL:
                        and their respective color policy as values.
                        Can also just be a single color policy,
                        in which case it applies to all outputs.
-                       Valid stream names are 'screen', 'stdout' and 'stderr'.
-                       Valid color policies are one of 'always', 'auto', 'nocolor' or 'never'.
-    no_color:          Same as `color='nocolor'`.
+                       Valid stream names are 'stdout' and 'stderr'.
+                       Valid color policies are one of 'always', 'auto', 'no_color' or 'never'.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
                        HTTP header
     geo_bypass_country:
@@ -543,6 +542,7 @@ class YoutubeDL:
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
                        care about HLS. (only for youtube)
+    no_color:          Same as `color='no_color'`
     """
 
     _NUMERIC_FIELDS = {
@@ -609,31 +609,24 @@ class YoutubeDL:
         except Exception as e:
             self.write_debug(f'Failed to enable VT mode: {e}')
 
-        color_policy = self.params.get('color') or {}
-        self.params['color'] = {
-            name: (
-                'nocolor' if self.params.get('no_color') else
-                color_policy if isinstance(color_policy, str) else
-                color_policy.get(name) or 'auto')
-            for name in ('screen', 'stdout', 'stderr')
-        }
+        if self.params.get('no_color'):
+            if self.params.get('color') is not None:
+                self.report_warning('Using')
+            self.params['color'] = 'no_color'
+
         term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
 
-        def process_color_policy(name, stream):
-            policy = self.params['color'].get(name)
-            if policy == 'never':
-                return False
-            if policy == 'always':
-                return True
-            if policy == 'nocolor':
-                return 'nocolor'
-            return term_allow_color and supports_terminal_sequences(stream)
+        def process_color_policy(stream):
+            stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}.get(stream)
+            policy = traverse_obj(self.params, ('color', (stream_name, None)), get_all=False)
+            if policy not in (True, False, 'no_color'):
+                return term_allow_color and supports_terminal_sequences(stream)
+            return policy
 
-        self._allow_colors = Namespace(
-            out=process_color_policy('stdout', self._out_files.out),
-            error=process_color_policy('stderr', self._out_files.error),
-            screen=process_color_policy('screen', self._out_files.screen),
-        )
+        self._allow_colors = Namespace(**{
+            name: process_color_policy(stream)
+            for name, stream in self._out_files.items_ if name != 'console'
+        })
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
@@ -1002,7 +995,7 @@ class YoutubeDL:
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
-        return format_text(text, f) if allow_colors and allow_colors != 'nocolor' else text if fallback is None else fallback
+        return format_text(text, f) if allow_colors is True else text if fallback is None else fallback
 
     def _format_out(self, *args, **kwargs):
         return self._format_text(self._out_files.out, self._allow_colors.out, *args, **kwargs)
