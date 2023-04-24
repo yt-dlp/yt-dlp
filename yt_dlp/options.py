@@ -1079,8 +1079,12 @@ def create_parser():
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
         '-q', '--quiet',
-        action='store_true', dest='quiet', default=False,
+        action='store_true', dest='quiet', default=None,
         help='Activate quiet mode. If used with --verbose, print the log to stderr')
+    verbosity.add_option(
+        '--no-quiet',
+        action='store_false', dest='quiet',
+        help='Deactivate quiet mode. (Default)')
     verbosity.add_option(
         '--no-warnings',
         dest='no_warnings', action='store_true', default=False,

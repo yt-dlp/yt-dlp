@@ -704,7 +704,8 @@ def parse_options(argv=None):
         'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
     ))
-    opts.quiet = opts.quiet or any_getting or opts.print_json or bool(opts.forceprint)
+    if opts.quiet is None:
+        opts.quiet = any_getting or opts.print_json or bool(opts.forceprint)
 
     playlist_pps = [pp for pp in postprocessors if pp.get('when') == 'playlist']
     write_playlist_infojson = (opts.writeinfojson and not opts.clean_infojson

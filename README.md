@@ -752,6 +752,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
 ## Verbosity and Simulation Options:
     -q, --quiet                     Activate quiet mode. If used with --verbose,
                                     print the log to stderr
+    --no-quiet                      Deactivate quiet mode. (Default)
     --no-warnings                   Ignore warnings
     -s, --simulate                  Do not download the video and do not write
                                     anything to disk
