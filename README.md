@@ -452,15 +452,11 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     specified by --proxy (or none, if the option
                                     is not present) is used for the actual
                                     downloading
-    --geo-bypass                    Bypass geographic restriction via faking
-                                    X-Forwarded-For HTTP header (default)
-    --no-geo-bypass                 Do not bypass geographic restriction via
-                                    faking X-Forwarded-For HTTP header
-    --geo-bypass-country CODE       Force bypass geographic restriction with
-                                    explicitly provided two-letter ISO 3166-2
-                                    country code
-    --geo-bypass-ip-block IP_BLOCK  Force bypass geographic restriction with
-                                    explicitly provided IP block in CIDR notation
+    --xff VALUE                     How to fake X-Forwarded-For HTTP header to
+                                    try bypassing geographic restriction. One of
+                                    "default" (Only when known to be useful),
+                                    "never", a two-letter ISO 3166-2 country
+                                    code, or an IP block in CIDR notation
 
 ## Video Selection:
     -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
@@ -741,6 +737,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
 ## Verbosity and Simulation Options:
     -q, --quiet                     Activate quiet mode. If used with --verbose,
                                     print the log to stderr
+    --no-quiet                      Deactivate quiet mode. (Default)
     --no-warnings                   Ignore warnings
     -s, --simulate                  Do not download the video and do not write
                                     anything to disk
@@ -1235,7 +1232,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Alternatives**: Alternate fields can be specified separated with a `,`. E.g. `%(release_date>%Y,upload_date>%Y|Unknown)s`
 
-1. **Replacement**: A replacement value can be specified using a `&` separator. If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty.
+1. **Replacement**: A replacement value can be specified using a `&` separator according to the [`str.format` mini-language](https://docs.python.org/3/library/string.html#format-specification-mini-language). If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty. E.g. `%(chapters&has chapters|no chapters)s`, `%(title&TITLE={:>20}|NO TITLE)s`
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
@@ -2156,6 +2153,10 @@ While these options still work, their use is not recommended since there are oth
     --youtube-skip-hls-manifest      --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
     --youtube-include-hls-manifest   Default (Alias: --no-youtube-skip-hls-manifest)
+    --geo-bypass                     --xff "default"
+    --no-geo-bypass                  --xff "never"
+    --geo-bypass-country CODE        --xff CODE
+    --geo-bypass-ip-block IP_BLOCK   --xff IP_BLOCK
 
 
 #### Developer options

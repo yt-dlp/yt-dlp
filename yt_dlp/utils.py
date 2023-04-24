@@ -5529,7 +5529,6 @@ def traverse_obj(
                             If no `default` is given and the last path branches, a `list` of results
                             is always returned. If a path ends on a `dict` that result will always be a `dict`.
     """
-    is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
 
     if isinstance(expected_type, type):
@@ -5565,7 +5564,7 @@ def traverse_obj(
             branching = True
             if isinstance(obj, collections.abc.Mapping):
                 result = obj.values()
-            elif is_sequence(obj):
+            elif isinstance(obj, collections.abc.Iterable) and not isinstance(obj, (str, bytes)):
                 result = obj
             elif isinstance(obj, re.Match):
                 result = obj.groups()
@@ -5579,7 +5578,7 @@ def traverse_obj(
             branching = True
             if isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
-            elif is_sequence(obj):
+            elif isinstance(obj, collections.abc.Iterable) and not isinstance(obj, (str, bytes)):
                 iter_obj = enumerate(obj)
             elif isinstance(obj, re.Match):
                 iter_obj = itertools.chain(
@@ -5615,7 +5614,7 @@ def traverse_obj(
                 result = next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
 
         elif isinstance(key, (int, slice)):
-            if is_sequence(obj):
+            if isinstance(obj, collections.abc.Sequence) and not isinstance(obj, (str, bytes)):
                 branching = isinstance(key, slice)
                 with contextlib.suppress(IndexError):
                     result = obj[key]

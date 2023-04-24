@@ -21,7 +21,7 @@ import tokenize
 import traceback
 import unicodedata
 import urllib.request
-from string import ascii_letters
+from string import Formatter, ascii_letters
 
 from .cache import Cache
 from .compat import compat_os_name, compat_shlex_quote
@@ -1156,7 +1156,7 @@ class YoutubeDL:
         }
         MATH_FIELD_RE = rf'(?:{FIELD_RE}|-?{NUMBER_RE})'
         MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
-        INTERNAL_FORMAT_RE = re.compile(rf'''(?x)
+        INTERNAL_FORMAT_RE = re.compile(rf'''(?xs)
             (?P<negate>-)?
             (?P<fields>{FIELD_RE})
             (?P<maths>(?:{MATH_OPERATORS_RE}{MATH_FIELD_RE})*)
@@ -1237,6 +1237,14 @@ class YoutubeDL:
                 return list(obj)
             return repr(obj)
 
+        class _ReplacementFormatter(Formatter):
+            def get_field(self, field_name, args, kwargs):
+                if field_name.isdigit():
+                    return args[0], -1
+                raise ValueError('Unsupported field')
+
+        replacement_formatter = _ReplacementFormatter()
+
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
                 return outer_mobj.group(0)
@@ -1258,7 +1266,13 @@ class YoutubeDL:
             if fmt == 's' and value is not None and key in field_size_compat_map.keys():
                 fmt = f'0{field_size_compat_map[key]:d}d'
 
-            value = default if value is None else value if replacement is None else replacement
+            if value is None:
+                value = default
+            elif replacement is not None:
+                try:
+                    value = replacement_formatter.format(replacement, value)
+                except ValueError:
+                    value = na
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
