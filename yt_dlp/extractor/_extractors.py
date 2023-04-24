@@ -721,7 +721,6 @@ from .hearthisat import HearThisAtIE
 from .heise import HeiseIE
 from .hellporno import HellPornoIE
 from .helsinki import HelsinkiIE
-from .hentaistigma import HentaiStigmaIE
 from .hgtv import HGTVComShowIE
 from .hketv import HKETVIE
 from .hidive import HiDiveIE
