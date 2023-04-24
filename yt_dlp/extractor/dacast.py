@@ -65,7 +65,6 @@ class DacastIE(InfoExtractor):
                 f'{10413792000 - ts}{ts}YfaKtquEEpDeusCKbvYszIEZnWmBcSvw').digest().hex()
             hls_aes['uri'] = f'https://keys.dacast.com/uspaes/{video_id}.key?s={signature}&ts={ts}'
 
-        formats = []
         for retry in self.RetryManager():
             try:
                 formats = self._extract_m3u8_formats(hls_url, video_id, 'mp4', m3u8_id='hls')
