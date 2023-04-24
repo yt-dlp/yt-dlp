@@ -421,8 +421,13 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-wait-for-video             Do not wait for scheduled streams (default)
     --mark-watched                  Mark videos watched (even with --simulate)
     --no-mark-watched               Do not mark videos watched (default)
-    --no-colors                     Do not emit color codes in output (Alias:
-                                    --no-colours)
+    --color [STREAM:]POLICY         A mapping with output stream names as keys
+                                    and their respective color policy as values.
+                                    Can also just be a single color policy, in
+                                    which case it applies to all outputs. STREAM
+                                    is one of "screen", "stdout" and "stderr".
+                                    POLICY is one of "always", "auto" (default),
+                                    "nocolor" and "never"
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
@@ -2168,6 +2173,7 @@ While these options still work, their use is not recommended since there are oth
     --no-geo-bypass                  --xff "never"
     --geo-bypass-country CODE        --xff CODE
     --geo-bypass-ip-block IP_BLOCK   --xff IP_BLOCK
+    --no-colors                      --color nocolor
 
 
 #### Developer options

@@ -893,7 +893,7 @@ def parse_options(argv=None):
         'playlist_items': opts.playlist_items,
         'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
-        'no_color': opts.no_color,
+        'color': opts.color,
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
