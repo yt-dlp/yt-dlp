@@ -660,10 +660,10 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
 
 class NiconicoSeriesIE(InfoExtractor):
     IE_NAME = 'niconico:series'
-    _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp|nico\.ms)/series/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp(?:/user/\d+)?|nico\.ms)/series/(?P<id>\d+)'
 
     _TESTS = [{
-        'url': 'https://www.nicovideo.jp/series/110226',
+        'url': 'https://www.nicovideo.jp/user/44113208/series/110226',
         'info_dict': {
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
@@ -683,7 +683,7 @@ class NiconicoSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        webpage = self._download_webpage(f'https://www.nicovideo.jp/series/{list_id}', list_id)
+        webpage = self._download_webpage(url, list_id)
 
         title = self._search_regex(
             (r'<title>「(.+)（全',
@@ -693,7 +693,7 @@ class NiconicoSeriesIE(InfoExtractor):
             title = unescapeHTML(title)
         playlist = [
             self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
-            for v_id in re.findall(r'data-href=[\'"](?:https://www\.nicovideo\.jp)?/watch/([a-z0-9]+)', webpage)]
+            for v_id in re.findall(r',[\'"]url[\'"]:[\'"]https:\\/\\/www.nicovideo.jp\\/watch\\/([a-z0-9]+)', webpage)]
         return self.playlist_result(playlist, list_id, title)
 
 
