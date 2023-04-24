@@ -1621,6 +1621,11 @@ from .rtnews import (
 from .rtp import RTPIE
 from .rtrfm import RTRFMIE
 from .rts import RTSIE
+from .rtvcplay import (
+    RTVCPlayIE,
+    RTVCPlayEmbedIE,
+    RTVCKalturaIE,
+)
 from .rtve import (
     RTVEALaCartaIE,
     RTVEAudioIE,
@@ -1690,6 +1695,7 @@ from .scte import (
 )
 from .scrolller import ScrolllerIE
 from .seeker import SeekerIE
+from .senalcolombia import SenalColombiaLiveIE
 from .senategov import SenateISVPIE, SenateGovIE
 from .sendtonews import SendtoNewsIE
 from .servus import ServusIE
