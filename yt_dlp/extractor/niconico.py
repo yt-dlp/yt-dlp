@@ -691,9 +691,8 @@ class NiconicoSeriesIE(InfoExtractor):
             webpage, 'title', fatal=False)
         if title:
             title = unescapeHTML(title)
-        playlist = [
-            self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
-            for v_id in re.findall(r'[\'"]url[\'"]:[\'"]https:\\/\\/www.nicovideo.jp\\/watch\\/([a-z0-9]+)', webpage)]
+        json_data = next(self._yield_json_ld(webpage, None, fatal=False))
+        playlist = [self.url_result(item['url']) for item in json_data['itemListElement']]
         return self.playlist_result(playlist, list_id, title)
 
 
