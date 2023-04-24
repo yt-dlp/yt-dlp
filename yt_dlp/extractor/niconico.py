@@ -693,7 +693,7 @@ class NiconicoSeriesIE(InfoExtractor):
             title = unescapeHTML(title)
         playlist = [
             self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
-            for v_id in re.findall(r',[\'"]url[\'"]:[\'"]https:\\/\\/www.nicovideo.jp\\/watch\\/([a-z0-9]+)', webpage)]
+            for v_id in re.findall(r'[\'"]url[\'"]:[\'"]https:\\/\\/www.nicovideo.jp\\/watch\\/([a-z0-9]+)', webpage)]
         return self.playlist_result(playlist, list_id, title)
 
 
