@@ -463,15 +463,11 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     specified by --proxy (or none, if the option
                                     is not present) is used for the actual
                                     downloading
-    --geo-bypass                    Bypass geographic restriction via faking
-                                    X-Forwarded-For HTTP header (default)
-    --no-geo-bypass                 Do not bypass geographic restriction via
-                                    faking X-Forwarded-For HTTP header
-    --geo-bypass-country CODE       Force bypass geographic restriction with
-                                    explicitly provided two-letter ISO 3166-2
-                                    country code
-    --geo-bypass-ip-block IP_BLOCK  Force bypass geographic restriction with
-                                    explicitly provided IP block in CIDR notation
+    --xff VALUE                     How to fake X-Forwarded-For HTTP header to
+                                    try bypassing geographic restriction. One of
+                                    "default" (Only when known to be useful),
+                                    "never", a two-letter ISO 3166-2 country
+                                    code, or an IP block in CIDR notation
 
 ## Video Selection:
     -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
@@ -2168,6 +2164,10 @@ While these options still work, their use is not recommended since there are oth
     --youtube-skip-hls-manifest      --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
     --youtube-include-hls-manifest   Default (Alias: --no-youtube-skip-hls-manifest)
+    --geo-bypass                     --xff "default"
+    --no-geo-bypass                  --xff "never"
+    --geo-bypass-country CODE        --xff CODE
+    --geo-bypass-ip-block IP_BLOCK   --xff IP_BLOCK
 
 
 #### Developer options

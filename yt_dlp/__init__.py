@@ -396,12 +396,17 @@ def validate_options(opts):
         except Exception as err:
             raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
 
-    geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
-    if geo_bypass_code is not None:
+    opts.geo_bypass_country, opts.geo_bypass_ip_block = None, None
+    if opts.geo_bypass.lower() not in ('default', 'never'):
         try:
-            GeoUtils.random_ipv4(geo_bypass_code)
+            GeoUtils.random_ipv4(opts.geo_bypass)
         except Exception:
-            raise ValueError('unsupported geo-bypass country or ip-block')
+            raise ValueError(f'Unsupported --xff "{opts.geo_bypass}"')
+        if len(opts.geo_bypass) == 2:
+            opts.geo_bypass_country = opts.geo_bypass
+        else:
+            opts.geo_bypass_ip_block = opts.geo_bypass
+    opts.geo_bypass = opts.geo_bypass.lower() != 'never'
 
     opts.match_filter = match_filter_func(opts.match_filter, opts.breaking_match_filter)
 
