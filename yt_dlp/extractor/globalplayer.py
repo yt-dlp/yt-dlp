@@ -79,8 +79,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        props = self._get_pageProps(url, video_id)
-        station = props['station']
+        station = self._get_pageProps(url, video_id)['station']
 
         url = station['streamUrl']
         urlh = self._request_webpage(url, video_id, note='Determining source extension')
@@ -127,8 +126,7 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        props = self._get_pageProps(url, video_id)
-        station = props['playlistData']
+        station = self._get_pageProps(url, video_id)['playlistData']
 
         url = station['streamUrl']
         urlh = self._request_webpage(url, video_id, note='Determining source extension')
