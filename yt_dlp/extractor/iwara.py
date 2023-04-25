@@ -19,7 +19,7 @@ from ..utils import (
 class IwaraBaseIE(InfoExtractor):
     _USERTOKEN = None
     _MEDIATOKEN = None
-    _NETRC_MACHINE = "iwara"
+    _NETRC_MACHINE = 'iwara'
 
     def _get_user_token(self, invalidate=False):
         if not invalidate and self._USERTOKEN:
@@ -143,25 +143,18 @@ class IwaraIE(IwaraBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         username, password = self._get_login_info()
-        if username and password:
-            headers = {
-                'Authorization': f'Bearer {self._get_media_token()}',
-                'Content-Type': 'application/json'
-            }
-        else:
-            headers = {
-                'Content-Type': 'application/json'
-            }
+        headers = {
+            'Authorization': f'Bearer {self._get_media_token()}',
+        } if username and password else None
         video_data = self._download_json(f'https://api.iwara.tv/video/{video_id}', video_id, expected_status=lambda x: True, headers=headers)
         errmsg = video_data.get('message')
         # at this point we can actually get uploaded user info, but do we need it?
         if errmsg == 'errors.privateVideo':
             self.raise_login_required('Private video. Login if you have permissions to watch')
-        elif errmsg == 'errors.notFound':
-            if not username:
-                self.raise_login_required('Video may need login to view')
-            else:
-                raise ExtractorError('Iwara says: ' + errmsg)
+        elif errmsg == 'errors.notFound' and not username:
+            self.raise_login_required('Video may need login to view')
+        elif errmsg: # None if success
+            raise ExtractorError(f'Iwara says: {errmsg}')
 
         if not video_data.get('fileUrl'):
             if video_data.get('embedUrl'):
