@@ -275,9 +275,10 @@ class WeverseIE(WeverseBaseIE):
         api_video_id = post['extension']['video']['videoId']
         availability = self._extract_availability(post)
         live_status = self._extract_live_status(post)
+        video_info, formats = {}, []
 
         if live_status == 'is_upcoming':
-            raise UserNotLive(video_id=video_id)
+            self.raise_no_formats('Livestream has not yet started', expected=True)
 
         elif live_status == 'is_live':
             video_info = self._call_api(
@@ -289,7 +290,6 @@ class WeverseIE(WeverseBaseIE):
             formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls', live=True)
 
         elif live_status == 'post_live':
-            video_info, formats = {}, []
             if availability in ('premium_only', 'subscriber_only'):
                 self.report_drm(video_id)
             self.raise_no_formats(
@@ -595,7 +595,7 @@ class WeverseLiveIE(WeverseBaseIE):
                 'fields': 'onAirLivePosts.fieldSet(postsV1).limit(10),reservedLivePosts.fieldSet(postsV1).limit(10)',
             }), channel, note='Downloading live JSON'), (
                 ('onAirLivePosts', 'reservedLivePosts'), 'data',
-                lambda _, v: self._extract_live_status(v) == 'is_live', 'postId', {str}),
+                lambda _, v: self._extract_live_status(v) in ('is_live', 'is_upcoming'), 'postId', {str}),
             get_all=False)
 
         if not video_id:
