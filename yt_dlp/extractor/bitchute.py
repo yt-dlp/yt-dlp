@@ -77,7 +77,10 @@ class BitChuteIE(InfoExtractor):
     def _check_format(self, video_url, video_id):
         urls = orderedSet(
             re.sub(r'(^https?://)(seed\d+)(?=\.bitchute\.com)', fr'\g<1>{host}', video_url)
-            for host in (r'\g<2>', 'seed150', 'seed151', 'seed152', 'seed153'))
+            for host in (r'\g<2>', 'seed122', 'seed125', 'seed126', 'seed128',
+                         'seed132', 'seed150', 'seed151', 'seed152', 'seed153',
+                         'seed167', 'seed171', 'seed177', 'seed305', 'seed307',
+                         'seedp29xb', 'zb10-7gsop1v78'))
         for url in urls:
             try:
                 response = self._request_webpage(
