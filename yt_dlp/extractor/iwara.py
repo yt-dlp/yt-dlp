@@ -153,7 +153,7 @@ class IwaraIE(IwaraBaseIE):
             self.raise_login_required('Private video. Login if you have permissions to watch')
         elif errmsg == 'errors.notFound' and not username:
             self.raise_login_required('Video may need login to view')
-        elif errmsg: # None if success
+        elif errmsg:  # None if success
             raise ExtractorError(f'Iwara says: {errmsg}')
 
         if not video_data.get('fileUrl'):
