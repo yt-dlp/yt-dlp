@@ -49,11 +49,11 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         'info_dict': {
             'id': '2mx1E',
             'ext': 'aac',
-            'title': str,
-            'thumbnail': 'md5:407a54f3a18e54aa0326a399e68a7d50',
+            'display_id': 'smoothchill-uk',
+            'title': 're:^Smooth Chill.+$',
+            'thumbnail': 'https://herald.musicradio.com/media/f296ade8-50c9-4f60-911f-924e96873620.png',
             'description': 'Music To Chill To',
             'live_status': 'is_live',
-            'display_id': 'smoothchill-uk',
         },
     }, {
         # national station
@@ -61,10 +61,10 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         'info_dict': {
             'id': '2mwx4',
             'ext': 'aac',
-            'title': str,
-            'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
-            'live_status': 'is_live',
             'description': 'turn up the feel good!',
+            'thumbnail': 'https://herald.musicradio.com/media/49b9e8cb-15bf-4bf2-8c28-a4850cc6b0f3.png',
+            'live_status': 'is_live',
+            'title': 're:^Heart UK.+$',
             'display_id': 'heart-uk',
         },
     }, {
@@ -73,11 +73,11 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
         'info_dict': {
             'id': 'AMqg',
             'ext': 'aac',
-            'title': str,
-            'thumbnail': 'md5:6f13378a53ce55bcf57365a654e1b490',
-            'description': 'turn up the feel good!',
+            'thumbnail': 'https://herald.musicradio.com/media/49b9e8cb-15bf-4bf2-8c28-a4850cc6b0f3.png',
+            'title': 're:^Heart London.+$',
             'live_status': 'is_live',
             'display_id': 'heart-london',
+            'description': 'turn up the feel good!',
         },
     }]
 
@@ -109,11 +109,11 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
         'info_dict': {
             'id': '8bLk',
             'ext': 'aac',
-            'title': str,
-            'description': 'md5:e10f5e10b01a7f2c14ba815509fbb38d',
             'live_status': 'is_live',
-            'thumbnail': 'md5:0e0d47914a380577afdb4482a9561210',
-        }
+            'description': 'md5:e10f5e10b01a7f2c14ba815509fbb38d',
+            'thumbnail': 'https://images.globalplayer.com/images/551379?width=450&signature=oMLPZIoi5_dBSHnTMREW0Xg76mA=',
+            'title': 're:^Classic FM Hall of Fame.+$'
+        },
     }]
 
     def _real_extract(self, url):
@@ -140,25 +140,25 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
     _TESTS = [{
         # podcast
         'url': 'https://www.globalplayer.com/podcasts/42KuaM/',
+        'playlist_mincount': 5,
         'info_dict': {
             'id': '42KuaM',
-            'thumbnail': 'md5:60286e7d12d795bd1bbc9efc6cee643e',
-            'description': 'md5:da5b918eac9ae319454a10a563afacf9',
-            'uploader': 'Global',
             'title': 'Filthy Ritual',
+            'thumbnail': 'md5:60286e7d12d795bd1bbc9efc6cee643e',
             'categories': ['Society & Culture', 'True Crime'],
+            'uploader': 'Global',
+            'description': 'md5:da5b918eac9ae319454a10a563afacf9',
         },
-        'playlist_mincount': 5,
     }, {
         # radio catchup
         'url': 'https://www.globalplayer.com/catchup/lbc/uk/46vyD7z/',
+        'playlist_mincount': 3,
         'info_dict': {
             'id': '46vyD7z',
+            'description': 'Nick Ferrari At Breakfast is Leading Britain\'s Conversation.',
             'title': 'Nick Ferrari',
-            'description': 'md5:53b6fa5ef71a3cff6628551bcc416384',
             'thumbnail': 'md5:4df24d8a226f5b2508efbcc6ae874ebf',
         },
-        'playlist_mincount': 3,
     }]
 
     def _real_extract(self, url):
@@ -190,28 +190,28 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
             'id': '7DrfNnE',
             'ext': 'mp3',
             'title': 'Filthy Ritual - Trailer',
-            'duration': 225,
             'description': 'md5:1f1562fd0f01b4773b590984f94223e0',
             'thumbnail': 'md5:60286e7d12d795bd1bbc9efc6cee643e',
-            'upload_date': '20230411',
+            'duration': 225.0,
             'timestamp': 1681254900,
             'series': 'Filthy Ritual',
             'series_id': '42KuaM',
-        }
+            'upload_date': '20230411',
+        },
     }, {
         # radio catchup
         'url': 'https://www.globalplayer.com/catchup/lbc/uk/episodes/2zGq26Vcv1fCWhddC4JAwETXWe/',
         'info_dict': {
             'id': '2zGq26Vcv1fCWhddC4JAwETXWe',
             'ext': 'm4a',
-            'title': 'Nick Ferrari',
-            'duration': 10800,
-            'description': 'md5:53b6fa5ef71a3cff6628551bcc416384',
-            'thumbnail': 'md5:4df24d8a226f5b2508efbcc6ae874ebf',
-            'series_id': '46vyD7z',
-            'upload_date': '20230421',
             'timestamp': 1682056800,
             'series': 'Nick Ferrari',
+            'thumbnail': 'md5:4df24d8a226f5b2508efbcc6ae874ebf',
+            'upload_date': '20230421',
+            'series_id': '46vyD7z',
+            'description': 'Nick Ferrari At Breakfast is Leading Britain\'s Conversation.',
+            'title': 'Nick Ferrari',
+            'duration': 10800.0,
         },
     }]
 
@@ -223,18 +223,19 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
         return self._extract_audio(
             episode, traverse_obj(episode, 'podcast', 'show', expected_type=dict) or {})
 
+
 class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
     _VALID_URL = r'https?://www\.globalplayer\.com/videos/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.globalplayer.com/videos/2JsSZ7Gm2uP/',
         'info_dict': {
             'id': '2JsSZ7Gm2uP',
-            'thumbnail': 'md5:d4498af48e15aae4839ce77b97d39550',
-            'title': 'Treble Malakai Bayoh sings a sublime Handel aria at Classic FM Live',
-            'upload_date': '20230420',
             'ext': 'mp4',
             'description': 'md5:6a9f063c67c42f218e42eee7d0298bfd',
-        }
+            'thumbnail': 'md5:d4498af48e15aae4839ce77b97d39550',
+            'upload_date': '20230420',
+            'title': 'Treble Malakai Bayoh sings a sublime Handel aria at Classic FM Live',
+        },
     }]
 
     def _real_extract(self, url):
