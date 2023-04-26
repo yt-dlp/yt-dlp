@@ -12,13 +12,12 @@ from ..utils import (
 
 
 class GlobalPlayerBaseIE(InfoExtractor):
-
     def _get_page_props(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
         return self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
     def _request_ext(self, url, video_id):
-        return urlhandle_detect_ext(self._request_webpage(
+        return urlhandle_detect_ext(self._request_webpage(  # Server rejects HEAD requests
             url, video_id, note='Determining source extension'))
 
     def _extract_audio(self, episode, series):
@@ -36,8 +35,7 @@ class GlobalPlayerBaseIE(InfoExtractor):
                 'duration': ('duration', {parse_duration}),
                 'thumbnail': 'imageUrl',
                 'url': 'streamUrl',
-                'timestamp': (['pubDate', 'startDate'], {unified_timestamp}),
-                # pubDate for podcasts, startDate for radio catchup - that's all we need to have both in one
+                'timestamp': (('pubDate', 'startDate'), {unified_timestamp}),
                 'title': 'title',
             }, get_all=False)
         }
@@ -95,7 +93,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'vcodec': 'none',
             'is_live': True,
             **traverse_obj(station, {
-                'title': (['name', 'brandName'], {str_or_none}),
+                'title': (('name', 'brandName'), {str_or_none}),
                 'description': 'tagline',
                 'thumbnail': 'brandLogo',
             }, get_all=False),
