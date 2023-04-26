@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..utils import traverse_obj, url_or_none
+from ..utils import ExtractorError, traverse_obj, url_or_none
 
 
 class AeonCoIE(InfoExtractor):
@@ -50,7 +50,7 @@ class AeonCoIE(InfoExtractor):
             'categories': ['Education'],
             'like_count': int,
             'channel': 'TED-Ed',
-            'chapters': [{'start_time': 0.0, 'title': 'Intro', 'end_time': 60.0}, {'start_time': 60.0, 'title': 'The Prisoners Dilemma', 'end_time': 120.0}, {'start_time': 120.0, 'title': 'The Nash Equilibrium', 'end_time': 166.0}, {'start_time': 166.0, 'title': 'The Infinite Prisoners Dilemma', 'end_time': 199.0}, {'start_time': 199.0, 'title': 'Delta', 'end_time': 246.0}, {'start_time': 246.0, 'title': 'Spare', 'end_time': 284.0}, {'start_time': 284.0, 'title': 'Conclusion', 'end_time': 344}],
+            'chapters': 'count:7',
             'channel_url': 'https://www.youtube.com/channel/UCsooa4yRKGN_zEE8iknghZA',
             'tags': 'count:26',
             'availability': 'public',
@@ -65,10 +65,10 @@ class AeonCoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        embed_url = traverse_obj(list(self._yield_json_ld(webpage, video_id)), (
+        embed_url = traverse_obj(self._yield_json_ld(webpage, video_id), (
             lambda _, v: v['@type'] == 'VideoObject', 'embedUrl', {url_or_none}), get_all=False)
         if not embed_url:
-            self.raise_no_formats('No embed URL found in webpage')
+            raise ExtractorError('No embed URL found in webpage')
         if 'player.vimeo.com' in embed_url:
             embed_url = VimeoIE._smuggle_referrer(embed_url, 'https://aeon.co/')
         return self.url_result(embed_url)
