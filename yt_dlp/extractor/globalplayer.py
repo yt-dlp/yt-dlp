@@ -28,6 +28,7 @@ class GlobalPlayerBaseIE(InfoExtractor):
                 'series': 'title',
                 'series_id': 'id',
                 'thumbnail': 'imageUrl',
+                'uploader': 'itunesAuthor',  # podcasts only
             }),
             **traverse_obj(episode, {
                 'id': 'id',
@@ -197,6 +198,7 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
             'series': 'Filthy Ritual',
             'series_id': '42KuaM',
             'upload_date': '20230411',
+            'uploader': 'Global',
         },
     }, {
         # radio catchup
