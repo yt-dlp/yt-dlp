@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..utils import get_domain
+from ..utils import get_domain, traverse_obj, url_or_none
 
 
 class AeonCoIE(InfoExtractor):
@@ -65,7 +65,10 @@ class AeonCoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        embed_url = self._search_regex(r'"embedUrl": *"([^"]+)"', webpage, 'url')
+        embed_url = traverse_obj(list(self._yield_json_ld(webpage, video_id)), (
+            lambda _, v: v['@type'] == 'VideoObject', 'embedUrl', {url_or_none}), get_all=False)
+        if not embed_url:
+            self.raise_no_formats('No embed URL found in webpage')
         if get_domain(embed_url) == 'vimeo.com':
             embed_url = VimeoIE._smuggle_referrer(embed_url, 'https://aeon.co')
         return self.url_result(embed_url)
