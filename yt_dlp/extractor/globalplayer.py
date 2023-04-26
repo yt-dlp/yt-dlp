@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    join_nonempty,
     parse_duration,
     str_or_none,
     traverse_obj,
@@ -12,14 +13,13 @@ from ..utils import (
 
 class GlobalPlayerBaseIE(InfoExtractor):
 
-    def _get_pageProps(self, url, video_id):
+    def _get_page_props(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
-        data = self._search_nextjs_data(webpage, video_id)
-        return traverse_obj(data, ('props', 'pageProps'))
+        return self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
     def _request_ext(self, url, video_id):
-        urlh = self._request_webpage(url, video_id, note='Determining source extension')
-        return urlhandle_detect_ext(urlh)
+        return urlhandle_detect_ext(self._request_webpage(
+            url, video_id, note='Determining source extension'))
 
     def _extract_audio(self, episode, series):
         return {
@@ -43,7 +43,7 @@ class GlobalPlayerBaseIE(InfoExtractor):
 
 
 class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
-    _VALID_URL = r'https?://www\.globalplayer\.com/live/(?P<id>\w+)/\w+/$'
+    _VALID_URL = r'https?://www\.globalplayer\.com/live/(?P<id>\w+)/\w+'
     _TESTS = [{
         'url': 'https://www.globalplayer.com/live/smoothchill/uk/',
         'info_dict': {
@@ -54,7 +54,8 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'description': 'Music To Chill To',
             'live_status': 'is_live',
             'display_id': 'smoothchill-uk',
-        }}, {
+        },
+    }, {
         # national station
         'url': 'https://www.globalplayer.com/live/heart/uk/',
         'info_dict': {
@@ -65,8 +66,8 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'live_status': 'is_live',
             'description': 'turn up the feel good!',
             'display_id': 'heart-uk',
-
-        }}, {
+        },
+    }, {
         # regional variation
         'url': 'https://www.globalplayer.com/live/heart/london/',
         'info_dict': {
@@ -77,26 +78,19 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
             'description': 'turn up the feel good!',
             'live_status': 'is_live',
             'display_id': 'heart-london',
-
-        }},
-    ]
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        station = self._get_pageProps(url, video_id)['station']
-        url = station['streamUrl']
-
-        display_id = [station.get('brandSlug'), station.get('slug')]
-        if None not in display_id:
-            display_id = '-'.join(display_id)
-        else:
-            display_id = station.get('brandSlug') or station.get('legacyStationPrefix')
+        station = self._get_page_props(url, video_id)['station']
+        stream_url = station['streamUrl']
 
         return {
             'id': station['id'],
-            'display_id': display_id,
-            'url': url,
-            'ext': self._request_ext(url, video_id),
+            'display_id': join_nonempty('brandSlug', 'slug', from_dict=station) or station.get('legacyStationPrefix'),
+            'url': stream_url,
+            'ext': self._request_ext(stream_url, video_id),
             'vcodec': 'none',
             'is_live': True,
             **traverse_obj(station, {
@@ -108,7 +102,7 @@ class GlobalPlayerLiveIE(GlobalPlayerBaseIE):
 
 
 class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
-    _VALID_URL = r'https?://www\.globalplayer\.com/playlists/(?P<id>\w+)/$'
+    _VALID_URL = r'https?://www\.globalplayer\.com/playlists/(?P<id>\w+)'
     _TESTS = [{
         # "live playlist"
         'url': 'https://www.globalplayer.com/playlists/8bLk/',
@@ -120,23 +114,20 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
             'live_status': 'is_live',
             'thumbnail': 'md5:0e0d47914a380577afdb4482a9561210',
         }
-    }
-    ]
-
-    # very similar to live radio, but different enough that it's easier to separate them
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        station = self._get_pageProps(url, video_id)['playlistData']
-        url = station['streamUrl']
+        station = self._get_page_props(url, video_id)['playlistData']
+        stream_url = station['streamUrl']
 
         return {
-            'url': url,
-            'ext': self._request_ext(url, video_id),
+            'id': video_id,
+            'url': stream_url,
+            'ext': self._request_ext(stream_url, video_id),
             'vcodec': 'none',
             'is_live': True,
             **traverse_obj(station, {
-                'id': 'id',
                 'title': 'title',
                 'description': 'description',
                 'thumbnail': 'image',
@@ -145,7 +136,7 @@ class GlobalPlayerLivePlaylistIE(GlobalPlayerBaseIE):
 
 
 class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
-    _VALID_URL = r'https?://www\.globalplayer\.com/(?:(?P<podcast>podcasts)/|catchup/\w+/\w+/)(?P<id>\w+)/?$'
+    _VALID_URL = r'https?://www\.globalplayer\.com/(?:(?P<podcast>podcasts)/|catchup/\w+/\w+/)(?P<id>\w+)/?(?:$|[?#])'
     _TESTS = [{
         # podcast
         'url': 'https://www.globalplayer.com/podcasts/42KuaM/',
@@ -172,22 +163,17 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
 
     def _real_extract(self, url):
         video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
-        props = self._get_pageProps(url, video_id)
-
-        if podcast:
-            series = props['podcastInfo']
-            categories = [i.get('name') for i in series.get('categories')]
-        else:
-            series = props['catchupInfo']
-            categories = None
+        props = self._get_page_props(url, video_id)
+        series = props['podcastInfo'] if podcast else props['catchupInfo']
 
         return {
             '_type': 'playlist',
-            'categories': categories,  # podcasts only
-            'entries': [self._extract_audio(ep, series) for ep in series['episodes']],
+            'id': video_id,
+            'entries': [self._extract_audio(ep, series) for ep in traverse_obj(
+                        series, ('episodes', lambda _, v: v['id'] and v['streamUrl']))],
+            'categories': traverse_obj(series, ('categories', ..., 'name')) or None,
             **traverse_obj(series, {
                 'description': 'description',
-                'id': 'id',
                 'thumbnail': 'imageUrl',
                 'title': 'title',
                 'uploader': 'itunesAuthor',  # podcasts only
@@ -196,7 +182,7 @@ class GlobalPlayerAudioIE(GlobalPlayerBaseIE):
 
 
 class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
-    _VALID_URL = r'https?://www\.globalplayer\.com/(?:(?P<podcast>podcasts)|catchup/\w+/\w+)/episodes/(?P<id>\w+)/$'
+    _VALID_URL = r'https?://www\.globalplayer\.com/(?:(?P<podcast>podcasts)|catchup/\w+/\w+)/episodes/(?P<id>\w+)/?(?:$|[?#])'
     _TESTS = [{
         # podcast
         'url': 'https://www.globalplayer.com/podcasts/episodes/7DrfNnE/',
@@ -211,7 +197,6 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
             'timestamp': 1681254900,
             'series': 'Filthy Ritual',
             'series_id': '42KuaM',
-
         }
     }, {
         # radio catchup
@@ -232,19 +217,14 @@ class GlobalPlayerAudioEpisodeIE(GlobalPlayerBaseIE):
 
     def _real_extract(self, url):
         video_id, podcast = self._match_valid_url(url).group('id', 'podcast')
-        props = self._get_pageProps(url, video_id)
-        if podcast:
-            episode = props['podcastEpisode']
-            series = episode['podcast']
-        else:
-            episode = props['catchupEpisode']
-            series = episode['show']
+        props = self._get_page_props(url, video_id)
+        episode = props['podcastEpisode'] if podcast else props['catchupEpisode']
 
-        return self._extract_audio(episode, series)
-
+        return self._extract_audio(
+            episode, traverse_obj(episode, 'podcast', 'show', expected_type=dict) or {})
 
 class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
-    _VALID_URL = r'https?://www\.globalplayer\.com/videos/(?P<id>\w+)/$'
+    _VALID_URL = r'https?://www\.globalplayer\.com/videos/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.globalplayer.com/videos/2JsSZ7Gm2uP/',
         'info_dict': {
@@ -259,14 +239,15 @@ class GlobalPlayerVideoIE(GlobalPlayerBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        meta = self._get_pageProps(url, video_id)['videoData']
+        meta = self._get_page_props(url, video_id)['videoData']
 
-        return traverse_obj(meta, {
-            'id': 'id',
-            'thumbnail': ('image', 'url'),
-            'title': 'title',
-            'upload_date': ('publish_date', {unified_strdate}),
-            'url': 'url',
-            'description': 'description',
-        })
-        # there's more metadata available but i can't be bothered to match up which is which
+        return {
+            'id': video_id,
+            **traverse_obj(meta, {
+                'url': 'url',
+                'thumbnail': ('image', 'url'),
+                'title': 'title',
+                'upload_date': ('publish_date', {unified_strdate}),
+                'description': 'description',
+            }),
+        }
