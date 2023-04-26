@@ -41,7 +41,7 @@ class AeonCoIE(InfoExtractor):
             'thumbnail': 'https://i.ytimg.com/vi_webp/emyi4z-O0ls/maxresdefault.webp',
             'uploader': 'TED-Ed',
             'uploader_id': '@TEDEd',
-            'uploader_url': 'http://www.youtube.com/@TEDEd',
+            'uploader_url': 'https://www.youtube.com/@TEDEd',
             'duration': 344,
             'upload_date': '20200827',
             'channel_id': 'UCsooa4yRKGN_zEE8iknghZA',
