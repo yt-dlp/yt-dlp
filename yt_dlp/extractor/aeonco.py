@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-from ..utils import get_domain, traverse_obj, url_or_none
+from ..utils import traverse_obj, url_or_none
 
 
 class AeonCoIE(InfoExtractor):
@@ -69,6 +69,6 @@ class AeonCoIE(InfoExtractor):
             lambda _, v: v['@type'] == 'VideoObject', 'embedUrl', {url_or_none}), get_all=False)
         if not embed_url:
             self.raise_no_formats('No embed URL found in webpage')
-        if get_domain(embed_url) == 'vimeo.com':
-            embed_url = VimeoIE._smuggle_referrer(embed_url, 'https://aeon.co')
+        if 'player.vimeo.com' in embed_url:
+            embed_url = VimeoIE._smuggle_referrer(embed_url, 'https://aeon.co/')
         return self.url_result(embed_url)
