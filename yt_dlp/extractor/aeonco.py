@@ -20,15 +20,15 @@ class AeonCoIE(InfoExtractor):
         }
     }, {
         'url': 'https://aeon.co/videos/dazzling-timelapse-shows-how-microbes-spoil-our-food-and-sometimes-enrich-it',
-        'md5': '4e5f3dad9dbda0dbfa2da41a851e631e',
+        'md5': '03582d795382e49f2fd0b427b55de409',
         'info_dict': {
-            'id': '728595228',
+            'id': '759576926',
             'ext': 'mp4',
             'title': 'Wrought',
-            'thumbnail': 'https://i.vimeocdn.com/video/1484618528-c91452611f9a4e4497735a533da60d45b2fe472deb0c880f0afaab0cd2efb22a-d_1280',
-            'uploader': 'Biofilm Productions',
-            'uploader_id': 'user140352216',
-            'uploader_url': 'https://vimeo.com/user140352216',
+            'thumbnail': 'https://i.vimeocdn.com/video/1525599692-84614af88e446612f49ca966cf8f80eab2c73376bedd80555741c521c26f9a3e-d_1280',
+            'uploader': 'Aeon Video',
+            'uploader_id': 'aeonvideo',
+            'uploader_url': 'https://vimeo.com/aeonvideo',
             'duration': 1344
         }
     }, {
