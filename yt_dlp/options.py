@@ -243,7 +243,7 @@ def create_parser():
         if multiple_keys:
             allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
+            fr'(?is)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
@@ -520,21 +520,26 @@ def create_parser():
         dest='cn_verification_proxy', default=None, metavar='URL',
         help=optparse.SUPPRESS_HELP)
     geo.add_option(
+        '--xff', metavar='VALUE',
+        dest='geo_bypass', default="default",
+        help=(
+            'How to fake X-Forwarded-For HTTP header to try bypassing geographic restriction. '
+            'One of "default" (Only when known to be useful), "never", '
+            'a two-letter ISO 3166-2 country code, or an IP block in CIDR notation'))
+    geo.add_option(
         '--geo-bypass',
-        action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
+        action='store_const', dest='geo_bypass', const='default',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass',
-        help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        action='store_const', dest='geo_bypass', const='never',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-country', metavar='CODE',
-        dest='geo_bypass_country', default=None,
-        help='Force bypass geographic restriction with explicitly provided two-letter ISO 3166-2 country code')
+        '--geo-bypass-country', metavar='CODE', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-ip-block', metavar='IP_BLOCK',
-        dest='geo_bypass_ip_block', default=None,
-        help='Force bypass geographic restriction with explicitly provided IP block in CIDR notation')
+        '--geo-bypass-ip-block', metavar='IP_BLOCK', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
 
     selection = optparse.OptionGroup(parser, 'Video Selection')
     selection.add_option(
@@ -1079,8 +1084,12 @@ def create_parser():
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
         '-q', '--quiet',
-        action='store_true', dest='quiet', default=False,
+        action='store_true', dest='quiet', default=None,
         help='Activate quiet mode. If used with --verbose, print the log to stderr')
+    verbosity.add_option(
+        '--no-quiet',
+        action='store_false', dest='quiet',
+        help='Deactivate quiet mode. (Default)')
     verbosity.add_option(
         '--no-warnings',
         dest='no_warnings', action='store_true', default=False,

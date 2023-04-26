@@ -1190,6 +1190,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
 
+    def test_js_to_json_template_literal(self):
+        self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '"X"'}), '"XX"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '5'}), '"55"')
+        self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
+        self.assertEqual(js_to_json('`${name}`', {}), '"name"')
+
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
         self.assertEqual(extract_attributes("<e x='y'>"), {'x': 'y'})
@@ -2009,6 +2016,8 @@ Line 1
                          msg='nested `...` queries should work')
         self.assertCountEqual(traverse_obj(_TEST_DATA, (..., ..., 'index')), range(4),
                               msg='`...` query result should be flattened')
+        self.assertEqual(traverse_obj(range(4), ...), list(range(4)),
+                         msg='`...` should accept iterables')
 
         # Test function as key
         self.assertEqual(traverse_obj(_TEST_DATA, lambda x, y: x == 'urls' and isinstance(y, list)),
@@ -2016,6 +2025,8 @@ Line 1
                          msg='function as query key should perform a filter based on (key, value)')
         self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
                               msg='exceptions in the query function should be catched')
+        self.assertEqual(traverse_obj(range(4), lambda _, x: x % 2 == 0), [0, 2],
+                         msg='function key should accept iterables')
         if __debug__:
             with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
                 traverse_obj(_TEST_DATA, lambda a: ...)
