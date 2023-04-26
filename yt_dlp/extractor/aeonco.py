@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
+from ..utils import ExtractorError, traverse_obj, url_or_none
 
 
 class AeonCoIE(InfoExtractor):
@@ -19,22 +20,55 @@ class AeonCoIE(InfoExtractor):
         }
     }, {
         'url': 'https://aeon.co/videos/dazzling-timelapse-shows-how-microbes-spoil-our-food-and-sometimes-enrich-it',
-        'md5': '4e5f3dad9dbda0dbfa2da41a851e631e',
+        'md5': '03582d795382e49f2fd0b427b55de409',
         'info_dict': {
-            'id': '728595228',
+            'id': '759576926',
             'ext': 'mp4',
             'title': 'Wrought',
-            'thumbnail': 'https://i.vimeocdn.com/video/1484618528-c91452611f9a4e4497735a533da60d45b2fe472deb0c880f0afaab0cd2efb22a-d_1280',
-            'uploader': 'Biofilm Productions',
-            'uploader_id': 'user140352216',
-            'uploader_url': 'https://vimeo.com/user140352216',
+            'thumbnail': 'https://i.vimeocdn.com/video/1525599692-84614af88e446612f49ca966cf8f80eab2c73376bedd80555741c521c26f9a3e-d_1280',
+            'uploader': 'Aeon Video',
+            'uploader_id': 'aeonvideo',
+            'uploader_url': 'https://vimeo.com/aeonvideo',
             'duration': 1344
         }
+    }, {
+        'url': 'https://aeon.co/videos/chew-over-the-prisoners-dilemma-and-see-if-you-can-find-the-rational-path-out',
+        'md5': '1cfda0bf3ae24df17d00f2c0cb6cc21b',
+        'info_dict': {
+            'id': 'emyi4z-O0ls',
+            'ext': 'mp4',
+            'title': 'How to outsmart the Prisoner’s Dilemma - Lucas Husted',
+            'thumbnail': 'https://i.ytimg.com/vi_webp/emyi4z-O0ls/maxresdefault.webp',
+            'uploader': 'TED-Ed',
+            'uploader_id': '@TEDEd',
+            'uploader_url': 'https://www.youtube.com/@TEDEd',
+            'duration': 344,
+            'upload_date': '20200827',
+            'channel_id': 'UCsooa4yRKGN_zEE8iknghZA',
+            'playable_in_embed': True,
+            'description': 'md5:c0959524f08cb60f96fd010f3dfb17f3',
+            'categories': ['Education'],
+            'like_count': int,
+            'channel': 'TED-Ed',
+            'chapters': 'count:7',
+            'channel_url': 'https://www.youtube.com/channel/UCsooa4yRKGN_zEE8iknghZA',
+            'tags': 'count:26',
+            'availability': 'public',
+            'channel_follower_count': int,
+            'view_count': int,
+            'age_limit': 0,
+            'live_status': 'not_live',
+            'comment_count': int,
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        vimeo_id = self._search_regex(r'hosterId":\s*"(?P<id>[0-9]+)', webpage, 'vimeo id')
-        vimeo_url = VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{vimeo_id}', 'https://aeon.co')
-        return self.url_result(vimeo_url, VimeoIE)
+        embed_url = traverse_obj(self._yield_json_ld(webpage, video_id), (
+            lambda _, v: v['@type'] == 'VideoObject', 'embedUrl', {url_or_none}), get_all=False)
+        if not embed_url:
+            raise ExtractorError('No embed URL found in webpage')
+        if 'player.vimeo.com' in embed_url:
+            embed_url = VimeoIE._smuggle_referrer(embed_url, 'https://aeon.co/')
+        return self.url_result(embed_url)
