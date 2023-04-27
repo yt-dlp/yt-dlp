@@ -390,6 +390,7 @@ from .commonprotocols import (
 from .condenast import CondeNastIE
 from .contv import CONtvIE
 from .corus import CorusIE
+from .coverapi import CoverApiIE
 from .cpac import (
     CPACIE,
     CPACPlaylistIE,
