@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     float_or_none,
     get_element_by_class,
     join_nonempty,
