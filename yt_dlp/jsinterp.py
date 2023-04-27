@@ -243,7 +243,7 @@ class JSInterpreter:
             return
         counters = {k: 0 for k in _MATCHING_PARENS.values()}
         start, splits, pos, delim_len = 0, 0, 0, len(delim) - 1
-        in_quote, escaping, after_op, in_regex_char_group = None, False, True, False
+        in_quote, escaping, after_op, in_regex_char_group, in_unary_op = None, False, True, False, False
         for idx, char in enumerate(expr):
             if not in_quote and char in _MATCHING_PARENS:
                 counters[_MATCHING_PARENS[char]] += 1
@@ -258,9 +258,11 @@ class JSInterpreter:
                 elif in_quote == '/' and char in '[]':
                     in_regex_char_group = char == '['
             escaping = not escaping and in_quote and char == '\\'
-            after_op = not in_quote and char in OP_CHARS or (char.isspace() and after_op)
+            in_unary_op = (not in_quote and not in_regex_char_group
+                           and after_op not in (True, False) and char in '-+')
+            after_op = char if (not in_quote and char in OP_CHARS) else (char.isspace() and after_op)
 
-            if char != delim[pos] or any(counters.values()) or in_quote:
+            if char != delim[pos] or any(counters.values()) or in_quote or in_unary_op:
                 pos = 0
                 continue
             elif pos != delim_len:
