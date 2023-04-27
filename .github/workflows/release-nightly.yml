@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   prepare:
-    if: vars.BUILD_NIGHTLY != '' & !contains(github.event.head_commit.message, 'ci skip')
+    if: vars.BUILD_NIGHTLY != ''
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
