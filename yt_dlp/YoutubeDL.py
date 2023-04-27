@@ -2916,36 +2916,30 @@ class YoutubeDL:
         return info_copy
 
     def __forced_printings(self, info_dict, filename=None, incomplete=True):
-        def print_mandatory(field, actual_field=None):
-            if actual_field is None:
-                actual_field = field
-            if (self.params.get('force%s' % field, False)
-                    and (not incomplete or info_dict.get(actual_field) is not None)):
-                self.to_stdout(info_dict[actual_field])
-
-        def print_optional(field):
-            if (self.params.get('force%s' % field, False)
-                    and info_dict.get(field) is not None):
-                self.to_stdout(info_dict[field])
-
         if (self.params.get('forcejson')
                 or self.params['forceprint'].get('video')
                 or self.params['print_to_file'].get('video')):
             self.post_extract(info_dict)
-
         if filename:
             info_dict['filename'] = filename
-        info_dict = self._forceprint('video', info_dict)
+        info_copy = self._forceprint('video', info_dict)
 
-        print_mandatory('title')
-        print_mandatory('id')
-        print_mandatory('url', 'urls')
-        print_optional('thumbnail')
-        print_optional('description')
-        print_optional('filename')
-        if self.params.get('forceduration') and info_dict.get('duration') is not None:
-            self.to_stdout(formatSeconds(info_dict['duration']))
-        print_mandatory('format')
+        def print_field(field, actual_field=None, optional=False):
+            if actual_field is None:
+                actual_field = field
+            if self.params.get(f'force{field}') and (
+                    info_copy.get(field) is not None or (not optional and not incomplete)):
+                self.to_stdout(info_copy[actual_field])
+
+        print_field('title')
+        print_field('id')
+        print_field('url', 'urls')
+        print_field('thumbnail', optional=True)
+        print_field('description', optional=True)
+        print_field('filename', optional=True)
+        if self.params.get('forceduration') and info_copy.get('duration') is not None:
+            self.to_stdout(formatSeconds(info_copy['duration']))
+        print_field('format')
 
         if self.params.get('forcejson'):
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
