@@ -1677,7 +1677,7 @@ class YoutubeDL:
                 self.add_extra_info(info_copy, extra_info)
                 info_copy, _ = self.pre_process(info_copy)
                 self._fill_common_fields(info_copy, False)
-                self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
+                self.__forced_printings(info_copy)
                 self._raise_pending_errors(info_copy)
                 if self.params.get('force_write_download_archive', False):
                     self.record_download_archive(info_copy)
@@ -2719,7 +2719,7 @@ class YoutubeDL:
             self.list_formats(info_dict)
         if list_only:
             # Without this printing, -F --print-json will not work
-            self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
+            self.__forced_printings(info_dict)
             return info_dict
 
         format_selector = self.format_selector
@@ -2879,6 +2879,12 @@ class YoutubeDL:
         if info_dict is None:
             return
         info_copy = info_dict.copy()
+        info_copy.setdefault('filename', self.prepare_filename(info_dict))
+        if info_dict.get('requested_formats') is not None:
+            # For RTMP URLs, also include the playpath
+            info_copy['urls'] = '\n'.join(f['url'] + f.get('play_path', '') for f in info_dict['requested_formats'])
+        elif info_dict.get('url'):
+            info_copy['urls'] = info_dict['url'] + info_dict.get('play_path', '')
         info_copy['formats_table'] = self.render_formats_table(info_dict)
         info_copy['thumbnails_table'] = self.render_thumbnails_table(info_dict)
         info_copy['subtitles_table'] = self.render_subtitles_table(info_dict.get('id'), info_dict.get('subtitles'))
@@ -2907,7 +2913,9 @@ class YoutubeDL:
                 with open(filename, 'a', encoding='utf-8', newline='') as f:
                     f.write(self.evaluate_outtmpl(tmpl, info_copy) + os.linesep)
 
-    def __forced_printings(self, info_dict, filename, incomplete):
+        return info_copy
+
+    def __forced_printings(self, info_dict, filename=None, incomplete=True):
         def print_mandatory(field, actual_field=None):
             if actual_field is None:
                 actual_field = field
@@ -2920,20 +2928,14 @@ class YoutubeDL:
                     and info_dict.get(field) is not None):
                 self.to_stdout(info_dict[field])
 
-        info_dict = info_dict.copy()
-        if filename is not None:
-            info_dict['filename'] = filename
-        if info_dict.get('requested_formats') is not None:
-            # For RTMP URLs, also include the playpath
-            info_dict['urls'] = '\n'.join(f['url'] + f.get('play_path', '') for f in info_dict['requested_formats'])
-        elif info_dict.get('url'):
-            info_dict['urls'] = info_dict['url'] + info_dict.get('play_path', '')
-
         if (self.params.get('forcejson')
                 or self.params['forceprint'].get('video')
                 or self.params['print_to_file'].get('video')):
             self.post_extract(info_dict)
-        self._forceprint('video', info_dict)
+
+        if filename:
+            info_dict['filename'] = filename
+        info_dict = self._forceprint('video', info_dict)
 
         print_mandatory('title')
         print_mandatory('id')
@@ -3493,10 +3495,10 @@ class YoutubeDL:
         return infodict
 
     def run_all_pps(self, key, info, *, additional_pps=None):
-        if key != 'video':
-            self._forceprint(key, info)
         for pp in (additional_pps or []) + self._pps[key]:
             info = self.run_pp(pp, info)
+        if key != 'video':
+            self._forceprint(key, info)
         return info
 
     def pre_process(self, ie_info, key='pre_process', files_to_move=None):
