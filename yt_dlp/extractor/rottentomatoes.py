@@ -1,10 +1,12 @@
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     ExtractorError,
-    js_to_json,
-    parse_duration,
+    float_or_none,
+    get_element_by_class,
+    join_nonempty,
     traverse_obj,
-    urljoin,
+    url_or_none,
 )
 
 
@@ -16,11 +18,10 @@ class RottenTomatoesIE(InfoExtractor):
         'info_dict': {
             'id': '11028566',
             'ext': 'mp4',
-            'title': 'Best Tom Hanks Movies',
-            'description': 'We look at the filmography of America\'s Dad, as we count down our list of the best Tom Hanks movies.',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 1468.592
+            'title': 'Toy Story 3',
+            'description': 'From the creators of the beloved TOY STORY films, comes a story that will reunite the gang in a whole new way.'
         },
+        'skip': 'No longer available',
     }, {
         'url': 'https://www.rottentomatoes.com/m/toy_story_3/trailers/VycaVoBKhGuk',
         'info_dict': {
@@ -31,6 +32,19 @@ class RottenTomatoesIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 149.941
         },
+    }, {
+        'url': 'http://www.rottentomatoes.com/m/toy_story_3',
+        'info_dict': {
+            'id': 'toy_story_3',
+            'title': 'Toy Story 3',
+        },
+        'playlist_mincount': 4,
+    }, {
+        'url': 'http://www.rottentomatoes.com/m/toy_story_3/trailers',
+        'info_dict': {
+            'id': 'toy_story_3-trailers',
+        },
+        'playlist_mincount': 5,
     }]
 
     def _extract_videos(self, data, display_id):
@@ -55,55 +69,12 @@ class RottenTomatoesIE(InfoExtractor):
             r'<script[^>]+\bid=["\'](?:heroV|v)ideos["\'][^>]*>', webpage,
             'data', playlist_id, contains_pattern=r'\[{(?s:.+)}\]')
 
-            'id': video_id,
-            'title': traverse_obj(video_info, (0, 'title')),
-            'description': traverse_obj(video_info, (0, 'description')),
-            'thumbnail': traverse_obj(video_info, (0, 'image')),
-            'formats': self._extract_m3u8_formats(
-                traverse_obj(video_info, (0, 'file')), video_id, 'mp4', 'm3u8_native',
-                m3u8_id=traverse_obj(video_info, (0, 'type')), note='Downloading m3u8 information',
-                errnote='Unable to download m3u8 information'),
-            'duration': parse_duration(traverse_obj(video_info, (0, 'durationInSeconds'),
-                                                    default=traverse_obj(video_info, (0, 'duration'))))
-        }
+        if video_id:
+            video_data = traverse_obj(data, lambda _, v: v['publicId'] == video_id)
+            if not video_data:
+                raise ExtractorError('Unable to extract video from webpage')
+            return next(self._extract_videos(video_data, video_id))
 
-
-class RottenTomatoesPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rottentomatoes\.com/m/(?P<id>[^/]+)(?:/trailers)?/?(?:$|[#?])'
-
-    _TESTS = [{
-        'url': 'http://www.rottentomatoes.com/m/toy_story_3',
-        'info_dict': {
-            'id': 'toy_story_3',
-            'title': 'Toy Story 3',
-        },
-        'playlist_mincount': 4,
-    }, {
-        'url': 'http://www.rottentomatoes.com/m/toy_story_3/trailers',
-        'info_dict': {
-            'id': 'toy_story_3',
-            'title': 'toy_story_3',
-        },
-        'playlist_mincount': 5,
-    }]
-
-    def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, playlist_id)
-        raw_playlist_info = self._html_search_regex(
-            r'<script[^>]*id=["\'](?:videos|heroVideos)["\'][^>]*>([^<]+)</script>',
-            webpage, 'playlist info', default=None)
-        playlist_info = self._parse_json(raw_playlist_info, playlist_id, transform_source=js_to_json)
-
-        if isinstance(playlist_info, list):
-            entries = [self.url_result(urljoin(url, video.get('videoPageUrl')),
-                       ie=RottenTomatoesIE.ie_key()) for video in playlist_info]
-        else:
-            raise ExtractorError('Playlist %s is not available' % playlist_id, expected=True)
-
-        title = self._html_search_regex(
-            r'<h1[^>]+slot=["\']title["\'][^>]*>([^<]+)</h1>', webpage, 'playlist title',
-            fatal=False, default=playlist_id)
-
-        return self.playlist_result(entries, playlist_id, title)
+        return self.playlist_result(
+            self._extract_videos(data, playlist_id), playlist_id,
+            clean_html(get_element_by_class('scoreboard__title', webpage)))
