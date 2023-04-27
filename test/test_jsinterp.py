@@ -445,6 +445,22 @@ class TestJSInterpreter(unittest.TestCase):
         jsi = JSInterpreter('function x(){return 1236566549 << 5}')
         self.assertEqual(jsi.call_function('x'), 915423904)
 
+    def test_negative(self):
+        jsi = JSInterpreter("function f(){return 2    *    -2.0;}")
+        self.assertEqual(jsi.call_function('f'), -4)
+
+        jsi = JSInterpreter('function f(){return 2    -    - -2;}')
+        self.assertEqual(jsi.call_function('f'), 0)
+
+        jsi = JSInterpreter('function f(){return 2    -    - - -2;}')
+        self.assertEqual(jsi.call_function('f'), 4)
+
+        jsi = JSInterpreter('function f(){return 2    -    + + - -2;}')
+        self.assertEqual(jsi.call_function('f'), 0)
+
+        jsi = JSInterpreter('function f(){return 2    +    - + - -2;}')
+        self.assertEqual(jsi.call_function('f'), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
