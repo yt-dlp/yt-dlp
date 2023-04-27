@@ -1595,7 +1595,6 @@ from .rokfin import (
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import (
     RottenTomatoesIE,
-    RottenTomatoesPlaylistIE,
 )
 from .rozhlas import (
     RozhlasIE,

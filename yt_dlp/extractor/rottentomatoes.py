@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class RottenTomatoesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rottentomatoes\.com/m/[^/]+/trailers/(?P<id>[\da-zA-Z]+)'
+    _VALID_URL = r'https?://(?:www\.)?rottentomatoes\.com/m/(?P<playlist>[^/]+)(?:/(?P<tr>trailers)(?:/(?P<id>\w+))?)?'
 
     _TESTS = [{
         'url': 'http://www.rottentomatoes.com/m/toy_story_3/trailers/11028566/',
@@ -33,15 +33,28 @@ class RottenTomatoesIE(InfoExtractor):
         },
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        raw_video_info = self._html_search_regex(
-            r'<script[^>]*id=["\']videos["\'][^>]*>([^<]+)</script>',
-            webpage, 'video info', default=None)
-        video_info = self._parse_json(raw_video_info, video_id, transform_source=js_to_json)
+    def _extract_videos(self, data, display_id):
+        for video in traverse_obj(data, (lambda _, v: v['publicId'] and v['file'] and v['type'] == 'hls')):
+            yield {
+                'formats': self._extract_m3u8_formats(
+                    video['file'], display_id, 'mp4', m3u8_id='hls', fatal=False),
+                **traverse_obj(video, {
+                    'id': 'publicId',
+                    'title': 'title',
+                    'description': 'description',
+                    'duration': ('durationInSeconds', {float_or_none}),
+                    'thumbnail': ('image', {url_or_none}),
+                }),
+            }
 
-        return {
+    def _real_extract(self, url):
+        playlist_id, trailers, video_id = self._match_valid_url(url).group('playlist', 'tr', 'id')
+        playlist_id = join_nonempty(playlist_id, trailers)
+        webpage = self._download_webpage(url, playlist_id)
+        data = self._search_json(
+            r'<script[^>]+\bid=["\'](?:heroV|v)ideos["\'][^>]*>', webpage,
+            'data', playlist_id, contains_pattern=r'\[{(?s:.+)}\]')
+
             'id': video_id,
             'title': traverse_obj(video_info, (0, 'title')),
             'description': traverse_obj(video_info, (0, 'description')),
