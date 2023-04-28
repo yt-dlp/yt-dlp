@@ -3488,11 +3488,11 @@ class YoutubeDL:
                 *files_to_delete, info=infodict, msg='Deleting original file %s (pass -k to keep)')
         return infodict
 
-    def run_all_pps(self, key, info, *, additional_pps=None):
-        for pp in (additional_pps or []) + self._pps[key]:
-            info = self.run_pp(pp, info)
+    def run_all_pps(self, key, info, *, additional_pps=None, fatal=True):
         if key != 'video':
             self._forceprint(key, info)
+        for pp in (additional_pps or []) + self._pps[key]:
+            info = self.run_pp(pp, info)
         return info
 
     def pre_process(self, ie_info, key='pre_process', files_to_move=None):
