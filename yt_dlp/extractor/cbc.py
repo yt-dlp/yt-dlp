@@ -416,6 +416,9 @@ class CBCGemPlaylistIE(InfoExtractor):
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
         },
+    }, {
+        'url': 'https://gem.cbc.ca/schitts-creek/s06',
+        'only_matching': True,
     }]
     _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/shows/'
 
