@@ -3489,10 +3489,12 @@ class YoutubeDL:
         return infodict
 
     def run_all_pps(self, key, info, *, additional_pps=None):
-        for pp in (additional_pps or []) + self._pps[key]:
-            info = self.run_pp(pp, info)
-        if key != 'video':
-            self._forceprint(key, info)
+        try:
+            for pp in (additional_pps or []) + self._pps[key]:
+                info = self.run_pp(pp, info)
+        finally:
+            if key != 'video':
+                self._forceprint(key, info)
         return info
 
     def pre_process(self, ie_info, key='pre_process', files_to_move=None):
