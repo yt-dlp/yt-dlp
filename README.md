@@ -425,7 +425,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     optionally prefixed by the STREAM (stdout or
                                     stderr) to apply the setting to. Can be one
                                     of "always", "auto" (default), "never", or
-                                    "no_color" (use non color terminal sequences)
+                                    "no_color" (use non color terminal
+                                    sequences). Can be used multiple times
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the

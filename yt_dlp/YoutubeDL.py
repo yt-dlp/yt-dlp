@@ -621,13 +621,13 @@ class YoutubeDL:
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
                 return term_allow_color and supports_terminal_sequences(stream)
+            assert policy in ('always', 'never', 'no_color')
             return {'always': True, 'never': False}.get(policy, policy)
 
         self._allow_colors = Namespace(**{
             name: process_color_policy(stream)
             for name, stream in self._out_files.items_ if name != 'console'
         })
-        print(self._allow_colors)
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)

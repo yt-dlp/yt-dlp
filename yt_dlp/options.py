@@ -458,7 +458,8 @@ def create_parser():
             'Whether to emit color codes in output, optionally prefixed by '
             'the STREAM (stdout or stderr) to apply the setting to. '
             'Can be one of "always", "auto" (default), "never", or '
-            '"no_color" (use non color terminal sequences)'))
+            '"no_color" (use non color terminal sequences). '
+            'Can be used multiple times'))
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
