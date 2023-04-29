@@ -191,11 +191,11 @@ class RedditIE(InfoExtractor):
                 'passwd': password,
                 'api_type': 'json',
             }), note='Logging in', errnote='Login request failed')
-        errors = traverse_obj(login, ('json', 'errors', ...))
-        if errors or not traverse_obj(login, ('json', 'data', 'cookie', {str})):
-            raise ExtractorError(
-                f'Unable to login, {"Reddit API says: " if errors else "no cookie was given"}'
-                f'{"; ".join(traverse_obj(errors, (..., 1)))}', expected=bool(errors))
+        errors = '; '.join(traverse_obj(login, ('json', 'errors', ..., 1)))
+        if errors:
+            raise ExtractorError(f'Unable to login, Reddit API says {errors}', expected=True)
+        elif not traverse_obj(login, ('json', 'data', 'cookie', {str})):
+            raise ExtractorError('Unable to login, no cookie was returned')
 
     def _real_extract(self, url):
         host, slug, video_id = self._match_valid_url(url).group('host', 'slug', 'id')
