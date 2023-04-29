@@ -455,10 +455,10 @@ def create_parser():
             'default_key': ['stdout', 'stderr'],
             'process': str.strip,
         }, help=(
-            'A mapping with output stream names as keys and their respective color policy as values. '
-            'Can also just be a single color policy, in which case it applies to all outputs. '
-            'STREAM is one of "stdout" and "stderr". '
-            'POLICY is one of "always", "auto" (default), "no_color" and "never"'))
+            'Whether to emit color codes in output, optionally prefixed by '
+            'the STREAM (stdout or stderr) to apply the setting to. '
+            'Can be one of "always", "auto" (default), "never", or '
+            '"no_color" (use non color terminal sequences)'))
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',

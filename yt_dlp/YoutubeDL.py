@@ -611,22 +611,23 @@ class YoutubeDL:
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
-                self.report_warning('Using')
+                self.report_warning('Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
         term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
 
         def process_color_policy(stream):
-            stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}.get(stream)
-            policy = traverse_obj(self.params, ('color', (stream_name, None)), get_all=False)
-            if policy not in (True, False, 'no_color'):
+            stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
+            policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
+            if policy in ('auto', None):
                 return term_allow_color and supports_terminal_sequences(stream)
-            return policy
+            return {'always': True, 'never': False}.get(policy, policy)
 
         self._allow_colors = Namespace(**{
             name: process_color_policy(stream)
             for name, stream in self._out_files.items_ if name != 'console'
         })
+        print(self._allow_colors)
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
@@ -3791,9 +3792,14 @@ class YoutubeDL:
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
+            additional_info = []
+            if os.environ.get('TERM', '').lower() == 'dumb':
+                additional_info.append('dumb')
             if not supports_terminal_sequences(stream):
                 from .utils import WINDOWS_VT_MODE  # Must be imported locally
-                ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
+                additional_info.append('No VT' if WINDOWS_VT_MODE is False else 'No ANSI')
+            if additional_info:
+                ret = f'{ret} ({",".join(additional_info)})'
             return ret
 
         encoding_str = 'Encodings: locale %s, fs %s, pref %s, %s' % (
