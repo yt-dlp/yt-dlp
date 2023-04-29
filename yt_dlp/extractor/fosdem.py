@@ -1,0 +1,68 @@
+from .common import InfoExtractor
+import pdb
+
+class FosdemIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?(?:archive\.)?fosdem\.org/[0-9]{4}/schedule/(?P<url_type>track|event)/(?P<id>[\w\.-_]+)/'
+    _TESTS = [
+        {
+            'url': 'https://archive.fosdem.org/2022/schedule/event/firmware_updates_for_opnsense_and_pfsense/',
+           'info_dict': {
+               'id': 'firmware_updates_for_opnsense_and_pfsense',
+               'ext': 'webm',
+               'title': 'Firmware updates for OPNsense and pfSense with fwupd/LVFS',
+               'thumbnail': None,
+               'uploader': 'FOSDEM',
+               'description': "This presentation will describe the results of the proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS for OPNsense and pfSense. It will explain the challenges connected with the implementation of firmware update systems for BSD-based firewall and routing software. It will show basic concepts connected to the fwupd and LVFS. The security of the whole system is not determined only by the software it runs, but also by the firmware. Firmware is a piece of software inseparable from the hardware. It is responsible for proper hardware initialization as well as its security features. That means that the safety of the machine strongly depends on the mitigations of vulnerabilities provided by firmware (like microcode updates, bug/exploit fixes). For these particular reasons, the firmware should be kept up-to-date.\nRouters are highly popular attack vectors, therefore they must be appropriately secured. pfSense and OPNsense are well known secure firewall and routing software, but they do not have any firmware update methods. Therefore to secure hardware initialization of the routers, in this presentation we will present proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS.\nNowadays, this is one of the most popular firmware update software. fwupd is a daemon that manages firmware updates of each of your hardware components that have some kind of firmware. What is more fwupd is open source, which makes it more trustworthy than proprietary applications delivered by hardware vendors designed for (only) their devices.",
+           }
+       },
+        {
+            'url': 'https://fosdem.org/2023/schedule/event/microkernel2023/',
+            'info_dict': {
+                'id': 'microkernel2023',
+                'ext': 'webm',
+                'title': 'The Microkernel Landscape in 2023',
+                'thumbnail': None,
+                'uploader': 'FOSDEM',
+                'description': 'The idea of the microkernel OS architecture is more that 50 years old and the term itself is just a few years younger. Over the years, it has been implemented in countless variants and modifications, it has served as a basis for intriguing OS experiments, it has gained strong position in the mission-critical and safety-critical areas and while it is still not the dominant architecture in the general-purpose desktop OS domain, it has had major influence on the "mainstream" operating systems as well.\nThis talk, however, is not about the history. Instead, we describe where are the microkernel-based operating systems today, who works on them and why, who uses them in production and why, where they aim for the future. The purpose of this talk is also to present the basic practical experiences with the existing microkernel-based operating systems — not to compare them, but to provide the potential users and contributors with an initial sorted list of operating systems they should look into in more detail depending on their needs.'
+            }
+        }
+    ]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        groups = self._match_valid_url(url).groupdict()
+        webpage = self._download_webpage(url, video_id)
+        if groups['url_type'] == 'event':
+            print("This is an event url")
+        elif groups['url_type'] == 'track':
+            print("This is a track")
+            # Download all videos on this page
+        else:
+            print("how did you get here?")
+        title_rgx = r"<div id=\"pagetitles\">\n\s+<h1>(.+?)</h1>"
+        title = self._html_search_regex(title_rgx, webpage, 'title')
+        print(f'TITLE: {title}')
+        evnt_blurb_rgx = r"<div class=\"event-blurb\">\n*(?P<blurb>(<div class=\"event-abstract\">(<p>(.+?)</p>\n*)+</div>)+\n*(<div class=\"event-description\">(<p>(.+?)</p>\n*)*</div>))+\n*</div>"
+        evnt_blurb = self._html_search_regex(evnt_blurb_rgx,
+                                             webpage,
+                                             'event blurb',
+                                             group='blurb')
+        description = evnt_blurb
+        print(f"DESCRIPTION: {description}")
+        video_url_rgx = r"<li><a href=\"(https://video.fosdem.org/[0-9]{4}/.+)\">"
+        video_url = self._html_search_regex(video_url_rgx,
+                                            webpage,
+                                            'video url')
+        print(f"VIDEO URL: {video_url}")
+        print('\n\n___________________________')
+        return {
+            'id': video_id,
+            'title': title,
+            'description': description,
+            'uploader': 'FOSDEM',
+            'url': video_url,
+            'thumbnail': None,
+            # TODO more properties (see yt_dlp/extractor/common.py)
+            # 'release_date': release_date,
+            # 'presenter/author
+        }
