@@ -189,6 +189,12 @@
  - **BoxCastVideo**
  - **Bpb**: Bundeszentrale für politische Bildung
  - **BR**: Bayerischer Rundfunk
+ - **BrainPOP**: [*brainpop*](## "netrc machine")
+ - **BrainPOPELL**: [*brainpop*](## "netrc machine")
+ - **BrainPOPEsp**: [*brainpop*](## "netrc machine") BrainPOP Español
+ - **BrainPOPFr**: [*brainpop*](## "netrc machine") BrainPOP Français
+ - **BrainPOPIl**: [*brainpop*](## "netrc machine") BrainPOP Hebrew
+ - **BrainPOPJr**: [*brainpop*](## "netrc machine")
  - **BravoTV**
  - **Break**
  - **BreitBart**
@@ -271,6 +277,7 @@
  - **CNNIndonesia**
  - **ComedyCentral**
  - **ComedyCentralTV**
+ - **ConanClassic**
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
  - **CookingChannel**
@@ -493,10 +500,16 @@
  - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
  - **Glide**: Glide mobile video messages (glide.me)
+ - **GlobalPlayerAudio**
+ - **GlobalPlayerAudioEpisode**
+ - **GlobalPlayerLive**
+ - **GlobalPlayerLivePlaylist**
+ - **GlobalPlayerVideo**
  - **Globo**: [*globo*](## "netrc machine")
  - **GloboArticle**
  - **glomex**: Glomex videos
  - **glomex:embed**: Glomex embedded videos
+ - **GMANetworkVideo**
  - **Go**
  - **GoDiscovery**
  - **GodTube**
@@ -522,7 +535,6 @@
  - **Heise**
  - **HellPorno**
  - **Helsinki**: helsinki.fi
- - **HentaiStigma**
  - **hetklokhuis**
  - **hgtv.com:show**
  - **HGTVDe**
@@ -535,6 +547,8 @@
  - **hitbox:live**
  - **HitRecord**
  - **hketv**: 香港教育局教育電視 (HKETV) Educational Television, Hong Kong Educational Bureau
+ - **HollywoodReporter**
+ - **HollywoodReporterPlaylist**
  - **Holodex**
  - **HotNewHipHop**
  - **hotstar**
@@ -600,7 +614,7 @@
  - **ivi:compilation**: ivi.ru compilations
  - **ivideon**: Ivideon TV
  - **IVXPlayer**
- - **Iwara**
+ - **iwara**
  - **iwara:playlist**
  - **iwara:user**
  - **Ixigua**
@@ -678,8 +692,6 @@
  - **limelight**
  - **limelight:channel**
  - **limelight:channel_list**
- - **LineLive**
- - **LineLiveChannel**
  - **LinkedIn**: [*linkedin*](## "netrc machine")
  - **linkedin:learning**: [*linkedin*](## "netrc machine")
  - **linkedin:​learning:course**: [*linkedin*](## "netrc machine")
@@ -893,6 +905,8 @@
  - **NhkForSchoolBangumi**
  - **NhkForSchoolProgramList**
  - **NhkForSchoolSubject**: Portal page for each school subjects, like Japanese (kokugo, 国語) or math (sansuu/suugaku or 算数・数学)
+ - **NhkRadioNewsPage**
+ - **NhkRadiru**: NHK らじる (Radiru/Rajiru)
  - **NhkVod**
  - **NhkVodProgram**
  - **nhl.com**
@@ -947,6 +961,7 @@
  - **NRKTVSeries**
  - **NRLTV**
  - **ntv.ru**
+ - **NubilesPorn**: [*nubiles-porn*](## "netrc machine")
  - **Nuvid**
  - **NYTimes**
  - **NYTimesArticle**
@@ -999,6 +1014,7 @@
  - **ParamountNetwork**
  - **ParamountPlus**
  - **ParamountPlusSeries**
+ - **ParamountPressExpress**
  - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
  - **Parlview**
@@ -1016,6 +1032,7 @@
  - **PerformGroup**
  - **periscope**: Periscope
  - **periscope:user**: Periscope user videos
+ - **PGATour**
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
  - **Photobucket**
@@ -1186,6 +1203,9 @@
  - **RTP**
  - **RTRFM**
  - **RTS**: RTS.ch
+ - **RTVCKaltura**
+ - **RTVCPlay**
+ - **RTVCPlayEmbed**
  - **rtve.es:alacarta**: RTVE a la carta
  - **rtve.es:audio**: RTVE audio
  - **rtve.es:infantil**: RTVE infantil
@@ -1239,6 +1259,7 @@
  - **SCTE**: [*scte*](## "netrc machine")
  - **SCTECourse**: [*scte*](## "netrc machine")
  - **Seeker**
+ - **SenalColombiaLive**
  - **SenateGov**
  - **SenateISVP**
  - **SendtoNews**
@@ -1315,6 +1336,7 @@
  - **sr:mediathek**: Saarländischer Rundfunk
  - **SRGSSR**
  - **SRGSSRPlay**: srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites
+ - **StagePlusVODConcert**: [*stageplus*](## "netrc machine")
  - **stanfordoc**: Stanford Open ClassRoom
  - **StarTrek**
  - **startv**
@@ -1427,6 +1449,7 @@
  - **TrailerAddict**: (**Currently broken**)
  - **TravelChannel**
  - **Triller**: [*triller*](## "netrc machine")
+ - **TrillerShort**
  - **TrillerUser**: [*triller*](## "netrc machine")
  - **Trilulilu**
  - **Trovo**
@@ -1660,7 +1683,9 @@
  - **WeiqiTV**: WQTV
  - **wetv:episode**
  - **WeTvSeries**
+ - **WeVidi**
  - **whowatch**
+ - **Whyp**
  - **wikimedia.org**
  - **Willow**
  - **WimTV**
@@ -1701,8 +1726,6 @@
  - **xvideos:quickies**
  - **XXXYMovies**
  - **Yahoo**: Yahoo screen and movies
- - **yahoo:gyao**
- - **yahoo:​gyao:player**
  - **yahoo:japannews**: Yahoo! Japan News
  - **YandexDisk**
  - **yandexmusic:album**: Яндекс.Музыка - Альбом
