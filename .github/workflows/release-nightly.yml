@@ -1,5 +1,5 @@
 name: Release (nightly)
-on: [push, pull_request, workflow_dispatch]
+on: [push, workflow_dispatch]
 concurrency:
   group: release-nightly
   cancel-in-progress: true
