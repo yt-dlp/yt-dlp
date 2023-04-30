@@ -3,7 +3,7 @@ import re
 import pdb
 
 class FosdemIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:archive\.)?fosdem\.org/[0-9]{4}/schedule/(?P<url_type>track|event)/(?P<id>[\w\.-_]+)/'
+    _VALID_URL = r'https?://(?:www\.)?(?:archive\.)?fosdem\.org/(?P<year>[0-9]{4})/schedule/(?P<url_type>track|event)/(?P<id>[\w\.-_]+)/'
     _TESTS = [
         {
             'url': 'https://archive.fosdem.org/2022/schedule/event/firmware_updates_for_opnsense_and_pfsense/',
@@ -40,6 +40,7 @@ class FosdemIE(InfoExtractor):
             # Download all videos on this page
         else:
             print("how did you get here?")
+        year = groups['year']
         title_rgx = r"<div id=\"pagetitles\">\n\s+<h1>(.+?)</h1>"
         title = self._html_search_regex(title_rgx, webpage, 'title')
         print(f'TITLE: {title}')
@@ -64,6 +65,6 @@ class FosdemIE(InfoExtractor):
             'url': video_url,
             'thumbnail': None,
             # TODO more properties (see yt_dlp/extractor/common.py)
-            # 'release_date': release_date,
+            'release_date': year,
             # 'presenter/author
         }
