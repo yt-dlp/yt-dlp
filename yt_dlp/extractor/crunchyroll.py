@@ -172,10 +172,12 @@ class CrunchyrollBaseIE(InfoExtractor):
         return formats
 
     def _extract_subtitles(self, data):
-        return {
-            subtitle.get('locale'): [traverse_obj(subtitle, {'url': 'url', 'ext': 'format'})]
-            for subtitle in traverse_obj(data, ((None, 'meta'), 'subtitles', {dict}, ..., {dict}))
-        }
+        subtitles = {}
+
+        for locale, subtitle in traverse_obj(data, ((None, 'meta'), 'subtitles', {dict.items}, ...)):
+            subtitles[locale] = [traverse_obj(subtitle, {'url': 'url', 'ext': 'format'})]
+
+        return subtitles
 
 
 class CrunchyrollCmsBaseIE(CrunchyrollBaseIE):
@@ -308,7 +310,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
         'only_matching': True,
     }]
-    # We want to support --lazy-playlist and movie listings cannot be inside a playlist
+    # We want to support lazy playlist filtering and movie listings cannot be inside a playlist
     _RETURN_TYPE = 'video'
 
     def _real_extract(self, url):
