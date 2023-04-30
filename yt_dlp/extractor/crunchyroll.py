@@ -177,10 +177,13 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             note='Retrieving stream info', query=params)
         return episode_response, stream_response
 
-    def _expand_responses_for_all_versions(self, lang, internal_id, display_id, versions):
+    def _expand_responses_for_requested_langs(self, requested_langs, lang, internal_id, display_id, versions):
         _, stream_response_to_expand = versions[internal_id]
         stream_versions = traverse_obj(stream_response_to_expand, 'versions') or []
         for version in stream_versions:
+            audio_lang = (version.get('audio_locale') or 'unknown').lower()
+            if requested_langs and audio_lang not in requested_langs:
+                continue
             version_id = version.get('guid')
             if not version_id or version_id in versions:
                 continue
@@ -194,9 +197,15 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         # Split URL into its parts.
         lang, internal_id, display_id = self._get_url_parts(url)
 
-        # Collect different audio versions for requested url.
+        # Check what formats were requested.
+        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
+        hardsub_preference = qualities(requested_hardsubs[::-1])
+        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
+        requested_langs = self._configuration_arg('language', casesense=False) or ['default']
+
+        # Fetch default version given by the URL.
         # Every version is represented by a different page. When switching to a different
-        # audio language in the crunchyroll player the url of the page changes to a different ID.
+        # audio language in the crunchyroll player the URL of the page changes to a different ID.
         # Hint: Each value in the 'versions' dict consists of a tuple containing
         # an 'episode_response' and a 'stream_response'
         # -> {"some_id": (episode_response_dict, stream_response_dict)}.
@@ -204,19 +213,33 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             # Fetch requested version.
             internal_id: self._fetch_episode_and_stream_response(lang, internal_id, display_id)
         }
-        # Enabling this option can significantly slow down the extraction process,
-        # but formats for different languages will be found as a result.
-        # Also, the code will behave like the previous version,
-        # if this flag is disabled or not set.
-        # TODO: Cannot be a boolean flag. Instead allow to specify which languages should be included (as a list).
-        if True: # self._configuration_arg('include_other_versions'):
-            # Include other language versions if available.
-            self._expand_responses_for_all_versions(lang, internal_id, display_id, versions)
 
-        # Check what formats were requested.
-        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
-        hardsub_preference = qualities(requested_hardsubs[::-1])
-        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
+        # Parse requested_langs.
+        # Specifying the 'language' option can significantly slow down the extraction process,
+        # but formats for different languages will be found as a result.
+        # Set 'all' to extract all versions (All other keys will be ignored if 'all' is set).
+        # Use the language key 'default' to specify whether the URL`s language version,
+        # should be kept alongside the other requested languages.
+        # Use the language key 'unknown' to specify whether unknown language versions
+        # should be kept alongside the other requested languages.
+        # e.g. requested_langs = ['default', 'ja-JP', 'unknown']
+        # -> Would keep the URL`s language, plus Japanese and unknown languages.
+        # Also, the code will behave like the previous version of the extractor,
+        # if 'language' is not set or is set to only ['default'].
+        if ['default'] == requested_langs:
+            requested_langs = None
+        elif 'all' in requested_langs:
+            requested_langs = []
+        else:
+            # Replace all 'default' keys with the default audio language.
+            _, default_stream_response = versions[internal_id]
+            default_audio_lang = (default_stream_response.get('audio_locale') or '').lower()
+            requested_langs = [(default_audio_lang if val == 'default' else val) for val in requested_langs]
+
+        # Collect different audio versions.
+        if requested_langs is not None:
+            # Include requested languages versions if available.
+            self._expand_responses_for_requested_langs(requested_langs, lang, internal_id, display_id, versions)
 
         # Fields to fill with data while iterating through all versions.
         formats = []
@@ -225,6 +248,12 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         # Iterate through versions and collect all formats and subtitles.
         for version_id, responses in versions.items():
             episode_response, stream_response = responses
+            # Skip version, if audio lang is not in requested_langs.
+            audio_lang = (stream_response.get('audio_locale') or '').lower()
+            if requested_langs and audio_lang not in requested_langs:
+                continue
+
+            # Lambda to get values of key from stream_response.
             get_streams = lambda name: (traverse_obj(stream_response, name) or {}).items()
 
             # 1. Find all available formats for current version.
@@ -266,7 +295,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     continue
                 for f in adaptive_formats:
                     if f.get('acodec') != 'none':
-                        f['language'] = stream_response.get('audio_locale')
+                        f['language'] = audio_lang
                     f['quality'] = hardsub_preference(hardsub_lang.lower())
                     # If multiple versions are available, add episode options to each format, as fields
                     # such as 'title', 'season' or 'season_id' may be different for each version.
@@ -297,7 +326,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'end_time': float_or_none(intro_chapter.get('endTime'))
             }]
 
-        # Build extracted data dict
+        # Build extracted data dict from default version.
         episode_response, _ = versions[internal_id]
         options = {
             'formats': formats,
