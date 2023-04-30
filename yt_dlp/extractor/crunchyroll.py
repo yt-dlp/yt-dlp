@@ -1,5 +1,5 @@
 import base64
-from urllib.error import HTTPError
+import urllib.error
 
 from .common import InfoExtractor
 from ..utils import (
@@ -102,11 +102,8 @@ class CrunchyrollBaseIE(InfoExtractor):
         if not endpoint.startswith('/'):
             endpoint = f'/{endpoint}'
 
-        if not note:
-            note = f'Calling API: {endpoint}'
-
         return self._download_json(
-            f'{self._BASE_URL}{endpoint}', internal_id, note,
+            f'{self._BASE_URL}{endpoint}', internal_id, note or f'Calling API: {endpoint}',
             headers=CrunchyrollBaseIE._AUTH_HEADERS, query={**CrunchyrollBaseIE._QUERY[lang], **query})
 
     def _call_api(self, path, internal_id, lang, note='api', query={}):
@@ -117,24 +114,22 @@ class CrunchyrollBaseIE(InfoExtractor):
             result = self._call_base_api(
                 path, internal_id, lang, f'Downloading {note} JSON ({self._API_ENDPOINT})', query=query)
         except ExtractorError as error:
-            if isinstance(error.cause, HTTPError) and error.cause.code == 404:
+            if isinstance(error.cause, urllib.error.HTTPError) and error.cause.code == 404:
                 return None
             raise
 
         if not result:
-            raise ExtractorError(f'Unexpected response when downloading {note}')
+            raise ExtractorError(f'Unexpected response when downloading {note} JSON')
         return result
 
     def _extract_formats(self, stream_response, display_id=None):
         requested_formats = self._configuration_arg('format') or ['adaptive_hls']
         available_formats = {}
         for stream_type, streams in traverse_obj(
-                stream_response, (('streams', ('data', 0)), {dict}), get_all=False).items() or ():
+                stream_response, (('streams', ('data', 0)), {dict.items}, ...)):
             if stream_type not in requested_formats:
                 continue
-            for stream in streams.values():
-                if not stream.get('url'):
-                    continue
+            for stream in traverse_obj(streams, lambda _, v: v['url']):
                 hardsub_lang = stream.get('hardsub_locale') or ''
                 format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
                 available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
@@ -178,10 +173,8 @@ class CrunchyrollBaseIE(InfoExtractor):
 
     def _extract_subtitles(self, data):
         return {
-            subtitle.get('locale'): [{
-                'url': subtitle.get('url'),
-                'ext': subtitle.get('format'),
-            }] for subtitle in traverse_obj(data, ((None, 'meta'), 'subtitles', ..., {dict}))
+            subtitle.get('locale'): [traverse_obj(subtitle, {'url': 'url', 'ext': 'format'})]
+            for subtitle in traverse_obj(data, ((None, 'meta'), 'subtitles', {dict}, ..., {dict}))
         }
 
 
@@ -315,6 +308,8 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
         'only_matching': True,
     }]
+    # We want to support --lazy-playlist and movie listings cannot be inside a playlist
+    _RETURN_TYPE = 'video'
 
     def _real_extract(self, url):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
@@ -323,7 +318,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         response = traverse_obj(self._call_api(
             f'objects/{internal_id}', internal_id, lang, 'object info', {'ratings': 'true'}), ('data', 0, {dict}))
         if not response:
-            raise ExtractorError('No item with the provided id could be found', expected=True)
+            raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
         object_type = response.get('type')
         if object_type == 'episode':
@@ -378,7 +373,6 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         def calculate_count(item):
             return parse_count(''.join((item['displayed'], item.get('unit') or '')))
 
-        self.write_debug(f'rating: {response}')
         result.update(traverse_obj(response, ('rating', {
             'like_count': ('up', {calculate_count}),
             'dislike_count': ('down', {calculate_count}),
@@ -412,11 +406,11 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
                 'series_id': ('series_id', {str}),
                 'season': ('season_title', {str}),
                 'season_id': ('season_id', {str}),
-                'season_number': ('season_number', {float_or_none}),
-                'episode_number': ('sequence_number', {float_or_none}),
+                'season_number': ('season_number', ({int}, {float_or_none})),
+                'episode_number': ('sequence_number', ({int}, {float_or_none})),
                 'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
                 'language': ('audio_locale', {str}),
-            }),
+            }, get_all=False),
         }
 
     @staticmethod
@@ -539,7 +533,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         }[object_type]
         response = traverse_obj(self._call_api(f'{path}/{internal_id}', internal_id, lang, name), ('data', 0, {dict}))
         if not response:
-            raise ExtractorError('No item with the provided id could be found', expected=True)
+            raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
 
         streams_link = response.get('streams_link')
         if not streams_link and response.get('isPremiumOnly'):
