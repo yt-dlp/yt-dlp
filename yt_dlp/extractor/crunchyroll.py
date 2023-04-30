@@ -218,12 +218,12 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         # Specifying the 'language' option can significantly slow down the extraction process,
         # but formats for different languages will be found as a result.
         # Set 'all' to extract all versions (All other keys will be ignored if 'all' is set).
-        # Use the language key 'default' to specify whether the URL`s language version,
+        # Use the language key 'default' to specify whether the URL\'s language version,
         # should be kept alongside the other requested languages.
         # Use the language key 'unknown' to specify whether unknown language versions
         # should be kept alongside the other requested languages.
         # e.g. requested_langs = ['default', 'ja-JP', 'unknown']
-        # -> Would keep the URL`s language, plus Japanese and unknown languages.
+        # -> Would keep the URL\'s language, plus Japanese and unknown languages.
         # Also, the code will behave like the previous version of the extractor,
         # if 'language' is not set or is set to only ['default'].
         if ['default'] == requested_langs:
