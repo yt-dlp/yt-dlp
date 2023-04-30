@@ -160,13 +160,13 @@ class DLFCorpusIE(DLFBaseIE):
         },
         # Podcast feed with tag buttons
         {
-            'url': 'https://www.deutschlandfunk.de/corso-100.html',
+            'url': 'https://www.deutschlandfunk.de/kommentare-und-themen-der-woche-100.html',
             'info_dict': {
-                'id': 'corso-100',
-                'title': r're:Kunst & Pop [-/] Corso',
-                'description': 'md5:ba0f80303683591bff4b7459077bef58'
+                'id': 'kommentare-und-themen-der-woche-100',
+                'title': 'Meinung - Kommentare und Themen der Woche',
+                'description': 'md5:2901bbd65cd2d45e116d399a099ce5d5',
             },
-            'playlist_mincount': 34,
+            'playlist_mincount': 20,
             'params': {'skip_download': True}
         },
         # Podcast feed with no description
