@@ -87,7 +87,7 @@ class DLFIE(DLFBaseIE):
 
 
 class DLFCorpusIE(DLFBaseIE):
-    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'(?P<id>(?:[a-z]+-)+\d+)\.html'
+    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'(?P<id>[\w-]+-\d+)\.html'
 
     IE_NAME = 'dlf:corpus'
     IE_DESC = 'DLF Multi-feed Archives'
