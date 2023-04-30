@@ -1120,7 +1120,8 @@ class TwitterIE(TwitterBaseIE):
         if not entries:
             expanded_url = traverse_obj(status, ('entities', 'urls', 0, 'expanded_url'), expected_type=url_or_none)
             if not expanded_url or expanded_url == url:
-                raise ExtractorError('No video could be found in this tweet', expected=True)
+                self.raise_no_formats('No video could be found in this tweet', expected=True)
+                return info
 
             return self.url_result(expanded_url, display_id=twid, **info)
 
