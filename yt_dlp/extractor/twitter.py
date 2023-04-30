@@ -119,7 +119,8 @@ class TwitterBaseIE(InfoExtractor):
             allowed_status = {400, 403, 404} if graphql else {403}
             result = self._download_json(
                 (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
-                video_id, headers=headers, query=query, expected_status=allowed_status)
+                video_id, headers=headers, query=query, expected_status=allowed_status,
+                note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
 
             if result.get('errors'):
                 errors = traverse_obj(result, ('errors', ..., 'message', {str}))
