@@ -26,6 +26,17 @@ class FosdemIE(InfoExtractor):
                 'uploader': 'FOSDEM',
                 'description': 'The idea of the microkernel OS architecture is more that 50 years old and the term itself is just a few years younger. Over the years, it has been implemented in countless variants and modifications, it has served as a basis for intriguing OS experiments, it has gained strong position in the mission-critical and safety-critical areas and while it is still not the dominant architecture in the general-purpose desktop OS domain, it has had major influence on the "mainstream" operating systems as well.\nThis talk, however, is not about the history. Instead, we describe where are the microkernel-based operating systems today, who works on them and why, who uses them in production and why, where they aim for the future. The purpose of this talk is also to present the basic practical experiences with the existing microkernel-based operating systems — not to compare them, but to provide the potential users and contributors with an initial sorted list of operating systems they should look into in more detail depending on their needs.'
             }
+        },
+        {
+            'url':'https://fosdem.org/2023/schedule/event/hwacceluk/',
+            'info_dict':{
+                'id': 'hwacceluk',
+                'ext': 'webm',
+                'title': 'Hardware acceleration for Unikernels',
+                'thumbnail': None,
+                'uploader': 'FOSDEM',
+                'description': 'Unikernels promise fast boot times, small memory footprint and stronger security but lack in terms of manageability. Moreover, unikernels provide a non-generic environment for applications, with limited or no support for widely used libraries and OS features. This issue is even more apparent in the case of hardware acceleration. Acceleration libraries are often dynamically linked and have numerous dependencies, which directly contradict the statically linked notion of unikernels. Hardware acceleration functionality is almost non-existent in unikernel frameworks, mainly due to the absence of suitable virtualization solutions for such devices. ​ In this talk, we present an update on the vAccel framework we have built that can expose hardware acceleration semantics to workloads running on isolated sandboxes. We go through the components that comprise the framework and elaborate on the challenges in building such a software stack: we first present an overview of vAccel and how it works; then we focus on the porting effort of vAccel in various unikernel frameworks. Finally, we present a hardware acceleration abstraction that expose semantic acceleration functionality to workloads running as unikernels. ​ We will present a short demo of some popular algorithms running on top of Unikraft and vAccel show-casing the merits and trade-offs of this approach.'
+            }
         }
     ]
 
