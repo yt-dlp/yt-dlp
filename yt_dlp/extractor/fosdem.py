@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+import re
 import pdb
 
 class FosdemIE(InfoExtractor):
@@ -46,7 +47,7 @@ class FosdemIE(InfoExtractor):
         evnt_blurb = self._html_search_regex(evnt_blurb_rgx,
                                              webpage,
                                              'event blurb',
-                                             group='blurb')
+                                             group='blurb', flags=re.DOTALL)
         description = evnt_blurb
         print(f"DESCRIPTION: {description}")
         video_url_rgx = r"<li><a href=\"(https://video.fosdem.org/[0-9]{4}/.+)\">"
