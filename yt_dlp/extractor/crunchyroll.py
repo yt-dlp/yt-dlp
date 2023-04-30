@@ -94,6 +94,9 @@ class CrunchyrollBaseIE(InfoExtractor):
             CrunchyrollBaseIE.params = (api_domain, bucket, params)
         return CrunchyrollBaseIE.params
 
+    def _get_url_parts(self, url):
+        return self._match_valid_url(url).group('lang', 'id', 'display_id')
+
 
 class CrunchyrollBetaIE(CrunchyrollBaseIE):
     IE_NAME = 'crunchyroll'
@@ -153,73 +156,138 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
+    def _fetch_episode_and_stream_response(self, lang, internal_id, display_id, skip_if_inaccessible=False):
         api_domain, bucket, params = self._get_params(lang)
 
+        # Fetch episode data
         episode_response = self._download_json(
             f'{api_domain}/cms/v2{bucket}/episodes/{internal_id}', display_id,
             note='Retrieving episode metadata', query=params)
         if episode_response.get('is_premium_only') and not bucket.endswith('crunchyroll'):
+            if skip_if_inaccessible:
+                return None
             if self.is_logged_in:
                 raise ExtractorError('This video is for premium members only', expected=True)
             else:
                 self.raise_login_required('This video is for premium members only')
 
+        # Fetch stream data
         stream_response = self._download_json(
             f'{api_domain}{episode_response["__links__"]["streams"]["href"]}', display_id,
             note='Retrieving stream info', query=params)
-        get_streams = lambda name: (traverse_obj(stream_response, name) or {}).items()
+        return episode_response, stream_response
 
+    def _expand_responses_for_all_versions(self, lang, internal_id, display_id, versions):
+        _, stream_response_to_expand = versions[internal_id]
+        stream_versions = traverse_obj(stream_response_to_expand, 'versions') or []
+        for version in stream_versions:
+            version_id = version.get('guid')
+            if not version_id or version_id in versions:
+                continue
+            # Fetch responses for current version (will be a different page).
+            responses = self._fetch_episode_and_stream_response(lang, version_id, display_id, skip_if_inaccessible=True)
+            if not responses:
+                continue
+            versions[version_id] = responses
+
+    def _real_extract(self, url):
+        # Split URL into its parts.
+        lang, internal_id, display_id = self._get_url_parts(url)
+
+        # Collect different audio versions for requested url.
+        # Every version is represented by a different page. When switching to a different
+        # audio language in the crunchyroll player the url of the page changes to a different ID.
+        # Hint: Each value in the 'versions' dict consists of a tuple containing
+        # an 'episode_response' and a 'stream_response'
+        # -> {"some_id": (episode_response_dict, stream_response_dict)}.
+        versions = {
+            # Fetch requested version.
+            internal_id: self._fetch_episode_and_stream_response(lang, internal_id, display_id)
+        }
+        # Enabling this option can significantly slow down the extraction process,
+        # but formats for different languages will be found as a result.
+        # Also, the code will behave like the previous version,
+        # if this flag is disabled or not set.
+        # TODO: Cannot be a boolean flag. Instead allow to specify which languages should be included (as a list).
+        if True: # self._configuration_arg('include_other_versions'):
+            # Include other language versions if available.
+            self._expand_responses_for_all_versions(lang, internal_id, display_id, versions)
+
+        # Check what formats were requested.
         requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
         hardsub_preference = qualities(requested_hardsubs[::-1])
         requested_formats = self._configuration_arg('format') or ['adaptive_hls']
 
-        available_formats = {}
-        for stream_type, streams in get_streams('streams'):
-            if stream_type not in requested_formats:
-                continue
-            for stream in streams.values():
-                if not stream.get('url'):
-                    continue
-                hardsub_lang = stream.get('hardsub_locale') or ''
-                format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
-                available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
-
-        if '' in available_formats and 'all' not in requested_hardsubs:
-            full_format_langs = set(requested_hardsubs)
-            self.to_screen(
-                'To get all formats of a hardsub language, use '
-                '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
-                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
-                only_once=True)
-        else:
-            full_format_langs = set(map(str.lower, available_formats))
-
+        # Fields to fill with data while iterating through all versions.
         formats = []
-        for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
-            if stream_type.endswith('hls'):
-                if hardsub_lang.lower() in full_format_langs:
-                    adaptive_formats = self._extract_m3u8_formats(
-                        stream_url, display_id, 'mp4', m3u8_id=format_id,
-                        fatal=False, note=f'Downloading {format_id} HLS manifest')
-                else:
-                    adaptive_formats = (self._m3u8_meta_format(stream_url, ext='mp4', m3u8_id=format_id),)
-            elif stream_type.endswith('dash'):
-                adaptive_formats = self._extract_mpd_formats(
-                    stream_url, display_id, mpd_id=format_id,
-                    fatal=False, note=f'Downloading {format_id} MPD manifest')
-            else:
-                self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
-                continue
-            for f in adaptive_formats:
-                if f.get('acodec') != 'none':
-                    f['language'] = stream_response.get('audio_locale')
-                f['quality'] = hardsub_preference(hardsub_lang.lower())
-            formats.extend(adaptive_formats)
+        subtitles = {}
 
+        # Iterate through versions and collect all formats and subtitles.
+        for version_id, responses in versions.items():
+            episode_response, stream_response = responses
+            get_streams = lambda name: (traverse_obj(stream_response, name) or {}).items()
+
+            # 1. Find all available formats for current version.
+            available_formats = {}
+            for stream_type, streams in get_streams('streams'):
+                if stream_type not in requested_formats:
+                    continue
+                for stream in streams.values():
+                    if not stream.get('url'):
+                        continue
+                    hardsub_lang = stream.get('hardsub_locale') or ''
+                    format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
+                    available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
+            if '' in available_formats and 'all' not in requested_hardsubs:
+                full_format_langs = set(requested_hardsubs)
+                self.to_screen(
+                    'To get all formats of a hardsub language, use '
+                    '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
+                    'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
+                    only_once=True)
+            else:
+                full_format_langs = set(map(str.lower, available_formats))
+
+            # 2. Expand formats with multiple resolutions and add them to 'formats' dict.
+            for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
+                if stream_type.endswith('hls'):
+                    if hardsub_lang.lower() in full_format_langs:
+                        adaptive_formats = self._extract_m3u8_formats(
+                            stream_url, display_id, 'mp4', m3u8_id=format_id,
+                            fatal=False, note=f'Downloading {format_id} HLS manifest')
+                    else:
+                        adaptive_formats = (self._m3u8_meta_format(stream_url, ext='mp4', m3u8_id=format_id),)
+                elif stream_type.endswith('dash'):
+                    adaptive_formats = self._extract_mpd_formats(
+                        stream_url, display_id, mpd_id=format_id,
+                        fatal=False, note=f'Downloading {format_id} MPD manifest')
+                else:
+                    self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
+                    continue
+                for f in adaptive_formats:
+                    if f.get('acodec') != 'none':
+                        f['language'] = stream_response.get('audio_locale')
+                    f['quality'] = hardsub_preference(hardsub_lang.lower())
+                    # If multiple versions are available, add episode options to each format, as fields
+                    # such as 'title', 'season' or 'season_id' may be different for each version.
+                    # e.g. if a version is selected that is not the one specified by the user,
+                    # the 'season_id' would most likely be incorrect. (the selected format will
+                    # override the 'default version values')
+                    if len(versions) > 1:
+                        f.update(self._get_episode_options(version_id, episode_response))
+                formats.extend(adaptive_formats)
+
+            # 3. Add subtitles of current version to 'subtitle' dict.
+            subtitles.update({
+                lang: [{
+                    'url': subtitle_data.get('url'),
+                    'ext': subtitle_data.get('format')
+                }] for lang, subtitle_data in get_streams('subtitles')
+            })
+
+        # Find chapters.
         chapters = None
-        # if no intro chapter is available, a 403 without usable data is returned
+        # If no intro chapter is available, a 403 without usable data is returned.
         intro_chapter = self._download_json(f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
                                             display_id, fatal=False, errnote=False)
         if isinstance(intro_chapter, dict):
@@ -229,6 +297,26 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'end_time': float_or_none(intro_chapter.get('endTime'))
             }]
 
+        # Build extracted data dict
+        episode_response, _ = versions[internal_id]
+        options = {
+            'formats': formats,
+            'subtitles': subtitles,
+            'chapters': chapters,
+            'thumbnails': [{
+                'url': thumb.get('source'),
+                'width': thumb.get('width'),
+                'height': thumb.get('height'),
+            } for thumb in traverse_obj(episode_response, ('images', 'thumbnail', ..., ...)) or []],
+        }
+        # Add the 'default version values'.
+        # They may be overwritten, if a different version is applied / selected by the user.
+        options.update(self._get_episode_options(internal_id, episode_response))
+        # Return extracted data dict
+        return options
+
+    @staticmethod
+    def _get_episode_options(internal_id, episode_response):
         return {
             'id': internal_id,
             'title': '%s Episode %s – %s' % (
@@ -243,19 +331,6 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'season_number': episode_response.get('season_number'),
             'episode': episode_response.get('title'),
             'episode_number': episode_response.get('sequence_number'),
-            'formats': formats,
-            'thumbnails': [{
-                'url': thumb.get('source'),
-                'width': thumb.get('width'),
-                'height': thumb.get('height'),
-            } for thumb in traverse_obj(episode_response, ('images', 'thumbnail', ..., ...)) or []],
-            'subtitles': {
-                lang: [{
-                    'url': subtitle_data.get('url'),
-                    'ext': subtitle_data.get('format')
-                }] for lang, subtitle_data in get_streams('subtitles')
-            },
-            'chapters': chapters
         }
 
 
@@ -279,7 +354,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
     }]
 
     def _real_extract(self, url):
-        lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
+        lang, internal_id, display_id = self._get_url_parts(url)
         api_domain, bucket, params = self._get_params(lang)
 
         series_response = self._download_json(
