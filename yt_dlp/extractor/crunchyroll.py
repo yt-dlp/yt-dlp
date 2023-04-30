@@ -249,8 +249,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         for version_id, responses in versions.items():
             episode_response, stream_response = responses
             # Skip version, if audio lang is not in requested_langs.
-            audio_lang = (stream_response.get('audio_locale') or '').lower()
-            if requested_langs and audio_lang not in requested_langs:
+            audio_lang = stream_response.get('audio_locale') or ''
+            if requested_langs and audio_lang.lower() not in requested_langs:
                 continue
 
             # Lambda to get values of key from stream_response.
