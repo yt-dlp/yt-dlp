@@ -42,7 +42,7 @@ class DLFBaseIE(InfoExtractor):
 
 
 class DLFIE(DLFBaseIE):
-    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'(?:\w+-)+(?P<id>[^-]*\d[^-]*)-100\.html'
+    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'[\w-]+-dlf-(?P<id>[\da-f]{8})-100\.html'
 
     IE_NAME = 'dlf'
     _TESTS = [
@@ -87,7 +87,7 @@ class DLFIE(DLFBaseIE):
 
 
 class DLFCorpusIE(DLFBaseIE):
-    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'(?P<id>[\w-]+-\d+)\.html'
+    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'(?P<id>(?![\w-]+-dlf-[\da-f]{8})[\w-]+-\d+)\.html'
 
     IE_NAME = 'dlf:corpus'
     IE_DESC = 'DLF Multi-feed Archives'
