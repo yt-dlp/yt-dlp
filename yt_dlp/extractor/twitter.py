@@ -1,6 +1,5 @@
 import json
 import re
-import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
@@ -17,6 +16,7 @@ from ..utils import (
     format_field,
     int_or_none,
     make_archive_id,
+    remove_end,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -32,11 +32,9 @@ from ..utils import (
 class TwitterBaseIE(InfoExtractor):
     _API_BASE = 'https://api.twitter.com/1.1/'
     _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
-    _TOKENS = {
-        'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA': None,
-        'AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw': None,
-    }
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
+    _AUTH = {'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'}
+    _token = None
 
     def _extract_variant_formats(self, variant, video_id):
         variant_url = variant.get('url')
@@ -94,7 +92,7 @@ class TwitterBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, query={}, graphql=False):
         cookies = self._get_cookies(self._API_BASE)
-        headers = {}
+        headers = self._AUTH.copy()
 
         csrf_cookie = cookies.get('ct0')
         if csrf_cookie:
@@ -107,54 +105,33 @@ class TwitterBaseIE(InfoExtractor):
                 'x-twitter-active-user': 'yes',
             })
 
-        last_error = None
-        for bearer_token in self._TOKENS:
-            for first_attempt in (True, False):
-                headers['Authorization'] = f'Bearer {bearer_token}'
+        for first_attempt in (True, False):
+            if not self.is_logged_in:
+                if not self._token:
+                    headers.pop('x-guest-token', None)
+                    self._token = traverse_obj(self._download_json(
+                        self._API_BASE + 'guest/activate.json', video_id,
+                        'Downloading guest token', data=b'', headers=headers), 'guest_token')
+                    if not self._token:
+                        raise ExtractorError('Could not retrieve guest token')
+                headers['x-guest-token'] = self._token
 
-                if not self.is_logged_in:
-                    if not self._TOKENS[bearer_token]:
-                        headers.pop('x-guest-token', None)
-                        guest_token_response = self._download_json(
-                            self._API_BASE + 'guest/activate.json', video_id,
-                            'Downloading guest token', data=b'', headers=headers)
+            allowed_status = {400, 403, 404} if graphql else {403}
+            result = self._download_json(
+                (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
+                video_id, headers=headers, query=query, expected_status=allowed_status)
 
-                        self._TOKENS[bearer_token] = guest_token_response.get('guest_token')
-                        if not self._TOKENS[bearer_token]:
-                            raise ExtractorError('Could not retrieve guest token')
+            if result.get('errors'):
+                errors = traverse_obj(result, ('errors', ..., 'message', {str}))
+                if first_attempt and any('bad guest token' in error.lower() for error in errors):
+                    self.to_screen('Guest token has expired. Refreshing guest token')
+                    self._token = None
+                    continue
 
-                    headers['x-guest-token'] = self._TOKENS[bearer_token]
+                error_message = ', '.join(set(errors)) or 'Unknown error'
+                raise ExtractorError(f'Error(s) while querying API: {error_message}', expected=True)
 
-                try:
-                    allowed_status = {400, 403, 404} if graphql else {403}
-                    result = self._download_json(
-                        (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
-                        video_id, headers=headers, query=query, expected_status=allowed_status)
-
-                except ExtractorError as e:
-                    if last_error:
-                        raise last_error
-
-                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
-                        raise
-
-                    last_error = e
-                    self.report_warning(
-                        'Twitter API gave 404 response, retrying with deprecated auth token. '
-                        'Only one media item can be extracted')
-                    break  # continue outer loop with next bearer_token
-
-                if result.get('errors'):
-                    errors = traverse_obj(result, ('errors', ..., 'message'), expected_type=str)
-                    if first_attempt and any('bad guest token' in error.lower() for error in errors):
-                        self.to_screen('Guest token has expired. Refreshing guest token')
-                        self._TOKENS[bearer_token] = None
-                        continue
-
-                    error_message = ', '.join(set(errors)) or 'Unknown error'
-                    raise ExtractorError(f'Error(s) while querying API: {error_message}', expected=True)
-
-                return result
+            return result
 
     def _build_graphql_query(self, media_id):
         raise NotImplementedError('Method must be implemented to support GraphQL')
@@ -905,11 +882,13 @@ class TwitterIE(TwitterBaseIE):
             'tweet_results', 'result', ('tweet', None),
         ), expected_type=dict, default={}, get_all=False)
 
-        if result.get('__typename') not in ('Tweet', None):
+        if result.get('__typename') not in ('Tweet', 'TweetTombstone', None):
             self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
 
         if 'tombstone' in result:
-            cause = traverse_obj(result, ('tombstone', 'text', 'text'), expected_type=str)
+            cause = remove_end(traverse_obj(result, ('tombstone', 'text', 'text', {str})), '. Learn more')
+            if cause and 'adult content' in cause:
+                self.raise_login_required(cause)
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
 
         status = result.get('legacy', {})
@@ -922,7 +901,7 @@ class TwitterIE(TwitterBaseIE):
         # extra transformation is needed since result does not match legacy format
         binding_values = {
             binding_value.get('key'): binding_value.get('value')
-            for binding_value in traverse_obj(status, ('card', 'binding_values', ...), expected_type=dict)
+            for binding_value in traverse_obj(status, ('card', 'binding_values', ..., {dict}))
         }
         if binding_values:
             status['card']['binding_values'] = binding_values
@@ -965,12 +944,7 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if self.is_logged_in or self._configuration_arg('force_graphql'):
-            self.write_debug(f'Using GraphQL API (Auth = {self.is_logged_in})')
-            result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
-            status = self._graphql_to_legacy(result, twid)
-
-        else:
+        if self._configuration_arg('legacy_api') and not self.is_logged_in:
             status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
                 'cards_platform': 'Web-12',
                 'include_cards': 1,
@@ -978,6 +952,9 @@ class TwitterIE(TwitterBaseIE):
                 'include_user_entities': 0,
                 'tweet_mode': 'extended',
             }), 'retweeted_status', None)
+        else:
+            result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
+            status = self._graphql_to_legacy(result, twid)
 
         title = description = status['full_text'].replace('\n', ' ')
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames
