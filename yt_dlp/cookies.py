@@ -418,20 +418,14 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 
         if version == b'v10':
             self._cookie_counts['v10'] += 1
-            plaintext = _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
-            if plaintext is None:
-                plaintext = _decrypt_aes_cbc(ciphertext, self._empty_key, self._logger)
-            return plaintext
+            return _decrypt_aes_cbc_multi(ciphertext, (self._v10_key, self._empty_key), self._logger)
 
         elif version == b'v11':
             self._cookie_counts['v11'] += 1
             if self._v11_key is None:
                 self._logger.warning('cannot decrypt v11 cookies: no key found', only_once=True)
                 return None
-            plaintext = _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
-            if plaintext is None:
-                plaintext = _decrypt_aes_cbc(ciphertext, self._empty_key, self._logger)
-            return plaintext
+            return _decrypt_aes_cbc_multi(ciphertext, (self._v11_key, self._empty_key), self._logger)
 
         else:
             self._logger.warning(f'unknown cookie version: "{version}"', only_once=True)
@@ -462,7 +456,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
 
-            return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
+            return _decrypt_aes_cbc_multi(ciphertext, (self._v10_key,), self._logger)
 
         else:
             self._cookie_counts['other'] += 1
@@ -984,13 +978,15 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
     return pbkdf2_hmac('sha1', password, salt, iterations, key_length)
 
 
-def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
-    plaintext = unpad_pkcs7(aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector))
-    try:
-        return plaintext.decode()
-    except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
-        return None
+def _decrypt_aes_cbc_multi(ciphertext, keys, logger, initialization_vector=b' ' * 16):
+    for key in keys:
+        plaintext = unpad_pkcs7(aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector))
+        try:
+            return plaintext.decode()
+        except UnicodeDecodeError:
+            pass
+    logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
+    return None
 
 
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
