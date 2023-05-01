@@ -116,21 +116,21 @@ class TwitterBaseIE(InfoExtractor):
             elif not self.is_logged_in:
                 raise ExtractorError('Could not retrieve guest token')
 
-            allowed_status = {400, 403, 404} if graphql else {403}
+            allowed_status = {400, 401, 403, 404} if graphql else {403}
             result = self._download_json(
                 (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
                 video_id, headers=headers, query=query, expected_status=allowed_status,
                 note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
 
             if result.get('errors'):
-                errors = traverse_obj(result, ('errors', ..., 'message', {str}))
-                if first_attempt and any('bad guest token' in error.lower() for error in errors):
+                errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
+                if not self.is_logged_in and first_attempt and 'bad guest token' in errors.lower():
                     self.to_screen('Guest token has expired. Refreshing guest token')
                     self._guest_token = None
                     continue
 
-                error_message = ', '.join(set(errors)) or 'Unknown error'
-                raise ExtractorError(f'Error(s) while querying API: {error_message}', expected=True)
+                raise ExtractorError(
+                    f'Error(s) while querying API: {errors or "Unknown error"}', expected=True)
 
             return result
 
