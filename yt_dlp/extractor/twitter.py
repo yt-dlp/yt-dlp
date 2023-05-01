@@ -106,15 +106,15 @@ class TwitterBaseIE(InfoExtractor):
             })
 
         for first_attempt in (True, False):
-            if not self.is_logged_in:
-                if not self._guest_token:
-                    headers.pop('x-guest-token', None)
-                    self._guest_token = traverse_obj(self._download_json(
-                        self._API_BASE + 'guest/activate.json', video_id,
-                        'Downloading guest token', data=b'', headers=headers), 'guest_token')
-                    if not self._guest_token:
-                        raise ExtractorError('Could not retrieve guest token')
+            if not self.is_logged_in and not self._guest_token:
+                headers.pop('x-guest-token', None)
+                self._guest_token = traverse_obj(self._download_json(
+                    f'{self._API_BASE}guest/activate.json', video_id,
+                    'Downloading guest token', data=b'', headers=headers), 'guest_token')
+            if self._guest_token:
                 headers['x-guest-token'] = self._guest_token
+            elif not self.is_logged_in:
+                raise ExtractorError('Could not retrieve guest token')
 
             allowed_status = {400, 403, 404} if graphql else {403}
             result = self._download_json(
