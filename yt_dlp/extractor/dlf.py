@@ -1,4 +1,5 @@
 import re
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -41,9 +42,8 @@ class DLFBaseIE(InfoExtractor):
 
 
 class DLFIE(DLFBaseIE):
-    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'[\w-]+-dlf-(?P<id>[\da-f]{8})-100\.html'
-
     IE_NAME = 'dlf'
+    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'[\w-]+-dlf-(?P<id>[\da-f]{8})-100\.html'
     _TESTS = [
         # Audio as an HLS stream
         {
@@ -86,10 +86,9 @@ class DLFIE(DLFBaseIE):
 
 
 class DLFCorpusIE(DLFBaseIE):
-    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'(?P<id>(?![\w-]+-dlf-[\da-f]{8})[\w-]+-\d+)\.html'
-
     IE_NAME = 'dlf:corpus'
     IE_DESC = 'DLF Multi-feed Archives'
+    _VALID_URL = DLFBaseIE._VALID_URL_BASE + r'(?P<id>(?![\w-]+-dlf-[\da-f]{8})[\w-]+-\d+)\.html'
     _TESTS = [
         # Recorded news broadcast with referrals to related broadcasts
         {
