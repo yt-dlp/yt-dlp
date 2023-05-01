@@ -291,6 +291,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 18,
         },
@@ -369,6 +370,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['Damndaniel'],
             'age_limit': 0,
         },
@@ -409,6 +411,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -458,6 +461,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['Maria'],
             'age_limit': 0,
         },
@@ -483,6 +487,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -507,6 +512,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -567,6 +573,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -608,12 +615,12 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['HurricaneIan'],
             'age_limit': 0,
         },
     }, {
-        # Adult content, uses old token
-        # Fails if not logged in (GraphQL)
+        # Adult content, fails if not logged in (GraphQL)
         'url': 'https://twitter.com/Rizdraws/status/1575199173472927762',
         'info_dict': {
             'id': '1575199163847000068',
@@ -633,9 +640,8 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 18,
             'tags': []
         },
-        'expected_warnings': ['404'],
+        'skip': 'Requires authentication',
     }, {
-        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
         'info_dict': {
@@ -647,14 +653,13 @@ class TwitterIE(TwitterBaseIE):
             'upload_date': '20210519',
             'age_limit': 0,
             'repost_count': int,
-            'description': 'Here it is! Finished my gothic western cartoon. Pretty proud of it. It\'s got some goofs and lots of splashy over the top violence, something for everyone, hope you like it https://t.co/fOsG5glUnw https://t.co/kbXZrozlY7',
+            'description': 'Here it is! Finished my gothic western cartoon. Pretty proud of it. It\'s got some goofs and lots of splashy over the top violence, something for everyone, hope you like it https://t.co/fOsG5glUnw',
             'uploader_id': 'Srirachachau',
             'comment_count': int,
             'uploader_url': 'https://twitter.com/Srirachachau',
             'timestamp': 1621447860,
         },
     }, {
-        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/DavidToons_/status/1578353380363501568',
         'playlist_mincount': 2,
         'info_dict': {
@@ -666,7 +671,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': str,
             'timestamp': 1665143744,
             'uploader_url': 'https://twitter.com/DavidToons_',
-            'description': 'Chris sounds like Linda from Bob\'s Burgers, so as an animator: this had to be done. https://t.co/glfQdgfFXH https://t.co/WgJauwIW1w',
+            'description': 'Chris sounds like Linda from Bob\'s Burgers, so as an animator: this had to be done. https://t.co/WgJauwIW1w',
             'tags': [],
             'comment_count': int,
             'upload_date': '20221007',
@@ -730,7 +735,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1600649511827013632',
             'ext': 'mp4',
-            'title': 'md5:dac4f4d4c591fcc4e88a253eba472dc3',
+            'title': 'md5:7662a0a27ce6faa3e5b160340f3cfab1',
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1670459604.0,
             'uploader_id': 'CTVJLaidlaw',
@@ -742,6 +747,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_url': 'https://twitter.com/CTVJLaidlaw',
             'display_id': '1600649710662213632',
             'like_count': int,
+            'view_count': int,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
             'upload_date': '20221208',
             'age_limit': 0,
@@ -769,6 +775,7 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'view_count': int,
         },
     }, {
         'url': 'https://twitter.com/hlo_again/status/1599108751385972737/video/2',
@@ -784,6 +791,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'duration': 9.531,
             'comment_count': int,
+            'view_count': int,
             'upload_date': '20221203',
             'age_limit': 0,
             'timestamp': 1670092210.0,
@@ -793,7 +801,6 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'noplaylist': True},
     }, {
-        # Media view count is GraphQL only, force in test
         'url': 'https://twitter.com/MunTheShinobi/status/1600009574919962625',
         'info_dict': {
             'id': '1600009362759733248',
@@ -804,10 +811,10 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
-            'uploader': 'Mün The Shinobi | BlaqBoi\'s Therapist',
+            'uploader': 'Mün The Shinobi',
             'repost_count': int,
             'upload_date': '20221206',
-            'title': 'Mün The Shinobi | BlaqBoi\'s Therapist - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'title': 'Mün The Shinobi - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
             'comment_count': int,
             'like_count': int,
             'tags': [],
@@ -815,9 +822,8 @@ class TwitterIE(TwitterBaseIE):
             'duration': 139.987,
             'timestamp': 1670306984.0,
         },
-        'params': {'extractor_args': {'twitter': {'force_graphql': ['']}}},
     }, {
-        # url to retweet id
+        # url to retweet id, legacy API
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
         'info_dict': {
             'id': '1623274794488659969',
@@ -838,6 +844,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
