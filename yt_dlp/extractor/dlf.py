@@ -98,6 +98,7 @@ class DLFCorpusIE(DLFBaseIE):
                 'title': r're:Wiederzulassung als neutrale Athleten [-/] Was die Rückkehr russischer und belarussischer Sportler beim Fechten bedeutet',
                 'description': 'md5:91340aab29c71aa7518ad5be13d1e8ad'
             },
+            'playlist_mincount': 5,
             'playlist': [{
                 'info_dict': {
                     'id': '1fc5d64a',
@@ -155,7 +156,7 @@ class DLFCorpusIE(DLFBaseIE):
                 }
             }]
         },
-        # Podcast feed with tag buttons
+        # Podcast feed with tag buttons, playlist count fluctuates
         {
             'url': 'https://www.deutschlandfunk.de/kommentare-und-themen-der-woche-100.html',
             'info_dict': {
@@ -163,7 +164,7 @@ class DLFCorpusIE(DLFBaseIE):
                 'title': 'Meinung - Kommentare und Themen der Woche',
                 'description': 'md5:2901bbd65cd2d45e116d399a099ce5d5',
             },
-            'playlist_mincount': 20
+            'playlist_mincount': 10,
         },
         # Podcast feed with no description
         {
@@ -172,7 +173,7 @@ class DLFCorpusIE(DLFBaseIE):
                 'id': 'podcast-tolle-idee-100',
                 'title': 'Wissenschaftspodcast - Tolle Idee! - Was wurde daraus?',
             },
-            'playlist_mincount': 11
+            'playlist_mincount': 11,
         },
     ]
 
