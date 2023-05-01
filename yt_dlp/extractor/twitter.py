@@ -34,7 +34,7 @@ class TwitterBaseIE(InfoExtractor):
     _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _AUTH = {'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'}
-    _token = None
+    _guest_token = None
 
     def _extract_variant_formats(self, variant, video_id):
         variant_url = variant.get('url')
@@ -107,14 +107,14 @@ class TwitterBaseIE(InfoExtractor):
 
         for first_attempt in (True, False):
             if not self.is_logged_in:
-                if not self._token:
+                if not self._guest_token:
                     headers.pop('x-guest-token', None)
-                    self._token = traverse_obj(self._download_json(
+                    self._guest_token = traverse_obj(self._download_json(
                         self._API_BASE + 'guest/activate.json', video_id,
                         'Downloading guest token', data=b'', headers=headers), 'guest_token')
-                    if not self._token:
+                    if not self._guest_token:
                         raise ExtractorError('Could not retrieve guest token')
-                headers['x-guest-token'] = self._token
+                headers['x-guest-token'] = self._guest_token
 
             allowed_status = {400, 403, 404} if graphql else {403}
             result = self._download_json(
@@ -126,7 +126,7 @@ class TwitterBaseIE(InfoExtractor):
                 errors = traverse_obj(result, ('errors', ..., 'message', {str}))
                 if first_attempt and any('bad guest token' in error.lower() for error in errors):
                     self.to_screen('Guest token has expired. Refreshing guest token')
-                    self._token = None
+                    self._guest_token = None
                     continue
 
                 error_message = ', '.join(set(errors)) or 'Unknown error'
