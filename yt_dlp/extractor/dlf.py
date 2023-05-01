@@ -20,7 +20,6 @@ class DLFBaseIE(InfoExtractor):
         url = traverse_obj(
             attrs, 'data-audio-download-src', 'data-audio', 'data-audioreference',
             'data-audio-src', expected_type=url_or_none)
-
         ext = determine_ext(url)
 
         return {
@@ -155,8 +154,7 @@ class DLFCorpusIE(DLFBaseIE):
                     'series': 'Sport am Samstag',
                     'channel': 'deutschlandfunk'
                 }
-            }],
-            'params': {'skip_download': 'm3u8'}
+            }]
         },
         # Podcast feed with tag buttons
         {
@@ -166,8 +164,7 @@ class DLFCorpusIE(DLFBaseIE):
                 'title': 'Meinung - Kommentare und Themen der Woche',
                 'description': 'md5:2901bbd65cd2d45e116d399a099ce5d5',
             },
-            'playlist_mincount': 20,
-            'params': {'skip_download': True}
+            'playlist_mincount': 20
         },
         # Podcast feed with no description
         {
@@ -176,8 +173,7 @@ class DLFCorpusIE(DLFBaseIE):
                 'id': 'podcast-tolle-idee-100',
                 'title': 'Wissenschaftspodcast - Tolle Idee! - Was wurde daraus?',
             },
-            'playlist_mincount': 11,
-            'params': {'skip_download': True}
+            'playlist_mincount': 11
         },
     ]
 
@@ -192,6 +188,5 @@ class DLFCorpusIE(DLFBaseIE):
                 ['description', 'og:description', 'twitter:description'], webpage, default=None),
             'title': self._html_search_meta(
                 ['og:title', 'twitter:title'], webpage, default=None),
-            'entries': [self._parse_button_attrs(button)
-                        for button in re.findall(self._BUTTON_REGEX, webpage)],
+            'entries': map(self._parse_button_attrs, re.findall(self._BUTTON_REGEX, webpage)),
         }
