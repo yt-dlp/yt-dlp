@@ -44,10 +44,10 @@ class ClipchampIE(InfoExtractor):
 
         formats = self._extract_mpd_formats(
             self._STREAM_URL_TMPL % (subdomain, path, 'mpd'), video_id,
-            query=self._STREAM_URL_QUERY, fatal=False)
+            query=self._STREAM_URL_QUERY, fatal=False, mpd_id='dash')
         formats.extend(self._extract_m3u8_formats(
             self._STREAM_URL_TMPL % (subdomain, path, 'm3u8'), video_id, 'mp4',
-            query=self._STREAM_URL_QUERY, fatal=False))
+            query=self._STREAM_URL_QUERY, fatal=False, m3u8_id='hls'))
 
         return {
             'id': video_id,
