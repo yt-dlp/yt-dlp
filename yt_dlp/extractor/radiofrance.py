@@ -148,9 +148,9 @@ class FranceCultureIE(RadioFranceBase):
 
 class RadioFranceLiveIE(RadioFranceBase):
     _VALID_URL = rf'''(?x)
-        https?://(?:www\.|embed\.)?radiofrance\.fr
+        https?://(?:www\.)?radiofrance\.fr
         /(?P<id>{"|".join(RadioFranceBase._STATIONS)})
-        (?:/player/direct)?/?(?:[#?]|$)
+        /?(?P<substation_id>radio-[\w-]+)?(?:[#?]|$)
     '''
 
     _TESTS = [{
@@ -176,9 +176,9 @@ class RadioFranceLiveIE(RadioFranceBase):
             'skip_download': 'Livestream',
         },
     }, {
-        'url': 'https://embed.radiofrance.fr/franceinfo/player/direct',
+        'url': 'https://www.radiofrance.fr/mouv/radio-musique-kids-family',
         'info_dict': {
-            'id': 'franceinfo',
+            'id': 'mouv-radio-musique-kids-family',
             'title': str,
             'live': True,
             'ext': 'aac',
@@ -186,16 +186,48 @@ class RadioFranceLiveIE(RadioFranceBase):
         'params': {
             'skip_download': 'Livestream',
         },
+    }, {
+        'url': 'https://www.radiofrance.fr/mouv/radio-rnb-soul',
+        'info_dict': {
+            'id': 'mouv-radio-rnb-soul',
+            'title': str,
+            'live': True,
+            'ext': 'aac',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+    }, {
+        'url': 'https://www.radiofrance.fr/mouv/radio-musique-mix',
+        'info_dict': {
+            'id': 'mouv-radio-musique-mix',
+            'title': str,
+            'live': True,
+            'ext': 'aac',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+    }, {
+        'url': 'https://www.radiofrance.fr/mouv',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        station_id = self._match_id(url)
+        station_id, substation_id = self._match_valid_url(url).group('id', 'substation_id')
 
-        api_response = self._download_json(
-            f'https://www.radiofrance.fr/api/v2.1/stations/{station_id}/live', station_id)
+        if substation_id:
+            webpage = self._download_webpage(url, station_id)
+
+            api_response = self._parse_json(self._search_json(
+                r'<script[^>]+type\s*=\s*"application/json"[^>]+/webradios/[^>]+>',
+                webpage, 'substation_data', station_id)['body'], station_id)
+        else:
+            api_response = self._download_json(
+                f'https://www.radiofrance.fr/api/v2.1/stations/{station_id}/live', station_id)
 
         formats, subtitles = [], {}
-        for media_source in api_response['now']['media']['sources']:
+        for media_source in traverse_obj(api_response, ('now', 'media', 'sources'), ('media', 'sources')):
             if media_source.get('format') == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(media_source['url'], station_id, fatal=False)
                 formats.extend(fmts)
@@ -207,8 +239,8 @@ class RadioFranceLiveIE(RadioFranceBase):
                 })
 
         return {
-            'id': station_id,
-            'title': join_nonempty(
+            'id': join_nonempty(station_id, substation_id, delim='-'),
+            'title': traverse_obj(api_response, ('visual', 'legend')) or join_nonempty(
                 traverse_obj(api_response, ('now', 'firstLine', 'title')),
                 traverse_obj(api_response, ('now', 'secondLine', 'title')), delim=" - "),
             'formats': formats,
