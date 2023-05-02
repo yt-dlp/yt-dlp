@@ -39,8 +39,8 @@ class ClipchampIE(InfoExtractor):
         iframe = self._download_webpage(
             f'https://iframe.cloudflarestream.com/{path}', video_id, 'Downloading player iframe')
         subdomain = self._search_regex(
-            r'\bcustomer-domain-prefix=["\']([\w-]+)["\']', iframe, 'subdomain',
-            default='customer-2ut9yn3y6fta1yxe')
+            r'\bcustomer-domain-prefix=["\']([\w-]+)["\']', iframe,
+            'subdomain', fatal=False) or 'customer-2ut9yn3y6fta1yxe'
 
         formats = self._extract_mpd_formats(
             self._STREAM_URL_TMPL % (subdomain, path, 'mpd'), video_id,
