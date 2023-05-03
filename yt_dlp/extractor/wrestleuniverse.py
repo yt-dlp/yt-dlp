@@ -2,6 +2,7 @@ import base64
 import binascii
 import json
 import time
+import uuid
 
 from .common import InfoExtractor
 from ..dependencies import Cryptodome
@@ -20,6 +21,20 @@ class WrestleUniverseBaseIE(InfoExtractor):
     _API_PATH = None
     _TOKEN = None
     _TOKEN_EXPIRY = None
+    _DEVICE_ID = None
+
+    def _real_initialize(self):
+        if WrestleUniverseBaseIE._DEVICE_ID:
+            return
+
+        WrestleUniverseBaseIE._DEVICE_ID = self._configuration_arg('device_id', [None], ie_key='WrestleUniverse')[0]
+        if not WrestleUniverseBaseIE._DEVICE_ID:
+            WrestleUniverseBaseIE._DEVICE_ID = self.cache.load('wrestleuniverse', 'device_id')
+            if WrestleUniverseBaseIE._DEVICE_ID:
+                return
+            WrestleUniverseBaseIE._DEVICE_ID = str(uuid.uuid4())
+
+        self.cache.store('wrestleuniverse', 'device_id', WrestleUniverseBaseIE._DEVICE_ID)
 
     def _get_token_cookie(self):
         if not self._TOKEN or not self._TOKEN_EXPIRY:
@@ -65,7 +80,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
 
         token = base64.b64encode(private_key.public_key().export_key('DER')).decode()
         api_json = self._call_api(video_id, param, msg, data={
-            # 'deviceId' (random uuid4 generated at login) is not required yet
+            'deviceId': self._DEVICE_ID,
             'token': token,
             **data,
         }, query=query, fatal=fatal)
