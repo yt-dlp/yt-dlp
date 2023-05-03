@@ -179,6 +179,14 @@ class TwitchBaseIE(InfoExtractor):
             video_id, ops,
             'Downloading %s access token GraphQL' % token_kind)['data'][method]
 
+    def _get_thumbnails(self, thumbnail):
+        return [{
+            'url': re.sub(r'\d+x\d+(\.\w+)($|(?=[?#]))', r'0x0\g<1>', thumbnail),
+            'preference': 1,
+        }, {
+            'url': thumbnail,
+        }] if thumbnail else None
+
 
 class TwitchVodIE(TwitchBaseIE):
     IE_NAME = 'twitch:vod'
@@ -460,15 +468,13 @@ class TwitchVodIE(TwitchBaseIE):
                 is_live, thumbnail = True, None
             else:
                 is_live = False
-                for p in ('width', 'height'):
-                    thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
@@ -1053,7 +1059,7 @@ class TwitchStreamIE(TwitchBaseIE):
             'display_id': channel_name,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': uploader,
             'uploader_id': channel_name,
             'timestamp': timestamp,
