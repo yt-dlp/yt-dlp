@@ -5,7 +5,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    UserNotLive,
     filter_dict,
     int_or_none,
     parse_iso8601,
@@ -169,15 +168,31 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
         live_status, session_id = self._get_live_status_and_session_id(content_code, data_json)
 
+        release_timestamp_str = data_json.get('live_scheduled_start_at')
+
+        formats = []
+
+        if live_status == 'is_upcoming':
+            if release_timestamp_str:
+                self.raise_no_formats(
+                    f'This live event will begin at {release_timestamp_str} UTC', expected=True,
+                    video_id=content_code)
+            else:
+                # has not encountered this situation, but still give it a chance.
+                self.raise_no_formats(
+                    'This event has not started yet', expected=True, video_id=content_code)
+        else:
+            formats = self._extract_m3u8_formats(
+                # "authenticated_url" is a format string contains "{session_id}".
+                m3u8_url=data_json['video_stream']['authenticated_url'].format(session_id=session_id),
+                video_id=content_code)
+
         return {
             # mandatory metafields
 
             'id': content_code,
             'title': data_json['title'],
-            'formats': self._extract_m3u8_formats(
-                # "authenticated_url" is a format string contains "{session_id}".
-                m3u8_url=data_json['video_stream']['authenticated_url'].format(session_id=session_id),
-                video_id=content_code),
+            'formats': formats,
 
             # optional metafields
 
@@ -193,6 +208,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'thumbnail': data_json.get('thumbnail_url'),
             'description': data_json.get('description'),
             'timestamp': parse_iso8601(data_json.get('released_at'), delimiter=' '),
+            'release_timestamp': parse_iso8601(release_timestamp_str, delimiter=' '),
             'duration': int_or_none(traverse_obj(data_json, ('active_video_filename', 'length'))),
             'comment_count': int_or_none(traverse_obj(data_json, ('video_aggregate_info', 'number_of_comments'))),
             'view_count': int_or_none(traverse_obj(data_json, ('video_aggregate_info', 'total_views'))),
@@ -250,7 +266,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 live_status = 'not_live'
         elif video_type == 'live':
             if not live_started_at:
-                raise UserNotLive(video_id=content_code)
+                return 'is_upcoming', ''
 
             if not live_finished_at:
                 live_status = 'is_live'
