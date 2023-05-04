@@ -1,7 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    UserNotLive,
     try_call,
     unified_timestamp,
 )
@@ -29,25 +28,25 @@ class EplusIbIE(InfoExtractor):
 
         delivery_status = data_json.get('delivery_status')
         archive_mode = data_json.get('archive_mode')
+        release_timestamp = try_call(lambda: unified_timestamp(data_json['event_datetime']) - 32400)
+        release_timestamp_str = data_json.get('event_datetime_text')  # JST
 
         self.write_debug(f'delivery_status = {delivery_status}, archive_mode = {archive_mode}')
 
         if delivery_status == 'PREPARING':
-            raise UserNotLive('This event has not started yet')
+            live_status = 'is_upcoming'
         elif delivery_status == 'STARTED':
             # FIXME: HTTP request headers need to be updated to continue download
             self.report_warning(
                 'Due to technical limitations, the download will be interrupted after one hour')
             live_status = 'is_live'
         elif delivery_status == 'STOPPED':
-            if archive_mode == 'ON':
-                raise UserNotLive(
-                    'This event has ended, but the archive has not been generated yet')
-            raise ExtractorError(
-                'This event has ended and there is no archive for this event', expected=True)
+            if archive_mode != 'ON':
+                raise ExtractorError(
+                    'This event has ended and there is no archive for this event', expected=True)
+            live_status = 'is_upcoming'
         elif delivery_status == 'WAIT_CONFIRM_ARCHIVED':
-            raise UserNotLive(
-                'This event has ended, and the archive will be available shortly')
+            live_status = 'is_upcoming'
         elif delivery_status == 'CONFIRMED_ARCHIVE':
             # FIXME: HTTP request headers need to be updated to continue download
             self.report_warning(
@@ -57,15 +56,25 @@ class EplusIbIE(InfoExtractor):
         else:
             raise ExtractorError(f'Unknown delivery_status: {delivery_status}')
 
+        formats = []
+
         m3u8_playlist_urls = self._search_json(
             r'var listChannels\s*=', webpage, 'hls URLs', video_id, contains_pattern=r'\[.+\]', default=[])
         if not m3u8_playlist_urls:
-            self.raise_no_formats(
-                'Could not find the playlist URL. This event may not be accessible', expected=True)
-
-        formats = []
-        for m3u8_playlist_url in m3u8_playlist_urls:
-            formats.extend(self._extract_m3u8_formats(m3u8_playlist_url, video_id))
+            if live_status == 'is_upcoming':
+                self.raise_no_formats(
+                    f'Could not find the playlist URL. This live event will begin at {release_timestamp_str} JST', expected=True)
+            else:
+                self.raise_no_formats(
+                    'Could not find the playlist URL. This event may not be accessible', expected=True)
+        elif live_status == 'is_upcoming':
+            if delivery_status == 'PREPARING':
+                self.raise_no_formats(f'This live event will begin at {release_timestamp_str} JST', expected=True)
+            else:
+                self.raise_no_formats('This event has ended, and the archive will be available shortly', expected=True)
+        else:
+            for m3u8_playlist_url in m3u8_playlist_urls:
+                formats.extend(self._extract_m3u8_formats(m3u8_playlist_url, video_id))
 
         return {
             'id': data_json['app_id'],
@@ -73,5 +82,6 @@ class EplusIbIE(InfoExtractor):
             'formats': formats,
             'live_status': live_status,
             'description': data_json.get('content'),
-            'timestamp': try_call(lambda: unified_timestamp(data_json['event_datetime']) - 32400),
+            'timestamp': release_timestamp,
+            'release_timestamp': release_timestamp,
         }
