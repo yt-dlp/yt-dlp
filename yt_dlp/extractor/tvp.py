@@ -491,11 +491,15 @@ class TVPVODBaseIE(InfoExtractor):
         info_dict = {
             'id': str(video['id']),
             'title': video.get('title'),
-            'description': traverse_obj(video, 'lead', 'description'),
+            'description': clean_html(video.get('lead') or video.get('description')),
             'age_limit': int_or_none(video.get('rating')),
             'duration': int_or_none(video.get('duration')),
             'episode_number': int_or_none(video.get('number')),
             'series': traverse_obj(video, ('season', 'serial', 'title')),
+            'thumbnails': [{'url': u}
+                           for u in traverse_obj(video,
+                           ('images', ..., ..., 'url'), expected_type=url_or_none)
+                           if u is not None],
         }
         if with_url:
             info_dict.update({
@@ -516,12 +520,13 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'id': '311357',
             'ext': 'mp4',
             'title': 'Tusze termiczne. Jak zobaczyć niewidoczne. Odcinek 24',
+            'description': 'md5:1d4098d3e537092ccbac1abf49b7cd4c',
             'duration': 300,
             'episode_number': 24,
             'episode': 'Episode 24',
             'age_limit': 0,
             'series': 'Laboratorium alchemika',
-            'thumbnail': 're:https://.+',
+            'thumbnail': 're:https?://.+',
         },
     }, {
         'url': 'https://vod.tvp.pl/filmy-dokumentalne,163/ukrainski-sluga-narodu,339667',
@@ -532,7 +537,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'description': 'md5:b7940c0a8e439b0c81653a986f544ef3',
             'age_limit': 12,
             'duration': 3051,
-            'thumbnail': 're:https://.+',
+            'thumbnail': 're:https?://.+',
         },
     }, {
         'note': 'embed fails with "payment required"',
@@ -541,12 +546,13 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'id': '398869',
             'ext': 'mp4',
             'title': 'odc. 7',
-            'description': '',
+            'description': 'md5:dd2bb33f023dc5c2fbaddfbe4cb5dba0',
             'duration': 2750,
             'age_limit': 16,
             'series': 'Polowanie na ćmy',
             'episode_number': 7,
             'episode': 'Episode 7',
+            'thumbnail': 're:https?://.+',
         },
     }]
 
@@ -589,7 +595,7 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             'age_limit': 12,
             'categories': ['seriale'],
         },
-        'playlist_count': 129,
+        'playlist_count': 130,
     }, {
         'url': 'https://vod.tvp.pl/programy,88/rolnik-szuka-zony-odcinki,284514',
         'only_matching': True,
