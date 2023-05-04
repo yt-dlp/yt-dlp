@@ -528,6 +528,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'series': 'Laboratorium alchemika',
             'thumbnail': 're:https?://.+',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://vod.tvp.pl/filmy-dokumentalne,163/ukrainski-sluga-narodu,339667',
         'info_dict': {
@@ -539,6 +540,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'duration': 3051,
             'thumbnail': 're:https?://.+',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'note': 'embed fails with "payment required"',
         'url': 'https://vod.tvp.pl/seriale,18/polowanie-na-cmy-odcinki,390116/odcinek-7,S01E07,398869',
@@ -554,6 +556,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'episode': 'Episode 7',
             'thumbnail': 're:https?://.+',
         },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
