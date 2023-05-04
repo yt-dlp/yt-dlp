@@ -36,9 +36,6 @@ class EplusIbIE(InfoExtractor):
         if delivery_status == 'PREPARING':
             live_status = 'is_upcoming'
         elif delivery_status == 'STARTED':
-            # FIXME: HTTP request headers need to be updated to continue download
-            self.report_warning(
-                'Due to technical limitations, the download will be interrupted after one hour')
             live_status = 'is_live'
         elif delivery_status == 'STOPPED':
             if archive_mode != 'ON':
@@ -48,10 +45,6 @@ class EplusIbIE(InfoExtractor):
         elif delivery_status == 'WAIT_CONFIRM_ARCHIVED':
             live_status = 'is_upcoming'
         elif delivery_status == 'CONFIRMED_ARCHIVE':
-            # FIXME: HTTP request headers need to be updated to continue download
-            self.report_warning(
-                'Due to technical limitations, the download will be interrupted after one hour. '
-                'You can restart to continue the download')
             live_status = 'was_live'
         else:
             raise ExtractorError(f'Unknown delivery_status: {delivery_status}')
@@ -75,6 +68,14 @@ class EplusIbIE(InfoExtractor):
         else:
             for m3u8_playlist_url in m3u8_playlist_urls:
                 formats.extend(self._extract_m3u8_formats(m3u8_playlist_url, video_id))
+
+        if formats:
+            # FIXME: HTTP request headers need to be updated to continue download
+            warning = 'Due to technical limitations, the download will be interrupted after one hour'
+            if live_status == 'is_live':
+                self.report_warning(warning)
+            elif live_status == 'was_live':
+                self.report_warning(f'{warning}. You can restart to continue the download')
 
         return {
             'id': data_json['app_id'],
