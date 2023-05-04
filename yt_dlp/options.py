@@ -20,7 +20,7 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
-from .update import detect_variant, is_non_updateable
+from .update import UPDATE_SOURCES, detect_variant, is_non_updateable
 from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
@@ -29,80 +29,66 @@ from .utils import (
     expand_path,
     format_field,
     get_executable_path,
+    get_system_config_dirs,
+    get_user_config_dirs,
     join_nonempty,
     orderedSet_from_options,
     remove_end,
     write_string,
 )
-from .version import __version__
+from .version import CHANNEL, __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
+    PACKAGE_NAME = 'yt-dlp'
+
     root = Config(create_parser())
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
 
-    def _readUserConf(package_name, default=[]):
-        # .config
-        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-        userConfFile = os.path.join(xdg_config_home, package_name, 'config')
-        if not os.path.isfile(userConfFile):
-            userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
-        userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+    def read_config(*paths):
+        path = os.path.join(*paths)
+        conf = Config.read_file(path, default=None)
+        if conf is not None:
+            return conf, path
 
-        # appdata
-        appdata_dir = os.getenv('appdata')
-        if appdata_dir:
-            userConfFile = os.path.join(appdata_dir, package_name, 'config')
-            userConf = Config.read_file(userConfFile, default=None)
-            if userConf is None:
-                userConfFile += '.txt'
-                userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+    def _load_from_config_dirs(config_dirs):
+        for config_dir in config_dirs:
+            head, tail = os.path.split(config_dir)
+            assert tail == PACKAGE_NAME or config_dir == os.path.join(compat_expanduser('~'), f'.{PACKAGE_NAME}')
 
-        # home
-        userConfFile = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
-        userConf = Config.read_file(userConfFile, default=None)
-        if userConf is None:
-            userConfFile += '.txt'
-            userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+            yield read_config(head, f'{PACKAGE_NAME}.conf')
+            if tail.startswith('.'):  # ~/.PACKAGE_NAME
+                yield read_config(head, f'{PACKAGE_NAME}.conf.txt')
+            yield read_config(config_dir, 'config')
+            yield read_config(config_dir, 'config.txt')
 
-        return default, None
-
-    def add_config(label, path, user=False):
+    def add_config(label, path=None, func=None):
         """ Adds config and returns whether to continue """
         if root.parse_known_args()[0].ignoreconfig:
             return False
-        # Multiple package names can be given here
-        # E.g. ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-        # the configuration file of any of these three packages
-        for package in ('yt-dlp',):
-            if user:
-                args, current_path = _readUserConf(package, default=None)
-            else:
-                current_path = os.path.join(path, '%s.conf' % package)
-                args = Config.read_file(current_path, default=None)
-            if args is not None:
-                root.append_config(args, current_path, label=label)
-                return True
+        elif func:
+            assert path is None
+            args, current_path = next(
+                filter(None, _load_from_config_dirs(func(PACKAGE_NAME))), (None, None))
+        else:
+            current_path = os.path.join(path, 'yt-dlp.conf')
+            args = Config.read_file(current_path, default=None)
+        if args is not None:
+            root.append_config(args, current_path, label=label)
         return True
 
     def load_configs():
         yield not ignore_config_files
         yield add_config('Portable', get_executable_path())
         yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
-        yield add_config('User', None, user=True)
-        yield add_config('System', '/etc')
+        yield add_config('User', func=get_user_config_dirs)
+        yield add_config('System', func=get_system_config_dirs)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
         try:
-            if overrideArguments:
+            if overrideArguments is not None:
                 root.append_config(overrideArguments, label='Override')
             else:
                 root.append_config(sys.argv[1:], label='Command-line')
@@ -257,7 +243,7 @@ def create_parser():
         if multiple_keys:
             allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
+            fr'(?is)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
@@ -276,6 +262,20 @@ def create_parser():
         for key in keys:
             out_dict[key] = out_dict.get(key, []) + [val] if append else val
         setattr(parser.values, option.dest, out_dict)
+
+    def when_prefix(default):
+        return {
+            'default': {},
+            'type': 'str',
+            'action': 'callback',
+            'callback': _dict_from_options_callback,
+            'callback_kwargs': {
+                'allowed_keys': '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+                'default_key': default,
+                'multiple_keys': False,
+                'append': True,
+            },
+        }
 
     parser = _YoutubeDLOptionParser()
     alias_group = optparse.OptionGroup(parser, 'Aliases')
@@ -326,11 +326,18 @@ def create_parser():
         action='store_true', dest='update_self',
         help=format_field(
             is_non_updateable(), None, 'Check if updates are available. %s',
-            default='Update this program to the latest version'))
+            default=f'Update this program to the latest {CHANNEL} version'))
     general.add_option(
         '--no-update',
         action='store_false', dest='update_self',
         help='Do not check for updates (default)')
+    general.add_option(
+        '--update-to',
+        action='store', dest='update_self', metavar='[CHANNEL]@[TAG]',
+        help=(
+            'Upgrade/downgrade to a specific version. CHANNEL and TAG defaults to '
+            f'"{CHANNEL}" and "latest" respectively if omitted; See "UPDATE" for details. '
+            f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -443,12 +450,14 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-attach-info-json', 'embed-metadata', 'embed-thumbnail-atomicparsley',
-                'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
+                'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
+                '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
+                '2022': ['no-external-downloader-progress'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -493,6 +502,11 @@ def create_parser():
         action='store_const', const='::', dest='source_address',
         help='Make all connections via IPv6',
     )
+    network.add_option(
+        '--enable-file-urls', action='store_true',
+        dest='enable_file_urls', default=False,
+        help='Enable file:// URLs. This is disabled by default for security reasons.'
+    )
 
     geo = optparse.OptionGroup(parser, 'Geo-restriction')
     geo.add_option(
@@ -506,21 +520,26 @@ def create_parser():
         dest='cn_verification_proxy', default=None, metavar='URL',
         help=optparse.SUPPRESS_HELP)
     geo.add_option(
+        '--xff', metavar='VALUE',
+        dest='geo_bypass', default="default",
+        help=(
+            'How to fake X-Forwarded-For HTTP header to try bypassing geographic restriction. '
+            'One of "default" (Only when known to be useful), "never", '
+            'a two-letter ISO 3166-2 country code, or an IP block in CIDR notation'))
+    geo.add_option(
         '--geo-bypass',
-        action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
+        action='store_const', dest='geo_bypass', const='default',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass',
-        help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        action='store_const', dest='geo_bypass', const='never',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-country', metavar='CODE',
-        dest='geo_bypass_country', default=None,
-        help='Force bypass geographic restriction with explicitly provided two-letter ISO 3166-2 country code')
+        '--geo-bypass-country', metavar='CODE', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-ip-block', metavar='IP_BLOCK',
-        dest='geo_bypass_ip_block', default=None,
-        help='Force bypass geographic restriction with explicitly provided IP block in CIDR notation')
+        '--geo-bypass-ip-block', metavar='IP_BLOCK', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
 
     selection = optparse.OptionGroup(parser, 'Video Selection')
     selection.add_option(
@@ -559,8 +578,9 @@ def create_parser():
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded on this date. The date can be "YYYYMMDD" or in the format '
-            '[now|today|yesterday][-N[day|week|month|year]]. E.g. --date today-2weeks'))
+            'Download only videos uploaded on this date. '
+            'The date can be "YYYYMMDD" or in the format [now|today|yesterday][-N[day|week|month|year]]. '
+            'E.g. "--date today-2weeks" downloads only videos uploaded on the same day two weeks ago'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
@@ -598,8 +618,16 @@ def create_parser():
             'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filter',
-        metavar='FILTER', dest='match_filter', action='store_const', const=None,
-        help='Do not use generic video filter (default)')
+        dest='match_filter', action='store_const', const=None,
+        help='Do not use any --match-filter (default)')
+    selection.add_option(
+        '--break-match-filters',
+        metavar='FILTER', dest='breaking_match_filter', action='append',
+        help='Same as "--match-filters" but stops the download process when a video is rejected')
+    selection.add_option(
+        '--no-break-match-filters',
+        dest='breaking_match_filter', action='store_const', const=None,
+        help='Do not use any --break-match-filters (default)')
     selection.add_option(
         '--no-playlist',
         action='store_true', dest='noplaylist', default=False,
@@ -631,11 +659,11 @@ def create_parser():
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
-        help='Stop the download process when encountering a file that has been filtered out')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Alters --max-downloads, --break-on-existing, --break-on-reject, and autonumber to reset per input URL')
+        help='Alters --max-downloads, --break-on-existing, --break-match-filter, and autonumber to reset per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
@@ -875,11 +903,11 @@ def create_parser():
             'This option can be used multiple times to set the sleep for the different retry types, '
             'e.g. --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
     downloader.add_option(
-        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
+        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragments',
         action='store_true', dest='skip_unavailable_fragments', default=True,
-        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragment)')
+        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragments)')
     downloader.add_option(
-        '--abort-on-unavailable-fragment', '--no-skip-unavailable-fragments',
+        '--abort-on-unavailable-fragments', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
         help='Abort download if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
     downloader.add_option(
@@ -1023,7 +1051,7 @@ def create_parser():
         metavar='URL', dest='referer', default=None,
         help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
-        '--add-header',
+        '--add-headers',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={'multiple_keys': False},
@@ -1056,8 +1084,12 @@ def create_parser():
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
         '-q', '--quiet',
-        action='store_true', dest='quiet', default=False,
+        action='store_true', dest='quiet', default=None,
         help='Activate quiet mode. If used with --verbose, print the log to stderr')
+    verbosity.add_option(
+        '--no-quiet',
+        action='store_false', dest='quiet',
+        help='Deactivate quiet mode. (Default)')
     verbosity.add_option(
         '--no-warnings',
         dest='no_warnings', action='store_true', default=False,
@@ -1086,28 +1118,16 @@ def create_parser():
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
         '-O', '--print',
-        metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'video',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
+        metavar='[WHEN:]TEMPLATE', dest='forceprint', **when_prefix('video'),
+        help=(
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
-            'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: video). '
             'Implies --quiet. Implies --simulate unless --no-simulate or later stages of WHEN are used. '
             'This option can be used multiple times'))
     verbosity.add_option(
         '--print-to-file',
-        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'video',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
+        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', nargs=2, **when_prefix('video'),
+        help=(
             'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
             'FILE uses the same syntax as the output template. This option can be used multiple times'))
     verbosity.add_option(
@@ -1584,14 +1604,16 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--parse-metadata',
-        metavar='FROM:TO', dest='parse_metadata', action='append',
+        metavar='[WHEN:]FROM:TO', dest='parse_metadata', **when_prefix('pre_process'),
         help=(
-            'Parse additional metadata like title/artist from other fields; '
-            'see "MODIFYING METADATA" for details'))
+            'Parse additional metadata like title/artist from other fields; see "MODIFYING METADATA" for details. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--replace-in-metadata',
-        dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
-        help='Replace text in a metadata field using the given regex. This option can be used multiple times')
+        dest='parse_metadata', metavar='[WHEN:]FIELDS REGEX REPLACE', nargs=3, **when_prefix('pre_process'),
+        help=(
+            'Replace text in a metadata field using the given regex. This option can be used multiple times. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
@@ -1629,19 +1651,13 @@ def create_parser():
         help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
         '--exec',
-        metavar='[WHEN:]CMD', dest='exec_cmd', default={}, type='str',
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'after_move',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
-            'Execute a command, optionally prefixed with when to execute it (after_move if unspecified), separated by a ":". '
-            'Supported values of "WHEN" are the same as that of --use-postprocessor. '
+        metavar='[WHEN:]CMD', dest='exec_cmd', **when_prefix('after_move'),
+        help=(
+            'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
             'After download, an additional field "filepath" that contains the final path of the downloaded file '
-            'is also available, and if no fields are passed, %(filepath)q is appended to the end of the command. '
+            'is also available, and if no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',
@@ -1714,7 +1730,8 @@ def create_parser():
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
             'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
-            '"before_dl" (before each video download), "post_process" (after each video download; default), '
+            '"video" (after --format; before --print/--output), "before_dl" (before each video download), '
+            '"post_process" (after each video download; default), '
             '"after_move" (after moving video file to it\'s final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '

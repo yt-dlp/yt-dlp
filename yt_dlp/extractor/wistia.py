@@ -6,12 +6,15 @@ from base64 import b64decode
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    HEADRequest,
+    determine_ext,
     float_or_none,
     int_or_none,
     parse_qs,
     traverse_obj,
     try_get,
     update_url_query,
+    urlhandle_detect_ext,
 )
 
 
@@ -34,6 +37,16 @@ class WistiaBaseIE(InfoExtractor):
 
         return embed_config
 
+    def _get_real_ext(self, url):
+        ext = determine_ext(url, default_ext='bin')
+        if ext == 'bin':
+            urlh = self._request_webpage(
+                HEADRequest(url), None, note='Checking media extension',
+                errnote='HEAD request returned error', fatal=False)
+            if urlh:
+                ext = urlhandle_detect_ext(urlh, default='bin')
+        return 'mp4' if ext == 'mov' else ext
+
     def _extract_media(self, embed_config):
         data = embed_config['media']
         video_id = data['hashedId']
@@ -51,13 +64,13 @@ class WistiaBaseIE(InfoExtractor):
                 continue
             elif atype in ('still', 'still_image'):
                 thumbnails.append({
-                    'url': aurl,
+                    'url': aurl.replace('.bin', f'.{self._get_real_ext(aurl)}'),
                     'width': int_or_none(a.get('width')),
                     'height': int_or_none(a.get('height')),
                     'filesize': int_or_none(a.get('size')),
                 })
             else:
-                aext = a.get('ext')
+                aext = a.get('ext') or self._get_real_ext(aurl)
                 display_name = a.get('display_name')
                 format_id = atype
                 if atype and atype.endswith('_video') and display_name:
@@ -169,26 +182,26 @@ class WistiaIE(WistiaBaseIE):
         'md5': '10c1ce9c4dde638202513ed17a3767bd',
         'info_dict': {
             'id': 'a6ndpko1wg',
-            'ext': 'bin',
+            'ext': 'mp4',
             'title': 'Episode 2: Boxed Water\'s retention is thirsty',
             'upload_date': '20210324',
             'description': 'md5:da5994c2c2d254833b412469d9666b7a',
             'duration': 966.0,
             'timestamp': 1616614369,
-            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/53dc60239348dc9b9fba3755173ea4c2.bin',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/53dc60239348dc9b9fba3755173ea4c2.png',
         }
     }, {
         'url': 'wistia:5vd7p4bct5',
         'md5': 'b9676d24bf30945d97060638fbfe77f0',
         'info_dict': {
             'id': '5vd7p4bct5',
-            'ext': 'bin',
+            'ext': 'mp4',
             'title': 'md5:eaa9f64c4efd7b5f098b9b6118597679',
             'description': 'md5:a9bea0315f0616aa5df2dc413ddcdd0f',
             'upload_date': '20220915',
             'timestamp': 1663258727,
             'duration': 623.019,
-            'thumbnail': r're:https?://embed(?:-ssl)?.wistia.com/.+\.(?:jpg|bin)$',
+            'thumbnail': r're:https?://embed(?:-ssl)?.wistia.com/.+\.jpg$',
         },
     }, {
         'url': 'wistia:sh7fpupwlt',
@@ -208,25 +221,25 @@ class WistiaIE(WistiaBaseIE):
         'url': 'https://www.weidert.com/blog/wistia-channels-video-marketing-tool',
         'info_dict': {
             'id': 'cqwukac3z1',
-            'ext': 'bin',
+            'ext': 'mp4',
             'title': 'How Wistia Channels Can Help Capture Inbound Value From Your Video Content',
             'duration': 158.125,
             'timestamp': 1618974400,
             'description': 'md5:27abc99a758573560be72600ef95cece',
             'upload_date': '20210421',
-            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/6c551820ae950cdee2306d6cbe9ef742.bin',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/6c551820ae950cdee2306d6cbe9ef742.jpg',
         }
     }, {
         'url': 'https://study.com/academy/lesson/north-american-exploration-failed-colonies-of-spain-france-england.html#lesson',
         'md5': 'b9676d24bf30945d97060638fbfe77f0',
         'info_dict': {
             'id': '5vd7p4bct5',
-            'ext': 'bin',
+            'ext': 'mp4',
             'title': 'paywall_north-american-exploration-failed-colonies-of-spain-france-england',
             'upload_date': '20220915',
             'timestamp': 1663258727,
             'duration': 623.019,
-            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/83e6ec693e2c05a0ce65809cbaead86a.bin',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/83e6ec693e2c05a0ce65809cbaead86a.jpg',
             'description': 'a Paywall Videos video',
         },
     }]
@@ -302,9 +315,9 @@ class WistiaChannelIE(WistiaBaseIE):
         'url': 'https://fast.wistia.net/embed/channel/3802iirk0l?wchannelid=3802iirk0l&wmediaid=sp5dqjzw3n',
         'info_dict': {
             'id': 'sp5dqjzw3n',
-            'ext': 'bin',
+            'ext': 'mp4',
             'title': 'The Roof S2: The Modern CRO',
-            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/dadfa9233eaa505d5e0c85c23ff70741.bin',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/dadfa9233eaa505d5e0c85c23ff70741.png',
             'duration': 86.487,
             'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season.\n',
             'timestamp': 1619790290,
@@ -334,12 +347,12 @@ class WistiaChannelIE(WistiaBaseIE):
         'info_dict': {
             'id': 'pz0m0l0if3',
             'title': 'A Framework for Improving Product Team Performance',
-            'ext': 'bin',
+            'ext': 'mp4',
             'timestamp': 1653935275,
             'upload_date': '20220530',
             'description': 'Learn how to help your company improve and achieve your product related goals.',
             'duration': 1854.39,
-            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/12fd19e56413d9d6f04e2185c16a6f8854e25226.bin',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/12fd19e56413d9d6f04e2185c16a6f8854e25226.png',
         },
         'params': {'noplaylist': True, 'skip_download': True},
     }]

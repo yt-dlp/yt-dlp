@@ -6,7 +6,8 @@ from ..utils import (
     traverse_obj,
     unescapeHTML,
     unified_timestamp,
-    urljoin
+    urljoin,
+    url_or_none
 )
 
 
@@ -334,3 +335,140 @@ class NhkForSchoolProgramListIE(InfoExtractor):
             for x in traverse_obj(bangumi_list, ('part', ..., 'part-video-dasid')) or []]
 
         return self.playlist_result(bangumis, program_id, title, description)
+
+
+class NhkRadiruIE(InfoExtractor):
+    _GEO_COUNTRIES = ['JP']
+    IE_DESC = 'NHK らじる (Radiru/Rajiru)'
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/(?:player/ondemand|ondemand/detail)\.html\?p=(?P<site>[\da-zA-Z]+)_(?P<corner>[\da-zA-Z]+)(?:_(?P<headline>[\da-zA-Z]+))?'
+    _TESTS = [{
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=0449_01_3853544',
+        'skip': 'Episode expired on 2023-04-16',
+        'info_dict': {
+            'channel': 'NHK-FM',
+            'description': 'md5:94b08bdeadde81a97df4ec882acce3e9',
+            'ext': 'm4a',
+            'id': '0449_01_3853544',
+            'series': 'ジャズ・トゥナイト',
+            'thumbnail': 'https://www.nhk.or.jp/prog/img/449/g449.jpg',
+            'timestamp': 1680969600,
+            'title': 'ジャズ・トゥナイト　ＮＥＷジャズ特集',
+            'upload_date': '20230408',
+            'release_timestamp': 1680962400,
+            'release_date': '20230408',
+            'was_live': True,
+        },
+    }, {
+        # playlist, airs every weekday so it should _hopefully_ be okay forever
+        'url': 'https://www.nhk.or.jp/radio/ondemand/detail.html?p=0458_01',
+        'info_dict': {
+            'id': '0458_01',
+            'title': 'ベストオブクラシック',
+            'description': '世界中の上質な演奏会をじっくり堪能する本格派クラシック番組。',
+            'channel': 'NHK-FM',
+            'thumbnail': 'https://www.nhk.or.jp/prog/img/458/g458.jpg',
+        },
+        'playlist_mincount': 3,
+    }, {
+        # one with letters in the id
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F300_06_3738470',
+        'note': 'Expires on 2024-03-31',
+        'info_dict': {
+            'id': 'F300_06_3738470',
+            'ext': 'm4a',
+            'title': '有島武郎「一房のぶどう」',
+            'description': '朗読：川野一宇（ラジオ深夜便アンカー）\r\n\r\n（2016年12月8日放送「ラジオ深夜便『アンカー朗読シリーズ』」より）',
+            'channel': 'NHKラジオ第1、NHK-FM',
+            'timestamp': 1635757200,
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F300/img/corner/box_109_thumbnail.jpg',
+            'release_date': '20161207',
+            'series': 'らじる文庫 by ラジオ深夜便 ',
+            'release_timestamp': 1481126700,
+            'upload_date': '20211101',
+        }
+    }, {
+        # news
+        'url': 'https://www.nhk.or.jp/radio/player/ondemand.html?p=F261_01_3855109',
+        'skip': 'Expires on 2023-04-17',
+        'info_dict': {
+            'id': 'F261_01_3855109',
+            'ext': 'm4a',
+            'channel': 'NHKラジオ第1',
+            'timestamp': 1681635900,
+            'release_date': '20230416',
+            'series': 'NHKラジオニュース',
+            'title': '午後６時のNHKニュース',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
+            'upload_date': '20230416',
+            'release_timestamp': 1681635600,
+        },
+    }]
+
+    def _extract_episode_info(self, headline, programme_id, series_meta):
+        episode_id = f'{programme_id}_{headline["headline_id"]}'
+        episode = traverse_obj(headline, ('file_list', 0, {dict}))
+
+        return {
+            **series_meta,
+            'id': episode_id,
+            'formats': self._extract_m3u8_formats(episode.get('file_name'), episode_id, fatal=False),
+            'container': 'm4a_dash',  # force fixup, AAC-only HLS
+            'was_live': True,
+            'series': series_meta.get('title'),
+            'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
+            **traverse_obj(episode, {
+                'title': 'file_title',
+                'description': 'file_title_sub',
+                'timestamp': ('open_time', {unified_timestamp}),
+                'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
+            }),
+        }
+
+    def _real_extract(self, url):
+        site_id, corner_id, headline_id = self._match_valid_url(url).group('site', 'corner', 'headline')
+        programme_id = f'{site_id}_{corner_id}'
+
+        if site_id == 'F261':
+            json_url = 'https://www.nhk.or.jp/s-media/news/news-site/list/v1/all.json'
+        else:
+            json_url = f'https://www.nhk.or.jp/radioondemand/json/{site_id}/bangumi_{programme_id}.json'
+
+        meta = self._download_json(json_url, programme_id)['main']
+
+        series_meta = traverse_obj(meta, {
+            'title': 'program_name',
+            'channel': 'media_name',
+            'thumbnail': (('thumbnail_c', 'thumbnail_p'), {url_or_none}),
+        }, get_all=False)
+
+        if headline_id:
+            return self._extract_episode_info(
+                traverse_obj(meta, (
+                    'detail_list', lambda _, v: v['headline_id'] == headline_id), get_all=False),
+                programme_id, series_meta)
+
+        def entries():
+            for headline in traverse_obj(meta, ('detail_list', ..., {dict})):
+                yield self._extract_episode_info(headline, programme_id, series_meta)
+
+        return self.playlist_result(
+            entries(), programme_id, playlist_description=meta.get('site_detail'), **series_meta)
+
+
+class NhkRadioNewsPageIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/radionews/?(?:$|[?#])'
+    _TESTS = [{
+        # airs daily, on-the-hour most hours
+        'url': 'https://www.nhk.or.jp/radionews/',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': 'F261_01',
+            'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
+            'description': 'md5:bf2c5b397e44bc7eb26de98d8f15d79d',
+            'channel': 'NHKラジオ第1',
+            'title': 'NHKラジオニュース',
+        }
+    }]
+
+    def _real_extract(self, url):
+        return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=F261_01', NhkRadiruIE)

@@ -318,10 +318,6 @@ def validate_options(opts):
     if outtmpl_default == '':
         opts.skip_download = None
         del opts.outtmpl['default']
-    if outtmpl_default and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
-        raise ValueError(
-            'Cannot download a video and extract audio into the same file! '
-            f'Use "{outtmpl_default}.%(ext)s" instead of "{outtmpl_default}" as the output template')
 
     def parse_chapters(name, value):
         chapters, ranges = [], []
@@ -332,7 +328,7 @@ def validate_options(opts):
                     mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
                     dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
                     if None in (dur or [None]):
-                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
+                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "*start-end"')
                     ranges.append(dur)
                 continue
             try:
@@ -386,10 +382,12 @@ def validate_options(opts):
                 raise ValueError(f'{cmd} is invalid; {err}')
             yield action
 
-    parse_metadata = opts.parse_metadata or []
     if opts.metafromtitle is not None:
-        parse_metadata.append('title:%s' % opts.metafromtitle)
-    opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
+        opts.parse_metadata.setdefault('pre_process', []).append('title:%s' % opts.metafromtitle)
+    opts.parse_metadata = {
+        k: list(itertools.chain(*map(metadataparser_actions, v)))
+        for k, v in opts.parse_metadata.items()
+    }
 
     # Other options
     if opts.playlist_items is not None:
@@ -398,14 +396,19 @@ def validate_options(opts):
         except Exception as err:
             raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
 
-    geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
-    if geo_bypass_code is not None:
+    opts.geo_bypass_country, opts.geo_bypass_ip_block = None, None
+    if opts.geo_bypass.lower() not in ('default', 'never'):
         try:
-            GeoUtils.random_ipv4(geo_bypass_code)
+            GeoUtils.random_ipv4(opts.geo_bypass)
         except Exception:
-            raise ValueError('unsupported geo-bypass country or ip-block')
+            raise ValueError(f'Unsupported --xff "{opts.geo_bypass}"')
+        if len(opts.geo_bypass) == 2:
+            opts.geo_bypass_country = opts.geo_bypass
+        else:
+            opts.geo_bypass_ip_block = opts.geo_bypass
+    opts.geo_bypass = opts.geo_bypass.lower() != 'never'
 
-    opts.match_filter = match_filter_func(opts.match_filter)
+    opts.match_filter = match_filter_func(opts.match_filter, opts.breaking_match_filter)
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
@@ -561,11 +564,11 @@ def validate_options(opts):
 def get_postprocessors(opts):
     yield from opts.add_postprocessors
 
-    if opts.parse_metadata:
+    for when, actions in opts.parse_metadata.items():
         yield {
             'key': 'MetadataParser',
-            'actions': opts.parse_metadata,
-            'when': 'pre_process'
+            'actions': actions,
+            'when': when
         }
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
     if sponsorblock_query:
@@ -701,11 +704,13 @@ def parse_options(argv=None):
 
     postprocessors = list(get_postprocessors(opts))
 
-    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[2:])
+    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[3:])
     any_getting = any(getattr(opts, k) for k in (
         'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
     ))
+    if opts.quiet is None:
+        opts.quiet = any_getting or opts.print_json or bool(opts.forceprint)
 
     playlist_pps = [pp for pp in postprocessors if pp.get('when') == 'playlist']
     write_playlist_infojson = (opts.writeinfojson and not opts.clean_infojson
@@ -741,7 +746,7 @@ def parse_options(argv=None):
         'client_certificate': opts.client_certificate,
         'client_certificate_key': opts.client_certificate_key,
         'client_certificate_password': opts.client_certificate_password,
-        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
+        'quiet': opts.quiet,
         'no_warnings': opts.no_warnings,
         'forceurl': opts.geturl,
         'forcetitle': opts.gettitle,
@@ -853,6 +858,7 @@ def parse_options(argv=None):
         'legacyserverconnect': opts.legacy_server_connect,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,
+        'enable_file_urls': opts.enable_file_urls,
         'http_headers': opts.headers,
         'proxy': opts.proxy,
         'socket_timeout': opts.socket_timeout,
@@ -931,7 +937,7 @@ def _real_main(argv=None):
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        updater = Updater(ydl)
+        updater = Updater(ydl, opts.update_self if isinstance(opts.update_self, str) else None)
         if opts.update_self and updater.update() and actual_use:
             if updater.cmd:
                 return updater.restart()
@@ -952,6 +958,8 @@ def _real_main(argv=None):
         parser.destroy()
         try:
             if opts.load_info_filename is not None:
+                if all_urls:
+                    ydl.report_warning('URLs are ignored due to --load-info-json')
                 return ydl.download_with_info_file(expand_path(opts.load_info_filename))
             else:
                 return ydl.download(all_urls)
