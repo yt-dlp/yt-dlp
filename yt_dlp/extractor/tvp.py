@@ -447,7 +447,7 @@ class TVPEmbedIE(InfoExtractor):
         duration = try_get(info, lambda x: x['duration'], int) if not is_live else None
 
         subtitles = {}
-        for sub in content.get('subtitles') or []:
+        for sub in content.get('subtitles') or ():
             if not sub.get('url'):
                 continue
             subtitles.setdefault(sub['lang'], []).append({
@@ -482,21 +482,28 @@ class TVPEmbedIE(InfoExtractor):
 class TVPVODBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://vod.tvp.pl/api/products'
 
-    def _call_api(self, resource, video_id, **kwargs):
+    def _call_api(self, resource, video_id, query={}, **kwargs):
         return self._download_json(
             f'{self._API_BASE_URL}/{resource}', video_id,
-            query={'lang': 'pl', 'platform': 'BROWSER'}, **kwargs)
+            query={'lang': 'pl', 'platform': 'BROWSER', **query}, **kwargs)
 
-    def _parse_video(self, video):
-        return {
-            '_type': 'url',
-            'url': 'tvp:' + video['externalUid'],
-            'ie_key': TVPEmbedIE.ie_key(),
+    def _parse_video(self, video, with_url=True):
+        info_dict = {
+            'id': str(video['id']),
             'title': video.get('title'),
-            'description': traverse_obj(video, ('lead', 'description')),
+            'description': traverse_obj(video, 'lead', 'description'),
             'age_limit': int_or_none(video.get('rating')),
             'duration': int_or_none(video.get('duration')),
+            'episode_number': int_or_none(video.get('number')),
+            'series': traverse_obj(video, ('season', 'serial', 'title')),
         }
+        if with_url:
+            info_dict.update({
+                '_type': 'url',
+                'url': video['webUrl'],
+                'ie_key': TVPVODVideoIE.ie_key(),
+            })
+        return info_dict
 
 
 class TVPVODVideoIE(TVPVODBaseIE):
@@ -506,10 +513,9 @@ class TVPVODVideoIE(TVPVODBaseIE):
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
         'info_dict': {
-            'id': '60468609',
+            'id': '311357',
             'ext': 'mp4',
-            'title': 'Laboratorium alchemika, Tusze termiczne. Jak zobaczyć niewidoczne. Odcinek 24',
-            'description': 'md5:1d4098d3e537092ccbac1abf49b7cd4c',
+            'title': 'Tusze termiczne. Jak zobaczyć niewidoczne. Odcinek 24',
             'duration': 300,
             'episode_number': 24,
             'episode': 'Episode 24',
@@ -520,23 +526,55 @@ class TVPVODVideoIE(TVPVODBaseIE):
     }, {
         'url': 'https://vod.tvp.pl/filmy-dokumentalne,163/ukrainski-sluga-narodu,339667',
         'info_dict': {
-            'id': '51640077',
+            'id': '339667',
             'ext': 'mp4',
-            'title': 'Ukraiński sługa narodu, Ukraiński sługa narodu',
-            'series': 'Ukraiński sługa narodu',
+            'title': 'Ukraiński sługa narodu',
             'description': 'md5:b7940c0a8e439b0c81653a986f544ef3',
             'age_limit': 12,
-            'episode': 'Episode 0',
-            'episode_number': 0,
             'duration': 3051,
             'thumbnail': 're:https://.+',
+        },
+    }, {
+        'note': 'embed fails with "payment required"',
+        'url': 'https://vod.tvp.pl/seriale,18/polowanie-na-cmy-odcinki,390116/odcinek-7,S01E07,398869',
+        'info_dict': {
+            'id': '398869',
+            'ext': 'mp4',
+            'title': 'odc. 7',
+            'description': '',
+            'duration': 2750,
+            'age_limit': 16,
+            'series': 'Polowanie na ćmy',
+            'episode_number': 7,
+            'episode': 'Episode 7',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        return self._parse_video(self._call_api(f'vods/{video_id}', video_id))
+        info_dict = self._parse_video(self._call_api(f'vods/{video_id}', video_id), with_url=False)
+
+        playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
+
+        formats = []
+        for manifest_url in traverse_obj(playlist, ('sources', 'HLS', ..., 'src')) or ():
+            formats.extend(self._extract_m3u8_formats(manifest_url, video_id))
+        for manifest_url in traverse_obj(playlist, ('sources', 'DASH', ..., 'src')) or ():
+            formats.extend(self._extract_mpd_formats(manifest_url, video_id))
+
+        subtitles = {}
+        for sub in playlist.get('subtitles') or ():
+            lang = sub['language']
+            subtitles.setdefault(lang, []).append({
+                'url': sub['url'],
+                'ext': 'ttml',
+            })
+
+        info_dict['formats'] = formats
+        info_dict['subtitles'] = subtitles
+
+        return info_dict
 
 
 class TVPVODSeriesIE(TVPVODBaseIE):
