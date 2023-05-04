@@ -27,6 +27,17 @@ def parse_episode(webpage, extractor):
 
 class JutSuAnimeIE(InfoExtractor):
     _VALID_URL = r'https:\/\/jut\.su\/(?P<name>[\w-]+)\/?'
+    _TESTS = [
+        {
+            'url': 'https://jut.su/kaze-no-stigma/episode-9.html',
+            'md5': 'd12da8fff5665774266369ea9ccb31b1',
+            'info_dict': {
+                'ext': 'mp4',
+                'id': 'kaze-no-stigma-None-9',
+                'title': 'Печать ветра 9 серия',
+            }
+        }
+    ]
 
     def _real_extract(self, url):
         anime_name = self._match_valid_url(url).group('name')
