@@ -18,6 +18,28 @@ class EplusIbIE(InfoExtractor):
         # complex fake url
         'url': 'https://live.eplus.jp/ex/player?ib=YA4Z%2Fz2rpI5cDl3V%2Bx9PI%2FXTGOX0j8IBzPthgx7%2BieWeff6iLcdsdsds1926zosZU9AbB3gdL3wG%2BNa1afQdIf%3D%3D',
         'only_matching': True,
+    }, {
+        # fake url with real data
+        'url': 'https://live.eplus.jp/ex/player?ib=YEFxb3Vyc2Dombnjg7blkrLlrablnJLjgrnjgq%2Fjg7zjg6vjgqLjgqTjg4njg6vlkIzlpb3kvJpgTGllbGxhIQ%3D%3D',
+        'info_dict': {
+            'id': '354502-0001-002',
+            'title': 'LoveLive!Series Presents COUNTDOWN LoveLive! 2021→2022～LIVE with a smile!～【Streaming+(配信)】',
+            'live_status': 'was_live',
+            'upload_date': '20211231',
+            'timestamp': 1640952000,
+            'release_date': '20211231',
+            'release_timestamp': 1640952000,
+            'description': str,
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'Could not find the playlist URL. This event may not be accessible',
+            'No video formats found!',
+            'Requested format is not available',
+        ],
     }]
 
     def _real_extract(self, url):
