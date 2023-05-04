@@ -35,11 +35,11 @@ class JutSuAnimeIE(InfoExtractor):
 
         webpage = self._download_webpage(url, anime_name)
 
-        fr = [i[0] for i in re.findall(r'<a\s+href=\"(?P<href>(.+?))\"\s+class=\"short-btn\s+green\s+video\s+the_hildi\">', webpage) ]
+        fr = re.findall(r'<a\s+href=\"(?P<href>[^\"]+)\"\s+class=\".+?\s+video\s+the_hildi\">', webpage)
         links = [f'https://jut.su{i}' for i in fr]
 
-        for link in links:
-            episode_id = link
+        for i, link in enumerate(links):
+            episode_id = anime_name + str(i + 1)
             episode_webpage = self._download_webpage(link, episode_id)
             parsed = parse_episode(episode_webpage, self)
             episodes.append(create_result_from_episode_info(parsed, episode_id))
