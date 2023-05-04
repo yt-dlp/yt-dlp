@@ -2,7 +2,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     UserNotLive,
-    traverse_obj,
     try_call,
     unified_timestamp,
 )
@@ -28,8 +27,8 @@ class EplusIbIE(InfoExtractor):
 
         data_json = self._search_json(r'<script>\s*var app\s*=', webpage, 'data json', video_id)
 
-        delivery_status = traverse_obj(data_json, 'delivery_status')
-        archive_mode = traverse_obj(data_json, 'archive_mode')
+        delivery_status = data_json.get('delivery_status')
+        archive_mode = data_json.get('archive_mode')
 
         self.write_debug(f'delivery_status = {delivery_status}, archive_mode = {archive_mode}')
 
@@ -73,6 +72,6 @@ class EplusIbIE(InfoExtractor):
             'title': data_json.get('app_name'),
             'formats': formats,
             'live_status': live_status,
-            'description': traverse_obj(data_json, 'content'),
+            'description': data_json.get('content'),
             'timestamp': try_call(lambda: unified_timestamp(data_json['event_datetime']) - 32400),
         }
