@@ -447,7 +447,7 @@ class TVPEmbedIE(InfoExtractor):
         duration = try_get(info, lambda x: x['duration'], int) if not is_live else None
 
         subtitles = {}
-        for sub in content.get('subtitles') or ():
+        for sub in content.get('subtitles') or []:
             if not sub.get('url'):
                 continue
             subtitles.setdefault(sub['lang'], []).append({
@@ -566,22 +566,18 @@ class TVPVODVideoIE(TVPVODBaseIE):
 
         playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
 
-        formats = []
-        for manifest_url in traverse_obj(playlist, ('sources', 'HLS', ..., 'src')) or ():
-            formats.extend(self._extract_m3u8_formats(manifest_url, video_id))
-        for manifest_url in traverse_obj(playlist, ('sources', 'DASH', ..., 'src')) or ():
-            formats.extend(self._extract_mpd_formats(manifest_url, video_id))
+        info_dict['formats'] = []
+        for manifest_url in traverse_obj(playlist, ('sources', 'HLS', ..., 'src')):
+            info_dict['formats'].extend(self._extract_m3u8_formats(manifest_url, video_id, fatal=False))
+        for manifest_url in traverse_obj(playlist, ('sources', 'DASH', ..., 'src')):
+            info_dict['formats'].extend(self._extract_mpd_formats(manifest_url, video_id, fatal=False))
 
-        subtitles = {}
-        for sub in playlist.get('subtitles') or ():
-            lang = sub['language']
-            subtitles.setdefault(lang, []).append({
+        info_dict['subtitles'] = {}
+        for sub in playlist.get('subtitles') or []:
+            info_dict['subtitles'].setdefault(sub.get('language') or 'und', []).append({
                 'url': sub['url'],
                 'ext': 'ttml',
             })
-
-        info_dict['formats'] = formats
-        info_dict['subtitles'] = subtitles
 
         return info_dict
 
