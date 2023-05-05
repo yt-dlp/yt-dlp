@@ -484,15 +484,13 @@ class TVPVODBaseIE(InfoExtractor):
 
     def _call_api(self, resource, video_id, query={}, **kwargs):
         is_valid = lambda x: x >= 200 and x < 300
-        is_handled_error = lambda x: x >= 400 and x < 500
         document, urlh = self._download_json_handle(
             f'{self._API_BASE_URL}/{resource}', video_id,
             query={'lang': 'pl', 'platform': 'BROWSER', **query},
-            expected_status=lambda x: is_valid(x) or is_handled_error(x), **kwargs)
+            expected_status=lambda x: is_valid(x) or 400 <= x < 500, **kwargs)
         if is_valid(urlh.status):
             return document
-        error_code = document.get('code')
-        raise ExtractorError(f'Response from Woronicza: {error_code}')
+        raise ExtractorError(f'Woronicza said: {document.get("code")} (HTTP {urlh.status})')
 
     def _parse_video(self, video, with_url=True):
         info_dict = traverse_obj(video, {
