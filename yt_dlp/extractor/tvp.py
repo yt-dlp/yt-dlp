@@ -483,7 +483,7 @@ class TVPVODBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://vod.tvp.pl/api/products'
 
     def _call_api(self, resource, video_id, query={}, **kwargs):
-        is_valid = lambda x: x >= 200 and x < 300
+        is_valid = lambda x: 200 <= x < 300
         document, urlh = self._download_json_handle(
             f'{self._API_BASE_URL}/{resource}', video_id,
             query={'lang': 'pl', 'platform': 'BROWSER', **query},
