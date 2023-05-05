@@ -504,7 +504,7 @@ class TVPVODBaseIE(InfoExtractor):
             'series': ('season', 'serial', 'title', {str_or_none}),
             'thumbnails': ('images', ..., ..., {'url': ('url', {url_or_none})}),
         })
-        info_dict['description'] = clean_html(video.get('lead') or video.get('description'))
+        info_dict['description'] = clean_html(dict_get(video, ('lead', 'description')))
         if with_url:
             info_dict.update({
                 '_type': 'url',
