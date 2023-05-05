@@ -488,19 +488,16 @@ class TVPVODBaseIE(InfoExtractor):
             query={'lang': 'pl', 'platform': 'BROWSER', **query}, **kwargs)
 
     def _parse_video(self, video, with_url=True):
-        info_dict = {
-            'id': str(video['id']),
-            'title': video.get('title'),
-            'description': clean_html(video.get('lead') or video.get('description')),
-            'age_limit': int_or_none(video.get('rating')),
-            'duration': int_or_none(video.get('duration')),
-            'episode_number': int_or_none(video.get('number')),
-            'series': traverse_obj(video, ('season', 'serial', 'title')),
-            'thumbnails': [{'url': u}
-                           for u in traverse_obj(video,
-                           ('images', ..., ..., 'url'), expected_type=url_or_none)
-                           if u is not None],
-        }
+        info_dict = traverse_obj(video, {
+            'id': ('id', {str_or_none}),
+            'title': 'title',
+            'age_limit': ('rating', {int_or_none}),
+            'duration': ('duration', {int_or_none}),
+            'episode_number': ('number', {int_or_none}),
+            'series': ('season', 'serial', 'title', {str_or_none}),
+            'thumbnails': ('images', ..., ..., {'url': ('url', {url_or_none})}),
+        })
+        info_dict['description'] = clean_html(video.get('lead') or video.get('description'))
         if with_url:
             info_dict.update({
                 '_type': 'url',
@@ -539,6 +536,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'age_limit': 12,
             'duration': 3051,
             'thumbnail': 're:https?://.+',
+            'subtitles': 'count:2',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
