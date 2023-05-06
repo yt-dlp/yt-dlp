@@ -13,9 +13,10 @@ from ..utils import (
 
 class ToggleIE(InfoExtractor):
     IE_NAME = 'toggle'
-    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh)/(?:[^/]+/){2,}|toggle:)(?P<id>[0-9]+)'
+    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:[^/]+/){1,}|toggle:)[^/]+-(?P<id>[0-9]+)'
     _TESTS = [{
         ### to be updated
+        ### deprecated
         # 'url': 'http://www.mewatch.sg/en/series/lion-moms-tif/trailers/lion-moms-premier/343115',
         'info_dict': {
             'id': '343115',
@@ -30,7 +31,7 @@ class ToggleIE(InfoExtractor):
         }
     }, {
         'note': 'DRM-protected video',
-        ### to be updated
+        ### url deprecated
         # 'url': 'http://www.mewatch.sg/en/movies/dug-s-special-mission/341413',
         'info_dict': {
             'id': '341413',
@@ -48,7 +49,7 @@ class ToggleIE(InfoExtractor):
         # this also tests correct video id extraction
         'note': 'm3u8 links are geo-restricted, but Android/mp4 is okay',
 
-        ### to be updated
+        ### url deprecated
         # 'url': 'http://www.mewatch.sg/en/series/28th-sea-games-5-show/28th-sea-games-5-show-ep11/332861',
         'info_dict': {
             'id': '332861',
@@ -64,26 +65,32 @@ class ToggleIE(InfoExtractor):
         'skip': 'm3u8 links are geo-restricted'
     }, 
     
-    ### to be fixed
     {
+        ### video.toggle.sg seems deprecated
         # 'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
         'only_matching': True,
     }, {
-        # 'url': 'http://www.mewatch.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
+        'url':'https://www.mewatch.sg/clips/Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901',
         'only_matching': True,
     }, {
-        # 'url': 'http://www.mewatch.sg/zh/series/zero-calling-s2-hd/ep13/336367',
+        'url':'https://www.mewatch.sg/episode/Zero-Calling-S2-E13-The-End-of-The-Beginning-55137',
         'only_matching': True,
     }, {
+        ### webisodes no longer used
+        'url':'https://www.mewatch.sg/clips/Jeeva-is-an-orphan-Vetri-S2-Webisode-7-84944',
         # 'url': 'http://www.mewatch.sg/en/series/vetri-s2/webisodes/jeeva-is-an-orphan-vetri-s2-webisode-7/342302',
         'only_matching': True,
     }, {
-        # 'url': 'http://www.mewatch.sg/en/movies/seven-days/321936',
+        ### only available in Singapore 403 forbidden
+        'url': 'https://www.mewatch.sg/movie/Seven-Days-79641',
         'only_matching': True,
     }, {
+        ### not working for this list, but not a big issue since old path deprecated
+        'url':'https://www.mewatch.sg/list/CNA-Singapore-Tonight-154904',
         # 'url': 'https://www.mewatch.sg/en/tv-show/news/may-2017-cna-singapore-tonight/fri-19-may-2017/512456',
         'only_matching': True,
     }, {
+        ### not working. seems deprecated
         # 'url': 'http://www.mewatch.sg/en/channels/eleven-plus/401585',
         'only_matching': True,
     }, {
