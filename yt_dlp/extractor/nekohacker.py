@@ -1,6 +1,7 @@
+from datetime import datetime
 import re
 
-from yt_dlp.utils import ExtractorError, determine_ext, extract_attributes, get_element_by_class
+from yt_dlp.utils import ExtractorError, determine_ext, extract_attributes, get_element_by_class, unified_strdate
 from .common import InfoExtractor
 
 
@@ -23,7 +24,8 @@ class NekoHackerIE(InfoExtractor):
                     'title': 'Spaceship',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
-                    'acodec': 'mp3'
+                    'acodec': 'mp3',
+                    'upload_date': '20221101'
                 }
             },
             {
@@ -35,7 +37,8 @@ class NekoHackerIE(InfoExtractor):
                     'title': 'City Runner',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
-                    'acodec': 'mp3'
+                    'acodec': 'mp3',
+                    'upload_date': '20221101'
                 }
             },
             {
@@ -47,7 +50,8 @@ class NekoHackerIE(InfoExtractor):
                     'title': 'Nature Talk',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
-                    'acodec': 'mp3'
+                    'acodec': 'mp3',
+                    'upload_date': '20221101'
                 }
             },
             {
@@ -59,7 +63,8 @@ class NekoHackerIE(InfoExtractor):
                     'title': 'Crystal World',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
-                    'acodec': 'mp3'
+                    'acodec': 'mp3',
+                    'upload_date': '20221101'
                 }
             }
         ]
@@ -98,12 +103,15 @@ class NekoHackerIE(InfoExtractor):
             # })
             # content_type = full_response.headers.get('Content-Type', '').lower()
 
+            upload_date = datetime.strptime(attr['data-releasedate'], '%Y.%m.%d Release')
+
             entry = {
                 'id': id,
                 'title': tracktitle,
                 'url': trackurl,
                 'ext': determine_ext(trackurl),
-                'thumbnail': attr['data-albumart']
+                'thumbnail': attr['data-albumart'],
+                'upload_date': unified_strdate(upload_date.strftime('%Y%m%d'))
             }
 
             # if re.match(r'audio/', content_type):
