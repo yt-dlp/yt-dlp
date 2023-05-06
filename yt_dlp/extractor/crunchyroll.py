@@ -235,6 +235,37 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         return subtitles
 
+    @staticmethod
+    def _extract_versions_and_merge_results(lang, internal_id, responses, extract_version):
+        # If only one language was requested, extract and return its version
+        if len(responses) == 1:
+            target_id, target_response = next(iter(responses.items()))
+            return extract_version(lang, target_id, target_response)
+
+        # If multiple languages were requested, extract all versions and merge them.
+        # NOTE: Returned arguments such as 'title', 'season', 'season_id', etc. may differ
+        # from version to version. This is why we have to include all of them in every
+        # single format. This way, when selecting a format using the '-f' flag, the correct
+        # version is applied.
+        def extract_formats_from_info(info):
+            info_formats = info.pop('formats', None)
+            if info_formats:
+                # Only add simple values (no dicts, lists or tuples) to every format
+                info_formats.update({key: value for key, value in info.items()
+                                     if not isinstance(value, (list, dict, tuple))})
+            return info_formats
+
+        # Merge all formats and subtitles into result
+        result = responses.pop(internal_id, None) or responses.popitem()[1]
+        result_formats = result.setdefault('formats', [])
+        result_subtitles = result.setdefault('subtitles', [])
+        for version_id, version_response in responses.items():
+            version_info = extract_version(lang, version_id, version_response)
+            result_subtitles.update(version_info.get('subtitles') or {})
+            version_formats = extract_formats_from_info(version_info)
+            result_formats.extend(version_formats or [])
+        return result
+
 
 class CrunchyrollCmsBaseIE(CrunchyrollBaseIE):
     _API_ENDPOINT = 'cms'
@@ -384,35 +415,8 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
             raise ExtractorError(
                 'None of the requested audio languages were found',
                 expected=True)
-
-        # If only one language was requested, extract and return its version
-        if len(responses) == 1:
-            target_id, target_response = next(iter(responses.items()))
-            return self._extract_version(lang, target_id, target_response)
-
-        # If multiple languages were requested, extract all versions and merge them.
-        # NOTE: Returned arguments such as 'title', 'season', 'season_id', etc. may differ
-        # from version to version. This is why we have to include all of them in every
-        # single format. This way, when selecting a format using the '-f' flag, the correct
-        # version is applied.
-        def extract_formats_from_info(info):
-            info_formats = info.pop('formats', None)
-            if info_formats:
-                # Only add simple values (no dicts, lists or tuples) to every format
-                info_formats.update({key: value for key, value in info.items()
-                                     if not isinstance(value, (list, dict, tuple))})
-            return info_formats
-
-        # Merge all formats and subtitles into result
-        result = responses.pop(internal_id, None) or responses.popitem()[1]
-        result_formats = result.setdefault('formats', [])
-        result_subtitles = result.setdefault('subtitles', [])
-        for version_id, version_response in responses.items():
-            version_info = self._extract_version(lang, version_id, version_response)
-            result_subtitles.update(version_info.get('subtitles') or {})
-            version_formats = extract_formats_from_info(version_info)
-            result_formats.extend(version_formats or [])
-        return result
+        return self._extract_versions_and_merge_results(
+            lang, internal_id, responses, self._extract_version)
 
     def _extract_version(self, lang, internal_id, response):
         object_type = response.get('type')
