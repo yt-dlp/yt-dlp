@@ -15,7 +15,7 @@ class FosdemIE(InfoExtractor):
                'release_date': '2022',
                'cast': ['Norbert Kamiński'],
                'uploader': 'FOSDEM',
-               'description': "This presentation will describe the results of the proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS for OPNsense and pfSense. It will explain the challenges connected with the implementation of firmware update systems for BSD-based firewall and routing software. It will show basic concepts connected to the fwupd and LVFS. The security of the whole system is not determined only by the software it runs, but also by the firmware. Firmware is a piece of software inseparable from the hardware. It is responsible for proper hardware initialization as well as its security features. That means that the safety of the machine strongly depends on the mitigations of vulnerabilities provided by firmware (like microcode updates, bug/exploit fixes). For these particular reasons, the firmware should be kept up-to-date.\nRouters are highly popular attack vectors, therefore they must be appropriately secured. pfSense and OPNsense are well known secure firewall and routing software, but they do not have any firmware update methods. Therefore to secure hardware initialization of the routers, in this presentation we will present proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS.\nNowadays, this is one of the most popular firmware update software. fwupd is a daemon that manages firmware updates of each of your hardware components that have some kind of firmware. What is more fwupd is open source, which makes it more trustworthy than proprietary applications delivered by hardware vendors designed for (only) their devices.",
+               'description': 'This presentation will describe the results of the proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS for OPNsense and pfSense. It will explain the challenges connected with the implementation of firmware update systems for BSD-based firewall and routing software. It will show basic concepts connected to the fwupd and LVFS. The security of the whole system is not determined only by the software it runs, but also by the firmware. Firmware is a piece of software inseparable from the hardware. It is responsible for proper hardware initialization as well as its security features. That means that the safety of the machine strongly depends on the mitigations of vulnerabilities provided by firmware (like microcode updates, bug/exploit fixes). For these particular reasons, the firmware should be kept up-to-date.\nRouters are highly popular attack vectors, therefore they must be appropriately secured. pfSense and OPNsense are well known secure firewall and routing software, but they do not have any firmware update methods. Therefore to secure hardware initialization of the routers, in this presentation we will present proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS.\nNowadays, this is one of the most popular firmware update software. fwupd is a daemon that manages firmware updates of each of your hardware components that have some kind of firmware. What is more fwupd is open source, which makes it more trustworthy than proprietary applications delivered by hardware vendors designed for (only) their devices.',
            }
        },
         {
@@ -58,22 +58,28 @@ class FosdemIE(InfoExtractor):
         video_id = self._match_id(url)
         groups = self._match_valid_url(url).groupdict()
         webpage = self._download_webpage(url, video_id)
-        year = groups['year']
-        title_rgx = r"<div id=\"pagetitles\">\n\s+<h1>(.+?)</h1>"
-        title = self._html_search_regex(title_rgx, webpage, 'title')
-        if groups['url_type'] == 'event':
-            evnt_blurb_rgx = r"<div class=\"event-blurb\">\n*(?P<blurb>(<div class=\"event-abstract\">(<p>(.+?)</p>\n*)+</div>)+\n*(<div class=\"event-description\">(<p>(.+?)</p>\n*)*</div>))+\n*</div>"
+        year = groups.get('year')
+        title_rgx = r'<div id=\"pagetitles\">\n\s+<h1>(.+?)</h1>'
+        title = self._html_search_regex(title_rgx, webpage, 'title') \
+            or self._og_search_title(webpage)
+        if groups.get('url_type') == 'event':
+            evnt_blurb_rgx = r'<div class=\"event-blurb\">\n*(?P<blurb>(<div class=\"event-abstract\">(<p>(.+?)</p>\n*)+</div>)+\n*(<div class=\"event-description\">(<p>(.+?)</p>\n*)*</div>))+\n*</div>'
             evnt_blurb = self._html_search_regex(evnt_blurb_rgx,
                                                  webpage,
                                                  'event blurb',
-                                                 group='blurb', flags=re.DOTALL)
+                                                 group='blurb',
+                                                 flags=re.DOTALL,
+                                                 fatal=False)
             description = evnt_blurb
-            video_url_rgx = r"<li><a href=\"(https://video.fosdem.org/[0-9]{4}/.+)\">"
+            video_url_rgx = r'<li><a href=\"(https://video.fosdem.org/[0-9]{4}/.+)\">'
             video_url = self._html_search_regex(video_url_rgx,
                                                 webpage,
                                                 'video url')
-            cast_rgx = r"<td><a href=\"/[0-9]+/schedule/speaker/[a-z_]+/\">(?P<speaker>\w+ \w+)</a></td>"
-            cast = re.findall(cast_rgx, webpage, flags=re.UNICODE)
+            cast_rgx = r'<td><a href=\"/[0-9]+/schedule/speaker/[a-z_]+/\">(?P<speaker>\w+ \w+)</a></td>'
+            try:
+                cast = re.findall(cast_rgx, webpage, flags=re.UNICODE)
+            except:
+                cast = []
             return {
                 'id': video_id,
                 'title': title,
@@ -85,10 +91,14 @@ class FosdemIE(InfoExtractor):
                 'cast': cast,
                 'webpage_url': url,
             }
-        elif groups['url_type'] == 'track':
-            events_rgx = r"<td><a href=\"(?P<event>/[0-9]+/schedule/event/[a-z0-9]+/)"
-            events_slugs = re.findall(events_rgx, webpage)
-            events_urls = ['https://fosdem.org'+slug for slug in events_slugs]
+        elif groups.get('url_type') == 'track':
+            events_rgx = r'<td><a href=\"(?P<event>/[0-9]+/schedule/event/[a-z0-9]+/)'
+            try:
+                events_slugs = re.findall(events_rgx, webpage)
+            except:
+                events_slugs = []
+            if len(events_slugs) > 0:
+                events_urls = ['https://fosdem.org'+slug for slug in events_slugs]
             entries = []
             for event_url in events_urls:
                 entries.append(self.url_result(event_url, 'Fosdem'))
@@ -97,4 +107,5 @@ class FosdemIE(InfoExtractor):
                                         playlist_title=title,
                                         playlist_description=None)
         else:
-            print(f"The {event_type} is not supported")
+            url_type = groups.get('url_type')
+            print(f'The {url_type} is not supported')
