@@ -122,6 +122,62 @@ class CrunchyrollBaseIE(InfoExtractor):
             raise ExtractorError(f'Unexpected response when downloading {note} JSON')
         return result
 
+    def _get_requested_langs_from_extractor_args(self):
+        return self._configuration_arg('language', casesense=False)
+
+    def _get_responses_for_langs(self, internal_id, get_response_by_id, requested_langs):
+        # Requested Language options:
+        # 'default'   = Include audio language of video with 'internal_id'
+        # 'unknown'   = Include all unknown audio languages
+        # 'all'       = Include all possible languages (will override all other options)
+        # <lang-code> = Include specific audio language e.g. 'ja-JP' or 'en-US'
+
+        # Format requested_langs
+        requested_langs = list(map(str.lower, requested_langs or ['default']))
+        if 'all' in requested_langs:
+            requested_langs = []
+
+        def get_meta_from_response(response):
+            object_type = response.get('type')
+            return object_type and traverse_obj(response, f'{object_type}_metadata')
+
+        def is_requested_lang(data):
+            audio_lang = (traverse_obj(data, 'audio_locale') or 'unknown').lower()
+            return not requested_langs or audio_lang in requested_langs
+
+        # Get default response and its metadata
+        default_response = get_response_by_id(internal_id)
+        if not default_response:
+            raise ExtractorError(
+                f'No video with id {internal_id} could be found (possibly region locked?)',
+                expected=True)
+        default_meta = get_meta_from_response(default_response)
+
+        # Result dict to store requested responses in
+        results = {}
+
+        # Add default response if requested
+        if 'default' in requested_langs or (default_meta and is_requested_lang(default_meta)):
+            results[internal_id] = default_response
+
+        # Iterate other versions and add them if requested
+        versions = (default_meta and traverse_obj(default_meta, 'versions')) or []
+        requested_versions = [version for version in versions
+                              if version and is_requested_lang(version)]
+        for version in requested_versions:
+            version_id = version.get('guid')
+            if not version_id or version_id in results:
+                continue
+            # Fetch response for current version (will be on a different video page)
+            requested_response = get_response_by_id(version_id)
+            if not requested_response:
+                self.to_screen(
+                    f'Requested video version with id {version_id} could not be found (possibly region locked?)',
+                    only_once=True)
+            results[version_id] = requested_response
+
+        return results
+
     def _extract_formats(self, stream_response, display_id=None):
         requested_formats = self._configuration_arg('format') or ['adaptive_hls']
         available_formats = {}
@@ -316,12 +372,49 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
     def _real_extract(self, url):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
 
-        # We need to use unsigned API call to allow ratings query string
-        response = traverse_obj(self._call_api(
-            f'objects/{internal_id}', internal_id, lang, 'object info', {'ratings': 'true'}), ('data', 0, {dict}))
-        if not response:
-            raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
+        def get_response_by_id(requested_id):
+            # We need to use unsigned API call to allow ratings query string
+            return traverse_obj(self._call_api(
+                f'objects/{requested_id}', requested_id, lang, 'object info', {'ratings': 'true'}), ('data', 0, {dict}))
 
+        # Fetch requested language responses
+        requested_langs = self._get_requested_langs_from_extractor_args()
+        responses = self._get_responses_for_langs(internal_id, get_response_by_id, requested_langs)
+        if not responses:
+            raise ExtractorError(
+                'None of the requested audio languages were found',
+                expected=True)
+
+        # If only one language was requested, extract and return its version
+        if len(responses) == 1:
+            target_id, target_response = next(iter(responses.items()))
+            return self._extract_version(lang, target_id, target_response)
+
+        # If multiple languages were requested, extract all versions and merge them.
+        # NOTE: Returned arguments such as 'title', 'season', 'season_id', etc. may differ
+        # from version to version. This is why we have to include all of them in every
+        # single format. This way, when selecting a format using the '-f' flag, the correct
+        # version is applied.
+        def extract_formats_from_info(info):
+            info_formats = info.pop('formats', None)
+            if info_formats:
+                # Only add simple values (no dicts, lists or tuples) to every format
+                info_formats.update({key: value for key, value in info.items()
+                                     if not isinstance(value, (list, dict, tuple))})
+            return info_formats
+
+        # Merge all formats and subtitles into result
+        result = responses.pop(internal_id, None) or responses.popitem()[1]
+        result_formats = result.setdefault('formats', [])
+        result_subtitles = result.setdefault('subtitles', [])
+        for version_id, version_response in responses.items():
+            version_info = self._extract_version(lang, version_id, version_response)
+            result_subtitles.update(version_info.get('subtitles') or {})
+            version_formats = extract_formats_from_info(version_info)
+            result_formats.extend(version_formats or [])
+        return result
+
+    def _extract_version(self, lang, internal_id, response):
         object_type = response.get('type')
         if object_type == 'episode':
             result = self._transform_episode_response(response)
