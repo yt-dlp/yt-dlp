@@ -69,7 +69,7 @@ class NekoHackerIE(InfoExtractor):
         webpage = get_element_by_class('playlist', webpage)
 
         if webpage is None:
-            raise ExtractorError(f'no playlist element found - likely not a album', expected=True)
+            raise ExtractorError('no playlist element found - likely not a album', expected=True)
 
         # the h3 is acutally empty when downloaded by youtube-dl
         # playlist_title = get_element_by_class('sr_it-playlist-title', webpage)
