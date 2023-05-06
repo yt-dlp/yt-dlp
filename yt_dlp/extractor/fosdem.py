@@ -44,8 +44,6 @@ class FosdemIE(InfoExtractor):
         video_id = self._match_id(url)
         groups = self._match_valid_url(url).groupdict()
         webpage = self._download_webpage(url, video_id)
-        if groups['url_type'] == 'event':
-            print("This is an event url")
         elif groups['url_type'] == 'track':
             print("This is a track")
             # Download all videos on this page
@@ -54,28 +52,27 @@ class FosdemIE(InfoExtractor):
         year = groups['year']
         title_rgx = r"<div id=\"pagetitles\">\n\s+<h1>(.+?)</h1>"
         title = self._html_search_regex(title_rgx, webpage, 'title')
-        print(f'TITLE: {title}')
-        evnt_blurb_rgx = r"<div class=\"event-blurb\">\n*(?P<blurb>(<div class=\"event-abstract\">(<p>(.+?)</p>\n*)+</div>)+\n*(<div class=\"event-description\">(<p>(.+?)</p>\n*)*</div>))+\n*</div>"
-        evnt_blurb = self._html_search_regex(evnt_blurb_rgx,
-                                             webpage,
-                                             'event blurb',
-                                             group='blurb', flags=re.DOTALL)
-        description = evnt_blurb
-        print(f"DESCRIPTION: {description}")
-        video_url_rgx = r"<li><a href=\"(https://video.fosdem.org/[0-9]{4}/.+)\">"
-        video_url = self._html_search_regex(video_url_rgx,
-                                            webpage,
-                                            'video url')
-        print(f"VIDEO URL: {video_url}")
-        print('\n\n___________________________')
-        return {
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'uploader': 'FOSDEM',
-            'url': video_url,
-            'thumbnail': None,
-            # TODO more properties (see yt_dlp/extractor/common.py)
-            'release_date': year,
-            # 'presenter/author
-        }
+        if groups['url_type'] == 'event':
+            evnt_blurb_rgx = r"<div class=\"event-blurb\">\n*(?P<blurb>(<div class=\"event-abstract\">(<p>(.+?)</p>\n*)+</div>)+\n*(<div class=\"event-description\">(<p>(.+?)</p>\n*)*</div>))+\n*</div>"
+            evnt_blurb = self._html_search_regex(evnt_blurb_rgx,
+                                                 webpage,
+                                                 'event blurb',
+                                                 group='blurb', flags=re.DOTALL)
+            description = evnt_blurb
+            video_url_rgx = r"<li><a href=\"(https://video.fosdem.org/[0-9]{4}/.+)\">"
+            video_url = self._html_search_regex(video_url_rgx,
+                                                webpage,
+                                                'video url')
+            cast_rgx = r"<td><a href=\"/[0-9]+/schedule/speaker/[a-z_]+/\">(?P<speaker>\w+ \w+)</a></td>"
+            cast = re.findall(cast_rgx, webpage, flags=re.UNICODE)
+            return {
+                'id': video_id,
+                'title': title,
+                'description': description,
+                'uploader': 'FOSDEM',
+                'url': video_url,
+                'thumbnail': None,
+                'release_date': year,
+                'cast': cast,
+                'webpage_url': url,
+            }
