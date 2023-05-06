@@ -43,18 +43,21 @@ class FosdemIE(InfoExtractor):
                 'uploader': 'FOSDEM',
                 'description': 'Unikernels promise fast boot times, small memory footprint and stronger security but lack in terms of manageability. Moreover, unikernels provide a non-generic environment for applications, with limited or no support for widely used libraries and OS features. This issue is even more apparent in the case of hardware acceleration. Acceleration libraries are often dynamically linked and have numerous dependencies, which directly contradict the statically linked notion of unikernels. Hardware acceleration functionality is almost non-existent in unikernel frameworks, mainly due to the absence of suitable virtualization solutions for such devices. ​ In this talk, we present an update on the vAccel framework we have built that can expose hardware acceleration semantics to workloads running on isolated sandboxes. We go through the components that comprise the framework and elaborate on the challenges in building such a software stack: we first present an overview of vAccel and how it works; then we focus on the porting effort of vAccel in various unikernel frameworks. Finally, we present a hardware acceleration abstraction that expose semantic acceleration functionality to workloads running as unikernels. ​ We will present a short demo of some popular algorithms running on top of Unikraft and vAccel show-casing the merits and trade-offs of this approach.'
             }
-        }
+        },
+        {
+            'url': 'https://fosdem.org/2023/schedule/track/microkernel_and_component_based_os/',
+            'playlist_count': 11,
+            'info_dict':{
+                'id': 'microkernel_and_component_based_os',
+                'title': 'Microkernel and Component-based OS devroom',
+                }
+            }
     ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         groups = self._match_valid_url(url).groupdict()
         webpage = self._download_webpage(url, video_id)
-        elif groups['url_type'] == 'track':
-            print("This is a track")
-            # Download all videos on this page
-        else:
-            print("how did you get here?")
         year = groups['year']
         title_rgx = r"<div id=\"pagetitles\">\n\s+<h1>(.+?)</h1>"
         title = self._html_search_regex(title_rgx, webpage, 'title')
@@ -82,3 +85,16 @@ class FosdemIE(InfoExtractor):
                 'cast': cast,
                 'webpage_url': url,
             }
+        elif groups['url_type'] == 'track':
+            events_rgx = r"<td><a href=\"(?P<event>/[0-9]+/schedule/event/[a-z0-9]+/)"
+            events_slugs = re.findall(events_rgx, webpage)
+            events_urls = ['https://fosdem.org'+slug for slug in events_slugs]
+            entries = []
+            for event_url in events_urls:
+                entries.append(self.url_result(event_url, 'Fosdem'))
+            return self.playlist_result(entries,
+                                        playlist_id=video_id,
+                                        playlist_title=title,
+                                        playlist_description=None)
+        else:
+            print(f"The {event_type} is not supported")
