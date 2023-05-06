@@ -22,6 +22,8 @@ class NekoHackerIE(InfoExtractor):
                     'ext': 'mp3',
                     'title': 'Spaceship',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
+                    'vcodec': 'none',
+                    'acodec': 'mp3'
                 }
             },
             {
@@ -32,6 +34,8 @@ class NekoHackerIE(InfoExtractor):
                     'ext': 'mp3',
                     'title': 'City Runner',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
+                    'vcodec': 'none',
+                    'acodec': 'mp3'
                 }
             },
             {
@@ -42,6 +46,8 @@ class NekoHackerIE(InfoExtractor):
                     'ext': 'mp3',
                     'title': 'Nature Talk',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
+                    'vcodec': 'none',
+                    'acodec': 'mp3'
                 }
             },
             {
@@ -52,6 +58,8 @@ class NekoHackerIE(InfoExtractor):
                     'ext': 'mp3',
                     'title': 'Crystal World',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
+                    'vcodec': 'none',
+                    'acodec': 'mp3'
                 }
             }
         ]
@@ -84,6 +92,12 @@ class NekoHackerIE(InfoExtractor):
                 playlist_title = attr['data-albumtitle']
 
             id = self._search_regex(self._ENTRY_URL, trackurl, 'trackurl id')
+
+            # full_response = self._request_webpage(trackurl, id, headers={
+            #     'Accept-Encoding': 'identity',
+            # })
+            # content_type = full_response.headers.get('Content-Type', '').lower()
+
             entry = {
                 'id': id,
                 'title': tracktitle,
@@ -91,6 +105,13 @@ class NekoHackerIE(InfoExtractor):
                 'ext': determine_ext(trackurl),
                 'thumbnail': attr['data-albumart']
             }
+
+            # if re.match(r'audio/', content_type):
+            #     entry['vcodec'] = 'none'
+            if entry['ext'] == 'mp3':
+                entry['vcodec'] = 'none'
+                entry['acodec'] = 'mp3'
+
             entries.append(entry)
 
         return self.playlist_result(entries, playlist_id, playlist_title)
