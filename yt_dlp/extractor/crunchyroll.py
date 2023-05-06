@@ -1,5 +1,6 @@
 import base64
 import urllib.error
+import typing
 
 from .common import InfoExtractor
 from ..utils import (
@@ -237,46 +238,53 @@ class CrunchyrollBaseIE(InfoExtractor):
 
     @staticmethod
     def _extract_versions_and_merge_results(lang, internal_id, responses, extract_version):
-        # If only one language was requested, extract and return its version
+        # If only one language was requested, extract and return its version (no merge required)
         if len(responses) == 1:
             target_id, target_response = next(iter(responses.items()))
             return extract_version(lang, target_id, target_response)
 
-        # If multiple languages were requested, extract all versions and merge them.
+        # If multiple languages were requested, extract all versions and merge them
         # NOTE: Returned arguments such as 'title', 'season', 'season_id', etc. may differ
-        # from version to version. This is why we have to include all of them in every
-        # single format. This way, when selecting a format using the '-f' flag, the correct
-        # version is applied.
-        def extract_formats_from_info(info):
-            info_formats = info.pop('formats', None)
-            if info_formats:
-                # Only add simple arguments (no dicts, lists or tuples) to every format
-                simple_args = {key: value for key, value in info.items()
-                               if not isinstance(value, (list, dict, tuple))}
-                # Add them to every format
-                for info_format in info_formats:
-                    info_format.update(simple_args)
-            return info_formats
+        # from version to version. In each format, include what is different (compared to the
+        # main result). Choosing a format with '-f' now applies the correct arguments.
+        # ALSO: Differences in non-hashable arguments are not included in the formats.
 
-        # Extract main response from 'responses'. Favour the one from 'internal_id'
+        # Extract main response from 'responses'. Favour the one with 'internal_id'
         version_id, version_response = (internal_id, responses.pop(internal_id, None))
         if not version_response:
             # If 'internal_id' was excluded then use some other item. Its
             # arguments are overridden when a format is selected anyway.
             version_id, version_response = responses.popitem()
 
+        # Function to check whether an attribute (key value pair) is hashable
+        def is_attribute_hashable(attribute):
+            key, value = attribute
+            return isinstance(key, typing.Hashable) \
+                and isinstance(value, typing.Hashable)
+
         # Extract main result (used to merge other results)
         result = extract_version(lang, version_id, version_response)
         result_formats = result.setdefault('formats', [])
         result_subtitles = result.setdefault('subtitles', {})
+        result_as_set = set(filter(is_attribute_hashable, result.items()))
 
         # Merge all formats and subtitles into main result
         for version_id, version_response in responses.items():
-            version_info = extract_version(lang, version_id, version_response)
-            result_subtitles.update(version_info.get('subtitles') or {})
-            version_formats = extract_formats_from_info(version_info)
-            result_formats.extend(version_formats or [])
+            version = extract_version(lang, version_id, version_response)
+            version_formats = version.get('formats') or []
+            version_subtitles = version.get('subtitles') or {}
+            version_as_set = set(filter(is_attribute_hashable, version.items()))
 
+            # Only add differences to every format
+            version_differences = dict(version_as_set - result_as_set)
+            for version_format in version_formats:
+                version_format.update(version_differences)
+
+            # Add version formats and subtitles to result
+            result_formats.extend(version_formats)
+            result_subtitles.update(version_subtitles)
+
+        # Return merged results
         return result
 
 
