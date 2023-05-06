@@ -22,40 +22,36 @@ class NekoHackerIE(InfoExtractor):
                     'ext': 'mp3',
                     'title': 'Spaceship',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
-                    # 'filename': 'test_NekoHacker_01-Spaceship.mp3'
                 }
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/02-City-Runner.mp3',
-                'md5': 'TODO',
+                'md5': '8f853c71719389d32bbbd3f1a87b3f08',
                 'info_dict': {
                     'id': '02-City-Runner',
                     'ext': 'mp3',
                     'title': 'City Runner',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
-                    # 'filename': 'test_NekoHacker_02-City-Runner.mp3'
                 }
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/03-Nature-Talk.mp3',
-                'md5': 'TODO',
+                'md5': '5a8a8ae852720cee4c0ac95c7d1a7450',
                 'info_dict': {
                     'id': '03-Nature-Talk',
                     'ext': 'mp3',
                     'title': 'Nature Talk',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
-                    # 'filename': 'test_NekoHacker_03-Nature-Talk.mp3'
                 }
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/04-Crystal-World.mp3',
-                'md5': 'TODO',
+                'md5': 'd8e59a48061764e50d92386a294abd50',
                 'info_dict': {
                     'id': '04-Crystal-World',
                     'ext': 'mp3',
                     'title': 'Crystal World',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
-                    # 'filename': 'test_NekoHacker_04-Crystal-World.mp3'
                 }
             }
         ]
