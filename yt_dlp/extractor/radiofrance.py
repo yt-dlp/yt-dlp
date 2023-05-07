@@ -209,6 +209,17 @@ class RadioFranceLiveIE(RadioFranceBase):
             'skip_download': 'Livestream',
         },
     }, {
+        'url': 'https://www.radiofrance.fr/fip/radio-rock',
+        'info_dict': {
+            'id': 'fip-radio-rock',
+            'title': str,
+            'live': True,
+            'ext': 'aac',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+    }, {
         'url': 'https://www.radiofrance.fr/mouv',
         'only_matching': True,
     }]
