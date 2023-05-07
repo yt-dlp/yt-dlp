@@ -2765,8 +2765,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
 
-        section_start = 0 if ctx.get('section_start') is None else download_start_time + ctx['section_start']
-        section_end = math.inf if ctx.get('section_end') is None else download_start_time + ctx['section_end']
+        section_start = ctx.get('section_start') or 0
+        section_end = ctx.get('section_end') or math.inf
 
         self.write_debug(f'Selected section: {section_start} -> {section_end}')
 

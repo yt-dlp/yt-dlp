@@ -13,6 +13,7 @@ import optparse
 import os
 import re
 import sys
+import time
 
 from .compat import compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
@@ -322,14 +323,29 @@ def validate_options(opts):
     def parse_chapters(name, value):
         chapters, ranges = [], []
         parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
+        current_time = time.time()
+
         for regex in value or []:
             if regex.startswith('*'):
                 for range_ in map(str.strip, regex[1:].split(',')):
-                    mobj = range_ != '-' and re.fullmatch(r'(-?[^-]+)?\s*-\s*(-?[^-]+)?', range_)
+                    mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
                     dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
                     if None in (dur or [None]):
                         raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "*start-end"')
                     ranges.append(dur)
+                continue
+            elif regex.startswith('#'):
+                for range_ in map(str.strip, regex[1:].split(',')):
+                    mobj = range_ != '-' and re.fullmatch(r'(-?[^-]+)\s*-\s*(-?[^-]+)?', range_)
+                    if not mobj:
+                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "#start-end"')
+
+                    start_section = parse_timestamp(mobj.group(1) or '0')
+                    end_section = parse_timestamp(mobj.group(2) or 'inf')
+                    if start_section is None or end_section is None:
+                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "#start-end"')
+
+                    ranges.append((current_time + start_section, current_time + end_section))
                 continue
             try:
                 chapters.append(re.compile(regex))
