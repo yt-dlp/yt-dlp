@@ -108,14 +108,14 @@ class NekoHackerIE(InfoExtractor):
                 'info_dict': {
                     'id': '711',
                     'ext': 'mp3',
-                    'title': '進め！むじなカンパニー feat. 六科なじむ (CV: 日高里菜 ) & 割戶真友 (CV: 金元寿子 ) & 軽井沢ユキ (CV: 上坂すみれ ) & 出稼ぎガルシア (CV: 金子彩花 )',
+                    'title': 'md5:1a5fcbc96ca3c3265b1c6f9f79f30fd0',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2021/01/OP表-1024x1024.png',
                     'vcodec': 'none',
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
                     'artist': 'Nekohacker',
-                    'track': '進め！むじなカンパニー feat. 六科なじむ (CV: 日高里菜 ) & 割戶真友 (CV: 金元寿子 ) & 軽井沢ユキ (CV: 上坂すみれ ) & 出稼ぎガルシア (CV: 金子彩花 )',
+                    'track': 'md5:1a5fcbc96ca3c3265b1c6f9f79f30fd0',
                     'track_number': 1,
                     'duration': None
                 }
