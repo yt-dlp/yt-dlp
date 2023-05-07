@@ -391,8 +391,8 @@ class FacebookIE(InfoExtractor):
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = (
-                get_first(post, (..., ..., lambda k, v: k == 'owner' and v.get('name')), expected_type=dict)
-                or get_first(media, 'owner')
+                get_first(media, 'owner')
+                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v.get('name')), expected_type=dict)
                 or get_first(post, ('node', 'actors', ...))
                 or {})
 
@@ -419,20 +419,17 @@ class FacebookIE(InfoExtractor):
             # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
             if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
                 thumbnail = None
-            view_count = parse_count(
-                self._search_regex(
-                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count":\s*(\d+)',), webpage, 'view count', default=None))
-            live_view_count = (
-                get_first(post, ('video', 'liveViewerCount'), expected_type=int)
-                or get_first(post, (..., ..., 'attachments', ..., 'media', 'liveViewerCount'), expected_type=int))
             info_dict = {
                 'description': description,
                 'uploader': uploader,
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
-                'view_count': view_count,
-                'live_view_count': live_view_count,
+                'view_count': parse_count(self._search_regex(
+                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
+                    webpage, 'view count', default=None)),
+                'concurrent_view_count': get_first(post, (
+                    ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
