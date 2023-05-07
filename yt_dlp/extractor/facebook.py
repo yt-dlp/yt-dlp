@@ -391,9 +391,9 @@ class FacebookIE(InfoExtractor):
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = (
-                get_first(media, 'owner')
+                get_first(media, ('owner', {dict}))
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v.get('name')), expected_type=dict)
-                or get_first(post, ('node', 'actors', ...))
+                or get_first(post, ('node', 'actors', ..., {dict}))
                 or {})
 
             page_title = title or self._html_search_regex((
