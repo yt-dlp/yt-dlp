@@ -1,7 +1,15 @@
 import re
 
-from yt_dlp.utils import ExtractorError, determine_ext, extract_attributes, get_element_by_class, parse_duration, traverse_obj, url_or_none
 from .common import InfoExtractor
+from ..utils import (
+    ExtractorError,
+    determine_ext,
+    extract_attributes,
+    get_element_by_class,
+    parse_duration,
+    traverse_obj,
+    url_or_none,
+)
 
 
 class NekoHackerIE(InfoExtractor):
