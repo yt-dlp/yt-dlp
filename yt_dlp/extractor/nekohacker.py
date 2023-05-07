@@ -6,7 +6,7 @@ from .common import InfoExtractor
 
 
 class NekoHackerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nekohacker\.com/(?P<id>[a-zA-Z0-9-_]+)'
+    _VALID_URL = r'https?://(?:www\.)?nekohacker\.com/(?P<id>(?!free-dl)[\w-]+)'
     _ENTRY_URL = r'https?://(?:www\.)?nekohacker\.com/wp-content/uploads/\d+/\d+/(?P<id>(?:\d+-)?[a-zA-Z0-9_-]+)\.[a-zA-Z0-9]+'
     _TESTS = [{
         'url': 'https://nekohacker.com/nekoverse/',
