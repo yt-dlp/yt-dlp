@@ -1,7 +1,6 @@
-from datetime import datetime
 import re
 
-from yt_dlp.utils import ExtractorError, determine_ext, extract_attributes, get_element_by_class, unified_strdate
+from yt_dlp.utils import ExtractorError, determine_ext, extract_attributes, get_element_by_class, parse_duration, traverse_obj, url_or_none
 from .common import InfoExtractor
 
 
@@ -79,46 +78,23 @@ class NekoHackerIE(InfoExtractor):
         if playlist is None:
             raise ExtractorError('no playlist element found - likely not a album', expected=True)
 
-        # the h3 is acutally empty when downloaded by youtube-dl
-        # playlist_title = get_element_by_class('sr_it-playlist-title', webpage)
-        playlist_title = None
-
         entries = []
-
-        for track in re.findall(
-                r'(<li[^>][^>]+>)',
-                playlist):
-            attr = extract_attributes(track)
-            tracktitle = attr['data-tracktitle']
-            trackurl = attr['data-audiopath']
-
-            if playlist_title is None:
-                playlist_title = attr['data-albumtitle']
-
-            id = self._search_regex(self._ENTRY_URL, trackurl, 'trackurl id')
-
-            # full_response = self._request_webpage(trackurl, id, headers={
-            #     'Accept-Encoding': 'identity',
-            # })
-            # content_type = full_response.headers.get('Content-Type', '').lower()
-
-            upload_date = datetime.strptime(attr['data-releasedate'], '%Y.%m.%d Release')
-
-            entry = {
-                'id': id,
-                'title': tracktitle,
-                'url': trackurl,
-                'ext': determine_ext(trackurl),
-                'thumbnail': attr['data-albumart'],
-                'upload_date': unified_strdate(upload_date.strftime('%Y%m%d'))
-            }
-
-            # if re.match(r'audio/', content_type):
-            #     entry['vcodec'] = 'none'
-            if entry['ext'] == 'mp3':
-                entry['vcodec'] = 'none'
-                entry['acodec'] = 'mp3'
-
+        for track_number, track in enumerate(re.findall(r'(<li[^>]+data-audiopath[^>]+>)', playlist), 1):
+            entry = traverse_obj(extract_attributes(track), {
+                'url': ('data-audiopath', {url_or_none}),
+                'ext': ('data-audiopath', {determine_ext}),
+                'id': 'data-trackid',
+                'title': 'data-tracktitle',
+                'track': 'data-tracktitle',
+                'album': 'data-albumtitle',
+                'duration': ('data-tracktime', {parse_duration}),
+                'release_date': ('data-releasedate', {lambda x: re.match(r'\d{8}', x.replace('.', ''))}, 0),
+                'thumbnail': ('data-albumart', {url_or_none}),
+            })
+            entry['track_number'] = track_number
+            entry['artist'] = 'Nekohacker'
+            entry['vcodec'] = 'none'
+            entry['acodec'] = 'mp3' if entry['ext'] == 'mp3' else None
             entries.append(entry)
 
-        return self.playlist_result(entries, playlist_id, playlist_title)
+        return self.playlist_result(entries, playlist_id, traverse_obj(entries, (0, 'album')))
