@@ -86,6 +86,86 @@ class NekoHackerIE(InfoExtractor):
                 }
             }
         ]
+    }, {
+        'url': 'https://nekohacker.com/susume/',
+        'info_dict': {
+            'id': 'susume',
+            'title': '進め！むじなカンパニー',
+        },
+        'playlist': [
+            {
+                'url': 'https://nekohacker.com/wp-content/uploads/2021/01/進め！むじなカンパニー-feat.-六科なじむ-CV_-日高里菜-割戶真友-CV_-金元寿子-軽井沢ユキ-CV_-上坂すみれ-出稼ぎガルシア-CV_-金子彩花-.mp3',
+                'md5': 'fb13f008aa81f26ba48f91fd2d6186ce',
+                'info_dict': {
+                    'id': '711',
+                    'ext': 'mp3',
+                    'title': '進め！むじなカンパニー feat. 六科なじむ (CV: 日高里菜 ) & 割戶真友 (CV: 金元寿子 ) & 軽井沢ユキ (CV: 上坂すみれ ) & 出稼ぎガルシア (CV: 金子彩花 )',
+                    'thumbnail': 'https://nekohacker.com/wp-content/uploads/2021/01/OP表-1024x1024.png',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'release_date': '20210115',
+                    'album': '進め！むじなカンパニー',
+                    'artist': 'Nekohacker',
+                    'track': '進め！むじなカンパニー feat. 六科なじむ (CV: 日高里菜 ) & 割戶真友 (CV: 金元寿子 ) & 軽井沢ユキ (CV: 上坂すみれ ) & 出稼ぎガルシア (CV: 金子彩花 )',
+                    'track_number': 1,
+                    'duration': None
+                }
+            },
+            {
+                'url': 'https://nekohacker.com/wp-content/uploads/2021/01/むじな-de-なじむ-feat.-六科なじむ-CV_-日高里菜-.mp3',
+                'md5': '028803f70241df512b7764e73396fdd1',
+                'info_dict': {
+                    'id': '709',
+                    'ext': 'mp3',
+                    'title': 'むじな de なじむ feat. 六科なじむ (CV: 日高里菜 )',
+                    'thumbnail': 'https://nekohacker.com/wp-content/uploads/2021/01/OP表-1024x1024.png',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'release_date': '20210115',
+                    'album': '進め！むじなカンパニー',
+                    'artist': 'Nekohacker',
+                    'track': 'むじな de なじむ feat. 六科なじむ (CV: 日高里菜 )',
+                    'track_number': 2,
+                    'duration': None
+                }
+            },
+            {
+                'url': 'https://nekohacker.com/wp-content/uploads/2021/01/進め！むじなカンパニー-instrumental.mp3',
+                'md5': 'adde9e9a16e1da5e602b579c247d0fb9',
+                'info_dict': {
+                    'id': '710',
+                    'ext': 'mp3',
+                    'title': '進め！むじなカンパニー (instrumental)',
+                    'thumbnail': 'https://nekohacker.com/wp-content/uploads/2021/01/OP表-1024x1024.png',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'release_date': '20210115',
+                    'album': '進め！むじなカンパニー',
+                    'artist': 'Nekohacker',
+                    'track': '進め！むじなカンパニー (instrumental)',
+                    'track_number': 3,
+                    'duration': None
+                }
+            },
+            {
+                'url': 'https://nekohacker.com/wp-content/uploads/2021/01/むじな-de-なじむ-instrumental.mp3',
+                'md5': 'ebb0443039cf5f9ff7fd557ed9b23599',
+                'info_dict': {
+                    'id': '712',
+                    'ext': 'mp3',
+                    'title': 'むじな de なじむ (instrumental)',
+                    'thumbnail': 'https://nekohacker.com/wp-content/uploads/2021/01/OP表-1024x1024.png',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'release_date': '20210115',
+                    'album': '進め！むじなカンパニー',
+                    'artist': 'Nekohacker',
+                    'track': 'むじな de なじむ (instrumental)',
+                    'track_number': 4,
+                    'duration': None
+                }
+            }
+        ]
     }]
 
     def _real_extract(self, url):
