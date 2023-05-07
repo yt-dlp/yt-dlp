@@ -17,52 +17,72 @@ class NekoHackerIE(InfoExtractor):
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/01-Spaceship.mp3',
                 'md5': '44223701ebedba0467ebda4cc07fb3aa',
                 'info_dict': {
-                    'id': '01-Spaceship',
+                    'id': '1712',
                     'ext': 'mp3',
                     'title': 'Spaceship',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
                     'acodec': 'mp3',
-                    'upload_date': '20221101'
+                    'release_date': '20221101',
+                    'album': 'Nekoverse',
+                    'artist': 'Nekohacker',
+                    'track': 'Spaceship',
+                    'track_number': 1,
+                    'duration': 195.0
                 }
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/02-City-Runner.mp3',
                 'md5': '8f853c71719389d32bbbd3f1a87b3f08',
                 'info_dict': {
-                    'id': '02-City-Runner',
+                    'id': '1713',
                     'ext': 'mp3',
                     'title': 'City Runner',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
                     'acodec': 'mp3',
-                    'upload_date': '20221101'
+                    'release_date': '20221101',
+                    'album': 'Nekoverse',
+                    'artist': 'Nekohacker',
+                    'track': 'City Runner',
+                    'track_number': 2,
+                    'duration': 148.0
                 }
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/03-Nature-Talk.mp3',
                 'md5': '5a8a8ae852720cee4c0ac95c7d1a7450',
                 'info_dict': {
-                    'id': '03-Nature-Talk',
+                    'id': '1714',
                     'ext': 'mp3',
                     'title': 'Nature Talk',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
                     'acodec': 'mp3',
-                    'upload_date': '20221101'
+                    'release_date': '20221101',
+                    'album': 'Nekoverse',
+                    'artist': 'Nekohacker',
+                    'track': 'Nature Talk',
+                    'track_number': 3,
+                    'duration': 174.0
                 }
             },
             {
                 'url': 'https://nekohacker.com/wp-content/uploads/2022/11/04-Crystal-World.mp3',
                 'md5': 'd8e59a48061764e50d92386a294abd50',
                 'info_dict': {
-                    'id': '04-Crystal-World',
+                    'id': '1715',
                     'ext': 'mp3',
                     'title': 'Crystal World',
                     'thumbnail': 'https://nekohacker.com/wp-content/uploads/2022/11/Nekoverse_Artwork-1024x1024.jpg',
                     'vcodec': 'none',
                     'acodec': 'mp3',
-                    'upload_date': '20221101'
+                    'release_date': '20221101',
+                    'album': 'Nekoverse',
+                    'artist': 'Nekohacker',
+                    'track': 'Crystal World',
+                    'track_number': 4,
+                    'duration': 199.0
                 }
             }
         ]
