@@ -1,23 +1,23 @@
 from .common import InfoExtractor
 import re
-import pdb
+
 
 class FosdemIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:archive\.)?fosdem\.org/(?P<year>[0-9]{4})/schedule/(?P<url_type>track|event)/(?P<id>[\w\.-_]+)/'
     _TESTS = [
         {
             'url': 'https://archive.fosdem.org/2022/schedule/event/firmware_updates_for_opnsense_and_pfsense/',
-           'info_dict': {
-               'id': 'firmware_updates_for_opnsense_and_pfsense',
-               'ext': 'webm',
-               'title': 'Firmware updates for OPNsense and pfSense with fwupd/LVFS',
-               'thumbnail': None,
-               'release_date': '2022',
-               'cast': ['Norbert Kamiński'],
-               'uploader': 'FOSDEM',
-               'description': 'This presentation will describe the results of the proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS for OPNsense and pfSense. It will explain the challenges connected with the implementation of firmware update systems for BSD-based firewall and routing software. It will show basic concepts connected to the fwupd and LVFS. The security of the whole system is not determined only by the software it runs, but also by the firmware. Firmware is a piece of software inseparable from the hardware. It is responsible for proper hardware initialization as well as its security features. That means that the safety of the machine strongly depends on the mitigations of vulnerabilities provided by firmware (like microcode updates, bug/exploit fixes). For these particular reasons, the firmware should be kept up-to-date.\nRouters are highly popular attack vectors, therefore they must be appropriately secured. pfSense and OPNsense are well known secure firewall and routing software, but they do not have any firmware update methods. Therefore to secure hardware initialization of the routers, in this presentation we will present proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS.\nNowadays, this is one of the most popular firmware update software. fwupd is a daemon that manages firmware updates of each of your hardware components that have some kind of firmware. What is more fwupd is open source, which makes it more trustworthy than proprietary applications delivered by hardware vendors designed for (only) their devices.',
-           }
-       },
+            'info_dict': {
+                'id': 'firmware_updates_for_opnsense_and_pfsense',
+                'ext': 'webm',
+                'title': 'Firmware updates for OPNsense and pfSense with fwupd/LVFS',
+                'thumbnail': None,
+                'release_date': '2022',
+                'cast': ['Norbert Kamiński'],
+                'uploader': 'FOSDEM',
+                'description': 'This presentation will describe the results of the proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS for OPNsense and pfSense. It will explain the challenges connected with the implementation of firmware update systems for BSD-based firewall and routing software. It will show basic concepts connected to the fwupd and LVFS. The security of the whole system is not determined only by the software it runs, but also by the firmware. Firmware is a piece of software inseparable from the hardware. It is responsible for proper hardware initialization as well as its security features. That means that the safety of the machine strongly depends on the mitigations of vulnerabilities provided by firmware (like microcode updates, bug/exploit fixes). For these particular reasons, the firmware should be kept up-to-date.\nRouters are highly popular attack vectors, therefore they must be appropriately secured. pfSense and OPNsense are well known secure firewall and routing software, but they do not have any firmware update methods. Therefore to secure hardware initialization of the routers, in this presentation we will present proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS.\nNowadays, this is one of the most popular firmware update software. fwupd is a daemon that manages firmware updates of each of your hardware components that have some kind of firmware. What is more fwupd is open source, which makes it more trustworthy than proprietary applications delivered by hardware vendors designed for (only) their devices.',
+            }
+        },
         {
             'url': 'https://fosdem.org/2023/schedule/event/microkernel2023/',
             'info_dict': {
@@ -32,8 +32,8 @@ class FosdemIE(InfoExtractor):
             }
         },
         {
-            'url':'https://fosdem.org/2023/schedule/event/hwacceluk/',
-            'info_dict':{
+            'url': 'https://fosdem.org/2023/schedule/event/hwacceluk/',
+            'info_dict': {
                 'id': 'hwacceluk',
                 'ext': 'webm',
                 'title': 'Hardware acceleration for Unikernels',
@@ -47,11 +47,11 @@ class FosdemIE(InfoExtractor):
         {
             'url': 'https://fosdem.org/2023/schedule/track/microkernel_and_component_based_os/',
             'playlist_count': 11,
-            'info_dict':{
+            'info_dict': {
                 'id': 'microkernel_and_component_based_os',
                 'title': 'Microkernel and Component-based OS devroom',
-                }
             }
+        }
     ]
 
     def _real_extract(self, url):
@@ -76,10 +76,8 @@ class FosdemIE(InfoExtractor):
                                                 webpage,
                                                 'video url')
             cast_rgx = r'<td><a href=\"/[0-9]+/schedule/speaker/[a-z_]+/\">(?P<speaker>\w+ \w+)</a></td>'
-            try:
-                cast = re.findall(cast_rgx, webpage, flags=re.UNICODE)
-            except:
-                cast = []
+            cast = re.findall(cast_rgx, webpage, flags=re.UNICODE) or []
+
             return {
                 'id': video_id,
                 'title': title,
@@ -93,12 +91,10 @@ class FosdemIE(InfoExtractor):
             }
         elif groups.get('url_type') == 'track':
             events_rgx = r'<td><a href=\"(?P<event>/[0-9]+/schedule/event/[a-z0-9]+/)'
-            try:
-                events_slugs = re.findall(events_rgx, webpage)
-            except:
-                events_slugs = []
+            events_slugs = re.findall(events_rgx, webpage) or []
+
             if len(events_slugs) > 0:
-                events_urls = ['https://fosdem.org'+slug for slug in events_slugs]
+                events_urls = ['https://fosdem.org' + slug for slug in events_slugs]
             entries = []
             for event_url in events_urls:
                 entries.append(self.url_result(event_url, 'Fosdem'))
