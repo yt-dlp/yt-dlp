@@ -74,10 +74,9 @@ class NekoHackerIE(InfoExtractor):
         playlist_id = self._match_id(url)
 
         webpage = self._download_webpage(url, playlist_id)
+        playlist = get_element_by_class('playlist', webpage)
 
-        webpage = get_element_by_class('playlist', webpage)
-
-        if webpage is None:
+        if playlist is None:
             raise ExtractorError('no playlist element found - likely not a album', expected=True)
 
         # the h3 is acutally empty when downloaded by youtube-dl
@@ -88,7 +87,7 @@ class NekoHackerIE(InfoExtractor):
 
         for track in re.findall(
                 r'(<li[^>][^>]+>)',
-                webpage):
+                playlist):
             attr = extract_attributes(track)
             tracktitle = attr['data-tracktitle']
             trackurl = attr['data-audiopath']
