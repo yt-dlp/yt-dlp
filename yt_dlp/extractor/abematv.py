@@ -436,6 +436,16 @@ class AbemaTVIE(AbemaTVBaseIE):
             if 3 not in ondemand_types:
                 # cannot acquire decryption key for these streams
                 self.report_warning('This is a premium-only stream')
+            info.update(traverse_obj(api_response, {
+                'series': ('series', 'title'),
+                'season': ('season', 'title'),
+                'season_number': ('season', 'sequence'),
+                'episode_number': ('episode', 'number'),
+            }))
+            if not title:
+                title = traverse_obj(api_response, ('episode', 'title'))
+            if not description:
+                description = traverse_obj(api_response, ('episode', 'content'))
 
             m3u8_url = f'https://vod-abematv.akamaized.net/program/{video_id}/playlist.m3u8'
         elif video_type == 'slots':

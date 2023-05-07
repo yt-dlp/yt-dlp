@@ -5,7 +5,7 @@ import urllib.error
 from .common import InfoExtractor
 from ..utils import ExtractorError, parse_iso8601
 
-_BASE_URL_RE = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
+_BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
 
 class NebulaBaseIE(InfoExtractor):
@@ -181,6 +181,10 @@ class NebulaIE(NebulaBaseIE):
         },
         {
             'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
             'only_matching': True,
         },
     ]
