@@ -171,7 +171,7 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
             'upload_date': '20230129',
             'thumbnail': 'https://image.asset.wrestle-universe.com/8FjD67P8rZc446RBQs5RBN/8FjD67P8rZc446RBQs5RBN',
             'chapters': 'count:7',
-            'cast': 'count:18',
+            'cast': 'count:21',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -235,6 +235,7 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+        'skip': 'No longer available',
     }, {
         'note': 'unencrypted HLS',
         'url': 'https://www.wrestle-universe.com/en/lives/wUG8hP5iApC63jbtQzhVVx',
