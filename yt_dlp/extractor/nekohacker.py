@@ -183,23 +183,14 @@ class NekoHackerIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
         playlist = get_element_by_class('playlist', webpage)
 
-        # handle cases which match _VALID_URL, but no element is found
-        if playlist is None:
-            try:
-                iframe = get_element_text_and_html_by_tag('iframe', webpage)
-            except ValueError:
-                iframe = None
-
-            # handle iframes instead of playlist
-            if iframe is not None:
-                attr = extract_attributes(iframe[1])
-                iframesrc = attr['src']
-                # handle spotify explicitly
-                if iframesrc is not None and re.match(r'https?://(?:www\.|open\.)?spotify\.com', iframesrc):
-                    raise ExtractorError('no playlist found, but iframe with spotify', expected=True)
-                raise ExtractorError('no playlist element found, but a unhandled iframe')
-
-            raise ExtractorError('no playlist element found - likely not a album', expected=True)
+        if not playlist:
+            iframe = try_call(lambda: get_element_text_and_html_by_tag('iframe', webpage)[1]) or ''
+            iframe_src = url_or_none(extract_attributes(iframe).get('src'))
+            if not iframe_src:
+                raise ExtractorError('No playlist or embed found in webpage')
+            elif re.match(r'https?://(?:\w+\.)?spotify\.com/', iframe_src):
+                raise ExtractorError('Spotify embeds are not supported', expected=True)
+            return self.url_result(url, 'Generic')
 
         entries = []
         for track_number, track in enumerate(re.findall(r'(<li[^>]+data-audiopath[^>]+>)', playlist), 1):
