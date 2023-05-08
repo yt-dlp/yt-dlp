@@ -215,7 +215,7 @@ class NekoHackerIE(InfoExtractor):
                 'thumbnail': ('data-albumart', {url_or_none}),
             })
             entry['track_number'] = track_number
-            entry['artist'] = 'Nekohacker'
+            entry['artist'] = 'Neko Hacker'
             entry['vcodec'] = 'none'
             entry['acodec'] = 'mp3' if entry['ext'] == 'mp3' else None
             entries.append(entry)
