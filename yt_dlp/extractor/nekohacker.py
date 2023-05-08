@@ -9,6 +9,7 @@ from ..utils import (
     get_element_text_and_html_by_tag,
     parse_duration,
     traverse_obj,
+    try_call,
     url_or_none,
 )
 
