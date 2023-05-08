@@ -35,7 +35,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': 'Spaceship',
                     'track_number': 1,
                     'duration': 195.0
@@ -53,7 +53,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': 'City Runner',
                     'track_number': 2,
                     'duration': 148.0
@@ -71,7 +71,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': 'Nature Talk',
                     'track_number': 3,
                     'duration': 174.0
@@ -89,7 +89,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20221101',
                     'album': 'Nekoverse',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': 'Crystal World',
                     'track_number': 4,
                     'duration': 199.0
@@ -115,7 +115,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': 'md5:1a5fcbc96ca3c3265b1c6f9f79f30fd0',
                     'track_number': 1,
                     'duration': None
@@ -133,7 +133,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': 'むじな de なじむ feat. 六科なじむ (CV: 日高里菜 )',
                     'track_number': 2,
                     'duration': None
@@ -151,7 +151,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': '進め！むじなカンパニー (instrumental)',
                     'track_number': 3,
                     'duration': None
@@ -169,7 +169,7 @@ class NekoHackerIE(InfoExtractor):
                     'acodec': 'mp3',
                     'release_date': '20210115',
                     'album': '進め！むじなカンパニー',
-                    'artist': 'Nekohacker',
+                    'artist': 'Neko Hacker',
                     'track': 'むじな de なじむ (instrumental)',
                     'track_number': 4,
                     'duration': None
