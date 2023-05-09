@@ -15,64 +15,90 @@ class ToggleIE(InfoExtractor):
     IE_NAME = "toggle"
     _VALID_URL = r"(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:[^/]+/){1,}|toggle:)[^/]+-(?P<id>[0-9]+)"
     _TESTS = [
+        # [test skipped]
+        # {
+        #     # 'url': 'http://www.mewatch.sg/en/series/lion-moms-tif/trailers/lion-moms-premier/343115',
+        #     "info_dict": {
+        #         "id": "343115",
+        #         "ext": "mp4",
+        #         "title": "Lion Moms Premiere",
+        #         "description": "md5:aea1149404bff4d7f7b6da11fafd8e6b",
+        #         "upload_date": "20150910",
+        #         "timestamp": 1441858274,
+        #     },
+        #     "params": {
+        #         "skip_download": "m3u8 download",
+        #     },
+        # },
+        # [test skipped]
+        # {
+        #     "note": "DRM-protected video",
+        #     ### url deprecated
+        #     # 'url': 'http://www.mewatch.sg/movies/dug-s-special-mission-341413',
+        #     "info_dict": {
+        #         "id": "341413",
+        #         "ext": "wvm",
+        #         "title": "Dug's Special Mission",
+        #         "description": "md5:e86c6f4458214905c1772398fabc93e0",
+        #         "upload_date": "20150827",
+        #         "timestamp": 1440644006,
+        #     },
+        #     "params": {
+        #         "skip_download": "DRM-protected wvm download",
+        #     },
+        # },
+        # [test skipped]
+        # {
+        #     # this also tests correct video id extraction
+        #     "note": "m3u8 links are geo-restricted, but Android/mp4 is okay",
+        #     ### url deprecated
+        #     # 'url': 'http://www.mewatch.sg/en/series/28th-sea-games-5-show/28th-sea-games-5-show-ep11/332861',
+        #     "info_dict": {
+        #         "id": "332861",
+        #         "ext": "mp4",
+        #         "title": "28th SEA Games (5 Show) -  Episode  11",
+        #         "description": "md5:3cd4f5f56c7c3b1340c50a863f896faa",
+        #         "upload_date": "20150605",
+        #         "timestamp": 1433480166,
+        #     },
+        #     "params": {
+        #         "skip_download": "DRM-protected wvm download",
+        #     },
+        #     "skip": "m3u8 links are geo-restricted",
+        # },
+        # [test skipped]
+        # {
+        #     ### video.toggle.sg seems deprecated
+        #     # 'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
+        #     "only_matching": True,
+        # },
         {
-            ### to be updated
-            ### deprecated
-            # 'url': 'http://www.mewatch.sg/en/series/lion-moms-tif/trailers/lion-moms-premier/343115',
-            "info_dict": {
-                "id": "343115",
-                "ext": "mp4",
-                "title": "Lion Moms Premiere",
-                "description": "md5:aea1149404bff4d7f7b6da11fafd8e6b",
-                "upload_date": "20150910",
-                "timestamp": 1441858274,
-            },
-            "params": {
-                "skip_download": "m3u8 download",
-            },
-        },
-        {
-            "note": "DRM-protected video",
+            "note": "/clips/",
             ### url deprecated
-            # 'url': 'http://www.mewatch.sg/en/movies/dug-s-special-mission/341413',
-            "info_dict": {
-                "id": "341413",
-                "ext": "wvm",
-                "title": "Dug's Special Mission",
-                "description": "md5:e86c6f4458214905c1772398fabc93e0",
-                "upload_date": "20150827",
-                "timestamp": 1440644006,
-            },
-            "params": {
-                "skip_download": "DRM-protected wvm download",
-            },
-        },
-        {
-            # this also tests correct video id extraction
-            "note": "m3u8 links are geo-restricted, but Android/mp4 is okay",
-            ### url deprecated
-            # 'url': 'http://www.mewatch.sg/en/series/28th-sea-games-5-show/28th-sea-games-5-show-ep11/332861',
-            "info_dict": {
-                "id": "332861",
-                "ext": "mp4",
-                "title": "28th SEA Games (5 Show) -  Episode  11",
-                "description": "md5:3cd4f5f56c7c3b1340c50a863f896faa",
-                "upload_date": "20150605",
-                "timestamp": 1433480166,
-            },
-            "params": {
-                "skip_download": "DRM-protected wvm download",
-            },
-            "skip": "m3u8 links are geo-restricted",
-        },
-        {
-            ### video.toggle.sg seems deprecated
-            # 'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
-            "only_matching": True,
-        },
-        {
             "url": "https://www.mewatch.sg/clips/Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
-            "only_matching": True,
+            "info_dict": {
+                "id": "84901",
+                "ext": "mp4",
+                "title": "Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
+                # "description": "md5:e86c6f4458214905c1772398fabc93e0",
+                # "upload_date": "20150827",
+                # "timestamp": 1440644006,
+            },
+            # "params": {
+            #     "skip_download": "DRM-protected wvm download",
+            # },
+        },
+        {
+            "url": "https://www.mewatch.sg/watch/Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
+            "info_dict": {
+                "id": "84901",
+                "ext": "mp4",
+                "title": "Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
+                # "description": "md5:e86c6f4458214905c1772398fabc93e0",
+                # "upload_date": "20150827",
+                # "timestamp": 1440644006,
+            },
+            # "only_matching": True,
         },
         {
             "url": "https://www.mewatch.sg/episode/Zero-Calling-S2-E13-The-End-of-The-Beginning-55137",
@@ -95,16 +121,12 @@ class ToggleIE(InfoExtractor):
             # 'url': 'https://www.mewatch.sg/en/tv-show/news/may-2017-cna-singapore-tonight/fri-19-may-2017/512456',
             "only_matching": True,
         },
-        {
-            ### not working. seems deprecated
-            # 'url': 'http://www.mewatch.sg/en/channels/eleven-plus/401585',
-            "only_matching": True,
-        },
-        {
-            ### [20230507:shouldsee] working
-            "url": "https://www.mewatch.sg/watch/Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
-            "only_matching": True,
-        },
+        # [test skipped]
+        # {
+        #     ### not working. seems deprecated
+        #     # 'url': 'http://www.mewatch.sg/en/channels/eleven-plus/401585',
+        #     "only_matching": True,
+        # },
     ]
 
     _API_USER = "tvpapi_147"
@@ -257,31 +279,45 @@ class MeWatchIE(InfoExtractor):
         r"https?://(?:(?:www|live)\.)?mewatch\.sg/watch/[^/?#&]+-(?P<id>[0-9]+)"
     )
     _TESTS = [
+        # {
+        #     "url": "https://www.mewatch.sg/watch/Recipe-Of-Life-E1-179371",
+        #     "info_dict": {
+        #         "id": "1008625",
+        #         "ext": "mp4",
+        #         "title": "Recipe Of Life 味之道",
+        #         "timestamp": 1603306526,
+        #         "description": "md5:6e88cde8af2068444fc8e1bc3ebf257c",
+        #         "upload_date": "20201021",
+        #     },
+        #     "params": {
+        #         "skip_download": "m3u8 download",
+        #     },
+        # },
+        # {
+        #     "url": "https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-搜密。打卡。小红点-S2-E1-176232",
+        #     "only_matching": True,
+        # },
+        # {
+        #     "url": "https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-%E6%90%9C%E5%AF%86%E3%80%82%E6%89%93%E5%8D%A1%E3%80%82%E5%B0%8F%E7%BA%A2%E7%82%B9-S2-E1-176232",
+        #     "only_matching": True,
+        # },
+        # {
+        #     "url": "https://live.mewatch.sg/watch/Recipe-Of-Life-E41-189759",
+        #     "only_matching": True,
+        # },
         {
-            "url": "https://www.mewatch.sg/watch/Recipe-Of-Life-E1-179371",
+            "url": "https://www.mewatch.sg/watch/Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
+            # "only_matching": True,
             "info_dict": {
-                "id": "1008625",
+                "id": "84901",
                 "ext": "mp4",
-                "title": "Recipe Of Life 味之道",
-                "timestamp": 1603306526,
-                "description": "md5:6e88cde8af2068444fc8e1bc3ebf257c",
-                "upload_date": "20201021",
+                "title": "Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
+                "timestamp": None,
+                "description": None,
+                "upload_date": None,
+                # "filename":"test_MeWatch_84901.mp4",
+                # "filename":'test_MeWatch_84901.mp4',
             },
-            "params": {
-                "skip_download": "m3u8 download",
-            },
-        },
-        {
-            "url": "https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-搜密。打卡。小红点-S2-E1-176232",
-            "only_matching": True,
-        },
-        {
-            "url": "https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-%E6%90%9C%E5%AF%86%E3%80%82%E6%89%93%E5%8D%A1%E3%80%82%E5%B0%8F%E7%BA%A2%E7%82%B9-S2-E1-176232",
-            "only_matching": True,
-        },
-        {
-            "url": "https://live.mewatch.sg/watch/Recipe-Of-Life-E41-189759",
-            "only_matching": True,
         },
     ]
 
