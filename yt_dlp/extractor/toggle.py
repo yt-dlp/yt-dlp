@@ -13,8 +13,9 @@ from ..utils import (
 
 class ToggleIE(InfoExtractor):
     IE_NAME = "toggle"
-    _VALID_URL = r"(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:[^/]+/){1,}|toggle:)[^/]+-(?P<id>[0-9]+)"
+    _VALID_URL = r"(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:[^/]+/){1,}|toggle:)[^/]+[-/](?P<id>[0-9]+)"
     _TESTS = [
+
         # [test skipped]
         # {
         #     # 'url': 'http://www.mewatch.sg/en/series/lion-moms-tif/trailers/lion-moms-premier/343115',
@@ -30,6 +31,8 @@ class ToggleIE(InfoExtractor):
         #         "skip_download": "m3u8 download",
         #     },
         # },
+
+
         # [test skipped]
         # {
         #     "note": "DRM-protected video",
@@ -47,6 +50,7 @@ class ToggleIE(InfoExtractor):
         #         "skip_download": "DRM-protected wvm download",
         #     },
         # },
+
         # [test skipped]
         # {
         #     # this also tests correct video id extraction
@@ -66,12 +70,15 @@ class ToggleIE(InfoExtractor):
         #     },
         #     "skip": "m3u8 links are geo-restricted",
         # },
+
         # [test skipped]
         # {
         #     ### video.toggle.sg seems deprecated
         #     # 'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
         #     "only_matching": True,
         # },
+
+
         {
             "note": "/clips/",
             ### url deprecated
@@ -88,6 +95,7 @@ class ToggleIE(InfoExtractor):
             #     "skip_download": "DRM-protected wvm download",
             # },
         },
+
         {
             "url": "https://www.mewatch.sg/watch/Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
             "info_dict": {
@@ -100,6 +108,7 @@ class ToggleIE(InfoExtractor):
             },
             # "only_matching": True,
         },
+
         {
             "url": "https://www.mewatch.sg/episode/Zero-Calling-S2-E13-The-End-of-The-Beginning-55137",
             "only_matching": True,
@@ -127,12 +136,14 @@ class ToggleIE(InfoExtractor):
         #     # 'url': 'http://www.mewatch.sg/en/channels/eleven-plus/401585',
         #     "only_matching": True,
         # },
+
     ]
 
     _API_USER = "tvpapi_147"
     _API_PASS = "11111"
 
     def _real_extract(self, url):
+        print(url)
         video_id = self._match_id(url)
 
         lang = "en"
@@ -293,6 +304,7 @@ class MeWatchIE(InfoExtractor):
         #         "skip_download": "m3u8 download",
         #     },
         # },
+
         # {
         #     "url": "https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-搜密。打卡。小红点-S2-E1-176232",
         #     "only_matching": True,
@@ -308,6 +320,7 @@ class MeWatchIE(InfoExtractor):
         {
             "url": "https://www.mewatch.sg/watch/Seraph-Sun-Aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set-84901",
             # "only_matching": True,
+
             "info_dict": {
                 "id": "84901",
                 "ext": "mp4",
@@ -317,7 +330,8 @@ class MeWatchIE(InfoExtractor):
                 "upload_date": None,
                 # "filename":"test_MeWatch_84901.mp4",
                 # "filename":'test_MeWatch_84901.mp4',
-            },
+            },     
+                   
         },
     ]
 
