@@ -123,10 +123,11 @@ class CrunchyrollBaseIE(InfoExtractor):
             raise ExtractorError(f'Unexpected response when downloading {note} JSON')
         return result
 
-    def _get_requested_langs_from_extractor_args(self):
-        return self._configuration_arg('language', casesense=False)
+    def _get_requested_langs_from_extractor_args(self, ie_key=None):
+        return self._configuration_arg('language', ie_key=ie_key, casesense=False)
 
-    def _get_responses_for_langs(self, internal_id, get_response_by_id, requested_langs):
+    @staticmethod
+    def _format_requested_langs(requested_langs):
         # Requested Language options:
         # 'default'   = Include audio language of video with 'internal_id'
         # 'unknown'   = Include all unknown audio languages
@@ -137,14 +138,31 @@ class CrunchyrollBaseIE(InfoExtractor):
         requested_langs = list(map(str.lower, requested_langs or ['default']))
         if 'all' in requested_langs:
             requested_langs = []
+        return requested_langs
+
+    @staticmethod
+    def _get_requested_lang_evaluator(requested_langs):
+        def is_requested_lang(data):
+            audio_lang = (traverse_obj(data, 'audio_locale') or 'unknown').lower()
+            return not requested_langs or audio_lang in requested_langs
+        return is_requested_lang
+
+    @staticmethod
+    def _has_requested_default_lang(requested_langs):
+        return 'default' in requested_langs
+
+    @staticmethod
+    def _has_only_requested_default_lang(requested_langs):
+        return len(requested_langs) == 1 \
+            and CrunchyrollBaseIE._has_requested_default_lang(requested_langs)
+
+    def _get_responses_for_langs(self, internal_id, get_response_by_id, requested_langs):
+        requested_langs = self._format_requested_langs(requested_langs)
+        is_requested_lang = self._get_requested_lang_evaluator(requested_langs)
 
         def get_meta_from_response(response):
             object_type = response.get('type')
             return object_type and traverse_obj(response, f'{object_type}_metadata')
-
-        def is_requested_lang(data):
-            audio_lang = (traverse_obj(data, 'audio_locale') or 'unknown').lower()
-            return not requested_langs or audio_lang in requested_langs
 
         # Get default response and its metadata
         default_response = get_response_by_id(internal_id)
@@ -158,7 +176,8 @@ class CrunchyrollBaseIE(InfoExtractor):
         results = {}
 
         # Add default response if requested
-        if 'default' in requested_langs or (default_meta and is_requested_lang(default_meta)):
+        if self._has_requested_default_lang(requested_langs) \
+                or (default_meta and is_requested_lang(default_meta)):
             results[internal_id] = default_response
 
         # Iterate other versions and add them if requested
@@ -576,8 +595,51 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
         'only_matching': True,
     }]
 
+    def _get_requested_langs_for_playlist_extractor(self):
+        requested_langs = self._get_requested_langs_from_extractor_args(ie_key=CrunchyrollBetaIE.ie_key())
+        requested_langs = self._format_requested_langs(requested_langs)
+        if len(requested_langs) != 1:
+            # Raise Error, since the playlist extractor already extracts multiple languages.
+            # For each episode in the playlist, the episode extractor would fetch all formats
+            # for all requested languages/versions even if they were already in the playlist
+            # and would be extracted later anyway.
+            raise ExtractorError(
+                f'Do not specify multiple languages with "{CrunchyrollBetaIE.ie_key().lower()}:language" when '
+                f'using the playlist extractor. Since this could result in the episode extractor retrieving '
+                f'the same language format multiple times. Which is not desirable. '
+                f'Use "{self.ie_key().lower()}:language" (playlist extractor) instead to specify multiple languages.',
+                expected=True)
+
+        requested_playlist_langs = self._get_requested_langs_from_extractor_args(ie_key=self.ie_key())
+        requested_playlist_langs = self._format_requested_langs(requested_playlist_langs)
+        if self._has_only_requested_default_lang(requested_playlist_langs):
+            # Use requested langs from episode extractor instead.
+            return requested_langs
+
+        # Raise an error if requested langs are set to anything other than "default" for
+        # both episode extractor and playlist extractor.
+        if not self._has_only_requested_default_lang(requested_langs):
+            # It would be bad if the playlist extractor retrieved a specific language, but
+            # the episode extractor retrieved a different one.
+            raise ExtractorError(
+                f'Do not set "{CrunchyrollBetaIE.ie_key().lower()}:language" and "{self.ie_key().lower()}:language" '
+                f'at the same time. Since this could result in the episode extractor retrieving a format/language '
+                f'that does not match the format/language given to it by the playlist extractor.',
+                expected=True)
+
+        # Use requested langs from playlist extractor. (Multiple ones are allowed)
+        return requested_playlist_langs
+
     def _real_extract(self, url):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
+
+        # Fetch requested languages (for Crunchyroll 'single episode' extractor)
+        requested_langs = self._get_requested_langs_for_playlist_extractor()
+        if self._has_requested_default_lang(requested_langs):
+            # If default is specified, use the default behavior (i.e. all languages are extracted).
+            # An empty array allows every language (the same as if 'all' were set).
+            requested_langs = []
+        is_requested_lang = self._get_requested_lang_evaluator(requested_langs)
 
         def entries():
             seasons_response = self._call_cms_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
@@ -585,6 +647,8 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
                 episodes_response = self._call_cms_api_signed(
                     f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
+                    if not is_requested_lang(episode_response):
+                        continue
                     yield self.url_result(
                         f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}',
                         CrunchyrollBetaIE, **CrunchyrollBetaIE._transform_episode_response(episode_response))
