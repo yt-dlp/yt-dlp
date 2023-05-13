@@ -6257,6 +6257,7 @@ class FormatSorter:
         'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
         'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
         'lang': {'convert': 'float', 'field': 'language_preference', 'default': -1},
+        'lang_match': {'convert': 'string', 'field': 'language', 'type': 'exact_match'},
         'quality': {'convert': 'float', 'default': -1},
         'filesize': {'convert': 'bytes'},
         'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
@@ -6452,6 +6453,8 @@ class FormatSorter:
             in_list = self._get_field_setting(field, 'in_list')
             not_in_list = self._get_field_setting(field, 'not_in_list')
             value = 0 if ((in_list is None or value in in_list) and (not_in_list is None or value not in not_in_list)) else -1
+        elif type == 'exact_match':
+            value = int(value == limit)
         elif type == 'ordered':
             value = self._resolve_field_value(field, value, True)
 
@@ -6469,7 +6472,7 @@ class FormatSorter:
                 else (-1, value, 0))
 
     def _calculate_field_preference(self, format, field):
-        type = self._get_field_setting(field, 'type')  # extractor, boolean, ordered, field, multiple
+        type = self._get_field_setting(field, 'type')  # extractor, boolean, ordered, field, multiple, exact_match
         get_value = lambda f: format.get(self._get_field_setting(f, 'field'))
         if type == 'multiple':
             type = 'field'  # Only 'field' is allowed in multiple for now
