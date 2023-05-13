@@ -3843,6 +3843,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
             yield dct
 
+        if live_status == 'is_live' and self.get_param('download_ranges') and not self.get_param('live_from_start'):
+            self.report_warning('For YT livestreams, --download-sections is only supported with --live-from-start')
+
         needs_live_processing = self._needs_live_processing(live_status, duration)
         skip_bad_formats = not self._configuration_arg('include_incomplete_formats')
 
