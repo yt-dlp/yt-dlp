@@ -175,12 +175,9 @@ class BibelTVLiveIE(BibelTVBaseIE):
     def _real_extract(self, url):
         stream_id = self._match_id(url)
         webpage = self._download_webpage(url, stream_id)
-        json_btv_data = self._search_json(
-            r'\s*data\s*=', webpage, 'bibeltvData', stream_id,
-            transform_source=js_to_json)
-        stream_data = json_btv_data.get(stream_id)
-        if not stream_data:
-            raise ExtractorError(f'Missing livestream data for {stream_id!r}')
+        stream_data = self._search_json(
+            r'\\"video\\":', webpage, 'bibeltvData', stream_id,
+            transform_source=lambda jstring: js_to_json(jstring.replace('\\"', '"')))
 
         formats, subtitles = self._extract_formats_and_subtitles(
             traverse_obj(stream_data, ('src', ...)), stream_id, is_live=True)
