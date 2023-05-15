@@ -581,6 +581,11 @@ class TwitchVodIE(TwitchBaseIE):
                     # chat_history.clear()
                     break
 
+            response_errors = traverse_obj(response, (slice, 'errors'))
+
+            if response_errors is not None and len(response_errors) > 0:
+                self.report_warning(f"Error response recevied for fetching next chat history fragment: {response_errors}")
+
             comments_obj = traverse_obj(response, (0, 'data', 'video', 'comments'))
             chat_history.extend(traverse_obj(comments_obj, ('edges', slice, 'node')))
 
