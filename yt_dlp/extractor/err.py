@@ -5,7 +5,7 @@ import re
 import locale
 import json
 
-from math import log10, floor
+from math import log10, floor, ceil
 from datetime import date
 
 from .common import InfoExtractor
@@ -13,6 +13,8 @@ from ..compat import compat_HTTPError, compat_str
 from ..utils import (
     ExtractorError,
     parse_iso8601,
+    parse_duration,
+    unified_timestamp,
     clean_html,
     sanitize_url,
     urlencode_postdata,
@@ -22,6 +24,7 @@ from ..utils import (
 #       'https://etv.err.ee/otsing?phrase=4x4-&from=02.06.2021&to=24.06.2021&page=1'
 # TODO  Try to resolve unknown languages in audio tracks.
 # TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
+# TODO  Clean out all unnecessary debugging output.
 
 
 def json_find_node(obj, criteria):
@@ -179,6 +182,7 @@ class ERRBaseIE(InfoExtractor):
         return format_desc['format_id']
 
     def _extract_formats(self, master_url, video_id, headers=None):
+        # FIXME Why this is still used
         formats, subtitles = self._extract_formats_and_subtitles(master_url, video_id, headers=None)
         return formats
 
@@ -187,11 +191,6 @@ class ERRBaseIE(InfoExtractor):
         m3u8_subtitles = []
         try:
             m3u8_formats, m3u8_subtitles = self._extract_m3u8_formats_and_subtitles(master_url, video_id, headers=headers)
-            # FIXME Remove dump_json when done
-            ## if m3u8_formats:
-            ##     self._dump_json(m3u8_formats, msg='M3U8 FORMATS\n')
-            ## if m3u8_subtitles:
-            ##     self._dump_json(m3u8_subtitles, msg='M3U8 SUBTITLES\n')
         except ExtractorError as ex:
             if isinstance(ex.cause, compat_HTTPError) and ex.cause.code == 404:
                 self.report_warning(
@@ -478,7 +477,6 @@ class ERRNewsIE(ERRBaseIE):
         info.update(self._postprocess_entries(entries, info))
 
         self._debug_json(info, msg='INFO\n', sort_keys=True)
-        #self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{video_id}')
 
         return info
 
@@ -1316,3 +1314,389 @@ class ERRRadioIE(ERRTVIE):
             'noplaylist': True,
         },
     }]
+
+
+class ERRArhiivIE(ERRTVIE):
+    IE_DESC = 'arhiiv.err.ee: archived TV and radio shows, movies and documentaries produced in ETV (Estonia)'
+    _ERR_API_GET_CONTENT = '%(prefix)s/api/v1/content/%(channel)s/%(id)s'
+    _ERR_API_GET_CONTENT_FOR_USER = _ERR_API_GET_CONTENT
+    _ERR_API_GET_PARENT_CONTENT = _ERR_API_GET_CONTENT
+    _ERR_API_LOGIN = '%(prefix)s/api/auth/login'
+    _ERR_LOGIN_DATA = {}
+    _ERR_LOGIN_SUPPORTED = True
+    _NETRC_MACHINE = 'err.ee'
+    _ERR_CHANNELS = r'video|audio'
+    _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://arhiiv\.err\.ee)/(?P<channel>%(channels)s)/vaata/(?P<id>[^/#?]*)' % {
+        'channels': _ERR_CHANNELS
+    }
+    _TESTS = [{
+        # 0 a video episode
+        'url':
+        'https://arhiiv.err.ee/video/vaata/eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
+        'md5': '022a75f157b848de0250fe912b970386',
+        'info_dict': {
+            'id': 'eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
+            'display_id': 'eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
+            'ext': 'mp4',
+            'title': 'Eesti aja lood - Okupatsioonid - 68 - Muusad sõja varjus',
+            'thumbnail':
+            'https://arhiiv-images.err.ee/public/thumbnails/2009-002267-0068_0001_D10_EESTI-AJA-LOOD-OKUPATSIOONID.jpg',
+            'description': 'md5:36772936a0982571ce23aa0dad1f6231',
+            'upload_date': '20091025',
+            'uploader': 'ERR',
+            'timestamp': 1256428800,
+            'series_id': 169,
+            'duration': 1642.0,
+            'series_url': 'eesti-aja-lood',
+            'creator': 'md5:060ad59083433a8f9a35e250816c5cfb',
+            'series_type': 'monthly',
+            'episode_number': 68,
+            'media_type': 'video',
+            'episode': 'Muusad sõja varjus',
+            'series': 'Eesti aja lood. Okupatsioonid',
+            'chapters': 'count:35',
+        },
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        # 1 a single video
+        'url': 'https://arhiiv.err.ee/video/vaata/tallinn-mai-juuni-1976',
+        'md5': 'ad3029dde7ab4714bcffa784f12c7f3e',
+        'info_dict': {
+            'id': 'tallinn-mai-juuni-1976',
+            'display_id': 'tallinn-mai-juuni-1976',
+            'ext': 'mp4',
+            'title': 'Tallinn - Mai-juuni 1976',
+            'thumbnail':
+            'https://arhiiv-images.err.ee/public/thumbnails/1976-085466-0001_0002_D10_TALLINN-MAI-JUUNI-1976.jpg',
+            'upload_date': '19760917',
+            'uploader': 'ERR',
+            'timestamp': 211766400,
+            'episode': 'Tallinn. Mai-juuni 1976',
+            'media_type': 'video',
+            'creator': 'md5:c6d7712c445f2ed37191b26437e88d89',
+            'duration': 857.0,
+            'description': 'md5:0c38f25160ad06f066254325de829694',
+            'chapters': 'count:12',
+        },
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        # 1 an audio episode
+        'url': 'https://arhiiv.err.ee/audio/vaata/linnulaul-linnulaul-34-rukkiraak',
+        'md5': 'c156cdaf5883ef198e3152c71e463ffe',
+        'info_dict': {
+            'id': 'linnulaul-linnulaul-34-rukkiraak',
+            'display_id': 'linnulaul-linnulaul-34-rukkiraak',
+            'ext': 'm4a',
+            'title': 'Linnulaul - 34 - Rukkirääk',
+            'thumbnail':
+            'https://arhiiv-images.err.ee/public/thumbnails/2022/557h4afd.jpg',
+            'description': 'md5:d41739b0c8e250a3435216afc98c8741',
+            'channel': '2002 EESTI RAADIO',
+            'uploader': 'ERR',
+            'timestamp': 1022716800,
+            'media_type': 'audio',
+            'series': 'Linnulaul',
+            'episode': 'LINNULAUL 34. Rukkirääk',
+            'series_id': 20876,
+            'upload_date': '20020530',
+            'duration': 69.0,
+            'series_url': 'linnulaul',
+            'series_type': 'yearly',
+        },
+        'params': {
+            'format': 'bestaudio',
+        },
+    }]
+
+    def _extract_entry(self, page):
+        info = dict()
+
+        info['title'] = json_get_value(page, 'info.title')
+        info['media_type'] = json_get_value(page, 'info.archiveType')
+        info['description'] = json_get_value(page, 'info.synopsis')
+        info['webpage_url'] = json_get_value(page, 'info.fullUrl')
+
+        if json_has_value(page, 'info.date'):
+            info['timestamp'] = unified_timestamp(json_get_value(page, 'info.date'))
+
+        if json_has_value(page, 'info.seriesTitle'):
+            info['series'] = json_get_value(page, 'info.seriesTitle')
+            if json_has_value(page, 'seriesList.seriesTitle'):
+                info['series'] = json_get_value(page, 'seriesList.seriesTitle')
+        if json_has_value(page, 'seriesList.seriesType'):
+                info['series_type'] = json_get_value(page, 'seriesList.seriesType')
+        if json_has_value(page, 'info.seriesId'):
+            info['series_id'] = json_get_value(page, 'info.seriesId')
+        if json_has_value(page, 'info.seriesUrl'):
+            info['series_url'] = json_get_value(page, 'info.seriesUrl')
+
+        if json_has_value(page, 'info.episode'):
+            info['episode'] = json_get_value(page, 'info.episode')
+            if info['episode'].isdigit():
+                info['episode_number'] = int(info['episode'])
+
+        # page['seriesList'] if available contains playlist items
+
+
+        # Demangle title
+        if 'series' in info:
+            episode = info['title']
+            prefix = info['series'].upper()
+            if episode.upper().startswith(prefix + ': ' + prefix):
+                # ERR Arhiiv sometimes mangles episode's title by
+                # adding series name twice as prefix.  This hack
+                # corrects it.
+                episode = episode[len(prefix + ': ' + prefix):]
+            elif episode.upper().startswith(prefix):
+                episode = episode[len(prefix):]
+
+            if episode.startswith(': '):
+                episode = episode[len(': '):]
+            elif episode.startswith('. '):
+                episode = episode[len('. '):]
+
+            info['episode'] = episode.strip()
+            if not episode:
+                self.report_warning("Episode name reduced to 'none'")
+
+            if 'episode' in info:
+                info['title'] = info['series'] + ' - ' + info['episode']
+
+        info['title'] = sanitize_title(info['title'])
+
+        if json_has_value(page, 'info.photoUrl'):
+            info['thumbnail'] = json_get_value(page, 'info.photoUrl')
+
+        if json_has_value(page, 'metadata.data'):
+            def traverse_metadata(data):
+                prefix = data['label'] + '.' if isinstance(data, dict) and  'label' in data else ''
+
+                if isinstance(data, dict) and 'data' in data:
+                    for x in traverse_metadata(data['data']):
+                        x['label'] = prefix + x['label']
+                        yield x
+                elif isinstance(data, list):
+                    for x in data:
+                        for y in traverse_metadata(x):
+                            yield y
+                if isinstance(data, dict):
+                    if 'label' in data and 'value' in data:
+                        yield {'label' : data['label'], 'value': data['value']}
+
+            for prop in traverse_metadata(json_get_value(page, 'metadata')):
+                label = prop['label'].strip()
+                value = prop['value'].strip()
+                if label.endswith('Sarja pealkiri'):
+                    info['series'] = value
+                elif label.endswith('Pealkiri'):
+                    info['episode'] = value
+                elif label.endswith('Osa nr.'):
+                    info['episode_number'] = int(value)
+                elif label.endswith('Kestus'):
+                    info['duration'] = parse_duration(value)
+                elif label.endswith('Fonogrammi tootja'):
+                    info['channel'] = value
+                elif label.endswith('Märksõnad'):
+                    # tags can be:
+                    #   * simple like 'huumor';
+                    #   * complex like 'intervjuud/vestlusringid';
+                    #   * weird like 'meedia (raadio, tv, press)'.
+                    # See e.g. 'https://arhiiv.err.ee/vaata/homme-on-esimene-aprill'
+                    tags = re.sub(r'\(|\)|,|/', ' ', clean_html(value)).split()
+                    if tags:
+                        info['tags'] = sorted(
+                            map(lambda s: s.strip().lower(), tags))
+                elif label.startswith('Info.Tehnilised andmed.Esinejad'):
+                    if 'creator' not in info:
+                        info['creator'] = list()
+                    info['creator'].extend(
+                            map(lambda a: f'{a} (Esineja)', re.split(r'\s*,\s*', value)))
+                elif label.startswith('Info.Tegijad'):
+                    op = label.split(sep='.')[-1]
+                    if 'creator' not in info:
+                        info['creator'] = list()
+                    info['creator'].append(f'{value} ({op})')
+
+            if 'creator' in info:
+                info['creator'] = ', '.join(info['creator'])
+
+        if json_has_value(page, 'description.data'):
+            chapters = list()
+            for chapter in json_get_value(page, 'description.data'):
+                start_time = floor(chapter['beginTime']/1000)
+                end_time = ceil(chapter['endTime']/1000)
+                title = chapter['content'].strip()
+                chapters.append({'start_time': start_time,
+                                 'end_time': end_time,
+                                 'title': title})
+            if chapters:
+                info['chapters'] = chapters
+
+        return info
+
+    def _real_extract(self, url):
+        info = dict()
+        url_dict = self._extract_ids(url)
+        video_id = url_dict['id']
+        prefix = url_dict['prefix']
+        scheme = url_dict['scheme']
+
+        info['id'] = video_id
+        info['display_id'] = url_dict['id']
+        info['webpage_url'] = url
+
+
+        # TODO Research logging in.
+        # if not self._is_logged_in():
+        #     self._login(url_dict, url_dict['id'])
+        # self._set_headers(url_dict)
+
+        page = self._api_get_content(url_dict, video_id)
+        self._dump_json(page, msg='PAGE\n', sort_keys=True, filename=f'DEBUG-{video_id}')
+
+        info.update(self._extract_entry(page))
+
+        if json_has_value(page, 'media.src.hls'):
+            info['url'] = json_get_value(page, 'media.src.hls')
+
+        if 'url' in info:
+            headers = self._get_request_headers(info['url'], ['Referer', 'Origin'])
+            info['formats'], subtitles = self._extract_formats_and_subtitles(info['url'], video_id, headers=headers)
+            if subtitles:
+                # Only override when available
+                info['subtitles'] = subtitles
+
+        info['uploader'] = 'ERR'
+
+        self._debug_json(info, msg='INFO\n', sort_keys=True)
+
+        return info
+
+class ERRArhiivPlaylistIE(ERRBaseIE):
+    # List data can be fetched by api/v1/series/vide/series_id
+    # Posted form controls the returned list's size, slice, sort order.
+    #   limit = 24|100|500
+    #   page = 1|2|3 etc.
+    #   sort = new|old|abc
+    #   all = false|
+    _ERR_API_GET_SERIES = '%(prefix)s/api/v1/series/%(channel)s/%(series_url)s'
+    IE_DESC = 'arhiiv.err.ee: playlists and search results'
+    _ERRARHIIV_SERVICES = 'seeria|samast-seeriast|sarnased|otsi|tapsem-otsing|show-category-single-files'
+    _VALID_URL = r'(?P<prefix>https?://arhiiv\.err\.ee)/(?P<service>%(services)s)[/?#]*(?P<id>[^/?#]*)' % {
+        'services': _ERRARHIIV_SERVICES
+    }
+    _TESTS = [{
+        'url': 'https://arhiiv.err.ee/seeria/linnuaabits/info/0/default/koik',
+        'info_dict': {
+            'id': 'linnuaabits',
+            'title': "Linnuaabits",
+        },
+        'playlist_mincount': 71,
+    }, {
+        'url': 'https://arhiiv.err.ee/seeria/linnulaul',
+        'info_dict': {
+            'id': 'linnulaul',
+            'title': "Linnulaul",
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url':
+        'https://arhiiv.err.ee/seeria/eesti-aja-lood-okupatsioonid/info/0/default/koik',
+        'info_dict': {
+            'id': 'eesti-aja-lood-okupatsioonid',
+            'title': "Eesti aja lood - Okupatsioonid",
+        },
+        'playlist_mincount': 46,
+    }, {
+        'url':
+        'https://arhiiv.err.ee/samast-seeriast/ak-filmikroonika-1958-1991-linnuturg-keskturul/default/1',
+        'info_dict': {
+            'id': 'ak-filmikroonika-1958-1991',
+            'title': "AK filmikroonika 1958-1991",
+        },
+        'playlist_count': 10,
+    }, {
+        'url':
+        'https://arhiiv.err.ee/sarnased/ensv-ensv-kaadri-taga/default/1',
+        'info_dict': {
+            'id': 'ensv',
+            'title': "EnsV - Sarnased saated",
+        },
+        'playlist_count': 10,
+    }, {
+        'url': 'https://arhiiv.err.ee/otsi/reliikvia/default/koik',
+        'info_dict': {
+            'id': None,
+            'title': "Otsingutulemused reliikvia",
+        },
+        'playlist_mincount': 161,
+    }, {
+        'url': 'https://arhiiv.err.ee/otsi/reliikvia/default/3',
+        'info_dict': {
+            'id': None,
+            'title': "Otsingutulemused reliikvia",
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url':
+        'https://arhiiv.err.ee/tapsem-otsing?searchphrase=kahur&searchfrom_video=video&searchfrom_audio=audio',
+        'info_dict': {
+            'id': None,
+            'title': "Otsingutulemused",
+        },
+        'playlist_mincount': 10,
+    }]
+
+    def _guess_id_from_title(self, title):
+        if not title:
+            return None
+        playlist_id = ' '.join(title.split())\
+                         .lower()\
+                         .replace('õ', 'o')\
+                         .replace('ö', 'o')\
+                         .replace('ä', 'a')\
+                         .replace('ü', 'u')\
+                         .replace(' ', '-')
+        playlist_id = re.sub(r'[,.:;+?!\'"*\\/|]', '', playlist_id)
+        return playlist_id
+
+    def _real_extract(self, url):
+        url_dict = self._extract_ids(url)
+        service = url_dict['service']
+        playlist_id = url_dict['id'] if service in [
+            'seeria', 'show-category-single-files'
+        ] else None
+        prefix = url_dict['prefix']
+        webpage = self._download_webpage(url, playlist_id)
+        title = self._html_search_regex(
+            r'<head>[^<]*<title>([^|]+)[^<]*?</title>',
+            webpage,
+            'title',
+            flags=re.DOTALL,
+            fatal=False)
+        if title:
+            title = title.strip().strip('.')
+
+        if title and not playlist_id and service not in [
+                'otsi', 'tapsem-otsing', 'show-category-single-files'
+        ]:
+            playlist_id = self._guess_id_from_title(title)
+
+        if title and service == 'sarnased':
+            title += ' - Sarnased saated'
+
+        title = sanitize_title(title)
+
+        res = re.findall(
+            r'<h2[^>]*>[^<]*<a\s+href=(["\'])(/vaata/[^"\']+)\1[^>]*>',
+            webpage, re.DOTALL)
+
+        url_list = orderedSet([prefix + match[1] for match in res])
+
+        entries = [self.url_result(item_url, ie='ERRArhiiv') for item_url in url_list]
+
+        return self.playlist_result(entries, playlist_id, title)

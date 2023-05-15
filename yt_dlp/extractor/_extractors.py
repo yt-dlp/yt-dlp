@@ -539,10 +539,7 @@ from .err import (
     ERRTVIE,
     ERRJupiterIE,
     ERRJupiterPlussIE,
-)
-from .errarhiiv import (
     ERRArhiivIE,
-    ERRArhiivPlaylistIE,
 )
 from .ertgr import (
     ERTFlixCodenameIE,
