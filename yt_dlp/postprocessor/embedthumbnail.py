@@ -107,7 +107,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 options.extend(['-map', '-0:%d' % old_stream])
                 new_stream -= 1
             options.extend([
-                '-attach', thumbnail_filename,
+                '-attach', self._ffmpeg_filename_argument(thumbnail_filename),
                 '-metadata:s:%d' % new_stream, 'mimetype=%s' % mimetype,
                 '-metadata:s:%d' % new_stream, 'filename=cover.%s' % thumbnail_ext])
 

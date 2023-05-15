@@ -37,7 +37,7 @@ def main():
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
         '--noconfirm',
-        *dependency_options(),
+        '--additional-hooks-dir=yt_dlp/__pyinstaller',
         *opts,
         'yt_dlp/__main__.py',
     ]
@@ -77,30 +77,6 @@ def version_to_list(version):
     return list(map(int, version_list)) + [0] * (4 - len(version_list))
 
 
-def dependency_options():
-    # Due to the current implementation, these are auto-detected, but explicitly add them just in case
-    dependencies = [pycryptodome_module(), 'mutagen', 'brotli', 'certifi', 'websockets']
-    excluded_modules = ('youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins', 'devscripts')
-
-    yield from (f'--hidden-import={module}' for module in dependencies)
-    yield '--collect-submodules=websockets'
-    yield from (f'--exclude-module={module}' for module in excluded_modules)
-
-
-def pycryptodome_module():
-    try:
-        import Cryptodome  # noqa: F401
-    except ImportError:
-        try:
-            import Crypto  # noqa: F401
-            print('WARNING: Using Crypto since Cryptodome is not available. '
-                  'Install with: pip install pycryptodomex', file=sys.stderr)
-            return 'Crypto'
-        except ImportError:
-            pass
-    return 'Cryptodome'
-
-
 def set_version_info(exe, version):
     if OS_NAME == 'win32':
         windows_set_version(exe, version)
@@ -109,7 +85,6 @@ def set_version_info(exe, version):
 def windows_set_version(exe, version):
     from PyInstaller.utils.win32.versioninfo import (
         FixedFileInfo,
-        SetVersion,
         StringFileInfo,
         StringStruct,
         StringTable,
@@ -117,6 +92,11 @@ def windows_set_version(exe, version):
         VarStruct,
         VSVersionInfo,
     )
+
+    try:
+        from PyInstaller.utils.win32.versioninfo import SetVersion
+    except ImportError:  # Pyinstaller >= 5.8
+        from PyInstaller.utils.win32.versioninfo import write_version_info_to_executable as SetVersion
 
     version_list = version_to_list(version)
     suffix = MACHINE and f'_{MACHINE}'

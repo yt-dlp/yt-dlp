@@ -26,7 +26,7 @@ from yt_dlp.aes import (
     key_expansion,
     pad_block,
 )
-from yt_dlp.dependencies import Cryptodome_AES
+from yt_dlp.dependencies import Cryptodome
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 
 # the encrypted data can be generate with 'devscripts/generate_aes_testdata.py'
@@ -48,7 +48,7 @@ class TestAES(unittest.TestCase):
         data = b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\x27\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd'
         decrypted = intlist_to_bytes(aes_cbc_decrypt(bytes_to_intlist(data), self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
-        if Cryptodome_AES:
+        if Cryptodome.AES:
             decrypted = aes_cbc_decrypt_bytes(data, intlist_to_bytes(self.key), intlist_to_bytes(self.iv))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
@@ -78,7 +78,7 @@ class TestAES(unittest.TestCase):
         decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
             bytes_to_intlist(data), self.key, bytes_to_intlist(authentication_tag), self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
-        if Cryptodome_AES:
+        if Cryptodome.AES:
             decrypted = aes_gcm_decrypt_and_verify_bytes(
                 data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12]))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)

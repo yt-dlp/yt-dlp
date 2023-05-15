@@ -20,7 +20,7 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
-from .update import detect_variant, is_non_updateable
+from .update import UPDATE_SOURCES, detect_variant, is_non_updateable
 from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
@@ -36,7 +36,7 @@ from .utils import (
     remove_end,
     write_string,
 )
-from .version import __version__
+from .version import CHANNEL, __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
@@ -243,7 +243,7 @@ def create_parser():
         if multiple_keys:
             allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
+            fr'(?is)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
@@ -326,11 +326,18 @@ def create_parser():
         action='store_true', dest='update_self',
         help=format_field(
             is_non_updateable(), None, 'Check if updates are available. %s',
-            default='Update this program to the latest version'))
+            default=f'Update this program to the latest {CHANNEL} version'))
     general.add_option(
         '--no-update',
         action='store_false', dest='update_self',
         help='Do not check for updates (default)')
+    general.add_option(
+        '--update-to',
+        action='store', dest='update_self', metavar='[CHANNEL]@[TAG]',
+        help=(
+            'Upgrade/downgrade to a specific version. CHANNEL and TAG defaults to '
+            f'"{CHANNEL}" and "latest" respectively if omitted; See "UPDATE" for details. '
+            f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -513,21 +520,26 @@ def create_parser():
         dest='cn_verification_proxy', default=None, metavar='URL',
         help=optparse.SUPPRESS_HELP)
     geo.add_option(
+        '--xff', metavar='VALUE',
+        dest='geo_bypass', default="default",
+        help=(
+            'How to fake X-Forwarded-For HTTP header to try bypassing geographic restriction. '
+            'One of "default" (Only when known to be useful), "never", '
+            'a two-letter ISO 3166-2 country code, or an IP block in CIDR notation'))
+    geo.add_option(
         '--geo-bypass',
-        action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
+        action='store_const', dest='geo_bypass', const='default',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass',
-        help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        action='store_const', dest='geo_bypass', const='never',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-country', metavar='CODE',
-        dest='geo_bypass_country', default=None,
-        help='Force bypass geographic restriction with explicitly provided two-letter ISO 3166-2 country code')
+        '--geo-bypass-country', metavar='CODE', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-ip-block', metavar='IP_BLOCK',
-        dest='geo_bypass_ip_block', default=None,
-        help='Force bypass geographic restriction with explicitly provided IP block in CIDR notation')
+        '--geo-bypass-ip-block', metavar='IP_BLOCK', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
 
     selection = optparse.OptionGroup(parser, 'Video Selection')
     selection.add_option(
@@ -606,8 +618,16 @@ def create_parser():
             'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filter',
-        metavar='FILTER', dest='match_filter', action='store_const', const=None,
-        help='Do not use generic video filter (default)')
+        dest='match_filter', action='store_const', const=None,
+        help='Do not use any --match-filter (default)')
+    selection.add_option(
+        '--break-match-filters',
+        metavar='FILTER', dest='breaking_match_filter', action='append',
+        help='Same as "--match-filters" but stops the download process when a video is rejected')
+    selection.add_option(
+        '--no-break-match-filters',
+        dest='breaking_match_filter', action='store_const', const=None,
+        help='Do not use any --break-match-filters (default)')
     selection.add_option(
         '--no-playlist',
         action='store_true', dest='noplaylist', default=False,
@@ -639,11 +659,11 @@ def create_parser():
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
-        help='Stop the download process when encountering a file that has been filtered out')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Alters --max-downloads, --break-on-existing, --break-on-reject, and autonumber to reset per input URL')
+        help='Alters --max-downloads, --break-on-existing, --break-match-filter, and autonumber to reset per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
@@ -1031,7 +1051,7 @@ def create_parser():
         metavar='URL', dest='referer', default=None,
         help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
-        '--add-header',
+        '--add-headers',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={'multiple_keys': False},
@@ -1064,8 +1084,12 @@ def create_parser():
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
         '-q', '--quiet',
-        action='store_true', dest='quiet', default=False,
+        action='store_true', dest='quiet', default=None,
         help='Activate quiet mode. If used with --verbose, print the log to stderr')
+    verbosity.add_option(
+        '--no-quiet',
+        action='store_false', dest='quiet',
+        help='Deactivate quiet mode. (Default)')
     verbosity.add_option(
         '--no-warnings',
         dest='no_warnings', action='store_true', default=False,

@@ -25,6 +25,7 @@ from ..utils import (
 # TODO  Try to resolve unknown languages in audio tracks.
 # TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
 # TODO  Clean out all unnecessary debugging output.
+# TODO  Change so that ERR is not artist
 
 
 def json_find_node(obj, criteria):

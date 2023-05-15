@@ -31,6 +31,9 @@ class TestCompat(unittest.TestCase):
         # TODO: Test submodule
         # compat.asyncio.events  # Must not raise error
 
+        with self.assertWarns(DeprecationWarning):
+            compat.compat_pycrypto_AES  # Must not raise error
+
     def test_compat_expanduser(self):
         old_home = os.environ.get('HOME')
         test_str = R'C:\Documents and Settings\тест\Application Data'

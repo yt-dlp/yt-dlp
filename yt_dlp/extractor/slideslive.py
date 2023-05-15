@@ -29,6 +29,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg',
             'thumbnails': 'count:42',
             'chapters': 'count:41',
+            'duration': 1638,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -45,6 +46,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:640',
             'chapters': 'count:639',
+            'duration': 9832,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -61,6 +63,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1643728135,
             'thumbnails': 'count:3',
             'chapters': 'count:2',
+            'duration': 5889,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -110,6 +113,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1629671508,
             'upload_date': '20210822',
             'chapters': 'count:7',
+            'duration': 326,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -126,6 +130,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1654714970,
             'upload_date': '20220608',
             'chapters': 'count:6',
+            'duration': 171,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -142,6 +147,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1622806321,
             'upload_date': '20210604',
             'chapters': 'count:15',
+            'duration': 306,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -158,6 +164,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1654714896,
             'upload_date': '20220608',
             'chapters': 'count:8',
+            'duration': 295,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -174,6 +181,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnails': 'count:22',
             'upload_date': '20220608',
             'chapters': 'count:21',
+            'duration': 294,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -196,6 +204,7 @@ class SlidesLiveIE(InfoExtractor):
                 'thumbnails': 'count:30',
                 'upload_date': '20220608',
                 'chapters': 'count:31',
+                'duration': 272,
             },
         }, {
             'info_dict': {
@@ -237,6 +246,7 @@ class SlidesLiveIE(InfoExtractor):
                 'thumbnails': 'count:43',
                 'upload_date': '20220608',
                 'chapters': 'count:43',
+                'duration': 315,
             },
         }, {
             'info_dict': {
@@ -286,6 +296,23 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
+        # /v3/ slides, .png only, service_name = yoda
+        'url': 'https://slideslive.com/38983994',
+        'info_dict': {
+            'id': '38983994',
+            'ext': 'mp4',
+            'title': 'Zero-Shot AutoML with Pretrained Models',
+            'timestamp': 1662384834,
+            'upload_date': '20220905',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:23',
+            'chapters': 'count:22',
+            'duration': 295,
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
         # service_name = yoda
         'url': 'https://slideslive.com/38903721/magic-a-scientific-resurrection-of-an-esoteric-legend',
         'only_matching': True,
@@ -311,6 +338,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1629671508,
             'upload_date': '20210822',
             'chapters': 'count:7',
+            'duration': 326,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -369,15 +397,28 @@ class SlidesLiveIE(InfoExtractor):
 
         return m3u8_dict
 
-    def _extract_formats(self, cdn_hostname, path, video_id):
-        formats = []
-        formats.extend(self._extract_m3u8_formats(
+    def _extract_formats_and_duration(self, cdn_hostname, path, video_id, skip_duration=False):
+        formats, duration = [], None
+
+        hls_formats = self._extract_m3u8_formats(
             f'https://{cdn_hostname}/{path}/master.m3u8',
-            video_id, 'mp4', m3u8_id='hls', fatal=False, live=True))
-        formats.extend(self._extract_mpd_formats(
-            f'https://{cdn_hostname}/{path}/master.mpd',
-            video_id, mpd_id='dash', fatal=False))
-        return formats
+            video_id, 'mp4', m3u8_id='hls', fatal=False, live=True)
+        if hls_formats:
+            if not skip_duration:
+                duration = self._extract_m3u8_vod_duration(
+                    hls_formats[0]['url'], video_id, note='Extracting duration from HLS manifest')
+            formats.extend(hls_formats)
+
+        dash_formats = self._extract_mpd_formats(
+            f'https://{cdn_hostname}/{path}/master.mpd', video_id, mpd_id='dash', fatal=False)
+        if dash_formats:
+            if not duration and not skip_duration:
+                duration = self._extract_mpd_vod_duration(
+                    f'https://{cdn_hostname}/{path}/master.mpd', video_id,
+                    note='Extracting duration from DASH manifest')
+            formats.extend(dash_formats)
+
+        return formats, duration
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -406,44 +447,42 @@ class SlidesLiveIE(InfoExtractor):
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
 
-        slides_info_url = None
-        slides, slides_info = [], []
+        slide_url_template = 'https://slides.slideslive.com/%s/slides/original/%s%s'
+        slides, slides_info = {}, []
+
         if player_info.get('slides_json_url'):
-            slides_info_url = player_info['slides_json_url']
-            slides = traverse_obj(self._download_json(
-                slides_info_url, video_id, fatal=False,
-                note='Downloading slides JSON', errnote=False), 'slides', expected_type=list) or []
-            for slide_id, slide in enumerate(slides, start=1):
+            slides = self._download_json(
+                player_info['slides_json_url'], video_id, fatal=False,
+                note='Downloading slides JSON', errnote=False) or {}
+            slide_ext_default = '.png'
+            slide_quality = traverse_obj(slides, ('slide_qualities', 0))
+            if slide_quality:
+                slide_ext_default = '.jpg'
+                slide_url_template = f'https://cdn.slideslive.com/data/presentations/%s/slides/{slide_quality}/%s%s'
+            for slide_id, slide in enumerate(traverse_obj(slides, ('slides', ...), expected_type=dict), 1):
                 slides_info.append((
                     slide_id, traverse_obj(slide, ('image', 'name')),
+                    traverse_obj(slide, ('image', 'extname'), default=slide_ext_default),
                     int_or_none(slide.get('time'), scale=1000)))
 
         if not slides and player_info.get('slides_xml_url'):
-            slides_info_url = player_info['slides_xml_url']
             slides = self._download_xml(
-                slides_info_url, video_id, fatal=False,
+                player_info['slides_xml_url'], video_id, fatal=False,
                 note='Downloading slides XML', errnote='Failed to download slides info')
-            for slide_id, slide in enumerate(slides.findall('./slide'), start=1):
+            slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s%s'
+            for slide_id, slide in enumerate(slides.findall('./slide') if slides else [], 1):
                 slides_info.append((
-                    slide_id, xpath_text(slide, './slideName', 'name'),
+                    slide_id, xpath_text(slide, './slideName', 'name'), '.jpg',
                     int_or_none(xpath_text(slide, './timeSec', 'time'))))
-
-        slides_version = int(self._search_regex(
-            r'https?://slides\.slideslive\.com/\d+/v(\d+)/\w+\.(?:json|xml)',
-            slides_info_url, 'slides version', default=0))
-        if slides_version < 4:
-            slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
-        else:
-            slide_url_template = 'https://slides.slideslive.com/%s/slides/original/%s.png'
 
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
             thumbnails.append({'id': 'cover', 'url': player_info['thumbnail']})
-        for slide_id, slide_path, start_time in slides_info:
+        for slide_id, slide_path, slide_ext, start_time in slides_info:
             if slide_path:
                 thumbnails.append({
                     'id': f'{slide_id:03d}',
-                    'url': slide_url_template % (video_id, slide_path),
+                    'url': slide_url_template % (video_id, slide_path, slide_ext),
                 })
             chapters.append({
                 'title': f'Slide {slide_id:03d}',
@@ -473,7 +512,12 @@ class SlidesLiveIE(InfoExtractor):
         if service_name == 'url':
             info['url'] = service_id
         elif service_name == 'yoda':
-            info['formats'] = self._extract_formats(player_info['video_servers'][0], service_id, video_id)
+            formats, duration = self._extract_formats_and_duration(
+                player_info['video_servers'][0], service_id, video_id)
+            info.update({
+                'duration': duration,
+                'formats': formats,
+            })
         else:
             info.update({
                 '_type': 'url_transparent',
@@ -486,7 +530,7 @@ class SlidesLiveIE(InfoExtractor):
                     f'https://player.vimeo.com/video/{service_id}',
                     {'http_headers': {'Referer': url}})
 
-        video_slides = traverse_obj(slides, (..., 'video', 'id'))
+        video_slides = traverse_obj(slides, ('slides', ..., 'video', 'id'))
         if not video_slides:
             return info
 
@@ -500,7 +544,7 @@ class SlidesLiveIE(InfoExtractor):
                     'videos': ','.join(video_slides),
                 }, note='Downloading video slides info', errnote='Failed to download video slides info') or {}
 
-            for slide_id, slide in enumerate(slides, 1):
+            for slide_id, slide in enumerate(traverse_obj(slides, ('slides', ...)), 1):
                 if not traverse_obj(slide, ('video', 'service')) == 'yoda':
                     continue
                 video_path = traverse_obj(slide, ('video', 'id'))
@@ -508,7 +552,8 @@ class SlidesLiveIE(InfoExtractor):
                     video_path, 'video_servers', ...), get_all=False)
                 if not cdn_hostname or not video_path:
                     continue
-                formats = self._extract_formats(cdn_hostname, video_path, video_id)
+                formats, _ = self._extract_formats_and_duration(
+                    cdn_hostname, video_path, video_id, skip_duration=True)
                 if not formats:
                     continue
                 yield {

@@ -127,7 +127,7 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 
 ### Is the website primarily used for piracy?
 
-We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in deep fake. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
+We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
 
 
 

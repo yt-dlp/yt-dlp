@@ -1573,7 +1573,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
-                elif mso_id == 'Spectrum':
+                elif mso_id in ('Spectrum', 'Charter_Direct'):
                     # Spectrum's login for is dynamically loaded via JS so we need to hardcode the flow
                     # as a one-off implementation.
                     provider_redirect_page, urlh = provider_redirect_page_res

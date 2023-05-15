@@ -191,7 +191,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
 class AmazonMiniTVSeasonIE(AmazonMiniTVBaseIE):
     IE_NAME = 'amazonminitv:season'
     _VALID_URL = r'amazonminitv:season:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
-    IE_DESC = 'Amazon MiniTV Series, "minitv:season:" prefix'
+    IE_DESC = 'Amazon MiniTV Season, "minitv:season:" prefix'
     _TESTS = [{
         'url': 'amazonminitv:season:amzn1.dv.gti.0aa996eb-6a1b-4886-a342-387fbd2f1db0',
         'playlist_mincount': 6,
@@ -250,6 +250,7 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
 class AmazonMiniTVSeriesIE(AmazonMiniTVBaseIE):
     IE_NAME = 'amazonminitv:series'
     _VALID_URL = r'amazonminitv:series:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
+    IE_DESC = 'Amazon MiniTV Series, "minitv:series:" prefix'
     _TESTS = [{
         'url': 'amazonminitv:series:amzn1.dv.gti.56521d46-b040-4fd5-872e-3e70476a04b0',
         'playlist_mincount': 3,

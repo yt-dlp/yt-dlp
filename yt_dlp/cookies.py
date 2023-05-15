@@ -20,6 +20,7 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
+from .compat import functools
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
@@ -383,9 +384,14 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger, *, keyring=None):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
-        password = _get_linux_keyring_password(browser_keyring_name, keyring, logger)
-        self._v11_key = None if password is None else self.derive_key(password)
         self._cookie_counts = {'v10': 0, 'v11': 0, 'other': 0}
+        self._browser_keyring_name = browser_keyring_name
+        self._keyring = keyring
+
+    @functools.cached_property
+    def _v11_key(self):
+        password = _get_linux_keyring_password(self._browser_keyring_name, self._keyring, self._logger)
+        return None if password is None else self.derive_key(password)
 
     @staticmethod
     def derive_key(password):

@@ -360,7 +360,8 @@ class FragmentFD(FileDownloader):
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
             iv = decrypt_info.get('IV') or struct.pack('>8xq', fragment['media_sequence'])
-            decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
+            decrypt_info['KEY'] = (decrypt_info.get('KEY')
+                                   or _get_key(traverse_obj(info_dict, ('hls_aes', 'uri')) or decrypt_info['URI']))
             # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
             # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
             # not what it decrypts to.
@@ -382,7 +383,7 @@ class FragmentFD(FileDownloader):
         max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if max_progress > 1:
             self._prepare_multiline_status(max_progress)
-        is_live = any(traverse_obj(args, (..., 2, 'is_live'), default=[]))
+        is_live = any(traverse_obj(args, (..., 2, 'is_live')))
 
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress
@@ -465,7 +466,8 @@ class FragmentFD(FileDownloader):
             for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
                 try:
                     ctx['fragment_count'] = fragment.get('fragment_count')
-                    if not self._download_fragment(ctx, fragment['url'], info_dict, headers):
+                    if not self._download_fragment(
+                            ctx, fragment['url'], info_dict, headers, info_dict.get('request_data')):
                         return
                 except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
                     retry.error = err
@@ -495,7 +497,7 @@ class FragmentFD(FileDownloader):
                 download_fragment(fragment, ctx_copy)
                 return fragment, fragment['frag_index'], ctx_copy.get('fragment_filename_sanitized')
 
-            self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
+            self.report_warning('The download speed shown is only of one thread. This is a known issue')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 try:
                     for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):

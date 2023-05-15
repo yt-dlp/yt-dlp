@@ -14,7 +14,7 @@ from ..utils import (
 
 class KickBaseIE(InfoExtractor):
     def _real_initialize(self):
-        self._request_webpage(HEADRequest('https://kick.com/'), None, 'Setting up session')
+        self._request_webpage(HEADRequest('https://kick.com/'), None, 'Setting up session', fatal=False)
         xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
         if not xsrf_token:
             self.write_debug('kick.com did not set XSRF-TOKEN cookie')

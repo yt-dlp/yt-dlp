@@ -1,5 +1,10 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, lowercase_escape, traverse_obj
+from ..utils import (
+    ExtractorError,
+    UserNotLive,
+    lowercase_escape,
+    traverse_obj
+)
 
 
 class StripchatIE(InfoExtractor):
@@ -35,16 +40,16 @@ class StripchatIE(InfoExtractor):
         if traverse_obj(data, ('viewCam', 'show'), expected_type=dict):
             raise ExtractorError('Model is in private show', expected=True)
         elif not traverse_obj(data, ('viewCam', 'model', 'isLive'), expected_type=bool):
-            raise ExtractorError('Model is offline', expected=True)
+            raise UserNotLive(video_id=video_id)
 
         server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=str)
         model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
 
         formats = []
-        for host in traverse_obj(data, (
-                'config', 'data', (('featuresV2', 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
+        for host in traverse_obj(data, ('config', 'data', (
+                (('features', 'featuresV2'), 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
             formats = self._extract_m3u8_formats(
-                f'https://b-{server}.{host}/hls/{model_id}/{model_id}.m3u8',
+                f'https://b-{server}.{host}/hls/{model_id}/master/{model_id}_auto.m3u8',
                 video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
             if formats:
                 break
