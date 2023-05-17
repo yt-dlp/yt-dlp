@@ -524,7 +524,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 
         def fetch_page(page_idx):
             try:
-                response = self._download_json('https://api.bilibili.com/x/space/arc/search',
+                response = self._download_json('https://api.bilibili.com/x/space/wbi/arc/search',
                                                playlist_id, note=f'Downloading page {page_idx}',
                                                query={'mid': playlist_id, 'pn': page_idx + 1, 'jsonp': 'jsonp'})
             except ExtractorError as e:
