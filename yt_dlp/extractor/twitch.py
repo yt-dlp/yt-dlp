@@ -194,7 +194,8 @@ class TwitchVodIE(TwitchBaseIE):
                     https?://
                         (?:
                             (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/v(?:ideo)?|videos)/|
-                            player\.twitch\.tv/\?.*?\bvideo=v?
+                            player\.twitch\.tv/\?.*?\bvideo=v?|
+                            www\.twitch\.tv/[^/]+/schedule\?vodID=
                         )
                         (?P<id>\d+)
                     '''
@@ -363,6 +364,9 @@ class TwitchVodIE(TwitchBaseIE):
             'skip_download': True
         },
         'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden']
+    }, {
+        'url': 'https://www.twitch.tv/tangotek/schedule?vodID=1822395420',
+        'only_matching': True,
     }]
 
     def _download_info(self, item_id):
