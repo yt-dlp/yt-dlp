@@ -213,6 +213,7 @@ DATE_FORMATS = (
     '%B %d %Y at %H:%M',
     '%B %d %Y at %H:%M:%S',
     '%H:%M %d-%b-%Y',
+    '%H:%M %d/%m/%Y',
 )
 
 DATE_FORMATS_DAY_FIRST = list(DATE_FORMATS)
