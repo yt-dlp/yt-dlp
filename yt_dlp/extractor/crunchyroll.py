@@ -129,6 +129,10 @@ class CrunchyrollBaseIE(InfoExtractor):
         return self._configuration_arg('language', ie_key=ie_key, casesense=False)
 
     @staticmethod
+    def _format_audio_lang(audio_lang: str) -> str:
+        return audio_lang.casefold().strip()
+
+    @staticmethod
     def _format_requested_langs(requested_langs):
         # Requested Language options:
         # 'default'   = Include audio language of video with 'internal_id'
@@ -137,17 +141,20 @@ class CrunchyrollBaseIE(InfoExtractor):
         # <lang-code> = Include specific audio language e.g. 'ja-JP' or 'en-US'
 
         # Format requested_langs
-        requested_langs = list(map(str.lower, requested_langs or ['default']))
+        lang_formatter = CrunchyrollBaseIE._format_audio_lang
+        requested_langs = list(map(lang_formatter, requested_langs or ['default']))
         if 'all' in requested_langs:
             requested_langs = []
         return requested_langs
 
     @staticmethod
     def _get_audio_langs_from_data(data):
+        lang_formatter = CrunchyrollBaseIE._format_audio_lang
         wrap_in_list = lambda v: v and [v]
-        # Find audio languages in 'audio_locales' and 'audio_locale' and merge them into a lower case set
-        audio_langs = set(traverse_obj(data, ('audio_locales', ..., {str.lower}), default=[]))
-        audio_langs.update(traverse_obj(data, ('audio_locale', {str.lower}, {wrap_in_list}), default=[]))
+
+        # Find audio languages in 'audio_locales' and 'audio_locale' and merge them into a case-folded set
+        audio_langs = set(traverse_obj(data, ('audio_locales', ..., {lang_formatter}), default=[]))
+        audio_langs.update(traverse_obj(data, ('audio_locale', {lang_formatter}, {wrap_in_list}), default=[]))
         return audio_langs
 
     @staticmethod
