@@ -148,11 +148,12 @@ class CrunchyrollBaseIE(InfoExtractor):
         # Find audio languages in 'audio_locales' and 'audio_locale' and merge them into a lower case set
         audio_langs = set(traverse_obj(data, ('audio_locales', ..., {str.lower}), default=[]))
         audio_langs.update(traverse_obj(data, ('audio_locale', {str.lower}, {wrap_in_list}), default=[]))
-        return audio_langs or {'unknown'}
+        return audio_langs
 
     @staticmethod
     def _get_requested_lang_evaluator(requested_langs):
         def is_requested_lang(audio_langs, allow_if_unknown=False):
+            audio_langs = audio_langs or {'unknown'}
             # Is True if 'requested_langs' is empty ('all' languages were requested / are allowed)
             # or if 'allow_if_unknown' is set and no language codes are specified in 'audio_langs'
             # or if any of the specified languages in 'audio_langs' is in 'requested_langs'
