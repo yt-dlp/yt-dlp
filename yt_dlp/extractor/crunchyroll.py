@@ -650,7 +650,7 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
                         continue
 
                     smuggled_data = {
-                        'target_audio_langs': list(episode_audio_langs),
+                        'target_audio_langs': list(episode_audio_langs) or ['default'],
                     }
 
                     yield self.url_result(
