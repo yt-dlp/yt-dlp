@@ -14,8 +14,10 @@ from ..utils import (
     parse_iso8601,
     qualities,
     remove_start,
+    smuggle_url,
     time_seconds,
     traverse_obj,
+    unsmuggle_url,
     url_or_none,
     urlencode_postdata,
 )
@@ -141,29 +143,34 @@ class CrunchyrollBaseIE(InfoExtractor):
         return requested_langs
 
     @staticmethod
+    def _get_audio_langs_from_data(data):
+        wrap_in_list = lambda v: v and [v]
+        # Find audio languages in 'audio_locales' and 'audio_locale' and merge them into a lower case set
+        audio_langs = set(traverse_obj(data, ('audio_locales', ..., {str.lower}), default=[]))
+        audio_langs.update(traverse_obj(data, ('audio_locale', {str.lower}, {wrap_in_list}), default=[]))
+        return audio_langs or {'unknown'}
+
+    @staticmethod
     def _get_requested_lang_evaluator(requested_langs):
-        def wrap_in_list(value):
-            return value and [value]
-
-        def get_audio_langs(data):
-            # Find audio languages in 'audio_locales' and 'audio_locale' and merge them into a lower case set
-            audio_langs = set(traverse_obj(data, ('audio_locales', ..., {str.lower}), default=[]))
-            audio_langs.update(traverse_obj(data, ('audio_locale', {str.lower}, {wrap_in_list}), default=[]))
-            return audio_langs or {'unknown'}
-
-        def is_in_requested_langs(audio_langs, allow_if_unknown):
-            # Is True if 'allow_if_unknown' is set and there are no languages is 'audio_langs'
-            # or if any of the languages from 'audio_langs' is in 'requested_langs'
-            return (allow_if_unknown and 'unknown' in audio_langs) \
-                or any(la in requested_langs for la in audio_langs)
-
-        def is_requested_lang(data, allow_if_unknown=False):
+        def is_requested_lang(audio_langs, allow_if_unknown=False):
             # Is True if 'requested_langs' is empty ('all' languages were requested / are allowed)
-            # or if any of the found languages from 'data' is in 'requested_langs'
-            # or if 'allow_if_unknown' is set and no languages were found in 'data'
-            return not requested_langs or is_in_requested_langs(get_audio_langs(data),
-                                                                allow_if_unknown)
+            # or if 'allow_if_unknown' is set and no language codes are specified in 'audio_langs'
+            # or if any of the specified languages in 'audio_langs' is in 'requested_langs'
+            return not requested_langs \
+                or (allow_if_unknown and 'unknown' in audio_langs) \
+                or any(la in requested_langs for la in audio_langs)
         return is_requested_lang
+
+    @staticmethod
+    def _wrap_requested_lang_in_data_evaluator(requested_langs, is_requested_lang):
+        def is_requested_lang_in_data(data, allow_if_unknown=False):
+            # Is True if 'requested_langs' is empty ('all' languages were requested / are allowed)
+            # or if 'allow_if_unknown' is set and no language codes were found in 'data'
+            # or if any of the found languages from 'data' is in 'requested_langs'
+            return not requested_langs or is_requested_lang(
+                CrunchyrollBaseIE._get_audio_langs_from_data(data),
+                allow_if_unknown)
+        return is_requested_lang_in_data
 
     @staticmethod
     def _has_requested_default_lang(requested_langs):
@@ -172,6 +179,8 @@ class CrunchyrollBaseIE(InfoExtractor):
     def _get_responses_for_langs(self, internal_id, get_response_by_id, requested_langs):
         requested_langs = self._format_requested_langs(requested_langs)
         is_requested_lang = self._get_requested_lang_evaluator(requested_langs)
+        is_requested_lang_in_data = self._wrap_requested_lang_in_data_evaluator(
+            requested_langs, is_requested_lang)
 
         def get_meta_from_response(response):
             object_type = response.get('type')
@@ -190,13 +199,13 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         # Add default response if requested
         if self._has_requested_default_lang(requested_langs) \
-                or (default_meta and is_requested_lang(default_meta)):
+                or (default_meta and is_requested_lang_in_data(default_meta)):
             results[internal_id] = default_response
 
         # Iterate other versions and add them if requested
         versions = (default_meta and traverse_obj(default_meta, 'versions')) or []
         requested_versions = [version for version in versions
-                              if version and is_requested_lang(version)]
+                              if version and is_requested_lang_in_data(version)]
         for version in requested_versions:
             version_id = version.get('guid')
             if not version_id or version_id in results:
@@ -454,6 +463,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
     _RETURN_TYPE = 'video'
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, default={})
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
 
         def get_response_by_id(requested_id):
@@ -462,7 +472,8 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
                 f'objects/{requested_id}', requested_id, lang, 'object info', {'ratings': 'true'}), ('data', 0, {dict}))
 
         # Fetch requested language responses
-        requested_langs = self._get_requested_langs_from_extractor_args()
+        requested_langs = traverse_obj(smuggled_data, ('target_audio_langs', {list}))
+        requested_langs = requested_langs or self._get_requested_langs_from_extractor_args()
         responses = self._get_responses_for_langs(internal_id, get_response_by_id, requested_langs)
         if not responses:
             raise ExtractorError(
@@ -625,18 +636,24 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
             for season in traverse_obj(seasons_response, ('items', ..., {dict})):
                 # Skip the extraction of a 'season' if its language is known, and it was not requested
                 # (If the language of 'season' is unknown then do not skip it -> Hence 'allow_if_unknown=True')
-                if not is_requested_lang(season, allow_if_unknown=True):
+                season_audio_langs = self._get_audio_langs_from_data(season)
+                if not is_requested_lang(season_audio_langs, allow_if_unknown=True):
                     continue
 
                 episodes_response = self._call_cms_api_signed(
                     f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
                     # Skip the extraction of an episode if its language was not requested
-                    if not is_requested_lang(episode_response):
+                    episode_audio_langs = self._get_audio_langs_from_data(episode_response)
+                    if not is_requested_lang(episode_audio_langs):
                         continue
 
+                    smuggled_data = {
+                        'target_audio_langs': list(episode_audio_langs),
+                    }
+
                     yield self.url_result(
-                        f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}',
+                        smuggle_url(f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}', smuggled_data),
                         CrunchyrollBetaIE, **CrunchyrollBetaIE._transform_episode_response(episode_response))
 
         return self.playlist_result(
