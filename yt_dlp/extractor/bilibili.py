@@ -905,6 +905,23 @@ class BiliIntlBaseIE(InfoExtractor):
                 'ext': 'srt',
                 'data': self.json2srt(sub_data)
             })
+
+        for video_sub in sub_json.get('video_subtitle') or []:
+            sub_lang = video_sub.get('lang_key')
+
+            if not subtitles.get(sub_lang):
+                subtitles.setdefault(sub_lang, [])
+
+            if video_sub.get('srt'):
+                subtitles[sub_lang].append({
+                    'ext': 'srt',
+                    'url': self.json2srt(traverse_obj(video_sub, ('srt', 'url')))
+                })
+            if video_sub.get('ass'):
+                subtitles[sub_lang].append({
+                    'ext': 'ass',
+                    'url': self.json2srt(traverse_obj(video_sub, ('ass', 'url')))
+                })
         return subtitles
 
     def _get_formats(self, *, ep_id=None, aid=None):
