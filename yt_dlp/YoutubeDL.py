@@ -13,6 +13,7 @@ import os
 import random
 import re
 import shutil
+import string
 import subprocess
 import sys
 import tempfile
@@ -21,7 +22,6 @@ import tokenize
 import traceback
 import unicodedata
 import urllib.request
-from string import Formatter, ascii_letters
 
 from .cache import Cache
 from .compat import compat_os_name, compat_shlex_quote
@@ -1079,7 +1079,7 @@ class YoutubeDL:
         # correspondingly that is not what we want since we need to keep
         # '%%' intact for template dict substitution step. Working around
         # with boundary-alike separator hack.
-        sep = ''.join(random.choices(ascii_letters, k=32))
+        sep = ''.join(random.choices(string.ascii_letters, k=32))
         outtmpl = outtmpl.replace('%%', f'%{sep}%').replace('$$', f'${sep}$')
 
         # outtmpl should be expand_path'ed before template dict substitution
@@ -1238,7 +1238,7 @@ class YoutubeDL:
                 return list(obj)
             return repr(obj)
 
-        class _ReplacementFormatter(Formatter):
+        class _ReplacementFormatter(string.Formatter):
             def get_field(self, field_name, args, kwargs):
                 if field_name.isdigit():
                     return args[0], -1
@@ -2068,86 +2068,86 @@ class YoutubeDL:
 
         def _parse_filter(tokens):
             filter_parts = []
-            for type, string, start, _, _ in tokens:
-                if type == tokenize.OP and string == ']':
+            for type, string_, start, _, _ in tokens:
+                if type == tokenize.OP and string_ == ']':
                     return ''.join(filter_parts)
                 else:
-                    filter_parts.append(string)
+                    filter_parts.append(string_)
 
         def _remove_unused_ops(tokens):
             # Remove operators that we don't use and join them with the surrounding strings.
             # E.g. 'mp4' '-' 'baseline' '-' '16x9' is converted to 'mp4-baseline-16x9'
             ALLOWED_OPS = ('/', '+', ',', '(', ')')
             last_string, last_start, last_end, last_line = None, None, None, None
-            for type, string, start, end, line in tokens:
-                if type == tokenize.OP and string == '[':
+            for type, string_, start, end, line in tokens:
+                if type == tokenize.OP and string_ == '[':
                     if last_string:
                         yield tokenize.NAME, last_string, last_start, last_end, last_line
                         last_string = None
-                    yield type, string, start, end, line
+                    yield type, string_, start, end, line
                     # everything inside brackets will be handled by _parse_filter
-                    for type, string, start, end, line in tokens:
-                        yield type, string, start, end, line
-                        if type == tokenize.OP and string == ']':
+                    for type, string_, start, end, line in tokens:
+                        yield type, string_, start, end, line
+                        if type == tokenize.OP and string_ == ']':
                             break
-                elif type == tokenize.OP and string in ALLOWED_OPS:
+                elif type == tokenize.OP and string_ in ALLOWED_OPS:
                     if last_string:
                         yield tokenize.NAME, last_string, last_start, last_end, last_line
                         last_string = None
-                    yield type, string, start, end, line
+                    yield type, string_, start, end, line
                 elif type in [tokenize.NAME, tokenize.NUMBER, tokenize.OP]:
                     if not last_string:
-                        last_string = string
+                        last_string = string_
                         last_start = start
                         last_end = end
                     else:
-                        last_string += string
+                        last_string += string_
             if last_string:
                 yield tokenize.NAME, last_string, last_start, last_end, last_line
 
         def _parse_format_selection(tokens, inside_merge=False, inside_choice=False, inside_group=False):
             selectors = []
             current_selector = None
-            for type, string, start, _, _ in tokens:
+            for type, string_, start, _, _ in tokens:
                 # ENCODING is only defined in python 3.x
                 if type == getattr(tokenize, 'ENCODING', None):
                     continue
                 elif type in [tokenize.NAME, tokenize.NUMBER]:
-                    current_selector = FormatSelector(SINGLE, string, [])
+                    current_selector = FormatSelector(SINGLE, string_, [])
                 elif type == tokenize.OP:
-                    if string == ')':
+                    if string_ == ')':
                         if not inside_group:
                             # ')' will be handled by the parentheses group
                             tokens.restore_last_token()
                         break
-                    elif inside_merge and string in ['/', ',']:
+                    elif inside_merge and string_ in ['/', ',']:
                         tokens.restore_last_token()
                         break
-                    elif inside_choice and string == ',':
+                    elif inside_choice and string_ == ',':
                         tokens.restore_last_token()
                         break
-                    elif string == ',':
+                    elif string_ == ',':
                         if not current_selector:
                             raise syntax_error('"," must follow a format selector', start)
                         selectors.append(current_selector)
                         current_selector = None
-                    elif string == '/':
+                    elif string_ == '/':
                         if not current_selector:
                             raise syntax_error('"/" must follow a format selector', start)
                         first_choice = current_selector
                         second_choice = _parse_format_selection(tokens, inside_choice=True)
                         current_selector = FormatSelector(PICKFIRST, (first_choice, second_choice), [])
-                    elif string == '[':
+                    elif string_ == '[':
                         if not current_selector:
                             current_selector = FormatSelector(SINGLE, 'best', [])
                         format_filter = _parse_filter(tokens)
                         current_selector.filters.append(format_filter)
-                    elif string == '(':
+                    elif string_ == '(':
                         if current_selector:
                             raise syntax_error('Unexpected "("', start)
                         group = _parse_format_selection(tokens, inside_group=True)
                         current_selector = FormatSelector(GROUP, group, [])
-                    elif string == '+':
+                    elif string_ == '+':
                         if not current_selector:
                             raise syntax_error('Unexpected "+"', start)
                         selector_1 = current_selector
@@ -2156,7 +2156,7 @@ class YoutubeDL:
                             raise syntax_error('Expected a selector', start)
                         current_selector = FormatSelector(MERGE, (selector_1, selector_2), [])
                     else:
-                        raise syntax_error(f'Operator not recognized: "{string}"', start)
+                        raise syntax_error(f'Operator not recognized: "{string_}"', start)
                 elif type == tokenize.ENDMARKER:
                     break
             if current_selector:
@@ -2898,7 +2898,7 @@ class YoutubeDL:
 
             fmt = '%({})s'
             if tmpl.startswith('{'):
-                tmpl = f'.{tmpl}'
+                tmpl, fmt = f'.{tmpl}', '%({})j'
             if tmpl.endswith('='):
                 tmpl, fmt = tmpl[:-1], '{0} = %({0})#j'
             return '\n'.join(map(fmt.format, [tmpl] if mobj.group('dict') else tmpl.split(',')))
@@ -2937,7 +2937,8 @@ class YoutubeDL:
         print_field('url', 'urls')
         print_field('thumbnail', optional=True)
         print_field('description', optional=True)
-        print_field('filename', optional=True)
+        if filename:
+            print_field('filename')
         if self.params.get('forceduration') and info_copy.get('duration') is not None:
             self.to_stdout(formatSeconds(info_copy['duration']))
         print_field('format')
@@ -3419,8 +3420,8 @@ class YoutubeDL:
         if remove_private_keys:
             reject = lambda k, v: v is None or k.startswith('__') or k in {
                 'requested_downloads', 'requested_formats', 'requested_subtitles', 'requested_entries',
-                'entries', 'filepath', '_filename', 'infojson_filename', 'original_url', 'playlist_autonumber',
-                '_format_sort_fields',
+                'entries', 'filepath', '_filename', 'filename', 'infojson_filename', 'original_url',
+                'playlist_autonumber', '_format_sort_fields',
             }
         else:
             reject = lambda k, v: False
@@ -3489,7 +3490,7 @@ class YoutubeDL:
                 *files_to_delete, info=infodict, msg='Deleting original file %s (pass -k to keep)')
         return infodict
 
-    def run_all_pps(self, key, info, *, additional_pps=None, fatal=True):
+    def run_all_pps(self, key, info, *, additional_pps=None):
         if key != 'video':
             self._forceprint(key, info)
         for pp in (additional_pps or []) + self._pps[key]:
