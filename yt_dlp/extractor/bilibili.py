@@ -12,6 +12,7 @@ from ..utils import (
     GeoRestrictedError,
     InAdvancePagedList,
     OnDemandPagedList,
+    determine_ext,
     filter_dict,
     float_or_none,
     format_field,
@@ -896,11 +897,21 @@ class BiliIntlBaseIE(InfoExtractor):
             sub_url = sub.get('url')
             if not sub_url:
                 continue
-            sub_data = self._download_json(
-                sub_url, ep_id or aid, errnote='Unable to download subtitles', fatal=False,
-                note='Downloading subtitles%s' % f' for {sub["lang"]}' if sub.get('lang') else '')
-            if not sub_data:
-                continue
+            sub_ext = determine_ext(sub_url)
+            msg = (
+                'Unable to download subtitles',
+                'Downloading subtitles' + f' for {sub["lang"]}' if sub.get('lang') else ''
+            )
+            if sub_ext == 'ass':
+                sub_data = self._download_webpage(
+                    sub_url, ep_id or aid, note=msg[1], errnote=msg[0], fatal=False, encoding='utf-8-sig')
+            else:
+                sub_data = self._download_json(
+                    sub_url, ep_id or aid, errnote=msg[0], fatal=False, note=msg[1])
+                if sub_data:
+                    sub_ext = 'srt'
+                    sub_data = self.json2srt(sub_data)
+
             subtitles.setdefault(sub.get('lang_key', 'en'), []).append({
                 'ext': 'srt',
                 'data': self.json2srt(sub_data)
@@ -1117,7 +1128,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'upload_date': '20221108',
             'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan - Bstation',
             'comment_count': int,
-            'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
+            'thumbnail': r're:https?://pic(?:[\.-])bstarstatic\.(?:akamaized\.net|com)/ugc/f6c363659efd2eabe5683fbb906b1582\.jpg',
         },
         'params': {
             'getcomments': True
