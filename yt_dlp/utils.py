@@ -1035,7 +1035,7 @@ def make_HTTPS_handler(params, **kwargs):
 
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
-        if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
+        if certifi and 'no-certifi' not in params.get('compat_opts', []):
             context.load_verify_locations(cafile=certifi.where())
         else:
             try:
@@ -1356,8 +1356,8 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
     """Handler for HTTP requests and responses.
 
     This class, when installed with an OpenerDirector, automatically adds
-    the standard headers to every HTTP request and handles gzipped and
-    deflated responses from web servers.
+    the standard headers to every HTTP request and handles gzipped, deflated and
+    brotli responses from web servers.
 
     Part of this code was copied from:
 
@@ -1420,12 +1420,12 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
             if h.capitalize() not in req.headers:
                 req.add_header(h, v)
 
-        if 'Accept-encoding' not in req.headers:
-            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
-
         if 'Youtubedl-no-compression' in req.headers:  # compat
             req.headers.pop('Youtubedl-no-compression', None)
             req.headers['Accept-encoding'] = 'identity'
+
+        if 'Accept-encoding' not in req.headers:
+            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
 
         return super().do_request_(req)
 
