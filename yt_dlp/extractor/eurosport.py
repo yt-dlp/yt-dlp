@@ -47,8 +47,15 @@ class EurosportIE(InfoExtractor):
     }, {
         'url': 'https://www.eurosport.com/football/champions-league/2022-2023/pep-guardiola-emotionally-destroyed-after-manchester-city-win-over-bayern-munich-in-champions-league_vid1896254/video.shtml',
         'info_dict': {
-            'id': 'fixme',
+            'id': '3096477',
             'ext': 'mp4',
+            'title': 'md5:82edc17370124c7a19b3cf518517583b',
+            'duration': 84.0,
+            'description': 'md5:b3f44ef7f5b5b95b24a273b163083feb',
+            'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2023/04/12/3682873-74947393-2560-1440.jpg',
+            'timestamp': 1681292028,
+            'upload_date': '20230412',
+            'display_id': 'vid1896254',
         }
     }]
 
