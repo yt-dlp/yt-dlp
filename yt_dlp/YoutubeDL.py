@@ -190,6 +190,7 @@ class YoutubeDL:
     ap_username:       Multiple-system operator account username.
     ap_password:       Multiple-system operator account password.
     usenetrc:          Use netrc for authentication instead.
+    netrc_location:    Location of the netrc file. Defaults to ~/.netrc.
     verbose:           Print additional info to stdout.
     quiet:             Do not print messages to stdout.
     no_warnings:       Do not print out anything for warnings.
@@ -3994,7 +3995,7 @@ class YoutubeDL:
             # that way it will silently go on when used with unsupporting IE
             return ret
         elif not subtitles:
-            self.to_screen('[info] There\'s no subtitles for the requested languages')
+            self.to_screen('[info] There are no subtitles for the requested languages')
             return ret
         sub_filename_base = self.prepare_filename(info_dict, 'subtitle')
         if not sub_filename_base:
@@ -4048,7 +4049,7 @@ class YoutubeDL:
         if write_all or self.params.get('writethumbnail', False):
             thumbnails = info_dict.get('thumbnails') or []
             if not thumbnails:
-                self.to_screen(f'[info] There\'s no {label} thumbnails to download')
+                self.to_screen(f'[info] There are no {label} thumbnails to download')
                 return ret
         multiple = write_all and len(thumbnails) > 1
 

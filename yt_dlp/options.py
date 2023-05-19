@@ -411,7 +411,7 @@ def create_parser():
     general.add_option(
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',
-        help='Extract the videos of a playlist')
+        help='Fully extract the videos of a playlist (default)')
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
@@ -521,11 +521,11 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     geo.add_option(
         '--xff', metavar='VALUE',
-        dest='geo_bypass', default="default",
+        dest='geo_bypass', default='default',
         help=(
             'How to fake X-Forwarded-For HTTP header to try bypassing geographic restriction. '
-            'One of "default" (Only when known to be useful), "never", '
-            'a two-letter ISO 3166-2 country code, or an IP block in CIDR notation'))
+            'One of "default" (only when known to be useful), "never", '
+            'an IP block in CIDR notation, or a two-letter ISO 3166-2 country code'))
     geo.add_option(
         '--geo-bypass',
         action='store_const', dest='geo_bypass', const='default',
@@ -617,7 +617,7 @@ def create_parser():
             'that contains the phrase "cats & dogs" (caseless). '
             'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
-        '--no-match-filter',
+        '--no-match-filters',
         dest='match_filter', action='store_const', const=None,
         help='Do not use any --match-filter (default)')
     selection.add_option(
