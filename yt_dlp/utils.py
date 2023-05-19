@@ -1420,7 +1420,7 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
             if h.capitalize() not in req.headers:
                 req.add_header(h, v)
 
-        if 'Youtubedl-no-compression' in req.headers:  # compat
+        if 'Youtubedl-no-compression' in req.headers:  # deprecated
             req.headers.pop('Youtubedl-no-compression', None)
             req.headers['Accept-encoding'] = 'identity'
 
