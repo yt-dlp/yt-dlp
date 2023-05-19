@@ -3281,7 +3281,7 @@ def is_iterable_like(x, allowed_types=collections.abc.Iterable, blocked_types=NO
 
 
 def variadic(x, allowed_types=NO_DEFAULT):
-    return x if is_iterable_like(x, blocked_types=allowed_types) else (x,)
+    return x if is_iterable_like(x, blocked_types=allowed_types) else (x, )
 
 
 def dict_get(d, key_or_keys, default=None, skip_false_values=True):
@@ -5404,7 +5404,7 @@ def to_high_limit_path(path):
 
 def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=IDENTITY):
     val = traverse_obj(obj, *variadic(field))
-    if (not val and val != 0) if ignore is NO_DEFAULT else val in variadic(ignore):
+    if not val if ignore is NO_DEFAULT else val in variadic(ignore):
         return default
     return template % func(val)
 
@@ -5704,8 +5704,8 @@ def traverse_dict(dictn, keys, casesense=True):
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
-def get_first(obj, keys, **kwargs):
-    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
+def get_first(obj, *paths, **kwargs):
+    return traverse_obj(obj, *((..., *variadic(keys)) for keys in paths), **kwargs, get_all=False)
 
 
 def time_seconds(**kwargs):
