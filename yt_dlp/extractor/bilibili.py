@@ -912,9 +912,12 @@ class BiliIntlBaseIE(InfoExtractor):
                     sub_ext = 'srt'
                     sub_data = self.json2srt(sub_data)
 
+            if not sub_data:
+                continue
+
             subtitles.setdefault(sub.get('lang_key', 'en'), []).append({
                 'ext': 'srt',
-                'data': self.json2srt(sub_data)
+                'data': sub_data
             })
 
         for video_sub in sub_json.get('video_subtitle') or []:
@@ -931,7 +934,7 @@ class BiliIntlBaseIE(InfoExtractor):
             if video_sub.get('ass'):
                 subtitles[sub_lang].append({
                     'ext': 'ass',
-                    'url': self.json2srt(traverse_obj(video_sub, ('ass', 'url')))
+                    'url': traverse_obj(video_sub, ('ass', 'url'))
                 })
         return subtitles
 
