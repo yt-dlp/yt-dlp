@@ -85,7 +85,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **YouTube improvements**:
-    * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, YouTube Music Albums/Channels ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723)), and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
+    * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
     * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326) **\***
     * Supports some (but not all) age-gated content without cookies
     * Download livestreams from the start using `--live-from-start` (*experimental*)
@@ -179,13 +179,13 @@ For ease of use, a few more compat options are available:
 [![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
+You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
 
 
 ## UPDATE
 You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
 
-If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
+If you [installed with pip](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
 
 For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation#third-party-package-managers) or refer their documentation
 
@@ -409,7 +409,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     configuration files
     --flat-playlist                 Do not extract the videos of a playlist,
                                     only list them
-    --no-flat-playlist              Extract the videos of a playlist
+    --no-flat-playlist              Fully extract the videos of a playlist
+                                    (default)
     --live-from-start               Download livestreams from the start.
                                     Currently only supported for YouTube
                                     (Experimental)
@@ -465,9 +466,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     downloading
     --xff VALUE                     How to fake X-Forwarded-For HTTP header to
                                     try bypassing geographic restriction. One of
-                                    "default" (Only when known to be useful),
-                                    "never", a two-letter ISO 3166-2 country
-                                    code, or an IP block in CIDR notation
+                                    "default" (only when known to be useful),
+                                    "never", an IP block in CIDR notation, or a
+                                    two-letter ISO 3166-2 country code
 
 ## Video Selection:
     -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
@@ -514,7 +515,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     dogs" (caseless). Use "--match-filter -" to
                                     interactively ask whether to download each
                                     video
-    --no-match-filter               Do not use any --match-filter (default)
+    --no-match-filters              Do not use any --match-filter (default)
     --break-match-filters FILTER    Same as "--match-filters" but stops the
                                     download process when a video is rejected
     --no-break-match-filters        Do not use any --break-match-filters (default)
@@ -1709,7 +1710,7 @@ Note that these options preserve their relative order, allowing replacements to 
 
 This option also has a few special uses:
 
-* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. E.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
+* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. E.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)"` will download the first vimeo video found in the description
 
 * You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file - you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (e.g. `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
@@ -1883,7 +1884,7 @@ Plugins can be installed using various methods and locations.
     * **System Plugins**
       * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
       * `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
-2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location:
+2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location (recommended for portable installations):
     * Binary: where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
     * Source: where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
 
@@ -2071,7 +2072,7 @@ with yt_dlp.YoutubeDL() as ydl:
 ```python
 import yt_dlp
 
-URL = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
 def format_selector(ctx):
     """ Select the best video and the best audio that won't result in an mkv.
