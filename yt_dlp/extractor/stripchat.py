@@ -1,22 +1,20 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     lowercase_escape,
-    try_get,
+    traverse_obj
 )
 
 
 class StripchatIE(InfoExtractor):
     _VALID_URL = r'https?://stripchat\.com/(?P<id>[^/?#]+)'
     _TESTS = [{
-        'url': 'https://stripchat.com/feel_me',
+        'url': 'https://stripchat.com/Joselin_Flower',
         'info_dict': {
-            'id': 'feel_me',
+            'id': 'Joselin_Flower',
             'ext': 'mp4',
-            'title': 're:^feel_me [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': 're:^Joselin_Flower [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'description': str,
             'is_live': True,
             'age_limit': 18,
@@ -39,19 +37,24 @@ class StripchatIE(InfoExtractor):
         if not data:
             raise ExtractorError('Unable to find configuration for stream.')
 
-        if try_get(data, lambda x: x['viewCam']['show'], dict):
+        if traverse_obj(data, ('viewCam', 'show'), expected_type=dict):
             raise ExtractorError('Model is in private show', expected=True)
-        elif not try_get(data, lambda x: x['viewCam']['model']['isLive'], bool):
-            raise ExtractorError('Model is offline', expected=True)
+        elif not traverse_obj(data, ('viewCam', 'model', 'isLive'), expected_type=bool):
+            raise UserNotLive(video_id=video_id)
 
-        server = try_get(data, lambda x: x['viewCam']['viewServers']['flashphoner-hls'], compat_str)
-        host = try_get(data, lambda x: x['config']['data']['hlsStreamHost'], compat_str)
-        model_id = try_get(data, lambda x: x['viewCam']['model']['id'], int)
+        server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=str)
+        model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
 
-        formats = self._extract_m3u8_formats(
-            'https://b-%s.%s/hls/%d/%d.m3u8' % (server, host, model_id, model_id),
-            video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
-        self._sort_formats(formats)
+        formats = []
+        for host in traverse_obj(data, ('config', 'data', (
+                (('features', 'featuresV2'), 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
+            formats = self._extract_m3u8_formats(
+                f'https://b-{server}.{host}/hls/{model_id}/master/{model_id}_auto.m3u8',
+                video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
+            if formats:
+                break
+        if not formats:
+            self.raise_no_formats('No active streams found', expected=True)
 
         return {
             'id': video_id,

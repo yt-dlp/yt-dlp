@@ -194,7 +194,6 @@ class HeiseIE(InfoExtractor):
                 'format_id': '%s_%s' % (ext, label),
                 'height': height,
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

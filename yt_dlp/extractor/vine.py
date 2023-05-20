@@ -86,7 +86,6 @@ class VineIE(InfoExtractor):
                     'quality': quality,
                 })
         self._check_formats(formats, video_id)
-        self._sort_formats(formats)
 
         username = data.get('username')
 

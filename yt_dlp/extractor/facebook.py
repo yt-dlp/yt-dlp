@@ -390,7 +390,10 @@ class FacebookIE(InfoExtractor):
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
-            uploader_data = get_first(media, 'owner') or get_first(post, ('node', 'actors', ...)) or {}
+            uploader_data = (
+                get_first(media, ('owner', {dict}))
+                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
+                or get_first(post, ('node', 'actors', ..., {dict})) or {})
 
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
@@ -415,16 +418,17 @@ class FacebookIE(InfoExtractor):
             # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
             if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
                 thumbnail = None
-            view_count = parse_count(self._search_regex(
-                r'\bviewCount\s*:\s*["\']([\d,.]+)', webpage, 'view count',
-                default=None))
             info_dict = {
                 'description': description,
                 'uploader': uploader,
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
-                'view_count': view_count,
+                'view_count': parse_count(self._search_regex(
+                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
+                    webpage, 'view count', default=None)),
+                'concurrent_view_count': get_first(post, (
+                    ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -461,13 +465,12 @@ class FacebookIE(InfoExtractor):
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest))))
 
-        def process_formats(formats):
+        def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
-            for f in formats:
+            for f in info['formats']:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-
-            self._sort_formats(formats, ('res', 'quality'))
+            info['_format_sort_fields'] = ('res', 'quality')
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -510,7 +513,6 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
-                    process_formats(formats)
                     v_id = video.get('videoId') or video.get('id') or video_id
                     info = {
                         'id': v_id,
@@ -521,6 +523,7 @@ class FacebookIE(InfoExtractor):
                         'timestamp': int_or_none(video.get('publish_time')),
                         'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),
                     }
+                    process_formats(info)
                     description = try_get(video, lambda x: x['savable_description']['text'])
                     title = video.get('name')
                     if title:
@@ -687,13 +690,12 @@ class FacebookIE(InfoExtractor):
             if subtitles_src:
                 subtitles.setdefault('en', []).append({'url': subtitles_src})
 
-        process_formats(formats)
-
         info_dict = {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
         }
+        process_formats(info_dict)
         info_dict.update(extract_metadata(webpage))
 
         return info_dict

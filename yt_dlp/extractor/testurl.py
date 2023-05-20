@@ -21,13 +21,14 @@ class TestURLIE(InfoExtractor):
         matching_extractors = [e for e in gen_extractor_classes() if rex.search(e.IE_NAME)]
 
         if len(matching_extractors) == 0:
-            raise ExtractorError('No extractors matching {extractor_id!r} found', expected=True)
+            raise ExtractorError(f'No extractors matching {extractor_id!r} found', expected=True)
         elif len(matching_extractors) > 1:
-            try:  # Check for exact match
-                extractor = next(
-                    ie for ie in matching_extractors
-                    if ie.IE_NAME.lower() == extractor_id.lower())
-            except StopIteration:
+            extractor = next((  # Check for exact match
+                ie for ie in matching_extractors if ie.IE_NAME.lower() == extractor_id.lower()
+            ), None) or next((  # Check for exact match without plugin suffix
+                ie for ie in matching_extractors if ie.IE_NAME.split('+')[0].lower() == extractor_id.lower()
+            ), None)
+            if not extractor:
                 raise ExtractorError(
                     'Found multiple matching extractors: %s' % ' '.join(ie.IE_NAME for ie in matching_extractors),
                     expected=True)

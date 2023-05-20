@@ -202,7 +202,6 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 for this_format in this_formats:
                     this_format['quality'] = preference
                 formats.extend(this_formats)
-        self._sort_formats(formats)
         return formats, subtitles
 
     def _extract_video(self, video_id, record_id=None):

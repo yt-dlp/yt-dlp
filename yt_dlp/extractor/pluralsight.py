@@ -410,8 +410,6 @@ query viewClip {
                     })
                     formats.append(clip_f)
 
-        self._sort_formats(formats)
-
         duration = int_or_none(
             clip.get('duration')) or parse_duration(clip.get('formattedDuration'))
 

@@ -277,7 +277,6 @@ class PatreonIE(PatreonBaseIE):
                 }
             elif name == 'video':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
-                self._sort_formats(formats)
                 return {
                     **info,
                     'formats': formats,
@@ -311,7 +310,7 @@ class PatreonIE(PatreonBaseIE):
                 f'posts/{post_id}/comments', post_id, query=params, note='Downloading comments page %d' % page)
 
             cursor = None
-            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...), default=[]):
+            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
                 count += 1
                 comment_id = comment.get('id')
                 attributes = comment.get('attributes') or {}

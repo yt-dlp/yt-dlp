@@ -109,7 +109,6 @@ class WatchBoxIE(InfoExtractor):
                 'height': int_or_none(item.get('height')),
                 'tbr': int_or_none(item.get('bitrate')),
             })
-        self._sort_formats(formats)
 
         description = strip_or_none(item.get('descr'))
         thumbnail = item.get('media_content_thumbnail_large') or source.get('poster') or item.get('media_thumbnail')

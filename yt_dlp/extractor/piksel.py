@@ -153,8 +153,6 @@ class PikselIE(InfoExtractor):
                 re.sub(r'/od/[^/]+/', '/od/http/', smil_url), video_id,
                 transform_source=transform_source, fatal=False))
 
-        self._sort_formats(formats, ('tbr', ))  # Incomplete resolution information
-
         subtitles = {}
         for caption in video_data.get('captions', []):
             caption_url = caption.get('url')
@@ -170,4 +168,5 @@ class PikselIE(InfoExtractor):
             'timestamp': parse_iso8601(video_data.get('dateadd')),
             'formats': formats,
             'subtitles': subtitles,
+            '_format_sort_fields': ('tbr', ),  # Incomplete resolution information
         }

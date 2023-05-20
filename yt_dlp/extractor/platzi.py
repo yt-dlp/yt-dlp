@@ -127,7 +127,6 @@ class PlatziIE(PlatziBaseIE):
                         format_url, lecture_id, mpd_id=format_id,
                         note='Downloading %s MPD manifest' % server_id,
                         fatal=False))
-        self._sort_formats(formats)
 
         content = str_or_none(desc.get('content'))
         description = (clean_html(compat_b64decode(content).decode('utf-8'))

@@ -42,7 +42,6 @@ class PolsatGoIE(InfoExtractor):
 
         formats = list(self._extract_formats(
             try_get(media, lambda x: x['playback']['mediaSources']), video_id))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

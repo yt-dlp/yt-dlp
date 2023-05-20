@@ -103,8 +103,6 @@ class TubiTvIE(InfoExtractor):
         elif not formats and not video_data.get('policy_match'):  # policy_match is False if content was removed
             raise ExtractorError('This content is currently unavailable', expected=True)
 
-        self._sort_formats(formats)
-
         thumbnails = []
         for thumbnail_url in video_data.get('thumbnails', []):
             if not thumbnail_url:

@@ -130,7 +130,6 @@ class RTVEALaCartaIE(InfoExtractor):
                     'quality': q(quality),
                     'url': video_url,
                 })
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):
@@ -170,7 +169,7 @@ class RTVEALaCartaIE(InfoExtractor):
             for s in subs)
 
 
-class RTVEAudioIE(RTVEALaCartaIE):
+class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'rtve.es:audio'
     IE_DESC = 'RTVE audio'
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/]+/[^/]+/(?P<id>[0-9]+)'
@@ -238,7 +237,6 @@ class RTVEAudioIE(RTVEALaCartaIE):
                     'quality': q(quality),
                     'url': audio_url,
                 })
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):
@@ -257,7 +255,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
         }
 
 
-class RTVEInfantilIE(RTVEALaCartaIE):
+class RTVEInfantilIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'rtve.es:infantil'
     IE_DESC = 'RTVE infantil'
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/infantil/serie/[^/]+/video/[^/]+/(?P<id>[0-9]+)/'
@@ -276,7 +274,7 @@ class RTVEInfantilIE(RTVEALaCartaIE):
     }]
 
 
-class RTVELiveIE(RTVEALaCartaIE):
+class RTVELiveIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'rtve.es:live'
     IE_DESC = 'RTVE.es live streams'
     _VALID_URL = r'https?://(?:www\.)?rtve\.es/directo/(?P<id>[a-zA-Z0-9-]+)'

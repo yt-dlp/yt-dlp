@@ -45,8 +45,8 @@ class HttpFD(FileDownloader):
         ctx.tmpfilename = self.temp_name(filename)
         ctx.stream = None
 
-        # Do not include the Accept-Encoding header
-        headers = {'Youtubedl-no-compression': 'True'}
+        # Disable compression
+        headers = {'Accept-Encoding': 'identity'}
         add_headers = info_dict.get('http_headers')
         if add_headers:
             headers.update(add_headers)
@@ -211,7 +211,12 @@ class HttpFD(FileDownloader):
                 ctx.stream = None
 
         def download():
-            data_len = ctx.data.info().get('Content-length', None)
+            data_len = ctx.data.info().get('Content-length')
+
+            if ctx.data.info().get('Content-encoding'):
+                # Content-encoding is present, Content-length is not reliable anymore as we are
+                # doing auto decompression. (See: https://github.com/yt-dlp/yt-dlp/pull/6176)
+                data_len = None
 
             # Range HTTP header may be ignored/unsupported by a webserver
             # (e.g. extractor/scivee.py, extractor/bambuser.py).

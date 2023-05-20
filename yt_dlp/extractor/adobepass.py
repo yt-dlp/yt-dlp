@@ -1352,7 +1352,7 @@ MSO_INFO = {
 }
 
 
-class AdobePassIE(InfoExtractor):
+class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _SERVICE_PROVIDER_TEMPLATE = 'https://sp.auth.adobe.com/adobe-services/%s'
     _USER_AGENT = 'Mozilla/5.0 (X11; Linux i686; rv:47.0) Gecko/20100101 Firefox/47.0'
     _MVPD_CACHE = 'ap-mvpd'
@@ -1573,7 +1573,7 @@ class AdobePassIE(InfoExtractor):
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
-                elif mso_id == 'Spectrum':
+                elif mso_id in ('Spectrum', 'Charter_Direct'):
                     # Spectrum's login for is dynamically loaded via JS so we need to hardcode the flow
                     # as a one-off implementation.
                     provider_redirect_page, urlh = provider_redirect_page_res

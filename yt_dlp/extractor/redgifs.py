@@ -1,4 +1,5 @@
 import functools
+import urllib
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
@@ -44,7 +45,6 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                 'height': height,
                 'quality': quality(format_id),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -64,28 +64,29 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         }
 
     def _fetch_oauth_token(self, video_id):
-        # These pages contain the OAuth token that is necessary to make API calls.
-        index_page = self._download_webpage(f'https://www.redgifs.com/watch/{video_id}', video_id)
-        index_js_uri = self._html_search_regex(
-            r'href="?(/assets/js/index[.a-z0-9]*.js)"?\W', index_page, 'index_js_uri')
-        index_js = self._download_webpage(f'https://www.redgifs.com/{index_js_uri}', video_id)
-        # It turns out that a { followed by any valid JSON punctuation will always result in the
-        # first two characters of the base64 encoding being "ey".
-        # Use this fact to find any such string constant of a reasonable length with the correct
-        # punctuation for an oauth token
-        oauth_token = self._html_search_regex(
-            r'\w+\s*[=:]\s*"(ey[^"]+\.[^"]*\.[^"]{43,45})"', index_js, 'oauth token')
-        self._API_HEADERS['authorization'] = f'Bearer {oauth_token}'
+        # https://github.com/Redgifs/api/wiki/Temporary-tokens
+        auth = self._download_json('https://api.redgifs.com/v2/auth/temporary',
+                                   video_id, note='Fetching temporary token')
+        if not auth.get('token'):
+            raise ExtractorError('Unable to get temporary token')
+        self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
     def _call_api(self, ep, video_id, *args, **kwargs):
-        if 'authorization' not in self._API_HEADERS:
-            self._fetch_oauth_token(video_id)
-        assert 'authorization' in self._API_HEADERS
+        for first_attempt in True, False:
+            if 'authorization' not in self._API_HEADERS:
+                self._fetch_oauth_token(video_id)
+            try:
+                headers = dict(self._API_HEADERS)
+                headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
+                data = self._download_json(
+                    f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
+                break
+            except ExtractorError as e:
+                if first_attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    del self._API_HEADERS['authorization']  # refresh the token
+                    continue
+                raise
 
-        headers = dict(self._API_HEADERS)
-        headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
-        data = self._download_json(
-            f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True, video_id=video_id)
         return data

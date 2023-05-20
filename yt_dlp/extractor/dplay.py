@@ -126,7 +126,6 @@ class DPlayBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
-        self._sort_formats(formats)
 
         creator = series = None
         tags = []

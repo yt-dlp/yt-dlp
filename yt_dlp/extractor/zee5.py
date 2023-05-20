@@ -23,7 +23,7 @@ class Zee5IE(InfoExtractor):
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
                             (?:tv-shows|kids|web-series|zee5originals)(?:/[^#/?]+){3}
-                            |(?:movies|kids|videos)/(?!kids-shows)[^#/?]+
+                            |(?:movies|kids|videos|news|music-videos)/(?!kids-shows)[^#/?]+
                         )/(?P<display_id>[^#/?]+)/
                      )
                      (?P<id>[^#/?]+)/?(?:$|[?#])
@@ -87,6 +87,12 @@ class Zee5IE(InfoExtractor):
     }, {
         'url': 'https://www.zee5.com/kids/kids-movies/maya-bommalu/0-0-movie_1040370005',
         'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/news/details/jana-sena-chief-pawan-kalyan-shows-slippers-to-ysrcp-leaders/0-0-newsauto_6ettj4242oo0',
+        'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/music-videos/details/adhento-gaani-vunnapaatuga-jersey-nani-shraddha-srinath/0-0-56973',
+        'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails/secure?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
     _DEVICE_ID = ''.join(random.choices(string.ascii_letters + string.digits, k=20)).ljust(32, '0')
@@ -140,7 +146,6 @@ class Zee5IE(InfoExtractor):
         if not asset_data.get('hls_url'):
             self.raise_login_required(self._LOGIN_HINT, metadata_available=True, method=None)
         formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(asset_data['hls_url'], video_id, 'mp4', fatal=False)
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in asset_data.get('subtitle_url', []):

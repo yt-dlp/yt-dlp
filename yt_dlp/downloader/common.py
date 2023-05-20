@@ -15,15 +15,16 @@ from ..minicurses import (
 from ..utils import (
     IDENTITY,
     NO_DEFAULT,
-    NUMBER_RE,
     LockingUnsupportedError,
     Namespace,
     RetryManager,
     classproperty,
     decodeArgument,
+    deprecation_warning,
     encodeFilename,
     format_bytes,
     join_nonempty,
+    parse_bytes,
     remove_start,
     sanitize_open,
     shell_quote,
@@ -180,12 +181,9 @@ class FileDownloader:
     @staticmethod
     def parse_bytes(bytestr):
         """Parse a string indicating a byte quantity into an integer."""
-        matchobj = re.match(rf'(?i)^({NUMBER_RE})([kMGTPEZY]?)$', bytestr)
-        if matchobj is None:
-            return None
-        number = float(matchobj.group(1))
-        multiplier = 1024.0 ** 'bkmgtpezy'.index(matchobj.group(2).lower())
-        return int(round(number * multiplier))
+        deprecation_warning('yt_dlp.FileDownloader.parse_bytes is deprecated and '
+                            'may be removed in the future. Use yt_dlp.utils.parse_bytes instead')
+        return parse_bytes(bytestr)
 
     def slow_down(self, start_time, now, byte_counter):
         """Sleep if the download speed is over the rate limit."""
@@ -333,7 +331,7 @@ class FileDownloader:
                     return tmpl
             return default
 
-        _formats_bytes = lambda k: f'{format_bytes(s.get(k)):>10s}'
+        _format_bytes = lambda k: f'{format_bytes(s.get(k)):>10s}'
 
         if s['status'] == 'finished':
             if self.params.get('noprogress'):
@@ -342,7 +340,7 @@ class FileDownloader:
             s.update({
                 'speed': speed,
                 '_speed_str': self.format_speed(speed).strip(),
-                '_total_bytes_str': _formats_bytes('total_bytes'),
+                '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
                 '_percent_str': self.format_percent(100),
             })
@@ -363,9 +361,9 @@ class FileDownloader:
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
                 lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': _formats_bytes('total_bytes'),
-            '_total_bytes_estimate_str': _formats_bytes('total_bytes_estimate'),
-            '_downloaded_bytes_str': _formats_bytes('downloaded_bytes'),
+            '_total_bytes_str': _format_bytes('total_bytes'),
+            '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
+            '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
             '_elapsed_str': self.format_seconds(s.get('elapsed')),
         })
 

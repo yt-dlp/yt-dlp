@@ -78,7 +78,7 @@ class DiscoveryIE(DiscoveryGoBaseIE):
                 'Downloading token JSON metadata', query={
                     'authRel': 'authorization',
                     'client_id': '3020a40c2356a645b4b4',
-                    'nonce': ''.join([random.choice(string.ascii_letters) for _ in range(32)]),
+                    'nonce': ''.join(random.choices(string.ascii_letters, k=32)),
                     'redirectUri': 'https://www.discovery.com/',
                 })['access_token']
 

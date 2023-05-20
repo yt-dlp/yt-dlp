@@ -313,7 +313,6 @@ class RaiPlayIE(RaiBaseIE):
         video = media['video']
 
         relinker_info = self._extract_relinker_info(video['content_url'], video_id)
-        self._sort_formats(relinker_info['formats'])
 
         thumbnails = []
         for _, value in media.get('images', {}).items():
@@ -356,7 +355,7 @@ class RaiPlayIE(RaiBaseIE):
         }
 
 
-class RaiPlayLiveIE(RaiPlayIE):
+class RaiPlayLiveIE(RaiPlayIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'http://www.raiplay.it/dirette/rainews24',
@@ -504,7 +503,7 @@ class RaiPlaySoundIE(RaiBaseIE):
         }
 
 
-class RaiPlaySoundLiveIE(RaiPlaySoundIE):
+class RaiPlaySoundLiveIE(RaiPlaySoundIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/radio2',
@@ -621,8 +620,6 @@ class RaiIE(RaiBaseIE):
         else:
             raise ExtractorError('not a media file')
 
-        self._sort_formats(relinker_info['formats'])
-
         thumbnails = []
         for image_type in ('image', 'image_medium', 'image_300'):
             thumbnail_url = media.get(image_type)
@@ -703,7 +700,6 @@ class RaiIE(RaiBaseIE):
 
         relinker_info = self._extract_relinker_info(
             urljoin(url, relinker_url), video_id)
-        self._sort_formats(relinker_info['formats'])
 
         title = self._search_regex(
             r'var\s+videoTitolo\s*=\s*([\'"])(?P<title>[^\'"]+)\1',
@@ -717,7 +713,7 @@ class RaiIE(RaiBaseIE):
         }
 
 
-class RaiNewsIE(RaiIE):
+class RaiNewsIE(RaiIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
     _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
     _TESTS = [{
@@ -771,8 +767,6 @@ class RaiNewsIE(RaiIE):
                 raise ExtractorError('Relinker URL not found', cause=e)
 
         relinker_info = self._extract_relinker_info(urljoin(url, relinker_url), video_id)
-
-        self._sort_formats(relinker_info['formats'])
 
         return {
             'id': video_id,

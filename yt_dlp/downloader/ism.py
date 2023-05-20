@@ -280,5 +280,4 @@ class IsmFD(FragmentFD):
                     return False
                 self.report_skip_fragment(frag_index)
 
-        self._finish_frag_download(ctx, info_dict)
-        return True
+        return self._finish_frag_download(ctx, info_dict)

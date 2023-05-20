@@ -54,8 +54,6 @@ class CPACIE(InfoExtractor):
                 else:
                     fmt['language_preference'] = -10
 
-        self._sort_formats(formats)
-
         category = str_or_none(content['details']['category_%s_t' % (url_lang, )])
 
         def is_live(v_type):

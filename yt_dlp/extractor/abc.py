@@ -155,8 +155,6 @@ class ABCIE(InfoExtractor):
                 'format_id': format_id
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._og_search_title(webpage),
@@ -221,7 +219,6 @@ class ABCIViewIE(InfoExtractor):
                 entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
             if formats:
                 break
-        self._sort_formats(formats)
 
         subtitles = {}
         src_vtt = stream.get('captions', {}).get('src-vtt')

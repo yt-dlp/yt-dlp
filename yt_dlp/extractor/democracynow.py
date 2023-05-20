@@ -59,8 +59,6 @@ class DemocracynowIE(InfoExtractor):
                 'vcodec': 'none' if key == 'audio' else None,
             })
 
-        self._sort_formats(formats)
-
         default_lang = 'en'
         subtitles = {}
 

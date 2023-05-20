@@ -1,4 +1,6 @@
-from .common import InfoExtractor
+import itertools
+
+from .common import InfoExtractor, SearchInfoExtractor
 from .dailymotion import DailymotionIE
 from ..utils import smuggle_url, traverse_obj
 
@@ -16,6 +18,26 @@ class NetverseBaseIE(InfoExtractor):
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
             display_id or slug, query=query)
 
+    def _get_comments(self, video_id):
+        last_page_number = None
+        for i in itertools.count(1):
+            comment_data = self._download_json(
+                f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}',
+                video_id, data=b'', fatal=False, query={'page': i},
+                note=f'Downloading JSON comment metadata page {i}') or {}
+            yield from traverse_obj(comment_data, ('response', 'comments', 'data', ..., {
+                'id': '_id',
+                'text': 'comment',
+                'author_id': 'customer_id',
+                'author': ('customer', 'name'),
+                'author_thumbnail': ('customer', 'profile_picture'),
+            }))
+
+            if not last_page_number:
+                last_page_number = traverse_obj(comment_data, ('response', 'comments', 'last_page'))
+            if i >= (last_page_number or 0):
+                break
+
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
@@ -28,7 +50,7 @@ class NetverseIE(NetverseBaseIE):
             'ext': 'mp4',
             'season': 'Season 2016',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/T7aV31Y0eGRWBbwkK/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'episode_number': 22,
             'episode': 'Episode 22',
             'uploader_id': 'x2ir3vq',
@@ -51,7 +73,7 @@ class NetverseIE(NetverseBaseIE):
             'ext': 'mp4',
             'season': 'Season 2',
             'description': 'md5:8a74f70812cca267e19ee0635f0af835',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/Thwuy1YURicFmGu0v/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'episode_number': 2,
             'episode': 'Episode 2',
             'view_count': int,
@@ -75,7 +97,7 @@ class NetverseIE(NetverseBaseIE):
             'title': 'Tetangga Baru',
             'season': 'Season 1',
             'description': 'md5:23fcf70e97d461d3029d25d59b2ccfb9',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/T3Ogm1YEnnyjVKAFF/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'episode_number': 1,
             'episode': 'Episode 1',
             'timestamp': 1624538169,
@@ -96,7 +118,7 @@ class NetverseIE(NetverseBaseIE):
         'info_dict': {
             'id': 'x887jzz',
             'ext': 'mp4',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/TfuZ_1Y6PboJ5An_s/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'season': 'Season 1',
             'episode_number': 1,
             'description': 'md5:d4f627b3e7a3f9acdc55f6cdd5ea41d5',
@@ -114,6 +136,60 @@ class NetverseIE(NetverseBaseIE):
             'upload_date': '20220225',
         },
         'skip': 'This video get Geo-blocked for some country'
+    }, {
+        # video with comments
+        'url': 'https://netverse.id/video/episode-1-season-2016-ok-food',
+        'info_dict': {
+            'id': 'k6hetBPiQMljSxxvAy7',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
+            'display_id': 'episode-1-season-2016-ok-food',
+            'like_count': int,
+            'description': '',
+            'duration': 1471,
+            'age_limit': 0,
+            'timestamp': 1642405848,
+            'episode_number': 1,
+            'season': 'Season 2016',
+            'uploader_id': 'x2ir3vq',
+            'title': 'Episode 1 - Season 2016 - Ok Food',
+            'upload_date': '20220117',
+            'tags': [],
+            'view_count': int,
+            'episode': 'Episode 1',
+            'uploader': 'Net Prime',
+            'comment_count': int,
+        },
+        'params':{
+            'getcomments': True
+        }
+    }, {
+        # video with multiple page comment
+        'url': 'https://netverse.id/video/match-island-eps-1-fix',
+        'info_dict': {
+            'id': 'x8aznjc',
+            'ext': 'mp4',
+            'like_count': int,
+            'tags': ['Match-Island', 'Pd00111'],
+            'display_id': 'match-island-eps-1-fix',
+            'view_count': int,
+            'episode': 'Episode 1',
+            'uploader': 'Net Prime',
+            'duration': 4070,
+            'timestamp': 1653068165,
+            'description': 'md5:e9cf3b480ad18e9c33b999e3494f223f',
+            'age_limit': 0,
+            'title': 'Welcome To Match Island',
+            'upload_date': '20220520',
+            'episode_number': 1,
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
+            'uploader_id': 'x2ir3vq',
+            'season': 'Season 1',
+            'comment_count': int,
+        },
+        'params':{
+            'getcomments': True
+        }
     }]
 
     def _real_extract(self, url):
@@ -131,6 +207,7 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': traverse_obj(videos, ('program_detail', 'thumbnail_image')),
             'description': traverse_obj(videos, ('program_detail', 'description')),
             'episode_number': videos.get('episode_order'),
+            '__post_extractor': self.extract_comments(display_id),
         }
 
 
@@ -174,3 +251,31 @@ class NetversePlaylistIE(NetverseBaseIE):
             self.parse_playlist(playlist_data['response'], playlist_id),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
+
+
+class NetverseSearchIE(SearchInfoExtractor):
+    _SEARCH_KEY = 'netsearch'
+
+    _TESTS = [{
+        'url': 'netsearch10:tetangga',
+        'info_dict': {
+            'id': 'tetangga',
+            'title': 'tetangga',
+        },
+        'playlist_count': 10,
+    }]
+
+    def _search_results(self, query):
+        last_page = None
+        for i in itertools.count(1):
+            search_data = self._download_json(
+                'https://api.netverse.id/search/elastic/search', query,
+                query={'q': query, 'page': i}, note=f'Downloading page {i}')
+
+            videos = traverse_obj(search_data, ('response', 'data', ...))
+            for video in videos:
+                yield self.url_result(f'https://netverse.id/video/{video["slug"]}', NetverseIE)
+
+            last_page = last_page or traverse_obj(search_data, ('response', 'lastpage'))
+            if not videos or i >= (last_page or 0):
+                break
