@@ -20,7 +20,12 @@ from .utils import (
 
 def _js_bit_op(op):
     def zeroise(x):
-        return 0 if x in (None, JS_Undefined) else x
+        if x in (None, JS_Undefined):
+            return 0
+        with contextlib.suppress(TypeError):
+            if math.isnan(x):  # NB: NaN cannot be checked by membership
+                return 0
+        return x
 
     def wrapped(a, b):
         return op(zeroise(a), zeroise(b)) & 0xffffffff
@@ -258,9 +263,11 @@ class JSInterpreter:
                 elif in_quote == '/' and char in '[]':
                     in_regex_char_group = char == '['
             escaping = not escaping and in_quote and char == '\\'
-            after_op = not in_quote and char in OP_CHARS or (char.isspace() and after_op)
+            in_unary_op = (not in_quote and not in_regex_char_group
+                           and after_op not in (True, False) and char in '-+')
+            after_op = char if (not in_quote and char in OP_CHARS) else (char.isspace() and after_op)
 
-            if char != delim[pos] or any(counters.values()) or in_quote:
+            if char != delim[pos] or any(counters.values()) or in_quote or in_unary_op:
                 pos = 0
                 continue
             elif pos != delim_len:
