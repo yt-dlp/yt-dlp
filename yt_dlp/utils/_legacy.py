@@ -171,3 +171,8 @@ def handle_youtubedl_headers(headers):
         del filtered_headers['Youtubedl-no-compression']
 
     return filtered_headers
+
+
+def YoutubeDLCookieJar(*args, **kwargs):
+    from ..cookies import YoutubeDLCookieJar
+    return YoutubeDLCookieJar(*args, **kwargs)
