@@ -1378,7 +1378,7 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
 
         if 'Youtubedl-no-compression' in req.headers:  # deprecated
             req.headers.pop('Youtubedl-no-compression', None)
-            req.headers['Accept-encoding'] = 'identity'
+            req.add_header('Accept-encoding', 'identity')
 
         if 'Accept-encoding' not in req.headers:
             req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
