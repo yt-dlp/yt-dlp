@@ -128,6 +128,12 @@ class SpankBangIE(InfoExtractor):
                     format_url = format_url[0]
                 extract_format(format_id, format_url)
 
+        og_url = self._search_regex(
+            r'<meta property="og:url" content="(.*?)"', webpage, 'og:url', default=None)
+        if og_url:
+            video_id = self._search_regex(
+                r'https://spankbang.com/([^/]+)/', og_url, 'video ID', default=None)
+
         info = self._search_json_ld(webpage, video_id, default={})
 
         title = self._html_search_regex(
