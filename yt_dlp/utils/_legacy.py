@@ -161,3 +161,13 @@ def register_socks_protocols():
     for scheme in ('socks', 'socks4', 'socks4a', 'socks5'):
         if scheme not in urllib.parse.uses_netloc:
             urllib.parse.uses_netloc.append(scheme)
+
+
+def handle_youtubedl_headers(headers):
+    filtered_headers = headers
+
+    if 'Youtubedl-no-compression' in filtered_headers:
+        filtered_headers = {k: v for k, v in filtered_headers.items() if k.lower() != 'accept-encoding'}
+        del filtered_headers['Youtubedl-no-compression']
+
+    return filtered_headers

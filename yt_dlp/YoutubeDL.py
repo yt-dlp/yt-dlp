@@ -2380,7 +2380,9 @@ class YoutubeDL:
 
     def _calc_headers(self, info_dict):
         res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
-
+        if 'Youtubedl-No-Compression' in res:  # deprecated
+            res.pop('Youtubedl-No-Compression', None)
+            res['Accept-Encoding'] = 'identity'
         cookies = self._calc_cookies(info_dict['url'])
         if cookies:
             res['Cookie'] = cookies
