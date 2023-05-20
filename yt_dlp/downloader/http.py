@@ -45,8 +45,8 @@ class HttpFD(FileDownloader):
         ctx.tmpfilename = self.temp_name(filename)
         ctx.stream = None
 
-        # Do not include the Accept-Encoding header
-        headers = {'Youtubedl-no-compression': 'True'}
+        # Disable compression
+        headers = {'Accept-Encoding': 'identity'}
         add_headers = info_dict.get('http_headers')
         if add_headers:
             headers.update(add_headers)
