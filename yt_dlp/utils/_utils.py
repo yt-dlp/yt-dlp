@@ -60,16 +60,6 @@ from ..compat import (
 from ..dependencies import brotli, certifi, websockets, xattr
 from ..socks import ProxyType, sockssocket
 
-
-def register_socks_protocols():
-    # "Register" SOCKS protocols
-    # In Python < 2.6.5, urlsplit() suffers from bug https://bugs.python.org/issue7904
-    # URLs with protocols not in urlparse.uses_netloc are not handled correctly
-    for scheme in ('socks', 'socks4', 'socks4a', 'socks5'):
-        if scheme not in urllib.parse.uses_netloc:
-            urllib.parse.uses_netloc.append(scheme)
-
-
 # This is not clearly defined otherwise
 compiled_regex_type = type(re.compile(''))
 

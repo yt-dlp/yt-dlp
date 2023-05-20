@@ -739,7 +739,6 @@ class YoutubeDL:
                 when=when)
 
         self._setup_opener()
-        register_socks_protocols()
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""

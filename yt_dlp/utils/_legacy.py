@@ -3,6 +3,7 @@
 import platform
 import struct
 import sys
+import urllib.parse
 import zlib
 
 from ._utils import decode_base_n, preferredencoding
@@ -151,3 +152,12 @@ def decode_png(png_data):
             current_row.append(color)
 
     return width, height, pixels
+
+
+def register_socks_protocols():
+    # "Register" SOCKS protocols
+    # In Python < 2.6.5, urlsplit() suffers from bug https://bugs.python.org/issue7904
+    # URLs with protocols not in urlparse.uses_netloc are not handled correctly
+    for scheme in ('socks', 'socks4', 'socks4a', 'socks5'):
+        if scheme not in urllib.parse.uses_netloc:
+            urllib.parse.uses_netloc.append(scheme)
