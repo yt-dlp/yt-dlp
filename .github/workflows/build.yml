@@ -41,7 +41,7 @@ on:
         required: true
         type: string
       channel:
-        description: Update channel (stable/nightly)
+        description: Update channel (stable/nightly/...)
         required: true
         default: stable
         type: string
@@ -316,7 +316,7 @@ jobs:
             dist/yt-dlp_x86.exe
 
   meta_files:
-    if: inputs.meta_files && always()
+    if: inputs.meta_files && always() && !cancelled()
     needs:
       - unix
       - linux_arm
