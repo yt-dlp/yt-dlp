@@ -124,7 +124,6 @@ from .utils import (
     parse_filesize,
     preferredencoding,
     prepend_extension,
-    register_socks_protocols,
     remove_terminal_sequences,
     render_table,
     replace_extension,
