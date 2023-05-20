@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
@@ -32,8 +33,10 @@ from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
     Popen,
     error_to_str,
+    escape_url,
     expand_path,
     is_path_like,
+    sanitize_url,
     str_or_none,
     try_call,
     write_string,
@@ -1224,3 +1227,8 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
             if cookie.expires == 0:
                 cookie.expires = None
                 cookie.discard = True
+
+    def get_cookie_header(self, url):
+        cookie_req = urllib.request.Request(escape_url(sanitize_url(url)))
+        self.add_cookie_header(cookie_req)
+        return cookie_req.get_header('Cookie')

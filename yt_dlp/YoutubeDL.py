@@ -2383,7 +2383,7 @@ class YoutubeDL:
         if 'Youtubedl-No-Compression' in res:  # deprecated
             res.pop('Youtubedl-No-Compression', None)
             res['Accept-Encoding'] = 'identity'
-        cookies = self._calc_cookies(info_dict['url'])
+        cookies = self.cookiejar.get_cookie_header(info_dict['url'])
         if cookies:
             res['Cookie'] = cookies
 
@@ -2393,11 +2393,6 @@ class YoutubeDL:
                 res['X-Forwarded-For'] = x_forwarded_for_ip
 
         return res
-
-    def _calc_cookies(self, url):
-        pr = sanitized_Request(url)
-        self.cookiejar.add_cookie_header(pr)
-        return pr.get_header('Cookie')
 
     def _sort_thumbnails(self, thumbnails):
         thumbnails.sort(key=lambda t: (
