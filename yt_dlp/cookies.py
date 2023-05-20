@@ -1229,6 +1229,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 cookie.discard = True
 
     def get_cookie_header(self, url):
+        """Generate a Cookie HTTP header for a given url"""
         cookie_req = urllib.request.Request(escape_url(sanitize_url(url)))
         self.add_cookie_header(cookie_req)
         return cookie_req.get_header('Cookie')

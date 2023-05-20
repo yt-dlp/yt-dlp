@@ -5210,6 +5210,7 @@ def windows_enable_vt_mode():
     if get_windows_version() < (10, 0, 10586):
         return
 
+    import ctypes
     import ctypes.wintypes
     import msvcrt
 
