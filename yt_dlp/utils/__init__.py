@@ -9,6 +9,6 @@ del passthrough_module
 
 # isort: off
 from .traversal import *
-from ._old import *
-from ._old import _configuration_args, _get_exe_version_output
+from ._utils import *
+from ._utils import _configuration_args, _get_exe_version_output
 from ._deprecated import *

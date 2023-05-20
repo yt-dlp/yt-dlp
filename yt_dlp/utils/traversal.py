@@ -4,7 +4,7 @@ import inspect
 import itertools
 import re
 
-from ._old import (
+from ._utils import (
     IDENTITY,
     NO_DEFAULT,
     LazyList,

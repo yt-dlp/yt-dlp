@@ -3,7 +3,7 @@ import struct
 import sys
 import zlib
 
-from ._old import decode_base_n, preferredencoding
+from ._utils import decode_base_n, preferredencoding
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 

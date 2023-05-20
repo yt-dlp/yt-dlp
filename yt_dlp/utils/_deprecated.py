@@ -1,6 +1,6 @@
 """Deprecated - New code should avoid these"""
 
-from ._old import preferredencoding
+from ._utils import preferredencoding
 
 
 def encodeFilename(s, for_subprocess=False):
