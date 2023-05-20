@@ -127,6 +127,19 @@ jobs:
           mv ./dist/yt-dlp_linux ./yt-dlp_linux
           mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
 
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          binaries=("yt-dlp" "yt-dlp_linux")
+          for binary in "${binaries[@]}"; do
+            chmod +x ./${binary}
+            cp ./${binary} ./${binary}_downgraded
+            version="$(./${binary} --version)"
+            ./${binary}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+            downgraded_version="$(./${binary}_downgraded --version)"
+            [[ "$version" != "$downgraded_version" ]]
+          done
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -176,6 +189,16 @@ jobs:
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 pyinst.py
 
+            if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
+              arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
+              chmod +x ./dist/yt-dlp_linux_${arch}
+              cp ./dist/yt-dlp_linux_${arch} ./dist/yt-dlp_linux_${arch}_downgraded
+              version="$(./dist/yt-dlp_linux_${arch} --version)"
+              ./dist/yt-dlp_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+              downgraded_version="$(./dist/yt-dlp_linux_${arch}_downgraded --version)"
+              [[ "$version" != "$downgraded_version" ]]
+            fi
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -205,6 +228,16 @@ jobs:
           python3 pyinst.py --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
           python3 pyinst.py --target-architecture universal2
+
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ./dist/yt-dlp_macos
+          cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
+          version="$(./dist/yt-dlp_macos --version)"
+          ./dist/yt-dlp_macos_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -246,6 +279,16 @@ jobs:
           python3 pyinst.py
           mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
 
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ./dist/yt-dlp_macos_legacy
+          cp ./dist/yt-dlp_macos_legacy ./dist/yt-dlp_macos_legacy_downgraded
+          version="$(./dist/yt-dlp_macos_legacy --version)"
+          ./dist/yt-dlp_macos_legacy_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./dist/yt-dlp_macos_legacy_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -278,6 +321,19 @@ jobs:
           python pyinst.py --onedir
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
 
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          foreach ($name in @("yt-dlp","yt-dlp_min")) {
+            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+            $version = & "./dist/${name}.exe" --version
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+            if ($version -eq $downgraded_version) {
+              exit 1
+            }
+          }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -308,6 +364,19 @@ jobs:
       - name: Build
         run: |
           python pyinst.py
+
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          foreach ($name in @("yt-dlp_x86")) {
+            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+            $version = & "./dist/${name}.exe" --version
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+            if ($version -eq $downgraded_version) {
+              exit 1
+            }
+          }
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
