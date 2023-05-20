@@ -1,3 +1,5 @@
+"""No longer used and new code should not use. Exists only for API compat."""
+
 import platform
 import struct
 import sys
