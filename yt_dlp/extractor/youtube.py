@@ -4639,11 +4639,19 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _rich_entries(self, rich_grid_renderer):
         renderer = traverse_obj(
-            rich_grid_renderer, ('content', ('videoRenderer', 'reelItemRenderer')), get_all=False) or {}
+            rich_grid_renderer,
+            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer')), get_all=False) or {}
         video_id = renderer.get('videoId')
-        if not video_id:
+        if video_id:
+            yield self._extract_video(renderer)
             return
-        yield self._extract_video(renderer)
+        playlist_id = renderer.get('playlistId')
+        if playlist_id:
+            yield self.url_result(
+                f'https://www.youtube.com/playlist?list={playlist_id}',
+                ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
+                video_title=self._get_text(renderer, 'title'))
+            return
 
     def _video_entry(self, video_renderer):
         video_id = video_renderer.get('videoId')
@@ -6185,6 +6193,40 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': '3Blue1Brown',
         },
         'playlist_count': 0,
+    }, {
+        # Podcasts tab, with rich entry playlistRenderers
+        'url': 'https://www.youtube.com/@99percentinvisiblepodcast/podcasts',
+        'info_dict': {
+            'id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'channel_id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'uploader_url': 'https://www.youtube.com/@99percentinvisiblepodcast',
+            'description': 'md5:3a0ed38f1ad42a68ef0428c04a15695c',
+            'title': '99 Percent Invisible - Podcasts',
+            'uploader': '99 Percent Invisible',
+            'channel_follower_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'tags': [],
+            'channel': '99 Percent Invisible',
+            'uploader_id': '@99percentinvisiblepodcast',
+        },
+        'playlist_count': 1,
+    }, {
+        # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
+        'url': 'https://www.youtube.com/@AHimitsu/releases',
+        'info_dict': {
+            'id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel': 'A Himitsu',
+            'uploader_url': 'https://www.youtube.com/@AHimitsu',
+            'title': 'A Himitsu - Releases',
+            'uploader_id': '@AHimitsu',
+            'uploader': 'A Himitsu',
+            'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'tags': 'count:16',
+            'description': 'I make music',
+            'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel_follower_count': int,
+        },
+        'playlist_mincount': 10,
     }]
 
     @classmethod

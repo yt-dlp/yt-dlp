@@ -41,7 +41,7 @@ on:
         required: true
         type: string
       channel:
-        description: Update channel (stable/nightly)
+        description: Update channel (stable/nightly/...)
         required: true
         default: stable
         type: string
@@ -127,6 +127,19 @@ jobs:
           mv ./dist/yt-dlp_linux ./yt-dlp_linux
           mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
 
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          binaries=("yt-dlp" "yt-dlp_linux")
+          for binary in "${binaries[@]}"; do
+            chmod +x ./${binary}
+            cp ./${binary} ./${binary}_downgraded
+            version="$(./${binary} --version)"
+            ./${binary}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+            downgraded_version="$(./${binary}_downgraded --version)"
+            [[ "$version" != "$downgraded_version" ]]
+          done
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -176,6 +189,16 @@ jobs:
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 pyinst.py
 
+            if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
+              arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
+              chmod +x ./dist/yt-dlp_linux_${arch}
+              cp ./dist/yt-dlp_linux_${arch} ./dist/yt-dlp_linux_${arch}_downgraded
+              version="$(./dist/yt-dlp_linux_${arch} --version)"
+              ./dist/yt-dlp_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+              downgraded_version="$(./dist/yt-dlp_linux_${arch}_downgraded --version)"
+              [[ "$version" != "$downgraded_version" ]]
+            fi
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -188,21 +211,33 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      # NB: In order to create a universal2 application, the version of python3 in /usr/bin has to be used
+      # NB: Building universal2 does not work with python from actions/setup-python
       - name: Install Requirements
         run: |
           brew install coreutils
-          /usr/bin/python3 -m pip install -U --user pip "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0.tar.gz" -r requirements.txt
+          python3 -m pip install -U --user pip setuptools wheel
+          # We need to ignore wheels otherwise we break universal2 builds
+          python3 -m pip install -U --user --no-binary :all: Pyinstaller -r requirements.txt
 
       - name: Prepare
         run: |
-          /usr/bin/python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
-          /usr/bin/python3 devscripts/make_lazy_extractors.py
+          python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+          python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
+          python3 pyinst.py --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
-          /usr/bin/python3 pyinst.py --target-architecture universal2
+          python3 pyinst.py --target-architecture universal2
+
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ./dist/yt-dlp_macos
+          cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
+          version="$(./dist/yt-dlp_macos --version)"
+          ./dist/yt-dlp_macos_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -232,7 +267,8 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip Pyinstaller -r requirements.txt
+          python3 -m pip install -U --user pip setuptools wheel
+          python3 -m pip install -U --user Pyinstaller -r requirements.txt
 
       - name: Prepare
         run: |
@@ -242,6 +278,16 @@ jobs:
         run: |
           python3 pyinst.py
           mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
+
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          chmod +x ./dist/yt-dlp_macos_legacy
+          cp ./dist/yt-dlp_macos_legacy ./dist/yt-dlp_macos_legacy_downgraded
+          version="$(./dist/yt-dlp_macos_legacy --version)"
+          ./dist/yt-dlp_macos_legacy_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./dist/yt-dlp_macos_legacy_downgraded --version)"
+          [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -275,6 +321,19 @@ jobs:
           python pyinst.py --onedir
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
 
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          foreach ($name in @("yt-dlp","yt-dlp_min")) {
+            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+            $version = & "./dist/${name}.exe" --version
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+            if ($version -eq $downgraded_version) {
+              exit 1
+            }
+          }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -306,6 +365,19 @@ jobs:
         run: |
           python pyinst.py
 
+      - name: Verify --update-to
+        if: vars.UPDATE_TO_VERIFICATION
+        run: |
+          foreach ($name in @("yt-dlp_x86")) {
+            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
+            $version = & "./dist/${name}.exe" --version
+            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            $downgraded_version = & "./dist/${name}_downgraded.exe" --version
+            if ($version -eq $downgraded_version) {
+              exit 1
+            }
+          }
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -313,7 +385,7 @@ jobs:
             dist/yt-dlp_x86.exe
 
   meta_files:
-    if: inputs.meta_files && always()
+    if: inputs.meta_files && always() && !cancelled()
     needs:
       - unix
       - linux_arm
