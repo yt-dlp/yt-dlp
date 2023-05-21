@@ -230,9 +230,8 @@ class TestHTTP(unittest.TestCase):
         with FakeYDL() as ydl:
             def do_req(redirect_status, method):
                 data = b'testdata' if method in ('POST', 'PUT') else None
-                res = ydl.urlopen(
-                    sanitized_Request(
-                        f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data))
+                res = ydl.urlopen(sanitized_Request(
+                    f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data))
                 return res.read().decode('utf-8'), res.headers.get('method', '')
 
             # A 303 must either use GET or HEAD for subsequent request
