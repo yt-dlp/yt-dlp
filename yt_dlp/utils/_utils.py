@@ -1671,7 +1671,6 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         """Return a Request or None in response to a redirect.
-
         This is called by the http_error_30x methods when a
         redirection response is received.  If a redirection should
         take place, return a new Request to allow http_error_30x to
@@ -1679,10 +1678,9 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
         else should try to handle this url.  Return None if you can't
         but another Handler might.
         """
-        m = req.get_method()
-        if (not (code in (301, 302, 303, 307, 308) and m in ("GET", "HEAD")
-                 or code in (301, 302, 303) and m == "POST")):
+        if code not in (301, 302, 303, 307, 308):
             raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
+
         # Strictly (according to RFC 2616), 301 or 302 in response to
         # a POST MUST NOT cause a redirection without confirmation
         # from the user (of urllib.request, in this case).  In practice,
@@ -1693,25 +1691,30 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
         # redundant with the more complete encoding done in http_error_302(),
         # but it is kept for compatibility with other callers.
         newurl = newurl.replace(' ', '%20')
-
-        CONTENT_HEADERS = ("content-length", "content-type")
-        # NB: don't use dict comprehension for python 2.6 compatibility
-        newheaders = {k: v for k, v in req.headers.items() if k.lower() not in CONTENT_HEADERS}
-
+        new_method = req.get_method()
+        new_data = req.data
+        remove_headers = []
         # A 303 must either use GET or HEAD for subsequent request
         # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.4
-        if code == 303 and m != 'HEAD':
-            m = 'GET'
+        if code == 303 and req.get_method() != 'HEAD':
+            new_method = 'GET'
         # 301 and 302 redirects are commonly turned into a GET from a POST
         # for subsequent requests by browsers, so we'll do the same.
         # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.2
         # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.3
-        if code in (301, 302) and m == 'POST':
-            m = 'GET'
+        elif code in (301, 302) and req.get_method() == 'POST':
+            new_method = 'GET'
+
+        # only remove payload if method changed (e.g. POST to GET)
+        if new_method != req.get_method():
+            new_data = None
+            remove_headers.extend(['Content-Length', 'Content-Type'])
+
+        new_headers = {k: v for k, v in req.headers.items() if k.lower() not in remove_headers}
 
         return urllib.request.Request(
-            newurl, headers=newheaders, origin_req_host=req.origin_req_host,
-            unverifiable=True, method=m)
+            newurl, headers=new_headers, origin_req_host=req.origin_req_host,
+            unverifiable=True, method=new_method, data=new_data)
 
 
 def extract_timezone(date_str):
