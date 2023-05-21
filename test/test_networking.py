@@ -274,10 +274,9 @@ class TestHTTP(unittest.TestCase):
 
     def test_cookiejar(self):
         with FakeYDL() as ydl:
-            ydl.cookiejar.set_cookie(
-                Cookie(
-                    0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
-                    False, '/headers', True, False, None, False, None, None, {}))
+            ydl.cookiejar.set_cookie(Cookie(
+                0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
+                False, '/headers', True, False, None, False, None, None, {}))
             data = ydl.urlopen(sanitized_Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
             self.assertIn(b'Cookie: test=ytdlp', data)
 
