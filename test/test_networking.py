@@ -268,7 +268,7 @@ class TestHTTP(unittest.TestCase):
             self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
 
             # test http
-            r = sanitized_Request('http://localhost:%d/headers' % self.http_port, data=urlencode_postdata({'test': 'test'}))
+            r = sanitized_Request(f'http://localhost:{self.http_port}/headers', data=urlencode_postdata({'test': 'test'}))
             headers = ydl.urlopen(r).read().decode('utf-8')
             self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
 
