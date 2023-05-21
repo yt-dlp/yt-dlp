@@ -322,8 +322,8 @@ class TestClientCert(unittest.TestCase):
             'nocheckcertificate': True,
             **params,
         })
-        r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
-        self.assertEqual(r['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
+        r = ydl.extract_info(f'https://127.0.0.1:{self.port}/video.html')
+        self.assertEqual(r['url'], f'https://127.0.0.1:{self.port}/vid.mp4')
 
     def test_certificate_combined_nopass(self):
         self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
