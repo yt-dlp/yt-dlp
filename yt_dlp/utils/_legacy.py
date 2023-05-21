@@ -8,6 +8,7 @@ import zlib
 
 from ._utils import decode_base_n, preferredencoding
 from .traversal import traverse_obj
+from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..dependencies import certifi, websockets
 
 has_certifi = bool(certifi)
@@ -171,8 +172,3 @@ def handle_youtubedl_headers(headers):
         del filtered_headers['Youtubedl-no-compression']
 
     return filtered_headers
-
-
-def YoutubeDLCookieJar(*args, **kwargs):
-    from ..cookies import YoutubeDLCookieJar
-    return YoutubeDLCookieJar(*args, **kwargs)
