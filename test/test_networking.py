@@ -138,10 +138,10 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             buf = io.BytesIO()
             with gzip.GzipFile(fileobj=buf, mode='wb') as f:
                 f.write(payload)
-            compressed = buf.getvalue()
-            self.send_header('Content-Length', str(len(compressed) + len(b'trailing garbage')))
+            compressed = buf.getvalue() + b'trailing garbage'
+            self.send_header('Content-Length', str(len(compressed)))
             self.end_headers()
-            self.wfile.write(compressed + b'trailing garbage')
+            self.wfile.write(compressed)
         elif self.path == '/302-non-ascii-redirect':
             new_url = 'http://127.0.0.1:%d/中文.html' % http_server_port(self.server)
             self.send_response(301)
