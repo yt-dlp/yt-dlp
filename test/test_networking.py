@@ -262,7 +262,7 @@ class TestHTTP(unittest.TestCase):
         # https://github.com/yt-dlp/yt-dlp/commit/379a4f161d4ad3e40932dcf5aca6e6fb9715ab28
         with FakeYDL({'nocheckcertificate': True}) as ydl:
             # method should be auto-detected as POST
-            r = sanitized_Request('https://localhost:%d/headers' % self.https_port, data=urlencode_postdata({'test': 'test'}))
+            r = sanitized_Request(f'https://localhost:{self.https_port}/headers', data=urlencode_postdata({'test': 'test'}))
 
             headers = ydl.urlopen(r).read().decode('utf-8')
             self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
