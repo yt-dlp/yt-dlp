@@ -288,6 +288,7 @@ class TestHTTP(unittest.TestCase):
                     f'http://127.0.0.1:{self.http_port}/headers',
                     headers={'Youtubedl-no-compression': True})).read()
             self.assertIn(b'Accept-Encoding: identity', data)
+            self.assertNotIn(b'youtubedl-no-compression', data.lower())
 
     def test_gzip_trailing_garbage(self):
         # https://github.com/ytdl-org/youtube-dl/commit/aa3e950764337ef9800c936f4de89b31c00dfcf5
