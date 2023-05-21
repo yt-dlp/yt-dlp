@@ -143,7 +143,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(compressed)
         elif self.path == '/302-non-ascii-redirect':
-            new_url = 'http://127.0.0.1:%d/中文.html' % http_server_port(self.server)
+            new_url = f'http://127.0.0.1:{http_server_port(self.server)}/中文.html'
             self.send_response(301)
             self.send_header('Location', new_url)
             self.send_header('Content-Length', '0')
