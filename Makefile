@@ -74,7 +74,7 @@ offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
 # XXX: This is hard to maintain
-CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat yt_dlp/utils yt_dlp/dependencies
+CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat yt_dlp/compat/urllib yt_dlp/utils yt_dlp/dependencies
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
