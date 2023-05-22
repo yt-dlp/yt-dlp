@@ -2737,7 +2737,6 @@ class YoutubeDL:
                 if req_format.strip() == '':
                     req_format = self._default_format_spec(info_dict, download=download)
                     self.write_debug('Nothing selected, using default format spec: %s' % req_format)
-                
                 try:
                     format_selector = self.build_format_selector(req_format)
                 except SyntaxError as err:
