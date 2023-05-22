@@ -4579,8 +4579,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _music_reponsive_list_entry(self, renderer):
         video_id = traverse_obj(renderer, ('playlistItemData', 'videoId'))
         if video_id:
+            title = traverse_obj(renderer, (
+                'flexColumns', 0, 'musicResponsiveListItemFlexColumnRenderer',
+                'text', 'runs', 0, 'text'))
             return self.url_result(f'https://music.youtube.com/watch?v={video_id}',
-                                   ie=YoutubeIE.ie_key(), video_id=video_id)
+                                   ie=YoutubeIE.ie_key(), video_id=video_id, title=title)
         playlist_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'playlistId'))
         if playlist_id:
             video_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'videoId'))
