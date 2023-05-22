@@ -3687,6 +3687,26 @@ class InfoExtractor:
             start_function=lambda x: parse_duration(x[1]), title_function=lambda x: x[0],
             duration=duration, strict=False)
 
+    def _extract_heatmap_helper(self, heatmap_list, start_function, end_function, value_function, strict=True):
+        heatmap_list = [{
+            'start_time': start_function(point),
+            'end_time': end_function(point),
+            'value': value_function(point),
+        } for point in heatmap_list or []]
+        if strict:
+            warn = self.report_warning
+        else:
+            warn = self.write_debug
+            heatmap_list.sort(key=lambda p: p['start_time'] or 0)
+
+        heatmap = [{'start_time': 0}]
+        for idx, point in enumerate(heatmap_list):
+            if None in point.values():
+                warn(f'Incomplete heatmap point {idx}')
+            elif heatmap[-1]['start_time'] <= point['start_time']:
+                heatmap.append(point)
+        return heatmap[1:]
+
     @staticmethod
     def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):
         all_known = all(map(
