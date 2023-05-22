@@ -2732,7 +2732,12 @@ class YoutubeDL:
         while True:
             if interactive_format_selection:
                 req_format = input(
-                    self._format_screen('\nEnter format selector: ', self.Styles.EMPHASIS))
+                    self._format_screen('\nEnter format selector (press ENTER for default, or CTRL+C to quit): ', self.Styles.EMPHASIS))
+
+                if req_format.strip() == '':
+                    req_format = self._default_format_spec(info_dict, download=download)
+                    self.write_debug('Nothing selected, using default format spec: %s' % req_format)
+                
                 try:
                     format_selector = self.build_format_selector(req_format)
                 except SyntaxError as err:
