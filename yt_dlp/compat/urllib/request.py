@@ -1,12 +1,13 @@
 # flake8: noqa: F405
 from urllib.request import *  # noqa: F403
-from .. import compat_os_name
+
 from ..compat_utils import passthrough_module
-import sys
 
 passthrough_module(__name__, 'urllib.request')
 del passthrough_module
 
+
+from .. import compat_os_name
 
 if compat_os_name == 'nt':
     # On older python versions, proxies are extracted from Windows registry erroneously. [1]
@@ -16,6 +17,7 @@ if compat_os_name == 'nt':
     # This also applies for ftp proxy type, as ftp:// proxy scheme is not supported.
     # 1: https://github.com/python/cpython/issues/86793
     # 2: https://github.com/python/cpython/blob/51f1ae5ceb0673316c4e4b0175384e892e33cc6e/Lib/urllib/request.py#L2683-L2698
+    import sys
     from urllib.request import getproxies_environment, getproxies_registry
 
     def getproxies_registry_patched():
@@ -34,3 +36,5 @@ if compat_os_name == 'nt':
 
     def getproxies():
         return getproxies_environment() or getproxies_registry_patched()
+
+del compat_os_name
