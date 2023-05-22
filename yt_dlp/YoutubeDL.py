@@ -2729,10 +2729,9 @@ class YoutubeDL:
         format_selector = self.format_selector
         while True:
             if interactive_format_selection:
-                req_format = input(''.join((
-                    self._format_screen_bold('\nEnter format selector '),
-                    '(Press ENTER for default, or Ctrl+C to quit)',
-                    self._format_screen_bold(': '))))
+                req_format = input(self._format_screen_bold('\nEnter format selector ')
+                                   + '(Press ENTER for default, or Ctrl+C to quit)'
+                                   + self._format_screen_bold(': '))
                 try:
                     format_selector = self.build_format_selector(req_format) if req_format else None
                 except SyntaxError as err:
