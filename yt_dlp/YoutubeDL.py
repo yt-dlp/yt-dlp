@@ -2394,6 +2394,10 @@ class YoutubeDL:
 
         return res
 
+    def _calc_cookies(self, url):
+        self.deprecation_warning('"YoutubeDL._calc_cookies" is deprecated and may be removed in a future version')
+        return self.cookiejar.get_cookie_header(url)
+
     def _sort_thumbnails(self, thumbnails):
         thumbnails.sort(key=lambda t: (
             t.get('preference') if t.get('preference') is not None else -1,

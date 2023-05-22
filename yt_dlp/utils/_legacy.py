@@ -8,8 +8,10 @@ import zlib
 
 from ._utils import decode_base_n, preferredencoding
 from .traversal import traverse_obj
-from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..dependencies import certifi, websockets
+
+# isort: split
+from ..cookies import YoutubeDLCookieJar  # noqa: F401
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
