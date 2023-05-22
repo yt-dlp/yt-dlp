@@ -983,6 +983,9 @@ class YoutubeDL:
 
     def _format_screen(self, *args, **kwargs):
         return self._format_text(self._out_files.screen, self._allow_colors.screen, *args, **kwargs)
+    
+    def _format_screen_bold(self, *args):
+        return self._format_screen(*args, self.Styles.EMPHASIS)
 
     def _format_err(self, *args, **kwargs):
         return self._format_text(self._out_files.error, self._allow_colors.error, *args, **kwargs)
@@ -2726,10 +2729,10 @@ class YoutubeDL:
         format_selector = self.format_selector
         while True:
             if interactive_format_selection:
-                req_format = input(' '.join((
-                    self._format_screen('\nEnter format selector', self.Styles.EMPHASIS),
+                req_format = input(''.join((
+                    self._format_screen_bold('\nEnter format selector '),
                     '(Press ENTER for default, or Ctrl+C to quit)',
-                    self._format_screen(': ', self.Styles.EMPHASIS))
+                    self._format_screen_bold(': '))
                 ))
                 try:
                     format_selector = self.build_format_selector(req_format) if req_format else None
