@@ -213,7 +213,6 @@ DATE_FORMATS = (
     '%B %d %Y at %H:%M',
     '%B %d %Y at %H:%M:%S',
     '%H:%M %d-%b-%Y',
-    '%H:%M %d/%m/%Y',
 )
 
 DATE_FORMATS_DAY_FIRST = list(DATE_FORMATS)
@@ -225,6 +224,7 @@ DATE_FORMATS_DAY_FIRST.extend([
     '%d/%m/%y',
     '%d/%m/%Y %H:%M:%S',
     '%d-%m-%Y %H:%M',
+    '%H:%M %d/%m/%Y',
 ])
 
 DATE_FORMATS_MONTH_FIRST = list(DATE_FORMATS)

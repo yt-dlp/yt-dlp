@@ -1,16 +1,11 @@
-from re import finditer
-from urllib.parse import urljoin
+import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import join_nonempty, unified_timestamp
+from ..utils import join_nonempty, unified_timestamp, clean_html, get_element_by_class, traverse_obj
 
 
-class CamFMBaseIE(InfoExtractor):
-    def _absolute_url(self, path, root='https://camfm.co.uk'):
-        return urljoin(root, path)
-
-
-class CamFMShowIE(CamFMBaseIE):
+class CamFMShowIE(InfoExtractor):
     _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/shows/(?P<id>[^/]+)/?'
     _TESTS = [{
         'playlist_mincount': 0,
@@ -26,22 +21,20 @@ class CamFMShowIE(CamFMBaseIE):
     def _real_extract(self, url):
         show_id = self._match_id(url)
         page = self._download_webpage(url, show_id)
-        episodes = finditer(r"javascript:popup\('(/player/[^']+)', 'listen'", page)
-        urls = [self._absolute_url(m.group(1)) for m in episodes]
+        urls = [urllib.parse.urljoin('https://camfm.co.uk', url) for url in re.findall(r"javascript:popup\('(/player/[^']+)', 'listen'", page)]
 
         return {
             '_type': 'playlist',
             'id': show_id,
             'entries': [self.url_result(i, CamFMEpisodeIE) for i in urls],
-            'thumbnail': self._absolute_url(self._search_regex(
+            'thumbnail': urllib.parse.urljoin('https://camfm.co.uk', self._search_regex(
                 r'<img[^>]+class="thumb-expand"[^>]+src="([^"]+)"', page, 'thumbnail', fatal=False)),
             'title': self._html_search_regex('<h1>([^<]+)</h1>', page, 'title', fatal=False),
-            'description': self._html_search_regex('<div class="small-12 medium-8 cell">\n(.*)',
-                                                   page, 'description', fatal=False),
+            'description': clean_html(get_element_by_class('small-12 medium-8 cell', page))
         }
 
 
-class CamFMEpisodeIE(CamFMBaseIE):
+class CamFMEpisodeIE(InfoExtractor):
     _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/player/(?P<id>[^/]+)/?'
     _TESTS = [{
         'url': 'https://camfm.co.uk/player/43336',
@@ -74,13 +67,11 @@ class CamFMEpisodeIE(CamFMBaseIE):
         return {
             'id': episode_id,
             'title': title,
-            'formats': formats,
-            'timestamp': unified_timestamp(date),  # this will be off by an hour when DST is in effect
-            # https://www.gov.uk/when-do-the-clocks-change - too annoying to calculate, will just treat as UTC
-            # it'll be right half the time at least
+            'formats': traverse_obj(audios, (..., 'formats', ...)),
+            'timestamp': unified_timestamp(date),  # XXX: Does not account for UK's daylight savings
             'series': series,
             'description': self._html_search_regex(r'>Aired at [^<]+<.*\n\s*(.*)', page, 'description', fatal=False),
-            'thumbnail': self._absolute_url(self._search_regex(r'<div[^>]+class="cover-art"[^>]+style="[^"]+url\(\'([^\']+)\'\)[^>]+>',
+            'thumbnail': urllib.parse.urljoin('https://camfm.co.uk', self._search_regex(r'<div[^>]+class="cover-art"[^>]+style="[^"]+url\(\'([^\']+)',
                                             page, 'thumbnail', fatal=False)),
             'categories': [self._html_search_regex(r'<span[^>]+class="label"[^>]+>([^<]+)<', page, 'category', fatal=False)],
             'was_live': True,
