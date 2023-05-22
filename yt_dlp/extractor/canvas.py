@@ -99,6 +99,8 @@ class CanvasIE(InfoExtractor):
                     format_url, video_id, 'mp4', self._HLS_ENTRY_PROTOCOLS_MAP[format_type],
                     m3u8_id=format_type, fatal=False)
                 formats.extend(fmts)
+                for sub in subs:
+                    sub['_download_params'] = {'webvtt_lenient': True}
                 subtitles = self._merge_subtitles(subtitles, subs)
             elif format_type == 'HDS':
                 formats.extend(self._extract_f4m_formats(
