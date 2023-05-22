@@ -26,7 +26,7 @@ class ComedyCentralIE(MTVServicesInfoExtractor):
         'url': 'https://www.cc.com/collection-playlist/cosnej/stand-up-specials/t6vtjb',
         'only_matching': True,
     }, {
-        'url': 'https://www.cc.com/topic/a-clusterfunke-christmas',
+        'url': 'https://www.cc.com/movies/tkp406/a-cluesterfuenke-christmas',
         'only_matching': True,
     }]
 
