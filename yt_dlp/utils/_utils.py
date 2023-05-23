@@ -2575,13 +2575,6 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
-def sum_or_none(*vals):
-    if None in vals:
-        return None
-    else:
-        return sum(vals)
-
-
 def request_to_url(req):
     if isinstance(req, urllib.request.Request):
         return req.get_full_url()

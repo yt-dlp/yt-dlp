@@ -3697,12 +3697,12 @@ class InfoExtractor:
             warn = self.report_warning
         else:
             warn = self.write_debug
-            heatmap_list.sort(key=lambda p: p['start_time'] or 0)
+        heatmap_list.sort(key=lambda p: p['start_time'] or 0)
 
         heatmap = [{'start_time': 0}]
         for idx, point in enumerate(heatmap_list):
             if None in point.values():
-                warn(f'Incomplete heatmap point {idx}')
+                warn(f'Incomplete heatmap point {point}')
             elif heatmap[-1]['start_time'] <= point['start_time']:
                 heatmap.append(point)
         return heatmap[1:]

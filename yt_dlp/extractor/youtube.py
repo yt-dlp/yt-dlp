@@ -54,7 +54,6 @@ from ..utils import (
     str_or_none,
     str_to_int,
     strftime_or_none,
-    sum_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
@@ -1430,7 +1429,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
                 'uploader_id': '@FlyingKitty900',
                 'comment_count': int,
-                'heatmap': None,
             },
         },
         {
@@ -3261,9 +3259,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             expected_type=list)
 
         point_start = lambda point: float_or_none(point.get('timeRangeStartMillis'), scale=1000)
-        point_end = lambda point: sum_or_none(
-            float_or_none(point.get('timeRangeStartMillis'), scale=1000),
-            float_or_none(point.get('markerDurationMillis'), scale=1000))
+        point_end = lambda point: try_get(
+            (float_or_none(point.get('timeRangeStartMillis'), scale=1000),
+             float_or_none(point.get('markerDurationMillis'), scale=1000)),
+            sum, expected_type=float)
         point_value = lambda point: float_or_none(point.get('heatMarkerIntensityScoreNormalized'))
 
         return next(filter(None, (
@@ -4340,9 +4339,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_chapters_from_description(video_description, duration)
                 or None)
 
-            info['heatmap'] = (
-                self._extract_heatmap_from_player_overlay(initial_data)
-                or None)
+            info['heatmap'] = self._extract_heatmap_from_player_overlay(initial_data)
 
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
