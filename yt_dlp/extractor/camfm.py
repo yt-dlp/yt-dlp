@@ -2,7 +2,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import join_nonempty, unified_timestamp, clean_html, get_element_by_class, traverse_obj
+from ..utils import join_nonempty, unified_timestamp, clean_html, get_element_by_class, get_elements_by_class, traverse_obj
 
 
 class CamFMShowIE(InfoExtractor):
@@ -56,12 +56,13 @@ class CamFMEpisodeIE(InfoExtractor):
         episode_id = self._match_id(url)
         page = self._download_webpage(url, episode_id)
         audios = self._parse_html5_media_entries('https://audio.camfm.co.uk', page, episode_id)
-        formats = []
-        for i in audios:
-            formats.extend(i['formats'])
 
-        series = self._html_search_regex(r'<div[^>]+class="caption">\n\s*(.+)', page, 'title', fatal=False)
-        date = self._html_search_regex('>Aired at ([^<]+)<', page, 'air date', fatal=False)
+        caption = get_element_by_class('caption', page)
+        series = clean_html(re.sub(r'<span[^<]+<[^<]+>', '', caption))
+
+        card_section = get_element_by_class('card-section', page)
+        date = self._html_search_regex('>Aired at ([^<]+)<', card_section, 'air date', fatal=False)
+
         title = join_nonempty(series, date, delim=' - ')
 
         return {
@@ -70,9 +71,9 @@ class CamFMEpisodeIE(InfoExtractor):
             'formats': traverse_obj(audios, (..., 'formats', ...)),
             'timestamp': unified_timestamp(date),  # XXX: Does not account for UK's daylight savings
             'series': series,
-            'description': self._html_search_regex(r'>Aired at [^<]+<.*\n\s*(.*)', page, 'description', fatal=False),
+            'description': clean_html(re.sub(r'<b>[^<]+</b><br[^>]+/>', '', card_section)),
             'thumbnail': urllib.parse.urljoin('https://camfm.co.uk', self._search_regex(r'<div[^>]+class="cover-art"[^>]+style="[^"]+url\(\'([^\']+)',
                                             page, 'thumbnail', fatal=False)),
-            'categories': [self._html_search_regex(r'<span[^>]+class="label"[^>]+>([^<]+)<', page, 'category', fatal=False)],
+            'categories': [clean_html(c) for c in get_elements_by_class('label', caption)],
             'was_live': True,
         }
