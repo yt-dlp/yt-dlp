@@ -184,7 +184,6 @@ class TestHTTP(unittest.TestCase):
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         self.http_port = http_server_port(self.http_httpd)
         self.http_server_thread = threading.Thread(target=self.http_httpd.serve_forever)
-        self.http_server_thread.daemon = True
         self.http_server_thread.start()
 
         # HTTPS server
@@ -196,8 +195,11 @@ class TestHTTP(unittest.TestCase):
         self.https_httpd.socket = sslctx.wrap_socket(self.https_httpd.socket, server_side=True)
         self.https_port = http_server_port(self.https_httpd)
         self.https_server_thread = threading.Thread(target=self.https_httpd.serve_forever)
-        self.https_server_thread.daemon = True
         self.https_server_thread.start()
+
+    def tearDown(self):
+        self.https_httpd.shutdown()
+        self.http_httpd.shutdown()
 
     def test_nocheckcertificate(self):
         with FakeYDL({'logger': FakeLogger()}) as ydl:
@@ -293,7 +295,7 @@ class TestHTTP(unittest.TestCase):
         # https://github.com/ytdl-org/youtube-dl/commit/aa3e950764337ef9800c936f4de89b31c00dfcf5
         # https://github.com/ytdl-org/youtube-dl/commit/6f2ec15cee79d35dba065677cad9da7491ec6e6f
         with FakeYDL() as ydl:
-            data = ydl.urlopen(sanitized_Request('http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
+            data = ydl.urlopen(sanitized_Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
             self.assertEqual(data, '<html><video src="/vid.mp4" /></html>')
 
 
@@ -310,8 +312,10 @@ class TestClientCert(unittest.TestCase):
         self.httpd.socket = sslctx.wrap_socket(self.httpd.socket, server_side=True)
         self.port = http_server_port(self.httpd)
         self.server_thread = threading.Thread(target=self.httpd.serve_forever)
-        self.server_thread.daemon = True
         self.server_thread.start()
+
+    def tearDown(self):
+        self.httpd.shutdown()
 
     def _run_test(self, **params):
         ydl = YoutubeDL({
@@ -362,15 +366,17 @@ class TestProxy(unittest.TestCase):
             ('127.0.0.1', 0), _build_proxy_handler('normal'))
         self.port = http_server_port(self.proxy)
         self.proxy_thread = threading.Thread(target=self.proxy.serve_forever)
-        self.proxy_thread.daemon = True
         self.proxy_thread.start()
 
         self.geo_proxy = http.server.HTTPServer(
             ('127.0.0.1', 0), _build_proxy_handler('geo'))
         self.geo_port = http_server_port(self.geo_proxy)
         self.geo_proxy_thread = threading.Thread(target=self.geo_proxy.serve_forever)
-        self.geo_proxy_thread.daemon = True
         self.geo_proxy_thread.start()
+
+    def tearDown(self):
+        self.proxy.shutdown()
+        self.geo_proxy.shutdown()
 
     def test_proxy(self):
         geo_proxy = f'127.0.0.1:{self.geo_port}'
