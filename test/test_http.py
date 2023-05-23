@@ -199,6 +199,7 @@ class TestHTTP(unittest.TestCase):
 
     def tearDown(self):
         self.https_httpd.shutdown()
+        self.https_httpd.socket.close()
         self.http_httpd.shutdown()
 
     def test_nocheckcertificate(self):
@@ -320,6 +321,7 @@ class TestClientCert(unittest.TestCase):
 
     def tearDown(self):
         self.httpd.shutdown()
+        self.httpd.socket.close()
 
     def _run_test(self, **params):
         ydl = YoutubeDL({
