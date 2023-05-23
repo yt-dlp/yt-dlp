@@ -3257,18 +3257,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
              'playerBar', 'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer',
              'heatMarkers'),
             expected_type=list)
-
-        point_start = lambda point: float_or_none(point.get('timeRangeStartMillis'), scale=1000)
-        point_end = lambda point: try_get(
-            (float_or_none(point.get('timeRangeStartMillis'), scale=1000),
-             float_or_none(point.get('markerDurationMillis'), scale=1000)),
-            sum, expected_type=float)
-        point_value = lambda point: float_or_none(point.get('heatMarkerIntensityScoreNormalized'))
+        scale_mili = functools.partial(float_or_none, scale=1000)
+        generate_end = lambda point: point.get('timeRangeStartMillis') + point.get('markerDurationMillis')
 
         return next(filter(None, (
-            self._extract_heatmap_helper(traverse_obj(contents, (..., 'heatMarkerRenderer')),
-                                         point_start, point_end, point_value)
-            for contents in content_list)), [])
+            traverse_obj(contents, (..., 'heatMarkerRenderer', {
+                'start_time': ('timeRangeStartMillis', {scale_mili}),
+                'end_time': ({generate_end}, {scale_mili}),
+                'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
+            })) for contents in content_list)), None)
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
