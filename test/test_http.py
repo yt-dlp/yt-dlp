@@ -409,12 +409,12 @@ class TestFileURL(unittest.TestCase):
         tf = tempfile.NamedTemporaryFile(delete=False)
         tf.write(b'foobar')
         tf.close()
-        req = sanitized_Request(pathlib.Path(tf.name).as_uri())
+        url = pathlib.Path(tf.name).as_uri()
         with FakeYDL() as ydl:
             self.assertRaisesRegex(
-                urllib.error.URLError, 'file:// URLs are explicitly disabled in yt-dlp for security reasons', ydl.urlopen, req.get_full_url())
+                urllib.error.URLError, 'file:// URLs are explicitly disabled in yt-dlp for security reasons', ydl.urlopen, url)
         with FakeYDL({'enable_file_urls': True}) as ydl:
-            res = ydl.urlopen(req.get_full_url())
+            res = ydl.urlopen(url)
             self.assertEqual(res.read(), b'foobar')
             res.close()
         os.unlink(tf.name)
