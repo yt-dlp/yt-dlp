@@ -252,8 +252,12 @@ class TestHTTP(unittest.TestCase):
             self.assertEqual(do_req(302, 'PUT'), ('testdata', 'PUT'))
 
             # 307 and 308 should not change method
-            self.assertEqual(do_req(307, 'POST'), ('testdata', 'POST'))
-            self.assertEqual(do_req(308, 'POST'), ('testdata', 'POST'))
+            for m in ('POST', 'PUT'):
+                self.assertEqual(do_req(307, m), ('testdata', m))
+                self.assertEqual(do_req(308, m), ('testdata', m))
+
+            self.assertEqual(do_req(307, 'HEAD'), ('', 'HEAD'))
+            self.assertEqual(do_req(308, 'HEAD'), ('', 'HEAD'))
 
             # These should not redirect and instead raise an HTTPError
             for code in (300, 304, 305, 306):
