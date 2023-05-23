@@ -293,7 +293,7 @@ class TestHTTP(unittest.TestCase):
         # https://github.com/ytdl-org/youtube-dl/commit/aa3e950764337ef9800c936f4de89b31c00dfcf5
         # https://github.com/ytdl-org/youtube-dl/commit/6f2ec15cee79d35dba065677cad9da7491ec6e6f
         with FakeYDL() as ydl:
-            data = ydl.urlopen(sanitized_Request('http://localhost:%d/trailing_garbage' % self.http_port)).read().decode('utf-8')
+            data = ydl.urlopen(sanitized_Request('http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
             self.assertEqual(data, '<html><video src="/vid.mp4" /></html>')
 
 
