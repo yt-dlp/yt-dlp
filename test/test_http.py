@@ -2,20 +2,20 @@
 
 # Allow direct execution
 import os
-import io
-import pathlib
 import sys
-import tempfile
 import unittest
-import gzip
-from http.cookiejar import Cookie
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-
+import gzip
+import http.cookiejar
 import http.server
+import io
+import pathlib
 import ssl
+import tempfile
 import threading
+import urllib.error
 import urllib.request
 
 from test.helper import http_server_port
@@ -23,7 +23,7 @@ from yt_dlp import YoutubeDL
 from yt_dlp.utils import sanitized_Request, urlencode_postdata
 
 from .helper import FakeYDL
-import urllib.error
+
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -274,7 +274,7 @@ class TestHTTP(unittest.TestCase):
 
     def test_cookiejar(self):
         with FakeYDL() as ydl:
-            ydl.cookiejar.set_cookie(Cookie(
+            ydl.cookiejar.set_cookie(http.cookiejar.Cookie(
                 0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
                 False, '/headers', True, False, None, False, None, None, {}))
             data = ydl.urlopen(sanitized_Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
