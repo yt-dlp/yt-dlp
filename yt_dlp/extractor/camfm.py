@@ -2,7 +2,14 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import join_nonempty, unified_timestamp, clean_html, get_element_by_class, get_elements_by_class, traverse_obj
+from ..utils import (
+    clean_html,
+    get_element_by_class,
+    get_elements_by_class,
+    join_nonempty,
+    traverse_obj,
+    unified_timestamp,
+)
 
 
 class CamFMShowIE(InfoExtractor):
@@ -73,7 +80,7 @@ class CamFMEpisodeIE(InfoExtractor):
             'series': series,
             'description': clean_html(re.sub(r'<b>[^<]+</b><br[^>]+/>', '', card_section)),
             'thumbnail': urllib.parse.urljoin('https://camfm.co.uk', self._search_regex(r'<div[^>]+class="cover-art"[^>]+style="[^"]+url\(\'([^\']+)',
-                                            page, 'thumbnail', fatal=False)),
+                                              page, 'thumbnail', fatal=False)),
             'categories': [clean_html(c) for c in get_elements_by_class('label', caption)],
             'was_live': True,
         }
