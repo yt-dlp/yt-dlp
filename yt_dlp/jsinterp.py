@@ -352,8 +352,10 @@ class JSInterpreter:
             inner, outer = self._separate(expr, expr[0], 1)
             if expr[0] == '/':
                 flags, outer = self._regex_flags(outer)
+                # We don't support regex methods yet, so no point compiling it
+                inner = f'{inner}/{flags}'
                 # Avoid https://github.com/python/cpython/issues/74534
-                inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
+                # inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
             else:
                 inner = json.loads(js_to_json(f'{inner}{expr[0]}', strict=True))
             if not outer:
@@ -443,7 +445,7 @@ class JSInterpreter:
                 err = e
 
             pending = (None, False)
-            m = re.match(r'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{'.format(**globals()), expr)
+            m = re.match(fr'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{', expr)
             if m:
                 sub_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
                 if err:

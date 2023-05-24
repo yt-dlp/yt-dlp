@@ -280,7 +280,7 @@ class YoutubeDL:
                        subtitles. The language can be prefixed with a "-" to
                        exclude it from the requested languages, e.g. ['all', '-live_chat']
     keepvideo:         Keep the video file after post-processing
-    daterange:         A DateRange object, download only if the upload_date is in the range.
+    daterange:         A utils.DateRange object, download only if the upload_date is in the range.
     skip_download:     Skip the actual download of the video file
     cachedir:          Location of the cache files in the filesystem.
                        False to disable filesystem cache.
@@ -329,13 +329,13 @@ class YoutubeDL:
                        'auto' for elaborate guessing
     encoding:          Use this encoding instead of the system-specified.
     extract_flat:      Whether to resolve and process url_results further
-                       * False:     Always process (default)
+                       * False:     Always process. Default for API
                        * True:      Never process
                        * 'in_playlist': Do not process inside playlist/multi_video
                        * 'discard': Always process, but don't return the result
                                     from inside playlist/multi_video
                        * 'discard_in_playlist': Same as "discard", but only for
-                                    playlists (not multi_video)
+                                    playlists (not multi_video). Default for CLI
     wait_for_video:    If given, wait for scheduled streams to become available.
                        The value should be a tuple containing the range
                        (min_secs, max_secs) to wait between retries
@@ -415,7 +415,12 @@ class YoutubeDL:
                        - Raise utils.DownloadCancelled(msg) to abort remaining
                          downloads when a video is rejected.
                        match_filter_func in utils.py is one example for this.
-    no_color:          Do not emit color codes in output.
+    color:             A Dictionary with output stream names as keys
+                       and their respective color policy as values.
+                       Can also just be a single color policy,
+                       in which case it applies to all outputs.
+                       Valid stream names are 'stdout' and 'stderr'.
+                       Valid color policies are one of 'always', 'auto', 'no_color' or 'never'.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
                        HTTP header
     geo_bypass_country:
@@ -472,7 +477,7 @@ class YoutubeDL:
                        can also be used
 
     The following options are used by the extractors:
-    extractor_retries: Number of times to retry for known errors
+    extractor_retries: Number of times to retry for known errors (default: 3)
     dynamic_mpd:       Whether to process dynamic DASH manifests (default: True)
     hls_split_discontinuity: Split HLS playlists to different formats at
                        discontinuities such as ad breaks (default: False)
@@ -537,6 +542,7 @@ class YoutubeDL:
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
                        care about HLS. (only for youtube)
+    no_color:          Same as `color='no_color'`
     """
 
     _NUMERIC_FIELDS = {
@@ -603,9 +609,24 @@ class YoutubeDL:
         except Exception as e:
             self.write_debug(f'Failed to enable VT mode: {e}')
 
+        if self.params.get('no_color'):
+            if self.params.get('color') is not None:
+                self.report_warning('Overwriting params from "color" with "no_color"')
+            self.params['color'] = 'no_color'
+
+        term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
+
+        def process_color_policy(stream):
+            stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
+            policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
+            if policy in ('auto', None):
+                return term_allow_color and supports_terminal_sequences(stream)
+            assert policy in ('always', 'never', 'no_color')
+            return {'always': True, 'never': False}.get(policy, policy)
+
         self._allow_colors = Namespace(**{
-            type_: not self.params.get('no_color') and supports_terminal_sequences(stream)
-            for type_, stream in self._out_files.items_ if type_ != 'console'
+            name: process_color_policy(stream)
+            for name, stream in self._out_files.items_ if name != 'console'
         })
 
         # The code is left like this to be reused for future deprecations
@@ -974,7 +995,7 @@ class YoutubeDL:
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
-        return format_text(text, f) if allow_colors else text if fallback is None else fallback
+        return format_text(text, f) if allow_colors is True else text if fallback is None else fallback
 
     def _format_out(self, *args, **kwargs):
         return self._format_text(self._out_files.out, self._allow_colors.out, *args, **kwargs)
@@ -3769,9 +3790,14 @@ class YoutubeDL:
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
+            additional_info = []
+            if os.environ.get('TERM', '').lower() == 'dumb':
+                additional_info.append('dumb')
             if not supports_terminal_sequences(stream):
                 from .utils import WINDOWS_VT_MODE  # Must be imported locally
-                ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
+                additional_info.append('No VT' if WINDOWS_VT_MODE is False else 'No ANSI')
+            if additional_info:
+                ret = f'{ret} ({",".join(additional_info)})'
             return ret
 
         encoding_str = 'Encodings: locale %s, fs %s, pref %s, %s' % (
