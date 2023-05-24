@@ -4,8 +4,8 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    traverse_obj,
     smuggle_url,
+    traverse_obj,
     unsmuggle_url,
 )
 

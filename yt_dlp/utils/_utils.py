@@ -130,8 +130,13 @@ USER_AGENTS = {
 }
 
 
-NO_DEFAULT = object()
-IDENTITY = lambda x: x
+class NO_DEFAULT:
+    pass
+
+
+def IDENTITY(x):
+    return x
+
 
 ENGLISH_MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -3223,6 +3228,9 @@ def is_iterable_like(x, allowed_types=collections.abc.Iterable, blocked_types=NO
 
 
 def variadic(x, allowed_types=NO_DEFAULT):
+    if not isinstance(allowed_types, (tuple, type)):
+        deprecation_warning('allowed_types should be a tuple or a type')
+        allowed_types = tuple(allowed_types)
     return x if is_iterable_like(x, blocked_types=allowed_types) else (x, )
 
 
