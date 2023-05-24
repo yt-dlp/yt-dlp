@@ -425,8 +425,12 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-wait-for-video             Do not wait for scheduled streams (default)
     --mark-watched                  Mark videos watched (even with --simulate)
     --no-mark-watched               Do not mark videos watched (default)
-    --no-colors                     Do not emit color codes in output (Alias:
-                                    --no-colours)
+    --color [STREAM:]POLICY         Whether to emit color codes in output,
+                                    optionally prefixed by the STREAM (stdout or
+                                    stderr) to apply the setting to. Can be one
+                                    of "always", "auto" (default), "never", or
+                                    "no_color" (use non color terminal
+                                    sequences). Can be used multiple times
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
@@ -2148,6 +2152,7 @@ While these options are redundant, they are still expected to be used due to the
     --playlist-end NUMBER            -I :NUMBER
     --playlist-reverse               -I ::-1
     --no-playlist-reverse            Default
+    --no-colors                      --color no_color
 
 
 #### Not recommended
