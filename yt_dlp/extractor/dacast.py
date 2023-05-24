@@ -32,6 +32,9 @@ class DacastBaseIE(InfoExtractor):
         for content_id in re.findall(
                 rf'<script[^>]+\bsrc=["\']https://player\.dacast\.com/js/player\.js\?contentId=([\w-]+-{cls._URL_TYPE}-[\w-]+)["\']', webpage):
             yield cls._get_url_from_id(content_id)
+        for embed_url in re.findall(
+                rf'<iframe[^>]+\bsrc=["\'](https?://iframe\.dacast\.com/{cls._URL_TYPE}/[\w-]+/[\w-]+)["\']', webpage):
+            yield embed_url
 
 
 class DacastVODIE(DacastBaseIE):
@@ -44,6 +47,27 @@ class DacastVODIE(DacastBaseIE):
             'uploader_id': 'acae82153ef4d7a7344ae4eaa86af534',
             'title': '2_4||Adnexal mass characterisation: O-RADS US and MRI||N. Bharwani, London/UK',
             'thumbnail': 'https://universe-files.dacast.com/26137208-5858-65c1-5e9a-9d6b6bd2b6c2',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.dacast.com/support/knowledgebase/how-can-i-embed-a-video-on-my-website/',
+        'info_dict': {
+            'id': 'b6674869-f08a-23c5-1d7b-81f5309e1a90',
+            'ext': 'mp4',
+            'title': '4-HowToEmbedVideo.mp4',
+            'uploader_id': '3b67c4a9-3886-4eb1-d0eb-39b23b14bef3',
+            'thumbnail': 'https://universe-files.dacast.com/d26ab48f-a52a-8783-c42e-a90290ba06b6.png',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://gist.githubusercontent.com/bashonly/4ad249ef2910346fbdf3809b220f11ee/raw/87349778d4af1a80b1fcc3beb9c88108de5858f5/dacast_embeds.html',
+        'info_dict': {
+            'id': 'e7df418e-a83b-7a7f-7b5e-1a667981e8fa',
+            'ext': 'mp4',
+            'title': 'Evening Service 2-5-23',
+            'uploader_id': '943bb1ab3c03695ba85330d92d6d226e',
+            'thumbnail': 'https://universe-files.dacast.com/337472b3-e92c-2ea4-7eb7-5700da477f67',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -101,6 +125,14 @@ class DacastPlaylistIE(DacastBaseIE):
     _URL_TYPE = 'playlist'
     _TESTS = [{
         'url': 'https://iframe.dacast.com/playlist/943bb1ab3c03695ba85330d92d6d226e/b632eb053cac17a9c9a02bcfc827f2d8',
+        'playlist_mincount': 28,
+        'info_dict': {
+            'id': 'b632eb053cac17a9c9a02bcfc827f2d8',
+            'title': 'Archive Sermons',
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://gist.githubusercontent.com/bashonly/7efb606f49f3c6e07ea0327de5a661d1/raw/05a16eac830245ea301fb0a585023bec71e6093c/dacast_playlist_embed.html',
         'playlist_mincount': 28,
         'info_dict': {
             'id': 'b632eb053cac17a9c9a02bcfc827f2d8',
