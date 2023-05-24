@@ -54,7 +54,7 @@ class Rule34VideoIE(InfoExtractor):
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
         tags = []
         for match in re.finditer(r'<a class=\"tag_item\"\s+href=\"https://rule34video\.com/tags/\d+/\".*>(?P<tag>.*)</a>', webpage):
-            tag = match.group(1)
+            tag = match.group('tag')
             if tag:
                 tags.append(tag.strip())
 
