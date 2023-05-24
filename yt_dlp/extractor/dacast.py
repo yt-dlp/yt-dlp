@@ -9,12 +9,17 @@ from ..utils import (
     float_or_none,
     traverse_obj,
     url_or_none,
+    classproperty,
 )
 
 
 class DacastBaseIE(InfoExtractor):
     _URL_TYPE = None
-    _VALID_URL_TMPL = r'https?://iframe\.dacast\.com/%s/(?P<user_id>[\w-]+)/(?P<id>[\w-]+)'
+
+    @classproperty
+    def _VALID_URL(cls):
+        return fr'https?://iframe\.dacast\.com/{cls._URL_TYPE}/(?P<user_id>[\w-]+)/(?P<id>[\w-]+)'
+
     _API_INFO_URL = 'https://playback.dacast.com/content/info'
 
     @classmethod
@@ -31,7 +36,6 @@ class DacastBaseIE(InfoExtractor):
 
 class DacastVODIE(DacastBaseIE):
     _URL_TYPE = 'vod'
-    _VALID_URL = DacastBaseIE._VALID_URL_TMPL % _URL_TYPE
     _TESTS = [{
         'url': 'https://iframe.dacast.com/vod/acae82153ef4d7a7344ae4eaa86af534/1c6143e3-5a06-371d-8695-19b96ea49090',
         'info_dict': {
@@ -95,7 +99,6 @@ class DacastVODIE(DacastBaseIE):
 
 class DacastPlaylistIE(DacastBaseIE):
     _URL_TYPE = 'playlist'
-    _VALID_URL = DacastBaseIE._VALID_URL_TMPL % _URL_TYPE
     _TESTS = [{
         'url': 'https://iframe.dacast.com/playlist/943bb1ab3c03695ba85330d92d6d226e/b632eb053cac17a9c9a02bcfc827f2d8',
         'playlist_mincount': 28,
