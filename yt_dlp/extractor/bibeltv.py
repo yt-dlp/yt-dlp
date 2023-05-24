@@ -45,15 +45,17 @@ class BibelTVBaseIE(InfoExtractor):
     def _extract_base_info(data):
         return {
             'id': data['crn'],
-            'title': data.get('title'),
-            'description': data.get('description'),
-            'duration': int_or_none(data.get('duration'), scale=1000),
-            'timestamp': parse_iso8601(data.get('schedulingStart')),
-            'thumbnails': orderedSet(
-                traverse_obj(data, ('images', ..., {'url': ('url', {url_or_none})}))),
-            'season_number': data.get('seasonNumber'),
-            'episode_number': data.get('episodeNumber'),
-        }
+            **traverse_obj(data, {
+                'title': 'title',
+                'description': 'description',
+                'duration': ('duration', {functools.partial(int_or_none, scale=1000)},
+                'timestamp': ('schedulingStart', parse_iso8601),
+                'season_number': 'seasonNumber',
+                'episode_number': 'episodeNumber',
+            }),
+            'thumbnails': orderedSet(traverse_obj(data, ('images', ..., {
+                    'url': ('url', {url_or_none}),
+            }))),
 
     def _extract_url_info(self, data):
         return {
