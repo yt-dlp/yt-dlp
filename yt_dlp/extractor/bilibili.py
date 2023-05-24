@@ -893,15 +893,16 @@ class BiliIntlBaseIE(InfoExtractor):
             })) or {}
         subtitles = {}
 
-        for sub in sub_json.get('video_subtitle') or []:
+        for sub in traverse_obj(sub_json, ('video_subtitle', ..., {dict})):
             srt_sub = sub.get('srt')
             ass_sub = sub.get('ass')
-            sub_formats = subtitles.setdefault(sub.get('lang_key', 'en'), [])
+            lang_key = sub.get('lang_key', 'en')
+            sub_formats = subtitles.setdefault(lang_key, [])
 
             if srt_sub:
                 sub_data = self._download_json(
                     srt_sub.get('url'), ep_id or aid, errnote='Unable to download subtitles', fatal=False,
-                    note='Downloading subtitles%s' % f' for {sub["lang"]} ({sub["lang_key"]})' if sub.get('lang') else '')
+                    note='Downloading subtitles%s' % f' for {sub["lang"]} ({lang_key})' if sub.get('lang') else '')
                 if sub_data:
                     sub_formats.append({
                         'ext': 'srt',
