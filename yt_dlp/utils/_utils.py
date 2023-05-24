@@ -60,6 +60,8 @@ from ..compat import (
 from ..dependencies import brotli, certifi, websockets, xattr
 from ..socks import ProxyType, sockssocket
 
+__name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
+
 # This is not clearly defined otherwise
 compiled_regex_type = type(re.compile(''))
 
@@ -1957,8 +1959,8 @@ class DateRange:
             date = date_from_str(date)
         return self.start <= date <= self.end
 
-    def __str__(self):
-        return f'{self.start.isoformat()} - {self.end.isoformat()}'
+    def __repr__(self):
+        return f'{__name__}.{type(self).__name__}({self.start.isoformat()!r}, {self.end.isoformat()!r})'
 
     def __eq__(self, other):
         return (isinstance(other, DateRange)
