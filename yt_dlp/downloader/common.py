@@ -51,8 +51,9 @@ class FileDownloader:
     ratelimit:          Download speed limit, in bytes/sec.
     continuedl:         Attempt to continue downloads if possible
     throttledratelimit: Assume the download is being throttled below this speed (bytes/sec)
-    retries:            Number of times to retry for HTTP error 5xx
-    file_access_retries:   Number of times to retry on file access error
+    retries:            Number of times to retry for expected network errors.
+                        Default is 0 for API, but 10 for CLI
+    file_access_retries:   Number of times to retry on file access error (default: 3)
     buffersize:         Size of download buffer in bytes.
     noresizebuffer:     Do not automatically resize the download buffer.
     continuedl:         Try to continue downloads if possible.
@@ -225,7 +226,7 @@ class FileDownloader:
                 sleep_func=fd.params.get('retry_sleep_functions', {}).get('file_access'))
 
         def wrapper(self, func, *args, **kwargs):
-            for retry in RetryManager(self.params.get('file_access_retries'), error_callback, fd=self):
+            for retry in RetryManager(self.params.get('file_access_retries', 3), error_callback, fd=self):
                 try:
                     return func(self, *args, **kwargs)
                 except OSError as err:

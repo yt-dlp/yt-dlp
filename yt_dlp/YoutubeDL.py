@@ -280,7 +280,7 @@ class YoutubeDL:
                        subtitles. The language can be prefixed with a "-" to
                        exclude it from the requested languages, e.g. ['all', '-live_chat']
     keepvideo:         Keep the video file after post-processing
-    daterange:         A DateRange object, download only if the upload_date is in the range.
+    daterange:         A utils.DateRange object, download only if the upload_date is in the range.
     skip_download:     Skip the actual download of the video file
     cachedir:          Location of the cache files in the filesystem.
                        False to disable filesystem cache.
@@ -329,13 +329,13 @@ class YoutubeDL:
                        'auto' for elaborate guessing
     encoding:          Use this encoding instead of the system-specified.
     extract_flat:      Whether to resolve and process url_results further
-                       * False:     Always process (default)
+                       * False:     Always process. Default for API
                        * True:      Never process
                        * 'in_playlist': Do not process inside playlist/multi_video
                        * 'discard': Always process, but don't return the result
                                     from inside playlist/multi_video
                        * 'discard_in_playlist': Same as "discard", but only for
-                                    playlists (not multi_video)
+                                    playlists (not multi_video). Default for CLI
     wait_for_video:    If given, wait for scheduled streams to become available.
                        The value should be a tuple containing the range
                        (min_secs, max_secs) to wait between retries
@@ -472,7 +472,7 @@ class YoutubeDL:
                        can also be used
 
     The following options are used by the extractors:
-    extractor_retries: Number of times to retry for known errors
+    extractor_retries: Number of times to retry for known errors (default: 3)
     dynamic_mpd:       Whether to process dynamic DASH manifests (default: True)
     hls_split_discontinuity: Split HLS playlists to different formats at
                        discontinuities such as ad breaks (default: False)

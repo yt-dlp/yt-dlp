@@ -34,8 +34,8 @@ class FragmentFD(FileDownloader):
 
     Available options:
 
-    fragment_retries:   Number of times to retry a fragment for HTTP error (DASH
-                        and hlsnative only)
+    fragment_retries:   Number of times to retry a fragment for HTTP error
+                        (DASH and hlsnative only). Default is 0 for API, but 10 for CLI
     skip_unavailable_fragments:
                         Skip unavailable fragments (DASH and hlsnative only)
     keep_fragments:     Keep downloaded fragments on disk after downloading is
