@@ -54,6 +54,8 @@ class BibelTVBaseIE(InfoExtractor):
                 'timestamp': ('schedulingStart', {parse_iso8601}),
                 'season_number': 'seasonNumber',
                 'episode_number': 'episodeNumber',
+                'view_count': 'viewCount',
+                'like_count': 'likeCount',
             }),
             'thumbnails': orderedSet(traverse_obj(data, ('images', ..., {
                 'url': ('url', {url_or_none}),
@@ -86,8 +88,6 @@ class BibelTVBaseIE(InfoExtractor):
             **self._extract_base_info(data),
             'formats': formats,
             'subtitles': subtitles,
-            'view_count': data.get('viewCount'),
-            'like_count': data.get('likeCount'),
         }
 
 
