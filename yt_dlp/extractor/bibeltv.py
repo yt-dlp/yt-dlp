@@ -1,3 +1,5 @@
+from functools import partial
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -48,14 +50,15 @@ class BibelTVBaseIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': 'title',
                 'description': 'description',
-                'duration': ('duration', {functools.partial(int_or_none, scale=1000)},
-                'timestamp': ('schedulingStart', parse_iso8601),
+                'duration': ('duration', {partial(int_or_none, scale=1000)}),
+                'timestamp': ('schedulingStart', {parse_iso8601}),
                 'season_number': 'seasonNumber',
                 'episode_number': 'episodeNumber',
             }),
             'thumbnails': orderedSet(traverse_obj(data, ('images', ..., {
-                    'url': ('url', {url_or_none}),
+                'url': ('url', {url_or_none}),
             }))),
+        }
 
     def _extract_url_info(self, data):
         return {
