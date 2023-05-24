@@ -34,6 +34,7 @@ from .utils import (
     join_nonempty,
     orderedSet_from_options,
     remove_end,
+    variadic,
     write_string,
 )
 from .version import CHANNEL, __version__
@@ -250,7 +251,7 @@ def create_parser():
             if multiple_args:
                 val = [val, *value[1:]]
         elif default_key is not None:
-            keys, val = [default_key], value
+            keys, val = variadic(default_key), value
         else:
             raise optparse.OptionValueError(
                 f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
@@ -440,8 +441,25 @@ def create_parser():
         help='Do not mark videos watched (default)')
     general.add_option(
         '--no-colors', '--no-colours',
-        action='store_true', dest='no_color', default=False,
-        help='Do not emit color codes in output (Alias: --no-colours)')
+        action='store_const', dest='color', const={
+            'stdout': 'no_color',
+            'stderr': 'no_color',
+        },
+        help=optparse.SUPPRESS_HELP)
+    general.add_option(
+        '--color',
+        dest='color', metavar='[STREAM:]POLICY', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'stdout|stderr',
+            'default_key': ['stdout', 'stderr'],
+            'process': str.strip,
+        }, help=(
+            'Whether to emit color codes in output, optionally prefixed by '
+            'the STREAM (stdout or stderr) to apply the setting to. '
+            'Can be one of "always", "auto" (default), "never", or '
+            '"no_color" (use non color terminal sequences). '
+            'Can be used multiple times'))
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',

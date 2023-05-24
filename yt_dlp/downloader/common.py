@@ -296,7 +296,8 @@ class FileDownloader:
             self._multiline = BreaklineStatusPrinter(self.ydl._out_files.out, lines)
         else:
             self._multiline = MultilinePrinter(self.ydl._out_files.out, lines, not self.params.get('quiet'))
-        self._multiline.allow_colors = self._multiline._HAVE_FULLCAP and not self.params.get('no_color')
+        self._multiline.allow_colors = self.ydl._allow_colors.out and self.ydl._allow_colors.out != 'no_color'
+        self._multiline._HAVE_FULLCAP = self.ydl._allow_colors.out
 
     def _finish_multiline_status(self):
         self._multiline.end()
