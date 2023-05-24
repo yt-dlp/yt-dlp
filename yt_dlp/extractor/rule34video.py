@@ -16,7 +16,8 @@ class Rule34VideoIE(InfoExtractor):
                 'title': 'Shot It-(mmd hmv)',
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065157/preview.jpg',
                 'duration': 347.0,
-                'age_limit': 18
+                'age_limit': 18,
+                'tags': ["ahegao", "cum in mouth", "cum in urethra", "chest", "animation", "music", "sex sounds", "sound", "iwara", "3d", "compilation", "pmv", "straight", "mmd"]
             }
         },
         {
@@ -28,7 +29,8 @@ class Rule34VideoIE(InfoExtractor):
                 'title': 'Lara in Trouble Ep. 7 [WildeerStudio]',
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'duration': 938.0,
-                'age_limit': 18
+                'age_limit': 18,
+                'tags': ["lara croft (tomb raider)", "2girls", "milking", "breast sucking", "finger sucking", "nipple sucking", "lesbian", "big breasts", "breast milk", "cum on stomach", "on stomach", "strapon", "sex slave", "sex toy", "blowjob", "deepthroat", "throat bulge", "slave", "bdsm", "bondage", "vaginal penetration", "anal", "anal creampie", "deep rimming", "rimming", "anilingus", "butt plug", "ahegao", "creampie", "cum inside", "cum dripping", "from behind", "cum inflation", "cum explosion", "fingering", "facefuck", "gagged", "sound", "rape", "arms tied", "hands tied", "tied", "tied arms", "tied down", "tied hands", "tied up", "bound", "bound hands", "bound wrists", "straight"]
             }
         },
     ]
@@ -50,6 +52,11 @@ class Rule34VideoIE(InfoExtractor):
         title = self._html_extract_title(webpage)
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
+        tags = []
+        for match in re.finditer(r'<a class=\"tag_item\"\s+href=\"https://rule34video\.com/tags/\d+/\".*>(?P<tag>.*)</a>', webpage):
+            tag = match.group(1)
+            if tag:
+                tags.append(tag.strip())
 
         return {
             'id': video_id,
@@ -57,5 +64,6 @@ class Rule34VideoIE(InfoExtractor):
             'title': title,
             'thumbnail': thumbnail,
             'duration': parse_duration(duration),
-            'age_limit': 18
+            'age_limit': 18,
+            'tags': tags
         }
