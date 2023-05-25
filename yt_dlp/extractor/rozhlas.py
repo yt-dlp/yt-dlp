@@ -7,6 +7,7 @@ from ..utils import (
     traverse_obj,
     url_or_none,
     ExtractorError,
+    unified_timestamp,
 )
 from urllib.error import HTTPError
 
@@ -235,3 +236,133 @@ class RozhlasVltavaIE(InfoExtractor):
             'title': traverse_obj(data, ('series', 'title')),
             'entries': map(self._extract_video, data['playlist']),
         }
+
+
+class MujRozhlasIE(RozhlasVltavaIE):
+    _VALID_URL = r'https?://(?:www\.)?mujrozhlas\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
+        'info_dict': {'id': '10739193',
+                      'title': 'Ach jo, zase to telecí! Řízek je mnohem míň český, než jsme si mysleli',
+                      'description': 'md5:db7141e9caaedc9041ec7cefb9a62908',
+                      'timestamp': 1684915200,
+                      'modified_timestamp': 1684922446,
+                      'series': 'Vykopávky',
+                      'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/84377046610af6ddc54d910b1dd7a22b.jpg',
+                      'channel_id': 'radio-wave',
+                      'upload_date': '20230524',
+                      'modified_date': '20230524'},
+        'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.mujrozhlas.cz/cetba-na-pokracovani/zena-v-polarni-noci-z-fascinujiciho-deniku-vyjimecne-odvazne-christiane',
+        'info_dict': {'id': '260da22a-1cde-3718-a1d9-4515f864c0ab',
+                      'title': 'Žena v polární noci. Z fascinujícího deníku výjimečné a odvážné Christiane Ritterové',
+                      'description': 'md5:f462de4b948bc91f7192af10bde3c279'},
+        'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.mujrozhlas.cz/nespavci',
+        'info_dict': {'id': '09db9b37-d0f4-368c-986a-d3439f741f08', 'title': 'Nespavci',
+                      'description': 'md5:c430adcbf9e2b9eac88b745881e814dc'},
+        'params': {'skip_download': True}}
+    ]
+
+    _API_ROOT = 'https://api.mujrozhlas.cz'
+
+    def _extract_audio_entry(self, entry):
+        audio_id = traverse_obj(entry, ('meta', 'ga', 'contentId'), )
+
+        title = traverse_obj(entry, ('attributes', 'title'))
+
+        if audio_id is None or title is None:
+            return None  # audio no longer available
+
+        thumbnail = traverse_obj(entry, ('attributes', 'asset', 'url'))
+        # these can be pretty large, e.g. https://api.mujrozhlas.cz/episodes/8ad147a0-d971-3fb2-9e6b-552a60f335fb
+        # with a 2100x1400 jpeg
+
+        timestamp = unified_timestamp(traverse_obj(entry, ('attributes', 'since')))
+        modified_timestamp = unified_timestamp(traverse_obj(entry, ('attributes', 'updated')))
+
+        formats = self._extract_audio(entry['attributes'], audio_id)
+
+        return {
+            'id': audio_id,
+            'title': title,
+            'formats': formats,
+            'timestamp': timestamp,
+            'thumbnail': thumbnail,
+            'modified_timestamp': modified_timestamp,
+            **traverse_obj(entry, {
+                'description': ('attributes', 'description'),
+                'episode_number': ('attributes', 'part'),
+                'series': ('attributes', 'mirroredShow', 'title'),
+                'chapter': ('attributes', 'mirroredSerial', 'title'),
+                'artist': ('meta', 'ga', 'contentAuthor'),
+                'channel_id': ('meta', 'ga', 'contentCreator'),
+            })
+        }
+
+    def _extract_video(self, uuid):
+        url = f'{self._API_ROOT}/episodes/{uuid}'
+        entry = self._download_json(
+            url, uuid, note='Getting episode info from API',
+            errnote='Getting episode info failed'
+        )['data']
+
+        return self._extract_audio_entry(entry)
+
+    def _get_episodes(self, base_url, uuid):
+        # extract info
+        base_json = self._download_json(base_url, uuid,
+                                        note='Downloading playlist base json',
+                                        errnote='Downloading playlist base json failed')
+        id = uuid
+        title = base_json['data']['attributes']['title']
+
+        episodes = []
+        episodes_url = base_json['data']['relationships']['episodes']['links']['related']
+        while (True):
+            episodes_json = self._download_json(episodes_url, id,
+                                                note='Downloading episode list',
+                                                errnote='Downloading episode list failed')
+            episodes_data = episodes_json['data']
+            episodes = episodes + [self._extract_audio_entry(entry) for entry in episodes_data]
+            episodes_url = traverse_obj(episodes_json, ('links', 'next'))
+            if episodes_url is None:
+                break
+
+        return {
+            '_type': 'playlist',
+            'id': id,
+            'title': title,
+            'entries': episodes,
+            'description': traverse_obj(base_json, ('data', 'attributes', 'description'))
+        }
+
+    def _extract_playlist(self, info):
+        entity = info['siteEntityBundle']
+        if entity == 'show':
+            uuid = info['contentShow'].split(':')[0]
+            return self._get_episodes(f'{self._API_ROOT}/shows/{uuid}', uuid)
+        elif entity == 'serial':
+            uuid = info['contentId']
+            return self._get_episodes(f'{self._API_ROOT}/serials/{uuid}', uuid)
+        elif entity == 'person':
+            # api for getting episodes by participating person does not seem to be implemented yet
+            # e.g. https://api.mujrozhlas.cz/persons/8367e456-2a57-379a-91bb-e699619bea49/participation
+            return None
+        else:
+            return None
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        info = self._search_json(r'dl\s*=\s*', webpage, 'info json', video_id)
+
+        if info['siteEntityBundle'] == 'episode':
+            return self._extract_video(info['contentId'])
+        else:
+            res = self._extract_playlist(info)
+            if None in res['entries']:
+                self.report_warning('Some episodes are not available anymore')
+            return res
