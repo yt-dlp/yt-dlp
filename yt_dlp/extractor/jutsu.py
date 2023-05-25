@@ -27,17 +27,6 @@ def parse_episode(webpage, extractor):
 
 class JutSuAnimeIE(InfoExtractor):
     _VALID_URL = r'https:\/\/jut\.su\/(?P<name>[\w-]+)\/?'
-    _TESTS = [
-        {
-            'url': 'https://jut.su/kaze-no-stigma/episode-9.html',
-            'md5': 'd12da8fff5665774266369ea9ccb31b1',
-            'info_dict': {
-                'ext': 'mp4',
-                'id': 'kaze-no-stigma-None-9',
-                'title': 'Печать ветра 9 серия',
-            }
-        }
-    ]
 
     def _real_extract(self, url):
         anime_name = self._match_valid_url(url).group('name')
@@ -60,6 +49,17 @@ class JutSuAnimeIE(InfoExtractor):
 
 class JutSuEpisodeIE(InfoExtractor):
     _VALID_URL = r'https:\/\/jut\.su\/(?P<name>[\w-]+)\/(?:season-(?P<season>[1-9])+)?\/?(?:episode-(?P<episode>[1-9]+))\.html' # https://regex101.com/r/HY9Z6F/1
+    _TESTS = [
+        {
+            'url': 'https://jut.su/kaze-no-stigma/episode-9.html',
+            'info_dict': {
+                'ext': 'mp4',
+                'id': 'kaze-no-stigma-None-9',
+                'title': 'Печать ветра 9 серия',
+                'thumbnail': r're:^https?://.*\.jpg$'
+            }
+        }
+    ]
 
     def _real_extract(self, url):
         episode = self._match_valid_url(url).group('episode')
