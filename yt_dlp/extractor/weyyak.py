@@ -1,6 +1,6 @@
 import re
-
 from .common import InfoExtractor
+
 
 class WeyyakIE(InfoExtractor):
     _VALID_URL = r'https?://weyyak\.com/(?P<lang>\w+)/player/(?P<type>episode|movie)/(?P<id>\d+)(?:/.+)?'
@@ -46,4 +46,3 @@ class WeyyakIE(InfoExtractor):
             'url': video_url,
             'duration': video_duration,
         }
-
