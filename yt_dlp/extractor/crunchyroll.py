@@ -224,6 +224,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 self.to_screen(
                     f'Requested video version with id {version_id} could not be found (possibly region locked?)',
                     only_once=True)
+                continue
             results[version_id] = requested_response
 
         return results
