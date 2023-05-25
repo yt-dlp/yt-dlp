@@ -8,7 +8,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 ## [pukkandan](https://github.com/pukkandan)
 
 [![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/pukkandan)
-[![gh-sponsor](https://img.shields.io/badge/_-Github-red.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/pukkandan)
+[![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/pukkandan)
 
 * Owner of the fork
 
@@ -26,7 +26,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 ## [coletdjnz](https://github.com/coletdjnz)
 
-[![gh-sponsor](https://img.shields.io/badge/_-Github-red.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)
+[![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)
 
 * Improved plugin architecture
 * YouTube improvements including: age-gate bypass, private playlists, multiple-clients (to avoid throttling) and a lot of under-the-hood improvements
@@ -44,7 +44,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 * Improved/fixed support for HiDive, HotStar, Hungama, LBRY, LinkedInLearning, Mxplayer, SonyLiv, TV2, Vimeo, VLive etc
 
 
-## [Lesmiscore](https://github.com/Lesmiscore) <sub><sup>(nao20010128nao)</sup></sub>
+## [Lesmiscore](https://github.com/Lesmiscore)
 
 **Bitcoin**: bc1qfd02r007cutfdjwjmyy9w23rjvtls6ncve7r3s  
 **Monacoin**: mona1q3tf7dzvshrhfe3md379xtvt2n22duhglv5dskr
@@ -64,7 +64,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 ## [Grub4K](https://github.com/Grub4K)
 
-[![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/Grub4K) [![gh-sponsor](https://img.shields.io/badge/_-Github-red.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/Grub4K)
+[![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/Grub4K) [![gh-sponsor](https://img.shields.io/badge/_-Github-white.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/Grub4K)
 
 * `--update-to`, automated release, nightly builds
 * Rework internals like `traverse_obj`, various core refactors and bugs fixes

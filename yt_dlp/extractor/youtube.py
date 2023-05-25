@@ -66,7 +66,6 @@ from ..utils import (
     variadic,
 )
 
-
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
@@ -2994,17 +2993,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
              r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bm=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(h\.s\)\)',
              r'\bc&&\(c=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(c\)\)',
-             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\);[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\)',
-             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',
+             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\))?',
              r'(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',
              # Obsolete patterns
-             r'(["\'])signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+             r'("|\')signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(',
              r'yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
             jscode, 'Initial JS player signature function name', group='sig')
 
@@ -4579,8 +4575,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _music_reponsive_list_entry(self, renderer):
         video_id = traverse_obj(renderer, ('playlistItemData', 'videoId'))
         if video_id:
+            title = traverse_obj(renderer, (
+                'flexColumns', 0, 'musicResponsiveListItemFlexColumnRenderer',
+                'text', 'runs', 0, 'text'))
             return self.url_result(f'https://music.youtube.com/watch?v={video_id}',
-                                   ie=YoutubeIE.ie_key(), video_id=video_id)
+                                   ie=YoutubeIE.ie_key(), video_id=video_id, title=title)
         playlist_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'playlistId'))
         if playlist_id:
             video_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'videoId'))
@@ -4639,11 +4638,19 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _rich_entries(self, rich_grid_renderer):
         renderer = traverse_obj(
-            rich_grid_renderer, ('content', ('videoRenderer', 'reelItemRenderer')), get_all=False) or {}
+            rich_grid_renderer,
+            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer')), get_all=False) or {}
         video_id = renderer.get('videoId')
-        if not video_id:
+        if video_id:
+            yield self._extract_video(renderer)
             return
-        yield self._extract_video(renderer)
+        playlist_id = renderer.get('playlistId')
+        if playlist_id:
+            yield self.url_result(
+                f'https://www.youtube.com/playlist?list={playlist_id}',
+                ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
+                video_title=self._get_text(renderer, 'title'))
+            return
 
     def _video_entry(self, video_renderer):
         video_id = video_renderer.get('videoId')
@@ -4872,7 +4879,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         metadata_renderer = traverse_obj(data, ('metadata', 'channelMetadataRenderer'), expected_type=dict)
         if metadata_renderer:
             channel_id = traverse_obj(metadata_renderer, ('externalId', {self.ucid_or_none}),
-                                                         ('channelUrl', {self.ucid_from_url}))
+                                      ('channelUrl', {self.ucid_from_url}))
             info.update({
                 'channel': metadata_renderer.get('title'),
                 'channel_id': channel_id,
@@ -6185,6 +6192,40 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': '3Blue1Brown',
         },
         'playlist_count': 0,
+    }, {
+        # Podcasts tab, with rich entry playlistRenderers
+        'url': 'https://www.youtube.com/@99percentinvisiblepodcast/podcasts',
+        'info_dict': {
+            'id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'channel_id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'uploader_url': 'https://www.youtube.com/@99percentinvisiblepodcast',
+            'description': 'md5:3a0ed38f1ad42a68ef0428c04a15695c',
+            'title': '99 Percent Invisible - Podcasts',
+            'uploader': '99 Percent Invisible',
+            'channel_follower_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'tags': [],
+            'channel': '99 Percent Invisible',
+            'uploader_id': '@99percentinvisiblepodcast',
+        },
+        'playlist_count': 1,
+    }, {
+        # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
+        'url': 'https://www.youtube.com/@AHimitsu/releases',
+        'info_dict': {
+            'id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel': 'A Himitsu',
+            'uploader_url': 'https://www.youtube.com/@AHimitsu',
+            'title': 'A Himitsu - Releases',
+            'uploader_id': '@AHimitsu',
+            'uploader': 'A Himitsu',
+            'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'tags': 'count:16',
+            'description': 'I make music',
+            'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel_follower_count': int,
+        },
+        'playlist_mincount': 10,
     }]
 
     @classmethod

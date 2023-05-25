@@ -247,7 +247,6 @@ from .bongacams import BongaCamsIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
-from .booyah import BooyahClipsIE
 from .bpb import BpbIE
 from .br import (
     BRIE,
@@ -407,6 +406,8 @@ from .crowdbunker import (
 from .crunchyroll import (
     CrunchyrollBetaIE,
     CrunchyrollBetaShowIE,
+    CrunchyrollMusicIE,
+    CrunchyrollArtistIE,
 )
 from .cspan import CSpanIE, CSpanCongressIE
 from .ctsnews import CtsNewsIE
