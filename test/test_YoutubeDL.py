@@ -757,7 +757,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)r %(height)r', "'1234' 1080")
         test('%(ext)s-%(ext|def)d', 'mp4-def')
         test('%(width|0)04d', '0000')
-        test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
+        test('a%(width|b)d', 'ab', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
         sanitize = lambda x: x.replace(':', '：').replace('"', "＂").replace('\n', ' ')
@@ -871,12 +871,12 @@ class TestYoutubeDL(unittest.TestCase):
 
         class SimplePP(PostProcessor):
             def run(self, info):
-                with open(audiofile, 'wt') as f:
+                with open(audiofile, 'w') as f:
                     f.write('EXAMPLE')
                 return [info['filepath']], info
 
         def run_pp(params, PP):
-            with open(filename, 'wt') as f:
+            with open(filename, 'w') as f:
                 f.write('EXAMPLE')
             ydl = YoutubeDL(params)
             ydl.add_post_processor(PP())
@@ -895,7 +895,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         class ModifierPP(PostProcessor):
             def run(self, info):
-                with open(info['filepath'], 'wt') as f:
+                with open(info['filepath'], 'w') as f:
                     f.write('MODIFIED')
                 return [], info
 
