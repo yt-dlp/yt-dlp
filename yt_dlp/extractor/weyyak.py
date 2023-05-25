@@ -46,4 +46,3 @@ class WeyyakIE(InfoExtractor):
             'url': video_url,
             'duration': video_duration,
         }
-
