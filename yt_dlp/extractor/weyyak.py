@@ -12,7 +12,7 @@ class WeyyakIE(InfoExtractor):
             'md5': '0caf55c1a615531c8fe60f146ae46849',
             'info_dict': {
                 'id': '1341952',
-                'ext': 'm3u8',
+                'ext': 'mp4',
                 'title': 'Ribat Al Hob',
                 'duration': 2771,
             },
@@ -22,7 +22,7 @@ class WeyyakIE(InfoExtractor):
             'md5': 'fe740ae0f63e4d1c8a7fc147a410c564',
             'info_dict': {
                 'id': '233255',
-                'ext': 'm3u8',
+                'ext': 'mp4',
                 'title': '8 Seconds',
                 'duration': 6490,
             },
