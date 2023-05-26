@@ -43,7 +43,7 @@ class WeyyakIE(InfoExtractor):
         return {
             'id': _id,
             'title': traverse_obj(video_info, ('data', 'title')),
-            'duration': video_details.get('duration'),
+            'duration': float_or_none(video_details.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
         }
