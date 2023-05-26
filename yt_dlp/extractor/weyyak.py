@@ -1,6 +1,6 @@
 import re
-
 from .common import InfoExtractor
+
 
 class WeyyakIE(InfoExtractor):
     _VALID_URL = r'https?://weyyak\.com/(?P<lang>\w+)/player/(?P<type>episode|movie)/(?P<id>\d+)(?:/.+)?'
@@ -29,16 +29,16 @@ class WeyyakIE(InfoExtractor):
 
         # Get the video info
         video_info = self._download_json(base_url, _id, headers={'Content-Type': 'application/json'})
-        video_id = video_info["data"]['video_id']
-        title = video_info["data"]['title']
+        video_id = video_info.get("data")['video_id']
+        title = video_info.get("data")['title']
 
         details_url = f'https://api-weyyak.akamaized.net/get_info/{video_id}'
 
         # Get the video details
         video_details = self._download_json(details_url, _id, headers={'Content-Type': 'application/json'})
-        video_url = video_details['url_video']
+        video_url = video_details.get('url_video')
         video_url = re.sub(r'index\.m3u8', 'master-v1a1.m3u8', video_url)
-        video_duration = video_details['duration']
+        video_duration = video_details.get('duration')
 
         return {
             'id': _id,
@@ -46,4 +46,3 @@ class WeyyakIE(InfoExtractor):
             'url': video_url,
             'duration': video_duration,
         }
-
