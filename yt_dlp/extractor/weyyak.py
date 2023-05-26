@@ -5,7 +5,7 @@ from ..utils import traverse_obj
 
 
 class WeyyakIE(InfoExtractor):
-    _VALID_URL = r'https?://weyyak\.com/(?P<lang>\w+)/player/(?P<type>episode|movie)/(?P<id>\d+)'
+    _VALID_URL = r'https?://weyyak\.com/(?P<lang>\w+)/(?:player/)?(?P<type>episode|movie)/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://weyyak.com/en/player/episode/1341952/Ribat-Al-Hob-Episode49',
@@ -16,7 +16,17 @@ class WeyyakIE(InfoExtractor):
                 'title': 'Ribat Al Hob',
                 'duration': 2771,
             },
-        }
+        },
+        {
+            'url': 'https://weyyak.com/en/movie/233255/8-Seconds',
+            'md5': 'fe740ae0f63e4d1c8a7fc147a410c564',
+            'info_dict': {
+                'id': '233255',
+                'ext': 'm3u8',
+                'title': '8 Seconds',
+                'duration': 6490,
+            },
+        },
     ]
 
     def _real_extract(self, url):
@@ -34,6 +44,7 @@ class WeyyakIE(InfoExtractor):
             'Extracting video details', headers={'Content-Type': 'application/json'})
         video_url = video_details.get('url_video')
         video_url = re.sub(r'index\.m3u8', 'master-v1a1.m3u8', video_url)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, _id)
         video_duration = video_details.get('duration')
 
         return {
@@ -41,4 +52,6 @@ class WeyyakIE(InfoExtractor):
             'title': title,
             'url': video_url,
             'duration': video_duration,
+            'formats': formats,
+            'subtitles': subtitles,
         }
