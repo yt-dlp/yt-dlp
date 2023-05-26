@@ -2320,6 +2320,14 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .weverse import (
+    WeverseIE,
+    WeverseMediaIE,
+    WeverseMomentIE,
+    WeverseLiveTabIE,
+    WeverseMediaTabIE,
+    WeverseLiveIE,
+)
 from .wevidi import WeVidiIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
