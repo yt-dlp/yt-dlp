@@ -34,8 +34,7 @@ class WeyyakIE(InfoExtractor):
 
         path = 'episode/' if _type == 'episode' else 'contents/moviedetails?contentkey='
         video_info = self._download_json(
-            f'https://msapifo-prod-me.weyyak.z5.com/v1/{_lang}/{path}{_id}', _id,
-            headers={'Content-Type': 'application/json'})
+            f'https://msapifo-prod-me.weyyak.z5.com/v1/{_lang}/{path}{_id}', _id)
         video_id = video_info['data']['video_id']
 
         video_details = self._download_json(
