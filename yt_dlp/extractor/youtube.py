@@ -3254,10 +3254,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         content_list = traverse_obj(data, (
             'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
             'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
-        scale_mili = functools.partial(float_or_none, scale=1000)
         return next(filter(None, (
             traverse_obj(contents, (..., 'heatMarkerRenderer', {
-                'start_time': ('timeRangeStartMillis', {scale_mili}),
+                'start_time': ('timeRangeStartMillis', {functools.partial(float_or_none, scale=1000)}),
                 'end_time': {lambda x: (x['timeRangeStartMillis'] + x['markerDurationMillis']) / 1000},
                 'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
             })) for contents in content_list)), None)
