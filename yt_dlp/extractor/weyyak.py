@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import traverse_obj, float_or_none
 
