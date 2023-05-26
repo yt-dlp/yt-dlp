@@ -20,12 +20,7 @@ class WeyyakIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url)
-
-        # Extract the video id, language and type from the url
-        _id = match.group('id')
-        _lang = match.group('lang')
-        _type = match.group('type')
+        _id, _lang, _type = self._match_valid_url(url).group('id', 'lang', 'type')
 
         base_url = f'https://msapifo-prod-me.weyyak.z5.com/v1/{_lang}/{"episode/" if _type=="episode" else "contents/moviedetails?contentkey="}{_id}'
 
