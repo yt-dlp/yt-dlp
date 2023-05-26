@@ -3251,12 +3251,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for contents in content_list)), [])
 
     def _extract_heatmap_from_player_overlay(self, data):
-        content_list = traverse_obj(
-            data,
-            ('playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer',
-             'playerBar', 'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer',
-             'heatMarkers'),
-            expected_type=list)
+        content_list = traverse_obj(data, (
+            'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
+            'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
         scale_mili = functools.partial(float_or_none, scale=1000)
         generate_end = lambda point: point.get('timeRangeStartMillis') + point.get('markerDurationMillis')
 
