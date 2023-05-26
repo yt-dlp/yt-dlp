@@ -29,10 +29,9 @@ class WeyyakIE(InfoExtractor):
         video_id = video_info['data']['video_id']
         title = traverse_obj(video_info, ('data', 'title'))
 
-        details_url = f'https://api-weyyak.akamaized.net/get_info/{video_id}'
-
-        # Get the video details
-        video_details = self._download_json(details_url, _id, headers={'Content-Type': 'application/json'})
+        video_details = self._download_json(
+            f'https://api-weyyak.akamaized.net/get_info/{video_id}', _id,
+            'Extracting video details', headers={'Content-Type': 'application/json'})
         video_url = video_details.get('url_video')
         video_url = re.sub(r'index\.m3u8', 'master-v1a1.m3u8', video_url)
         video_duration = video_details.get('duration')
