@@ -350,6 +350,10 @@ class InfoExtractor:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    heatmap:        A list of dictionaries, with the following entries:
+                        * "start_time" - The start time of the data point in seconds
+                        * "end_time" - The end time of the data point in seconds
+                        * "value" - The normalized value of the data point (float between 0 and 1)
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string

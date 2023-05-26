@@ -1273,6 +1273,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Philipp Hagemeister',
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
+                'heatmap': 'count:100',
             }
         },
         {
@@ -1426,6 +1427,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'FlyingKitty',
                 'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
                 'uploader_id': '@FlyingKitty900',
+                'comment_count': int,
             },
         },
         {
@@ -3244,6 +3246,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                           chapter_time, chapter_title, duration)
             for contents in content_list)), [])
 
+    def _extract_heatmap_from_player_overlay(self, data):
+        content_list = traverse_obj(data, (
+            'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
+            'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
+        return next(filter(None, (
+            traverse_obj(contents, (..., 'heatMarkerRenderer', {
+                'start_time': ('timeRangeStartMillis', {functools.partial(float_or_none, scale=1000)}),
+                'end_time': {lambda x: (x['timeRangeStartMillis'] + x['markerDurationMillis']) / 1000},
+                'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
+            })) for contents in content_list)), None)
+
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
@@ -4312,6 +4325,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_chapters_from_engagement_panel(initial_data, duration)
                 or self._extract_chapters_from_description(video_description, duration)
                 or None)
+
+            info['heatmap'] = self._extract_heatmap_from_player_overlay(initial_data)
 
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
