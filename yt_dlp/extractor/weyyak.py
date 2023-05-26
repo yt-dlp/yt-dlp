@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import traverse_obj, float_or_none
 
 
 class WeyyakIE(InfoExtractor):
