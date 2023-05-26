@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, float_or_none
+from ..utils import float_or_none, traverse_obj
 
 
 class WeyyakIE(InfoExtractor):
