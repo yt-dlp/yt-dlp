@@ -5,7 +5,7 @@ from ..utils import traverse_obj
 
 
 class WeyyakIE(InfoExtractor):
-    _VALID_URL = r'https?://weyyak\.com/(?P<lang>\w+)/player/(?P<type>episode|movie)/(?P<id>\d+)(?:/.+)?'
+    _VALID_URL = r'https?://weyyak\.com/(?P<lang>\w+)/player/(?P<type>episode|movie)/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://weyyak.com/en/player/episode/1341952/Ribat-Al-Hob-Episode49',
