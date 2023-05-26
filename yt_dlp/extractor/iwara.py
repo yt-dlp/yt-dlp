@@ -46,14 +46,17 @@ class IwaraBaseIE(InfoExtractor):
         if not invalidate and self._MEDIATOKEN:
             return self._MEDIATOKEN
 
-        IwaraBaseIE._MEDIATOKEN = self._download_json(
-            'https://api.iwara.tv/user/token', None, note='Fetching media token',
-            data=b'',  # Need to have some data here, even if it's empty
-            headers={
-                'Authorization': f'Bearer {self._get_user_token()}',
-                'Content-Type': 'application/json'
-            })['accessToken']
-
+        try:
+            IwaraBaseIE._MEDIATOKEN = self._download_json(
+                'https://api.iwara.tv/user/token', None, note='Fetching media token',
+                data=b'',  # Need to have some data here, even if it's empty
+                headers={
+                    'Authorization': f'Bearer {self._get_user_token()}',
+                    'Content-Type': 'application/json'
+                })['accessToken']
+        except ExtractorError as e:
+            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                self.write_debug('User Token Expired')
         return self._MEDIATOKEN
 
 
@@ -142,11 +145,8 @@ class IwaraIE(IwaraBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        username, password = self._get_login_info()
-        headers = {
-            'Authorization': f'Bearer {self._get_media_token()}',
-        } if username and password else None
-        video_data = self._download_json(f'https://api.iwara.tv/video/{video_id}', video_id, expected_status=lambda x: True, headers=headers)
+        username, _ = self._get_login_info()
+        video_data = self._download_json(f'https://api.iwara.tv/video/{video_id}', video_id, expected_status=lambda x: True, headers=self._prepare_auth_header())
         errmsg = video_data.get('message')
         # at this point we can actually get uploaded user info, but do we need it?
         if errmsg == 'errors.privateVideo':
@@ -190,8 +190,16 @@ class IwaraIE(IwaraBaseIE):
         self._get_media_token(True)
         self.cache.store(self._NETRC_MACHINE, username, IwaraBaseIE._USERTOKEN)
 
+    def _prepare_auth_header(self):
+        username, password = self._get_login_info()
+        headers = {
+            'Authorization': f'Bearer {self._get_media_token()}',
+        } if username and password else None
 
-class IwaraUserIE(IwaraBaseIE):
+        return headers
+
+
+class IwaraUserIE(IwaraIE):
     _VALID_URL = r'https?://(?:www\.)?iwara\.tv/profile/(?P<id>[^/?#&]+)'
     IE_NAME = 'iwara:user'
     _PER_PAGE = 32
@@ -214,6 +222,12 @@ class IwaraUserIE(IwaraBaseIE):
     }, {
         'url': 'https://iwara.tv/profile/theblackbirdcalls',
         'only_matching': True,
+    }, {
+        'url': 'https://www.iwara.tv/profile/lumymmd',
+        'info_dict': {
+            'id': 'lumymmd',
+        },
+        'playlist_mincount': 10,
     }]
 
     def _entries(self, playlist_id, user_id, page):
@@ -225,7 +239,7 @@ class IwaraUserIE(IwaraBaseIE):
                 'sort': 'date',
                 'user': user_id,
                 'limit': self._PER_PAGE,
-            })
+            }, headers=self._prepare_auth_header())
         for x in traverse_obj(videos, ('results', ..., 'id')):
             yield self.url_result(f'https://iwara.tv/video/{x}')
 
@@ -243,7 +257,7 @@ class IwaraUserIE(IwaraBaseIE):
             playlist_id, traverse_obj(user_info, ('user', 'name')))
 
 
-class IwaraPlaylistIE(IwaraBaseIE):
+class IwaraPlaylistIE(IwaraIE):
     # the ID is an UUID but I don't think it's necessary to write concrete regex
     _VALID_URL = r'https?://(?:www\.)?iwara\.tv/playlist/(?P<id>[0-9a-f-]+)'
     IE_NAME = 'iwara:playlist'
@@ -260,7 +274,8 @@ class IwaraPlaylistIE(IwaraBaseIE):
     def _entries(self, playlist_id, first_page, page):
         videos = self._download_json(
             'https://api.iwara.tv/videos', playlist_id, f'Downloading page {page}',
-            query={'page': page, 'limit': self._PER_PAGE}) if page else first_page
+            query={'page': page, 'limit': self._PER_PAGE},
+            headers=self._prepare_auth_header()) if page else first_page
         for x in traverse_obj(videos, ('results', ..., 'id')):
             yield self.url_result(f'https://iwara.tv/video/{x}')
 
@@ -268,7 +283,7 @@ class IwaraPlaylistIE(IwaraBaseIE):
         playlist_id = self._match_id(url)
         page_0 = self._download_json(
             f'https://api.iwara.tv/playlist/{playlist_id}?page=0&limit={self._PER_PAGE}', playlist_id,
-            note='Requesting playlist info')
+            note='Requesting playlist info', headers=self._prepare_auth_header())
 
         return self.playlist_result(
             OnDemandPagedList(
