@@ -1,5 +1,7 @@
 import re
+
 from .common import InfoExtractor
+from ..utils import traverse_obj
 
 
 class WeyyakIE(InfoExtractor):
@@ -29,8 +31,8 @@ class WeyyakIE(InfoExtractor):
 
         # Get the video info
         video_info = self._download_json(base_url, _id, headers={'Content-Type': 'application/json'})
-        video_id = video_info.get("data")['video_id']
-        title = video_info.get("data")['title']
+        video_id = traverse_obj(video_info, ('data', 'video_id'))
+        title = traverse_obj(video_info, ('data', 'title'))
 
         details_url = f'https://api-weyyak.akamaized.net/get_info/{video_id}'
 
