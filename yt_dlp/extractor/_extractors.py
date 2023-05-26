@@ -204,7 +204,11 @@ from .bfmtv import (
     BFMTVLiveIE,
     BFMTVArticleIE,
 )
-from .bibeltv import BibelTVIE
+from .bibeltv import (
+    BibelTVLiveIE,
+    BibelTVSeriesIE,
+    BibelTVVideoIE,
+)
 from .bigflix import BigflixIE
 from .bigo import BigoIE
 from .bild import BildIE
@@ -2316,6 +2320,14 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .weverse import (
+    WeverseIE,
+    WeverseMediaIE,
+    WeverseMomentIE,
+    WeverseLiveTabIE,
+    WeverseMediaTabIE,
+    WeverseLiveIE,
+)
 from .wevidi import WeVidiIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
