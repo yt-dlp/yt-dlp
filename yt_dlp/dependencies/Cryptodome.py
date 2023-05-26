@@ -1,4 +1,4 @@
-import types
+from ..compat.compat_utils import passthrough_module
 
 try:
     import Cryptodome as _parent
@@ -6,8 +6,10 @@ except ImportError:
     try:
         import Crypto as _parent
     except (ImportError, SyntaxError):  # Old Crypto gives SyntaxError in newer Python
-        _parent = types.ModuleType('no_Cryptodome')
+        _parent = passthrough_module(__name__, 'no_Cryptodome')
         __bool__ = lambda: False
+
+del passthrough_module
 
 __version__ = ''
 AES = PKCS1_v1_5 = Blowfish = PKCS1_OAEP = SHA1 = CMAC = RSA = None

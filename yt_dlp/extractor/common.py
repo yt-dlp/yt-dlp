@@ -350,6 +350,10 @@ class InfoExtractor:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    heatmap:        A list of dictionaries, with the following entries:
+                        * "start_time" - The start time of the data point in seconds
+                        * "end_time" - The end time of the data point in seconds
+                        * "value" - The normalized value of the data point (float between 0 and 1)
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
@@ -2983,6 +2987,8 @@ class InfoExtractor:
                         'protocol': 'ism',
                         'fragments': fragments,
                         'has_drm': ism_doc.find('Protection') is not None,
+                        'language': stream_language,
+                        'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,
@@ -3513,8 +3519,8 @@ class InfoExtractor:
     @classmethod
     def is_single_video(cls, url):
         """Returns whether the URL is of a single video, None if unknown"""
-        assert cls.suitable(url), 'The URL must be suitable for the extractor'
-        return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
+        if cls.suitable(url):
+            return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
 
     @classmethod
     def is_suitable(cls, age_limit):
@@ -3656,18 +3662,22 @@ class InfoExtractor:
             'start_time': start_function(chapter),
             'title': title_function(chapter),
         } for chapter in chapter_list or []]
-        if not strict:
+        if strict:
+            warn = self.report_warning
+        else:
+            warn = self.write_debug
             chapter_list.sort(key=lambda c: c['start_time'] or 0)
 
         chapters = [{'start_time': 0}]
         for idx, chapter in enumerate(chapter_list):
             if chapter['start_time'] is None:
-                self.report_warning(f'Incomplete chapter {idx}')
+                warn(f'Incomplete chapter {idx}')
             elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
                 chapters.append(chapter)
             elif chapter not in chapters:
-                self.report_warning(
-                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
+                issue = (f'{chapter["start_time"]} > {duration}' if chapter['start_time'] > duration
+                         else f'{chapter["start_time"]} < {chapters[-1]["start_time"]}')
+                warn(f'Invalid start time ({issue}) for chapter "{chapter["title"]}"')
         return chapters[1:]
 
     def _extract_chapters_from_description(self, description, duration):

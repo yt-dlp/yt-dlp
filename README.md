@@ -85,7 +85,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **YouTube improvements**:
-    * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, YouTube Music Albums/Channels ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723)), and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
+    * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
     * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326) **\***
     * Supports some (but not all) age-gated content without cookies
     * Download livestreams from the start using `--live-from-start` (*experimental*)
@@ -179,13 +179,13 @@ For ease of use, a few more compat options are available:
 [![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
+You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
 
 
 ## UPDATE
 You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
 
-If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
+If you [installed with pip](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
 
 For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation#third-party-package-managers) or refer their documentation
 
@@ -196,12 +196,15 @@ There are currently two release channels for binaries, `stable` and `nightly`.
 The `nightly` channel has releases built after each push to the master branch, and will have the most recent fixes and additions, but also have more risk of regressions. They are available in [their own repo](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
-This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel.
+`--update-to CHANNEL` can be used to switch to a different channel when a newer version is available. `--update-to [CHANNEL@]TAG` can also be used to upgrade or downgrade to specific tags from a channel.
+
+You may also use `--update-to <repository>` (`<owner>/<repository>`) to update to a channel on a completely different repository. Be careful with what repository you are updating to though, there is no verification done for binaries from different repositories.
 
 Example usage:
 * `yt-dlp --update-to nightly` change to `nightly` channel and update to its latest release
 * `yt-dlp --update-to stable@2023.02.17` upgrade/downgrade to release to `stable` channel tag `2023.02.17`
 * `yt-dlp --update-to 2023.01.06` upgrade/downgrade to tag `2023.01.06` if it exists on the current channel
+* `yt-dlp --update-to example/yt-dlp@2023.03.01` upgrade/downgrade to the release from the `example/yt-dlp` repository, tag `2023.03.01`
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
@@ -360,10 +363,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     -U, --update                    Update this program to the latest version
     --no-update                     Do not check for updates (default)
     --update-to [CHANNEL]@[TAG]     Upgrade/downgrade to a specific version.
-                                    CHANNEL and TAG defaults to "stable" and
-                                    "latest" respectively if omitted; See
-                                    "UPDATE" for details. Supported channels:
-                                    stable, nightly
+                                    CHANNEL can be a repository as well. CHANNEL
+                                    and TAG default to "stable" and "latest"
+                                    respectively if omitted; See "UPDATE" for
+                                    details. Supported channels: stable, nightly
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -409,7 +412,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     configuration files
     --flat-playlist                 Do not extract the videos of a playlist,
                                     only list them
-    --no-flat-playlist              Extract the videos of a playlist
+    --no-flat-playlist              Fully extract the videos of a playlist
+                                    (default)
     --live-from-start               Download livestreams from the start.
                                     Currently only supported for YouTube
                                     (Experimental)
@@ -421,8 +425,12 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-wait-for-video             Do not wait for scheduled streams (default)
     --mark-watched                  Mark videos watched (even with --simulate)
     --no-mark-watched               Do not mark videos watched (default)
-    --no-colors                     Do not emit color codes in output (Alias:
-                                    --no-colours)
+    --color [STREAM:]POLICY         Whether to emit color codes in output,
+                                    optionally prefixed by the STREAM (stdout or
+                                    stderr) to apply the setting to. Can be one
+                                    of "always", "auto" (default), "never", or
+                                    "no_color" (use non color terminal
+                                    sequences). Can be used multiple times
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
@@ -463,15 +471,11 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     specified by --proxy (or none, if the option
                                     is not present) is used for the actual
                                     downloading
-    --geo-bypass                    Bypass geographic restriction via faking
-                                    X-Forwarded-For HTTP header (default)
-    --no-geo-bypass                 Do not bypass geographic restriction via
-                                    faking X-Forwarded-For HTTP header
-    --geo-bypass-country CODE       Force bypass geographic restriction with
-                                    explicitly provided two-letter ISO 3166-2
-                                    country code
-    --geo-bypass-ip-block IP_BLOCK  Force bypass geographic restriction with
-                                    explicitly provided IP block in CIDR notation
+    --xff VALUE                     How to fake X-Forwarded-For HTTP header to
+                                    try bypassing geographic restriction. One of
+                                    "default" (only when known to be useful),
+                                    "never", an IP block in CIDR notation, or a
+                                    two-letter ISO 3166-2 country code
 
 ## Video Selection:
     -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
@@ -518,7 +522,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     dogs" (caseless). Use "--match-filter -" to
                                     interactively ask whether to download each
                                     video
-    --no-match-filter               Do not use any --match-filter (default)
+    --no-match-filters              Do not use any --match-filter (default)
     --break-match-filters FILTER    Same as "--match-filters" but stops the
                                     download process when a video is rejected
     --no-break-match-filters        Do not use any --break-match-filters (default)
@@ -752,6 +756,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
 ## Verbosity and Simulation Options:
     -q, --quiet                     Activate quiet mode. If used with --verbose,
                                     print the log to stderr
+    --no-quiet                      Deactivate quiet mode. (Default)
     --no-warnings                   Ignore warnings
     -s, --simulate                  Do not download the video and do not write
                                     anything to disk
@@ -1246,7 +1251,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Alternatives**: Alternate fields can be specified separated with a `,`. E.g. `%(release_date>%Y,upload_date>%Y|Unknown)s`
 
-1. **Replacement**: A replacement value can be specified using a `&` separator. If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty.
+1. **Replacement**: A replacement value can be specified using a `&` separator according to the [`str.format` mini-language](https://docs.python.org/3/library/string.html#format-specification-mini-language). If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty. E.g. `%(chapters&has chapters|no chapters)s`, `%(title&TITLE={:>20}|NO TITLE)s`
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
@@ -1712,7 +1717,7 @@ Note that these options preserve their relative order, allowing replacements to 
 
 This option also has a few special uses:
 
-* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. E.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
+* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. E.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)"` will download the first vimeo video found in the description
 
 * You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file - you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (e.g. `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
@@ -1787,6 +1792,7 @@ The following extractors use this feature:
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
+* `include_duplicate_formats`: Extract formats with identical content but different URLs or protocol. This is useful if some of the formats are unavailable or throttled.
 * `include_incomplete_formats`: Extract formats that cannot be downloaded completely (live dash and post-live m3u8)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests
@@ -1796,7 +1802,10 @@ The following extractors use this feature:
 * `approximate_date`: Extract approximate `upload_date` and `timestamp` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### generic
-* `fragment_query`: Passthrough any query in mpd/m3u8 manifest URLs to their fragments. Does not apply to ffmpeg
+* `fragment_query`: Passthrough any query in mpd/m3u8 manifest URLs to their fragments if no value is provided, or else apply the query string given as `fragment_query=VALUE`. Does not apply to ffmpeg
+* `variant_query`: Passthrough the master m3u8 URL query to its variant playlist URLs if no value is provided, or else apply the query string given as `variant_query=VALUE`
+* `hls_key`: An HLS AES-128 key URI *or* key (as hex), and optionally the IV (as hex), in the form of `(URI|KEY)[,IV]`; e.g. `generic:hls_key=ABCDEF1234567980,0xFEDCBA0987654321`. Passing any of these values will force usage of the native HLS downloader and override the corresponding values found in the m3u8 playlist
+* `is_live`: Bypass live HLS detection and manually set `live_status` - a value of `false` will set `not_live`, any other value (or no value) will set `is_live`
 
 #### funimation
 * `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
@@ -1832,7 +1841,10 @@ The following extractors use this feature:
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
 #### twitter
-* `force_graphql`: Force usage of the GraphQL API. By default it will only be used if login cookies are provided
+* `legacy_api`: Force usage of the legacy Twitter API instead of the GraphQL API for tweet extraction. Has no effect if login cookies are passed
+
+### wrestleuniverse
+* `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
@@ -1879,7 +1891,7 @@ Plugins can be installed using various methods and locations.
     * **System Plugins**
       * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
       * `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
-2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location:
+2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location (recommended for portable installations):
     * Binary: where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
     * Source: where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
 
@@ -2067,7 +2079,7 @@ with yt_dlp.YoutubeDL() as ydl:
 ```python
 import yt_dlp
 
-URL = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
 def format_selector(ctx):
     """ Select the best video and the best audio that won't result in an mkv.
@@ -2140,6 +2152,7 @@ While these options are redundant, they are still expected to be used due to the
     --playlist-end NUMBER            -I :NUMBER
     --playlist-reverse               -I ::-1
     --no-playlist-reverse            Default
+    --no-colors                      --color no_color
 
 
 #### Not recommended
@@ -2163,6 +2176,10 @@ While these options still work, their use is not recommended since there are oth
     --youtube-skip-hls-manifest      --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
     --youtube-include-hls-manifest   Default (Alias: --no-youtube-skip-hls-manifest)
+    --geo-bypass                     --xff "default"
+    --no-geo-bypass                  --xff "never"
+    --geo-bypass-country CODE        --xff CODE
+    --geo-bypass-ip-block IP_BLOCK   --xff IP_BLOCK
 
 
 #### Developer options

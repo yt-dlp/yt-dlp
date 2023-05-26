@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import unittest
+import warnings
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -112,6 +113,7 @@ from yt_dlp.utils import (
     subtitles_filename,
     timeconvert,
     traverse_obj,
+    try_call,
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
@@ -123,6 +125,7 @@ from yt_dlp.utils import (
     urlencode_postdata,
     urljoin,
     urshift,
+    variadic,
     version_tuple,
     xpath_attr,
     xpath_element,
@@ -1190,6 +1193,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
 
+    def test_js_to_json_template_literal(self):
+        self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '"X"'}), '"XX"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '5'}), '"55"')
+        self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
+        self.assertEqual(js_to_json('`${name}`', {}), '"name"')
+
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
         self.assertEqual(extract_attributes("<e x='y'>"), {'x': 'y'})
@@ -1967,6 +1977,35 @@ Line 1
         self.assertEqual(get_compatible_ext(
             vcodecs=['av1'], acodecs=['mp4a'], vexts=['webm'], aexts=['m4a'], preferences=('webm', 'mkv')), 'mkv')
 
+    def test_try_call(self):
+        def total(*x, **kwargs):
+            return sum(x) + sum(kwargs.values())
+
+        self.assertEqual(try_call(None), None,
+                         msg='not a fn should give None')
+        self.assertEqual(try_call(lambda: 1), 1,
+                         msg='int fn with no expected_type should give int')
+        self.assertEqual(try_call(lambda: 1, expected_type=int), 1,
+                         msg='int fn with expected_type int should give int')
+        self.assertEqual(try_call(lambda: 1, expected_type=dict), None,
+                         msg='int fn with wrong expected_type should give None')
+        self.assertEqual(try_call(total, args=(0, 1, 0, ), expected_type=int), 1,
+                         msg='fn should accept arglist')
+        self.assertEqual(try_call(total, kwargs={'a': 0, 'b': 1, 'c': 0}, expected_type=int), 1,
+                         msg='fn should accept kwargs')
+        self.assertEqual(try_call(lambda: 1, expected_type=dict), None,
+                         msg='int fn with no expected_type should give None')
+        self.assertEqual(try_call(lambda x: {}, total, args=(42, ), expected_type=int), 42,
+                         msg='expect first int result with expected_type int')
+
+    def test_variadic(self):
+        self.assertEqual(variadic(None), (None, ))
+        self.assertEqual(variadic('spam'), ('spam', ))
+        self.assertEqual(variadic('spam', allowed_types=dict), 'spam')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.assertEqual(variadic('spam', allowed_types=[dict]), 'spam')
+
     def test_traverse_obj(self):
         _TEST_DATA = {
             100: 100,
@@ -2009,6 +2048,8 @@ Line 1
                          msg='nested `...` queries should work')
         self.assertCountEqual(traverse_obj(_TEST_DATA, (..., ..., 'index')), range(4),
                               msg='`...` query result should be flattened')
+        self.assertEqual(traverse_obj(iter(range(4)), ...), list(range(4)),
+                         msg='`...` should accept iterables')
 
         # Test function as key
         self.assertEqual(traverse_obj(_TEST_DATA, lambda x, y: x == 'urls' and isinstance(y, list)),
@@ -2016,6 +2057,8 @@ Line 1
                          msg='function as query key should perform a filter based on (key, value)')
         self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
                               msg='exceptions in the query function should be catched')
+        self.assertEqual(traverse_obj(iter(range(4)), lambda _, x: x % 2 == 0), [0, 2],
+                         msg='function key should accept iterables')
         if __debug__:
             with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
                 traverse_obj(_TEST_DATA, lambda a: ...)
@@ -2039,6 +2082,17 @@ Line 1
                 traverse_obj(_TEST_DATA, set())
             with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
                 traverse_obj(_TEST_DATA, {str.upper, str})
+
+        # Test `slice` as a key
+        _SLICE_DATA = [0, 1, 2, 3, 4]
+        self.assertEqual(traverse_obj(_TEST_DATA, ('dict', slice(1))), None,
+                         msg='slice on a dictionary should not throw')
+        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1)), _SLICE_DATA[:1],
+                         msg='slice key should apply slice to sequence')
+        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1, 2)), _SLICE_DATA[1:2],
+                         msg='slice key should apply slice to sequence')
+        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1, 4, 2)), _SLICE_DATA[1:4:2],
+                         msg='slice key should apply slice to sequence')
 
         # Test alternative paths
         self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'str'), 'str',
@@ -2222,6 +2276,12 @@ Line 1
                          msg='function should result in string if `traverse_string`')
         self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)),
                                       traverse_string=True), ['s', 'r'],
+                         msg='branching should result in list if `traverse_string`')
+        self.assertEqual(traverse_obj({}, (0, ...), traverse_string=True), [],
+                         msg='branching should result in list if `traverse_string`')
+        self.assertEqual(traverse_obj({}, (0, lambda x, y: True), traverse_string=True), [],
+                         msg='branching should result in list if `traverse_string`')
+        self.assertEqual(traverse_obj({}, (0, slice(1)), traverse_string=True), [],
                          msg='branching should result in list if `traverse_string`')
 
         # Test is_user_input behavior
