@@ -3255,12 +3255,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
             'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
         scale_mili = functools.partial(float_or_none, scale=1000)
-        generate_end = lambda point: point.get('timeRangeStartMillis') + point.get('markerDurationMillis')
-
         return next(filter(None, (
             traverse_obj(contents, (..., 'heatMarkerRenderer', {
                 'start_time': ('timeRangeStartMillis', {scale_mili}),
-                'end_time': ({generate_end}, {scale_mili}),
+                'end_time': {lambda x: (x['timeRangeStartMillis'] + x['markerDurationMillis']) / 1000},
                 'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
             })) for contents in content_list)), None)
 
