@@ -22,10 +22,10 @@ class WeyyakIE(InfoExtractor):
     def _real_extract(self, url):
         _id, _lang, _type = self._match_valid_url(url).group('id', 'lang', 'type')
 
-        base_url = f'https://msapifo-prod-me.weyyak.z5.com/v1/{_lang}/{"episode/" if _type=="episode" else "contents/moviedetails?contentkey="}{_id}'
-
-        # Get the video info
-        video_info = self._download_json(base_url, _id, headers={'Content-Type': 'application/json'})
+        path = 'episode/' if _type == 'episode' else 'contents/moviedetails?contentkey='
+        video_info = self._download_json(
+            f'https://msapifo-prod-me.weyyak.z5.com/v1/{_lang}/{path}{_id}', _id,
+            headers={'Content-Type': 'application/json'})
         video_id = video_info['data']['video_id']
         title = traverse_obj(video_info, ('data', 'title'))
 
