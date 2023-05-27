@@ -170,7 +170,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
                     self._status(415)
                     return
             self.send_response(200)
-            self.send_header('Content-Encoding', ','.join(encodings))
+            self.send_header('Content-Encoding', encodings)
             self.send_header('Content-Length', str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
