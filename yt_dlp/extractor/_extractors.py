@@ -2329,6 +2329,7 @@ from .weverse import (
     WeverseLiveIE,
 )
 from .wevidi import WeVidiIE
+from .weyyak import WeyyakIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
