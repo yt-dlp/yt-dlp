@@ -151,9 +151,9 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', '0')
             self.end_headers()
         elif self.path == '/content-encoding':
-            encodings = self.headers.get('ytdl-encoding')
+            encodings = self.headers.get('ytdl-encoding', '')
             payload = b'<html><video src="/vid.mp4" /></html>'
-            for encoding in filter(None, (encodings or '').split(',')):
+            for encoding in filter(None, (e.strip() for e in encodings.split(','))):
                 if encoding == 'br' and brotli:
                     payload = brotli.compress(payload)
                 elif encoding == 'gzip':
@@ -360,12 +360,13 @@ class TestHTTP(unittest.TestCase):
     def test_multiple_encodings(self):
         # https://www.rfc-editor.org/rfc/rfc9110.html#section-8.4
         with FakeYDL() as ydl:
-            res = ydl.urlopen(
-                sanitized_Request(
-                    f'http://127.0.0.1:{self.http_port}/content-encoding',
-                    headers={'ytdl-encoding': 'gzip,deflate'}))
-            self.assertEqual(res.headers.get('Content-Encoding'), 'gzip,deflate')
-            self.assertEqual(res.read(), b'<html><video src="/vid.mp4" /></html>')
+            for pair in ('gzip,deflate', 'deflate, gzip', 'gzip, gzip', 'deflate, deflate'):
+                res = ydl.urlopen(
+                    sanitized_Request(
+                        f'http://127.0.0.1:{self.http_port}/content-encoding',
+                        headers={'ytdl-encoding': pair}))
+                self.assertEqual(res.headers.get('Content-Encoding'), pair)
+                self.assertEqual(res.read(), b'<html><video src="/vid.mp4" /></html>')
 
     def test_unsupported_encoding(self):
         # it should return the raw content

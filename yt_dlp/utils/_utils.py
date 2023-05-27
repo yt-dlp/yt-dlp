@@ -1416,7 +1416,7 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
         # To decompress, we simply do the reverse.
         # [1]: https://datatracker.ietf.org/doc/html/rfc9110#name-content-encoding
         decoded_response = None
-        for encoding in reversed(resp.headers.get('Content-encoding', '').split(',')):
+        for encoding in (e.strip() for e in reversed(resp.headers.get('Content-encoding', '').split(','))):
             if encoding == 'gzip':
                 decoded_response = self.gz(decoded_response or resp.read())
             elif encoding == 'deflate':
