@@ -184,6 +184,8 @@ class TestHTTP(unittest.TestCase):
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         self.http_port = http_server_port(self.http_httpd)
         self.http_server_thread = threading.Thread(target=self.http_httpd.serve_forever)
+        # FIXME: we should probably stop the http server thread after each test
+        # See: https://github.com/yt-dlp/yt-dlp/pull/7094#discussion_r1199746041
         self.http_server_thread.daemon = True
         self.http_server_thread.start()
 
