@@ -21,9 +21,9 @@ import time
 import tokenize
 import traceback
 import unicodedata
-import urllib.request
 
 from .cache import Cache
+from .compat import urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
