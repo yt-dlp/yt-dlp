@@ -759,6 +759,7 @@ from .hotstar import (
 )
 from .howcast import HowcastIE
 from .howstuffworks import HowStuffWorksIE
+from .hqporner import HqpornerIE
 from .hrefli import HrefLiRedirectIE
 from .hrfensehen import HRFernsehenIE
 from .hrti import (
