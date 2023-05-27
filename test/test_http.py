@@ -329,6 +329,7 @@ class TestHTTP(unittest.TestCase):
             data = ydl.urlopen(sanitized_Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
             self.assertEqual(data, '<html><video src="/vid.mp4" /></html>')
 
+    @skipUnless(brotli, 'brotli support is not installed')
     def test_brotli(self):
         with FakeYDL() as ydl:
             try:
