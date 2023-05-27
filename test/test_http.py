@@ -337,6 +337,7 @@ class TestHTTP(unittest.TestCase):
                         f'http://127.0.0.1:{self.http_port}/content-encoding',
                         headers={'ytdl-encoding': 'br'}))
             except urllib.error.HTTPError as e:
+                e.read()
                 if e.status == 415:
                     self.skipTest('brotli support is not installed')
                 raise
