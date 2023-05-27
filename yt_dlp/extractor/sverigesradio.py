@@ -1,6 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    extract_attributes,
+    get_element_by_id,
+    get_element_html_by_class,
     int_or_none,
     str_or_none,
 )
@@ -21,7 +24,13 @@ class SverigesRadioBaseIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        audio_id = self._match_id(url)
+        audio_id, display_id = self._match_valid_url(url).group('id', 'slug')
+        if not audio_id:
+            webpage = self._download_webpage(url, display_id)
+            button = extract_attributes(get_element_html_by_class('audio-button', webpage) or '')
+            audio_id = (button.get('data-audio-id') or button.get('data-publication-id')
+                        or self._parse_json(get_element_by_id('gtm-metadata', webpage), display_id)['pageId'])
+
         query = {
             'id': audio_id,
             'type': self._AUDIO_TYPE,
@@ -72,7 +81,7 @@ class SverigesRadioBaseIE(InfoExtractor):
 
 class SverigesRadioPublicationIE(SverigesRadioBaseIE):
     IE_NAME = 'sverigesradio:publication'
-    _VALID_URL = r'https?://(?:www\.)?sverigesradio\.se/sida/(?:artikel|gruppsida)\.aspx\?.*?\bartikel=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?sverigesradio\.se/(?:sida/)?(?:artikel|gruppsida)(?:\.aspx\?.*?\bartikel=(?P<id>[0-9]+)|/(?P<slug>[\w-]+))'
     _TESTS = [{
         'url': 'https://sverigesradio.se/sida/artikel.aspx?programid=83&artikel=7038546',
         'md5': '6a4917e1923fccb080e5a206a5afa542',
@@ -94,7 +103,7 @@ class SverigesRadioPublicationIE(SverigesRadioBaseIE):
 
 class SverigesRadioEpisodeIE(SverigesRadioBaseIE):
     IE_NAME = 'sverigesradio:episode'
-    _VALID_URL = r'https?://(?:www\.)?sverigesradio\.se/(?:sida/)?avsnitt/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?sverigesradio\.se/(?:sida/)?avsnitt/(?:(?P<id>\d+)|(?P<slug>[\w-]+))(?:$|[#?])'
     _TEST = {
         'url': 'https://sverigesradio.se/avsnitt/1140922?programid=1300',
         'md5': '20dc4d8db24228f846be390b0c59a07c',
