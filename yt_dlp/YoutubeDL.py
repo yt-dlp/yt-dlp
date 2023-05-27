@@ -21,9 +21,9 @@ import time
 import tokenize
 import traceback
 import unicodedata
-import urllib.request
 
 from .cache import Cache
+from .compat import urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -2404,7 +2404,7 @@ class YoutubeDL:
         if 'Youtubedl-No-Compression' in res:  # deprecated
             res.pop('Youtubedl-No-Compression', None)
             res['Accept-Encoding'] = 'identity'
-        cookies = self._calc_cookies(info_dict['url'])
+        cookies = self.cookiejar.get_cookie_header(info_dict['url'])
         if cookies:
             res['Cookie'] = cookies
 
@@ -2416,9 +2416,8 @@ class YoutubeDL:
         return res
 
     def _calc_cookies(self, url):
-        pr = sanitized_Request(url)
-        self.cookiejar.add_cookie_header(pr)
-        return pr.get_header('Cookie')
+        self.deprecation_warning('"YoutubeDL._calc_cookies" is deprecated and may be removed in a future version')
+        return self.cookiejar.get_cookie_header(url)
 
     def _sort_thumbnails(self, thumbnails):
         thumbnails.sort(key=lambda t: (

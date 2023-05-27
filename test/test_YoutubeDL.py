@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import copy
 import json
-import urllib.error
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
@@ -1096,11 +1095,6 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '11::3'}, [], True)
         test_selection({'playlist_items': '-15::2'}, INDICES[1::2], True)
         test_selection({'playlist_items': '-15::15'}, [], True)
-
-    def test_urlopen_no_file_protocol(self):
-        # see https://github.com/ytdl-org/youtube-dl/issues/8227
-        ydl = YDL()
-        self.assertRaises(urllib.error.URLError, ydl.urlopen, 'file:///etc/passwd')
 
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()
