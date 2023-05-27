@@ -166,7 +166,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
                 elif encoding == 'unsupported':
                     payload = b'raw'
                     break
-                elif encoding:
+                else:
                     self._status(415)
                     return
             self.send_response(200)
