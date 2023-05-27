@@ -329,19 +329,13 @@ class TestHTTP(unittest.TestCase):
             data = ydl.urlopen(sanitized_Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
             self.assertEqual(data, '<html><video src="/vid.mp4" /></html>')
 
-    @skipUnless(brotli, 'brotli support is not installed')
+    @unittest.skipUnless(brotli, 'brotli support is not installed')
     def test_brotli(self):
         with FakeYDL() as ydl:
-            try:
-                res = ydl.urlopen(
-                    sanitized_Request(
-                        f'http://127.0.0.1:{self.http_port}/content-encoding',
-                        headers={'ytdl-encoding': 'br'}))
-            except urllib.error.HTTPError as e:
-                e.read()
-                if e.status == 415:
-                    self.skipTest('brotli support is not installed')
-                raise
+            res = ydl.urlopen(
+                sanitized_Request(
+                    f'http://127.0.0.1:{self.http_port}/content-encoding',
+                    headers={'ytdl-encoding': 'br'}))
             self.assertEqual(res.headers.get('Content-Encoding'), 'br')
             self.assertEqual(res.read(), b'<html><video src="/vid.mp4" /></html>')
 
