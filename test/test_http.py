@@ -151,9 +151,9 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', '0')
             self.end_headers()
         elif self.path == '/content-encoding':
-            encodings = self.headers.get('ytdl-encoding', '').split(',')
+            encodings = self.headers.get('ytdl-encoding')
             payload = b'<html><video src="/vid.mp4" /></html>'
-            for encoding in encodings:
+            for encoding in filter(None, (encodings or '').split(',')):
                 if encoding == 'br' and brotli:
                     payload = brotli.compress(payload)
                 elif encoding == 'gzip':
