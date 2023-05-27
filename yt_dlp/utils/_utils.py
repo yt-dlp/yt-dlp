@@ -1361,6 +1361,23 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
             return data
         return brotli.decompress(data)
 
+    @staticmethod
+    def gz(data):
+        gz = gzip.GzipFile(fileobj=io.BytesIO(data), mode='rb')
+        try:
+            return gz.read()
+        except OSError as original_ioerror:
+            # There may be junk add the end of the file
+            # See http://stackoverflow.com/q/4928560/35070 for details
+            for i in range(1, 1024):
+                try:
+                    gz = gzip.GzipFile(fileobj=io.BytesIO(data[:-i]), mode='rb')
+                    return gz.read()
+                except OSError:
+                    continue
+            else:
+                raise original_ioerror
+
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
         # always respected by websites, some tend to give out URLs with non percent-encoded
@@ -1394,36 +1411,22 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
 
     def http_response(self, req, resp):
         old_resp = resp
-        # gzip
-        if resp.headers.get('Content-encoding', '') == 'gzip':
-            content = resp.read()
-            gz = gzip.GzipFile(fileobj=io.BytesIO(content), mode='rb')
-            try:
-                uncompressed = io.BytesIO(gz.read())
-            except OSError as original_ioerror:
-                # There may be junk add the end of the file
-                # See http://stackoverflow.com/q/4928560/35070 for details
-                for i in range(1, 1024):
-                    try:
-                        gz = gzip.GzipFile(fileobj=io.BytesIO(content[:-i]), mode='rb')
-                        uncompressed = io.BytesIO(gz.read())
-                    except OSError:
-                        continue
-                    break
-                else:
-                    raise original_ioerror
-            resp = urllib.request.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
-            resp.msg = old_resp.msg
-        # deflate
-        if resp.headers.get('Content-encoding', '') == 'deflate':
-            gz = io.BytesIO(self.deflate(resp.read()))
-            resp = urllib.request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
-            resp.msg = old_resp.msg
-        # brotli
-        if resp.headers.get('Content-encoding', '') == 'br':
-            resp = urllib.request.addinfourl(
-                io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
-            resp.msg = old_resp.msg
+
+        # Content-Encoding header lists the encodings in order that they were applied [1].
+        # To decompress, we simply do the reverse.
+        # [1]: https://datatracker.ietf.org/doc/html/rfc9110#name-content-encoding
+        decoded_response = None
+        for encoding in reversed(resp.headers.get('Content-encoding', '').split(',')):
+            if encoding == 'gzip':
+                decoded_response = self.gz(decoded_response or resp.read())
+            elif encoding == 'deflate':
+                decoded_response = self.deflate(decoded_response or resp.read())
+            elif encoding == 'br' and brotli:
+                decoded_response = self.brotli(decoded_response or resp.read())
+        else:
+            if decoded_response is not None:
+                resp = urllib.request.addinfourl(io.BytesIO(decoded_response), old_resp.headers, old_resp.url, old_resp.code)
+                resp.msg = old_resp.msg
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
         # https://github.com/ytdl-org/youtube-dl/issues/6457).
         if 300 <= resp.code < 400:
