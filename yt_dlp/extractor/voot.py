@@ -1,14 +1,24 @@
+import urllib.error
+
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
+    filter_dict,
+    float_or_none,
     int_or_none,
+    jwt_decode_hs256,
+    make_archive_id,
+    parse_age_limit,
+    traverse_obj,
+    try_call,
     try_get,
-    unified_timestamp,
+    unified_strdate,
 )
 
 
 class VootIE(InfoExtractor):
+    _NETRC_MACHINE = 'voot'
     _VALID_URL = r'''(?x)
                     (?:
                         voot:|
@@ -50,60 +60,63 @@ class VootIE(InfoExtractor):
     }, {
         'url': 'https://www.voot.com/movie/fight-club/621842',
         'only_matching': True,
+    }, {
+        'url': 'https://www.voot.com/shows/parineetii/1/1273482/bebe-gets-a-nefarious-idea/1475903',
+        'only_matching': True,
     }]
+
+    _TOKEN = None
+
+    def _perform_login(self, username, password):
+        if username.lower() == 'token' and try_call(lambda: jwt_decode_hs256(password)):
+            self._TOKEN = password
+            self.report_login()
+        else:
+            raise ExtractorError(
+                'Use "--username token" and "--password <access_token>" to login using access token.')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         media_info = self._download_json(
-            'https://wapi.voot.com/ws/ott/getMediaInfo.json', video_id,
+            'https://psapi.voot.com/jio/voot/v1/voot-web/content/query/asset-details', video_id,
             query={
-                'platform': 'Web',
-                'pId': 2,
-                'mediaId': video_id,
-            })
+                'ids': f'include:{video_id}',
+                'responseType': 'common',
+            }, headers=filter_dict({'accesstoken': self._TOKEN}))
 
-        status_code = try_get(media_info, lambda x: x['status']['code'], int)
-        if status_code != 0:
-            raise ExtractorError(media_info['status']['message'], expected=True)
+        headers = {'Origin': 'https://www.voot.com', 'Referer': 'https://www.voot.com/'}
+        try:
+            m3u8_url = self._download_json(
+                'https://vootapi.media.jio.com/playback/v1/playbackrights', video_id,
+                data=b'{}', headers=filter_dict({
+                    **headers,
+                    'Content-Type': 'application/json;charset=utf-8',
+                    'platform': 'androidwebdesktop',
+                    'vootid': video_id,
+                    'voottoken': self._TOKEN,
+                }))['m3u8']
+        except ExtractorError as e:
+            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 400:
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+            raise
 
-        media = media_info['assets']
-
-        entry_id = media['EntryId']
-        title = media['MediaName']
-        formats = self._extract_m3u8_formats(
-            'https://cdnapisec.kaltura.com/p/1982551/playManifest/pt/https/f/applehttp/t/web/e/' + entry_id,
-            video_id, 'mp4', m3u8_id='hls')
-
-        description, series, season_number, episode, episode_number = [None] * 5
-
-        for meta in try_get(media, lambda x: x['Metas'], list) or []:
-            key, value = meta.get('Key'), meta.get('Value')
-            if not key or not value:
-                continue
-            if key == 'ContentSynopsis':
-                description = value
-            elif key == 'RefSeriesTitle':
-                series = value
-            elif key == 'RefSeriesSeason':
-                season_number = int_or_none(value)
-            elif key == 'EpisodeMainTitle':
-                episode = value
-            elif key == 'EpisodeNo':
-                episode_number = int_or_none(value)
         return {
-            'extractor_key': 'Kaltura',
-            'id': entry_id,
-            'title': title,
-            'description': description,
-            'series': series,
-            'season_number': season_number,
-            'episode': episode,
-            'episode_number': episode_number,
-            'timestamp': unified_timestamp(media.get('CreationDate')),
-            'duration': int_or_none(media.get('Duration')),
-            'view_count': int_or_none(media.get('ViewCounter')),
-            'like_count': int_or_none(media.get('like_counter')),
-            'formats': formats,
+            'id': video_id,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls'),
+            'http_headers': headers,
+            **traverse_obj(media_info, ('result', 0, {
+                'title': ('fullTitle', {str}),
+                'description': ('fullSynopsis', {str}),
+                'series': ('showName', {str}),
+                'season_number': ('season', {int_or_none}),
+                'episode': ('fullTitle', {str}),
+                'episode_number': ('episode', {int_or_none}),
+                'timestamp': ('uploadTime', {int_or_none}),
+                'release_date': ('telecastDate', {unified_strdate}),
+                'age_limit': ('ageNemonic', {parse_age_limit}),
+                'duration': ('duration', {float_or_none}),
+                '_old_archive_ids': ('entryId', {lambda x: [make_archive_id('Kaltura', x)] if x else None}),
+            })),
         }
 
 
