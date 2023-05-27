@@ -1038,6 +1038,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                       else self._get_count({'simpleText': view_count_text}))
         view_count_field = 'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count'
 
+        channel = (self._get_text(renderer, 'ownerText', 'shortBylineText')
+                   or self._get_text(reel_header_renderer, 'channelTitleText'))
+
+        channel_handle = traverse_obj(renderer, (
+            'shortBylineText', 'runs', ..., 'navigationEndpoint',
+            (('commandMetadata', 'webCommandMetadata', 'url'), ('browseEndpoint', 'canonicalBaseUrl'))),
+            expected_type=self.handle_from_url, get_all=False)
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -1047,9 +1054,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'description': description,
             'duration': duration,
             'channel_id': channel_id,
-            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')
-                        or self._get_text(reel_header_renderer, 'channelTitleText')),
+            'channel': channel,
             'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
+            'uploader': channel,
+            'uploader_id': channel_handle,
+            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
                           if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
@@ -5851,7 +5860,25 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@colethedj1894',
             'uploader': 'colethedj',
         },
+        'playlist': [{
+            'info_dict': {
+                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
+                'id': 'BaW_jenozKc',
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'duration': 10,
+                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
+                'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
+                'view_count': int,
+                'url': 'https://www.youtube.com/watch?v=BaW_jenozKc',
+                'channel': 'Philipp Hagemeister',
+                'uploader_id': '@PhilippHagemeister',
+                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
+                'uploader': 'Philipp Hagemeister',
+            }
+        }],
         'playlist_count': 1,
+        'params': {'extract_flat': True},
     }, {
         'note': 'API Fallback: Recommended - redirects to home page. Requires visitorData',
         'url': 'https://www.youtube.com/feed/recommended',
@@ -6152,6 +6179,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'channel_url': str,
                 'concurrent_view_count': int,
                 'channel': str,
+                'uploader': str,
+                'uploader_url': str,
+                'uploader_id': str
             }
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
