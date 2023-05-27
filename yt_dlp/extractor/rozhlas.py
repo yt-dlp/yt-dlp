@@ -195,6 +195,7 @@ class RozhlasVltavaIE(InfoExtractor):
                 if isinstance(e.cause, HTTPError) and e.cause.code == 429:
                     self.report_warning('Getting rate limited', audio_id)
                     self._sleep(self._429_TIMEOUT, audio_id)
+                    return self._extract_audio(entry, audio_id)
                 else:
                     pass
 
