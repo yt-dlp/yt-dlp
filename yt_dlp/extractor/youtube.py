@@ -3418,6 +3418,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             continuation = self._build_api_continuation_query(self._generate_comment_continuation(video_id))
             is_forced_continuation = True
 
+        continuation_items_path = (
+            'onResponseReceivedEndpoints', ..., ('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems')
         for page_num in itertools.count(0):
             if not continuation:
                 break
@@ -3433,11 +3435,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
+
+            check_get_keys = None
+            if not is_forced_continuation:
+                # Do a deep check for incomplete data as sometimes YouTube may return no comments for a continuation
+                check_get_keys = [[*continuation_items_path, ..., (
+                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentRenderer'))]]
             try:
                 response = self._extract_response(
                     item_id=None, query=continuation,
                     ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                    check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+                    check_get_keys=check_get_keys)
             except ExtractorError as e:
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
@@ -3449,15 +3457,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     raise
             is_forced_continuation = False
-            continuation_contents = traverse_obj(
-                response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
-
             continuation = None
-            for continuation_section in continuation_contents:
-                continuation_items = traverse_obj(
-                    continuation_section,
-                    (('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems'),
-                    get_all=False, expected_type=list) or []
+            for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
                     is_first_continuation = False
