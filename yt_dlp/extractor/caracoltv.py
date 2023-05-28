@@ -39,6 +39,9 @@ class CaracolTvPlayIE(InfoExtractor):
             'description': 'md5:e97aac36106e5c37ebf947b3350106a4',
         },
         'playlist_count': 17,
+    }, {
+        'url': 'https://play.caracoltv.com/videoDetails/MzoxX3BwbjRmNjB1',
+        'only_matching': True,
     }]
 
     _USER_TOKEN = None
@@ -88,27 +91,31 @@ class CaracolTvPlayIE(InfoExtractor):
     def _perform_login(self, username, password):
         self._login(username, password)
 
+    def _extract_video(self, video_data, series_id=None, season_id=None, season_number=None):
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_data['stream_url'], series_id, 'mp4')
+
+        return {
+            'id': video_data['id'],
+            'title': video_data.get('name'),
+            'description': video_data.get('description'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnails': traverse_obj(
+                video_data, ('extra_thumbs', ..., {'url': 'thumb_url', 'height': 'height', 'width': 'width'})),
+            'series_id': series_id,
+            'season_id': season_id,
+            'season_number': season_number,
+            'episode_number': video_data.get('item_order'),
+            'is_live': video_data.get('entry_type') == 3,
+        }
+
     def _extract_series_season(self, series_id, season_id, season_number):
         api_response = self._download_json(
             'https://eu-gateway.inmobly.com/feed', series_id, query={'season_id': season_id},
             headers={'Authorization': 'Bearer ' + self._USER_TOKEN})
 
         for episode in api_response['items']:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(episode['stream_url'], series_id, 'mp4')
-
-            yield {
-                'id': episode['id'],
-                'title': episode.get('name'),
-                'description': episode.get('description'),
-                'formats': formats,
-                'subtitles': subtitles,
-                'thumbnails': traverse_obj(
-                    episode, ('extra_thumbs', ..., {'url': 'thumb_url', 'height': 'height', 'width': 'width'})),
-                'series_id': series_id,
-                'season_id': season_id,
-                'season_number': season_number,
-                'episode_number': episode.get('item_order'),
-            }
+            yield self._extract_video(episode, series_id, season_id, season_number)
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
@@ -116,13 +123,18 @@ class CaracolTvPlayIE(InfoExtractor):
         if self._USER_TOKEN is None:
             self._login('guest@inmobly.com', 'Test@gus1')
 
-        series_api_response = self._download_json(
+        api_response = self._download_json(
             'https://eu-gateway.inmobly.com/feed', series_id, query={'include_ids': series_id},
             headers={'Authorization': 'Bearer ' + self._USER_TOKEN})['items'][0]
+
+        if not api_response.get('seasons'):
+            return self._extract_video(api_response)
 
         return self.playlist_result(
             itertools.chain.from_iterable(
                 self._extract_series_season(series_id, season['id'], season.get('order'))
-                for season in series_api_response['seasons']),
-            series_id, playlist_title=series_api_response.get('name'),
-            playlist_description=series_api_response.get('description'))
+                for season in api_response['seasons']),
+            series_id, **traverse_obj(api_response, {
+                'title': 'name',
+                'description': 'description',
+            }))
