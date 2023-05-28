@@ -260,7 +260,34 @@ class RadioFranceLiveIE(RadioFranceBase):
         }
 
 
-class RadioFrancePodcastIE(RadioFranceBase):
+class RadioFrancePlaylistBase(RadioFranceBase):
+    """Subclasses must set _METADATA_KEY"""
+
+    def _generate_playlist_entries(self, content_id, content_response):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+
+        metadata = self._download_json(
+            'https://www.radiofrance.fr/api/v2.1/path', display_id,
+            query={'value': urllib.parse.urlparse(url).path})['content']
+
+        content_id = metadata['id']
+
+        return self.playlist_result(
+            self._generate_playlist_entries(content_id, metadata[self._METADATA_KEY]), content_id,
+            display_id=display_id, **{**traverse_obj(metadata, {
+                'title': 'title',
+                'description': 'standFirst',
+                'thumbnail': ('visual', 'src'),
+            }), **traverse_obj(metadata, {
+                'title': 'name',
+                'description': 'role',
+            })})
+
+
+class RadioFrancePodcastIE(RadioFrancePlaylistBase):
     _VALID_URL = rf'''(?x)
         {RadioFranceBase._VALID_URL_BASE}
         /(?:{"|".join(RadioFranceBase._STATIONS)})
@@ -313,6 +340,8 @@ class RadioFrancePodcastIE(RadioFranceBase):
         'only_matching': True,
     }]
 
+    _METADATA_KEY = 'expressions'
+
     def _generate_playlist_entries(self, podcast_id, podcast_response):
         for page_num in itertools.count(2):
             for episode in podcast_response['items']:
@@ -332,25 +361,8 @@ class RadioFrancePodcastIE(RadioFranceBase):
                 f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
                 note=f'Downloading page {page_num}', query={'pageCursor': next_cursor})
 
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
 
-        metadata = self._download_json(
-            'https://www.radiofrance.fr/api/v2.1/path', display_id,
-            query={'value': urllib.parse.urlparse(url).path})['content']
-
-        podcast_id = metadata['id']
-
-        return self.playlist_result(
-            self._generate_playlist_entries(podcast_id, metadata['expressions']), podcast_id,
-            display_id=display_id, **traverse_obj(metadata, {
-                'title': 'title',
-                'description': 'standFirst',
-                'thumbnail': ('visual', 'src'),
-            }))
-
-
-class RadioFranceProfileIE(RadioFranceBase):
+class RadioFranceProfileIE(RadioFrancePlaylistBase):
     _VALID_URL = rf'{RadioFranceBase._VALID_URL_BASE}/personnes/(?P<id>[\w-]+)'
 
     _TESTS = [{
@@ -366,6 +378,8 @@ class RadioFranceProfileIE(RadioFranceBase):
         'url': 'https://www.radiofrance.fr/personnes/lea-salame',
         'only_matching': True,
     }]
+
+    _METADATA_KEY = 'documents'
 
     def _generate_playlist_entries(self, profile_id, profile_response):
         for page_num in itertools.count(2):
@@ -388,23 +402,6 @@ class RadioFranceProfileIE(RadioFranceBase):
                     'relation': 'personality',
                     'cursor': next_cursor
                 })
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-
-        metadata = self._download_json(
-            'https://www.radiofrance.fr/api/v2.1/path', display_id,
-            query={'value': urllib.parse.urlparse(url).path})['content']
-
-        profile_id = metadata['id']
-
-        return self.playlist_result(
-            self._generate_playlist_entries(profile_id, metadata['documents']), profile_id,
-            display_id=display_id, **traverse_obj(metadata, {
-                'title': 'name',
-                'description': 'role',
-                'thumbnail': ('visual', 'src'),
-            }))
 
 
 class RadioFranceProgramScheduleIE(RadioFranceBase):
