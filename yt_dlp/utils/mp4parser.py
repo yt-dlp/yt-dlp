@@ -54,37 +54,40 @@ def read_trun(trun):
         b = data_reader.read(4)
         return int.from_bytes(b, 'big')
 
-    flags, sample_count = read32(), read32()
-
+    flags = read32()
     if flags & GF_ISOM_TRUN_FIRST_FLAG and flags & GF_ISOM_TRUN_FLAGS:
         raise ValueError('INVALID_FILE')
 
+    sample_count = read32()
     if flags & GF_ISOM_TRUN_DATA_OFFSET:
         _ = read32()
 
     if flags & GF_ISOM_TRUN_FIRST_FLAG:
         _ = read32()
 
-    if flags & 0xF00:
+    samples = [{'id': x} for x in range(sample_count)]
 
-        samples = [{'id': x} for x in range(sample_count)]
+    for p in samples:
 
-        for p in samples:
+        if flags & GF_ISOM_TRUN_DURATION:
+            p['Duration'] = read32()
+        else:
+            p['Duration'] = 0
 
-            if flags & GF_ISOM_TRUN_DURATION:
-                p['Duration'] = read32()
+        if flags & GF_ISOM_TRUN_SIZE:
+            p['size'] = read32()
+        else:
+            p['size'] = 0
 
-            if flags & GF_ISOM_TRUN_SIZE:
-                p['size'] = read32()
+        if flags & GF_ISOM_TRUN_FLAGS:
+            p['flags'] = read32()
+        else:
+            p['flags'] = 0
 
-            if flags & GF_ISOM_TRUN_FLAGS:
-                p['flags'] = read32()
-
-            if flags & GF_ISOM_TRUN_CTS_OFFSET:
-                p['CTS_Offset'] = read32()
-
-    else:
-        raise ValueError('UNSUPPORTED_FILE')
+        if flags & GF_ISOM_TRUN_CTS_OFFSET:
+            p['CTS_Offset'] = read32()
+        else:
+            p['CTS_Offset'] = 0
 
     return samples
 
