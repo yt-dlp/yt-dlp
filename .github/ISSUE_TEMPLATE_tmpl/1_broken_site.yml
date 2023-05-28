@@ -1,5 +1,5 @@
-name: Broken site
-description: Report error in a supported site
+name: Broken site support
+description: Report issue with yt-dlp on a supported site
 labels: [triage, site-bug]
 body:
   %(no_skip)s
@@ -10,7 +10,7 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm reporting that a **supported** site is broken
+        - label: I'm reporting that yt-dlp is broken on a **supported** site
           required: true
         - label: I've verified that I'm running yt-dlp version **%(version)s** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true
