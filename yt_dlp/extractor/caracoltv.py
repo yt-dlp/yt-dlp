@@ -52,7 +52,7 @@ class CaracolTvPlayIE(InfoExtractor):
 
         mediation_config = {} if not config_js_path else self._search_json(
             r'mediation\s*:', self._download_webpage(
-                urljoin('https://play.caracoltv.com/', config_js_path), None, fatal=False),
+                urljoin('https://play.caracoltv.com/', config_js_path), None, fatal=False, note='Extracting JS config'),
             'mediation_config', None, transform_source=js_to_json, fatal=False)
 
         key = traverse_obj(
@@ -67,12 +67,11 @@ class CaracolTvPlayIE(InfoExtractor):
         app_token = self._extract_app_token(webpage)
 
         bearer_token = self._download_json(
-            'https://eu-gateway.inmobly.com/applications/oauth', None, data={}, headers={
-                'Authorization': f'Basic {app_token}',
-            })['token']
+            'https://eu-gateway.inmobly.com/applications/oauth', None, data={}, note='Retrieving bearer token',
+            headers={'Authorization': f'Basic {app_token}'})['token']
 
         self._USER_TOKEN = self._download_json(
-            'https://eu-gateway.inmobly.com/user/login', None, headers={
+            'https://eu-gateway.inmobly.com/user/login', None, note='Performing login', headers={
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer' + bearer_token
             }, data=json.dumps({
