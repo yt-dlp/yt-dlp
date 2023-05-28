@@ -24,6 +24,7 @@ from ..utils import (
     filter_dict,
     float_or_none,
     is_outdated_version,
+    mp42srt,
     orderedSet,
     prepend_extension,
     replace_extension,
@@ -979,7 +980,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
             sub_filenames.append(old_file)
             new_file = replace_extension(old_file, new_ext)
 
-            if ext in ('dfxp', 'ttml', 'tt'):
+            if ext in ('dfxp', 'ttml', 'tt', 'mp4'):
                 self.report_warning(
                     'You have requested to convert dfxp (TTML) subtitles into another format, '
                     'which results in style information loss')
@@ -988,7 +989,10 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 srt_file = replace_extension(old_file, 'srt')
 
                 with open(dfxp_file, 'rb') as f:
-                    srt_data = dfxp2srt(f.read())
+                    if ext == 'mp4':
+                        srt_data = mp42srt(f.read())
+                    else:
+                        srt_data = dfxp2srt(f.read())
 
                 with open(srt_file, 'w', encoding='utf-8') as f:
                     f.write(srt_data)
