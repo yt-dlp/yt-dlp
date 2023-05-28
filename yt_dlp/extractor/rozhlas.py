@@ -54,7 +54,45 @@ class RozhlasIE(InfoExtractor):
         }
 
 
-class RozhlasVltavaIE(InfoExtractor):
+class RozhlasBaseIE(InfoExtractor):
+    _VALID_URL = None
+    _429_TIMEOUT = 1
+
+    def _extract_audio(self, entry, audio_id):
+        formats = []
+        for audio in traverse_obj(entry, ('audioLinks', lambda _, v: url_or_none(v['url']))):
+            ext = audio.get('variant')
+            for retry in self.RetryManager():
+                try:
+                    if ext == 'dash':
+                        formats.extend(self._extract_mpd_formats(
+                            audio['url'], audio_id, mpd_id=ext))
+                    elif ext == 'hls':
+                        formats.extend(self._extract_m3u8_formats(
+                            audio['url'], audio_id, 'm4a', m3u8_id=ext))
+                    else:
+                        formats.append({
+                            'url': audio['url'],
+                            'ext': ext,
+                            'format_id': ext,
+                            'abr': int_or_none(audio.get('bitrate')),
+                            'acodec': ext,
+                            'vcodec': 'none',
+                        })
+                except ExtractorError as e:
+                    if isinstance(e.cause, HTTPError) and e.cause.code == 429:
+                        retry.error = e.cause
+                        self._sleep(self._429_TIMEOUT, audio_id)
+                    else:
+                        pass
+
+        return formats
+
+    def _real_extract(self, url):
+        raise NotImplementedError
+
+
+class RozhlasVltavaIE(RozhlasBaseIE):
     _VALID_URL = r'https?://(?:\w+\.rozhlas|english\.radio)\.cz/[\w-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://wave.rozhlas.cz/papej-masicko-porcujeme-a-bilancujeme-filmy-a-serialy-ktere-letos-zabily-8891337',
@@ -169,37 +207,6 @@ class RozhlasVltavaIE(InfoExtractor):
         }],
         'params': {'skip_download': 'dash'},
     }]
-    _429_TIMEOUT = 1
-
-    def _extract_audio(self, entry, audio_id):
-        formats = []
-        for audio in traverse_obj(entry, ('audioLinks', lambda _, v: url_or_none(v['url']))):
-            ext = audio.get('variant')
-            try:
-                if ext == 'dash':
-                    formats.extend(self._extract_mpd_formats(
-                        audio['url'], audio_id, mpd_id=ext))
-                elif ext == 'hls':
-                    formats.extend(self._extract_m3u8_formats(
-                        audio['url'], audio_id, 'm4a', m3u8_id=ext))
-                else:
-                    formats.append({
-                        'url': audio['url'],
-                        'ext': ext,
-                        'format_id': ext,
-                        'abr': int_or_none(audio.get('bitrate')),
-                        'acodec': ext,
-                        'vcodec': 'none',
-                    })
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.code == 429:
-                    self.report_warning('Getting rate limited', audio_id)
-                    self._sleep(self._429_TIMEOUT, audio_id)
-                    return self._extract_audio(entry, audio_id)
-                else:
-                    pass
-
-        return formats
 
     def _extract_video(self, entry):
         audio_id = entry['meta']['ga']['contentId']
@@ -239,7 +246,7 @@ class RozhlasVltavaIE(InfoExtractor):
         }
 
 
-class MujRozhlasIE(RozhlasVltavaIE):
+class MujRozhlasIE(RozhlasBaseIE):
     _VALID_URL = r'https?://(?:www\.)?mujrozhlas\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
