@@ -5,7 +5,7 @@ from ..utils import ExtractorError, merge_dicts
 
 
 class RecurbateIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?recurbate\.com/play\.php\?video=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?recurbate\.com/play\.php\?video=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://recurbate.com/play.php?video=39161415',
         'md5': 'dd2b4ec57aa3e3572cb5cf0997fca99f',
@@ -27,16 +27,14 @@ class RecurbateIE(InfoExtractor):
             if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
                 self.raise_login_required(msg='This video is only available for registered users; Set your authenticated browser user agent via the --user-agent parameter.', method='cookies')
             raise
-        title = self._html_extract_title(webpage, 'title')
         token = self._html_search_regex(r'data-token="([^"]+)"', webpage, 'token')
-
         video_url = f'https://recurbate.com/api/get.php?video={video_id}&token={token}'
+        
         video_webpage = self._download_webpage(video_url, video_id)
-
         entries = self._parse_html5_media_entries(video_url, video_webpage, video_id)
         return merge_dicts({
             'id': video_id,
-            'title': title,
+            'title': self._html_extract_title(webpage, 'title'),
             'description': self._og_search_description(webpage),
             'age_limit': self._rta_search(webpage),
         }, entries[0])
