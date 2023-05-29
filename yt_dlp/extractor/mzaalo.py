@@ -87,6 +87,5 @@ class MzaaloIE(InfoExtractor):
                 'age_limit': ('maturity_rating', {parse_age_limit}),
                 'thumbnails': ('images', ..., {'url': {url_or_none}}),
                 'categories': ('genre', ..., {str}),
-                'language': ('language', {str}),
             }),
         }
