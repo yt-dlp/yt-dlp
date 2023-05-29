@@ -1227,9 +1227,9 @@ The default location of the .netrc file is `~` (see below).
 As an alternative to using the `.netrc` file, which has the disadvantage of keeping your passwords in a plain text file, you can configure a custom shell command to provide the credentials for an extractor. This is done by providing the `--netrc-cmd` parameter, it shall output the credentials in the netrc format and return `0` on success, other values will be treated as an error. `{}` in the command will be replaced by the name of the extractor to make it possible to select the credentials for the right extractor.
 To use braces in the command, they need to be escaped by doubling them. (see example bellow)
 
-E.g. for using the `pass` password manager:
+E.g. To use an encrypted `.netrc` file stored as `.authinfo.gpg`
 ```
-yt-dlp --netrc-cmd 'pass ytdlp/{} | awk -v RS="" "// {{print \"default login \"\$2\" password \"\$1}}"' https://www.youtube.com/watch?v=BaW_jenozKc
+yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch?v=BaW_jenozKc
 ```
 
 
