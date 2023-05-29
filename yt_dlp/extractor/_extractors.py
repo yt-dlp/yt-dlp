@@ -1548,6 +1548,8 @@ from .radlive import (
     RadLiveSeasonIE,
 )
 from .rai import (
+    RaiIE,
+    RaiCulturaIE,
     RaiPlayIE,
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
@@ -1556,7 +1558,6 @@ from .rai import (
     RaiPlaySoundPlaylistIE,
     RaiNewsIE,
     RaiSudtirolIE,
-    RaiIE,
 )
 from .raywenderlich import (
     RayWenderlichIE,
