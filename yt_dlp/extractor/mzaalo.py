@@ -24,7 +24,6 @@ class MzaaloIE(InfoExtractor):
             'language': 'hin',
             'categories': ['Drama'],
             'age_limit': 13,
-            'content_discriptor': 'Alcohol',
         },
     }, {
         # Shows
@@ -41,7 +40,6 @@ class MzaaloIE(InfoExtractor):
             'language': 'hin',
             'categories': ['Drama'],
             'age_limit': 13,
-            'content_discriptor': 'Frightening Scenes',
         },
     }, {
         # Streams/Clips
@@ -87,6 +85,5 @@ class MzaaloIE(InfoExtractor):
                 'thumbnails': ('images', ..., {'url': {url_or_none}}),
                 'categories': ('genre', ..., {str}),
                 'language': ('language', {str}),
-                'content_discriptor': ('content_descriptor', {str}),
             }),
         }
