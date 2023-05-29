@@ -26,7 +26,8 @@ class CrtvgIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': formats,
-            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, 'title', default=None),
+            'title': remove_end(self._html_search_meta(
+                ['og:title', 'twitter:title'], webpage, 'title', default=None), ' | CRTVG'),
             'description': self._html_search_meta('description', webpage, 'description', default=None),
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage, 'thumbnail', default=None),
         }
