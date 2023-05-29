@@ -104,7 +104,7 @@ class IwaraPlaylistBaseIE(InfoExtractor):
     _PER_PAGE = 32
 
     def _request_page(self, page, *args):
-        raise ExtractorError('Implement this method in subclasses')
+        raise NotImplementedError('This method must be implemented by subclasses')
 
     def _entries(self, *args):
         *args, first_page, page = args
