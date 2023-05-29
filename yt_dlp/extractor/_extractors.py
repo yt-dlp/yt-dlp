@@ -2316,7 +2316,6 @@ from .weibo import (
 )
 from .weiqitv import WeiqiTVIE
 from .wevidi import WeVidiIE
-from .weyyak import WeyyakIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
