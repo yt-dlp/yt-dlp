@@ -13,9 +13,10 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp,
+    update_url,
     update_url_query,
     url_or_none,
-    xpath_text, update_url,
+    xpath_text,
 )
 from ..compat import compat_etree_fromstring
 
