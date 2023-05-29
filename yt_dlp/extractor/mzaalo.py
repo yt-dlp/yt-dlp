@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class MzaaloIE(InfoExtractor):
-    _VALID_URL = r'https?://www.mzaalo.com/play/(?P<type>movie|original|clip)/(?P<id>[a-fA-F0-9-]+)/[\w-]+'
+    _VALID_URL = r'https?://(?:www\.)?mzaalo\.com/play/(?P<type>movie|original|clip)/(?P<id>[a-fA-F0-9-]+)/[\w-]+'
     _TESTS = [{
         # Movies
         'url': 'https://www.mzaalo.com/play/movie/c0958d9f-f90e-4503-a755-44358758921d/Jamun',
@@ -23,7 +23,6 @@ class MzaaloIE(InfoExtractor):
             'duration': 5527.0,
             'language': 'hin',
             'categories': ['Drama'],
-            'asset_type': 'MOVIE',
             'age_limit': 13,
             'content_discriptor': 'Alcohol',
         },
@@ -41,7 +40,6 @@ class MzaaloIE(InfoExtractor):
             'duration': 2040.0,
             'language': 'hin',
             'categories': ['Drama'],
-            'asset_type': 'ORIGINAL',
             'age_limit': 13,
             'content_discriptor': 'Frightening Scenes',
         },
@@ -58,7 +56,6 @@ class MzaaloIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1937.0,
             'language': 'Hin',
-            'asset_type': 'CLIP',
         },
     }]
 
@@ -90,7 +87,6 @@ class MzaaloIE(InfoExtractor):
                 'thumbnails': ('images', ..., {'url': {url_or_none}}),
                 'categories': ('genre', ..., {str}),
                 'language': ('language', {str}),
-                'asset_type': ('asset_type', {str}),
                 'content_discriptor': ('content_descriptor', {str}),
             }),
         }
