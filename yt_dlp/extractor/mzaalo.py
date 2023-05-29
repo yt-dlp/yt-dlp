@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class MzaaloIE(InfoExtractor):
-    _VALID_URL = r'https?:\/\/www\.mzaalo\.com\/play\/(?P<type>movie|original|clip)\/(?P<id>[a-fA-F0-9-]+)\/[a-zA-Z0-9_-]+'
+    _VALID_URL = r'https?://www\.mzaalo\.com/play/(?P<type>movie|original|clip)/(?P<id>[a-fA-F0-9-]+)/[\w-]+'
     _TESTS = [{
         # Movies
         'url': 'https://www.mzaalo.com/play/movie/c0958d9f-f90e-4503-a755-44358758921d/Jamun',
