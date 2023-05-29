@@ -1,18 +1,20 @@
-from .common import InfoExtractor
+import json
+import urllib.error
 
+from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    format_field,
     parse_iso8601,
     traverse_obj,
-    ExtractorError,
+    url_or_none,
 )
-import json
-from urllib.error import HTTPError
 
 
 class WykopBaseExtractor(InfoExtractor):
     def _get_token(self, force_refresh=False):
         if not force_refresh:
-            maybe_cached = self.cache.load('wykop-bearer', '_')
+            maybe_cached = self.cache.load('wykop', 'bearer')
             if maybe_cached:
                 return maybe_cached
 
@@ -23,12 +25,12 @@ class WykopBaseExtractor(InfoExtractor):
                 'secret': 'd537d9e0a7adc1510842059ae5316419',
             }), ('data', 'token'))
 
-        self.cache.store('wykop-bearer', '_', new_token)
+        self.cache.store('wykop', 'bearer', new_token)
         return new_token
 
     def _do_call_api(self, path, video_id, note='Downloading JSON metadata', data=None, headers={}):
         if data:
-            data = json.dumps({'data': data}).encode('utf-8')
+            data = json.dumps({'data': data}).encode()
             headers['Content-Type'] = 'application/json'
 
         return self._download_json(
@@ -36,15 +38,13 @@ class WykopBaseExtractor(InfoExtractor):
             note=note, data=data, headers=headers)
 
     def _call_api(self, path, video_id, note='Downloading JSON metadata'):
-        force_refresh_token = False
-        for _ in range(2):
+        token = self._get_token()
+        for retrying in range(2):
             try:
-                return self._do_call_api(path, video_id, note, headers={
-                    'Authorization': 'Bearer ' + self._get_token(force_refresh=force_refresh_token)
-                })
+                return self._do_call_api(path, video_id, note, headers={'Authorization': f'Bearer {token}'})
             except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.code == 403 and not force_refresh_token:
-                    force_refresh_token = True
+                if not retrying and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                    token = self._get_token(True)
                     continue
                 raise
 
@@ -55,20 +55,15 @@ class WykopBaseExtractor(InfoExtractor):
             '_type': 'url_transparent',
             'display_id': data.get('slug'),
             'url': traverse_obj(data,
-                                # what gets an iframe embed
-                                ('media', 'embed', 'url'),
-                                # if no embed, follow the clickable url (dig only)
-                                ('source', 'url'),
-                                expected_type=str, get_all=False),
-            'thumbnail': traverse_obj(data,
-                                      ('media', 'photo', 'url'),
-                                      ('media', 'embed', 'thumbnail'),
-                                      expected_type=str),
+                                ('media', 'embed', 'url'),  # what gets an iframe embed
+                                ('source', 'url'),  # clickable url (dig only)
+                                expected_type=url_or_none),
+            'thumbnail': traverse_obj(
+                data, ('media', 'photo', 'url'), ('media', 'embed', 'thumbnail'), expected_type=url_or_none),
             'uploader': author,
             'uploader_id': author,
-            'uploader_url': f'https://wykop.pl/ludzie/{author}' if author else None,
-            # time it got submitted
-            'timestamp': parse_iso8601(data.get('created_at'), delimiter=' '),
+            'uploader_url': format_field(author, None, 'https://wykop.pl/ludzie/%s'),
+            'timestamp': parse_iso8601(data.get('created_at'), delimiter=' '),  # time it got submitted
             'like_count': traverse_obj(data, ('votes', 'up'), expected_type=int),
             'dislike_count': traverse_obj(data, ('votes', 'down'), expected_type=int),
             'comment_count': traverse_obj(data, ('comments', 'count'), expected_type=int),
@@ -101,7 +96,6 @@ class WykopDigIE(WykopBaseExtractor):
             'dislike_count': int,
             'comment_count': int,
             'thumbnail': r're:https?://wykop\.pl/cdn/.+',
-            # from linked youtube video
             'view_count': int,
             'channel': 'BBC Earth',
             'channel_id': 'UCwmZiChSryoWQCZMIQezgTg',
@@ -118,7 +112,7 @@ class WykopDigIE(WykopBaseExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return cls._match_valid_url(url) is not None and not WykopDigCommentIE.suitable(url)
+        return cls._match_valid_url(url) and not WykopDigCommentIE.suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -152,7 +146,6 @@ class WykopDigCommentIE(WykopBaseExtractor):
             'uploader_url': 'https://wykop.pl/ludzie/Bartholomew',
             'thumbnail': r're:https?://wykop\.pl/cdn/.+',
             'tags': [],
-
             'availability': 'public',
             'duration': 1838,
             'upload_date': '20230117',
@@ -165,7 +158,7 @@ class WykopDigCommentIE(WykopBaseExtractor):
             'playable_in_embed': True,
             'live_status': 'not_live',
             'age_limit': 0,
-            'chapters': [{'start_time': 0.0, 'title': 'wstęp', 'end_time': 147.0}, {'start_time': 147.0, 'title': 'rozmowa z "technikiem działu bezpieczeństwa" PKO BP', 'end_time': 1644.0}, {'start_time': 1644.0, 'title': 'zaskakujący koniec zabawy z oszustem :)', 'end_time': 1838}],
+            'chapters': 'count:3',
             'channel': 'Poszukiwacze Okazji',
             'channel_id': 'UCzzvJDZThwv06dR4xmzrZBw',
             'channel_url': 'https://www.youtube.com/channel/UCzzvJDZThwv06dR4xmzrZBw',
@@ -205,10 +198,9 @@ class WykopPostIE(WykopBaseExtractor):
             'dislike_count': int,
             'thumbnail': r're:https?://wykop\.pl/cdn/.+',
             'comment_count': int,
-            # from youtube
             'channel': 'Revan',
             'channel_id': 'UCW9T_-uZoiI7ROARQdTDyOw',
-            'channel_url': 'https://www.youtube.com/@revan932',
+            'channel_url': 'https://www.youtube.com/channel/UCW9T_-uZoiI7ROARQdTDyOw',
             'upload_date': '20221120',
             'modified_date': '20220814',
             'availability': 'public',
@@ -222,7 +214,7 @@ class WykopPostIE(WykopBaseExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return cls._match_valid_url(url) is not None and not WykopPostCommentIE.suitable(url)
+        return cls._match_valid_url(url) and not WykopPostCommentIE.suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -254,7 +246,6 @@ class WykopPostCommentIE(WykopBaseExtractor):
             'timestamp': 1675349470,
             'upload_date': '20230202',
             'tags': [],
-
             'duration': 2.12,
             'age_limit': 0,
             'categories': [],
