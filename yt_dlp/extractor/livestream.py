@@ -1,30 +1,27 @@
-import re
 import itertools
+import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
 from ..utils import (
-    find_xpath_attr,
-    xpath_attr,
-    xpath_with_ns,
-    xpath_text,
-    orderedSet,
-    update_url_query,
-    int_or_none,
-    float_or_none,
-    parse_iso8601,
     determine_ext,
-    traverse_obj
+    find_xpath_attr,
+    float_or_none,
+    int_or_none,
+    orderedSet,
+    parse_iso8601,
+    traverse_obj,
+    update_url_query,
+    xpath_attr,
+    xpath_text,
+    xpath_with_ns,
 )
 
 
 class LivestreamIE(InfoExtractor):
     IE_NAME = 'livestream'
     _VALID_URL = r'''(?x)
-        https?://(?:new\.)?livestream.com/
+        https?://(?:new\.)?livestream\.com/
         (?:accounts/(?P<account_id>\d+)|(?P<account_name>[^/]+))
         (?:/events/(?P<event_id>\d+)|/(?P<event_name>[^/]+))?
         (?:/videos/(?P<id>\d+))?
@@ -210,7 +207,6 @@ class LivestreamIE(InfoExtractor):
             return self._extract_stream_info(stream_info)
 
         last_video = None
-        entries = []
         for i in itertools.count(1):
             if last_video is None:
                 info_url = feed_root_url
@@ -218,28 +214,16 @@ class LivestreamIE(InfoExtractor):
                 info_url = '{root}?&id={id}&newer=-1&type=video'.format(
                     root=feed_root_url, id=last_video)
             videos_info = self._download_json(
-                info_url, event_id, 'Downloading page {0}'.format(i))['data']
+                info_url, event_id, f'Downloading page {i}')['data']
             videos_info = [v['data'] for v in videos_info if v['type'] == 'video']
             if not videos_info:
                 break
             for v in videos_info:
                 v_id = compat_str(v['id'])
-                entries.append(self.url_result(
-                    'http://livestream.com/accounts/%s/events/%s/videos/%s' % (account_id, event_id, v_id),
-                    'Livestream', v_id, v.get('caption')))
+                yield self.url_result(
+                    f'http://livestream.com/accounts/{account_id}/events/{event_id}/videos/{v_id}',
+                    LivestreamIE, v_id, v.get('caption'))
             last_video = videos_info[-1]['id']
-        return entries
-
-    def _extract_event(self, event_data):
-        event_id = str(event_data['id'])
-        entries = self._generate_event_playlist(event_data)
-        return self.playlist_result(entries, event_id, event_data['full_name'])
-
-    def _extract_account_events(self, account_data):
-        items = traverse_obj(account_data, (('upcoming_events', 'past_events'), 'data', ...))
-        return self.playlist_result(
-            itertools.chain.from_iterable(map(self._generate_event_playlist, items)),
-            account_data.get('id'), account_data.get('full_name'))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -247,15 +231,21 @@ class LivestreamIE(InfoExtractor):
         event = mobj.group('event_id') or mobj.group('event_name')
         account = mobj.group('account_id') or mobj.group('account_name')
         api_url = f'http://livestream.com/api/accounts/{account}'
+
         if video_id:
             video_data = self._download_json(
                 f'{api_url}/events/{event}/videos/{video_id}', video_id)
             return self._extract_video_info(video_data)
         elif event:
             event_data = self._download_json(f'{api_url}/events/{event}', None)
-            return self._extract_event(event_data)
+            return self.playlist_result(
+                self._generate_event_playlist(event_data), str(event_data['id']), event_data['full_name'])
+
         account_data = self._download_json(api_url, None)
-        return self._extract_account_events(account_data)
+        items = traverse_obj(account_data, (('upcoming_events', 'past_events'), 'data', ...))
+        return self.playlist_result(
+            itertools.chain.from_iterable(map(self._generate_event_playlist, items)),
+            account_data.get('id'), account_data.get('full_name'))
 
 
 # The original version of Livestream uses a different system
