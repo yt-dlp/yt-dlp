@@ -70,15 +70,14 @@ class ZingMp3BaseIE(InfoExtractor):
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def _paged_list(self, _id, url_type):
-        page = 1
-        entries = []
-        while True:
+        count = 0
+        for page in itertool.count(1):
             data = self._fetch_page(_id, url_type, page)
-            entries.extend(self._parse_items(data.get('items')))
-            if not data.get('hasMore') or len(entries) > data.get('total'):
+            entries = self._parse_items(data.get('items'))
+            count += len(entries)
+            yield from entries
+            if not data.get('hasMore') or count > data.get('total'):
                 break
-            page += 1
-        return entries
 
 
 class ZingMp3IE(ZingMp3BaseIE):
