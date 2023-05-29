@@ -1479,7 +1479,6 @@ from .polskieradio import (
     PolskieRadioPlayerIE,
     PolskieRadioPodcastIE,
     PolskieRadioPodcastListIE,
-    PolskieRadioRadioKierowcowIE,
 )
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
