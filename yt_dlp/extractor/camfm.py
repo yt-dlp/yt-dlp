@@ -32,7 +32,7 @@ class CamFMShowIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'id': show_id,
-            'entries': [self.url_result(urljoin('https://camfm.co.uk', url), CamFMEpisodeIE)
+            'entries': [self.url_result(urljoin('https://camfm.co.uk', i), CamFMEpisodeIE)
                         for i in re.findall(r"javascript:popup\('(/player/[^']+)', 'listen'", page)],
             'thumbnail': urljoin('https://camfm.co.uk', self._search_regex(
                 r'<img[^>]+class="thumb-expand"[^>]+src="([^"]+)"', page, 'thumbnail', fatal=False)),
