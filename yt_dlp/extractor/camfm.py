@@ -1,5 +1,4 @@
 import re
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -9,13 +8,14 @@ from ..utils import (
     join_nonempty,
     traverse_obj,
     unified_timestamp,
+    urljoin,
 )
 
 
 class CamFMShowIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/shows/(?P<id>[^/]+)/?'
+    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/shows/(?P<id>[^/]+)'
     _TESTS = [{
-        'playlist_mincount': 0,
+        'playlist_mincount': 5,
         'url': 'https://camfm.co.uk/shows/soul-mining/',
         'info_dict': {
             'id': 'soul-mining',
@@ -28,13 +28,13 @@ class CamFMShowIE(InfoExtractor):
     def _real_extract(self, url):
         show_id = self._match_id(url)
         page = self._download_webpage(url, show_id)
-        urls = [urllib.parse.urljoin('https://camfm.co.uk', url) for url in re.findall(r"javascript:popup\('(/player/[^']+)', 'listen'", page)]
 
         return {
             '_type': 'playlist',
             'id': show_id,
-            'entries': [self.url_result(i, CamFMEpisodeIE) for i in urls],
-            'thumbnail': urllib.parse.urljoin('https://camfm.co.uk', self._search_regex(
+            'entries': [self.url_result(urljoin('https://camfm.co.uk', url), CamFMEpisodeIE)
+                        for i in re.findall(r"javascript:popup\('(/player/[^']+)', 'listen'", page)],
+            'thumbnail': urljoin('https://camfm.co.uk', self._search_regex(
                 r'<img[^>]+class="thumb-expand"[^>]+src="([^"]+)"', page, 'thumbnail', fatal=False)),
             'title': self._html_search_regex('<h1>([^<]+)</h1>', page, 'title', fatal=False),
             'description': clean_html(get_element_by_class('small-12 medium-8 cell', page))
@@ -42,7 +42,7 @@ class CamFMShowIE(InfoExtractor):
 
 
 class CamFMEpisodeIE(InfoExtractor):
-    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/player/(?P<id>[^/]+)/?'
+    _VALID_URL = r'https://(?:www\.)?camfm\.co\.uk/player/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://camfm.co.uk/player/43336',
         'skip': 'Episode will expire - don\'t actually know when, but it will go eventually',
@@ -70,17 +70,16 @@ class CamFMEpisodeIE(InfoExtractor):
         card_section = get_element_by_class('card-section', page)
         date = self._html_search_regex('>Aired at ([^<]+)<', card_section, 'air date', fatal=False)
 
-        title = join_nonempty(series, date, delim=' - ')
-
         return {
             'id': episode_id,
-            'title': title,
+            'title': join_nonempty(series, date, delim=' - '),
             'formats': traverse_obj(audios, (..., 'formats', ...)),
             'timestamp': unified_timestamp(date),  # XXX: Does not account for UK's daylight savings
             'series': series,
             'description': clean_html(re.sub(r'<b>[^<]+</b><br[^>]+/>', '', card_section)),
-            'thumbnail': urllib.parse.urljoin('https://camfm.co.uk', self._search_regex(r'<div[^>]+class="cover-art"[^>]+style="[^"]+url\(\'([^\']+)',
-                                              page, 'thumbnail', fatal=False)),
-            'categories': [clean_html(c) for c in get_elements_by_class('label', caption)],
+            'thumbnail': urljoin('https://camfm.co.uk', self._search_regex(
+                r'<div[^>]+class="cover-art"[^>]+style="[^"]+url\(\'([^\']+)',
+                page, 'thumbnail', fatal=False)),
+            'categories': get_elements_by_class('label', caption),
             'was_live': True,
         }
