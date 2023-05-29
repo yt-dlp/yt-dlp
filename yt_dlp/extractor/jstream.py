@@ -29,16 +29,16 @@ class JStreamIE(InfoExtractor):
     def _parse_jsonp(self, callback, string, video_id):
         return self._search_json(rf'\s*{re.escape(callback)}\s*\(', string, callback, video_id)
 
-    def _find_formats(self, video_id, movie_list_hls, host, publisher, subs):
+    def _find_formats(self, video_id, movie_list_hls, host, publisher, subtitles):
         for value in movie_list_hls:
             text = value.get('text') or ''
             if not text.startswith('auto'):
                 continue
             m3u8_id = remove_start(remove_start(text, 'auto'), '_') or None
-            f, s = self._extract_m3u8_formats_and_subtitles(
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 f'https://{publisher}.eq.webcdn.stream.ne.jp/{host}/{publisher}/jmc_pub/{value.get("url")}', video_id, 'mp4', m3u8_id=m3u8_id)
-            self._merge_subtitles(s, target=subs)
-            yield from f
+            self._merge_subtitles(subs, target=subtitles)
+            yield from fmts
 
     def _real_extract(self, url):
         host, publisher, mid, video_id = self._match_valid_url(url).group('host', 'publisher', 'mid', 'id')
@@ -67,7 +67,7 @@ class JStreamIE(InfoExtractor):
             return
         host, publisher = script_tag.groups()
         for m in re.finditer(r'(?s)PlayerFactoryIF\.create\(\s*({.+?})\s*\)\s*;', webpage):
-            # using json.loads here as InfoExtractor._parse_json is not classmethod
+            # TODO: using json.loads here as InfoExtractor._parse_json is not classmethod
             info = json.loads(js_to_json(m.group(1)))
             mid = base64.b64decode(info.get('m')).decode()
             yield f'jstream:{host}:{publisher}:{mid}'
