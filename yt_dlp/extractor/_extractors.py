@@ -407,13 +407,13 @@ from .crowdbunker import (
     CrowdBunkerIE,
     CrowdBunkerChannelIE,
 )
+from .crtvg import CrtvgIE
 from .crunchyroll import (
     CrunchyrollBetaIE,
     CrunchyrollBetaShowIE,
     CrunchyrollMusicIE,
     CrunchyrollArtistIE,
 )
-from .crtvg import CrtvgIE
 from .cspan import CSpanIE, CSpanCongressIE
 from .ctsnews import CtsNewsIE
 from .ctv import CTVIE
