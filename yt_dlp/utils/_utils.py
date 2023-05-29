@@ -864,11 +864,11 @@ def escapeHTML(text):
     )
 
 
-class stream_netrc(netrc.netrc):
-    def __init__(self, stream):
-        self.hosts = {}
-        self.macros = {}
-        self._parse('-', stream, False)
+class netrc_from_content(netrc.netrc):
+    def __init__(self, content):
+        self.hosts, self.macros = {}, {}
+        with io.StringIO(content) as stream:
+            self._parse('-', stream, False)
 
 
 def process_communicate_or_kill(p, *args, **kwargs):
