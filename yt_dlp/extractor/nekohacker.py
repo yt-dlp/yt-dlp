@@ -206,10 +206,12 @@ class NekoHackerIE(InfoExtractor):
                 'release_date': ('data-releasedate', {lambda x: re.match(r'\d{8}', x.replace('.', ''))}, 0),
                 'thumbnail': ('data-albumart', {url_or_none}),
             })
-            entry['track_number'] = track_number
-            entry['artist'] = 'Neko Hacker'
-            entry['vcodec'] = 'none'
-            entry['acodec'] = 'mp3' if entry['ext'] == 'mp3' else None
-            entries.append(entry)
+            entries.append({
+                **entry,
+                'track_number': track_number,
+                'artist': 'Neko Hacker',
+                'vcodec': 'none',
+                'acodec': 'mp3' if entry['ext'] == 'mp3' else None,
+            })
 
         return self.playlist_result(entries, playlist_id, traverse_obj(entries, (0, 'album')))
