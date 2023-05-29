@@ -2098,7 +2098,6 @@ from .tvp import (
 )
 from .tvplay import (
     TVPlayIE,
-    ViafreeIE,
     TVPlayHomeIE,
 )
 from .tvplayer import TVPlayerIE
