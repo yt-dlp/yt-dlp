@@ -204,7 +204,11 @@ from .bfmtv import (
     BFMTVLiveIE,
     BFMTVArticleIE,
 )
-from .bibeltv import BibelTVIE
+from .bibeltv import (
+    BibelTVLiveIE,
+    BibelTVSeriesIE,
+    BibelTVVideoIE,
+)
 from .bigflix import BigflixIE
 from .bigo import BigoIE
 from .bild import BildIE
@@ -247,7 +251,6 @@ from .bongacams import BongaCamsIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
-from .booyah import BooyahClipsIE
 from .bpb import BpbIE
 from .br import (
     BRIE,
@@ -411,6 +414,8 @@ from .crowdbunker import (
 from .crunchyroll import (
     CrunchyrollBetaIE,
     CrunchyrollBetaShowIE,
+    CrunchyrollMusicIE,
+    CrunchyrollArtistIE,
 )
 from .cspan import CSpanIE, CSpanCongressIE
 from .ctsnews import CtsNewsIE
@@ -1377,6 +1382,7 @@ from .orf import (
     ORFIPTVIE,
 )
 from .outsidetv import OutsideTVIE
+from .owncloud import OwnCloudIE
 from .packtpub import (
     PacktPubIE,
     PacktPubCourseIE,
@@ -1478,7 +1484,6 @@ from .polskieradio import (
     PolskieRadioPlayerIE,
     PolskieRadioPodcastIE,
     PolskieRadioPodcastListIE,
-    PolskieRadioRadioKierowcowIE,
 )
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
@@ -1548,6 +1553,8 @@ from .radlive import (
     RadLiveSeasonIE,
 )
 from .rai import (
+    RaiIE,
+    RaiCulturaIE,
     RaiPlayIE,
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
@@ -1556,7 +1563,6 @@ from .rai import (
     RaiPlaySoundPlaylistIE,
     RaiNewsIE,
     RaiSudtirolIE,
-    RaiIE,
 )
 from .raywenderlich import (
     RayWenderlichIE,
@@ -2319,7 +2325,16 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .weverse import (
+    WeverseIE,
+    WeverseMediaIE,
+    WeverseMomentIE,
+    WeverseLiveTabIE,
+    WeverseMediaTabIE,
+    WeverseLiveIE,
+)
 from .wevidi import WeVidiIE
+from .weyyak import WeyyakIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
@@ -2348,6 +2363,12 @@ from .wsj import (
     WSJArticleIE,
 )
 from .wwe import WWEIE
+from .wykop import (
+    WykopDigIE,
+    WykopDigCommentIE,
+    WykopPostIE,
+    WykopPostCommentIE,
+)
 from .xanimu import XanimuIE
 from .xbef import XBefIE
 from .xboxclips import XboxClipsIE
@@ -2467,6 +2488,7 @@ from .zingmp3 import (
     ZingMp3WeekChartIE,
     ZingMp3ChartMusicVideoIE,
     ZingMp3UserIE,
+    ZingMp3HubIE,
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE

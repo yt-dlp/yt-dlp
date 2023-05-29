@@ -1075,7 +1075,7 @@ class TwitchClipsIE(TwitchBaseIE):
                     https?://
                         (?:
                             clips\.twitch\.tv/(?:embed\?.*?\bclip=|(?:[^/]+/)*)|
-                            (?:(?:www|go|m)\.)?twitch\.tv/[^/]+/clip/
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/)?clip/
                         )
                         (?P<id>[^/?#&]+)
                     '''
@@ -1110,6 +1110,9 @@ class TwitchClipsIE(TwitchBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://go.twitch.tv/rossbroadcast/clip/ConfidentBraveHumanChefFrank',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.twitch.tv/clip/FaintLightGullWholeWheat',
         'only_matching': True,
     }]
 

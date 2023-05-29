@@ -13,6 +13,7 @@ import optparse
 import os
 import re
 import sys
+import traceback
 
 from .compat import compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
@@ -434,6 +435,10 @@ def validate_options(opts):
                 f'No such {format_field(proto, None, "%s ", ignore="default")}external downloader "{path}"')
         elif ed and proto == 'default':
             default_downloader = ed.get_basename()
+
+    for policy in opts.color.values():
+        if policy not in ('always', 'auto', 'no_color', 'never'):
+            raise ValueError(f'"{policy}" is not a valid color policy')
 
     warnings, deprecation_warnings = [], []
 
@@ -893,7 +898,7 @@ def parse_options(argv=None):
         'playlist_items': opts.playlist_items,
         'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
-        'no_color': opts.no_color,
+        'color': opts.color,
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
@@ -937,14 +942,18 @@ def _real_main(argv=None):
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        updater = Updater(ydl, opts.update_self if isinstance(opts.update_self, str) else None)
-        if opts.update_self and updater.update() and actual_use:
-            if updater.cmd:
-                return updater.restart()
-            # This code is reachable only for zip variant in py < 3.10
-            # It makes sense to exit here, but the old behavior is to continue
-            ydl.report_warning('Restart yt-dlp to use the updated version')
-            # return 100, 'ERROR: The program must exit for the update to complete'
+        try:
+            updater = Updater(ydl, opts.update_self)
+            if opts.update_self and updater.update() and actual_use:
+                if updater.cmd:
+                    return updater.restart()
+                # This code is reachable only for zip variant in py < 3.10
+                # It makes sense to exit here, but the old behavior is to continue
+                ydl.report_warning('Restart yt-dlp to use the updated version')
+                # return 100, 'ERROR: The program must exit for the update to complete'
+        except Exception:
+            traceback.print_exc()
+            ydl._download_retcode = 100
 
         if not actual_use:
             if pre_process:
