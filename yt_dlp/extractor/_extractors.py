@@ -413,6 +413,7 @@ from .crunchyroll import (
     CrunchyrollMusicIE,
     CrunchyrollArtistIE,
 )
+from .crtvg import CrtvgIE
 from .cspan import CSpanIE, CSpanCongressIE
 from .ctsnews import CtsNewsIE
 from .ctv import CTVIE
