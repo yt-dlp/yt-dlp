@@ -126,14 +126,10 @@ class RaiBaseIE(InfoExtractor):
         }
 
         def percentage(number, target, pc=20, roof=125):
-            # check if the target is in the range of number +/- percent
+            '''check if the target is in the range of number +/- percent'''
             if not number or number < 0:
                 return False
-            pc = float(number) / 100.0 * float(pc)
-            pc = pc if pc < roof else roof
-            if target < (number + pc) and target > (number - pc):
-                return True
-            return False
+            return abs(target - number) < min(float(number) * float(pc) / 100.0, roof)
 
         def get_format_info(tbr):
             import math
@@ -245,9 +241,7 @@ class RaiPlayIE(RaiBaseIE):
             'duration': 6160,
             'series': 'Report',
             'season': '2013/14',
-            'subtitles': {
-                'it': 'count:4',
-            },
+            'subtitles': {'it': 'count:4'},
             'release_year': 2022,
             'episode': 'Espresso nel caffè - 07/04/2014',
             'timestamp': 1396919880,
@@ -599,7 +593,7 @@ class RaiIE(RaiBaseIE):
     def _extract_from_content_id(self, content_id, url):
         media = self._download_json(
             f'https://www.rai.tv/dl/RaiTV/programmi/media/ContentItem-{content_id}.html?json',
-            content_id, 'Downloading video JSON', fatal=False, expected_status=(404))
+            content_id, 'Downloading video JSON', fatal=False, expected_status=404)
 
         if media is None:
             return None
@@ -842,10 +836,7 @@ class RaiSudtirolIE(RaiBaseIE):
             r'sources:\s*\[\{file:\s*"(.+?)"\}\]',
             r'<source\s+src="(.+?)"\s+type="application/x-mpegURL"'],
             webpage, 'video_url', default=None)
-        video_thumb = self._html_search_regex(
-            r'image: \'(.+?)\'', webpage, 'video_thumb', default=None)
 
-        formats = []
         ext = determine_ext(video_url)
         if ext == 'm3u8':
             formats = self._extract_m3u8_formats(video_url, video_id)
@@ -860,6 +851,7 @@ class RaiSudtirolIE(RaiBaseIE):
                 'acodec': 'mp4a',
             }]
         else:
+            formats = []
             self.raise_no_formats(f'Unrecognized media file: {video_url}')
 
         return {
@@ -867,7 +859,8 @@ class RaiSudtirolIE(RaiBaseIE):
             'title': join_nonempty(video_title, video_date, delim=' - '),
             'series': video_title if video_date else None,
             'upload_date': unified_strdate(video_date),
-            'thumbnail': urljoin('https://raisudtirol.rai.it/', video_thumb),
+            'thumbnail': urljoin('https://raisudtirol.rai.it/', self._html_search_regex(
+                r'image: \'(.+?)\'', webpage, 'video_thumb', default=None)),
             'uploader': 'raisudtirol',
             'formats': formats,
         }
