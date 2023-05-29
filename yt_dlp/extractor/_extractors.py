@@ -2357,6 +2357,12 @@ from .wsj import (
     WSJArticleIE,
 )
 from .wwe import WWEIE
+from .wykop import (
+    WykopDigIE,
+    WykopDigCommentIE,
+    WykopPostIE,
+    WykopPostCommentIE,
+)
 from .xanimu import XanimuIE
 from .xbef import XBefIE
 from .xboxclips import XboxClipsIE
