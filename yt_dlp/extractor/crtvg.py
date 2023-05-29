@@ -19,7 +19,7 @@ class CrtvgIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        video_url = self._search_regex(r'var\s+url\s*=\s*["\']([^"\']+)', webpage, 'url')
+        video_url = self._search_regex(r'var\s+url\s*=\s*["\']([^"\']+)', webpage, 'video url')
         formats = self._extract_m3u8_formats_and_subtitles(video_url + '/playlist.m3u8', video_id, fatal=False)
         formats.extend(self._extract_mpd_formats(video_url + '/manifest.mpd', video_id, fatal=False))
 
