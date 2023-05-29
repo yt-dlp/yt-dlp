@@ -73,6 +73,9 @@ class MzaaloIE(InfoExtractor):
             if url_or_none(subs_url):
                 subtitles[subs_lang] = [{'url': subs_url, 'ext': 'vtt'}]
 
+        for format in formats:
+            format['language'] = traverse_obj(data, ('language', {str}))
+
         return {
             'id': video_id,
             'formats': formats,
