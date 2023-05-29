@@ -54,9 +54,8 @@ class CBSNewsBaseIE(InfoExtractor):
         return traverse_obj(item, 'video', 'video2', expected_type=url_or_none)
 
     def _extract_playlist(self, webpage, playlist_id):
-        entries = []
-        for embed_url in re.findall(r'<iframe[^>]+data-src="(https?://(?:www\.)?cbsnews\.com/embed/video/[^#]*#[^"]+)"', webpage):
-            entries.append(self.url_result(embed_url, CBSNewsEmbedIE))
+        entries = [self.url_result(embed_url, CBSNewsEmbedIE) for embed_url in re.findall(
+            r'<iframe[^>]+data-src="(https?://(?:www\.)?cbsnews\.com/embed/video/[^#]*#[^"]+)"', webpage)]
         if entries:
             return self.playlist_result(
                 entries, playlist_id, self._html_search_meta(['og:title', 'twitter:title'], webpage),
@@ -129,7 +128,7 @@ class CBSNewsEmbedIE(CBSNewsBaseIE):
     def _real_extract(self, url):
         item = traverse_obj(self._parse_json(zlib.decompress(base64.b64decode(
             urllib.parse.unquote(self._match_id(url))),
-            -zlib.MAX_WBITS).decode('utf-8'), None), ('video', 'items', 0, {dict})) or {}
+            -zlib.MAX_WBITS).decode(), None), ('video', 'items', 0, {dict})) or {}
 
         video_id = item['mpxRefId']
         video_url = self._get_video_url(item)
