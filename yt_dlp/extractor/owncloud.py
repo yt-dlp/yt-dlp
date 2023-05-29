@@ -1,11 +1,10 @@
 import re
-
-from urllib.parse import urlparse, urljoin
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     url_or_none,
     urlencode_postdata,
 )
@@ -49,12 +48,13 @@ class OwnCloudIE(InfoExtractor):
 
         hidden_inputs = self._hidden_inputs(webpage)
         title = hidden_inputs.get('filename')
+        parsed_url = urllib.parse.urlparse(url)
 
         return {
             'id': video_id,
             'title': title,
-            'url': (url_or_none(hidden_inputs.get('downloadURL')
-                    or urlparse(url)._replace(path=urljoin(urlparse(url).path, 'download')).geturl())),
+            'url': url_or_none(hidden_inputs.get('downloadURL')) or parsed_url._replace(
+                path=urllib.parse.urljoin(parsed_url.path, 'download')).geturl(),
             'ext': determine_ext(title),
         }
 
