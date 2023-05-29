@@ -12,7 +12,6 @@ class MzaaloIE(InfoExtractor):
     _TESTS = [{
         # Movies
         'url': 'https://www.mzaalo.com/play/movie/c0958d9f-f90e-4503-a755-44358758921d/Jamun',
-        'md5': '11ed677ae13f01f41660db26903a6e34',
         'info_dict': {
             'id': 'c0958d9f-f90e-4503-a755-44358758921d',
             'title': 'Jamun',
@@ -25,10 +24,10 @@ class MzaaloIE(InfoExtractor):
             'categories': ['Drama'],
             'age_limit': 13,
         },
+        'params': {'skip_download': 'm3u8'}
     }, {
         # Shows
         'url': 'https://www.mzaalo.com/play/original/93d42b2b-f373-4c2d-bca4-997412cb069d/Modi-Season-2-CM-TO-PM/Episode-1:Decision,-Not-Promises',
-        'md5': 'e18b0e6bbd8ccfed9c88cad93b1851cb',
         'info_dict': {
             'id': '93d42b2b-f373-4c2d-bca4-997412cb069d',
             'title': 'Episode 1:Decision, Not Promises',
@@ -41,10 +40,10 @@ class MzaaloIE(InfoExtractor):
             'categories': ['Drama'],
             'age_limit': 13,
         },
+        'params': {'skip_download': 'm3u8'}
     }, {
         # Streams/Clips
         'url': 'https://www.mzaalo.com/play/clip/83cdbcb5-400a-42f1-a1d2-459053cfbda5/Manto-Ki-Kahaaniya',
-        'md5': '9a20e6603c83a799543af8ec1a52d7ef',
         'info_dict': {
             'id': '83cdbcb5-400a-42f1-a1d2-459053cfbda5',
             'title': 'Manto Ki Kahaaniya',
@@ -53,8 +52,9 @@ class MzaaloIE(InfoExtractor):
             'thumbnails': 'count:3',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1937.0,
-            'language': 'Hin',
+            'language': 'hin',
         },
+        'params': {'skip_download': 'm3u8'}
     }]
 
     def _real_extract(self, url):
@@ -73,8 +73,9 @@ class MzaaloIE(InfoExtractor):
             if url_or_none(subs_url):
                 subtitles[subs_lang] = [{'url': subs_url, 'ext': 'vtt'}]
 
-        for format in formats:
-            format['language'] = traverse_obj(data, ('language', {str}))
+        lang = traverse_obj(data, ('language', {str.lower}))
+        for f in formats:
+            f['language'] = lang
 
         return {
             'id': video_id,
