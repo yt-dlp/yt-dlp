@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class CrtvgIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.crtvg\.es/tvg/a-carta/[^/]+-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?crtvg\.es/tvg/a-carta/[^/#?]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.crtvg.es/tvg/a-carta/os-caimans-do-tea-5839623',
         'md5': 'c0958d9ff90e4503a75544358758921d',
