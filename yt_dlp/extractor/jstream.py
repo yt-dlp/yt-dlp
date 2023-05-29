@@ -62,11 +62,11 @@ class JStreamIE(InfoExtractor):
     def _extract_embed_urls(cls, url, webpage):
         # check for eligiblity of webpage
         # https://support.eq.stream.co.jp/hc/ja/articles/115008388147-%E3%83%97%E3%83%AC%E3%82%A4%E3%83%A4%E3%83%BCAPI%E3%81%AE%E3%82%B5%E3%83%B3%E3%83%97%E3%83%AB%E3%82%B3%E3%83%BC%E3%83%89
-        script_tag = re.search(r'<script\s*.+?src="https://ssl-cache\.stream\.ne\.jp/(?P<host>www\d+)/(?P<publisher>[a-z0-9]+)/[^"]+?/if\.js"', webpage)
+        script_tag = re.search(r'<script\s*[^>]+?src="https://ssl-cache\.stream\.ne\.jp/(?P<host>www\d+)/(?P<publisher>[a-z0-9]+)/[^"]+?/if\.js"', webpage)
         if not script_tag:
             return
         host, publisher = script_tag.groups()
-        for m in re.finditer(r'(?s)PlayerFactoryIF\.create\(\s*({.+?})\s*\)\s*;', webpage):
+        for m in re.finditer(r'(?s)PlayerFactoryIF\.create\(\s*({[^\}]+?})\s*\)\s*;', webpage):
             # using json.loads here as InfoExtractor._parse_json is not classmethod
             info = json.loads(js_to_json(m.group(1)))
             mid = base64.b64decode(info.get('m')).decode()
