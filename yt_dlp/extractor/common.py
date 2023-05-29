@@ -6,7 +6,6 @@ import http.client
 import http.cookiejar
 import http.cookies
 import inspect
-import io
 import itertools
 import json
 import math
