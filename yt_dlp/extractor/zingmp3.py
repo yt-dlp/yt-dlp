@@ -1,14 +1,11 @@
 import hashlib
 import hmac
+import itertools
 import json
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    traverse_obj,
-    urljoin,
-)
+from ..utils import int_or_none, traverse_obj, try_call, urljoin
 
 
 class ZingMp3BaseIE(InfoExtractor):
@@ -71,12 +68,12 @@ class ZingMp3BaseIE(InfoExtractor):
 
     def _paged_list(self, _id, url_type):
         count = 0
-        for page in itertool.count(1):
+        for page in itertools.count(1):
             data = self._fetch_page(_id, url_type, page)
-            entries = self._parse_items(data.get('items'))
+            entries = list(self._parse_items(data.get('items')))
             count += len(entries)
             yield from entries
-            if not data.get('hasMore') or count > data.get('total'):
+            if not data.get('hasMore') or try_call(lambda: count > data['total']):
                 break
 
 
