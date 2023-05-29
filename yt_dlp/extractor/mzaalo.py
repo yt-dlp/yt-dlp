@@ -70,7 +70,13 @@ class MzaaloIE(InfoExtractor):
             f'https://production.mzaalo.com/platform/{path}', video_id, headers={
                 'Ocp-Apim-Subscription-Key': '1d0caac2702049b89a305929fdf4cbae',
             })['data']
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(data["streamURL"], video_id)
+
+        formats = self._extract_m3u8_formats(data['streamURL'], video_id)
+
+        subtitles = {}
+        for subs_lang, subs_url in traverse_obj(data, ('subtitles', {dict.items}, ...)):
+            if url_or_none(subs_url):
+                subtitles[subs_lang] = [{'url': subs_url, 'ext': 'vtt'}]
 
         return {
             'id': video_id,
