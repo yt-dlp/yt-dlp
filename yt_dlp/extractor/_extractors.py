@@ -1146,6 +1146,7 @@ from .myvi import (
 )
 from .myvideoge import MyVideoGeIE
 from .myvidster import MyVidsterIE
+from .mzaalo import MzaaloIE
 from .n1 import (
     N1InfoAssetIE,
     N1InfoIIE,
