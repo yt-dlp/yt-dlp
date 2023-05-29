@@ -6,10 +6,10 @@ import urllib.error
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    classproperty,
     float_or_none,
     traverse_obj,
     url_or_none,
-    classproperty,
 )
 
 
@@ -20,6 +20,10 @@ class DacastBaseIE(InfoExtractor):
     def _VALID_URL(cls):
         return fr'https?://iframe\.dacast\.com/{cls._URL_TYPE}/(?P<user_id>[\w-]+)/(?P<id>[\w-]+)'
 
+    @classproperty
+    def _EMBED_REGEX(cls):
+        return [rf'<iframe[^>]+\bsrc=["\'](?P<url>{cls._VALID_URL})']
+
     _API_INFO_URL = 'https://playback.dacast.com/content/info'
 
     @classmethod
@@ -29,12 +33,10 @@ class DacastBaseIE(InfoExtractor):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
+        yield from super()._extract_embed_urls(url, webpage)
         for content_id in re.findall(
                 rf'<script[^>]+\bsrc=["\']https://player\.dacast\.com/js/player\.js\?contentId=([\w-]+-{cls._URL_TYPE}-[\w-]+)["\']', webpage):
             yield cls._get_url_from_id(content_id)
-        for embed_url in re.findall(
-                rf'<iframe[^>]+\bsrc=["\'](https?://iframe\.dacast\.com/{cls._URL_TYPE}/[\w-]+/[\w-]+)["\']', webpage):
-            yield embed_url
 
 
 class DacastVODIE(DacastBaseIE):
