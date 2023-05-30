@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class ElevenSportsIE(InfoExtractor):
-    _VALID_URL = r'https://elevensports\.com/view/event/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?elevensports\.com/view/event/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://elevensports.com/view/event/clf46yr3kenn80jgrqsjmwefk',
         'md5': 'c0958d9ff90e4503a75544358758921d',
