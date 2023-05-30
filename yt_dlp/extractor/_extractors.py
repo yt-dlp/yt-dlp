@@ -414,6 +414,7 @@ from .crunchyroll import (
     CrunchyrollArtistIE,
 )
 from .cspan import CSpanIE, CSpanCongressIE
+from .crtvg import CrtvgIE
 from .ctsnews import CtsNewsIE
 from .ctv import CTVIE
 from .ctvnews import CTVNewsIE
@@ -541,6 +542,7 @@ from .ehow import EHowIE
 from .eighttracks import EightTracksIE
 from .einthusan import EinthusanIE
 from .eitb import EitbIE
+from .elevensports import ElevenSportsIE
 from .ellentube import (
     EllenTubeIE,
     EllenTubeVideoIE,
