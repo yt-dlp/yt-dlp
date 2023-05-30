@@ -45,8 +45,7 @@ class ElevenSportsIE(InfoExtractor):
             f'https://mcls-api.mycujoo.tv/bff/events/v1beta1/{event_id}', video_id,
             headers={'Authorization': 'Bearer FBVKACGN37JQC5SFA0OVK8KKSIOP153G'})
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            event_data['streams'][0]['full_url'], video_id, 'mp4', m3u8_id='hls', fatal=False
-        )
+            event_data['streams'][0]['full_url'], video_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_id,
