@@ -54,7 +54,6 @@ class ElevenSportsIE(InfoExtractor):
             **traverse_obj(event_data, {
                 'title': ('title', {str}),
                 'description': ('description', {str}),
-                'upload_date': ('start_time', {unified_strdate}),
                 'timestamp': ('start_time', {parse_iso8601}),
                 'thumbnail': ('thumbnail_url', {url_or_none}),
             }),
