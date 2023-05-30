@@ -3314,7 +3314,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 expected_comment_count = self._get_count(
                     comments_header_renderer, 'countText', 'commentsCount')
 
-                if expected_comment_count:
+                if expected_comment_count is not None:
                     tracker['est_total'] = expected_comment_count
                     self.to_screen(f'Downloading ~{expected_comment_count} comments')
                 comment_sort_index = int(get_single_config_arg('comment_sort') != 'top')  # 1 = new, 0 = top
@@ -3385,7 +3385,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not tracker:
             tracker = dict(
                 running_total=0,
-                est_total=0,
+                est_total=None,
                 current_page_thread=0,
                 total_parent_comments=0,
                 total_reply_comments=0,
@@ -3436,9 +3436,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
 
+            # Do a deep check for incomplete data as sometimes YouTube may return no comments for a continuation
+            # Ignore check if YouTube says the comment count is 0.
             check_get_keys = None
-            if not is_forced_continuation:
-                # Do a deep check for incomplete data as sometimes YouTube may return no comments for a continuation
+            if not is_forced_continuation and not (tracker['est_total'] == 0 and tracker['running_total'] == 0):
                 check_get_keys = [[*continuation_items_path, ..., (
                     'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentRenderer'))]]
             try:
