@@ -20,17 +20,20 @@ class RecurbateIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        SUBSCRIPTION_MISSING_MESSAGE = 'This video is only available for registered users; Set your authenticated browser user agent via the --user-agent parameter.'
         video_id = self._match_id(url)
         try:
             webpage = self._download_webpage(url, video_id)
         except ExtractorError as e:
             if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
-                self.raise_login_required(msg='This video is only available for registered users; Set your authenticated browser user agent via the --user-agent parameter.', method='cookies')
+                self.raise_login_required(msg=SUBSCRIPTION_MISSING_MESSAGE, method='cookies')
             raise
         token = self._html_search_regex(r'data-token="([^"]+)"', webpage, 'token')
         video_url = f'https://recurbate.com/api/get.php?video={video_id}&token={token}'
         
         video_webpage = self._download_webpage(video_url, video_id)
+        if video_webpage == 'shall_subscribe':
+            self.raise_login_required(msg=SUBSCRIPTION_MISSING_MESSAGE, method='cookies')
         entries = self._parse_html5_media_entries(video_url, video_webpage, video_id)
         return merge_dicts({
             'id': video_id,
