@@ -30,7 +30,7 @@ class RecurbateIE(InfoExtractor):
             raise
         token = self._html_search_regex(r'data-token="([^"]+)"', webpage, 'token')
         video_url = f'https://recurbate.com/api/get.php?video={video_id}&token={token}'
-        
+
         video_webpage = self._download_webpage(video_url, video_id)
         if video_webpage == 'shall_subscribe':
             self.raise_login_required(msg=SUBSCRIPTION_MISSING_MESSAGE, method='cookies')
