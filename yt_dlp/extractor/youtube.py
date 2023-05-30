@@ -292,6 +292,7 @@ class BadgeType(enum.Enum):
     AVAILABILITY_PREMIUM = enum.auto()
     AVAILABILITY_SUBSCRIPTION = enum.auto()
     LIVE_NOW = enum.auto()
+    VERIFIED_USER = enum.auto()
 
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
@@ -3289,6 +3290,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
         is_favorited = 'creatorHeart' in (try_get(
             comment_renderer, lambda x: x['actionButtons']['commentActionButtonsRenderer'], dict) or {})
+
+        author_url = urljoin('https://www.youtube.com', traverse_obj(
+            comment_renderer, ('authorEndpoint', (
+                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
+            expected_type=str, get_all=False))
+
+        author_is_verified = (
+            traverse_obj(comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
+            in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE'))
+
         return {
             'id': comment_id,
             'text': text,
@@ -3299,7 +3310,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'author': author,
             'author_id': author_id,
             'author_thumbnail': author_thumbnail,
+            'author_url': author_url,
             'author_is_uploader': author_is_uploader,
+            'author_is_verified': author_is_verified,
+            'is_pinned': bool(traverse_obj(comment_renderer, 'pinnedCommentBadge')),
             'parent': parent or 'root'
         }
 
@@ -3349,14 +3363,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
-                is_pinned = bool(traverse_obj(comment_renderer, 'pinnedCommentBadge'))
                 comment_id = comment['id']
-                if is_pinned:
+                if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/6290
                 if comment_id in tracker['seen_comment_ids']:
-                    if comment_id in tracker['pinned_comment_ids'] and not is_pinned:
+                    if comment_id in tracker['pinned_comment_ids'] and not comment.get('is_pinned'):
                         # Pinned comments may appear a second time in newest first sort
                         # See: https://github.com/yt-dlp/yt-dlp/issues/6712
                         continue
