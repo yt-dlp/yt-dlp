@@ -2,7 +2,6 @@ from .common import InfoExtractor
 from ..utils import (
     parse_iso8601,
     traverse_obj,
-    unified_strdate,
     url_or_none,
 )
 
