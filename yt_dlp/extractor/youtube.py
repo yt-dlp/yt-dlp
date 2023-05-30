@@ -3424,7 +3424,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not continuation:
                 break
             headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=self._extract_visitor_data(response))
-            comment_prog_str = f"({tracker['running_total']}/{tracker['est_total']})"
+            comment_prog_str = f"({tracker['running_total']}/~{tracker['est_total']})"
             if page_num == 0:
                 if is_first_continuation:
                     note_prefix = 'Downloading comment section API JSON'
