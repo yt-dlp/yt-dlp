@@ -40,8 +40,7 @@ class ElevenSportsIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        nextjs_info = self._search_nextjs_data(webpage, video_id)
-        event_id = traverse_obj(nextjs_info, ('props', 'pageProps', 'event', 'mclsEventId'), default={})
+        event_id = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['event']['mclsEventId']
         event_data = self._download_json(
             f'https://mcls-api.mycujoo.tv/bff/events/v1beta1/{event_id}', video_id, headers={"Authorization": "Bearer FBVKACGN37JQC5SFA0OVK8KKSIOP153G"})
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
