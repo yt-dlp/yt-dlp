@@ -40,20 +40,11 @@ class VRTIE(GigyaBaseIE):
         },
     }]
     _NETRC_MACHINE = 'vrtnu'
-    _APIKEY = '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy'
-    _CONTEXT_ID = 'R3595707040'
-    _REST_API_BASE_TOKEN = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
-    _REST_API_BASE_VIDEO = 'https://media-services-public.vrt.be/media-aggregator/v2'
-    _HLS_ENTRY_PROTOCOLS_MAP = {
-        'HLS': 'm3u8_native',
-        'HLS_AES': 'm3u8_native',
-    }
-
     _authenticated = False
 
     def _perform_login(self, username, password):
         auth_info = self._gigya_login({
-            'APIKey': self._APIKEY,
+            'APIKey': '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy',
             'targetEnv': 'jssdk',
             'loginID': username,
             'password': password,
@@ -61,108 +52,87 @@ class VRTIE(GigyaBaseIE):
         })
 
         if auth_info.get('errorDetails'):
-            raise ExtractorError('Unable to login: VrtNU said: ' + auth_info.get('errorDetails'), expected=True)
+            raise ExtractorError(f'Unable to login: VrtNU said: {auth_info["errorDetails"]}', expected=True)
 
         # Sometimes authentication fails for no good reason, retry
-        login_attempt = 1
-        while login_attempt <= 3:
+        for retry in self.RetryManager():
+            if retry.attempt > 1:
+                self._sleep(1, None)
             try:
-                self._request_webpage('https://token.vrt.be/vrtnuinitlogin',
-                                      None, note='Requesting XSRF Token', errnote='Could not get XSRF Token',
-                                      query={'provider': 'site', 'destination': 'https://www.vrt.be/vrtnu/'})
-
-                post_data = {
-                    'UID': auth_info['UID'],
-                    'UIDSignature': auth_info['UIDSignature'],
-                    'signatureTimestamp': auth_info['signatureTimestamp'],
-                    '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-                }
-
                 self._request_webpage(
-                    'https://login.vrt.be/perform_login',
-                    None, note='Performing login', errnote='perform login failed',
-                    headers={}, query={
-                        'client_id': 'vrtnu-site'
-                    }, data=urlencode_postdata(post_data))
-
+                    'https://token.vrt.be/vrtnuinitlogin', None, note='Requesting XSRF Token',
+                    errnote='Could not get XSRF Token', query={
+                        'provider': 'site',
+                        'destination': 'https://www.vrt.be/vrtnu/',
+                    })
+                self._request_webpage(
+                    'https://login.vrt.be/perform_login', None,
+                    note='Performing login', errnote='Login failed',
+                    query={'client_id': 'vrtnu-site'}, data=urlencode_postdata({
+                        'UID': auth_info['UID'],
+                        'UIDSignature': auth_info['UIDSignature'],
+                        'signatureTimestamp': auth_info['signatureTimestamp'],
+                        '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+                    }))
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                    login_attempt += 1
-                    self.report_warning('Authentication failed')
-                    self._sleep(1, None, msg_template='Waiting for %(timeout)s seconds before trying again')
-                else:
-                    raise e
-            else:
-                break
+                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    retry.error = e
+                    continue
+                raise
 
         self._authenticated = True
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
+        details = self._download_json(
+            f'{url.strip("/")}.model.json', display_id, 'Downloading asset JSON',
+            'Unable to download asset JSON')['details']
 
-        model_json = self._download_json(f'{url.strip("/")}.model.json', display_id,
-                                         'Downloading asset JSON', 'Unable to download asset JSON')
-        details = model_json.get('details')
-        actions = details.get('actions')
-        title = details.get('title')
-        episode_publication_id = actions[2].get('episodePublicationId')
-        episode_video_id = actions[2].get('episodeVideoId')
-        video_id = f'{episode_publication_id}${episode_video_id}'
-        description = details.get('description')
-        episode = details.get('data').get('episode')
-        display_id = episode.get('name')
-        timestamp = parse_iso8601(episode.get('onTime').get('raw'))
-        upload_date = strftime('%Y%m%d', gmtime(timestamp))
-        series_info = details.get('data')
-        series = series_info.get('program').get('title')
-        season = series_info.get('season').get('title').get('value')
-        season_number = series_info.get('season').get('title').get('raw')
-        season_id = series_info.get('season').get('id')
-        episode = series_info.get('episode').get('number').get('value')
-        episode_number = series_info.get('episode').get('number').get('raw')
-        episode_id = series_info.get('episode').get('id')
+        watch_info = traverse_obj(details, (
+            'actions', lambda _, v: v['type'] == 'watch-episode', {dict}), get_all=False) or {}
+        video_id = join_nonempty(
+            'episodePublicationId', 'episodeVideoId', delim='$', from_dict=watch_info)
+        if '$' not in video_id:
+            raise ExtractorError('Unable to extract video ID')
 
-        video_info = None
-        vrtnutoken = ""
+        vrtnutoken = self._download_json(
+            'https://token.vrt.be/refreshtoken', video_id, note='Retrieving vrtnutoken',
+            errnote='Token refresh failed')['vrtnutoken'] if self._authenticated else ''
 
-        if self._authenticated:
-            vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken',
-                                             video_id, note='refreshtoken: Retrieve vrtnutoken',
-                                             errnote='refreshtoken failed')['vrtnutoken']
-
-        headers = self.geo_verification_headers()
-        headers.update({'Content-Type': 'application/json; charset=utf-8'})
-        vrtPlayerToken = self._download_json(
-            '%s/tokens' % self._REST_API_BASE_TOKEN, video_id,
-            'Downloading token', headers=headers, data=json.dumps({
-                'identityToken': vrtnutoken
-            }).encode('utf-8'))['vrtPlayerToken']
+        vrt_player_token = self._download_json(
+            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
+            video_id, 'Downloading token', headers={
+                **self.geo_verification_headers(),
+                'Content-Type': 'application/json; charset=utf-8',
+            }, data=json.dumps({'identityToken': vrtnutoken}).encode())['vrtPlayerToken']
 
         video_info = self._download_json(
-            '%s/media-items/%s' % (self._REST_API_BASE_VIDEO, video_id),
+            f'https://media-services-public.vrt.be/media-aggregator/v2/media-items/{video_id}',
             video_id, 'Downloading video JSON', query={
-                'vrtPlayerToken': vrtPlayerToken,
+                'vrtPlayerToken': vrt_player_token,
                 'client': 'vrtnu-web@PROD',
             }, expected_status=400)
+
         if 'title' not in video_info:
             code = video_info.get('code')
-            if code == 'AUTHENTICATION_REQUIRED':
-                self.raise_login_required()
-            elif code == 'INVALID_LOCATION':
+            if code in ('AUTHENTICATION_REQUIRED', 'CONTENT_IS_AGE_RESTRICTED'):
+                self.raise_login_required(code)
+            elif code in ('INVALID_LOCATION', 'CONTENT_AVAILABLE_ONLY_IN_BE'):
                 self.raise_geo_restricted(countries=['BE'])
-            raise ExtractorError(video_info.get('message') or code, expected=True)
+            elif code == 'CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS':
+                if not self._authenticated:
+                    self.raise_login_required(code)
+                self.raise_geo_restricted(countries=['BE'])
+            raise ExtractorError(code, expected=True)
 
         formats = []
         subtitles = {}
-        for target in video_info['targetUrls']:
-            format_url, format_type = url_or_none(target.get('url')), str_or_none(target.get('type'))
-            if not format_url or not format_type:
-                continue
-            format_type = format_type.upper()
-            if format_type in self._HLS_ENTRY_PROTOCOLS_MAP:
+        for target in traverse_obj(video_info, ('targetUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
+            format_type = target['type'].upper()
+            format_url = target['url']
+            if format_type in ('HLS', 'HLS_AES'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format_url, video_id, 'mp4', self._HLS_ENTRY_PROTOCOLS_MAP[format_type],
-                    m3u8_id=format_type, fatal=False)
+                    format_url, video_id, 'mp4', m3u8_id=format_type, fatal=False)
                 formats.extend(fmts)
                 subtitles = self._merge_subtitles(subtitles, subs)
             elif format_type == 'HDS':
@@ -184,12 +154,8 @@ class VRTIE(GigyaBaseIE):
                     'url': format_url,
                 })
 
-        subtitle_urls = video_info.get('subtitleUrls')
-        if isinstance(subtitle_urls, list):
-            for subtitle in subtitle_urls:
-                subtitle_url = subtitle.get('url')
-                if subtitle_url and subtitle.get('type') == 'CLOSED':
-                    subtitles.setdefault('nl', []).append({'url': subtitle_url})
+        for sub in traverse_obj(video_info, ('subtitleUrls', lambda _, v: v['url'] and v['type'] == 'CLOSED')):
+            subtitles.setdefault('nl', []).append({'url': sub['url']})
 
         return {
             'id': video_id,
