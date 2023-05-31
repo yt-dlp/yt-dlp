@@ -66,10 +66,10 @@ class PikselIE(InfoExtractor):
     ]
 
     def _call_api(self, app_token, resource, display_id, query, host='https://player.piksel.com', fatal=True):
-        url = urljoin(host, '/ws/ws_%s/api/%s/mode/json/apiv/5' % (resource, app_token))
-        response = self._download_json(url, display_id, query=query, fatal=fatal)
-        response = traverse_obj(response, 'response', expected_type=dict) or {}
-        failure = try_get(response, lambda x: x['failure']['reason'])
+        url = urljoin(host, f'/ws/ws_{resource}/api/{app_token}/mode/json/apiv/5')
+        response = traverse_obj(
+            self._download_json(url, display_id, query=query, fatal=fatal), ('response', {dict})) or {}
+        failure = traverse_obj(response, ('failure', 'reason')) if response else 'Empty response from API'
         if failure:
             if fatal:
                 raise ExtractorError(failure, expected=True)
