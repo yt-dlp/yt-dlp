@@ -15,6 +15,7 @@ class NhkBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
     _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/ondemand'
     _TYPE_REGEX = r'/(?P<type>video|audio)/'
+    _VALID_URL = r""
 
     def _call_api(self, m_id, lang, is_video, is_episode, is_clip):
         return self._download_json(
@@ -27,7 +28,7 @@ class NhkBaseIE(InfoExtractor):
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
-        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
+        lang, m_type, episode_id = self._match_valid_url(url).groups()
         if len(episode_id) == 7:
             episode_id = episode_id[:4] + '-' + episode_id[4:]
 
@@ -67,7 +68,7 @@ class NhkBaseIE(InfoExtractor):
             info.update({
                 '_type': 'url_transparent',
                 'ie_key': 'Piksel',
-                'url': 'https://player.piksel.com/v/refid/nhkworld/prefid/' + vod_id,
+                'url': 'https://movie-s.nhk.or.jp/v/refid/nhkworld/prefid/' + vod_id,
                 'id': vod_id,
             })
         else:
@@ -94,8 +95,21 @@ class NhkVodIE(NhkBaseIE):
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2061601/',
+        'info_dict': {
+            'id': 'yd8322ch',
+            'ext': 'mp4',
+            'description': 'NHK WORLD-JAPAN presents a sumo highlights program for fans around the globe. Today the'
+                           ' show features all top-division bouts from May 14, Day 1 of the Grand Sumo Tournament in'
+                           ' Tokyo.',
+            'title': 'GRAND SUMO Highlights - [Recap] May Tournament Day 1 (Opening Day)',
+            'upload_date': '20230514',
+            'timestamp': 1684083791,
+        },
+    }, {
         # video clip
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999011/',
+        'only_matching': True,
         'md5': '7a90abcfe610ec22a6bfe15bd46b30ca',
         'info_dict': {
             'id': 'a95j5iza',
@@ -149,10 +163,18 @@ class NhkVodIE(NhkBaseIE):
         return self._extract_episode_info(url)
 
 
-class NhkVodProgramIE(NhkBaseIE):
-    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+lass NhkVodProgramIE(NhkVodIE):
+    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (
+        NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
     _TESTS = [{
         # video program episodes
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
+        'info_dict': {
+            'id': 'sumo',
+            'title': 'GRAND SUMO Highlights',
+        },
+        'playlist_mincount': 1,
+    }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway',
         'info_dict': {
             'id': 'japanrailway',
