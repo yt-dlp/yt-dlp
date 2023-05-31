@@ -1,7 +1,9 @@
 import base64
 import functools
+import hashlib
 import itertools
 import math
+import time
 import urllib.error
 import urllib.parse
 
@@ -26,6 +28,7 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    try_call,
     unified_timestamp,
     unsmuggle_url,
     url_or_none,
@@ -514,7 +517,36 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             'id': '3985676',
         },
         'playlist_mincount': 178,
+    }, {
+        'url': 'https://space.bilibili.com/313580179/video',
+        'info_dict': {
+            'id': '313580179',
+        },
+        'playlist_mincount': 92,
     }]
+
+    def _extract_signature(self, playlist_id):
+        session_data = self._download_json('https://api.bilibili.com/x/web-interface/nav', playlist_id, fatal=False)
+
+        key_from_url = lambda x: x[x.rfind('/') + 1:].split('.')[0]
+        img_key = traverse_obj(
+            session_data, ('data', 'wbi_img', 'img_url', {key_from_url})) or '34478ba821254d9d93542680e3b86100'
+        sub_key = traverse_obj(
+            session_data, ('data', 'wbi_img', 'sub_url', {key_from_url})) or '7e16a90d190a4355a78fd00b32a38de6'
+
+        session_key = img_key + sub_key
+
+        signature_values = []
+        for position in (
+            46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39,
+            12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63,
+            57, 62, 11, 36, 20, 34, 44, 52
+        ):
+            char_at_position = try_call(lambda: session_key[position])
+            if char_at_position:
+                signature_values.append(char_at_position)
+
+        return ''.join(signature_values)[:32]
 
     def _real_extract(self, url):
         playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
@@ -522,11 +554,26 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
                            'To download audios, add a "/audio" to the URL')
 
+        signature = self._extract_signature(playlist_id)
+
         def fetch_page(page_idx):
+            query = {
+                'keyword': '',
+                'mid': playlist_id,
+                'order': 'pubdate',
+                'order_avoided': 'true',
+                'platform': 'web',
+                'pn': page_idx + 1,
+                'ps': 30,
+                'tid': 0,
+                'web_location': 1550101,
+                'wts': int(time.time()),
+            }
+            query['w_rid'] = hashlib.md5(f'{urllib.parse.urlencode(query)}{signature}'.encode()).hexdigest()
+
             try:
-                response = self._download_json('https://api.bilibili.com/x/space/arc/search',
-                                               playlist_id, note=f'Downloading page {page_idx}',
-                                               query={'mid': playlist_id, 'pn': page_idx + 1, 'jsonp': 'jsonp'})
+                response = self._download_json('https://api.bilibili.com/x/space/wbi/arc/search',
+                                               playlist_id, note=f'Downloading page {page_idx}', query=query)
             except ExtractorError as e:
                 if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 412:
                     raise ExtractorError(
@@ -556,9 +603,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
     _TESTS = [{
-        'url': 'https://space.bilibili.com/3985676/audio',
+        'url': 'https://space.bilibili.com/313580179/audio',
         'info_dict': {
-            'id': '3985676',
+            'id': '313580179',
         },
         'playlist_mincount': 1,
     }]

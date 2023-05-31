@@ -1,4 +1,4 @@
-name: Bug report
+name: Core bug report
 description: Report a bug unrelated to any particular site or extractor
 labels: [triage, bug]
 body:

@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import re
 import tempfile
 
-from yt_dlp.utils import YoutubeDLCookieJar
+from yt_dlp.cookies import YoutubeDLCookieJar
 
 
 class TestYoutubeDLCookieJar(unittest.TestCase):
@@ -46,6 +46,12 @@ class TestYoutubeDLCookieJar(unittest.TestCase):
         # Cookies should be empty since all malformed cookie file entries
         # will be ignored
         self.assertFalse(cookiejar._cookies)
+
+    def test_get_cookie_header(self):
+        cookiejar = YoutubeDLCookieJar('./test/testdata/cookies/httponly_cookies.txt')
+        cookiejar.load(ignore_discard=True, ignore_expires=True)
+        header = cookiejar.get_cookie_header('https://www.foobar.foobar')
+        self.assertIn('HTTPONLY_COOKIE', header)
 
 
 if __name__ == '__main__':
