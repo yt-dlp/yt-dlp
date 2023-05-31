@@ -8,7 +8,6 @@ from ..utils import (
     join_nonempty,
     parse_iso8601,
     traverse_obj,
-    traverse_obj,
     try_get,
     unescapeHTML,
     urljoin,
