@@ -27,7 +27,7 @@ class NhkBaseIE(InfoExtractor):
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
-        lang, m_type, episode_id = self._match_valid_url(url).groups()
+        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
         if len(episode_id) == 7:
             episode_id = episode_id[:4] + '-' + episode_id[4:]
 
@@ -98,12 +98,13 @@ class NhkVodIE(NhkBaseIE):
         'info_dict': {
             'id': 'yd8322ch',
             'ext': 'mp4',
-            'description': 'NHK WORLD-JAPAN presents a sumo highlights program for fans around the globe. Today the'
-                           ' show features all top-division bouts from May 14, Day 1 of the Grand Sumo Tournament in'
-                           ' Tokyo.',
+            'description': 'md5:109c8b05d67a62d0592f2b445d2cd898',
             'title': 'GRAND SUMO Highlights - [Recap] May Tournament Day 1 (Opening Day)',
             'upload_date': '20230514',
             'timestamp': 1684083791,
+            'series': 'GRAND SUMO Highlights',
+            'episode': '[Recap] May Tournament Day 1 (Opening Day)',
+            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1684084443/4028649.jpg?w=1920&h=1080',
         },
     }, {
         # video clip
