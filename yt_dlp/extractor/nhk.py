@@ -15,7 +15,6 @@ class NhkBaseIE(InfoExtractor):
     _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
     _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/ondemand'
     _TYPE_REGEX = r'/(?P<type>video|audio)/'
-    _VALID_URL = r""
 
     def _call_api(self, m_id, lang, is_video, is_episode, is_clip):
         return self._download_json(
