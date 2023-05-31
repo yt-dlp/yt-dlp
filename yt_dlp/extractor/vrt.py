@@ -1,16 +1,19 @@
 import json
 
-from time import (strftime, gmtime)
 from .gigya import GigyaBaseIE
-from ..compat import compat_HTTPError
 from ..utils import (
-    parse_iso8601,
     ExtractorError,
-    int_or_none,
+    clean_html,
     float_or_none,
+    int_or_none,
+    join_nonempty,
+    make_archive_id,
+    parse_iso8601,
     str_or_none,
+    traverse_obj,
     url_or_none,
-    urlencode_postdata
+    urlencode_postdata,
+    urllib,
 )
 
 
@@ -20,23 +23,50 @@ class VRTIE(GigyaBaseIE):
     _TESTS = [{
         'url': 'https://www.vrt.be/vrtnu/a-z/de-ideale-wereld/2023-vj/de-ideale-wereld-d20230116/',
         'info_dict': {
-            'id': 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f',
             'title': 'Tom Waes',
-            'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
-            'ext': 'mp4',
-            'duration': 1939.0,
-            'release_date': '20230116',
             'description': 'Satirisch actualiteitenmagazine met Ella Leyers. Tom Waes is te gast.',
-            'display_id': 'de-ideale-wereld-d20230116',
-            'episode_number': 1,
             'timestamp': 1673905125,
-            'series': 'De ideale wereld',
-            'upload_date': '20230116',
-            'channel': 'VRT',
-            'season_id': '1672830988794',
-            'episode_id': '1672830988861',
             'release_timestamp': 1673905125,
-            'episode': 'Aflevering 1'
+            'series': 'De ideale wereld',
+            'season': None,
+            'season_number': None,
+            'season_id': '1672830988794',
+            'episode': 'Aflevering 1',
+            'episode_number': 1,
+            'episode_id': '1672830988861',
+            'id': 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f',
+            'display_id': 'de-ideale-wereld-d20230116',
+            'channel': 'VRT',
+            'duration': 1939.0,
+            'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
+            '_old_archive_ids': [make_archive_id('VrtNU', 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f')],
+            'ext': 'mp4',
+            'release_date': '20230116',
+            'upload_date': '20230116',
+        },
+    }, {
+        'url': 'https://www.vrt.be/vrtnu/a-z/buurman--wat-doet-u-nu-/6/buurman--wat-doet-u-nu--s6-trailer/',
+        'info_dict': {
+            'title': "Trailer seizoen 6 'Buurman, wat doet u nu?'",
+            'description': "md5:197424726c61384b4e5c519f16c0cf02",
+            'timestamp': 1652940000,
+            'release_timestamp': 1652940000,
+            'series': 'Buurman, wat doet u nu?',
+            'season': 'Seizoen 6',
+            'season_number': 6,
+            'season_id': '1652344200907',
+            'episode': 'Aflevering 0',
+            'episode_number': 0,
+            'episode_id': '1652951873524',
+            'id': 'pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee',
+            'display_id': 'buurman--wat-doet-u-nu--s6-trailer',
+            'channel': 'VRT',
+            'duration': 33.13,
+            'thumbnail': 'https://images.vrt.be/orig/2022/05/23/3c234d21-da83-11ec-b07d-02b7b76bf47f.jpg',
+            '_old_archive_ids': [make_archive_id('VrtNU', 'pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee')],
+            'ext': 'mp4',
+            'release_date': '20220519',
+            'upload_date': '20220519',
         },
     }]
     _NETRC_MACHINE = 'vrtnu'
@@ -158,24 +188,25 @@ class VRTIE(GigyaBaseIE):
             subtitles.setdefault('nl', []).append({'url': sub['url']})
 
         return {
+            **traverse_obj(details, {
+                'title': 'title',
+                'description': ('description', {clean_html}),
+                'timestamp': ('data', 'episode', 'onTime', 'raw', {parse_iso8601}),
+                'release_timestamp': ('data', 'episode', 'onTime', 'raw', {parse_iso8601}),
+                'series': ('data', 'program', 'title'),
+                'season': ('data', 'season', 'title', 'value'),
+                'season_number': ('data', 'season', 'title', 'raw', {int_or_none}),
+                'season_id': ('data', 'season', 'id', {str_or_none}),
+                'episode': ('data', 'episode', 'number', 'value', {str_or_none}),
+                'episode_number': ('data', 'episode', 'number', 'raw', {int_or_none}),
+                'episode_id': ('data', 'episode', 'id', {str_or_none}),
+            }),
             'id': video_id,
             'display_id': display_id,
-            'timestamp': timestamp,
-            'release_timestamp': timestamp,
-            'upload_date': upload_date,
-            'release_date': upload_date,
-            'title': title,
-            'description': description,
-            'series': series,
-            'season': season,
-            'season_number': int_or_none(season_number),
-            'season_id': season_id,
-            'episode': episode,
-            'episode_number': episode_number,
-            'episode_id': episode_id,
             'channel': 'VRT',
             'formats': formats,
             'duration': float_or_none(video_info.get('duration'), 1000),
-            'thumbnail': video_info.get('posterImageUrl'),
+            'thumbnail': url_or_none(video_info.get('posterImageUrl')),
             'subtitles': subtitles,
+            '_old_archive_ids': [make_archive_id('VrtNU', video_id)],
         }
