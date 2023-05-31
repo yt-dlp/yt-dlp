@@ -315,7 +315,7 @@ class InfoExtractor:
                         * "author_id" - user ID of the comment author
                         * "author_thumbnail" - The thumbnail of the comment author
                         * "author_url" - The url to the comment author's page
-                        * "author_is_verified" - Whether the author is a verified
+                        * "author_is_verified" - Whether the author is verified
                                                  on the platform
                         * "author_is_uploader" - Whether the comment is made by
                                                  the video uploader
@@ -330,7 +330,8 @@ class InfoExtractor:
                         * "dislike_count" - Number of negative ratings of the comment
                         * "is_favorited" - Whether the comment is marked as
                                            favorite by the video uploader
-                        * "is_pinned" - Whether the comment is pinned to the top of the comments
+                        * "is_pinned" - Whether the comment is pinned to
+                                        the top of the comments
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
