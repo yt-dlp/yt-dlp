@@ -292,6 +292,7 @@ class BadgeType(enum.Enum):
     AVAILABILITY_PREMIUM = enum.auto()
     AVAILABILITY_SUBSCRIPTION = enum.auto()
     LIVE_NOW = enum.auto()
+    VERIFIED = enum.auto()
 
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
@@ -792,16 +793,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
     def _extract_badges(self, renderer: dict):
-        privacy_icon_map = {
+        icon_type_map = {
             'PRIVACY_UNLISTED': BadgeType.AVAILABILITY_UNLISTED,
             'PRIVACY_PRIVATE': BadgeType.AVAILABILITY_PRIVATE,
-            'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC
+            'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC,
+            'CHECK_CIRCLE_THICK': BadgeType.VERIFIED,
+            'OFFICIAL_ARTIST_BADGE': BadgeType.VERIFIED
         }
 
         badge_style_map = {
             'BADGE_STYLE_TYPE_MEMBERS_ONLY': BadgeType.AVAILABILITY_SUBSCRIPTION,
             'BADGE_STYLE_TYPE_PREMIUM': BadgeType.AVAILABILITY_PREMIUM,
-            'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW
+            'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW,
+            'BADGE_STYLE_TYPE_VERIFIED': BadgeType.VERIFIED,
+            'BADGE_STYLE_TYPE_VERIFIED_ARTIST': BadgeType.VERIFIED
         }
 
         label_map = {
@@ -809,13 +814,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'private': BadgeType.AVAILABILITY_PRIVATE,
             'members only': BadgeType.AVAILABILITY_SUBSCRIPTION,
             'live': BadgeType.LIVE_NOW,
-            'premium': BadgeType.AVAILABILITY_PREMIUM
+            'premium': BadgeType.AVAILABILITY_PREMIUM,
+            'verified': BadgeType.VERIFIED,
+            'official artist channel': BadgeType.VERIFIED
         }
 
         badges = []
         for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer')):
             badge_type = (
-                privacy_icon_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
+                icon_type_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
                 or badge_style_map.get(traverse_obj(badge, 'style'))
             )
             if badge_type:
@@ -823,11 +830,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 continue
 
             # fallback, won't work in some languages
-            label = traverse_obj(badge, 'label', expected_type=str, default='')
+            label = traverse_obj(
+                badge, 'label', ('accessibilityData', 'label'), 'tooltip', get_all=False, expected_type=str, default='')
             for match, label_badge_type in label_map.items():
                 if match in label.lower():
                     badges.append({'type': badge_type})
-                    continue
+                    break
 
         return badges
 
@@ -1325,6 +1333,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Philipp Hagemeister',
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
+                'heatmap': 'count:100',
             },
             'params': {
                 'skip_download': True,
@@ -1408,6 +1417,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'The Witcher',
                 'uploader_url': 'https://www.youtube.com/@thewitcher',
                 'uploader_id': '@thewitcher',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
         },
         {
@@ -1437,6 +1449,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
                 'uploader_id': '@FlyingKitty900',
                 'comment_count': int,
+                'channel_is_verified': True,
             },
         },
         {
@@ -1570,6 +1583,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Olympics',
                 'uploader_url': 'https://www.youtube.com/@Olympics',
                 'uploader_id': '@Olympics',
+                'channel_is_verified': True,
             },
             'params': {
                 'skip_download': 'requires avconv',
@@ -1887,6 +1901,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Bernie Sanders',
                 'uploader_url': 'https://www.youtube.com/@BernieSanders',
                 'uploader_id': '@BernieSanders',
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {
                 'skip_download': True,
@@ -1948,6 +1964,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Vsauce',
                 'uploader_url': 'https://www.youtube.com/@Vsauce',
                 'uploader_id': '@Vsauce',
+                'comment_count': int,
+                'channel_is_verified': True,
             },
             'params': {
                 'skip_download': True,
@@ -2140,6 +2158,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'kudvenkat',
                 'uploader_url': 'https://www.youtube.com/@Csharp-video-tutorialsBlogspot',
                 'uploader_id': '@Csharp-video-tutorialsBlogspot',
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {
                 'skip_download': True,
@@ -2220,6 +2240,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'CBS Mornings',
                 'uploader_url': 'https://www.youtube.com/@CBSMornings',
                 'uploader_id': '@CBSMornings',
+                'comment_count': int,
+                'channel_is_verified': True,
             }
         },
         {
@@ -2290,6 +2312,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'colinfurze',
                 'uploader_url': 'https://www.youtube.com/@colinfurze',
                 'uploader_id': '@colinfurze',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {
                 'format': '17',  # 3gp format available on android
@@ -2335,6 +2360,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'SciShow',
                 'uploader_url': 'https://www.youtube.com/@SciShow',
                 'uploader_id': '@SciShow',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             }, 'params': {'format': 'mhtml', 'skip_download': True}
         }, {
             # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
@@ -2363,6 +2391,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Leon Nguyen',
                 'uploader_url': 'https://www.youtube.com/@LeonNguyen',
                 'uploader_id': '@LeonNguyen',
+                'heatmap': 'count:100',
             }
         }, {
             # Same video as above, but with --compat-opt no-youtube-prefer-utc-upload-date
@@ -2391,6 +2420,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Leon Nguyen',
                 'uploader_url': 'https://www.youtube.com/@LeonNguyen',
                 'uploader_id': '@LeonNguyen',
+                'heatmap': 'count:100',
             },
             'params': {'compat_opts': ['no-youtube-prefer-utc-upload-date']}
         }, {
@@ -2421,6 +2451,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Quackity',
                 'uploader_id': '@Quackity',
                 'uploader_url': 'https://www.youtube.com/@Quackity',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             }
         },
         {   # continuous livestream. Microformat upload date should be preferred.
@@ -2587,6 +2620,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'MrBeast',
                 'uploader_url': 'https://www.youtube.com/@MrBeast',
                 'uploader_id': '@MrBeast',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
         }, {
@@ -2648,6 +2684,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'さなちゃんねる',
                 'uploader_url': 'https://www.youtube.com/@sana_natori',
                 'uploader_id': '@sana_natori',
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
         },
         {
@@ -2677,6 +2715,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'thumbnail': r're:^https?://.*\.webp',
                 'channel_url': 'https://www.youtube.com/channel/UCxzC4EngIsMrPmbm6Nxvb-A',
                 'playable_in_embed': True,
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {
                 'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
@@ -4437,6 +4478,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         info['artist'] = mrr_contents_text
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
+            owner_badges = self._extract_badges(traverse_obj(vsir, ('owner', 'videoOwnerRenderer')))
+            if self._has_badge(owner_badges, BadgeType.VERIFIED):
+                info['channel_is_verified'] = True
 
         info.update({
             'uploader': info.get('channel'),
@@ -4462,7 +4506,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if v:
                 info[d_k] = v
 
-        badges = self._extract_badges(traverse_obj(contents, (..., 'videoPrimaryInfoRenderer'), get_all=False))
+        badges = self._extract_badges(vpir)
 
         is_private = (self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
                       or get_first(video_details, 'isPrivate', expected_type=bool))
@@ -4481,6 +4525,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 is_unlisted=None if is_private is None else (
                     self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
                     or get_first(microformats, 'isUnlisted', expected_type=bool))))
+
 
         info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
 
@@ -5877,6 +5922,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader_id': '@PhilippHagemeister',
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader': 'Philipp Hagemeister',
+                'heatmap': 'count:100',
             }
         }],
         'playlist_count': 1,
