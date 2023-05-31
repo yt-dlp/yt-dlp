@@ -66,7 +66,7 @@ class PikselIE(InfoExtractor):
         }
     ]
 
-   def _call_api(self, app_token, resource, display_id, query, host='https://player.piksel.com', fatal=True):
+    def _call_api(self, app_token, resource, display_id, query, host='https://player.piksel.com', fatal=True):
         url = urljoin(host, '/ws/ws_%s/api/%s/mode/json/apiv/5' % (resource, app_token))
         response = self._download_json(url, display_id, query=query, fatal=fatal)
         response = traverse_obj(response, 'response', expected_type=dict) or {}
