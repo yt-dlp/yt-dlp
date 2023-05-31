@@ -316,7 +316,7 @@ class InfoExtractor:
                         * "author_thumbnail" - The thumbnail of the comment author
                         * "author_url" - The url to the comment author's page
                         * "author_is_verified" - Whether the author is a verified
-                                                 user on the platform
+                                                 on the platform
                         * "author_is_uploader" - Whether the comment is made by
                                                  the video uploader
                         * "id" - Comment ID
