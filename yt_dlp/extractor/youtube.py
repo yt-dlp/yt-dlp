@@ -292,7 +292,6 @@ class BadgeType(enum.Enum):
     AVAILABILITY_PREMIUM = enum.auto()
     AVAILABILITY_SUBSCRIPTION = enum.auto()
     LIVE_NOW = enum.auto()
-    VERIFIED_USER = enum.auto()
 
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
