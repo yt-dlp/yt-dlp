@@ -3272,50 +3272,50 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not comment_id:
             return
 
-        text = self._get_text(comment_renderer, 'contentText')
+        info = {
+            'id': comment_id,
+            'text': self._get_text(comment_renderer, 'contentText'),
+            'like_count': self._get_count(comment_renderer, 'voteCount'),
+            'author_id': traverse_obj(comment_renderer, ('authorEndpoint', 'browseEndpoint', 'browseId', {self.ucid_or_none})),
+            'author': self._get_text(comment_renderer, 'authorText'),
+            'author_thumbnail': traverse_obj(comment_renderer, ('authorThumbnail', 'thumbnails', -1, 'url', {url_or_none})),
+            'parent': parent or 'root',
+        }
 
         # Timestamp is an estimate calculated from the current time and time_text
         time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
         timestamp = self._parse_time_text(time_text)
 
-        author = self._get_text(comment_renderer, 'authorText')
-        author_id = try_get(comment_renderer,
-                            lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
-
-        votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                       lambda x: x['likeCount']), str)) or 0
-        author_thumbnail = try_get(comment_renderer,
-                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], str)
-
-        author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
-        is_favorited = 'creatorHeart' in (try_get(
-            comment_renderer, lambda x: x['actionButtons']['commentActionButtonsRenderer'], dict) or {})
-
-        author_url = urljoin('https://www.youtube.com', traverse_obj(
-            comment_renderer, ('authorEndpoint', (
-                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
-            expected_type=str, get_all=False))
-
-        author_is_verified = (
-            traverse_obj(comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
-            in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE'))
-
-        return {
-            'id': comment_id,
-            'text': text,
-            'timestamp': timestamp,
+        info.update({
+            # FIXME: non-standard, but we need a way of showing that it is an estimate.
             'time_text': time_text,
-            'like_count': votes,
-            'is_favorited': is_favorited,
-            'author': author,
-            'author_id': author_id,
-            'author_thumbnail': author_thumbnail,
-            'author_url': author_url,
-            'author_is_uploader': author_is_uploader,
-            'author_is_verified': author_is_verified,
-            'is_pinned': bool(traverse_obj(comment_renderer, 'pinnedCommentBadge')),
-            'parent': parent or 'root'
-        }
+            'timestamp': timestamp,
+        })
+
+        info['author_url'] = urljoin(
+            'https://www.youtube.com', traverse_obj(comment_renderer, ('authorEndpoint', (
+                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
+                expected_type=str, get_all=False))
+
+        author_is_uploader = traverse_obj(comment_renderer, 'authorIsChannelOwner')
+        if author_is_uploader is not None:
+            info['author_is_uploader'] = author_is_uploader
+
+        comment_abr = traverse_obj(
+            comment_renderer, ('actionsButtons', 'commentActionButtonsRenderer'), expected_type=dict)
+        if comment_abr is not None:
+            info['is_favorited'] = 'creatorHeart' in comment_abr
+
+        comment_ab_icontype = traverse_obj(
+            comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
+        if comment_ab_icontype is not None:
+            info['author_is_verified'] = comment_ab_icontype in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE')
+
+        is_pinned = traverse_obj(comment_renderer, 'pinnedCommentBadge')
+        if is_pinned:
+            info['is_pinned'] = True
+
+        return info
 
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
 
