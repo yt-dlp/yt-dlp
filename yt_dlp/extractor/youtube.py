@@ -1022,7 +1022,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
             get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
-
+        owner_badges = self._extract_badges({'badges': traverse_obj(renderer, 'ownerBadges')})
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
             renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
             expected_type=str)) or ''
@@ -1080,7 +1080,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
             view_count_field: view_count,
-            'live_status': live_status
+            'live_status': live_status,
+            'channel_is_verified': True if BadgeType.VERIFIED in owner_badges else None
         }
 
 
@@ -5922,7 +5923,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader_id': '@PhilippHagemeister',
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader': 'Philipp Hagemeister',
-                'heatmap': 'count:100',
             }
         }],
         'playlist_count': 1,
