@@ -727,8 +727,9 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     be given with their respective seperators.
                                     By default, all containers of the most
                                     recently accessed profile are used.
-                                    Currently supported keyrings are: basictext,
-                                    gnomekeyring, kwallet
+                                    Currently supported keyrings are:
+                                    basic_text, gnome_keyring, kwallet4,
+                                    kwallet5, kwallet6
     --no-cookies-from-browser       Do not load cookies from browser (default)
     --cache-dir DIR                 Location in the filesystem where yt-dlp can
                                     store some downloaded information (such as

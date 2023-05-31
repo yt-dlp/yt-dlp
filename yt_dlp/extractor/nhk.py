@@ -162,9 +162,8 @@ class NhkVodIE(NhkBaseIE):
         return self._extract_episode_info(url)
 
 
-class NhkVodProgramIE(NhkVodIE):
-    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (
-        NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+class NhkVodProgramIE(NhkBaseIE):
+    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
     _TESTS = [{
         # video program episodes
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
