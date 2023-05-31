@@ -1081,7 +1081,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
             view_count_field: view_count,
             'live_status': live_status,
-            'channel_is_verified': True if BadgeType.VERIFIED in owner_badges else None
+            'channel_is_verified': True if self._has_badge(owner_badges, BadgeType.VERIFIED) else None
         }
 
 
@@ -5019,6 +5019,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'uploader_id': channel_handle,
                 'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             })
+
+        channel_badges = self._extract_badges({'badges': traverse_obj(data, ('header', ..., 'badges'), get_all=False)})
+        if self._has_badge(channel_badges, BadgeType.VERIFIED):
+            info['channel_is_verified'] = True
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
         playlist_stats = get_first(
@@ -5377,7 +5381,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@3blue1brown',
             'uploader': '3Blue1Brown',
             'tags': ['Mathematics'],
-            'channel_follower_count': int
+            'channel_follower_count': int,
+            'channel_is_verified': True,
         },
     }, {
         'note': 'playlists, singlepage',
@@ -5554,6 +5559,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@3blue1brown',
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
+            'channel_is_verified': True,
         },
     }, {
         'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
@@ -5717,7 +5723,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'AlTsmyW4auo',  # This will keep changing
+            'id': str,  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -5741,6 +5747,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@SkyNews',
             'uploader_id': '@SkyNews',
             'uploader': 'Sky News',
+            'channel_is_verified': True,
         },
         'params': {
             'skip_download': True,
@@ -6229,7 +6236,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'channel': str,
                 'uploader': str,
                 'uploader_url': str,
-                'uploader_id': str
+                'uploader_id': str,
+                'channel_is_verified': bool,  # this will keep changing
             }
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
@@ -6283,6 +6291,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@3blue1brown',
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
+            'channel_is_verified': True,
         },
         'playlist_count': 0,
     }, {
@@ -6317,6 +6326,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'description': 'I make music',
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
+            'channel_is_verified': True,
         },
         'playlist_mincount': 10,
     }]
