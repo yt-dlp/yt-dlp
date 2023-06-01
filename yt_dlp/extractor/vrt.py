@@ -1,4 +1,5 @@
 import json
+import urllib.error
 
 from .gigya import GigyaBaseIE
 from ..utils import (
@@ -13,7 +14,6 @@ from ..utils import (
     traverse_obj,
     url_or_none,
     urlencode_postdata,
-    urllib,
 )
 
 
@@ -21,34 +21,35 @@ class VRTIE(GigyaBaseIE):
     IE_DESC = 'VRT'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
+        # CONTENT_IS_AGE_RESTRICTED
         'url': 'https://www.vrt.be/vrtnu/a-z/de-ideale-wereld/2023-vj/de-ideale-wereld-d20230116/',
         'info_dict': {
+            'id': 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f',
+            'ext': 'mp4',
             'title': 'Tom Waes',
             'description': 'Satirisch actualiteitenmagazine met Ella Leyers. Tom Waes is te gast.',
             'timestamp': 1673905125,
             'release_timestamp': 1673905125,
             'series': 'De ideale wereld',
-            'season': None,
-            'season_number': None,
             'season_id': '1672830988794',
             'episode': 'Aflevering 1',
             'episode_number': 1,
             'episode_id': '1672830988861',
-            'id': 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f',
             'display_id': 'de-ideale-wereld-d20230116',
             'channel': 'VRT',
             'duration': 1939.0,
             'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
-            '_old_archive_ids': [make_archive_id('VrtNU', 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f')],
-            'ext': 'mp4',
+            '_old_archive_ids': ['vrtnu pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f'],
             'release_date': '20230116',
             'upload_date': '20230116',
         },
     }, {
         'url': 'https://www.vrt.be/vrtnu/a-z/buurman--wat-doet-u-nu-/6/buurman--wat-doet-u-nu--s6-trailer/',
         'info_dict': {
-            'title': "Trailer seizoen 6 'Buurman, wat doet u nu?'",
-            'description': "md5:197424726c61384b4e5c519f16c0cf02",
+            'id': 'pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee',
+            'ext': 'mp4',
+            'title': 'Trailer seizoen 6 \'Buurman, wat doet u nu?\'',
+            'description': 'md5:197424726c61384b4e5c519f16c0cf02',
             'timestamp': 1652940000,
             'release_timestamp': 1652940000,
             'series': 'Buurman, wat doet u nu?',
@@ -58,16 +59,15 @@ class VRTIE(GigyaBaseIE):
             'episode': 'Aflevering 0',
             'episode_number': 0,
             'episode_id': '1652951873524',
-            'id': 'pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee',
             'display_id': 'buurman--wat-doet-u-nu--s6-trailer',
             'channel': 'VRT',
             'duration': 33.13,
             'thumbnail': 'https://images.vrt.be/orig/2022/05/23/3c234d21-da83-11ec-b07d-02b7b76bf47f.jpg',
-            '_old_archive_ids': [make_archive_id('VrtNU', 'pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee')],
-            'ext': 'mp4',
+            '_old_archive_ids': ['vrtnu pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee'],
             'release_date': '20220519',
             'upload_date': '20220519',
         },
+        'params': {'skip_download': 'm3u8'},
     }]
     _NETRC_MACHINE = 'vrtnu'
     _authenticated = False
@@ -82,7 +82,7 @@ class VRTIE(GigyaBaseIE):
         })
 
         if auth_info.get('errorDetails'):
-            raise ExtractorError(f'Unable to login: VrtNU said: {auth_info["errorDetails"]}', expected=True)
+            raise ExtractorError(f'Unable to login. VrtNU said: {auth_info["errorDetails"]}', expected=True)
 
         # Sometimes authentication fails for no good reason, retry
         for retry in self.RetryManager():
