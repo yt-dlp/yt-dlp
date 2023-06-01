@@ -5,13 +5,17 @@ import json
 import re
 import time
 
+from urllib.parse import urlparse
+
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
     compat_HTTPError,
 )
+from ..dependencies import websockets
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    WebSocketsWrapper,
     bug_reports_message,
     clean_html,
     float_or_none,
@@ -477,22 +481,31 @@ class NiconicoIE(InfoExtractor):
         user_id_str = session_api_data.get('serviceUserId')
 
         thread_ids = traverse_obj(api_data, ('comment', 'threads', lambda _, v: v['isActive']))
-        raw_danmaku = self._extract_all_comments(video_id, thread_ids, user_id_str, comment_user_key)
-        if not raw_danmaku:
+        legacy_danmaku = self._extract_legacy_comments(video_id, thread_ids, user_id_str, comment_user_key) or []
+
+        new_comments = traverse_obj(api_data, ('comment', 'nvComment'))
+        new_danmaku = self._extract_new_comments(
+            new_comments.get('server'), video_id,
+            new_comments.get('params'), new_comments.get('threadKey'))
+
+        if not legacy_danmaku and not new_danmaku:
             self.report_warning(f'Failed to get comments. {bug_reports_message()}')
             return
+
         return {
             'comments': [{
                 'ext': 'json',
-                'data': json.dumps(raw_danmaku),
+                'data': json.dumps(legacy_danmaku + new_danmaku),
             }],
         }
 
-    def _extract_all_comments(self, video_id, threads, user_id, user_key):
+    def _extract_legacy_comments(self, video_id, threads, user_id, user_key):
         auth_data = {
             'user_id': user_id,
             'userkey': user_key,
         } if user_id and user_key else {'user_id': ''}
+
+        api_url = traverse_obj(threads, (..., 'server'), get_all=False)
 
         # Request Start
         post_data = [{'ping': {'content': 'rs:0'}}]
@@ -532,17 +545,32 @@ class NiconicoIE(InfoExtractor):
         # Request Final
         post_data.append({'ping': {'content': 'rf:0'}})
 
-        for api_url in self._COMMENT_API_ENDPOINTS:
-            comments = self._download_json(
-                api_url, video_id, data=json.dumps(post_data).encode(), fatal=False,
-                headers={
-                    'Referer': 'https://www.nicovideo.jp/watch/%s' % video_id,
-                    'Origin': 'https://www.nicovideo.jp',
-                    'Content-Type': 'text/plain;charset=UTF-8',
-                },
-                note='Downloading comments', errnote=f'Failed to access endpoint {api_url}')
-            if comments:
-                return comments
+        return self._download_json(
+            f'{api_url}/api.json', video_id, data=json.dumps(post_data).encode(), fatal=False,
+            headers={
+                'Referer': f'https://www.nicovideo.jp/watch/{video_id}',
+                'Origin': 'https://www.nicovideo.jp',
+                'Content-Type': 'text/plain;charset=UTF-8',
+            },
+            note='Downloading comments', errnote=f'Failed to access endpoint {api_url}')
+
+    def _extract_new_comments(self, endpoint, video_id, params, thread_key):
+        comments = self._download_json(
+            f'{endpoint}/v1/threads', video_id, data=json.dumps({
+                'additionals': {},
+                'params': params,
+                'threadKey': thread_key,
+            }).encode(), fatal=False,
+            headers={
+                'Referer': 'https://www.nicovideo.jp/',
+                'Origin': 'https://www.nicovideo.jp',
+                'Content-Type': 'text/plain;charset=UTF-8',
+                'x-client-os-type': 'others',
+                'x-frontend-id': '6',
+                'x-frontend-version': '0',
+            },
+            note='Downloading comments (new)', errnote='Failed to download comments (new)')
+        return traverse_obj(comments, ('data', 'threads', ..., 'comments', ...))
 
 
 class NiconicoPlaylistBaseIE(InfoExtractor):
@@ -636,10 +664,10 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
 
 class NiconicoSeriesIE(InfoExtractor):
     IE_NAME = 'niconico:series'
-    _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp|nico\.ms)/series/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp(?:/user/\d+)?|nico\.ms)/series/(?P<id>\d+)'
 
     _TESTS = [{
-        'url': 'https://www.nicovideo.jp/series/110226',
+        'url': 'https://www.nicovideo.jp/user/44113208/series/110226',
         'info_dict': {
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
@@ -659,7 +687,7 @@ class NiconicoSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        webpage = self._download_webpage(f'https://www.nicovideo.jp/series/{list_id}', list_id)
+        webpage = self._download_webpage(url, list_id)
 
         title = self._search_regex(
             (r'<title>「(.+)（全',
@@ -667,10 +695,9 @@ class NiconicoSeriesIE(InfoExtractor):
             webpage, 'title', fatal=False)
         if title:
             title = unescapeHTML(title)
-        playlist = [
-            self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
-            for v_id in re.findall(r'data-href=[\'"](?:https://www\.nicovideo\.jp)?/watch/([a-z0-9]+)', webpage)]
-        return self.playlist_result(playlist, list_id, title)
+        json_data = next(self._yield_json_ld(webpage, None, fatal=False))
+        return self.playlist_from_matches(
+            traverse_obj(json_data, ('itemListElement', ..., 'url')), list_id, title, ie=NiconicoIE)
 
 
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
@@ -872,3 +899,162 @@ class NiconicoUserIE(InfoExtractor):
     def _real_extract(self, url):
         list_id = self._match_id(url)
         return self.playlist_result(self._entries(list_id), list_id, ie=NiconicoIE.ie_key())
+
+
+class NiconicoLiveIE(InfoExtractor):
+    IE_NAME = 'niconico:live'
+    IE_DESC = 'ニコニコ生放送'
+    _VALID_URL = r'https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/(?P<id>lv\d+)'
+    _TESTS = [{
+        'note': 'this test case includes invisible characters for title, pasting them as-is',
+        'url': 'https://live.nicovideo.jp/watch/lv339533123',
+        'info_dict': {
+            'id': 'lv339533123',
+            'title': '激辛ペヤング食べます‪( ;ᯅ; )‬（歌枠オーディション参加中）',
+            'view_count': 1526,
+            'comment_count': 1772,
+            'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
+            'uploader': 'もか',
+            'channel': 'ゲストさんのコミュニティ',
+            'channel_id': 'co5776900',
+            'channel_url': 'https://com.nicovideo.jp/community/co5776900',
+            'timestamp': 1670677328,
+            'is_live': True,
+        },
+        'skip': 'livestream',
+    }, {
+        'url': 'https://live2.nicovideo.jp/watch/lv339533123',
+        'only_matching': True,
+    }, {
+        'url': 'https://sp.live.nicovideo.jp/watch/lv339533123',
+        'only_matching': True,
+    }, {
+        'url': 'https://sp.live2.nicovideo.jp/watch/lv339533123',
+        'only_matching': True,
+    }]
+
+    _KNOWN_LATENCY = ('high', 'low')
+
+    def _real_extract(self, url):
+        if not websockets:
+            raise ExtractorError('websockets library is not available. Please install it.', expected=True)
+        video_id = self._match_id(url)
+        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+
+        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
+            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
+
+        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
+        if not ws_url:
+            raise ExtractorError('The live hasn\'t started yet or already ended.', expected=True)
+        ws_url = update_url_query(ws_url, {
+            'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
+        })
+
+        hostname = remove_start(urlparse(urlh.geturl()).hostname, 'sp.')
+        cookies = try_get(urlh.geturl(), self._downloader._calc_cookies)
+        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
+        if latency not in self._KNOWN_LATENCY:
+            latency = 'high'
+
+        ws = WebSocketsWrapper(ws_url, {
+            'Cookies': str_or_none(cookies) or '',
+            'Origin': f'https://{hostname}',
+            'Accept': '*/*',
+            'User-Agent': self.get_param('http_headers')['User-Agent'],
+        })
+
+        self.write_debug('[debug] Sending HLS server request')
+        ws.send(json.dumps({
+            'type': 'startWatching',
+            'data': {
+                'stream': {
+                    'quality': 'abr',
+                    'protocol': 'hls+fmp4',
+                    'latency': latency,
+                    'chasePlay': False
+                },
+                'room': {
+                    'protocol': 'webSocket',
+                    'commentable': True
+                },
+                'reconnect': False,
+            }
+        }))
+
+        while True:
+            recv = ws.recv()
+            if not recv:
+                continue
+            data = json.loads(recv)
+            if not isinstance(data, dict):
+                continue
+            if data.get('type') == 'stream':
+                m3u8_url = data['data']['uri']
+                qualities = data['data']['availableQualities']
+                break
+            elif data.get('type') == 'disconnect':
+                self.write_debug(recv)
+                raise ExtractorError('Disconnected at middle of extraction')
+            elif data.get('type') == 'error':
+                self.write_debug(recv)
+                message = traverse_obj(data, ('body', 'code')) or recv
+                raise ExtractorError(message)
+            elif self.get_param('verbose', False):
+                if len(recv) > 100:
+                    recv = recv[:100] + '...'
+                self.write_debug('Server said: %s' % recv)
+
+        title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
+            ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
+
+        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail')) or {}
+        thumbnails = []
+        for name, value in raw_thumbs.items():
+            if not isinstance(value, dict):
+                thumbnails.append({
+                    'id': name,
+                    'url': value,
+                    **parse_resolution(value, lenient=True),
+                })
+                continue
+
+            for k, img_url in value.items():
+                res = parse_resolution(k, lenient=True) or parse_resolution(img_url, lenient=True)
+                width, height = res.get('width'), res.get('height')
+
+                thumbnails.append({
+                    'id': f'{name}_{width}x{height}',
+                    'url': img_url,
+                    **res,
+                })
+
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
+        for fmt, q in zip(formats, reversed(qualities[1:])):
+            fmt.update({
+                'format_id': q,
+                'protocol': 'niconico_live',
+                'ws': ws,
+                'video_id': video_id,
+                'cookies': cookies,
+                'live_latency': latency,
+                'origin': hostname,
+            })
+
+        return {
+            'id': video_id,
+            'title': title,
+            **traverse_obj(embedded_data, {
+                'view_count': ('program', 'statistics', 'watchCount'),
+                'comment_count': ('program', 'statistics', 'commentCount'),
+                'uploader': ('program', 'supplier', 'name'),
+                'channel': ('socialGroup', 'name'),
+                'channel_id': ('socialGroup', 'id'),
+                'channel_url': ('socialGroup', 'socialGroupPageUrl'),
+            }),
+            'description': clean_html(traverse_obj(embedded_data, ('program', 'description'))),
+            'timestamp': int_or_none(traverse_obj(embedded_data, ('program', 'openTime'))),
+            'is_live': True,
+            'thumbnails': thumbnails,
+            'formats': formats,
+        }

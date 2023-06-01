@@ -1,4 +1,3 @@
-import random
 import urllib.parse
 
 from .common import InfoExtractor
@@ -9,12 +8,14 @@ from ..utils import (
     traverse_obj,
     try_get,
     unescapeHTML,
+    urlencode_postdata,
     url_or_none,
 )
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<slug>(?:r|user)/[^/]+/comments/(?P<id>[^/?#&]+))'
+    _NETRC_MACHINE = 'reddit'
+    _VALID_URL = r'https?://(?P<host>(?:\w+\.)?reddit(?:media)?\.com)/(?P<slug>(?:(?:r|user)/[^/]+/)?comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -110,6 +111,46 @@ class RedditIE(InfoExtractor):
             'channel_id': 'dumbfuckers_club',
         },
     }, {
+        # post link without subreddit
+        'url': 'https://www.reddit.com/comments/124pp33',
+        'md5': '15eec9d828adcef4468b741a7e45a395',
+        'info_dict': {
+            'id': 'antsenjc2jqa1',
+            'ext': 'mp4',
+            'display_id': '124pp33',
+            'title': 'Harmless prank of some old friends',
+            'uploader': 'Dudezila',
+            'channel_id': 'ContagiousLaughter',
+            'duration': 17,
+            'upload_date': '20230328',
+            'timestamp': 1680012043,
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'age_limit': 0,
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
+        },
+    }, {
+        # quarantined subreddit post
+        'url': 'https://old.reddit.com/r/GenZedong/comments/12fujy3/based_hasan/',
+        'md5': '3156ea69e3c1f1b6259683c5abd36e71',
+        'info_dict': {
+            'id': '8bwtclfggpsa1',
+            'ext': 'mp4',
+            'display_id': '12fujy3',
+            'title': 'Based Hasan?',
+            'uploader': 'KingNigelXLII',
+            'channel_id': 'GenZedong',
+            'duration': 16,
+            'upload_date': '20230408',
+            'timestamp': 1680979138,
+            'age_limit': 0,
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
+        },
+        'skip': 'Requires account that has opted-in to the GenZedong subreddit',
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -137,21 +178,45 @@ class RedditIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _gen_session_id():
-        id_length = 16
-        rand_max = 1 << (id_length * 4)
-        return '%0.*x' % (id_length, random.randrange(rand_max))
+    def _perform_login(self, username, password):
+        captcha = self._download_json(
+            'https://www.reddit.com/api/requires_captcha/login.json', None,
+            'Checking login requirement')['required']
+        if captcha:
+            raise ExtractorError('Reddit is requiring captcha before login', expected=True)
+        login = self._download_json(
+            f'https://www.reddit.com/api/login/{username}', None, data=urlencode_postdata({
+                'op': 'login-main',
+                'user': username,
+                'passwd': password,
+                'api_type': 'json',
+            }), note='Logging in', errnote='Login request failed')
+        errors = '; '.join(traverse_obj(login, ('json', 'errors', ..., 1)))
+        if errors:
+            raise ExtractorError(f'Unable to login, Reddit API says {errors}', expected=True)
+        elif not traverse_obj(login, ('json', 'data', 'cookie', {str})):
+            raise ExtractorError('Unable to login, no cookie was returned')
 
     def _real_extract(self, url):
-        subdomain, slug, video_id = self._match_valid_url(url).group('subdomain', 'slug', 'id')
+        host, slug, video_id = self._match_valid_url(url).group('host', 'slug', 'id')
 
-        self._set_cookie('.reddit.com', 'reddit_session', self._gen_session_id())
-        self._set_cookie('.reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
-        data = self._download_json(f'https://{subdomain}reddit.com/{slug}/.json', video_id, fatal=False)
+        data = self._download_json(
+            f'https://{host}/{slug}/.json', video_id, fatal=False, expected_status=403)
         if not data:
-            # Fall back to old.reddit.com in case the requested subdomain fails
-            data = self._download_json(f'https://old.reddit.com/{slug}/.json', video_id)
+            fallback_host = 'old.reddit.com' if host != 'old.reddit.com' else 'www.reddit.com'
+            self.to_screen(f'{host} request failed, retrying with {fallback_host}')
+            data = self._download_json(
+                f'https://{fallback_host}/{slug}/.json', video_id, expected_status=403)
+
+        if traverse_obj(data, 'error') == 403:
+            reason = data.get('reason')
+            if reason == 'quarantined':
+                self.raise_login_required('Quarantined subreddit; an account that has opted in is required')
+            elif reason == 'private':
+                self.raise_login_required('Private subreddit; an account that has been approved is required')
+            else:
+                raise ExtractorError(f'HTTP Error 403 Forbidden; reason given: {reason}')
+
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 

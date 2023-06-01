@@ -179,6 +179,14 @@ class TwitchBaseIE(InfoExtractor):
             video_id, ops,
             'Downloading %s access token GraphQL' % token_kind)['data'][method]
 
+    def _get_thumbnails(self, thumbnail):
+        return [{
+            'url': re.sub(r'\d+x\d+(\.\w+)($|(?=[?#]))', r'0x0\g<1>', thumbnail),
+            'preference': 1,
+        }, {
+            'url': thumbnail,
+        }] if thumbnail else None
+
 
 class TwitchVodIE(TwitchBaseIE):
     IE_NAME = 'twitch:vod'
@@ -186,7 +194,8 @@ class TwitchVodIE(TwitchBaseIE):
                     https?://
                         (?:
                             (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/v(?:ideo)?|videos)/|
-                            player\.twitch\.tv/\?.*?\bvideo=v?
+                            player\.twitch\.tv/\?.*?\bvideo=v?|
+                            www\.twitch\.tv/[^/]+/schedule\?vodID=
                         )
                         (?P<id>\d+)
                     '''
@@ -355,6 +364,9 @@ class TwitchVodIE(TwitchBaseIE):
             'skip_download': True
         },
         'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden']
+    }, {
+        'url': 'https://www.twitch.tv/tangotek/schedule?vodID=1822395420',
+        'only_matching': True,
     }]
 
     def _download_info(self, item_id):
@@ -460,15 +472,13 @@ class TwitchVodIE(TwitchBaseIE):
                 is_live, thumbnail = True, None
             else:
                 is_live = False
-                for p in ('width', 'height'):
-                    thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
@@ -1053,7 +1063,7 @@ class TwitchStreamIE(TwitchBaseIE):
             'display_id': channel_name,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': uploader,
             'uploader_id': channel_name,
             'timestamp': timestamp,
@@ -1069,7 +1079,7 @@ class TwitchClipsIE(TwitchBaseIE):
                     https?://
                         (?:
                             clips\.twitch\.tv/(?:embed\?.*?\bclip=|(?:[^/]+/)*)|
-                            (?:(?:www|go|m)\.)?twitch\.tv/[^/]+/clip/
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/)?clip/
                         )
                         (?P<id>[^/?#&]+)
                     '''
@@ -1104,6 +1114,9 @@ class TwitchClipsIE(TwitchBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://go.twitch.tv/rossbroadcast/clip/ConfidentBraveHumanChefFrank',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.twitch.tv/clip/FaintLightGullWholeWheat',
         'only_matching': True,
     }]
 

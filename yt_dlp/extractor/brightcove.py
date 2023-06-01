@@ -575,6 +575,7 @@ class BrightcoveNewBaseIE(AdobePassIE):
                 self.raise_no_formats(
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
 
+        headers.pop('Authorization', None)  # or else http formats will give error 400
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
 
@@ -895,8 +896,9 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             store_pk(policy_key)
             return policy_key
 
-        api_url = 'https://edge.api.brightcove.com/playback/v1/accounts/%s/%ss/%s' % (account_id, content_type, video_id)
-        headers = {}
+        token = smuggled_data.get('token')
+        api_url = f'https://{"edge-auth" if token else "edge"}.api.brightcove.com/playback/v1/accounts/{account_id}/{content_type}s/{video_id}'
+        headers = {'Authorization': f'Bearer {token}'} if token else {}
         referrer = smuggled_data.get('referrer')  # XXX: notice the spelling/case of the key
         if referrer:
             headers.update({

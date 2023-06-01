@@ -1,14 +1,16 @@
 import hashlib
 import hmac
+import itertools
 import json
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     traverse_obj,
-    urljoin,
     ExtractorError,
+    int_or_none,
+    try_call,
+    urljoin
 )
 
 
@@ -83,15 +85,14 @@ class ZingMp3BaseIE(InfoExtractor):
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def _paged_list(self, _id, url_type):
-        page = 1
-        entries = []
-        while True:
+        count = 0
+        for page in itertools.count(1):
             data = self._fetch_page(_id, url_type, page)
-            entries.extend(self._parse_items(data.get('items')))
-            if not data.get('hasMore') or len(entries) > data.get('total'):
+            entries = list(self._parse_items(data.get('items')))
+            count += len(entries)
+            yield from entries
+            if not data.get('hasMore') or try_call(lambda: count > data['total']):
                 break
-            page += 1
-        return entries
 
 
 class ZingMp3IE(ZingMp3BaseIE):
@@ -516,7 +517,6 @@ class ZingMp3HubIE(ZingMp3BaseIE):
             'sections', lambda _, v: v['sectionId'] == 'hub', 'items', ...)))
         return self.playlist_result(
             entries, song_id, hub_detail.get('title'), hub_detail.get('description'))
-
 
 class ZingMp3LiveRadioIE(ZingMp3BaseIE):
     IE_NAME = 'zingmp3:liveradio'
