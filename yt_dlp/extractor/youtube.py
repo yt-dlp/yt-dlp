@@ -4581,13 +4581,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         channel_id = self.ucid_or_none(renderer['channelId'])
         title = self._get_text(renderer, 'title')
         channel_url = format_field(channel_id, None, 'https://www.youtube.com/channel/%s', default=None)
-        # As of 2023-03-01 YouTube doesn't use the channel handles on these renderers yet.
-        # However we can expect them to change that in the future.
         channel_handle = self.handle_from_url(
             traverse_obj(renderer, (
                 'navigationEndpoint', (('commandMetadata', 'webCommandMetadata', 'url'),
                                        ('browseEndpoint', 'canonicalBaseUrl')),
                 {str}), get_all=False))
+        if not channel_handle:
+            # As of 2023-06-01, YouTube sets subscriberCountText to the handle in search
+            channel_handle = self.handle_or_none(self._get_text(renderer, 'subscriberCountText'))
+
         return {
             '_type': 'url',
             'url': channel_url,
@@ -4600,10 +4602,18 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'title': title,
             'uploader_id': channel_handle,
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
-            'channel_follower_count': self._get_count(renderer, 'subscriberCountText'),
+            # See above. YouTube sets videoCountText to the subscriber text in search channel renderers.
+            # However, in feed/channels this is set correctly to the subscriber count
+            'channel_follower_count': traverse_obj(
+                renderer, 'subscriberCountText', 'videoCountText', expected_type=self._get_count),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
-            'playlist_count': self._get_count(renderer, 'videoCountText'),
+            'playlist_count': (
+                # videoCountText may be the subscriber count
+                self._get_count(renderer, 'videoCountText')
+                if self._get_count(renderer, 'subscriberCountText') is not None else None),
             'description': self._get_text(renderer, 'descriptionSnippet'),
+            'channel_is_verified': True if self._has_badge(
+                self._extract_badges({'badges': traverse_obj(renderer, 'ownerBadges')}), BadgeType.VERIFIED) else None,
         }
 
     def _grid_entries(self, grid_renderer):
@@ -6902,12 +6912,16 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'description': 'md5:4ae48dfa9505ffc307dad26342d06bfc',
                 'title': 'Kurzgesagt – In a Nutshell',
                 'channel_id': 'UCsXVk37bltHxD1rDPwtNM8Q',
-                'playlist_count': int,  # XXX: should have a way of saying > 1
+                # No longer available for search as it is set to the handle.
+                'playlist_count': None,
                 'channel_url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
                 'thumbnails': list,
                 'uploader_id': '@kurzgesagt',
                 'uploader_url': 'https://www.youtube.com/@kurzgesagt',
                 'uploader': 'Kurzgesagt – In a Nutshell',
+                'channel_is_verified': True,
+                'channel_follower_count': int,
+
             }
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
