@@ -109,7 +109,6 @@ class NhkVodIE(NhkBaseIE):
     }, {
         # video clip
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999011/',
-        'only_matching': True,
         'md5': '7a90abcfe610ec22a6bfe15bd46b30ca',
         'info_dict': {
             'id': 'a95j5iza',
@@ -118,6 +117,9 @@ class NhkVodIE(NhkBaseIE):
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
             'timestamp': 1565965194,
             'upload_date': '20190816',
+            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1567086278/3715195.jpg?w=1920&h=1080',
+            'series': 'Dining with the Chef',
+            'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
         },
     }, {
         # audio clip
@@ -128,10 +130,7 @@ class NhkVodIE(NhkBaseIE):
             'title': "Japan's Top Inventions - Miniature Video Cameras",
             'description': 'md5:07ea722bdbbb4936fdd360b6a480c25b',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
         'only_matching': True,
@@ -147,7 +146,6 @@ class NhkVodIE(NhkBaseIE):
     }, {
         # video, alphabetic character in ID #29670
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999a34/',
-        'only_matching': True,
         'info_dict': {
             'id': 'qfjay6cg',
             'ext': 'mp4',
@@ -156,7 +154,8 @@ class NhkVodIE(NhkBaseIE):
             'thumbnail': r're:^https?:/(/[a-z0-9.-]+)+\.jpg\?w=1920&h=1080$',
             'upload_date': '20210615',
             'timestamp': 1623722008,
-        }
+        },
+        'skip': '404 Not Found',
     }]
 
     def _real_extract(self, url):
@@ -172,14 +171,14 @@ class NhkVodProgramIE(NhkBaseIE):
             'id': 'sumo',
             'title': 'GRAND SUMO Highlights',
         },
-        'playlist_mincount': 1,
+        'playlist_mincount': 12,
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway',
         'info_dict': {
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
         },
-        'playlist_mincount': 1,
+        'playlist_mincount': 12,
     }, {
         # video program clips
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway/?type=clip',
