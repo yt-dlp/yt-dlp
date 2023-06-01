@@ -893,9 +893,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def extract_relative_time(relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
-        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today'
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
         """
-        mobj = re.search(r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+        mobj = re.search(r'''(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>s(?:ec)?(?:ond)?|min(ute)?|h(?:ou)?r?|d(?:ay)?|w(?:ee)?k?|mo(?:nth)?|y(?:ea)?r?)s?\s*ago''', relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
