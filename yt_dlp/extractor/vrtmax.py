@@ -17,8 +17,8 @@ from ..utils import (
 )
 
 
-class VRTIE(GigyaBaseIE):
-    IE_DESC = 'VRT'
+class VrtMaxIE(GigyaBaseIE):
+    IE_DESC = 'VRT MAX'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
         # CONTENT_IS_AGE_RESTRICTED
@@ -69,7 +69,7 @@ class VRTIE(GigyaBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }]
-    _NETRC_MACHINE = 'vrtnu'
+    _NETRC_MACHINE = 'vrtmax'
     _authenticated = False
 
     def _perform_login(self, username, password):
