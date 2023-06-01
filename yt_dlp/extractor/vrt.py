@@ -2,6 +2,7 @@ import functools
 import json
 import time
 import urllib.error
+import urllib.parse
 
 from .gigya import GigyaBaseIE
 from ..utils import (
