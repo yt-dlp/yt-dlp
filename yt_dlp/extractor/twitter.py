@@ -705,7 +705,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': r're:Monique Camarra.+?',
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
-            "release_timestamp": 1658417414,
+            'release_timestamp': 1658417414,
             'description': 'md5:acce559345fd49f129c20dbcda3f1201',
             'timestamp': 1658407771464,
         },
@@ -1299,7 +1299,6 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         metadata = space_data['metadata']
         live_status = try_call(lambda: self.SPACE_STATUS[metadata['state'].lower()])
-        scheduled_timestamp = int_or_none(metadata['scheduled_start'], scale=1000)
 
         formats = []
         if live_status == 'is_upcoming':
@@ -1329,7 +1328,8 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader_id': traverse_obj(
                 metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
             'live_status': live_status,
-            'release_timestamp': scheduled_timestamp,
+            'release_timestamp': try_call(
+                lambda: int_or_none(metadata['scheduled_start'], scale=1000)),
             'timestamp': metadata.get('created_at'),
             'formats': formats,
         }
