@@ -1298,6 +1298,7 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         metadata = space_data['metadata']
         live_status = try_call(lambda: self.SPACE_STATUS[metadata['state'].lower()])
+        scheduled_timestamp = int_or_none(metadata['scheduled_start'], scale=1000)
 
         formats = []
         if live_status == 'is_upcoming':
@@ -1327,6 +1328,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader_id': traverse_obj(
                 metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
             'live_status': live_status,
+            'release_timestamp': scheduled_timestamp,
             'timestamp': metadata.get('created_at'),
             'formats': formats,
         }
