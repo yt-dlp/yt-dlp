@@ -5733,7 +5733,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': str,  # This will keep changing
+            'id': 'pQ4TiIIY_6w',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'upload_date': r're:\d{8}',
@@ -6266,6 +6266,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@coletdjnz',
             'uploader_id': '@coletdjnz',
             'uploader': 'cole-dlp-test-acc',
+            'channel_is_verified': True,
         },
         'playlist': [{
             'info_dict': {
@@ -7245,6 +7246,8 @@ class YoutubeConsentRedirectIE(YoutubeBaseInfoExtractor):
             'channel': 'さなちゃんねる',
             'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
             'uploader': 'さなちゃんねる',
+            'channel_is_verified': True,
+            'heatmap': 'count:100',
         },
         'add_ie': ['Youtube'],
         'params': {'skip_download': 'Youtube'},
