@@ -705,6 +705,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': r're:Monique Camarra.+?',
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
+            "release_timestamp": 1658417414,
             'description': 'md5:acce559345fd49f129c20dbcda3f1201',
             'timestamp': 1658407771464,
         },
