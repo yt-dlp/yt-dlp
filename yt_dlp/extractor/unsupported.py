@@ -130,6 +130,10 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
 
     URLS = (
         r'dood\.(?:to|watch|so|pm|wf|re)',
+        # Sites youtube-dl supports, but we won't
+        r'viewsb\.com',
+        r'filemoon\.sx',
+        r'hentai\.animestigma\.com',
     )
 
     _TESTS = [{
