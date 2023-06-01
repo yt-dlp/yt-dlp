@@ -1,14 +1,18 @@
+import functools
 import json
+import time
 import urllib.error
 
 from .gigya import GigyaBaseIE
 from ..utils import (
     ExtractorError,
     clean_html,
+    extract_attributes,
     float_or_none,
+    get_element_html_by_class,
     int_or_none,
     join_nonempty,
-    make_archive_id,
+    jwt_encode_hs256,
     parse_iso8601,
     str_or_none,
     traverse_obj,
@@ -17,7 +21,147 @@ from ..utils import (
 )
 
 
-class VrtNUIE(GigyaBaseIE):
+class VRTBaseIE(GigyaBaseIE):
+    _PLAYER_INFO = {
+        'platform': 'desktop',
+        'app': {
+            'type': 'browser',
+            'name': 'Chrome',
+        },
+        'device': 'undefined (undefined)',
+        'os': {
+            'name': 'Windows',
+            'version': 'x86_64'
+        },
+        'player': {
+            'name': 'VRT web player',
+            'version': '2.7.4-prod-2023-04-19T06:05:45'
+        }
+    }
+    # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.fd1de01a40a1e3d842ea.js
+    _JWT_KEY_ID = '0-0Fp51UZykfaiCJrfTE3+oMI8zvDteYfPtR+2n1R+z8w='
+    _JWT_SIGNING_KEY = '2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae'
+
+    def _extract_formats_and_subtitles(self, data, video_id):
+        formats, subtitles = [], {}
+        for target in traverse_obj(data, ('targetUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
+            format_type = target['type'].upper()
+            format_url = target['url']
+            if format_type in ('HLS', 'HLS_AES'):
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, video_id, 'mp4', m3u8_id=format_type, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_type == 'HDS':
+                formats.extend(self._extract_f4m_formats(
+                    format_url, video_id, f4m_id=format_type, fatal=False))
+            elif format_type == 'MPEG_DASH':
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, video_id, mpd_id=format_type, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif format_type == 'HSS':
+                fmts, subs = self._extract_ism_formats_and_subtitles(
+                    format_url, video_id, ism_id='mss', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            else:
+                formats.append({
+                    'format_id': format_type,
+                    'url': format_url,
+                })
+
+        return formats, subtitles
+
+    def _call_api(self, video_id, client='null', id_token=None):
+        player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
+        player_token = self._download_json(
+            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
+            video_id, 'Downloading player token', headers={
+                **self.geo_verification_headers(),
+                'Content-Type': 'application/json',
+            }, data=json.dumps({
+                'identityToken': id_token or {},
+                'playerInfo': jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
+                    'kid': self._JWT_KEY_ID
+                }).decode()
+            }, separators=(',', ':')).encode())['vrtPlayerToken']
+
+        return self._download_json(
+            f'https://media-services-public.vrt.be/media-aggregator/v2/media-items/{video_id}',
+            video_id, 'Downloading API JSON', query={
+                'vrtPlayerToken': player_token,
+                'client': client,
+            }, expected_status=400)
+
+
+class VRTIE(VRTBaseIE):
+    IE_DESC = 'VRT NWS, Flanders News, Flandern Info and Sporza'
+    _VALID_URL = r'https?://(?:www\.)?(?P<site>vrt\.be/vrtnws|sporza\.be)/[a-z]{2}/\d{4}/\d{2}/\d{2}/(?P<id>[^/?&#]+)'
+    _TESTS = [{
+        'url': 'https://www.vrt.be/vrtnws/nl/2019/05/15/beelden-van-binnenkant-notre-dame-een-maand-na-de-brand/',
+        'info_dict': {
+            'id': 'pbs-pub-7855fc7b-1448-49bc-b073-316cb60caa71$vid-2ca50305-c38a-4762-9890-65cbd098b7bd',
+            'ext': 'mp4',
+            'title': 'Beelden van binnenkant Notre-Dame, één maand na de brand',
+            'description': 'md5:6fd85f999b2d1841aa5568f4bf02c3ff',
+            'duration': 31.2,
+            'thumbnail': 'https://images.vrt.be/orig/2019/05/15/2d914d61-7710-11e9-abcc-02b7b76bf47f.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://sporza.be/nl/2019/05/15/de-belgian-cats-zijn-klaar-voor-het-ek/',
+        'info_dict': {
+            'id': 'pbs-pub-f2c86a46-8138-413a-a4b9-a0015a16ce2c$vid-1f112b31-e58e-4379-908d-aca6d80f8818',
+            'ext': 'mp4',
+            'title': 'De Belgian Cats zijn klaar voor het EK',
+            'description': 'Video: De Belgian Cats zijn klaar voor het EK mét Ann Wauters | basketbal, sport in het journaal',
+            'duration': 115.17,
+            'thumbnail': 'https://images.vrt.be/orig/2019/05/15/11c0dba3-770e-11e9-abcc-02b7b76bf47f.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
+    _CLIENT_MAP = {
+        'vrt.be/vrtnws': 'vrtnieuws',
+        'sporza.be': 'sporza',
+    }
+
+    def _real_extract(self, url):
+        site, display_id = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, display_id)
+        attrs = extract_attributes(get_element_html_by_class('vrtvideo', webpage) or '')
+
+        asset_id = attrs.get('data-video-id') or attrs['data-videoid']
+        publication_id = attrs.get('data-publication-id') or attrs.get('data-publicationid')
+        if publication_id:
+            asset_id = f'{publication_id}${asset_id}'
+        client = attrs.get('data-client-code') or attrs.get('data-client') or self._CLIENT_MAP[site]
+
+        data = self._call_api(asset_id, client)
+        formats, subtitles = self._extract_formats_and_subtitles(data, asset_id)
+
+        description = self._html_search_meta(
+            ['og:description', 'twitter:description', 'description'], webpage)
+        if description == '…':
+            description = None
+
+        return {
+            'id': asset_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'description': description,
+            'thumbnail': url_or_none(attrs.get('data-posterimage')),
+            'duration': float_or_none(attrs.get('data-duration'), 1000),
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('shortDescription', {str}),
+                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'thumbnail': ('posterImageUrl', {url_or_none}),
+            }),
+        }
+
+
+class VrtNUIE(VRTBaseIE):
     IE_DESC = 'VRT MAX'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -39,7 +183,6 @@ class VrtNUIE(GigyaBaseIE):
             'channel': 'VRT',
             'duration': 1939.0,
             'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
-            '_old_archive_ids': ['vrtnu pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f'],
             'release_date': '20230116',
             'upload_date': '20230116',
         },
@@ -63,7 +206,6 @@ class VrtNUIE(GigyaBaseIE):
             'channel': 'VRT',
             'duration': 33.13,
             'thumbnail': 'https://images.vrt.be/orig/2022/05/23/3c234d21-da83-11ec-b07d-02b7b76bf47f.jpg',
-            '_old_archive_ids': ['vrtnu pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee'],
             'release_date': '20220519',
             'upload_date': '20220519',
         },
@@ -114,9 +256,10 @@ class VrtNUIE(GigyaBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
+        parsed_url = urllib.parse.urlparse(url)
         details = self._download_json(
-            f'{url.strip("/")}.model.json', display_id, 'Downloading asset JSON',
-            'Unable to download asset JSON')['details']
+            f'{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path.rstrip("/")}.model.json',
+            display_id, 'Downloading asset JSON', 'Unable to download asset JSON')['details']
 
         watch_info = traverse_obj(details, (
             'actions', lambda _, v: v['type'] == 'watch-episode', {dict}), get_all=False) or {}
@@ -127,21 +270,9 @@ class VrtNUIE(GigyaBaseIE):
 
         vrtnutoken = self._download_json(
             'https://token.vrt.be/refreshtoken', video_id, note='Retrieving vrtnutoken',
-            errnote='Token refresh failed')['vrtnutoken'] if self._authenticated else ''
+            errnote='Token refresh failed')['vrtnutoken'] if self._authenticated else None
 
-        vrt_player_token = self._download_json(
-            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
-            video_id, 'Downloading token', headers={
-                **self.geo_verification_headers(),
-                'Content-Type': 'application/json; charset=utf-8',
-            }, data=json.dumps({'identityToken': vrtnutoken}).encode())['vrtPlayerToken']
-
-        video_info = self._download_json(
-            f'https://media-services-public.vrt.be/media-aggregator/v2/media-items/{video_id}',
-            video_id, 'Downloading video JSON', query={
-                'vrtPlayerToken': vrt_player_token,
-                'client': 'vrtnu-web@PROD',
-            }, expected_status=400)
+        video_info = self._call_api(video_id, 'vrtnu-web@PROD', vrtnutoken)
 
         if 'title' not in video_info:
             code = video_info.get('code')
@@ -155,34 +286,7 @@ class VrtNUIE(GigyaBaseIE):
                 self.raise_geo_restricted(countries=['BE'])
             raise ExtractorError(code, expected=True)
 
-        formats = []
-        subtitles = {}
-        for target in traverse_obj(video_info, ('targetUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
-            format_type = target['type'].upper()
-            format_url = target['url']
-            if format_type in ('HLS', 'HLS_AES'):
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    format_url, video_id, 'mp4', m3u8_id=format_type, fatal=False)
-                formats.extend(fmts)
-                subtitles = self._merge_subtitles(subtitles, subs)
-            elif format_type == 'HDS':
-                formats.extend(self._extract_f4m_formats(
-                    format_url, video_id, f4m_id=format_type, fatal=False))
-            elif format_type == 'MPEG_DASH':
-                fmts, subs = self._extract_mpd_formats_and_subtitles(
-                    format_url, video_id, mpd_id=format_type, fatal=False)
-                formats.extend(fmts)
-                subtitles = self._merge_subtitles(subtitles, subs)
-            elif format_type == 'HSS':
-                fmts, subs = self._extract_ism_formats_and_subtitles(
-                    format_url, video_id, ism_id='mss', fatal=False)
-                formats.extend(fmts)
-                subtitles = self._merge_subtitles(subtitles, subs)
-            else:
-                formats.append({
-                    'format_id': format_type,
-                    'url': format_url,
-                })
+        formats, subtitles = self._extract_formats_and_subtitles(video_info, video_id)
 
         for sub in traverse_obj(video_info, ('subtitleUrls', lambda _, v: v['url'] and v['type'] == 'CLOSED')):
             subtitles.setdefault('nl', []).append({'url': sub['url']})
@@ -208,5 +312,4 @@ class VrtNUIE(GigyaBaseIE):
             'duration': float_or_none(video_info.get('duration'), 1000),
             'thumbnail': url_or_none(video_info.get('posterImageUrl')),
             'subtitles': subtitles,
-            '_old_archive_ids': [make_archive_id('VrtNU', video_id)],
         }
