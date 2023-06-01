@@ -3287,7 +3287,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         info.update({
             # FIXME: non-standard, but we need a way of showing that it is an estimate.
-            'time_text': time_text,
+            '_time_text': time_text,
             'timestamp': timestamp,
         })
 
