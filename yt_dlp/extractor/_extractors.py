@@ -2197,7 +2197,7 @@ from .voxmedia import (
     VoxMediaVolumeIE,
     VoxMediaIE,
 )
-from .vrtmax import VrtMaxIE
+from .vrtmax import VrtNUIE
 from .vrak import VrakIE
 from .vrv import (
     VRVIE,
