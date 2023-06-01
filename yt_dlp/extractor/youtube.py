@@ -3271,37 +3271,50 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not comment_id:
             return
 
-        text = self._get_text(comment_renderer, 'contentText')
+        info = {
+            'id': comment_id,
+            'text': self._get_text(comment_renderer, 'contentText'),
+            'like_count': self._get_count(comment_renderer, 'voteCount'),
+            'author_id': traverse_obj(comment_renderer, ('authorEndpoint', 'browseEndpoint', 'browseId', {self.ucid_or_none})),
+            'author': self._get_text(comment_renderer, 'authorText'),
+            'author_thumbnail': traverse_obj(comment_renderer, ('authorThumbnail', 'thumbnails', -1, 'url', {url_or_none})),
+            'parent': parent or 'root',
+        }
 
         # Timestamp is an estimate calculated from the current time and time_text
         time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
         timestamp = self._parse_time_text(time_text)
 
-        author = self._get_text(comment_renderer, 'authorText')
-        author_id = try_get(comment_renderer,
-                            lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
-
-        votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                       lambda x: x['likeCount']), str)) or 0
-        author_thumbnail = try_get(comment_renderer,
-                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], str)
-
-        author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
-        is_favorited = 'creatorHeart' in (try_get(
-            comment_renderer, lambda x: x['actionButtons']['commentActionButtonsRenderer'], dict) or {})
-        return {
-            'id': comment_id,
-            'text': text,
+        info.update({
+            # FIXME: non-standard, but we need a way of showing that it is an estimate.
+            '_time_text': time_text,
             'timestamp': timestamp,
-            'time_text': time_text,
-            'like_count': votes,
-            'is_favorited': is_favorited,
-            'author': author,
-            'author_id': author_id,
-            'author_thumbnail': author_thumbnail,
-            'author_is_uploader': author_is_uploader,
-            'parent': parent or 'root'
-        }
+        })
+
+        info['author_url'] = urljoin(
+            'https://www.youtube.com', traverse_obj(comment_renderer, ('authorEndpoint', (
+                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
+                expected_type=str, get_all=False))
+
+        author_is_uploader = traverse_obj(comment_renderer, 'authorIsChannelOwner')
+        if author_is_uploader is not None:
+            info['author_is_uploader'] = author_is_uploader
+
+        comment_abr = traverse_obj(
+            comment_renderer, ('actionsButtons', 'commentActionButtonsRenderer'), expected_type=dict)
+        if comment_abr is not None:
+            info['is_favorited'] = 'creatorHeart' in comment_abr
+
+        comment_ab_icontype = traverse_obj(
+            comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
+        if comment_ab_icontype is not None:
+            info['author_is_verified'] = comment_ab_icontype in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE')
+
+        is_pinned = traverse_obj(comment_renderer, 'pinnedCommentBadge')
+        if is_pinned:
+            info['is_pinned'] = True
+
+        return info
 
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
 
@@ -3314,7 +3327,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 expected_comment_count = self._get_count(
                     comments_header_renderer, 'countText', 'commentsCount')
 
-                if expected_comment_count:
+                if expected_comment_count is not None:
                     tracker['est_total'] = expected_comment_count
                     self.to_screen(f'Downloading ~{expected_comment_count} comments')
                 comment_sort_index = int(get_single_config_arg('comment_sort') != 'top')  # 1 = new, 0 = top
@@ -3349,14 +3362,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
-                is_pinned = bool(traverse_obj(comment_renderer, 'pinnedCommentBadge'))
                 comment_id = comment['id']
-                if is_pinned:
+                if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/6290
                 if comment_id in tracker['seen_comment_ids']:
-                    if comment_id in tracker['pinned_comment_ids'] and not is_pinned:
+                    if comment_id in tracker['pinned_comment_ids'] and not comment.get('is_pinned'):
                         # Pinned comments may appear a second time in newest first sort
                         # See: https://github.com/yt-dlp/yt-dlp/issues/6712
                         continue
@@ -3385,7 +3397,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not tracker:
             tracker = dict(
                 running_total=0,
-                est_total=0,
+                est_total=None,
                 current_page_thread=0,
                 total_parent_comments=0,
                 total_reply_comments=0,
@@ -3418,11 +3430,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             continuation = self._build_api_continuation_query(self._generate_comment_continuation(video_id))
             is_forced_continuation = True
 
+        continuation_items_path = (
+            'onResponseReceivedEndpoints', ..., ('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems')
         for page_num in itertools.count(0):
             if not continuation:
                 break
             headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=self._extract_visitor_data(response))
-            comment_prog_str = f"({tracker['running_total']}/{tracker['est_total']})"
+            comment_prog_str = f"({tracker['running_total']}/~{tracker['est_total']})"
             if page_num == 0:
                 if is_first_continuation:
                     note_prefix = 'Downloading comment section API JSON'
@@ -3433,11 +3447,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
+
+            # Do a deep check for incomplete data as sometimes YouTube may return no comments for a continuation
+            # Ignore check if YouTube says the comment count is 0.
+            check_get_keys = None
+            if not is_forced_continuation and not (tracker['est_total'] == 0 and tracker['running_total'] == 0):
+                check_get_keys = [[*continuation_items_path, ..., (
+                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentRenderer'))]]
             try:
                 response = self._extract_response(
                     item_id=None, query=continuation,
                     ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                    check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+                    check_get_keys=check_get_keys)
             except ExtractorError as e:
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
@@ -3449,15 +3470,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     raise
             is_forced_continuation = False
-            continuation_contents = traverse_obj(
-                response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
-
             continuation = None
-            for continuation_section in continuation_contents:
-                continuation_items = traverse_obj(
-                    continuation_section,
-                    (('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems'),
-                    get_all=False, expected_type=list) or []
+            for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
                     is_first_continuation = False
