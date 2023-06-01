@@ -194,8 +194,8 @@ def sanitize_got_info_dict(got_dict):
         'formats', 'thumbnails', 'subtitles', 'automatic_captions', 'comments', 'entries',
 
         # Auto-generated
-        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch',
-        'fulltitle', 'extractor', 'extractor_key', 'filepath', 'infojson_filename', 'original_url', 'n_entries',
+        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch', 'n_entries',
+        'fulltitle', 'extractor', 'extractor_key', 'filename', 'filepath', 'infojson_filename', 'original_url',
 
         # Only live_status needs to be checked
         'is_live', 'was_live',

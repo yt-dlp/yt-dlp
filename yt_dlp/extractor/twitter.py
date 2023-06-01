@@ -1,6 +1,5 @@
 import json
 import re
-import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
@@ -17,6 +16,7 @@ from ..utils import (
     format_field,
     int_or_none,
     make_archive_id,
+    remove_end,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -32,11 +32,9 @@ from ..utils import (
 class TwitterBaseIE(InfoExtractor):
     _API_BASE = 'https://api.twitter.com/1.1/'
     _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
-    _TOKENS = {
-        'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA': None,
-        'AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw': None,
-    }
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
+    _AUTH = {'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'}
+    _guest_token = None
 
     def _extract_variant_formats(self, variant, video_id):
         variant_url = variant.get('url')
@@ -94,7 +92,7 @@ class TwitterBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, query={}, graphql=False):
         cookies = self._get_cookies(self._API_BASE)
-        headers = {}
+        headers = self._AUTH.copy()
 
         csrf_cookie = cookies.get('ct0')
         if csrf_cookie:
@@ -107,54 +105,34 @@ class TwitterBaseIE(InfoExtractor):
                 'x-twitter-active-user': 'yes',
             })
 
-        last_error = None
-        for bearer_token in self._TOKENS:
-            for first_attempt in (True, False):
-                headers['Authorization'] = f'Bearer {bearer_token}'
+        for first_attempt in (True, False):
+            if not self.is_logged_in and not self._guest_token:
+                headers.pop('x-guest-token', None)
+                self._guest_token = traverse_obj(self._download_json(
+                    f'{self._API_BASE}guest/activate.json', video_id,
+                    'Downloading guest token', data=b'', headers=headers), 'guest_token')
+            if self._guest_token:
+                headers['x-guest-token'] = self._guest_token
+            elif not self.is_logged_in:
+                raise ExtractorError('Could not retrieve guest token')
 
-                if not self.is_logged_in:
-                    if not self._TOKENS[bearer_token]:
-                        headers.pop('x-guest-token', None)
-                        guest_token_response = self._download_json(
-                            self._API_BASE + 'guest/activate.json', video_id,
-                            'Downloading guest token', data=b'', headers=headers)
+            allowed_status = {400, 401, 403, 404} if graphql else {403}
+            result = self._download_json(
+                (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
+                video_id, headers=headers, query=query, expected_status=allowed_status,
+                note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
 
-                        self._TOKENS[bearer_token] = guest_token_response.get('guest_token')
-                        if not self._TOKENS[bearer_token]:
-                            raise ExtractorError('Could not retrieve guest token')
+            if result.get('errors'):
+                errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
+                if not self.is_logged_in and first_attempt and 'bad guest token' in errors.lower():
+                    self.to_screen('Guest token has expired. Refreshing guest token')
+                    self._guest_token = None
+                    continue
 
-                    headers['x-guest-token'] = self._TOKENS[bearer_token]
+                raise ExtractorError(
+                    f'Error(s) while querying API: {errors or "Unknown error"}', expected=True)
 
-                try:
-                    allowed_status = {400, 403, 404} if graphql else {403}
-                    result = self._download_json(
-                        (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
-                        video_id, headers=headers, query=query, expected_status=allowed_status)
-
-                except ExtractorError as e:
-                    if last_error:
-                        raise last_error
-
-                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
-                        raise
-
-                    last_error = e
-                    self.report_warning(
-                        'Twitter API gave 404 response, retrying with deprecated auth token. '
-                        'Only one media item can be extracted')
-                    break  # continue outer loop with next bearer_token
-
-                if result.get('errors'):
-                    errors = traverse_obj(result, ('errors', ..., 'message'), expected_type=str)
-                    if first_attempt and any('bad guest token' in error.lower() for error in errors):
-                        self.to_screen('Guest token has expired. Refreshing guest token')
-                        self._TOKENS[bearer_token] = None
-                        continue
-
-                    error_message = ', '.join(set(errors)) or 'Unknown error'
-                    raise ExtractorError(f'Error(s) while querying API: {error_message}', expected=True)
-
-                return result
+            return result
 
     def _build_graphql_query(self, media_id):
         raise NotImplementedError('Method must be implemented to support GraphQL')
@@ -313,6 +291,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 18,
         },
@@ -391,6 +370,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['Damndaniel'],
             'age_limit': 0,
         },
@@ -431,6 +411,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -480,6 +461,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['Maria'],
             'age_limit': 0,
         },
@@ -505,6 +487,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -529,6 +512,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -589,6 +573,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -630,12 +615,12 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['HurricaneIan'],
             'age_limit': 0,
         },
     }, {
-        # Adult content, uses old token
-        # Fails if not logged in (GraphQL)
+        # Adult content, fails if not logged in (GraphQL)
         'url': 'https://twitter.com/Rizdraws/status/1575199173472927762',
         'info_dict': {
             'id': '1575199163847000068',
@@ -655,9 +640,8 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 18,
             'tags': []
         },
-        'expected_warnings': ['404'],
+        'skip': 'Requires authentication',
     }, {
-        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
         'info_dict': {
@@ -669,14 +653,13 @@ class TwitterIE(TwitterBaseIE):
             'upload_date': '20210519',
             'age_limit': 0,
             'repost_count': int,
-            'description': 'Here it is! Finished my gothic western cartoon. Pretty proud of it. It\'s got some goofs and lots of splashy over the top violence, something for everyone, hope you like it https://t.co/fOsG5glUnw https://t.co/kbXZrozlY7',
+            'description': 'Here it is! Finished my gothic western cartoon. Pretty proud of it. It\'s got some goofs and lots of splashy over the top violence, something for everyone, hope you like it https://t.co/fOsG5glUnw',
             'uploader_id': 'Srirachachau',
             'comment_count': int,
             'uploader_url': 'https://twitter.com/Srirachachau',
             'timestamp': 1621447860,
         },
     }, {
-        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/DavidToons_/status/1578353380363501568',
         'playlist_mincount': 2,
         'info_dict': {
@@ -688,7 +671,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': str,
             'timestamp': 1665143744,
             'uploader_url': 'https://twitter.com/DavidToons_',
-            'description': 'Chris sounds like Linda from Bob\'s Burgers, so as an animator: this had to be done. https://t.co/glfQdgfFXH https://t.co/WgJauwIW1w',
+            'description': 'Chris sounds like Linda from Bob\'s Burgers, so as an animator: this had to be done. https://t.co/WgJauwIW1w',
             'tags': [],
             'comment_count': int,
             'upload_date': '20221007',
@@ -752,7 +735,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1600649511827013632',
             'ext': 'mp4',
-            'title': 'md5:dac4f4d4c591fcc4e88a253eba472dc3',
+            'title': 'md5:7662a0a27ce6faa3e5b160340f3cfab1',
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1670459604.0,
             'uploader_id': 'CTVJLaidlaw',
@@ -764,6 +747,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_url': 'https://twitter.com/CTVJLaidlaw',
             'display_id': '1600649710662213632',
             'like_count': int,
+            'view_count': int,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
             'upload_date': '20221208',
             'age_limit': 0,
@@ -791,6 +775,7 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'view_count': int,
         },
     }, {
         'url': 'https://twitter.com/hlo_again/status/1599108751385972737/video/2',
@@ -806,6 +791,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'duration': 9.531,
             'comment_count': int,
+            'view_count': int,
             'upload_date': '20221203',
             'age_limit': 0,
             'timestamp': 1670092210.0,
@@ -815,7 +801,6 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'noplaylist': True},
     }, {
-        # Media view count is GraphQL only, force in test
         'url': 'https://twitter.com/MunTheShinobi/status/1600009574919962625',
         'info_dict': {
             'id': '1600009362759733248',
@@ -826,10 +811,10 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
-            'uploader': 'Mün The Shinobi | BlaqBoi\'s Therapist',
+            'uploader': 'Mün The Shinobi',
             'repost_count': int,
             'upload_date': '20221206',
-            'title': 'Mün The Shinobi | BlaqBoi\'s Therapist - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'title': 'Mün The Shinobi - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
             'comment_count': int,
             'like_count': int,
             'tags': [],
@@ -837,9 +822,8 @@ class TwitterIE(TwitterBaseIE):
             'duration': 139.987,
             'timestamp': 1670306984.0,
         },
-        'params': {'extractor_args': {'twitter': {'force_graphql': ['']}}},
     }, {
-        # url to retweet id
+        # url to retweet id, legacy API
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
         'info_dict': {
             'id': '1623274794488659969',
@@ -860,6 +844,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -905,11 +890,13 @@ class TwitterIE(TwitterBaseIE):
             'tweet_results', 'result', ('tweet', None),
         ), expected_type=dict, default={}, get_all=False)
 
-        if result.get('__typename') not in ('Tweet', None):
+        if result.get('__typename') not in ('Tweet', 'TweetTombstone', None):
             self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
 
         if 'tombstone' in result:
-            cause = traverse_obj(result, ('tombstone', 'text', 'text'), expected_type=str)
+            cause = remove_end(traverse_obj(result, ('tombstone', 'text', 'text', {str})), '. Learn more')
+            if cause and 'adult content' in cause:
+                self.raise_login_required(cause)
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
 
         status = result.get('legacy', {})
@@ -922,7 +909,7 @@ class TwitterIE(TwitterBaseIE):
         # extra transformation is needed since result does not match legacy format
         binding_values = {
             binding_value.get('key'): binding_value.get('value')
-            for binding_value in traverse_obj(status, ('card', 'binding_values', ...), expected_type=dict)
+            for binding_value in traverse_obj(status, ('card', 'binding_values', ..., {dict}))
         }
         if binding_values:
             status['card']['binding_values'] = binding_values
@@ -965,12 +952,7 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if self.is_logged_in or self._configuration_arg('force_graphql'):
-            self.write_debug(f'Using GraphQL API (Auth = {self.is_logged_in})')
-            result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
-            status = self._graphql_to_legacy(result, twid)
-
-        else:
+        if self._configuration_arg('legacy_api') and not self.is_logged_in:
             status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
                 'cards_platform': 'Web-12',
                 'include_cards': 1,
@@ -978,6 +960,9 @@ class TwitterIE(TwitterBaseIE):
                 'include_user_entities': 0,
                 'tweet_mode': 'extended',
             }), 'retweeted_status', None)
+        else:
+            result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
+            status = self._graphql_to_legacy(result, twid)
 
         title = description = status['full_text'].replace('\n', ' ')
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames
@@ -1142,7 +1127,8 @@ class TwitterIE(TwitterBaseIE):
         if not entries:
             expanded_url = traverse_obj(status, ('entities', 'urls', 0, 'expanded_url'), expected_type=url_or_none)
             if not expanded_url or expanded_url == url:
-                raise ExtractorError('No video could be found in this tweet', expected=True)
+                self.raise_no_formats('No video could be found in this tweet', expected=True)
+                return info
 
             return self.url_result(expanded_url, display_id=twid, **info)
 

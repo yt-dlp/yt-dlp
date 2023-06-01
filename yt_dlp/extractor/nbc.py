@@ -12,9 +12,13 @@ from ..utils import (
     RegexNotFoundError,
     UserNotLive,
     clean_html,
+    determine_ext,
+    float_or_none,
     int_or_none,
+    mimetype2ext,
     parse_age_limit,
     parse_duration,
+    remove_end,
     smuggle_url,
     traverse_obj,
     try_get,
@@ -22,7 +26,6 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
     url_basename,
-    xpath_attr,
 )
 
 
@@ -660,6 +663,7 @@ class NBCStationsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Large Structure Fire in Downtown LA Prompts Smoke Odor Advisory',
             'description': 'md5:417ed3c2d91fe9d301e6db7b0942f182',
+            'duration': 112.513,
             'timestamp': 1661135892,
             'upload_date': '20220822',
             'uploader': 'NBC 4',
@@ -676,6 +680,7 @@ class NBCStationsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Huracán complica que televidente de Tucson reciba  reembolso',
             'description': 'md5:af298dc73aab74d4fca6abfb12acb6cf',
+            'duration': 172.406,
             'timestamp': 1660886507,
             'upload_date': '20220819',
             'uploader': 'Telemundo Arizona',
@@ -684,6 +689,22 @@ class NBCStationsIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'm3u8',
+        },
+    }, {
+        # direct mp4 link
+        'url': 'https://www.nbcboston.com/weather/video-weather/highs-near-freezing-in-boston-on-wednesday/2961135/',
+        'md5': '9bf8c41dc7abbb75b1a44f1491a4cc85',
+        'info_dict': {
+            'id': '2961135',
+            'ext': 'mp4',
+            'title': 'Highs Near Freezing in Boston on Wednesday',
+            'description': 'md5:3ec486609a926c99f00a3512e6c0e85b',
+            'duration': 235.669,
+            'timestamp': 1675268656,
+            'upload_date': '20230201',
+            'uploader': '',
+            'channel_id': 'WBTS',
+            'channel': 'nbcboston',
         },
     }]
 
@@ -711,7 +732,7 @@ class NBCStationsIE(InfoExtractor):
         if not video_data:
             raise ExtractorError('No video metadata found in webpage', expected=True)
 
-        info, formats, subtitles = {}, [], {}
+        info, formats = {}, []
         is_live = int_or_none(video_data.get('mpx_is_livestream')) == 1
         query = {
             'formats': 'MPEG-DASH none,M3U none,MPEG-DASH none,MPEG4,MP3',
@@ -747,13 +768,14 @@ class NBCStationsIE(InfoExtractor):
 
             video_url = traverse_obj(video_data, ((None, ('video', 'meta')), 'mp4_url'), get_all=False)
             if video_url:
+                ext = determine_ext(video_url)
                 height = self._search_regex(r'\d+-(\d+)p', url_basename(video_url), 'height', default=None)
                 formats.append({
                     'url': video_url,
-                    'ext': 'mp4',
+                    'ext': ext,
                     'width': int_or_none(self._RESOLUTIONS.get(height)),
                     'height': int_or_none(height),
-                    'format_id': 'http-mp4',
+                    'format_id': f'http-{ext}',
                 })
 
             info.update({
@@ -770,14 +792,25 @@ class NBCStationsIE(InfoExtractor):
             smil = self._download_xml(
                 f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
                 note='Downloading SMIL data', query=query, fatal=is_live)
-        if smil:
-            manifest_url = xpath_attr(smil, f'.//{{{default_ns}}}video', 'src', fatal=is_live)
-            subtitles = self._parse_smil_subtitles(smil, default_ns)
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                manifest_url, video_id, 'mp4', m3u8_id='hls', fatal=is_live,
-                live=is_live, errnote='No HLS formats found')
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
+        subtitles = self._parse_smil_subtitles(smil, default_ns) if smil else {}
+        for video in smil.findall(self._xpath_ns('.//video', default_ns)) if smil else []:
+            info['duration'] = float_or_none(remove_end(video.get('dur'), 'ms'), 1000)
+            video_src_url = video.get('src')
+            ext = mimetype2ext(video.get('type'), default=determine_ext(video_src_url))
+            if ext == 'm3u8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    video_src_url, video_id, 'mp4', m3u8_id='hls', fatal=is_live,
+                    live=is_live, errnote='No HLS formats found')
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif video_src_url:
+                formats.append({
+                    'url': video_src_url,
+                    'format_id': f'https-{ext}',
+                    'ext': ext,
+                    'width': int_or_none(video.get('width')),
+                    'height': int_or_none(video.get('height')),
+                })
 
         if not formats:
             self.raise_no_formats('No video content found in webpage', expected=True)
