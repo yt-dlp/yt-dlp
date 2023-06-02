@@ -15,6 +15,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     jwt_encode_hs256,
+    make_archive_id,
     parse_age_limit,
     parse_iso8601,
     str_or_none,
@@ -163,6 +164,7 @@ class VRTIE(VRTBaseIE):
             'description': description,
             'thumbnail': url_or_none(attrs.get('data-posterimage')),
             'duration': float_or_none(attrs.get('data-duration'), 1000),
+            '_old_archive_ids': [make_archive_id('Canvas', asset_id)],
             **traverse_obj(data, {
                 'title': ('title', {str}),
                 'description': ('shortDescription', {str}),
@@ -322,6 +324,7 @@ class VrtNUIE(VRTBaseIE):
             'duration': float_or_none(video_info.get('duration'), 1000),
             'thumbnail': url_or_none(video_info.get('posterImageUrl')),
             'subtitles': subtitles,
+            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
 
 
@@ -370,6 +373,7 @@ class KetnetIE(VRTBaseIE):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
             **traverse_obj(video, {
                 'title': ('titleVideodetail', {str}),
                 'description': ('description', {str}),
@@ -417,4 +421,5 @@ class DagelijkseKostIE(VRTBaseIE):
             'description': clean_html(get_element_by_class(
                 'dish-description', webpage)) or self._html_search_meta(
                 ['description', 'twitter:description', 'og:description'], webpage),
+            '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
