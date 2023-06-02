@@ -116,7 +116,7 @@ class DigitalConcertHallIE(InfoExtractor):
                     'start_time': chapter.get('time'),
                     'end_time': try_get(chapter, lambda x: x['time'] + x['duration']),
                     'title': chapter.get('text'),
-                } for chapter in item['cuepoints']] if item.get('cuepoints') and type_ == "concert" else None,
+                } for chapter in item['cuepoints']] if item.get('cuepoints') and type_ == 'concert' else None,
             }
 
     def _real_extract(self, url):
