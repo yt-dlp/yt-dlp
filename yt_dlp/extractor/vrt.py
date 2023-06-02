@@ -78,6 +78,9 @@ class VRTBaseIE(GigyaBaseIE):
                     'url': format_url,
                 })
 
+        for sub in traverse_obj(data, ('subtitleUrls', lambda _, v: v['url'] and v['type'] == 'CLOSED')):
+            subtitles.setdefault('nl', []).append({'url': sub['url']})
+
         return formats, subtitles
 
     def _call_api(self, video_id, client='null', id_token=None, version='v2'):
@@ -294,9 +297,6 @@ class VrtNUIE(VRTBaseIE):
             raise ExtractorError(code, expected=True)
 
         formats, subtitles = self._extract_formats_and_subtitles(video_info, video_id)
-
-        for sub in traverse_obj(video_info, ('subtitleUrls', lambda _, v: v['url'] and v['type'] == 'CLOSED')):
-            subtitles.setdefault('nl', []).append({'url': sub['url']})
 
         return {
             **traverse_obj(details, {
