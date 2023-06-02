@@ -26,6 +26,7 @@ from ..utils import (
 
 
 class VRTBaseIE(GigyaBaseIE):
+    _GEO_BYPASS = False
     _PLAYER_INFO = {
         'platform': 'desktop',
         'app': {
