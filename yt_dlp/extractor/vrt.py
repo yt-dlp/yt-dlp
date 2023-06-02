@@ -287,12 +287,12 @@ class VrtNUIE(VRTBaseIE):
         if 'title' not in video_info:
             code = video_info.get('code')
             if code in ('AUTHENTICATION_REQUIRED', 'CONTENT_IS_AGE_RESTRICTED'):
-                self.raise_login_required(code)
+                self.raise_login_required(code, method='password')
             elif code in ('INVALID_LOCATION', 'CONTENT_AVAILABLE_ONLY_IN_BE'):
                 self.raise_geo_restricted(countries=['BE'])
             elif code == 'CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS':
                 if not self._authenticated:
-                    self.raise_login_required(code)
+                    self.raise_login_required(code, method='password')
                 self.raise_geo_restricted(countries=['BE'])
             raise ExtractorError(code, expected=True)
 
