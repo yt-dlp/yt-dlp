@@ -196,6 +196,7 @@ class VrtNUIE(VRTBaseIE):
             'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
             'release_date': '20230116',
             'upload_date': '20230116',
+            'age_limit': 12,
         },
     }, {
         'url': 'https://www.vrt.be/vrtnu/a-z/buurman--wat-doet-u-nu-/6/buurman--wat-doet-u-nu--s6-trailer/',
