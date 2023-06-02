@@ -139,10 +139,10 @@ class VRTIE(VRTBaseIE):
         attrs = extract_attributes(get_element_html_by_class('vrtvideo', webpage) or '')
 
         asset_id = attrs.get('data-video-id') or attrs['data-videoid']
-        publication_id = attrs.get('data-publication-id') or attrs.get('data-publicationid')
+        publication_id = traverse_obj(attrs, 'data-publication-id', 'data-publicationid')
         if publication_id:
             asset_id = f'{publication_id}${asset_id}'
-        client = attrs.get('data-client-code') or attrs.get('data-client') or self._CLIENT_MAP[site]
+        client = traverse_obj(attrs, 'data-client-code', 'data-client') or self._CLIENT_MAP[site]
 
         data = self._call_api(asset_id, client)
         formats, subtitles = self._extract_formats_and_subtitles(data, asset_id)
