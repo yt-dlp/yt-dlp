@@ -55,14 +55,13 @@ class RozhlasIE(InfoExtractor):
 
 
 class RozhlasBaseIE(InfoExtractor):
-    _VALID_URL = None
-    _429_TIMEOUT = 1
-
-    def _extract_audio(self, entry, audio_id):
+    def _extract_formats(self, entry, audio_id):
         formats = []
         for audio in traverse_obj(entry, ('audioLinks', lambda _, v: url_or_none(v['url']))):
             ext = audio.get('variant')
             for retry in self.RetryManager():
+                if retry.attempt > 1:
+                    self._sleep(1, audio_id)
                 try:
                     if ext == 'dash':
                         formats.extend(self._extract_mpd_formats(
@@ -80,17 +79,12 @@ class RozhlasBaseIE(InfoExtractor):
                             'vcodec': 'none',
                         })
                 except ExtractorError as e:
-                    if isinstance(e.cause, HTTPError) and e.cause.code == 429:
+                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 429:
                         retry.error = e.cause
-                        self._sleep(self._429_TIMEOUT, audio_id)
                     else:
-                        pass
+                        self.report_warning(e.msg)
 
         return formats
-
-    def _real_extract(self, url):
-        raise NotImplementedError
-
 
 class RozhlasVltavaIE(RozhlasBaseIE):
     _VALID_URL = r'https?://(?:\w+\.rozhlas|english\.radio)\.cz/[\w-]+-(?P<id>\d+)'
@@ -274,103 +268,65 @@ class MujRozhlasIE(RozhlasBaseIE):
         'params': {'skip_download': True}}
     ]
 
-    _API_ROOT = 'https://api.mujrozhlas.cz'
+    def _call_api(self, path, item_id, msg='API JSON'):
+        return self._download_json(
+            f'https://api.mujrozhlas.cz/{path}/{item_id}', item_id,
+            note=f'Downloading {msg}', errnote=f'Failed to download {msg}')['data']
 
     def _extract_audio_entry(self, entry):
-        audio_id = traverse_obj(entry, ('meta', 'ga', 'contentId'), )
-
-        title = traverse_obj(entry, ('attributes', 'title'))
-
-        if audio_id is None or title is None:
-            return None  # audio no longer available
-
-        thumbnail = traverse_obj(entry, ('attributes', 'asset', 'url'))
-        # these can be pretty large, e.g. https://api.mujrozhlas.cz/episodes/8ad147a0-d971-3fb2-9e6b-552a60f335fb
-        # with a 2100x1400 jpeg
-
-        timestamp = unified_timestamp(traverse_obj(entry, ('attributes', 'since')))
-        modified_timestamp = unified_timestamp(traverse_obj(entry, ('attributes', 'updated')))
-
-        formats = self._extract_audio(entry['attributes'], audio_id)
+        audio_id = entry['meta']['ga']['contentId']
 
         return {
             'id': audio_id,
-            'title': title,
-            'formats': formats,
-            'timestamp': timestamp,
-            'thumbnail': thumbnail,
-            'modified_timestamp': modified_timestamp,
+            'formats': self._extract_formats(entry['attributes'], audio_id),
             **traverse_obj(entry, {
+                'title': ('attributes', 'title'),
                 'description': ('attributes', 'description'),
                 'episode_number': ('attributes', 'part'),
                 'series': ('attributes', 'mirroredShow', 'title'),
                 'chapter': ('attributes', 'mirroredSerial', 'title'),
                 'artist': ('meta', 'ga', 'contentAuthor'),
                 'channel_id': ('meta', 'ga', 'contentCreator'),
+                'timestamp': ('attributes', 'since', {unified_timestamp}),
+                'modified_timestamp': ('attributes', 'updated', {unified_timestamp}),
+                'thumbnail': ('attributes', 'asset', 'url', {url_or_none}),
             })
         }
 
-    def _extract_video(self, uuid):
-        url = f'{self._API_ROOT}/episodes/{uuid}'
-        entry = self._download_json(
-            url, uuid, note='Getting episode info from API',
-            errnote='Getting episode info failed'
-        )['data']
-
-        return self._extract_audio_entry(entry)
-
-    def _get_episodes(self, base_url, uuid):
-        # extract info
-        base_json = self._download_json(base_url, uuid,
-                                        note='Downloading playlist base json',
-                                        errnote='Downloading playlist base json failed')
-        id = uuid
-        title = base_json['data']['attributes']['title']
-
-        episodes = []
-        episodes_url = base_json['data']['relationships']['episodes']['links']['related']
-        while (True):
-            episodes_json = self._download_json(episodes_url, id,
-                                                note='Downloading episode list',
-                                                errnote='Downloading episode list failed')
-            episodes_data = episodes_json['data']
-            episodes = episodes + [self._extract_audio_entry(entry) for entry in episodes_data]
-            episodes_url = traverse_obj(episodes_json, ('links', 'next'))
-            if episodes_url is None:
+    def _entries(self, api_url, playlist_id):
+        for page in itertools.count(1):
+            episodes = self._download_json(
+                api_url, playlist_id, note=f'Downloading episodes page {page}',
+                errnote=f'Failed to download episodes page {page}', fatal=False)
+            for episode in traverse_obj(episodes, ('data', lambda _, v: v['meta']['ga']['contentId'])):
+                yield self._extract_audio_entry(episode)
+            api_url = traverse_obj(episodes, ('links', 'next', {url_or_none}))
+            if not api_url:
                 break
 
-        return {
-            '_type': 'playlist',
-            'id': id,
-            'title': title,
-            'entries': episodes,
-            'description': traverse_obj(base_json, ('data', 'attributes', 'description'))
-        }
-
-    def _extract_playlist(self, info):
-        entity = info['siteEntityBundle']
-        if entity == 'show':
-            uuid = info['contentShow'].split(':')[0]
-            return self._get_episodes(f'{self._API_ROOT}/shows/{uuid}', uuid)
-        elif entity == 'serial':
-            uuid = info['contentId']
-            return self._get_episodes(f'{self._API_ROOT}/serials/{uuid}', uuid)
-        elif entity == 'person':
-            # api for getting episodes by participating person does not seem to be implemented yet
-            # e.g. https://api.mujrozhlas.cz/persons/8367e456-2a57-379a-91bb-e699619bea49/participation
-            return None
-        else:
-            return None
-
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        info = self._search_json(r'dl\s*=\s*', webpage, 'info json', video_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        info = self._search_json(r'\bvar\s+dl\s*=', webpage, 'info json', display_id)
 
-        if info['siteEntityBundle'] == 'episode':
-            return self._extract_video(info['contentId'])
+        entity = info['siteEntityBundle']
+
+        if entity == 'episode':
+            return self._extract_audio_entry(self._call_api(
+                'episodes', info['contentId'], 'episode info API JSON'))
+
+        elif entity in ('show', 'serial'):
+            playlist_id = info['contentShow'].split(':')[0] if entity == 'show' else info['contentId']
+            data = self._call_api(f'{entity}s', playlist_id, f'{entity} playlist JSON')
+            api_url = data['relationships']['episodes']['links']['related']
+            return self.playlist_result(
+                self._entries(api_url, playlist_id), playlist_id,
+                **traverse_obj(data, ('attributes', {
+                    'title': 'title',
+                    'description': 'description',
+                })))
+
         else:
-            res = self._extract_playlist(info)
-            if None in res['entries']:
-                self.report_warning('Some episodes are not available anymore')
-            return res
+            # `entity == 'person'` not implemented yet by API, ref:
+            # https://api.mujrozhlas.cz/persons/8367e456-2a57-379a-91bb-e699619bea49/participation
+            raise ExtractorError(f'Unsupported entity type "{entity}"')
