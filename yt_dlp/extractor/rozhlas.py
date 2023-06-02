@@ -1,15 +1,17 @@
+import itertools
+import urllib.error
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     extract_attributes,
     int_or_none,
     remove_start,
     str_or_none,
     traverse_obj,
-    url_or_none,
-    ExtractorError,
     unified_timestamp,
+    url_or_none,
 )
-from urllib.error import HTTPError
 
 
 class RozhlasIE(InfoExtractor):
@@ -85,6 +87,7 @@ class RozhlasBaseIE(InfoExtractor):
                         self.report_warning(e.msg)
 
         return formats
+
 
 class RozhlasVltavaIE(RozhlasBaseIE):
     _VALID_URL = r'https?://(?:\w+\.rozhlas|english\.radio)\.cz/[\w-]+-(?P<id>\d+)'
@@ -204,16 +207,13 @@ class RozhlasVltavaIE(RozhlasBaseIE):
 
     def _extract_video(self, entry):
         audio_id = entry['meta']['ga']['contentId']
-
-        formats = self._extract_audio(entry, audio_id)
-
         chapter_number = traverse_obj(entry, ('meta', 'ga', 'contentSerialPart', {int_or_none}))
 
         return {
             'id': audio_id,
             'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')) if chapter_number else None,
             'chapter_number': chapter_number,
-            'formats': formats,
+            'formats': self._extract_formats(entry, audio_id),
             **traverse_obj(entry, {
                 'title': ('meta', 'ga', 'contentName'),
                 'description': 'title',
@@ -244,29 +244,37 @@ class MujRozhlasIE(RozhlasBaseIE):
     _VALID_URL = r'https?://(?:www\.)?mujrozhlas\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
-        'info_dict': {'id': '10739193',
-                      'title': 'Ach jo, zase to telecí! Řízek je mnohem míň český, než jsme si mysleli',
-                      'description': 'md5:db7141e9caaedc9041ec7cefb9a62908',
-                      'timestamp': 1684915200,
-                      'modified_timestamp': 1684922446,
-                      'series': 'Vykopávky',
-                      'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/84377046610af6ddc54d910b1dd7a22b.jpg',
-                      'channel_id': 'radio-wave',
-                      'upload_date': '20230524',
-                      'modified_date': '20230524'},
-        'params': {'skip_download': True}
+        'md5': '6f8fd68663e64936623e67c152a669e0',
+        'info_dict': {
+            'id': '10739193',
+            'ext': 'mp3',
+            'title': 'Ach jo, zase to telecí! Řízek je mnohem míň český, než jsme si mysleli',
+            'description': 'md5:db7141e9caaedc9041ec7cefb9a62908',
+            'timestamp': 1684915200,
+            'modified_timestamp': 1684922446,
+            'series': 'Vykopávky',
+            'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/84377046610af6ddc54d910b1dd7a22b.jpg',
+            'channel_id': 'radio-wave',
+            'upload_date': '20230524',
+            'modified_date': '20230524',
+        },
     }, {
         'url': 'https://www.mujrozhlas.cz/cetba-na-pokracovani/zena-v-polarni-noci-z-fascinujiciho-deniku-vyjimecne-odvazne-christiane',
-        'info_dict': {'id': '260da22a-1cde-3718-a1d9-4515f864c0ab',
-                      'title': 'Žena v polární noci. Z fascinujícího deníku výjimečné a odvážné Christiane Ritterové',
-                      'description': 'md5:f462de4b948bc91f7192af10bde3c279'},
-        'params': {'skip_download': True}
+        'playlist_mincount': 6,
+        'info_dict': {
+            'id': '260da22a-1cde-3718-a1d9-4515f864c0ab',
+            'title': 'Žena v polární noci. Z fascinujícího deníku výjimečné a odvážné Christiane Ritterové',
+            'description': 'md5:f462de4b948bc91f7192af10bde3c279',
+        },
     }, {
         'url': 'https://www.mujrozhlas.cz/nespavci',
-        'info_dict': {'id': '09db9b37-d0f4-368c-986a-d3439f741f08', 'title': 'Nespavci',
-                      'description': 'md5:c430adcbf9e2b9eac88b745881e814dc'},
-        'params': {'skip_download': True}}
-    ]
+        'playlist_mincount': 14,
+        'info_dict': {
+            'id': '09db9b37-d0f4-368c-986a-d3439f741f08',
+            'title': 'Nespavci',
+            'description': 'md5:c430adcbf9e2b9eac88b745881e814dc',
+        },
+    }]
 
     def _call_api(self, path, item_id, msg='API JSON'):
         return self._download_json(
