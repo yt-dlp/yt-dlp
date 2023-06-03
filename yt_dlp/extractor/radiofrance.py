@@ -65,24 +65,24 @@ class RadioFranceIE(InfoExtractor):
         }
 
 
-class RadioFranceBase(InfoExtractor):
+class RadioFranceBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?radiofrance\.fr'
 
-    _STATIONS = (
+    _STATIONS_RE = '|'.join(map(re.escape, (
         'franceculture',
         'franceinfo',
         'franceinter',
         'francemusique',
         'fip',
         'mouv',
-    )
+    )))
 
 
-class FranceCultureIE(RadioFranceBase):
+class FranceCultureIE(RadioFranceBaseIE):
     _VALID_URL = rf'''(?x)
-        {RadioFranceBase._VALID_URL_BASE}
-        /(?:{"|".join(RadioFranceBase._STATIONS)})
-        /podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d{{6,}})($|[?#])
+        {RadioFranceBaseIE._VALID_URL_BASE}
+        /(?:{RadioFranceBaseIE._STATIONS_RE})
+        /podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d{{6,}})(?:$|[?#])
     '''
 
     _TESTS = [
@@ -146,10 +146,10 @@ class FranceCultureIE(RadioFranceBase):
         }
 
 
-class RadioFranceLiveIE(RadioFranceBase):
+class RadioFranceLiveIE(RadioFranceBaseIE):
     _VALID_URL = rf'''(?x)
         https?://(?:www\.)?radiofrance\.fr
-        /(?P<id>{"|".join(RadioFranceBase._STATIONS)})
+        /(?P<id>{RadioFranceBaseIE._STATIONS_RE})
         /?(?P<substation_id>radio-[\w-]+)?(?:[#?]|$)
     '''
 
@@ -158,7 +158,7 @@ class RadioFranceLiveIE(RadioFranceBase):
         'info_dict': {
             'id': 'franceinter',
             'title': str,
-            'live': True,
+            'is_live': True,
             'ext': 'aac',
         },
         'params': {
@@ -169,7 +169,7 @@ class RadioFranceLiveIE(RadioFranceBase):
         'info_dict': {
             'id': 'franceculture',
             'title': str,
-            'live': True,
+            'is_live': True,
             'ext': 'aac',
         },
         'params': {
@@ -180,7 +180,7 @@ class RadioFranceLiveIE(RadioFranceBase):
         'info_dict': {
             'id': 'mouv-radio-musique-kids-family',
             'title': str,
-            'live': True,
+            'is_live': True,
             'ext': 'aac',
         },
         'params': {
@@ -191,7 +191,7 @@ class RadioFranceLiveIE(RadioFranceBase):
         'info_dict': {
             'id': 'mouv-radio-rnb-soul',
             'title': str,
-            'live': True,
+            'is_live': True,
             'ext': 'aac',
         },
         'params': {
@@ -202,7 +202,7 @@ class RadioFranceLiveIE(RadioFranceBase):
         'info_dict': {
             'id': 'mouv-radio-musique-mix',
             'title': str,
-            'live': True,
+            'is_live': True,
             'ext': 'aac',
         },
         'params': {
@@ -213,7 +213,7 @@ class RadioFranceLiveIE(RadioFranceBase):
         'info_dict': {
             'id': 'fip-radio-rock',
             'title': str,
-            'live': True,
+            'is_live': True,
             'ext': 'aac',
         },
         'params': {
@@ -238,7 +238,7 @@ class RadioFranceLiveIE(RadioFranceBase):
                 f'https://www.radiofrance.fr/api/v2.1/stations/{station_id}/live', station_id)
 
         formats, subtitles = [], {}
-        for media_source in traverse_obj(api_response, ('now', 'media', 'sources'), ('media', 'sources')):
+        for media_source in traverse_obj(api_response, (('now', None), 'media', 'sources'), get_all=False):
             if media_source.get('format') == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(media_source['url'], station_id, fatal=False)
                 formats.extend(fmts)
@@ -250,17 +250,16 @@ class RadioFranceLiveIE(RadioFranceBase):
                 })
 
         return {
-            'id': join_nonempty(station_id, substation_id, delim='-'),
+            'id': join_nonempty(station_id, substation_id),
             'title': traverse_obj(api_response, ('visual', 'legend')) or join_nonempty(
-                traverse_obj(api_response, ('now', 'firstLine', 'title')),
-                traverse_obj(api_response, ('now', 'secondLine', 'title')), delim=" - "),
+                ('now', 'firstLine', 'title'), ('now', 'secondLine', 'title'), from_dict=api_response, delim=' - '),
             'formats': formats,
             'subtitles': subtitles,
-            'live': True,
+            'is_live': True,
         }
 
 
-class RadioFrancePlaylistBase(RadioFranceBase):
+class RadioFrancePlaylistBase(RadioFranceBaseIE):
     """Subclasses must set _METADATA_KEY"""
 
     def _generate_playlist_entries(self, content_id, content_response):
@@ -289,8 +288,8 @@ class RadioFrancePlaylistBase(RadioFranceBase):
 
 class RadioFrancePodcastIE(RadioFrancePlaylistBase):
     _VALID_URL = rf'''(?x)
-        {RadioFranceBase._VALID_URL_BASE}
-        /(?:{"|".join(RadioFranceBase._STATIONS)})
+        {RadioFranceBaseIE._VALID_URL_BASE}
+        /(?:{RadioFranceBaseIE._STATIONS_RE})
         /podcasts/(?P<id>[\w-]+)/?(?:[?#]|$)
     '''
 
@@ -363,7 +362,7 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBase):
 
 
 class RadioFranceProfileIE(RadioFrancePlaylistBase):
-    _VALID_URL = rf'{RadioFranceBase._VALID_URL_BASE}/personnes/(?P<id>[\w-]+)'
+    _VALID_URL = rf'{RadioFranceBaseIE._VALID_URL_BASE}/personnes/(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://www.radiofrance.fr/personnes/thomas-pesquet?p=3',
@@ -404,10 +403,10 @@ class RadioFranceProfileIE(RadioFrancePlaylistBase):
                 })
 
 
-class RadioFranceProgramScheduleIE(RadioFranceBase):
+class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
     _VALID_URL = rf'''(?x)
-        {RadioFranceBase._VALID_URL_BASE}
-        /(?P<station>{"|".join(RadioFranceBase._STATIONS)})
+        {RadioFranceBaseIE._VALID_URL_BASE}
+        /(?P<station>{RadioFranceBaseIE._STATIONS_RE})
         /grille-programmes(?:\?date=(?P<date>[\d-]+))?
     '''
 
