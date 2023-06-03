@@ -34,6 +34,9 @@ class WeverseBaseIE(InfoExtractor):
     }
 
     def _perform_login(self, username, password):
+        if self._API_HEADERS.get('Authorization'):
+            return
+
         headers = {
             'x-acc-app-secret': '5419526f1c624b38b10787e5c10b2a7a',
             'x-acc-app-version': '2.2.6',
