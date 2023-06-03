@@ -802,7 +802,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'PRIVACY_PRIVATE': BadgeType.AVAILABILITY_PRIVATE,
             'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC,
             'CHECK_CIRCLE_THICK': BadgeType.VERIFIED,
-            'OFFICIAL_ARTIST_BADGE': BadgeType.VERIFIED
+            'OFFICIAL_ARTIST_BADGE': BadgeType.VERIFIED,
+            'CHECK': BadgeType.VERIFIED,
         }
 
         badge_style_map = {
@@ -835,10 +836,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
             # fallback, won't work in some languages
             label = traverse_obj(
-                badge, 'label', ('accessibilityData', 'label'), 'tooltip', get_all=False, expected_type=str, default='')
+                badge, 'label', ('accessibilityData', 'label'), 'tooltip', 'iconTooltip', get_all=False, expected_type=str, default='')
             for match, label_badge_type in label_map.items():
                 if match in label.lower():
-                    badges.append({'type': badge_type})
+                    badges.append({'type': label_badge_type})
                     break
 
         return badges
@@ -3358,11 +3359,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if comment_abr is not None:
             info['is_favorited'] = 'creatorHeart' in comment_abr
 
-        comment_ab_icontype = traverse_obj(
-            comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
-        if comment_ab_icontype is not None:
-            info['author_is_verified'] = comment_ab_icontype in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE')
         badges = self._extract_badges([traverse_obj(comment_renderer, 'authorCommentBadge')])
+        if self._has_badge(badges, BadgeType.VERIFIED):
+            info['author_is_verified'] = True
+
         is_pinned = traverse_obj(comment_renderer, 'pinnedCommentBadge')
         if is_pinned:
             info['is_pinned'] = True
