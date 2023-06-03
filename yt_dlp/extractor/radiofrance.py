@@ -158,7 +158,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         'info_dict': {
             'id': 'franceinter',
             'title': str,
-            'is_live': True,
+            'live_status': 'is_live',
             'ext': 'aac',
         },
         'params': {
@@ -169,7 +169,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         'info_dict': {
             'id': 'franceculture',
             'title': str,
-            'is_live': True,
+            'live_status': 'is_live',
             'ext': 'aac',
         },
         'params': {
@@ -180,7 +180,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         'info_dict': {
             'id': 'mouv-radio-musique-kids-family',
             'title': str,
-            'is_live': True,
+            'live_status': 'is_live',
             'ext': 'aac',
         },
         'params': {
@@ -191,7 +191,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         'info_dict': {
             'id': 'mouv-radio-rnb-soul',
             'title': str,
-            'is_live': True,
+            'live_status': 'is_live',
             'ext': 'aac',
         },
         'params': {
@@ -202,7 +202,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         'info_dict': {
             'id': 'mouv-radio-musique-mix',
             'title': str,
-            'is_live': True,
+            'live_status': 'is_live',
             'ext': 'aac',
         },
         'params': {
@@ -213,7 +213,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         'info_dict': {
             'id': 'fip-radio-rock',
             'title': str,
-            'is_live': True,
+            'live_status': 'is_live',
             'ext': 'aac',
         },
         'params': {
