@@ -7,6 +7,7 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
+    url_or_none,
 )
 
 
@@ -40,7 +41,6 @@ class SverigesRadioBaseIE(InfoExtractor):
         item = self._download_json(
             self._BASE_URL + 'audiometadata', audio_id,
             'Downloading audio JSON metadata', query=query)['items'][0]
-        title = item['subtitle']
 
         query['format'] = 'iis'
         urls = []
@@ -71,12 +71,14 @@ class SverigesRadioBaseIE(InfoExtractor):
 
         return {
             'id': audio_id,
-            'title': title,
             'formats': formats,
-            'series': item.get('title'),
-            'duration': int_or_none(item.get('duration')),
-            'thumbnail': item.get('displayimageurl'),
-            'description': item.get('description'),
+            **traverse_obj(item, {
+                'title': 'subtitle',
+                'series': 'title',
+                'duration': ('duration', {int_or_none}),
+                'thumbnail': ('displayimageurl', {url_or_none}),
+                'description': 'description',
+            }),
         }
 
 
