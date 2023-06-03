@@ -123,6 +123,25 @@ class HotStarIE(HotStarBaseIE):
             'episode_number': 8,
         }
     }, {
+        'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
+        'info_dict': {
+            'id': '1000282843',
+            'ext': 'mp4',
+            'title': 'Anupama, Anuj Share a Moment',
+            'season': 'Chapter 1',
+            'description': 'md5:8d74ed2248423b8b06d5c8add4d7a0c0',
+            'timestamp': 1678149000,
+            'channel': 'StarPlus',
+            'series': 'Anupama',
+            'season_number': 1,
+            'season_id': 7399,
+            'upload_date': '20230307',
+            'episode': 'Anupama, Anuj Share a Moment',
+            'episode_number': 853,
+            'duration': 1272,
+            'channel_id': 3,
+        },
+    }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
     }, {
@@ -313,6 +332,9 @@ class HotStarPlaylistIE(HotStarBaseIE):
         },
         'playlist_mincount': 20,
     }, {
+        'url': 'https://www.hotstar.com/shows/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
+        'only_matching': True,
+    }, {
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/extras/t-2480',
         'only_matching': True,
     }, {
@@ -347,6 +369,9 @@ class HotStarSeasonIE(HotStarBaseIE):
             'id': '8208',
         },
         'playlist_mincount': 19,
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/bigg-boss/14714/seasons/season-4/ss-8208/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -376,6 +401,12 @@ class HotStarSeriesIE(HotStarBaseIE):
             'id': '435',
         },
         'playlist_mincount': 267,
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/',
+        'info_dict': {
+            'id': '1260022017',
+        },
+        'playlist_mincount': 940,
     }]
 
     def _real_extract(self, url):
