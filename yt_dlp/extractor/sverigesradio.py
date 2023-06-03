@@ -6,6 +6,7 @@ from ..utils import (
     get_element_html_by_class,
     int_or_none,
     str_or_none,
+    traverse_obj,
 )
 
 
@@ -28,8 +29,8 @@ class SverigesRadioBaseIE(InfoExtractor):
         if not audio_id:
             webpage = self._download_webpage(url, display_id)
             button = extract_attributes(get_element_html_by_class('audio-button', webpage) or '')
-            audio_id = (button.get('data-audio-id') or button.get('data-publication-id')
-                        or self._parse_json(get_element_by_id('gtm-metadata', webpage), display_id)['pageId'])
+            audio_id = traverse_obj(button, ('data-audio-id', 'data-publication-id')) or self._parse_json(
+                get_element_by_id('gtm-metadata', webpage), display_id)['pageId']
 
         query = {
             'id': audio_id,
