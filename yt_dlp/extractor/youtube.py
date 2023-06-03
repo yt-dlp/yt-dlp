@@ -792,7 +792,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
-    def _extract_badges(self, renderer: dict):
+    def _extract_badges(self, badge_list: list):
+        """
+        Extract known BadgeType's from a list of badge renderers.
+        @returns [{'type': BadgeType}]
+        """
         icon_type_map = {
             'PRIVACY_UNLISTED': BadgeType.AVAILABILITY_UNLISTED,
             'PRIVACY_PRIVATE': BadgeType.AVAILABILITY_PRIVATE,
@@ -820,7 +824,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }
 
         badges = []
-        for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer')):
+        for badge in traverse_obj(badge_list, (..., lambda key, _: re.search(r'[bB]adgeRenderer$', key))):
             badge_type = (
                 icon_type_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
                 or badge_style_map.get(traverse_obj(badge, 'style'))
@@ -1028,8 +1032,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
             get_all=False, expected_type=str)
-        badges = self._extract_badges(renderer)
-        owner_badges = self._extract_badges({'badges': traverse_obj(renderer, 'ownerBadges')})
+        badges = self._extract_badges(traverse_obj(renderer, 'badges'))
+        owner_badges = self._extract_badges(traverse_obj(renderer, 'ownerBadges'))
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
             renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
             expected_type=str)) or ''
@@ -3358,7 +3362,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
         if comment_ab_icontype is not None:
             info['author_is_verified'] = comment_ab_icontype in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE')
-
+        badges = self._extract_badges([traverse_obj(comment_renderer, 'authorCommentBadge')])
         is_pinned = traverse_obj(comment_renderer, 'pinnedCommentBadge')
         if is_pinned:
             info['is_pinned'] = True
@@ -4498,7 +4502,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         info['artist'] = mrr_contents_text
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
-            owner_badges = self._extract_badges(traverse_obj(vsir, ('owner', 'videoOwnerRenderer')))
+            owner_badges = self._extract_badges(traverse_obj(vsir, ('owner', 'videoOwnerRenderer', 'badges')))
             if self._has_badge(owner_badges, BadgeType.VERIFIED):
                 info['channel_is_verified'] = True
 
@@ -4526,7 +4530,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if v:
                 info[d_k] = v
 
-        badges = self._extract_badges(vpir)
+        badges = self._extract_badges(traverse_obj(vpir, 'badges'))
 
         is_private = (self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
                       or get_first(video_details, 'isPrivate', expected_type=bool))
@@ -4608,7 +4612,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not channel_handle:
             # As of 2023-06-01, YouTube sets subscriberCountText to the handle in search
             channel_handle = self.handle_or_none(self._get_text(renderer, 'subscriberCountText'))
-
+        b = self._extract_badges(traverse_obj(renderer, 'ownerBadges'))
         return {
             '_type': 'url',
             'url': channel_url,
@@ -4632,7 +4636,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 if self._get_count(renderer, 'subscriberCountText') is not None else None),
             'description': self._get_text(renderer, 'descriptionSnippet'),
             'channel_is_verified': True if self._has_badge(
-                self._extract_badges({'badges': traverse_obj(renderer, 'ownerBadges')}), BadgeType.VERIFIED) else None,
+                self._extract_badges(traverse_obj(renderer, 'ownerBadges')), BadgeType.VERIFIED) else None,
         }
 
     def _grid_entries(self, grid_renderer):
@@ -5049,7 +5053,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             })
 
-        channel_badges = self._extract_badges({'badges': traverse_obj(data, ('header', ..., 'badges'), get_all=False)})
+        channel_badges = self._extract_badges(traverse_obj(data, ('header', ..., 'badges'), get_all=False))
         if self._has_badge(channel_badges, BadgeType.VERIFIED):
             info['channel_is_verified'] = True
         # Playlist stats is a text runs array containing [video count, view count, last updated].
@@ -5160,7 +5164,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer')) or {}
         player_header_privacy = playlist_header_renderer.get('privacy')
 
-        badges = self._extract_badges(sidebar_renderer)
+        badges = self._extract_badges(traverse_obj(sidebar_renderer, 'badges'))
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
         privacy_setting_icon = get_first(
@@ -6285,7 +6289,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@coletdjnz',
             'uploader_id': '@coletdjnz',
             'uploader': 'cole-dlp-test-acc',
-            'channel_is_verified': True,
         },
         'playlist': [{
             'info_dict': {
@@ -6303,6 +6306,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader': 'PewDiePie',
                 'uploader_url': 'https://www.youtube.com/@PewDiePie',
                 'uploader_id': '@PewDiePie',
+                'channel_is_verified': True,
             }
         }],
         'params': {'extract_flat': True},
