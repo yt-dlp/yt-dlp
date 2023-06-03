@@ -3233,6 +3233,7 @@ def js_to_json(code, vars={}, *, strict=False):
 
     def create_map(mobj):
         return json.dumps(dict(json.loads(js_to_json(mobj.group(1) or '[]', vars=vars))))
+
     def create_array(mobj):
         return mobj.group(1) + js_to_json(f'[{mobj.group(2)}]', vars=vars) + mobj.group(3)
 
