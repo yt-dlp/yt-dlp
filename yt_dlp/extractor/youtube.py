@@ -4550,7 +4550,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
                     or get_first(microformats, 'isUnlisted', expected_type=bool))))
 
-
         info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
 
         self.mark_watched(video_id, player_responses)
