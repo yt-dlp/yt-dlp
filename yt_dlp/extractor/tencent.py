@@ -174,7 +174,7 @@ class VQQVideoIE(VQQBaseIE):
 
     _TESTS = [{
         'url': 'https://v.qq.com/x/page/q326831cny0.html',
-        'md5': '84568b3722e15e9cd023b5594558c4a7',
+        'md5': 'b11c9cb781df710d686b950376676e2a',
         'info_dict': {
             'id': 'q326831cny0',
             'ext': 'mp4',
@@ -185,7 +185,7 @@ class VQQVideoIE(VQQBaseIE):
         },
     }, {
         'url': 'https://v.qq.com/x/page/o3013za7cse.html',
-        'md5': 'cc431c4f9114a55643893c2c8ebf5592',
+        'md5': 'a1bcf42c6d28c189bd2fe2d468abb287',
         'info_dict': {
             'id': 'o3013za7cse',
             'ext': 'mp4',
@@ -206,6 +206,7 @@ class VQQVideoIE(VQQBaseIE):
             'series': '鸡毛飞上天',
             'format_id': r're:^shd',
         },
+        'skip': '404',
     }, {
         'url': 'https://v.qq.com/x/cover/mzc00200p29k31e/s0043cwsgj0.html',
         'md5': 'fadd10bf88aec3420f06f19ee1d24c5b',
@@ -218,6 +219,7 @@ class VQQVideoIE(VQQBaseIE):
             'series': '青年理工工作者生活研究所',
             'format_id': r're:^shd',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Geo-restricted to China
         'url': 'https://v.qq.com/x/cover/mcv8hkc8zk8lnov/x0036x5qqsr.html',
