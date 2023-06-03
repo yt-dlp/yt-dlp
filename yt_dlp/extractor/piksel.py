@@ -7,8 +7,10 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     parse_iso8601,
+    traverse_obj,
     try_get,
     unescapeHTML,
+    urljoin,
 )
 
 
@@ -63,11 +65,11 @@ class PikselIE(InfoExtractor):
         }
     ]
 
-    def _call_api(self, app_token, resource, display_id, query, fatal=True):
-        response = (self._download_json(
-            'http://player.piksel.com/ws/ws_%s/api/%s/mode/json/apiv/5' % (resource, app_token),
-            display_id, query=query, fatal=fatal) or {}).get('response')
-        failure = try_get(response, lambda x: x['failure']['reason'])
+    def _call_api(self, app_token, resource, display_id, query, host='https://player.piksel.com', fatal=True):
+        url = urljoin(host, f'/ws/ws_{resource}/api/{app_token}/mode/json/apiv/5')
+        response = traverse_obj(
+            self._download_json(url, display_id, query=query, fatal=fatal), ('response', {dict})) or {}
+        failure = traverse_obj(response, ('failure', 'reason')) if response else 'Empty response from API'
         if failure:
             if fatal:
                 raise ExtractorError(failure, expected=True)
@@ -83,7 +85,7 @@ class PikselIE(InfoExtractor):
         ], webpage, 'app token')
         query = {'refid': ref_id, 'prefid': display_id} if ref_id else {'v': display_id}
         program = self._call_api(
-            app_token, 'program', display_id, query)['WsProgramResponse']['program']
+            app_token, 'program', display_id, query, url)['WsProgramResponse']['program']
         video_id = program['uuid']
         video_data = program['asset']
         title = video_data['title']
@@ -129,7 +131,7 @@ class PikselIE(InfoExtractor):
                 process_asset_files(try_get(self._call_api(
                     app_token, 'asset_file', display_id, {
                         'assetid': asset_id,
-                    }, False), lambda x: x['WsAssetFileResponse']['AssetFiles']))
+                    }, url, False), lambda x: x['WsAssetFileResponse']['AssetFiles']))
 
         m3u8_url = dict_get(video_data, [
             'm3u8iPadURL',

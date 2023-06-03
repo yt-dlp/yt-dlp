@@ -336,7 +336,7 @@ class AnvatoIE(InfoExtractor):
             elif media_format == 'm3u8-variant' or ext == 'm3u8':
                 # For some videos the initial m3u8 URL returns JSON instead
                 manifest_json = self._download_json(
-                    video_url, video_id, note='Downloading manifest JSON', errnote=False)
+                    video_url, video_id, note='Downloading manifest JSON', fatal=False)
                 if manifest_json:
                     video_url = manifest_json.get('master_m3u8')
                     if not video_url:
@@ -391,14 +391,6 @@ class AnvatoIE(InfoExtractor):
             if anvplayer_data.get('token'):
                 url = smuggle_url(url, {'token': anvplayer_data['token']})
             yield cls.url_result(url, AnvatoIE, video_id)
-
-    def _extract_anvato_videos(self, webpage, video_id):
-        anvplayer_data = self._parse_json(
-            self._html_search_regex(
-                self._ANVP_RE, webpage, 'Anvato player data', group='anvp'),
-            video_id)
-        return self._get_anvato_videos(
-            anvplayer_data['accessKey'], anvplayer_data['video'], 'default')  # cbslocal token = 'default'
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})

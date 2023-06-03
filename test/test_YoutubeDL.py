@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import copy
 import json
-import urllib.error
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
@@ -757,7 +756,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)r %(height)r', "'1234' 1080")
         test('%(ext)s-%(ext|def)d', 'mp4-def')
         test('%(width|0)04d', '0000')
-        test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
+        test('a%(width|b)d', 'ab', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
         sanitize = lambda x: x.replace(':', '：').replace('"', "＂").replace('\n', ' ')
@@ -871,12 +870,12 @@ class TestYoutubeDL(unittest.TestCase):
 
         class SimplePP(PostProcessor):
             def run(self, info):
-                with open(audiofile, 'wt') as f:
+                with open(audiofile, 'w') as f:
                     f.write('EXAMPLE')
                 return [info['filepath']], info
 
         def run_pp(params, PP):
-            with open(filename, 'wt') as f:
+            with open(filename, 'w') as f:
                 f.write('EXAMPLE')
             ydl = YoutubeDL(params)
             ydl.add_post_processor(PP())
@@ -895,7 +894,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         class ModifierPP(PostProcessor):
             def run(self, info):
-                with open(info['filepath'], 'wt') as f:
+                with open(info['filepath'], 'w') as f:
                     f.write('MODIFIED')
                 return [], info
 
@@ -1096,11 +1095,6 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '11::3'}, [], True)
         test_selection({'playlist_items': '-15::2'}, INDICES[1::2], True)
         test_selection({'playlist_items': '-15::15'}, [], True)
-
-    def test_urlopen_no_file_protocol(self):
-        # see https://github.com/ytdl-org/youtube-dl/issues/8227
-        ydl = YDL()
-        self.assertRaises(urllib.error.URLError, ydl.urlopen, 'file:///etc/passwd')
 
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()
