@@ -98,6 +98,18 @@ class SverigesRadioPublicationIE(SverigesRadioBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
         },
     }, {
+        'url': 'https://sverigesradio.se/artikel/tysk-fotbollsfeber-bayern-munchens-10-ariga-segersvit-kan-brytas',
+        'md5': 'f8a914ad50f491bb74eed403ab4bfef6',
+        'info_dict': {
+            'id': '8360345',
+            'ext': 'm4a',
+            'title': 'Tysk fotbollsfeber när Bayern Münchens 10-åriga segersvit kan brytas',
+            'series': 'Radiosporten',
+            'description': 'md5:5254610e20ce527ecb3a6102a06dcc5f',
+            'duration': 72,
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+    }, {
         'url': 'https://sverigesradio.se/sida/gruppsida.aspx?programid=3304&grupp=6247&artikel=7146887',
         'only_matching': True,
     }]
@@ -107,7 +119,7 @@ class SverigesRadioPublicationIE(SverigesRadioBaseIE):
 class SverigesRadioEpisodeIE(SverigesRadioBaseIE):
     IE_NAME = 'sverigesradio:episode'
     _VALID_URL = r'https?://(?:www\.)?sverigesradio\.se/(?:sida/)?avsnitt/(?:(?P<id>\d+)|(?P<slug>[\w-]+))(?:$|[#?])'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://sverigesradio.se/avsnitt/1140922?programid=1300',
         'md5': '20dc4d8db24228f846be390b0c59a07c',
         'info_dict': {
@@ -118,6 +130,18 @@ class SverigesRadioEpisodeIE(SverigesRadioBaseIE):
             'title': 'Metoo och valen',
             'description': 'md5:fcb5c1f667f00badcc702b196f10a27e',
             'thumbnail': r're:^https?://.*\.jpg',
-        }
-    }
+        },
+    }, {
+        'url': 'https://sverigesradio.se/avsnitt/p4-live-med-first-aid-kit-scandinavium-mars-2023',
+        'md5': 'ce17fb82520a8033dbb846993d5589fe',
+        'info_dict': {
+            'id': '2160416',
+            'ext': 'm4a',
+            'title': 'P4 Live med First Aid Kit',
+            'description': 'md5:6d5b78eed3d2b65f6de04daa45e9285d',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'series': 'P4 Live',
+            'duration': 5640,
+        },
+    }]
     _AUDIO_TYPE = 'episode'
