@@ -163,11 +163,9 @@ class VQQBaseIE(TencentBaseIE):
     _REFERER = 'v.qq.com'
 
     def _get_webpage_metadata(self, webpage, video_id):
-        return self._parse_json(
-            self._search_regex(
-                r'(?s)<script[^>]*>[^<]*window\.__pinia\s*=\s*([^<]+)</script>',
-                webpage, 'pinia data', fatal=False),
-            video_id, transform_source=js_to_json, fatal=False)
+        return self._search_json(
+            r'<script[^>]*>[^<]*window\.__(?:pinia|PINIA__)\s*=',
+            webpage, 'pinia data', video_id, transform_source=js_to_json, fatal=False)
 
 
 class VQQVideoIE(VQQBaseIE):
