@@ -1,7 +1,6 @@
 import datetime
 import re
 import urllib.parse
-from abc import ABC, abstractmethod
 
 from .common import InfoExtractor
 from ..utils import (
@@ -178,10 +177,9 @@ class MotherlessIE(InfoExtractor):
         }
 
 
-class MotherlessPaginatedIE(InfoExtractor, ABC):
+class MotherlessPaginatedIE(InfoExtractor):
     _PAGE_SIZE = 60
 
-    @abstractmethod
     def _correct_path(self, url, item_id):
         pass
 
