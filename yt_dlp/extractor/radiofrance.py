@@ -377,6 +377,16 @@ class RadioFranceProfileIE(RadioFrancePlaylistBase):
         },
         'playlist_mincount': 212,
     }, {
+        'url': 'https://www.radiofrance.fr/personnes/eugenie-bastie',
+        'info_dict': {
+            'id': '9593050b-0183-4972-a0b5-d8f699079e02',
+            'display_id': 'eugenie-bastie',
+            'title': 'Eugénie Bastié',
+            'description': 'Journaliste et essayiste',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_mincount': 41,
+    }, {
         'url': 'https://www.radiofrance.fr/personnes/lea-salame',
         'only_matching': True,
     }]
