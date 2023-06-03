@@ -901,9 +901,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def extract_relative_time(relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
-        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today'
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
         """
-        mobj = re.search(r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+
+        # XXX: this could be moved to a general function in utils.py
+        # The relative time text strings are roughly the same as what
+        # Javascript's Intl.RelativeTimeFormat function generates.
+        # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        mobj = re.search(
+            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
@@ -3313,37 +3320,50 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not comment_id:
             return
 
-        text = self._get_text(comment_renderer, 'contentText')
+        info = {
+            'id': comment_id,
+            'text': self._get_text(comment_renderer, 'contentText'),
+            'like_count': self._get_count(comment_renderer, 'voteCount'),
+            'author_id': traverse_obj(comment_renderer, ('authorEndpoint', 'browseEndpoint', 'browseId', {self.ucid_or_none})),
+            'author': self._get_text(comment_renderer, 'authorText'),
+            'author_thumbnail': traverse_obj(comment_renderer, ('authorThumbnail', 'thumbnails', -1, 'url', {url_or_none})),
+            'parent': parent or 'root',
+        }
 
         # Timestamp is an estimate calculated from the current time and time_text
         time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
         timestamp = self._parse_time_text(time_text)
 
-        author = self._get_text(comment_renderer, 'authorText')
-        author_id = try_get(comment_renderer,
-                            lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
-
-        votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                       lambda x: x['likeCount']), str)) or 0
-        author_thumbnail = try_get(comment_renderer,
-                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], str)
-
-        author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
-        is_favorited = 'creatorHeart' in (try_get(
-            comment_renderer, lambda x: x['actionButtons']['commentActionButtonsRenderer'], dict) or {})
-        return {
-            'id': comment_id,
-            'text': text,
+        info.update({
+            # FIXME: non-standard, but we need a way of showing that it is an estimate.
+            '_time_text': time_text,
             'timestamp': timestamp,
-            'time_text': time_text,
-            'like_count': votes,
-            'is_favorited': is_favorited,
-            'author': author,
-            'author_id': author_id,
-            'author_thumbnail': author_thumbnail,
-            'author_is_uploader': author_is_uploader,
-            'parent': parent or 'root'
-        }
+        })
+
+        info['author_url'] = urljoin(
+            'https://www.youtube.com', traverse_obj(comment_renderer, ('authorEndpoint', (
+                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
+                expected_type=str, get_all=False))
+
+        author_is_uploader = traverse_obj(comment_renderer, 'authorIsChannelOwner')
+        if author_is_uploader is not None:
+            info['author_is_uploader'] = author_is_uploader
+
+        comment_abr = traverse_obj(
+            comment_renderer, ('actionsButtons', 'commentActionButtonsRenderer'), expected_type=dict)
+        if comment_abr is not None:
+            info['is_favorited'] = 'creatorHeart' in comment_abr
+
+        comment_ab_icontype = traverse_obj(
+            comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
+        if comment_ab_icontype is not None:
+            info['author_is_verified'] = comment_ab_icontype in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE')
+
+        is_pinned = traverse_obj(comment_renderer, 'pinnedCommentBadge')
+        if is_pinned:
+            info['is_pinned'] = True
+
+        return info
 
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
 
@@ -3391,14 +3411,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
-                is_pinned = bool(traverse_obj(comment_renderer, 'pinnedCommentBadge'))
                 comment_id = comment['id']
-                if is_pinned:
+                if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/6290
                 if comment_id in tracker['seen_comment_ids']:
-                    if comment_id in tracker['pinned_comment_ids'] and not is_pinned:
+                    if comment_id in tracker['pinned_comment_ids'] and not comment.get('is_pinned'):
                         # Pinned comments may appear a second time in newest first sort
                         # See: https://github.com/yt-dlp/yt-dlp/issues/6712
                         continue
