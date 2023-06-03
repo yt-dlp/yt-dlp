@@ -4612,7 +4612,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not channel_handle:
             # As of 2023-06-01, YouTube sets subscriberCountText to the handle in search
             channel_handle = self.handle_or_none(self._get_text(renderer, 'subscriberCountText'))
-        b = self._extract_badges(traverse_obj(renderer, 'ownerBadges'))
         return {
             '_type': 'url',
             'url': channel_url,
