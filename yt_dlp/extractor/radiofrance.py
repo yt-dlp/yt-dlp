@@ -443,6 +443,21 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
         'only_matching': True,
     }]
 
+    def _generate_playlist_entries(self, webpage_url, api_response):
+        for entry in api_response['steps']:
+            path = traverse_obj(entry, ('expression', 'path'))
+            if path is None:
+                continue
+
+            yield self.url_result(
+                urljoin(webpage_url, f'/{path}'), ie=FranceCultureIE, url_transparent=True, **traverse_obj(entry, {
+                    'title': ('expression', 'title'),
+                    'thumbnail': ('expression', 'visual', 'src'),
+                    'timestamp': 'startTime',
+                    'series_id': ('concept', 'id'),
+                    'series': ('concept', 'title'),
+                }))
+
     def _real_extract(self, url):
         station, date = self._match_valid_url(url).group('station', 'date')
 
@@ -450,20 +465,7 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
             f'https://www.radiofrance.fr/api/v2.1/stations/{station}/programs', f'{station}-program',
             query={'date': date} if date is not None else {})
 
-        entries = []
-        for entry in api_response['steps']:
-            path = traverse_obj(entry, ('expression', 'path'))
-            if path is None:
-                continue
-
-            entries.append(self.url_result(
-                urljoin(url, f'/{path}'), ie=FranceCultureIE, **traverse_obj(entry, {
-                    'title': ('expression', 'title'),
-                    'thumbnail': ('expression', 'visual', 'src'),
-                    'timestamp': 'startTime',
-                    'series_id': ('concept', 'id'),
-                    'series': ('concept', 'title'),
-                })))
-
         upload_date = strftime_or_none(api_response.get('date'), '%Y%m%d')
-        return self.playlist_result(entries, join_nonempty(station, 'program', upload_date), upload_date=upload_date)
+        return self.playlist_result(
+            self._generate_playlist_entries(url, api_response), join_nonempty(station, 'program', upload_date),
+            upload_date=upload_date)
