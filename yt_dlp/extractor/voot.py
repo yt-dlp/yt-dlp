@@ -1,14 +1,15 @@
+import json
+import time
 import urllib.error
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    filter_dict,
     float_or_none,
     int_or_none,
     jwt_decode_hs256,
-    make_archive_id,
     parse_age_limit,
     traverse_obj,
     try_call,
@@ -17,8 +18,69 @@ from ..utils import (
 )
 
 
-class VootIE(InfoExtractor):
+class VootBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'voot'
+    _GEO_BYPASS = False
+    _LOGIN_HINT = 'Log in with "-u <email_address> -p <password>", or use "-u token -p <auth_token>" to login with auth token.'
+    _TOKEN = None
+    _EXPIRY = 0
+    _API_HEADERS = {'Origin': 'https://www.voot.com', 'Referer': 'https://www.voot.com/'}
+
+    def _perform_login(self, username, password):
+        if self._TOKEN and self._EXPIRY:
+            return
+
+        if username.lower() == 'token' and try_call(lambda: jwt_decode_hs256(password)):
+            VootBaseIE._TOKEN = password
+            VootBaseIE._EXPIRY = jwt_decode_hs256(password)['exp']
+            self.report_login()
+
+        # Mobile number as username is not supported
+        elif not username.isdigit():
+            check_username = self._download_json(
+                'https://userauth.voot.com/usersV3/v3/checkUser', None, data=json.dumps({
+                    'type': 'email',
+                    'email': username
+                }, separators=(',', ':')).encode(), headers={
+                    **self._API_HEADERS,
+                    'Content-Type': 'application/json;charset=utf-8',
+                }, note='Checking username', expected_status=403)
+            if not traverse_obj(check_username, ('isExist', {bool})):
+                if traverse_obj(check_username, ('status', 'code', {int})) == 9999:
+                    self.raise_geo_restricted(countries=['IN'])
+                raise ExtractorError('Incorrect username', expected=True)
+            auth_token = traverse_obj(self._download_json(
+                'https://userauth.voot.com/usersV3/v3/login', None, data=json.dumps({
+                    'type': 'traditional',
+                    'deviceId': str(uuid.uuid4()),
+                    'deviceBrand': 'PC/MAC',
+                    'data': {
+                        'email': username,
+                        'password': password
+                    }
+                }, separators=(',', ':')).encode(), headers={
+                    **self._API_HEADERS,
+                    'Content-Type': 'application/json;charset=utf-8',
+                }, note='Logging in', expected_status=400), ('data', 'authToken', {dict}))
+            if not auth_token:
+                raise ExtractorError('Incorrect password', expected=True)
+            VootBaseIE._TOKEN = auth_token['accessToken']
+            VootBaseIE._EXPIRY = auth_token['expirationTime']
+
+        else:
+            raise ExtractorError(self._LOGIN_HINT, expected=True)
+
+    def _check_token_expiry(self):
+        if int(time.time()) >= self._EXPIRY:
+            raise ExtractorError('Access token has expired', expected=True)
+
+    def _real_initialize(self):
+        if not self._TOKEN:
+            self.raise_login_required(self._LOGIN_HINT, method=None)
+        self._check_token_expiry()
+
+
+class VootIE(VootBaseIE):
     _VALID_URL = r'''(?x)
                     (?:
                         voot:|
@@ -30,7 +92,6 @@ class VootIE(InfoExtractor):
                      )
                     (?P<id>\d{3,})
                     '''
-    _GEO_COUNTRIES = ['IN']
     _TESTS = [{
         'url': 'https://www.voot.com/shows/ishq-ka-rang-safed/1/360558/is-this-the-end-of-kamini-/441353',
         'info_dict': {
@@ -60,50 +121,36 @@ class VootIE(InfoExtractor):
     }, {
         'url': 'https://www.voot.com/movie/fight-club/621842',
         'only_matching': True,
-    }, {
-        'url': 'https://www.voot.com/shows/parineetii/1/1273482/bebe-gets-a-nefarious-idea/1475903',
-        'only_matching': True,
     }]
-
-    _TOKEN = None
-
-    def _perform_login(self, username, password):
-        if username.lower() == 'token' and try_call(lambda: jwt_decode_hs256(password)):
-            self._TOKEN = password
-            self.report_login()
-        else:
-            raise ExtractorError(
-                'Use "--username token" and "--password <access_token>" to login using access token.')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         media_info = self._download_json(
             'https://psapi.voot.com/jio/voot/v1/voot-web/content/query/asset-details', video_id,
-            query={
-                'ids': f'include:{video_id}',
-                'responseType': 'common',
-            }, headers=filter_dict({'accesstoken': self._TOKEN}))
+            query={'ids': f'include:{video_id}', 'responseType': 'common'}, headers={'accesstoken': self._TOKEN})
 
-        headers = {'Origin': 'https://www.voot.com', 'Referer': 'https://www.voot.com/'}
         try:
             m3u8_url = self._download_json(
                 'https://vootapi.media.jio.com/playback/v1/playbackrights', video_id,
-                data=b'{}', headers=filter_dict({
-                    **headers,
+                'Downloading playback JSON', data=b'{}', headers={
+                    **self._API_HEADERS,
                     'Content-Type': 'application/json;charset=utf-8',
                     'platform': 'androidwebdesktop',
                     'vootid': video_id,
                     'voottoken': self._TOKEN,
-                }))['m3u8']
+                })['m3u8']
         except ExtractorError as e:
             if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 400:
-                self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+                self._check_token_expiry()
             raise
+
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+        self._remove_duplicate_formats(formats)
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls'),
-            'http_headers': headers,
+            'formats': formats,
+            'http_headers': self._API_HEADERS,
             **traverse_obj(media_info, ('result', 0, {
                 'title': ('fullTitle', {str}),
                 'description': ('fullSynopsis', {str}),
@@ -115,12 +162,11 @@ class VootIE(InfoExtractor):
                 'release_date': ('telecastDate', {unified_strdate}),
                 'age_limit': ('ageNemonic', {parse_age_limit}),
                 'duration': ('duration', {float_or_none}),
-                '_old_archive_ids': ('entryId', {lambda x: [make_archive_id('Kaltura', x)] if x else None}),
             })),
         }
 
 
-class VootSeriesIE(InfoExtractor):
+class VootSeriesIE(VootBaseIE):
     _VALID_URL = r'https?://(?:www\.)?voot\.com/shows/[^/]+/(?P<id>\d{3,})'
     _TESTS = [{
         'url': 'https://www.voot.com/shows/chakravartin-ashoka-samrat/100002',
