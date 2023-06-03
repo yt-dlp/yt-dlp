@@ -262,8 +262,25 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
 class RadioFrancePlaylistBase(RadioFranceBaseIE):
     """Subclasses must set _METADATA_KEY"""
 
-    def _generate_playlist_entries(self, content_id, content_response):
+    def _call_api(self, content_id, cursor, page_num):
         raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _generate_playlist_entries(self, content_id, content_response):
+        for page_num in itertools.count(2):
+            for entry in content_response['items']:
+                yield self.url_result(
+                    f'https://www.radiofrance.fr/{entry["path"]}', url_transparent=True, **traverse_obj(entry, {
+                        'title': 'title',
+                        'description': 'standFirst',
+                        'timestamp': 'publishedDate',
+                        'thumbnail': ('visual', 'src'),
+                    }))
+
+            next_cursor = traverse_obj(content_response, (('pagination', None), 'next'), get_all=False)
+            if not next_cursor:
+                break
+
+            content_response = self._call_api(content_id, next_cursor, page_num)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -341,24 +358,10 @@ class RadioFrancePodcastIE(RadioFrancePlaylistBase):
 
     _METADATA_KEY = 'expressions'
 
-    def _generate_playlist_entries(self, podcast_id, podcast_response):
-        for page_num in itertools.count(2):
-            for episode in podcast_response['items']:
-                yield self.url_result(
-                    f'https://www.radiofrance.fr/{episode["path"]}', FranceCultureIE, **traverse_obj(episode, {
-                        'title': 'title',
-                        'description': 'standFirst',
-                        'timestamp': 'publishedDate',
-                        'thumbnail': ('visual', 'src'),
-                    }))
-
-            next_cursor = podcast_response['next']
-            if not next_cursor:
-                break
-
-            podcast_response = self._download_json(
-                f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
-                note=f'Downloading page {page_num}', query={'pageCursor': next_cursor})
+    def _call_api(self, podcast_id, cursor, page_num):
+        return self._download_json(
+            f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
+            note=f'Downloading page {page_num}', query={'pageCursor': cursor})
 
 
 class RadioFranceProfileIE(RadioFrancePlaylistBase):
@@ -380,27 +383,16 @@ class RadioFranceProfileIE(RadioFrancePlaylistBase):
 
     _METADATA_KEY = 'documents'
 
-    def _generate_playlist_entries(self, profile_id, profile_response):
-        for page_num in itertools.count(2):
-            for entry in profile_response['items']:
-                yield self.url_result(
-                    f'https://www.radiofrance.fr/{entry["path"]}', **traverse_obj(entry, {
-                        'title': 'title',
-                        'description': 'standFirst',
-                        'timestamp': 'publishedDate',
-                        'thumbnail': ('visual', 'src'),
-                    }))
+    def _call_api(self, profile_id, cursor, page_num):
+        resp = self._download_json(
+            f'https://www.radiofrance.fr/api/v2.1/taxonomy/{profile_id}/documents', profile_id,
+            note=f'Downloading page {page_num}', query={
+                'relation': 'personality',
+                'cursor': cursor,
+            })
 
-            next_cursor = profile_response['pagination']['next']
-            if not next_cursor:
-                break
-
-            profile_response = self._download_json(
-                f'https://www.radiofrance.fr/api/v2.1/taxonomy/{profile_id}/documents', profile_id,
-                note=f'Downloading page {page_num}', query={
-                    'relation': 'personality',
-                    'cursor': next_cursor
-                })
+        resp['next'] = traverse_obj(resp, ('pagination', 'next'))
+        return resp
 
 
 class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
