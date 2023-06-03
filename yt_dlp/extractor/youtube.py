@@ -895,6 +895,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         Extracts a relative time from string and converts to dt object
         e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
         """
+
+        # XXX: this could be moved to a general function in utils.py
+        # The relative time text strings are roughly the same as what
+        # Javascript's Intl.RelativeTimeFormat function generates.
+        # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
         mobj = re.search(
             r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
             relative_time_text)
