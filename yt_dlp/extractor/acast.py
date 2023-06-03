@@ -50,18 +50,22 @@ class ACastIE(ACastBaseIE):
                     '''
     _TESTS = [{
         'url': 'https://www.acast.com/sparpodcast/2.raggarmordet-rosterurdetforflutna',
-        'md5': 'f5598f3ad1e4776fed12ec1407153e4b',
         'info_dict': {
             'id': '2a92b283-1a75-4ad8-8396-499c641de0d9',
             'ext': 'mp3',
             'title': '2. Raggarmordet - Röster ur det förflutna',
-            'description': 'md5:a992ae67f4d98f1c0141598f7bebbf67',
+            'description': 'md5:013959207e05011ad14a222cf22278cc',
             'timestamp': 1477346700,
             'upload_date': '20161024',
             'duration': 2766,
-            'creator': 'Anton Berg & Martin Johnson',
+            'creator': 'Third Ear Studio',
             'series': 'Spår',
             'episode': '2. Raggarmordet - Röster ur det förflutna',
+            'thumbnail': 'https://assets.pippa.io/shows/616ebe1886d7b1398620b943/616ebe33c7e6e70013cae7da.jpg',
+            'episode_number': 2,
+            'display_id': '2.raggarmordet-rosterurdetforflutna',
+            'season_number': 4,
+            'season': 'Season 4',
         }
     }, {
         'url': 'http://embed.acast.com/adambuxton/ep.12-adam-joeschristmaspodcast2015',
