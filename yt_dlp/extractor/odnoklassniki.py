@@ -235,8 +235,9 @@ class OdnoklassnikiIE(InfoExtractor):
         'skip': 'Site no longer embeds',
     }]
 
-    # Direct http downloads will fail if CDN cookies are set from extraction
     def _clear_cookies(self, cdn_url):
+        # Direct http downloads will fail if CDN cookies are set
+        # so we need to reset them after each format extraction
         if self._get_cookies('https://notarealsubdomain.mycdn.me/'):
             self.cookiejar.clear(domain='.mycdn.me')
         if self._get_cookies(cdn_url):
