@@ -6,8 +6,8 @@ from typing import Union
 from ._urllib import UrllibRH  # noqa: F401
 from .common import (
     RequestHandler,
-    Response,
 )
+from .response import Response
 from .request import Request
 from .exceptions import RequestError, UnsupportedRequest
 from ..utils import CaseInsensitiveDict, bug_reports_message

@@ -7,7 +7,7 @@ import urllib.error
 from ..utils import YoutubeDLError
 
 if typing.TYPE_CHECKING:
-    from .common import Response
+    from .response import Response
 
 
 class RequestError(YoutubeDLError):

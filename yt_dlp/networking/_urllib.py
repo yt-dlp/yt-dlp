@@ -23,7 +23,8 @@ from urllib.request import (
     FileHandler
 )
 
-from .common import Response, RequestHandler, Features
+from .common import RequestHandler, Features
+from .response import Response
 from .utils import (
     get_redirect_method,
     select_proxy,
