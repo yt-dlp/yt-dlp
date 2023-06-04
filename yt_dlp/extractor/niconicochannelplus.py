@@ -252,6 +252,7 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
                 'page': (page + 1),
                 'per_page': self._PAGE_SIZE,
             },
+            headers={'fc_use_device': 'null'},
             note=f'Getting channel info (page {page + 1})',
             errnote=f'Unable to get channel info (page {page + 1})',
         )['data']['video_pages']['list']
