@@ -12,7 +12,7 @@ import random
 import subprocess
 
 from test.helper import get_params, is_download_test
-from test.test_networking import with_make_rh
+from test.test_http import with_make_rh
 from yt_dlp.networking import Request
 
 
