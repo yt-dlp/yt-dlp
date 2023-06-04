@@ -12,6 +12,10 @@ from ..dependencies import certifi, websockets
 
 # isort: split
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
+from ..networking._urllib import PUTRequest, HEADRequest
+from ..networking._urllib import update_Request
+from ..networking.utils import random_user_agent
+from ..networking.exceptions import network_exceptions, HTTPError
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
@@ -174,3 +178,25 @@ def handle_youtubedl_headers(headers):
         del filtered_headers['Youtubedl-no-compression']
 
     return filtered_headers
+
+
+def request_to_url(req):
+    if isinstance(req, urllib.request.Request):
+        return req.get_full_url()
+    else:
+        return req
+
+# TODO: compat (doesn't exist)
+SUPPORTED_ENCODINGS = []
+
+# TODO: compat (moved to networking.utils)
+std_headers = {}
+
+
+def sanitized_Request(url, *args, **kwargs):
+    from ..utils import extract_basic_auth, escape_url, sanitize_url
+    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
+    if auth_header is not None:
+        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
+        headers['Authorization'] = auth_header
+    return urllib.request.Request(url, *args, **kwargs)

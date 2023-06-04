@@ -68,7 +68,7 @@ std_headers = CaseInsensitiveDict({
 
 
 def ssl_load_certs(context: ssl.SSLContext, params):
-    if certifi is not None and 'no-certifi' not in params.get('compat_opts', []):
+    if certifi and 'no-certifi' not in params.get('compat_opts', []):
         context.load_verify_locations(cafile=certifi.where())
     else:
         try:

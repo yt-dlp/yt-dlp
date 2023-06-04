@@ -107,8 +107,8 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
     """Handler for HTTP requests and responses.
 
     This class, when installed with an OpenerDirector, automatically adds
-    the standard headers to every HTTP request and handles gzipped and
-    deflated responses from web servers.
+    the standard headers to every HTTP request and handles gzipped, deflated and
+    brotli responses from web servers.
 
     Part of this code was copied from:
 
@@ -157,6 +157,23 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
             return data
         return brotli.decompress(data)
 
+    @staticmethod
+    def gz(data):
+        gz = gzip.GzipFile(fileobj=io.BytesIO(data), mode='rb')
+        try:
+            return gz.read()
+        except OSError as original_oserror:
+            # There may be junk add the end of the file
+            # See http://stackoverflow.com/q/4928560/35070 for details
+            for i in range(1, 1024):
+                try:
+                    gz = gzip.GzipFile(fileobj=io.BytesIO(data[:-i]), mode='rb')
+                    return gz.read()
+                except OSError:
+                    continue
+            else:
+                raise original_oserror
+
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
         # always respected by websites, some tend to give out URLs with non percent-encoded
@@ -177,35 +194,21 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
 
     def http_response(self, req, resp):
         old_resp = resp
-        # gzip
-        if resp.headers.get('Content-encoding', '') == 'gzip':
-            content = resp.read()
-            gz = gzip.GzipFile(fileobj=io.BytesIO(content), mode='rb')
-            try:
-                uncompressed = io.BytesIO(gz.read())
-            except OSError as original_ioerror:
-                # There may be junk add the end of the file
-                # See http://stackoverflow.com/q/4928560/35070 for details
-                for i in range(1, 1024):
-                    try:
-                        gz = gzip.GzipFile(fileobj=io.BytesIO(content[:-i]), mode='rb')
-                        uncompressed = io.BytesIO(gz.read())
-                    except OSError:
-                        continue
-                    break
-                else:
-                    raise original_ioerror
-            resp = urllib.response.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
-            resp.msg = old_resp.msg
-        # deflate
-        if resp.headers.get('Content-encoding', '') == 'deflate':
-            gz = io.BytesIO(self.deflate(resp.read()))
-            resp = urllib.response.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
-            resp.msg = old_resp.msg
-        # brotli
-        if resp.headers.get('Content-encoding', '') == 'br' and brotli is not None:
-            resp = urllib.response.addinfourl(
-                io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
+
+        # Content-Encoding header lists the encodings in order that they were applied [1].
+        # To decompress, we simply do the reverse.
+        # [1]: https://datatracker.ietf.org/doc/html/rfc9110#name-content-encoding
+        decoded_response = None
+        for encoding in (e.strip() for e in reversed(resp.headers.get('Content-encoding', '').split(','))):
+            if encoding == 'gzip':
+                decoded_response = self.gz(decoded_response or resp.read())
+            elif encoding == 'deflate':
+                decoded_response = self.deflate(decoded_response or resp.read())
+            elif encoding == 'br' and brotli:
+                decoded_response = self.brotli(decoded_response or resp.read())
+
+        if decoded_response is not None:
+            resp = urllib.request.addinfourl(io.BytesIO(decoded_response), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
         # https://github.com/ytdl-org/youtube-dl/issues/6457).
@@ -253,51 +256,26 @@ class YDLRedirectHandler(urllib.request.HTTPRedirectHandler):
 
     The code is based on HTTPRedirectHandler implementation from CPython [1].
 
-    This redirect handler has the following improvements:
-     - introduces support for HTTP response status code
-       308 Permanent Redirect [2] used by some sites [3]
-     - improved redirect method handling
-     - only strip payload/headers when method changes from POST to GET
-
+    This redirect handler fixes and improves the logic to better align with RFC7261
+     and what browsers tend to do [2][3]
 
     1. https://github.com/python/cpython/blob/master/Lib/urllib/request.py
-    2. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/308
-    3. https://github.com/ytdl-org/youtube-dl/issues/28768
+    2. https://datatracker.ietf.org/doc/html/rfc7231
+    3. https://github.com/python/cpython/issues/91306
     """
 
     http_error_301 = http_error_303 = http_error_307 = http_error_308 = urllib.request.HTTPRedirectHandler.http_error_302
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        """Return a Request or None in response to a redirect.
-
-        This is called by the http_error_30x methods when a
-        redirection response is received.  If a redirection should
-        take place, return a new Request to allow http_error_30x to
-        perform the redirect.  Otherwise, raise HTTPError if no-one
-        else should try to handle this url.  Return None if you can't
-        but another Handler might.
-        """
-        m = req.get_method()
         if code not in (301, 302, 303, 307, 308):
             raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
 
-        # Strictly (according to RFC 2616), 301 or 302 in response to
-        # a POST MUST NOT cause a redirection without confirmation
-        # from the user (of urllib.request, in this case).  In practice,
-        # essentially all clients do redirect in this case, so we do
-        # the same.
-
-        # Be conciliant with URIs containing a space.  This is mainly
-        # redundant with the more complete encoding done in http_error_302(),
-        # but it is kept for compatibility with other callers.
-        newurl = newurl.replace(' ', '%20')
-
         new_data = req.data
         remove_headers = []
-        new_method = get_redirect_method(m, code)
 
+        new_method = get_redirect_method(req.get_method(), code)
         # only remove payload if method changed (e.g. POST to GET)
-        if new_method != m:
+        if new_method != req.get_method():
             new_data = None
             remove_headers.extend(['Content-Length', 'Content-Type'])
 

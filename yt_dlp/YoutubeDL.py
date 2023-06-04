@@ -21,7 +21,6 @@ import time
 import tokenize
 import traceback
 import unicodedata
-from string import ascii_letters
 
 from .cache import Cache
 from .compat import urllib  # isort: split
@@ -3913,7 +3912,7 @@ class YoutubeDL:
                 opts_proxy = '__noproxy__'
             proxies = {'all': opts_proxy}
         else:
-            proxies = getproxies()
+            proxies = urllib.request.getproxies()
             # compat. Set HTTPS_PROXY to __noproxy__ to revert
             if 'http' in proxies and 'https' not in proxies:
                 proxies['https'] = proxies['http']
