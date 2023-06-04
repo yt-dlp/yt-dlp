@@ -292,12 +292,6 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
             'id': 'podcast-discover',
         },
         'playlist_mincount': 150,
-    }, {
-        'url': 'https://zingmp3.vn/cgr',
-        'info_dict': {
-            'id': 'podcast-discover',
-        },
-        'playlist_mincount': 150,
     }]
 
     def _real_extract(self, url):
