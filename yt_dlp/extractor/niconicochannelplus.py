@@ -49,7 +49,7 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
 class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
     IE_NAME = 'NiconicoChannelPlus'
     IE_DESC = 'ニコニコチャンネルプラス'
-    _VALID_URL = r'https?://nicochannel\.jp/(?P<channel>[a-z\d\._-]+)/(?:video|live)/(?P<code>sm\w+)'
+    _VALID_URL = r'https?://nicochannel\.jp/(?P<channel>[\w.-]+)/(?:video|live)/(?P<code>sm\w+)'
     _TESTS = [{
         # real video url, normal channel name.
         'url': 'https://nicochannel.jp/kaorin/video/smsDd8EdFLcVZk9yyAhD6H7H',
