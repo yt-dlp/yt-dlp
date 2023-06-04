@@ -525,9 +525,6 @@ def create_parser():
         dest='enable_file_urls', default=False,
         help='Enable file:// URLs. This is disabled by default for security reasons.'
     )
-    network.add_option(
-        '--cipher-list', metavar='CIPHER LIST', dest='cipher_list', help='OpenSSL cipher list to use'
-    )
 
     geo = optparse.OptionGroup(parser, 'Geo-restriction')
     geo.add_option(

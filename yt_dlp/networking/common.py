@@ -332,17 +332,7 @@ class RequestHandler:
 
         if self.ydl.params.get('legacyserverconnect'):
             context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
-
-        if self.ydl.params.get('cipher_list'):
-            # Allow the user to specify a custom cipher list in OpenSSL format [1].
-            # This may be required in cases where the default cipher suite is not supported by the server [2].
-            # 1. https://www.openssl.org/docs/man1.1.1/man1/ciphers.html
-            # 2. https://github.com/yt-dlp/yt-dlp/issues/2043
-            try:
-                context.set_ciphers(self.ydl.params.get('cipher_list'))
-            except ssl.SSLError as e:
-                raise SSLError(
-                    f'Failed to set user-specified cipher list (does it contain unsupported ciphers for {ssl.OPENSSL_VERSION}?): {e.args[0]}')
+            context.set_ciphers('DEFAULT')  # compat
 
         elif ssl.OPENSSL_VERSION_INFO >= (1, 1, 1) and not ssl.OPENSSL_VERSION.startswith('LibreSSL'):
             # Use the default SSL ciphers and minimum TLS version settings from Python 3.10 [1].
