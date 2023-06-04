@@ -55,7 +55,7 @@ class Request:
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
     @param timeout: socket timeout value for this request.
-    @param preferred_handlers: list of rh_keys of handlers to prioritize for this request. First most handler is preferred.
+
     A Request may also have the following special headers:
     Ytdl-request-proxy: proxy url to use for request.
 
@@ -75,7 +75,6 @@ class Request:
             query: dict = None,
             method: str = None,
             timeout: Union[float, int] = None,
-            preferred_handlers: typing.Sequence[str] = None,
     ):
 
         url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
@@ -94,7 +93,6 @@ class Request:
             self.headers['Authorization'] = basic_auth_header
 
         self.proxies = dict(proxies or {})
-        self.preferred_handlers = list(preferred_handlers or [])
 
     @property
     def url(self):

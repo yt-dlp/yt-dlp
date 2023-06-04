@@ -698,35 +698,6 @@ class TestRequestDirector(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 rd.send(None)
 
-    def test_handler_preference(self):
-        class MockHandlerRH(RequestHandler):
-            def handle(self, request: Request):
-                return Response(io.BytesIO(self.rh_key().encode('utf-8')), url=request.url, headers={})
-
-        class MockHandler2RH(MockHandlerRH):
-            pass
-
-        class MockHandlerFallbackRH(RequestHandler):
-            def prepare_request(self, request: Request):
-                raise UnsupportedRequest('no support')
-
-        with FakeYDL() as ydl:
-            rd = ydl.build_request_director([MockHandlerFallbackRH, MockHandler2RH, MockHandlerRH, UrllibRH, ])
-
-            req = Request(url='http://127.0.0.1:%d/headers' % self.http_port)
-            self.assertNotIn(b'MockHandler', rd.send(req).read())
-
-            req.preferred_handlers.insert(0, MockHandlerRH.rh_key())
-            self.assertEqual(rd.send(req).read(), b'MockHandler')
-            req.preferred_handlers.insert(0, MockHandler2RH.rh_key())
-            self.assertEqual(rd.send(req).read(), b'MockHandler2')
-            req.preferred_handlers.insert(0, MockHandlerFallbackRH.rh_key())
-            self.assertEqual(rd.send(req).read(), b'MockHandler2')
-            req.preferred_handlers.insert(0, 'I do not exist')
-            self.assertEqual(rd.send(req).read(), b'MockHandler2')
-            req.preferred_handlers.insert(0, 'Urllib')
-            self.assertNotIn(b'MockHandler', rd.send(req).read())
-
 
 
 if __name__ == '__main__':

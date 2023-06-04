@@ -12,8 +12,6 @@ from .common import (
 from .exceptions import RequestError, UnsupportedRequest
 from ..utils import CaseInsensitiveDict, bug_reports_message
 
-_BASE_HANDLER_PRIORITY = ['Urllib']
-
 
 class RequestDirector:
 
@@ -70,17 +68,9 @@ class RequestDirector:
 
         assert isinstance(request, Request)
 
-        request.preferred_handlers.extend(_BASE_HANDLER_PRIORITY)
-
         unexpected_errors = []
         unsupported_errors = []
-        for handler in sorted(
-            self._handlers,
-            key=(
-                lambda rh: -len(request.preferred_handlers) + request.preferred_handlers.index(rh.rh_key())
-                if rh.rh_key() in request.preferred_handlers else list(reversed(self._handlers)).index(rh)
-            ),
-        ):
+        for handler in reversed(self._handlers):
             handler_req = request.copy()
             try:
                 self.ydl.to_debugtraffic(f'Forwarding request to "{handler.RH_NAME}" request handler')
