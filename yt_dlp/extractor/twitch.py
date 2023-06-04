@@ -41,7 +41,6 @@ class TwitchBaseIE(InfoExtractor):
     _USHER_BASE = 'https://usher.ttvnw.net'
     _LOGIN_FORM_URL = 'https://www.twitch.tv/login'
     _LOGIN_POST_URL = 'https://passport.twitch.tv/login'
-    _CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko'
     _NETRC_MACHINE = 'twitch'
 
     _OPERATION_HASHES = {
@@ -57,6 +56,11 @@ class TwitchBaseIE(InfoExtractor):
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
+
+    @property
+    def _CLIENT_ID(self):
+        return self._configuration_arg(
+            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key=TwitchStreamIE, casesense=True)[0]
 
     def _perform_login(self, username, password):
         def fail(message):
