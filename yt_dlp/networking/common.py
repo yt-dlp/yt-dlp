@@ -61,7 +61,7 @@ class RequestHandler:
 
     To cover some common cases, the following may be defined:
 
-    SUPPORTED_SCHEMES may contain a list of supported url schemes. Any Request
+    SUPPORTED_URL_SCHEMES may contain a list of supported url schemes. Any Request
     with an url scheme not in this list will raise an UnsupportedRequest.
 
     SUPPORTED_PROXY_SCHEMES may contain a list of support proxy url schemes. Any Request that contains
@@ -74,7 +74,7 @@ class RequestHandler:
     RH_NAME may contain a display name for the RequestHandler.
     """
 
-    SUPPORTED_SCHEMES = None
+    SUPPORTED_URL_SCHEMES = None
     SUPPORTED_PROXY_SCHEMES = None
     SUPPORTED_ENCODINGS = None
     SUPPORTED_FEATURES = []
@@ -93,10 +93,13 @@ class RequestHandler:
             use_certifi='no-certifi' not in self.ydl.params.get('compat_opts', [])
         )
 
-    def _check_scheme(self, request: Request):
+    def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
-        if self.SUPPORTED_SCHEMES is not None and scheme not in self.SUPPORTED_SCHEMES:
-            raise UnsupportedRequest(f'unsupported scheme: "{scheme}"')
+        if scheme not in (self.SUPPORTED_URL_SCHEMES or []):
+            raise UnsupportedRequest(f'unsupported url scheme: "{scheme}"')
+        elif scheme == 'file' and not self.ydl.params.get('enable_file_urls'):
+            raise UnsupportedRequest('file:// URLs are disabled by default in yt-dlp for security reasons. '
+                                     'Use --enable-file-urls to at your own risk.')
 
     def _check_proxies(self, request: Request):
         if self.SUPPORTED_PROXY_SCHEMES is None:
@@ -115,7 +118,7 @@ class RequestHandler:
             # Unlikely this handler will use this proxy, so ignore.
             # This is to allow a case where a proxy may be set for a protocol
             # for one handler in which such protocol (and proxy) is not supported by another handler.
-            if self.SUPPORTED_SCHEMES is not None and proxy_key not in self.SUPPORTED_SCHEMES + ['all']:
+            if self.SUPPORTED_URL_SCHEMES is not None and proxy_key not in self.SUPPORTED_URL_SCHEMES + ['all']:
                 continue
 
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
@@ -168,7 +171,7 @@ class RequestHandler:
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
         request = request.copy()
-        self._check_scheme(request)
+        self._check_url_scheme(request)
         self._prepare_headers(request)
         self._prepare_proxies(request)
         request.timeout = float(
