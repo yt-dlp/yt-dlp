@@ -292,7 +292,11 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
         session_id = self._call_api(
             f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
-            data=json.dumps(payload).encode('ascii'), headers={'Content-Type': 'application/json'},
+            data=json.dumps(payload).encode('ascii'), headers={
+                'Content-Type': 'application/json',
+                'fc_use_device': 'null',
+                'origin': 'https://nicochannel.jp',
+            },
             note='Getting session id', errnote='Unable to get session id',
         )['data']['session_id']
 
