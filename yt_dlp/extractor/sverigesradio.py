@@ -29,9 +29,11 @@ class SverigesRadioBaseIE(InfoExtractor):
         audio_id, display_id = self._match_valid_url(url).group('id', 'slug')
         if not audio_id:
             webpage = self._download_webpage(url, display_id)
-            button = extract_attributes(get_element_html_by_class('audio-button', webpage) or '')
-            audio_id = traverse_obj(button, 'data-audio-id', 'data-publication-id') or self._parse_json(
-                get_element_by_id('gtm-metadata', webpage), display_id)['pageId']
+            audio_id = (
+                traverse_obj(
+                    get_element_html_by_class('audio-button', webpage),
+                    ({extract_attributes}, ('data-audio-id', 'data-publication-id')), get_all=False)
+                or self._parse_json(get_element_by_id('gtm-metadata', webpage), display_id)['pageId'])
 
         query = {
             'id': audio_id,
