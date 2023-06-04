@@ -66,7 +66,6 @@ from ..utils import (
     variadic,
 )
 
-
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
@@ -894,9 +893,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def extract_relative_time(relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
-        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today'
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
         """
-        mobj = re.search(r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+
+        # XXX: this could be moved to a general function in utils.py
+        # The relative time text strings are roughly the same as what
+        # Javascript's Intl.RelativeTimeFormat function generates.
+        # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        mobj = re.search(
+            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
@@ -1039,6 +1045,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                       else self._get_count({'simpleText': view_count_text}))
         view_count_field = 'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count'
 
+        channel = (self._get_text(renderer, 'ownerText', 'shortBylineText')
+                   or self._get_text(reel_header_renderer, 'channelTitleText'))
+
+        channel_handle = traverse_obj(renderer, (
+            'shortBylineText', 'runs', ..., 'navigationEndpoint',
+            (('commandMetadata', 'webCommandMetadata', 'url'), ('browseEndpoint', 'canonicalBaseUrl'))),
+            expected_type=self.handle_from_url, get_all=False)
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -1048,9 +1061,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'description': description,
             'duration': duration,
             'channel_id': channel_id,
-            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')
-                        or self._get_text(reel_header_renderer, 'channelTitleText')),
+            'channel': channel,
             'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
+            'uploader': channel,
+            'uploader_id': channel_handle,
+            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
                           if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
@@ -1274,6 +1289,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Philipp Hagemeister',
                 'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
                 'uploader_id': '@PhilippHagemeister',
+                'heatmap': 'count:100',
             }
         },
         {
@@ -1427,6 +1443,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'FlyingKitty',
                 'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
                 'uploader_id': '@FlyingKitty900',
+                'comment_count': int,
             },
         },
         {
@@ -2994,17 +3011,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
              r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bm=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(h\.s\)\)',
              r'\bc&&\(c=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(c\)\)',
-             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\);[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\)',
-             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',
+             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\))?',
              r'(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',
              # Obsolete patterns
-             r'(["\'])signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+             r'("|\')signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(',
              r'yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
             jscode, 'Initial JS player signature function name', group='sig')
 
@@ -3248,42 +3262,66 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                           chapter_time, chapter_title, duration)
             for contents in content_list)), [])
 
+    def _extract_heatmap_from_player_overlay(self, data):
+        content_list = traverse_obj(data, (
+            'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
+            'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
+        return next(filter(None, (
+            traverse_obj(contents, (..., 'heatMarkerRenderer', {
+                'start_time': ('timeRangeStartMillis', {functools.partial(float_or_none, scale=1000)}),
+                'end_time': {lambda x: (x['timeRangeStartMillis'] + x['markerDurationMillis']) / 1000},
+                'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
+            })) for contents in content_list)), None)
+
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
             return
 
-        text = self._get_text(comment_renderer, 'contentText')
+        info = {
+            'id': comment_id,
+            'text': self._get_text(comment_renderer, 'contentText'),
+            'like_count': self._get_count(comment_renderer, 'voteCount'),
+            'author_id': traverse_obj(comment_renderer, ('authorEndpoint', 'browseEndpoint', 'browseId', {self.ucid_or_none})),
+            'author': self._get_text(comment_renderer, 'authorText'),
+            'author_thumbnail': traverse_obj(comment_renderer, ('authorThumbnail', 'thumbnails', -1, 'url', {url_or_none})),
+            'parent': parent or 'root',
+        }
 
         # Timestamp is an estimate calculated from the current time and time_text
         time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
         timestamp = self._parse_time_text(time_text)
 
-        author = self._get_text(comment_renderer, 'authorText')
-        author_id = try_get(comment_renderer,
-                            lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
-
-        votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                       lambda x: x['likeCount']), str)) or 0
-        author_thumbnail = try_get(comment_renderer,
-                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], str)
-
-        author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
-        is_favorited = 'creatorHeart' in (try_get(
-            comment_renderer, lambda x: x['actionButtons']['commentActionButtonsRenderer'], dict) or {})
-        return {
-            'id': comment_id,
-            'text': text,
+        info.update({
+            # FIXME: non-standard, but we need a way of showing that it is an estimate.
+            '_time_text': time_text,
             'timestamp': timestamp,
-            'time_text': time_text,
-            'like_count': votes,
-            'is_favorited': is_favorited,
-            'author': author,
-            'author_id': author_id,
-            'author_thumbnail': author_thumbnail,
-            'author_is_uploader': author_is_uploader,
-            'parent': parent or 'root'
-        }
+        })
+
+        info['author_url'] = urljoin(
+            'https://www.youtube.com', traverse_obj(comment_renderer, ('authorEndpoint', (
+                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
+                expected_type=str, get_all=False))
+
+        author_is_uploader = traverse_obj(comment_renderer, 'authorIsChannelOwner')
+        if author_is_uploader is not None:
+            info['author_is_uploader'] = author_is_uploader
+
+        comment_abr = traverse_obj(
+            comment_renderer, ('actionsButtons', 'commentActionButtonsRenderer'), expected_type=dict)
+        if comment_abr is not None:
+            info['is_favorited'] = 'creatorHeart' in comment_abr
+
+        comment_ab_icontype = traverse_obj(
+            comment_renderer, ('authorCommentBadge', 'authorCommentBadgeRenderer', 'icon', 'iconType'))
+        if comment_ab_icontype is not None:
+            info['author_is_verified'] = comment_ab_icontype in ('CHECK_CIRCLE_THICK', 'OFFICIAL_ARTIST_BADGE')
+
+        is_pinned = traverse_obj(comment_renderer, 'pinnedCommentBadge')
+        if is_pinned:
+            info['is_pinned'] = True
+
+        return info
 
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
 
@@ -3296,7 +3334,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 expected_comment_count = self._get_count(
                     comments_header_renderer, 'countText', 'commentsCount')
 
-                if expected_comment_count:
+                if expected_comment_count is not None:
                     tracker['est_total'] = expected_comment_count
                     self.to_screen(f'Downloading ~{expected_comment_count} comments')
                 comment_sort_index = int(get_single_config_arg('comment_sort') != 'top')  # 1 = new, 0 = top
@@ -3331,14 +3369,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
-                is_pinned = bool(traverse_obj(comment_renderer, 'pinnedCommentBadge'))
                 comment_id = comment['id']
-                if is_pinned:
+                if comment.get('is_pinned'):
                     tracker['pinned_comment_ids'].add(comment_id)
                 # Sometimes YouTube may break and give us infinite looping comments.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/6290
                 if comment_id in tracker['seen_comment_ids']:
-                    if comment_id in tracker['pinned_comment_ids'] and not is_pinned:
+                    if comment_id in tracker['pinned_comment_ids'] and not comment.get('is_pinned'):
                         # Pinned comments may appear a second time in newest first sort
                         # See: https://github.com/yt-dlp/yt-dlp/issues/6712
                         continue
@@ -3367,7 +3404,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not tracker:
             tracker = dict(
                 running_total=0,
-                est_total=0,
+                est_total=None,
                 current_page_thread=0,
                 total_parent_comments=0,
                 total_reply_comments=0,
@@ -3400,11 +3437,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             continuation = self._build_api_continuation_query(self._generate_comment_continuation(video_id))
             is_forced_continuation = True
 
+        continuation_items_path = (
+            'onResponseReceivedEndpoints', ..., ('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems')
         for page_num in itertools.count(0):
             if not continuation:
                 break
             headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=self._extract_visitor_data(response))
-            comment_prog_str = f"({tracker['running_total']}/{tracker['est_total']})"
+            comment_prog_str = f"({tracker['running_total']}/~{tracker['est_total']})"
             if page_num == 0:
                 if is_first_continuation:
                     note_prefix = 'Downloading comment section API JSON'
@@ -3415,11 +3454,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
+
+            # Do a deep check for incomplete data as sometimes YouTube may return no comments for a continuation
+            # Ignore check if YouTube says the comment count is 0.
+            check_get_keys = None
+            if not is_forced_continuation and not (tracker['est_total'] == 0 and tracker['running_total'] == 0):
+                check_get_keys = [[*continuation_items_path, ..., (
+                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentRenderer'))]]
             try:
                 response = self._extract_response(
                     item_id=None, query=continuation,
                     ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                    check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+                    check_get_keys=check_get_keys)
             except ExtractorError as e:
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
@@ -3431,15 +3477,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else:
                     raise
             is_forced_continuation = False
-            continuation_contents = traverse_obj(
-                response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
-
             continuation = None
-            for continuation_section in continuation_contents:
-                continuation_items = traverse_obj(
-                    continuation_section,
-                    (('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems'),
-                    get_all=False, expected_type=list) or []
+            for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
                     is_first_continuation = False
@@ -4317,6 +4356,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_chapters_from_description(video_description, duration)
                 or None)
 
+            info['heatmap'] = self._extract_heatmap_from_player_overlay(initial_data)
+
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
             expected_type=list, default=[])
@@ -4579,8 +4620,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _music_reponsive_list_entry(self, renderer):
         video_id = traverse_obj(renderer, ('playlistItemData', 'videoId'))
         if video_id:
+            title = traverse_obj(renderer, (
+                'flexColumns', 0, 'musicResponsiveListItemFlexColumnRenderer',
+                'text', 'runs', 0, 'text'))
             return self.url_result(f'https://music.youtube.com/watch?v={video_id}',
-                                   ie=YoutubeIE.ie_key(), video_id=video_id)
+                                   ie=YoutubeIE.ie_key(), video_id=video_id, title=title)
         playlist_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'playlistId'))
         if playlist_id:
             video_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'videoId'))
@@ -4639,11 +4683,19 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _rich_entries(self, rich_grid_renderer):
         renderer = traverse_obj(
-            rich_grid_renderer, ('content', ('videoRenderer', 'reelItemRenderer')), get_all=False) or {}
+            rich_grid_renderer,
+            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer')), get_all=False) or {}
         video_id = renderer.get('videoId')
-        if not video_id:
+        if video_id:
+            yield self._extract_video(renderer)
             return
-        yield self._extract_video(renderer)
+        playlist_id = renderer.get('playlistId')
+        if playlist_id:
+            yield self.url_result(
+                f'https://www.youtube.com/playlist?list={playlist_id}',
+                ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
+                video_title=self._get_text(renderer, 'title'))
+            return
 
     def _video_entry(self, video_renderer):
         video_id = video_renderer.get('videoId')
@@ -4872,7 +4924,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         metadata_renderer = traverse_obj(data, ('metadata', 'channelMetadataRenderer'), expected_type=dict)
         if metadata_renderer:
             channel_id = traverse_obj(metadata_renderer, ('externalId', {self.ucid_or_none}),
-                                                         ('channelUrl', {self.ucid_from_url}))
+                                      ('channelUrl', {self.ucid_from_url}))
             info.update({
                 'channel': metadata_renderer.get('title'),
                 'channel_id': channel_id,
@@ -5829,7 +5881,25 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_id': '@colethedj1894',
             'uploader': 'colethedj',
         },
+        'playlist': [{
+            'info_dict': {
+                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
+                'id': 'BaW_jenozKc',
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'duration': 10,
+                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
+                'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
+                'view_count': int,
+                'url': 'https://www.youtube.com/watch?v=BaW_jenozKc',
+                'channel': 'Philipp Hagemeister',
+                'uploader_id': '@PhilippHagemeister',
+                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
+                'uploader': 'Philipp Hagemeister',
+            }
+        }],
         'playlist_count': 1,
+        'params': {'extract_flat': True},
     }, {
         'note': 'API Fallback: Recommended - redirects to home page. Requires visitorData',
         'url': 'https://www.youtube.com/feed/recommended',
@@ -6130,6 +6200,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'channel_url': str,
                 'concurrent_view_count': int,
                 'channel': str,
+                'uploader': str,
+                'uploader_url': str,
+                'uploader_id': str
             }
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
@@ -6185,6 +6258,40 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': '3Blue1Brown',
         },
         'playlist_count': 0,
+    }, {
+        # Podcasts tab, with rich entry playlistRenderers
+        'url': 'https://www.youtube.com/@99percentinvisiblepodcast/podcasts',
+        'info_dict': {
+            'id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'channel_id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'uploader_url': 'https://www.youtube.com/@99percentinvisiblepodcast',
+            'description': 'md5:3a0ed38f1ad42a68ef0428c04a15695c',
+            'title': '99 Percent Invisible - Podcasts',
+            'uploader': '99 Percent Invisible',
+            'channel_follower_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'tags': [],
+            'channel': '99 Percent Invisible',
+            'uploader_id': '@99percentinvisiblepodcast',
+        },
+        'playlist_count': 1,
+    }, {
+        # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
+        'url': 'https://www.youtube.com/@AHimitsu/releases',
+        'info_dict': {
+            'id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel': 'A Himitsu',
+            'uploader_url': 'https://www.youtube.com/@AHimitsu',
+            'title': 'A Himitsu - Releases',
+            'uploader_id': '@AHimitsu',
+            'uploader': 'A Himitsu',
+            'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'tags': 'count:16',
+            'description': 'I make music',
+            'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel_follower_count': int,
+        },
+        'playlist_mincount': 10,
     }]
 
     @classmethod

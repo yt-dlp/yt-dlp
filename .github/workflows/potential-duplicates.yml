@@ -1,0 +1,20 @@
+name: Potential Duplicates
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: wow-actions/potential-duplicates@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          label: potential-duplicate
+          state: all
+          threshold: 0.7
+          comment: |
+            This issue is potentially a duplicate of one of the following issues:
+            {{#issues}}
+              - #{{ number }} ({{ accuracy }}%)
+            {{/issues}}
