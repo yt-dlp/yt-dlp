@@ -35,12 +35,9 @@ from .minicurses import format_text
 from .networking import (
     list_request_handler_classes,
     RequestDirector,
-    UrllibRH,
+    UrllibRH
 )
-from .networking.common import (
-    Request,
-    HEADRequest,
-)
+from .networking.request import HEADRequest, Request
 from .networking.utils import std_headers
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
