@@ -104,7 +104,7 @@ def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
     return hc
 
 
-class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
+class HTTPHandler(urllib.request.AbstractHTTPHandler):
     """Handler for HTTP requests and responses.
 
     This class, when installed with an OpenerDirector, automatically adds
@@ -252,7 +252,7 @@ def make_socks_conn_class(base_class, socks_proxy):
     return SocksConnection
 
 
-class YDLRedirectHandler(urllib.request.HTTPRedirectHandler):
+class RedirectHandler(urllib.request.HTTPRedirectHandler):
     """YoutubeDL redirect handler
 
     The code is based on HTTPRedirectHandler implementation from CPython [1].
@@ -287,7 +287,7 @@ class YDLRedirectHandler(urllib.request.HTTPRedirectHandler):
             unverifiable=True, method=new_method, data=new_data)
 
 
-class YDLProxyHandler(urllib.request.BaseHandler):
+class ProxyHandler(urllib.request.BaseHandler):
     handler_order = 100
 
     def __init__(self, proxies=None):
@@ -392,8 +392,8 @@ class UrllibRH(RequestHandler):
     def _create_opener(self, proxies=None):
         opener = urllib.request.OpenerDirector()
         handlers = [
-            YDLProxyHandler(proxies),
-            YoutubeDLHandler(
+            ProxyHandler(proxies),
+            HTTPHandler(
                 self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
                 context=self.make_sslcontext()),
             HTTPCookieProcessor(self.cookiejar),
@@ -402,7 +402,7 @@ class UrllibRH(RequestHandler):
             HTTPDefaultErrorHandler(),
             FTPHandler(),
             HTTPErrorProcessor(),
-            YDLRedirectHandler()]
+            RedirectHandler()]
 
         if self.ydl.params.get('enable_file_urls'):
             handlers.append(FileHandler())

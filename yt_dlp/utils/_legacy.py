@@ -19,10 +19,10 @@ from ..networking._urllib import (  # noqa: F401
     PUTRequest,
     HEADRequest,
     make_socks_conn_class,
-    YDLRedirectHandler as YoutubeDLRedirectHandler,
+    RedirectHandler as YoutubeDLRedirectHandler,
     update_Request,
     _create_http_connection,
-    YoutubeDLHandler
+    HTTPHandler as YoutubeDLHandler
 )
 from ..networking.utils import random_user_agent, _ssl_load_windows_store_certs  # noqa: F401
 from ..networking.exceptions import network_exceptions, HTTPError  # noqa: F401
