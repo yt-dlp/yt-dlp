@@ -3780,6 +3780,14 @@ class YoutubeDL:
 
     def urlopen(self, req):
         """ Start an HTTP download """
+        if isinstance(req, str):
+            req = Request(req)
+        elif isinstance(req, urllib.request.Request):
+            # compat
+            req = Request(
+                req.get_full_url(), data=req.data, method=req.get_method(),
+                headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
+                timeout=req.timeout if hasattr(req, 'timeout') else None)
         return self._request_director.send(req)
 
     def print_debug_header(self):

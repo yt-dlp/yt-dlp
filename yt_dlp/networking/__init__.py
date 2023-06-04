@@ -51,20 +51,12 @@ class RequestDirector:
                 return True
         return False
 
-    def send(self, request: Union[Request, str, urllib.request.Request]) -> Response:
+    def send(self, request: Request) -> Response:
         """
         Passes a request onto a suitable RequestHandler
         """
         if len(self._handlers) == 0:
             raise RequestError('No request handlers configured')
-        if isinstance(request, str):
-            request = Request(request)
-        elif isinstance(request, urllib.request.Request):
-            # compat
-            request = Request(
-                request.get_full_url(), data=request.data, method=request.get_method(),
-                headers=CaseInsensitiveDict(request.headers, request.unredirected_hdrs),
-                timeout=request.timeout if hasattr(request, 'timeout') else None)
 
         assert isinstance(request, Request)
 
