@@ -26,6 +26,9 @@ from ..utils import (
     YoutubeDLError,
     remove_start,
 )
+
+from .utils import make_ssl_context
+
 from .exceptions import UnsupportedRequest
 
 if typing.TYPE_CHECKING:
@@ -81,57 +84,14 @@ class RequestHandler:
         self.cookiejar = self.ydl.cookiejar
 
     def make_sslcontext(self):
-        """
-        Make a new SSLContext configured for this request handler.
-        This assumes HTTP 1.1 is used.
-        """
-        verify = not self.ydl.params.get('nocheckcertificate')
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        context.check_hostname = verify
-        context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
-
-        # Some servers may reject requests if ALPN extension is not sent. See:
-        # https://github.com/python/cpython/issues/85140
-        # https://github.com/yt-dlp/yt-dlp/issues/3878
-        with contextlib.suppress(NotImplementedError):
-            context.set_alpn_protocols(['http/1.1'])
-        if verify:
-            ssl_load_certs(context, self.ydl.params)
-
-        if self.ydl.params.get('legacyserverconnect'):
-            context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
-            context.set_ciphers('DEFAULT')  # compat
-
-        elif ssl.OPENSSL_VERSION_INFO >= (1, 1, 1) and not ssl.OPENSSL_VERSION.startswith('LibreSSL'):
-            # Use the default SSL ciphers and minimum TLS version settings from Python 3.10 [1].
-            # This is to ensure consistent behavior across Python versions and libraries, and help avoid fingerprinting
-            # in some situations [2][3].
-            # Python 3.10 only supports OpenSSL 1.1.1+ [4]. Because this change is likely
-            # untested on older versions, we only apply this to OpenSSL 1.1.1+ to be safe.
-            # LibreSSL is excluded until further investigation due to cipher support issues [5][6].
-            # 1. https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
-            # 2. https://github.com/yt-dlp/yt-dlp/issues/4627
-            # 3. https://github.com/yt-dlp/yt-dlp/pull/5294
-            # 4. https://peps.python.org/pep-0644/
-            # 5. https://peps.python.org/pep-0644/#libressl-support
-            # 6. https://github.com/yt-dlp/yt-dlp/commit/5b9f253fa0aee996cf1ed30185d4b502e00609c4#commitcomment-89054368
-            context.set_ciphers(
-                '@SECLEVEL=2:ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES:DHE+AES:!aNULL:!eNULL:!aDSS:!SHA1:!AESCCM')
-            context.minimum_version = ssl.TLSVersion.TLSv1_2
-
-        client_certfile = self.ydl.params.get('client_certificate')
-        if client_certfile:
-            try:
-                context.load_cert_chain(
-                    client_certfile, keyfile=self.ydl.params.get('client_certificate_key'),
-                    password=self.ydl.params.get('client_certificate_password'))
-            except ssl.SSLError:
-                raise YoutubeDLError('Unable to load client certificate')
-
-            if getattr(context, 'post_handshake_auth', None) is not None:
-                context.post_handshake_auth = True
-
-        return context
+        return make_ssl_context(
+            verify=not self.ydl.params.get('nocheckcertificate'),
+            legacy_support=self.ydl.params.get('legacyserverconnect'),
+            client_certificate=self.ydl.params.get('client_certificate'),
+            client_certificate_key=self.ydl.params.get('client_certificate_key'),
+            client_certificate_password=self.ydl.params.get('client_certificate_password'),
+            use_certifi='no-certifi' not in self.ydl.params.get('compat_opts', [])
+        )
 
     def _check_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
