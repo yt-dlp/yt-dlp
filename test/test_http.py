@@ -11,12 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import gzip
 import http.cookiejar
 import functools
-import gzip
 import http.client
 import http.server
 import io
 import pathlib
-import io
 import ssl
 import tempfile
 import threading
@@ -25,17 +23,14 @@ import urllib.request
 import zlib
 import urllib.error
 
-from http.cookiejar import Cookie
-
-from test.helper import FakeYDL, http_server_port
+from test.helper import http_server_port
 from yt_dlp import YoutubeDL
 from yt_dlp.dependencies import brotli
-from yt_dlp.utils import sanitized_Request, urlencode_postdata
 
 from .helper import FakeYDL
-from yt_dlp.networking import Request, UrllibRH, list_request_handler_classes, RequestHandler, Response
-from yt_dlp.utils import urlencode_postdata
+from yt_dlp.networking import Request, UrllibRH, list_request_handler_classes
 from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest, RequestError
+from yt_dlp.utils import urlencode_postdata
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -52,8 +47,9 @@ class FakeLogger:
     def error(self, msg):
         pass
 
+
 class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
-    protocol_version = 'HTTP/1.1' # required for persistent connections
+    protocol_version = 'HTTP/1.1'  # required for persistent connections
 
     def log_message(self, format, *args):
         pass
@@ -233,17 +229,6 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._headers_buffer = []
 
         self._headers_buffer.append(f'{keyword}: {value}\r\n'.encode())
-
-
-class FakeLogger:
-    def debug(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        pass
 
 
 def with_make_rh(handlers=None, ignore_handlers=None):
@@ -459,12 +444,13 @@ class TestHTTP(unittest.TestCase):
             with self.assertRaises(IncompleteRead):
                 rh.handle(Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
 
-    def test_cookiejar(self):
-        with FakeYDL() as ydl:
-            ydl.cookiejar.set_cookie(http.cookiejar.Cookie(
+    @with_make_rh()
+    def test_cookiejar(self, make_rh):
+        with make_rh() as rh:
+            rh.ydl.cookiejar.set_cookie(http.cookiejar.Cookie(
                 0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
                 False, '/headers', True, False, None, False, None, None, {}))
-            data = ydl.urlopen(sanitized_Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            data = rh.handle(Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
             self.assertIn(b'Cookie: test=ytdlp', data)
 
     @with_make_rh()
@@ -633,6 +619,7 @@ class TestHTTP(unittest.TestCase):
             # b'xn--fiq228c' is '中文'.encode('idna')
             self.assertEqual(response, 'normal: http://xn--fiq228c.tw/')
 
+
 class TestClientCert(unittest.TestCase):
     def setUp(self):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
@@ -677,8 +664,6 @@ class TestClientCert(unittest.TestCase):
                        client_certificate_password='foobar')
 
 
-
-
 class TestRequestDirector(unittest.TestCase):
     # TODO: use fake handlers
     def test_request_types(self):
@@ -697,7 +682,6 @@ class TestRequestDirector(unittest.TestCase):
 
             with self.assertRaises(AssertionError):
                 rd.send(None)
-
 
 
 if __name__ == '__main__':

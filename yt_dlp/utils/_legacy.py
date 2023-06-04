@@ -15,7 +15,7 @@ from ..dependencies import certifi, websockets
 import ssl
 # isort: split
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
-from ..networking._urllib import (
+from ..networking._urllib import (  # noqa: F401
     PUTRequest,
     HEADRequest,
     make_socks_conn_class,
@@ -24,8 +24,9 @@ from ..networking._urllib import (
     _create_http_connection,
     YoutubeDLHandler
 )
-from ..networking.utils import random_user_agent, _ssl_load_windows_store_certs
-from ..networking.exceptions import network_exceptions, HTTPError
+from ..networking.utils import random_user_agent, _ssl_load_windows_store_certs  # noqa: F401
+from ..networking.exceptions import network_exceptions, HTTPError  # noqa: F401
+from ..socks import ProxyType, sockssocket   # noqa: F401
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
@@ -195,6 +196,7 @@ def request_to_url(req):
         return req.get_full_url()
     else:
         return req
+
 
 # TODO: compat (doesn't exist)
 SUPPORTED_ENCODINGS = []

@@ -35,7 +35,7 @@ from ..utils import (
     sanitize_url,
     update_url_query,
 )
-from .exceptions import UnsupportedRequest, SSLError
+from .exceptions import UnsupportedRequest
 
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL

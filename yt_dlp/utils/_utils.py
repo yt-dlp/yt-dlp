@@ -43,7 +43,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
-import zlib
 import io
 
 from . import traversal
@@ -56,13 +55,13 @@ from ..compat import (
     compat_os_name,
     compat_shlex_quote,
 )
-from ..dependencies import brotli, certifi, websockets, xattr
-from ..socks import ProxyType, sockssocket
+from ..dependencies import websockets, xattr
 
 __name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
 
 # This is not clearly defined otherwise
 compiled_regex_type = type(re.compile(''))
+
 
 class NO_DEFAULT:
     pass
@@ -70,6 +69,7 @@ class NO_DEFAULT:
 
 def IDENTITY(x):
     return x
+
 
 ENGLISH_MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
