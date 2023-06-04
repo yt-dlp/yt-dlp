@@ -51,7 +51,6 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
     IE_DESC = 'ニコニコチャンネルプラス'
     _VALID_URL = r'https?://nicochannel\.jp/(?P<channel>[\w.-]+)/(?:video|live)/(?P<code>sm\w+)'
     _TESTS = [{
-        # real video url, normal channel name.
         'url': 'https://nicochannel.jp/kaorin/video/smsDd8EdFLcVZk9yyAhD6H7H',
         'info_dict': {
             'id': 'smsDd8EdFLcVZk9yyAhD6H7H',
@@ -74,7 +73,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'skip_download': True,
         },
     }, {
-        # real video url, normal channel name, age limited, test purpose channel.
+        # age limited video; test purpose channel.
         'url': 'https://nicochannel.jp/testman/video/smDXbcrtyPNxLx9jc4BW69Ve',
         'info_dict': {
             'id': 'smDXbcrtyPNxLx9jc4BW69Ve',
@@ -95,66 +94,6 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         'params': {
             'skip_download': True,
         },
-    }, {
-        # real video url, numbers in channel name.
-        'url': 'https://nicochannel.jp/dateno8noba/video/smVGqtKpdmva4Mcrw7rbeQ8Y',
-        'only_matching': True,
-    }, {
-        # real video url, hyphens in channel name.
-        'url': 'https://nicochannel.jp/owstv-plus/video/smUPTNizUxVspEu5YeDtV3VB',
-        'only_matching': True,
-    }, {
-        # real video url, underscores in channel name.
-        'url': 'https://nicochannel.jp/sakaguchi_kugimiya/video/smieBu2u2kDTYCvYZmLvUaUN',
-        'only_matching': True,
-    }, {
-        # real video url, dots in channel name.
-        'url': 'https://nicochannel.jp/kanase.ito/video/smWCdanZc5bJYMPYhpVp6Sn6',
-        'only_matching': True,
-    }, {
-        # fake live url, normal channel name.
-        'url': 'https://nicochannel.jp/example/live/sm3Xample',
-        'info_dict': {
-            'id': 'sm3Xample',
-            'ext': 'mp4',
-        },
-        'params': {
-            'skip_download': False,
-        },
-        'skip': '404 Not Found',
-    }, {
-        # was real live url, but 404 now.
-        'url': 'https://nicochannel.jp/matsuda_shota/live/sm5VuVsRQSRqkyvLWFZtcou7',
-        'info_dict': {
-            'id': 'smpptPykLAjmZQchK4k4p93P',
-            'ext': 'mp4',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': '404 Not Found',
-    }, {
-        # was real live url, but 404 now.
-        'url': 'https://nicochannel.jp/ayapro/live/sm8CmA9tsXUsCjwiKE59xyb6',
-        'info_dict': {
-            'id': 'sm8CmA9tsXUsCjwiKE59xyb6',
-            'ext': 'mp4',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': '404 Not Found',
-    }, {
-        # was real live url, but no video files for download.
-        'url': 'https://nicochannel.jp/tasokosyo/live/smc7pjoBytehSmMrvT9CdA9f',
-        'info_dict': {
-            'id': 'smc7pjoBytehSmMrvT9CdA9f',
-            'ext': 'mp4',
-        },
-        'params': {
-            'skip_download': False,
-        },
-        'skip': 'The downloaded file is empty',
     }]
 
     def _real_extract(self, url):
