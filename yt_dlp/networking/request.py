@@ -5,8 +5,12 @@ import io
 import typing
 import urllib.request
 from typing import Union, Iterable, Mapping
+try:
+    from urllib.request import _parse_proxy
+except ImportError:
+    _parse_proxy = None
 
-from ..utils import extract_basic_auth, escape_url, sanitize_url, update_url_query, CaseInsensitiveDict
+from ..utils import extract_basic_auth, escape_url, sanitize_url, update_url_query, CaseInsensitiveDict, remove_start
 
 _TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 
@@ -45,30 +49,16 @@ class Request:
             timeout: Union[float, int] = None,
     ):
 
-        url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
-
         if query:
             url = update_url_query(url, query)
+        self.url = url
         # rely on urllib Request's url parsing
-        self.__request_store = urllib.request.Request(url)
         self.method = method
         self._headers = CaseInsensitiveDict(headers)
         self._data = None
         self.data = data
         self.timeout = timeout
-
-        if basic_auth_header:
-            self.headers['Authorization'] = basic_auth_header
-
         self.proxies = dict(proxies or {})
-
-    @property
-    def url(self):
-        return self.__request_store.full_url
-
-    @url.setter
-    def url(self, url):
-        self.__request_store.full_url = url
 
     @property
     def data(self):
@@ -76,10 +66,6 @@ class Request:
 
     @data.setter
     def data(self, data: _TYPE_REQ_DATA):
-        # Try catch some common mistakes
-        if data is not None and (not isinstance(data, (bytes, io.IOBase, Iterable)) or isinstance(data, (str, Mapping))):
-            raise TypeError('data must be bytes, iterable of bytes, or a file-like object')
-
         # https://docs.python.org/3/library/urllib.request.html#urllib.request.Request.data
         if data != self._data:
             self._data = data
@@ -100,63 +86,91 @@ class Request:
         else:
             raise TypeError('headers must be a mapping')
 
-    @property
-    def method(self):
-        return self.__method or ('POST' if self.data is not None else 'GET')
-
-    @method.setter
-    def method(self, method: str):
-        self.__method = method
-
     def update(self, url=None, data=None, headers=None, query=None):
         self.data = data or self.data
         self.headers.update(headers or {})
         self.url = update_url_query(url or self.url, query or {})
 
-    def copy(self):
-        return type(self)(
-            url=self.url, data=self.data, headers=self.headers.copy(), timeout=self.timeout,
-            proxies=self.proxies.copy(), method=self.__method)
+    def prepare(self, ydl):
+        return PreparedRequest(
+            url=self.url,
+            data=self.data,
+            headers=self.headers,
+            proxies=self.proxies,
+            method=self.method,
+            timeout=self.timeout,
+            ydl=ydl,
+        )
 
-    @property
-    def type(self):
-        """URI scheme"""
-        return self.__request_store.type
 
-    @property
-    def host(self):
-        return self.__request_store.host
+class PreparedRequest:
 
-    # The following methods are for compatability reasons and are deprecated
-    @property
-    def fullurl(self):
-        """Deprecated, use Request.url"""
-        return self.url
+    def __init__(self, url, ydl, data=None, headers=None, proxies=None, method=None, timeout=None):
+        self.ydl = ydl
+        self.headers = self._prepare_headers(headers)
+        self.url = self._prepare_url(url)
+        self.data = self._prepare_data(data)
+        self.method = self._prepare_method(method)
+        self.timeout = self._prepare_timeout(timeout)
+        self.proxies = self._prepare_proxies(proxies)
 
-    @fullurl.setter
-    def fullurl(self, url):
-        """Deprecated, use Request.url"""
-        self.url = url
+    def _prepare_timeout(self, timeout):
+        return float(timeout or self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
 
-    def get_full_url(self):
-        """Deprecated, use Request.url"""
-        return self.url
+    def _prepare_url(self, url):
+        url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
+        if basic_auth_header:
+            self.headers['Authorization'] = basic_auth_header
 
-    def get_method(self):
-        """Deprecated, use Request.method"""
-        return self.method
+        # rely on urllib Request's url parsing
+        return urllib.request.Request(url).full_url
 
-    def has_header(self, name):
-        """Deprecated, use `name in Request.headers`"""
-        return name in self.headers
+    def _prepare_proxies(self, proxies):
+        proxies = proxies or self.ydl.proxies
+        if not isinstance(proxies, dict):
+            proxies = {}
+        proxies = proxies.copy()
 
-    def add_header(self, key, value):
-        """Deprecated, use Request.headers[key] = value"""
-        self._headers[key] = value
+        req_proxy = self.headers.pop('Ytdl-request-proxy', None)
+        if req_proxy:
+            proxies = {'all': req_proxy}
+        for proxy_key, proxy_url in proxies.items():
+            if proxy_url == '__noproxy__':  # compat
+                proxies[proxy_key] = None
+                continue
+            if proxy_key == 'no':  # special case
+                continue
+            if proxy_url is not None and _parse_proxy is not None:
+                # Ensure proxies without a scheme are http.
+                proxy_scheme = _parse_proxy(proxy_url)[0]
+                if proxy_scheme is None:
+                    proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
+        return proxies
 
-    def get_header(self, key, default=None):
-        """Deprecated, use Request.headers.get(key, default)"""
-        return self._headers.get(key, default)
+    def _prepare_headers(self, headers):
+        headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), headers)
+        if 'Youtubedl-no-compression' in headers:  # compat
+            del headers['Youtubedl-no-compression']
+            headers['Accept-Encoding'] = 'identity'
+        return headers
+
+    def _prepare_method(self, method):
+        # this needs access to data to set method
+        return method or ('POST' if self.data is not None else 'GET')
+
+    def _prepare_data(self, data):
+        # Try catch some common mistakes
+        if data is not None and (
+            not isinstance(data, (bytes, io.IOBase, Iterable)) or isinstance(data, (str, Mapping))
+        ):
+            raise TypeError('data must be bytes, iterable of bytes, or a file-like object')
+
+        # Requests doesn't set content-type if we have already encoded the data, while urllib does.
+        # We need to manually set it in this case as many extractors do not.
+        if 'content-type' not in self.headers:
+            if isinstance(data, (str, bytes)) or hasattr(data, 'read'):
+                self.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        return data
 
 
 HEADRequest = functools.partial(Request, method='HEAD')

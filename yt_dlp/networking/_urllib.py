@@ -422,6 +422,8 @@ class UrllibRH(RequestHandler):
             self._create_opener(proxies=request.proxies))
 
     def _real_handle(self, request):
+        headers = request.headers.copy()
+        self._add_accept_encoding_header(headers)
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
 

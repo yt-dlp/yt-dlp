@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 import urllib.response
 
-from .request import Request
+from .request import Request, PreparedRequest
 from .utils import (
     ssl_load_certs,
     handle_request_errors
@@ -33,6 +33,7 @@ from .exceptions import UnsupportedRequest
 
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
+    from .response import Response
 
 
 class Features(enum.Enum):
@@ -93,18 +94,18 @@ class RequestHandler:
             use_certifi='no-certifi' not in self.ydl.params.get('compat_opts', [])
         )
 
-    def _check_url_scheme(self, request: Request):
-        scheme = urllib.parse.urlparse(request.url).scheme.lower()
+    def _check_url_scheme(self, prepared_request: PreparedRequest):
+        scheme = urllib.parse.urlparse(prepared_request.url).scheme.lower()
         if scheme not in (self.SUPPORTED_URL_SCHEMES or []):
             raise UnsupportedRequest(f'unsupported url scheme: "{scheme}"')
         elif scheme == 'file' and not self.ydl.params.get('enable_file_urls'):
             raise UnsupportedRequest('file:// URLs are disabled by default in yt-dlp for security reasons. '
                                      'Use --enable-file-urls to at your own risk.')
 
-    def _check_proxies(self, request: Request):
+    def _check_proxies(self, prepared_request: PreparedRequest):
         if self.SUPPORTED_PROXY_SCHEMES is None:
             return
-        for proxy_key, proxy_url in request.proxies.items():
+        for proxy_key, proxy_url in prepared_request.proxies.items():
             if proxy_url is None:
                 continue
             if proxy_key == 'no':
@@ -125,71 +126,34 @@ class RequestHandler:
             if scheme not in self.SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'unsupported proxy type: "{scheme}"')
 
-    @handle_request_errors
-    def can_handle(self, request, fatal=False):
-        try:
-            self.prepare_request(request)
-        except UnsupportedRequest:
-            if fatal:
-                raise
-            return False
-        return True
+    def _add_accept_encoding_header(self, headers):
+        # TODO, can just make a general function
+        if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in headers:
+            headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
 
-    def _prepare_proxies(self, request):
-        request.proxies = request.proxies or self.ydl.proxies
-        req_proxy = request.headers.pop('Ytdl-request-proxy', None)
-        if req_proxy:
-            request.proxies = {'all': req_proxy}
-
-        for proxy_key, proxy_url in request.proxies.items():
-            if proxy_url == '__noproxy__':  # compat
-                request.proxies[proxy_key] = None
-                continue
-            if proxy_key == 'no':  # special case
-                continue
-            if proxy_url is not None and _parse_proxy is not None:
-                # Ensure proxies without a scheme are http.
-                proxy_scheme = _parse_proxy(proxy_url)[0]
-                if proxy_scheme is None:
-                    request.proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
-
-    def _prepare_headers(self, request):
-        request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
-        if 'Youtubedl-no-compression' in request.headers:  # compat
-            del request.headers['Youtubedl-no-compression']
-            request.headers['Accept-Encoding'] = 'identity'
-
-        if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in request.headers:
-            request.headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
-
-        if 'Accept-Encoding' not in request.headers:
-            request.headers['Accept-Encoding'] = 'identity'
+        elif 'Accept-Encoding' not in headers:
+            headers['Accept-Encoding'] = 'identity'
 
     @handle_request_errors
-    def prepare_request(self, request: Request):
-        """Returns a new Request prepared for this handler."""
-        if not isinstance(request, Request):
-            raise TypeError('Expected an instance of Request')
-        request = request.copy()
-        self._check_url_scheme(request)
-        self._prepare_headers(request)
-        self._prepare_proxies(request)
-        request.timeout = float(
-            request.timeout or self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
-        self._check_proxies(request)
-        return self._prepare_request(request)
+    def can_handle(self, prepared_request: PreparedRequest):
+        if not isinstance(prepared_request, PreparedRequest):
+            raise TypeError('Expected an instance of PreparedRequest')
+        self._check_url_scheme(prepared_request)
+        self._check_proxies(prepared_request)
 
-    def _prepare_request(self, request: Request):
-        """Returns a new Request prepared for this handler. Redefine in subclasses for custom handling"""
-        return request
+    def _real_can_handle(self, prepared_request: PreparedRequest):
+        """Redefine in subclasses"""
+        return
 
     @handle_request_errors
-    def handle(self, request: Request):
-        request = self.prepare_request(request)
-        assert isinstance(request, Request)
-        return self._real_handle(request)
+    def handle(self, prepared_request: PreparedRequest) -> Response:
+        if not isinstance(prepared_request, PreparedRequest):
+            raise TypeError('Expected an instance of PreparedRequest')
+        # XXX: do we want to make a copy of PreparedRequest here,
+        # in case a handler tries to edit it?
+        return self._real_handle(prepared_request)
 
-    def _real_handle(self, request: Request):
+    def _real_handle(self, prepared_request: PreparedRequest):
         """Handle a request from start to finish. Redefine in subclasses."""
         raise NotImplementedError
 

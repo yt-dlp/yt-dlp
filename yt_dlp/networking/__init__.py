@@ -44,13 +44,6 @@ class RequestDirector:
         self.remove_handler(handler)
         self.add_handler(handler)
 
-    def is_supported(self, request: Request):
-        """Check if a request can be handled without making any requests"""
-        for handler in self._handlers:
-            if handler.can_handle(request):
-                return True
-        return False
-
     def send(self, request: Request) -> Response:
         """
         Passes a request onto a suitable RequestHandler
@@ -62,12 +55,12 @@ class RequestDirector:
 
         unexpected_errors = []
         unsupported_errors = []
+        prepared_request = request.prepare(self.ydl)
         for handler in reversed(self._handlers):
-            handler_req = request.copy()
             try:
                 self.ydl.to_debugtraffic(f'Forwarding request to "{handler.RH_NAME}" request handler')
-                response = handler.handle(handler_req)
-
+                handler.can_handle(prepared_request)
+                response = handler.handle(prepared_request)
             except UnsupportedRequest as e:
                 self.ydl.to_debugtraffic(
                     f'"{handler.RH_NAME}" request handler cannot handle this request, trying another handler... (cause: {type(e).__name__}:{e})')
