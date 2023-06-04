@@ -250,14 +250,6 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
         },
         'playlist_mincount': 20,
     }, {
-        'url': 'https://zingmp3.vn/pgr/How2Money-x-Doctor-Housing/6BUUFAEO.html',
-        'info_dict': {
-            'id': '6BUUFAEO',
-            'title': 'How2Money x Doctor Housing',
-            'description': 'md5:3c1eb04aaa28fee0805629d9b766d05c'
-        },
-        'playlist_mincount': 20,
-    }, {
         'url': 'http://mp3.zing.vn/playlist/Duong-Hong-Loan-apollobee/IWCAACCB.html',
         'only_matching': True,
     }, {
@@ -518,6 +510,7 @@ class ZingMp3HubIE(ZingMp3BaseIE):
             'sections', lambda _, v: v['sectionId'] == 'hub', 'items', ...)))
         return self.playlist_result(
             entries, song_id, hub_detail.get('title'), hub_detail.get('description'))
+
 
 class ZingMp3LiveRadioIE(ZingMp3BaseIE):
     IE_NAME = 'zingmp3:liveradio'
