@@ -54,7 +54,6 @@ class Request:
     @param proxies: proxy dict mapping of proto:proxy to use for the request and any redirects.
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
-    @param allow_redirects: whether to follow redirects for this request.
     @param timeout: socket timeout value for this request.
     @param preferred_handlers: list of rh_keys of handlers to prioritize for this request. First most handler is preferred.
     A Request may also have the following special headers:
@@ -75,7 +74,6 @@ class Request:
             proxies: dict = None,
             query: dict = None,
             method: str = None,
-            allow_redirects: bool = True,
             timeout: Union[float, int] = None,
             preferred_handlers: typing.Sequence[str] = None,
     ):
@@ -91,7 +89,6 @@ class Request:
         self._data = None
         self.data = data
         self.timeout = timeout
-        self.allow_redirects = allow_redirects
 
         if basic_auth_header:
             self.headers['Authorization'] = basic_auth_header
@@ -153,8 +150,7 @@ class Request:
     def copy(self):
         return type(self)(
             url=self.url, data=self.data, headers=self.headers.copy(), timeout=self.timeout,
-            proxies=self.proxies.copy(), method=self.__method,
-            allow_redirects=self.allow_redirects)
+            proxies=self.proxies.copy(), method=self.__method)
 
     @property
     def type(self):

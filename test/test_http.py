@@ -440,13 +440,6 @@ class TestHTTP(unittest.TestCase):
                     do_req(code, 'GET')
 
     @with_make_rh()
-    def test_no_redirects(self, make_rh):
-        with make_rh() as rh:
-            res = rh.handle(Request('http://localhost:%d/redirect_302' % self.http_port, allow_redirects=False))
-            self.assertEqual(res.status, 302)
-            res.close()
-
-    @with_make_rh()
     def test_content_type(self, make_rh):
         with make_rh({'nocheckcertificate': True}) as rh:
             # method should be auto-detected as POST

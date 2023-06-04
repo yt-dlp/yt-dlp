@@ -286,14 +286,6 @@ class YDLRedirectHandler(urllib.request.HTTPRedirectHandler):
             unverifiable=True, method=new_method, data=new_data)
 
 
-class YDLNoRedirectHandler(urllib.request.BaseHandler):
-
-    def http_error_302(self, req, fp, code, msg, headers):
-        return fp
-
-    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302
-
-
 class YDLProxyHandler(urllib.request.BaseHandler):
     handler_order = 100
 
@@ -396,7 +388,7 @@ class UrllibRH(RequestHandler):
         super().__init__(ydl)
         self._openers = {}
 
-    def _create_opener(self, proxies=None, allow_redirects=True):
+    def _create_opener(self, proxies=None):
         opener = urllib.request.OpenerDirector()
         handlers = [
             YDLProxyHandler(proxies),
@@ -409,7 +401,7 @@ class UrllibRH(RequestHandler):
             HTTPDefaultErrorHandler(),
             FTPHandler(),
             HTTPErrorProcessor(),
-            YDLRedirectHandler() if allow_redirects else YDLNoRedirectHandler()]
+            YDLRedirectHandler()]
 
         if self.ydl.params.get('enable_file_urls'):
             handlers.append(FileHandler())
@@ -432,8 +424,8 @@ class UrllibRH(RequestHandler):
 
     def get_opener(self, request):
         return self._openers.setdefault(
-            frozenset(list(request.proxies.items()) + [request.allow_redirects]),
-            self._create_opener(proxies=request.proxies, allow_redirects=request.allow_redirects))
+            frozenset(list(request.proxies.items())),
+            self._create_opener(proxies=request.proxies))
 
     def _real_handle(self, request):
         urllib_req = urllib.request.Request(
