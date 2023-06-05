@@ -11,15 +11,6 @@ class EplusIbIE(InfoExtractor):
     IE_DESC = 'e+ (イープラス) overseas'
     _VALID_URL = r'https?://live\.eplus\.jp/ex/player\?ib=(?P<id>(?:\w|%2B|%2F){86}%3D%3D)'
     _TESTS = [{
-        # simple fake url
-        'url': 'https://live.eplus.jp/ex/player?ib=00000000000000000000000000000000000000000000000000000000000000000000000000000000000000%3D%3D',
-        'only_matching': True,
-    }, {
-        # complex fake url
-        'url': 'https://live.eplus.jp/ex/player?ib=YA4Z%2Fz2rpI5cDl3V%2Bx9PI%2FXTGOX0j8IBzPthgx7%2BieWeff6iLcdsdsds1926zosZU9AbB3gdL3wG%2BNa1afQdIf%3D%3D',
-        'only_matching': True,
-    }, {
-        # fake url with real data
         'url': 'https://live.eplus.jp/ex/player?ib=YEFxb3Vyc2Dombnjg7blkrLlrablnJLjgrnjgq%2Fjg7zjg6vjgqLjgqTjg4njg6vlkIzlpb3kvJpgTGllbGxhIQ%3D%3D',
         'info_dict': {
             'id': '354502-0001-002',
