@@ -238,6 +238,10 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
         'playlist_mincount': 2040,
     }]
 
+    @classmethod
+    def suitable(cls, url):
+        return False if MotherlessIE.suitable(url) else super(MotherlessGroupIE, cls).suitable(url)
+
     def _correct_path(self, url, item_id):
         return urllib.parse.urljoin(url, f'/gv/{item_id}')
 
@@ -273,6 +277,10 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
         },
         'playlist_mincount': 420,
     }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if MotherlessIE.suitable(url) else super(MotherlessGalleryIE, cls).suitable(url)
 
     def _correct_path(self, url, item_id):
         return urllib.parse.urljoin(url, f'/GV{item_id}')
