@@ -314,6 +314,11 @@ class InfoExtractor:
                         * "author" - human-readable name of the comment author
                         * "author_id" - user ID of the comment author
                         * "author_thumbnail" - The thumbnail of the comment author
+                        * "author_url" - The url to the comment author's page
+                        * "author_is_verified" - Whether the author is verified
+                                                 on the platform
+                        * "author_is_uploader" - Whether the comment is made by
+                                                 the video uploader
                         * "id" - Comment ID
                         * "html" - Comment as HTML
                         * "text" - Plain text of the comment
@@ -325,8 +330,8 @@ class InfoExtractor:
                         * "dislike_count" - Number of negative ratings of the comment
                         * "is_favorited" - Whether the comment is marked as
                                            favorite by the video uploader
-                        * "author_is_uploader" - Whether the comment is made by
-                                                 the video uploader
+                        * "is_pinned" - Whether the comment is pinned to
+                                        the top of the comments
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -350,6 +355,10 @@ class InfoExtractor:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    heatmap:        A list of dictionaries, with the following entries:
+                        * "start_time" - The start time of the data point in seconds
+                        * "end_time" - The end time of the data point in seconds
+                        * "value" - The normalized value of the data point (float between 0 and 1)
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
@@ -3440,7 +3449,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return LenientSimpleCookie(self._downloader._calc_cookies(url))
+        return LenientSimpleCookie(self._downloader.cookiejar.get_cookie_header(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """

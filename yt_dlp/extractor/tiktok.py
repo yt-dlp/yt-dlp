@@ -62,7 +62,7 @@ class TikTokBaseIE(InfoExtractor):
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
             }, query=query)
 
@@ -79,11 +79,11 @@ class TikTokBaseIE(InfoExtractor):
             '_rticket': int(time.time() * 1000),
             'ts': int(time.time()),
             'device_brand': 'Google',
-            'device_type': 'Pixel 4',
+            'device_type': 'Pixel 7',
             'device_platform': 'android',
-            'resolution': '1080*1920',
+            'resolution': '1080*2400',
             'dpi': 420,
-            'os_version': '10',
+            'os_version': '13',
             'os_api': '29',
             'carrier_region': 'US',
             'sys_region': 'US',
@@ -624,6 +624,32 @@ class TikTokIE(TikTokBaseIE):
             'thumbnails': 'count:3',
         },
         'expected_warnings': ['Unable to find video in feed'],
+    }, {
+        # 1080p format
+        'url': 'https://www.tiktok.com/@tatemcrae/video/7107337212743830830',
+        'md5': '982512017a8a917124d5a08c8ae79621',
+        'info_dict': {
+            'id': '7107337212743830830',
+            'ext': 'mp4',
+            'title': 'new music video 4 don’t come backkkk🧸🖤 i hope u enjoy !! @musicontiktok',
+            'description': 'new music video 4 don’t come backkkk🧸🖤 i hope u enjoy !! @musicontiktok',
+            'uploader': 'tatemcrae',
+            'uploader_id': '86328792343818240',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
+            'channel_id': 'MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
+            'creator': 't8',
+            'artist': 't8',
+            'track': 'original sound',
+            'upload_date': '20220609',
+            'timestamp': 1654805899,
+            'duration': 150,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
+        'params': {'format': 'bytevc1_1080p_808907-0'},
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
