@@ -67,7 +67,7 @@ class NhkBaseIE(InfoExtractor):
             info.update({
                 '_type': 'url_transparent',
                 'ie_key': 'Piksel',
-                'url': 'https://player.piksel.com/v/refid/nhkworld/prefid/' + vod_id,
+                'url': 'https://movie-s.nhk.or.jp/v/refid/nhkworld/prefid/' + vod_id,
                 'id': vod_id,
             })
         else:
@@ -94,6 +94,19 @@ class NhkVodIE(NhkBaseIE):
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2061601/',
+        'info_dict': {
+            'id': 'yd8322ch',
+            'ext': 'mp4',
+            'description': 'md5:109c8b05d67a62d0592f2b445d2cd898',
+            'title': 'GRAND SUMO Highlights - [Recap] May Tournament Day 1 (Opening Day)',
+            'upload_date': '20230514',
+            'timestamp': 1684083791,
+            'series': 'GRAND SUMO Highlights',
+            'episode': '[Recap] May Tournament Day 1 (Opening Day)',
+            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1684084443/4028649.jpg?w=1920&h=1080',
+        },
+    }, {
         # video clip
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999011/',
         'md5': '7a90abcfe610ec22a6bfe15bd46b30ca',
@@ -104,6 +117,9 @@ class NhkVodIE(NhkBaseIE):
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
             'timestamp': 1565965194,
             'upload_date': '20190816',
+            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1567086278/3715195.jpg?w=1920&h=1080',
+            'series': 'Dining with the Chef',
+            'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
         },
     }, {
         # audio clip
@@ -114,10 +130,7 @@ class NhkVodIE(NhkBaseIE):
             'title': "Japan's Top Inventions - Miniature Video Cameras",
             'description': 'md5:07ea722bdbbb4936fdd360b6a480c25b',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
         'only_matching': True,
@@ -133,7 +146,6 @@ class NhkVodIE(NhkBaseIE):
     }, {
         # video, alphabetic character in ID #29670
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999a34/',
-        'only_matching': True,
         'info_dict': {
             'id': 'qfjay6cg',
             'ext': 'mp4',
@@ -142,7 +154,8 @@ class NhkVodIE(NhkBaseIE):
             'thumbnail': r're:^https?:/(/[a-z0-9.-]+)+\.jpg\?w=1920&h=1080$',
             'upload_date': '20210615',
             'timestamp': 1623722008,
-        }
+        },
+        'skip': '404 Not Found',
     }]
 
     def _real_extract(self, url):
@@ -153,12 +166,19 @@ class NhkVodProgramIE(NhkBaseIE):
     _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
     _TESTS = [{
         # video program episodes
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
+        'info_dict': {
+            'id': 'sumo',
+            'title': 'GRAND SUMO Highlights',
+        },
+        'playlist_mincount': 12,
+    }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway',
         'info_dict': {
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
         },
-        'playlist_mincount': 1,
+        'playlist_mincount': 12,
     }, {
         # video program clips
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway/?type=clip',
