@@ -82,8 +82,6 @@ class EplusIbIE(InfoExtractor):
         else:
             for m3u8_playlist_url in m3u8_playlist_urls:
                 formats.extend(self._extract_m3u8_formats(m3u8_playlist_url, video_id))
-
-        if formats:
             # FIXME: HTTP request headers need to be updated to continue download
             warning = 'Due to technical limitations, the download will be interrupted after one hour'
             if live_status == 'is_live':
