@@ -916,7 +916,7 @@ class BiliIntlBaseIE(InfoExtractor):
                 continue
 
             subtitles.setdefault(sub.get('lang_key', 'en'), []).append({
-                'ext': 'srt',
+                'ext': sub_ext,
                 'data': sub_data
             })
 
