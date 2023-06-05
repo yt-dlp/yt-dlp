@@ -95,6 +95,5 @@ class EplusIbIE(InfoExtractor):
             'formats': formats,
             'live_status': live_status,
             'description': data_json.get('content'),
-            'timestamp': release_timestamp,
             'release_timestamp': release_timestamp,
         }
