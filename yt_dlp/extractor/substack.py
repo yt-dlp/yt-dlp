@@ -2,7 +2,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import str_or_none, traverse_obj
+from ..utils import js_to_json, str_or_none, traverse_obj
 
 
 class SubstackIE(InfoExtractor):
@@ -14,7 +14,7 @@ class SubstackIE(InfoExtractor):
             'id': '47660949',
             'ext': 'mp4',
             'title': 'I MADE A VLOG',
-            'description': 'md5:10c01ff93439a62e70ce963b2aa0b7f6',
+            'description': 'md5:9248af9a759321e1027226f988f54d96',
             'thumbnail': 'md5:bec758a34d8ee9142d43bcebdf33af18',
             'uploader': 'Maybe Baby',
             'uploader_id': '33628',
@@ -77,7 +77,9 @@ class SubstackIE(InfoExtractor):
         display_id, username = self._match_valid_url(url).group('id', 'username')
         webpage = self._download_webpage(url, display_id)
 
-        webpage_info = self._search_json(r'<script[^>]*>\s*window\._preloads\s*=', webpage, 'preloads', display_id)
+        webpage_info = self._parse_json(self._search_json(
+            r'window\._preloads\s*=\s*JSON\.parse\(', webpage, 'json string',
+            display_id, transform_source=js_to_json, contains_pattern=r'"{(?s:.+)}"'), display_id)
 
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
