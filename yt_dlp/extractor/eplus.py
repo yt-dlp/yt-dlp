@@ -60,7 +60,8 @@ class EplusIbIE(InfoExtractor):
         elif delivery_status == 'CONFIRMED_ARCHIVE':
             live_status = 'was_live'
         else:
-            raise ExtractorError(f'Unknown delivery_status: {delivery_status}')
+            self.report_warning(f'Unknown delivery_status {delivery_status}, treat it as a live')
+            live_status = 'is_live'
 
         formats = []
 
