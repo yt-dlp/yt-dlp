@@ -353,7 +353,7 @@ def validate_options(opts):
                 chapters.append(re.compile(regex))
             except re.error as err:
                 raise ValueError(f'invalid {name} regex "{regex}" - {err}')
-        return chapters, ranges, behavior_flag,set_duration
+        return chapters, ranges, behavior_flag, set_duration
 
     opts.remove_chapters, opts.remove_ranges, flag, set_duration = parse_chapters('--remove-chapters', opts.remove_chapters)
     opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges))
