@@ -3768,7 +3768,7 @@ class download_range_func:
         local_ranges = []
 
         if (self.flag & self.Flags.EXTRACT_RANGE_FROM_URL) > 0:
-            local_ranges = self.extract_ranges_from_url(info_dict.get('original_url'),self.set_duration)
+            local_ranges = self.extract_ranges_from_url(info_dict.get('original_url'), self.set_duration)
 
         # yield with nothing if no ranges are present
         if not self.ranges and not self.chapters and not local_ranges:
@@ -3809,17 +3809,17 @@ class download_range_func:
         # Check if 'h' is present in the time string
         if 'h' in time_str:
             hours, time_str = time_str.split('h')
-            total_seconds += float_or_none(hours,default=0.0) * 3600
+            total_seconds += float_or_none(hours, default=0.0) * 3600
 
         # Check if 'm' is present in the remaining time string
         if 'm' in time_str:
             minutes, time_str = time_str.split('m')
-            total_seconds += float_or_none(minutes,default=0.0) * 60
+            total_seconds += float_or_none(minutes, default=0.0) * 60
 
         # Remove 's' if present and add the remaining seconds
         if 's' in time_str:
             seconds = time_str.rstrip('s')
-            total_seconds += float_or_none(seconds,default=0.0)
+            total_seconds += float_or_none(seconds, default=0.0)
 
         # yes, it's silly to convert float to string and then convert it back, but the alternative was an extra loop
         # in extract_ranges_from_url
@@ -3838,11 +3838,11 @@ class download_range_func:
     # that have a start value,if set_duration is not set and the end value is not specified, the end value
     # is set to inf. If both set_duration and end value are set, the end value specified in the URL takes precedence.
     @staticmethod
-    def extract_ranges_from_url(url,set_duration):
+    def extract_ranges_from_url(url, set_duration):
         produced_ranges = []
         parsed_url = urllib.parse.urlparse(url)
         query_params = urllib.parse.parse_qs(parsed_url.query)
-        start_array=[]
+        start_array = []
 
         # Get the values of "t" parameters, treated the same as start parameter after conversion to seconds
         t_array = query_params.get('t', [])
@@ -3856,14 +3856,14 @@ class download_range_func:
 
         for i in range(max_pairs):
             start = start_array[i] if i < len(start_array) else '0'  # default is 0
-            start_float=float_or_none(start,default=0.0)
+            start_float = float_or_none(start, default=0.0)
 
             end_float = float('inf')  # if end_float is not set anywhere else, it remains inf
-            if i < len(end_array): #if end is set it takes precedence over set_duration
-                end_float=float_or_none(end_array[i],default=float('inf'))
+            if i < len(end_array):  # if end is set it takes precedence over set_duration
+                end_float = float_or_none(end_array[i], default=float('inf'))
             else:
                 if set_duration is not None:
-                    end_float=start_float+set_duration
+                    end_float = start_float + set_duration
 
             produced_ranges.append((start_float, end_float,))
 
