@@ -3749,16 +3749,18 @@ def match_filter_func(filters, breaking_filters=None):
 
 class download_range_func:
 
-    # Flags is an ENUM which would affect the range generation behavior
+    # flags is a bit field which would affect the range generation behavior
     # in the future additional flag options can be added for generating ranges
+    # the values should be powers of 2 for possible combinations, i.e. 0,1,2,4,8,16 ...
     class Flags:
         # normal behavior, only process explicit ranges and chapters
         NORMAL = 0
         # new behavior, attempt to extract ranges from the URL, in addition to normal behavior
         EXTRACT_RANGE_FROM_URL = 1
 
-    def __init__(self, chapters, ranges, flag):
-        self.chapters, self.ranges, self.flag = chapters, ranges, flag
+    # set_duration affects treatment of calculated ranges where end is not specified in the URL
+    def __init__(self, chapters, ranges, flag, set_duration):
+        self.chapters, self.ranges, self.flag, self.set_duration = chapters, ranges, flag, set_duration
 
     def __call__(self, info_dict, ydl):
         # stores ranges produced in this method, by extracting those from the url
@@ -3766,7 +3768,7 @@ class download_range_func:
         local_ranges = []
 
         if (self.flag & self.Flags.EXTRACT_RANGE_FROM_URL) > 0:
-            local_ranges = self.extract_ranges_from_url(info_dict.get('original_url'))
+            local_ranges = self.extract_ranges_from_url(info_dict.get('original_url'),self.set_duration)
 
         # yield with nothing if no ranges are present
         if not self.ranges and not self.chapters and not local_ranges:
@@ -3787,10 +3789,41 @@ class download_range_func:
 
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
-                and self.chapters == other.chapters and self.ranges == other.ranges and self.flag == other.flag)
+                and self.chapters == other.chapters and self.ranges == other.ranges and self.flag == other.flag and self.set_duration == other.set_duration)
 
     def __repr__(self):
-        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges},{self.flag})'
+        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges},{self.flag},{self.set_duration})'
+
+    @staticmethod
+    # Converts strings of the format 1h2m3s to seconds, if the string is already in digits returns it
+    # works with any combination of h m and s
+    # used to extract the second of sets for URLs of the formats
+    # https://www.youtube.com/watch?v=VID&t=1h2m1s
+    def time_string_to_seconds(time_str):
+
+        if time_str.isdigit():
+            return time_str
+
+        total_seconds = 0.0
+
+        # Check if 'h' is present in the time string
+        if 'h' in time_str:
+            hours, time_str = time_str.split('h')
+            total_seconds += float_or_none(hours,default=0.0) * 3600
+
+        # Check if 'm' is present in the remaining time string
+        if 'm' in time_str:
+            minutes, time_str = time_str.split('m')
+            total_seconds += float_or_none(minutes,default=0.0) * 60
+
+        # Remove 's' if present and add the remaining seconds
+        if 's' in time_str:
+            seconds = time_str.rstrip('s')
+            total_seconds += float_or_none(seconds,default=0.0)
+
+        # yes, it's silly to convert float to string and then convert it back, but the alternative was an extra loop
+        # in extract_ranges_from_url
+        return str(total_seconds)
 
     # Extracts ranges from the url, for example https://www.youtube.com/embed/VIDEOID?start=6&end=10
     # the url must include at least one start or one end
@@ -3798,19 +3831,41 @@ class download_range_func:
     # if end is missing the default value is inf (up to the end of the video)
     # if multiple start and end parameters are specified they are paired in order of appearance and multiple ranges
     # are produced, for example start=6&end=8&start=15&end=20 would result in two ranges 6-8 and 15-20
+    # the parameter t is treated the same as start but first is converted into seconds allowing for formats
+    # 1h2m3s 2m5s 190s ,any combination of the above or a number in seconds
+    # In the case that end is not specified in the URL - like www.youtube.com/watch?v=VID&t=552s
+    # and set_duration is set, it is usedto calculate the end as an offset from the start value for all URLs
+    # that have a start value,if set_duration is not set and the end value is not specified, the end value
+    # is set to inf. If both set_duration and end value are set, the end value specified in the URL takes precedence.
     @staticmethod
-    def extract_ranges_from_url(url):
+    def extract_ranges_from_url(url,set_duration):
         produced_ranges = []
         parsed_url = urllib.parse.urlparse(url)
         query_params = urllib.parse.parse_qs(parsed_url.query)
+        start_array=[]
+
+        # Get the values of "t" parameters, treated the same as start parameter after conversion to seconds
+        t_array = query_params.get('t', [])
+        for i in range(len(t_array)):
+            start_array.append(download_range_func.time_string_to_seconds(t_array[i]))
+
         # Get the values of "start" and "end" parameters
-        start_array = query_params.get('start', [])
+        start_array = start_array + query_params.get('start', [])
         end_array = query_params.get('end', [])
         max_pairs = max(len(start_array), len(end_array))
+
         for i in range(max_pairs):
             start = start_array[i] if i < len(start_array) else '0'  # default is 0
-            end = end_array[i] if i < len(end_array) else 'inf'  # default is inf
-            produced_ranges.append((float(start), float(end),))
+            start_float=float_or_none(start,default=0.0)
+
+            end_float = float('inf')  # if end_float is not set anywhere else, it remains inf
+            if i < len(end_array): #if end is set it takes precedence over set_duration
+                end_float=float_or_none(end_array[i],default=float('inf'))
+            else:
+                if set_duration is not None:
+                    end_float=start_float+set_duration
+
+            produced_ranges.append((start_float, end_float,))
 
         return produced_ranges
 

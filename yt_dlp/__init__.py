@@ -326,13 +326,19 @@ def validate_options(opts):
         # define a special flag which will be passed to the constructor of download_range_func
         # which would influence the behavior of range generation per video
         behavior_flag = download_range_func.Flags.NORMAL
+        set_duration = None
 
         for regex in value or []:
             # when --download-sections "*from_urls" pass a special flag to download_range_func
             # the flag causes download_range_func to extract the start and end time for the range from the URL
             # for example https://www.youtube.com/embed/VIDEOID?start=6&end=10
-            if regex == '*from_urls':
+            # if *from_urls+number is specified, this indicates the number of seconds to be added to the start
+            # if end is missing, if +number is not specified end is assumed to be infinite (until the end of the video)
+            if regex.startswith('*from_urls'):
                 behavior_flag = download_range_func.Flags.EXTRACT_RANGE_FROM_URL
+                split_string = regex.split("+")
+                if len(split_string) > 1:
+                    set_duration = float(split_string[1])
                 continue
             elif regex.startswith('*'):
                 for range_ in map(str.strip, regex[1:].split(',')):
@@ -347,9 +353,9 @@ def validate_options(opts):
                 chapters.append(re.compile(regex))
             except re.error as err:
                 raise ValueError(f'invalid {name} regex "{regex}" - {err}')
-        return chapters, ranges, behavior_flag
+        return chapters, ranges, behavior_flag,set_duration
 
-    opts.remove_chapters, opts.remove_ranges, flag = parse_chapters('--remove-chapters', opts.remove_chapters)
+    opts.remove_chapters, opts.remove_ranges, flag, set_duration = parse_chapters('--remove-chapters', opts.remove_chapters)
     opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges))
 
     # if --download-sections "*from_urls" and the output template is not set change the default template to include

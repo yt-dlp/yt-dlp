@@ -619,9 +619,21 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     "*10:15-inf" --download-sections "intro".
 				    --download-sections "*from_url" can be set
 				    to extract sections automaticall from urls 
-				    like www.youtube.com/embed/VID?start=6&end=10
-				    If output template is not set *from_url would
-				    automatically add timestamps to the file name
+				    www.youtube.com/embed/VID?start=6&end=10
+				    youtu.be/VID?t=552
+				    www.youtube.com/watch?v=VID&t=552s
+				    www.youtube.com/watch?v=VID&t=1h9m10s
+				    If the end value is not specified the s
+				    ection is calculated to be until the end
+				    of the video. Alternatively "*from_url+999"
+				    can be specified, where 999 is the duration
+				    in seconds which is added to the start time
+				    for all URLS where the start or t value is 
+				    specified. If both end value and duration 
+				    are specified the end value takes precedence.
+				    If output template is not set, *from_url 
+				    would automatically add timestamps to the 
+				    output file name
 				    "%(title)s-%(id)s-%(section_start)s-
 				    %(section_end)s.%(ext)s"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
