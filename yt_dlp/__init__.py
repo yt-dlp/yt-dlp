@@ -323,11 +323,22 @@ def validate_options(opts):
     def parse_chapters(name, value):
         chapters, ranges = [], []
         parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
+        # define a special flag which will be passed to the constructor of download_range_func
+        # which would influence the behavior of range generation per video
+        behavior_flag = download_range_func.Flags.NORMAL
+
         for regex in value or []:
-            if regex.startswith('*'):
+            # when --download-sections "*from_urls" pass a special flag to download_range_func
+            # the flag causes download_range_func to extract the start and end time for the range from the URL
+            # for example https://www.youtube.com/embed/VIDEOID?start=6&end=10
+            if regex == '*from_urls':
+                behavior_flag = download_range_func.Flags.EXTRACT_RANGE_FROM_URL
+                continue
+            elif regex.startswith('*'):
                 for range_ in map(str.strip, regex[1:].split(',')):
                     mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
                     dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
+
                     if None in (dur or [None]):
                         raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "*start-end"')
                     ranges.append(dur)
@@ -336,10 +347,17 @@ def validate_options(opts):
                 chapters.append(re.compile(regex))
             except re.error as err:
                 raise ValueError(f'invalid {name} regex "{regex}" - {err}')
-        return chapters, ranges
+        return chapters, ranges, behavior_flag
 
-    opts.remove_chapters, opts.remove_ranges = parse_chapters('--remove-chapters', opts.remove_chapters)
+    opts.remove_chapters, opts.remove_ranges, flag = parse_chapters('--remove-chapters', opts.remove_chapters)
     opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges))
+
+    # if --download-sections "*from_urls" and the output template is not set change the default template to include
+    # section_start and section_end, otherwise in the default case multiple sections from the same video will
+    # attempt to write to the same file
+    if (opts.download_ranges.flag & download_range_func.Flags.EXTRACT_RANGE_FROM_URL) > 0:
+        if opts.outtmpl.get('default') is None:
+            opts.outtmpl.update({'default': '%(title)s-%(id)s-%(section_start)s-%(section_end)s.%(ext)s'})
 
     # Cookies from browser
     if opts.cookiesfrombrowser:

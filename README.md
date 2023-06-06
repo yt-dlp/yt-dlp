@@ -616,7 +616,14 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     Needs ffmpeg. This option can be used
                                     multiple times to download multiple
                                     sections, e.g. --download-sections
-                                    "*10:15-inf" --download-sections "intro"
+                                    "*10:15-inf" --download-sections "intro".
+				    --download-sections "*from_url" can be set
+				    to extract sections automaticall from urls 
+				    like www.youtube.com/embed/VID?start=6&end=10
+				    If output template is not set *from_url would
+				    automatically add timestamps to the file name
+				    "%(title)s-%(id)s-%(section_start)s-
+				    %(section_end)s.%(ext)s"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to

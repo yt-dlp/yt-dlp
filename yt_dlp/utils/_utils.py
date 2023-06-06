@@ -3748,11 +3748,28 @@ def match_filter_func(filters, breaking_filters=None):
 
 
 class download_range_func:
-    def __init__(self, chapters, ranges):
-        self.chapters, self.ranges = chapters, ranges
+
+    # Flags is an ENUM which would affect the range generation behavior
+    # in the future additional flag options can be added for generating ranges
+    class Flags:
+        # normal behavior, only process explicit ranges and chapters
+        NORMAL = 0
+        # new behavior, attempt to extract ranges from the URL, in addition to normal behavior
+        EXTRACT_RANGE_FROM_URL = 1
+
+    def __init__(self, chapters, ranges, flag):
+        self.chapters, self.ranges, self.flag = chapters, ranges, flag
 
     def __call__(self, info_dict, ydl):
-        if not self.ranges and not self.chapters:
+        # stores ranges produced in this method, by extracting those from the url
+        # for example https://www.youtube.com/embed/VIDEOID?start=6&end=10
+        local_ranges = []
+
+        if (self.flag & self.Flags.EXTRACT_RANGE_FROM_URL) > 0:
+            local_ranges = self.extract_ranges_from_url(info_dict.get('original_url'))
+
+        # yield with nothing if no ranges are present
+        if not self.ranges and not self.chapters and not local_ranges:
             yield {}
 
         warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
@@ -3765,14 +3782,37 @@ class download_range_func:
         if self.chapters and warning:
             ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
 
-        yield from ({'start_time': start, 'end_time': end} for start, end in self.ranges or [])
+        # adds local_ranges to the present ranges
+        yield from ({'start_time': start, 'end_time': end} for start, end in self.ranges + local_ranges or [])
 
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
-                and self.chapters == other.chapters and self.ranges == other.ranges)
+                and self.chapters == other.chapters and self.ranges == other.ranges and self.flag == other.flag)
 
     def __repr__(self):
-        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges})'
+        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges},{self.flag})'
+
+    # Extracts ranges from the url, for example https://www.youtube.com/embed/VIDEOID?start=6&end=10
+    # the url must include at least one start or one end
+    # if start is missing the default value is 0
+    # if end is missing the default value is inf (up to the end of the video)
+    # if multiple start and end parameters are specified they are paired in order of appearance and multiple ranges
+    # are produced, for example start=6&end=8&start=15&end=20 would result in two ranges 6-8 and 15-20
+    @staticmethod
+    def extract_ranges_from_url(url):
+        produced_ranges = []
+        parsed_url = urllib.parse.urlparse(url)
+        query_params = urllib.parse.parse_qs(parsed_url.query)
+        # Get the values of "start" and "end" parameters
+        start_array = query_params.get('start', [])
+        end_array = query_params.get('end', [])
+        max_pairs = max(len(start_array), len(end_array))
+        for i in range(max_pairs):
+            start = start_array[i] if i < len(start_array) else '0'  # default is 0
+            end = end_array[i] if i < len(end_array) else 'inf'  # default is inf
+            produced_ranges.append((float(start), float(end),))
+
+        return produced_ranges
 
 
 def parse_dfxp_time_expr(time_expr):
