@@ -243,6 +243,7 @@ class RozhlasVltavaIE(RozhlasBaseIE):
 class MujRozhlasIE(RozhlasBaseIE):
     _VALID_URL = r'https?://(?:www\.)?mujrozhlas\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
+        # single episode extraction
         'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
         'md5': '6f8fd68663e64936623e67c152a669e0',
         'info_dict': {
@@ -259,6 +260,7 @@ class MujRozhlasIE(RozhlasBaseIE):
             'modified_date': '20230524',
         },
     }, {
+        # serial extraction
         'url': 'https://www.mujrozhlas.cz/cetba-na-pokracovani/zena-v-polarni-noci-z-fascinujiciho-deniku-vyjimecne-odvazne-christiane',
         'playlist_mincount': 6,
         'info_dict': {
@@ -267,6 +269,7 @@ class MujRozhlasIE(RozhlasBaseIE):
             'description': 'md5:f462de4b948bc91f7192af10bde3c279',
         },
     }, {
+        # show extraction
         'url': 'https://www.mujrozhlas.cz/nespavci',
         'playlist_mincount': 14,
         'info_dict': {
