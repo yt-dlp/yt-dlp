@@ -3980,13 +3980,18 @@ class YoutubeDL:
 
     def build_request_director(self, handlers):
         director = RequestDirector(logger=self)
+        headers = CaseInsensitiveDict(self.params.get('http_headers'))
+        proxies = self.proxies.copy()
+        clean_headers(headers)
+        clean_proxies(proxies, headers)
+
         for handler in handlers:
             params = {
                 'logger': self,
-                'headers': self.params.get('http_headers'),
+                'headers': headers,
                 'cookiejar': self.cookiejar,
                 'timeout': self.params.get('socket_timeout'),
-                'proxies': self.proxies,
+                'proxies': proxies,
                 'source_address': self.params.get('source_address'),
                 'verbose': bool(self.params.get('debug_printtraffic')),
                 'prefer_system_certs': 'no-certifi' in self.params.get('compat_opts', []),

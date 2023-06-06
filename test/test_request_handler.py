@@ -966,3 +966,26 @@ class TestYDLRequestDirectorBuilder:
         with FakeYDL({'enable_file_urls': True}) as ydl:
             rh = self.build_handler(ydl, UrllibRH)
             assert rh.enable_file_urls is True
+
+    @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
+        ('http', '__noproxy__', None),
+        ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
+        ('https', 'example.com', 'http://example.com'),
+    ])
+    def test_clean_proxy(self, proxy_key, proxy_url, expected):
+        env_key = f'{proxy_key.upper()}_PROXY'
+        old_env_proxy = os.environ.get(env_key)
+        try:
+            os.environ[env_key] = proxy_url  # ensure that provided proxies override env
+            with FakeYDL() as ydl:
+                rh = self.build_handler(ydl)
+                assert rh.proxies[proxy_key] == expected
+        finally:
+            if old_env_proxy:
+                os.environ[env_key] = old_env_proxy
+
+    def test_clean_proxy_header(self):
+        with FakeYDL({'http_headers': {'ytdl-request-proxy': '//foo.bar'}}) as ydl:
+            rh = self.build_handler(ydl)
+            assert 'ytdl-request-proxy' not in rh.headers
+            assert rh.proxies['all'] == 'http://foo.bar'
