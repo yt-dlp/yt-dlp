@@ -261,12 +261,12 @@ class MujRozhlasIE(RozhlasBaseIE):
         },
     }, {
         # serial extraction
-        'url': 'https://www.mujrozhlas.cz/cetba-na-pokracovani/zena-v-polarni-noci-z-fascinujiciho-deniku-vyjimecne-odvazne-christiane',
-        'playlist_mincount': 6,
+        'url': 'https://www.mujrozhlas.cz/radiokniha/jaroslava-janackova-pribeh-tajemneho-psani-o-pramenech-genezi-babicky',
+        'playlist_mincount': 7,
         'info_dict': {
-            'id': '260da22a-1cde-3718-a1d9-4515f864c0ab',
-            'title': 'Žena v polární noci. Z fascinujícího deníku výjimečné a odvážné Christiane Ritterové',
-            'description': 'md5:f462de4b948bc91f7192af10bde3c279',
+            'id': 'bb2b5f4e-ffb4-35a6-a34a-046aa62d6f6b',
+            'title': 'Jaroslava Janáčková: Příběh tajemného psaní. O pramenech a genezi Babičky',
+            'description': 'md5:7434d8fac39ac9fee6df098e11dfb1be',
         },
     }, {
         # show extraction
