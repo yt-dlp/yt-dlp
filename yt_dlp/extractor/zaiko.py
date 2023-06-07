@@ -36,7 +36,7 @@ class ZaikoIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         stream_meta = self._parse_vue_element_attr('stream-page', webpage)
 
-        headers = { 'referer': 'https://zaiko.io/' }
+        headers = {'referer': 'https://zaiko.io/'}
         player_page = self._download_webpage(stream_meta['stream-access']['video_source'], video_id, headers=headers)
         player_meta = self._parse_vue_element_attr('player', player_page)
 
