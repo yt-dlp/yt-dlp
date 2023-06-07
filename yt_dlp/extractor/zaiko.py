@@ -1,12 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
     extract_attributes,
-    remove_start,
+    int_or_none,
+    str_or_none,
+    traverse_obj,
     unescapeHTML,
     url_or_none,
-    str_or_none,
-    int_or_none,
 )
 
 
