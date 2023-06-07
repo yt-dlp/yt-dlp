@@ -42,13 +42,18 @@ class ZaikoIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': stream_meta['event']['name'],
-            "alt_title": traverse_obj(player_meta, ("initial_event_info", "title")),
-            'formats': self._extract_m3u8_formats(player_meta["initial_event_info"]["endpoint"], video_id),
-            "thumbnail": traverse_obj(player_meta, ("initial_event_info", "poster_url")),
-            "uploader": traverse_obj(stream_meta, ("profile", "name")),
-            "timestamp": traverse_obj(stream_meta, ("stream", "start", "timestamp")),
-            "release_timestamp": traverse_obj(stream_meta, ("stream", "start", "timestamp")),
-            "uploader_id": traverse_obj(stream_meta, ("profile", "id")),
-            "categories": traverse_obj(stream_meta, ("event", "genres")),
+            'formats': self._extract_m3u8_formats(
+                player_meta['initial_event_info']['endpoint'], video_id),
+            **traverse_obj(stream_meta, {
+                'title': ('event', 'name', {str}),
+                'uploader': ('profile', 'name', {str}),
+                'uploader_id': ('profile', 'id', {str_or_none}),
+                'timestamp': ('stream', 'start', 'timestamp', {int_or_none}),
+                'release_timestamp': ('stream', 'start', 'timestamp', {int_or_none}),
+                'categories': ('event', 'genres', ..., {lambda x: x or None}),
+            }),
+            **traverse_obj(player_meta, ('initial_event_info', {
+                'alt_title': ('title', {str}),
+                'thumbnail': ('poster_url', {url_or_none}),
+            })),
         }
