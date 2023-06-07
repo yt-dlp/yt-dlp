@@ -32,11 +32,9 @@ class ZaikoIE(InfoExtractor):
         page_elem = self._search_regex(rf'(<{name}[^>]+>)', string, name)
         attrs = {}
         for key, value in extract_attributes(page_elem).items():
-            if key[0] == ':':
-                attrs[remove_start(key, ':')] = self._parse_json(
+            if key.startswith(':'):
+                attrs[key[1:]] = self._parse_json(
                     value, video_id, transform_source=unescapeHTML, fatal=False)
-            else:
-                attrs[key] = value
         return attrs
 
     def _real_extract(self, url):
