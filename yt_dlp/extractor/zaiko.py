@@ -19,16 +19,13 @@ class ZaikoIE(InfoExtractor):
         }
     }]
 
-    def _parse_vue_element_attr(self, name, string):
-        page_elem = self._search_regex(r'<' + name + '([^>]+)>', string, name)
-        attr = {}
-        for m in re.finditer(r'(:?[\w\-_]+)="([^"]+)"', page_elem):
-            key, value = m.groups()
-            if key[0] == ':':
-                key = key[1:]
-                value = json.loads(html.unescape(value))
-            attr[key] = value
-        return attr
+    def _parse_vue_element_attr(self, name, string, video_id):
+        page_elem = self._search_regex(rf'(<{name}[^>]+>)', string, name)
+        attrs = {}
+        for key, value in extract_attributes(page_elem).items():
+            attrs[remove_start(key, ':')] = self._parse_json(
+                value, video_id, transform_source=unescapeHTML, fatal=False)
+        return attrs
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
