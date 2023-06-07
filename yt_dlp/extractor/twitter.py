@@ -149,7 +149,7 @@ class TwitterBaseIE(InfoExtractor):
     def _fetch_guest_token(self, headers, display_id):
         headers.pop('x-guest-token', None)
         self._guest_token = traverse_obj(self._download_json(
-            self._API_BASE + 'guest/activate.json', display_id,
+            f'{self._API_BASE}guest/activate.json', display_id,
             'Downloading guest token', data=b'', headers=headers), 'guest_token')
         if not self._guest_token:
             raise ExtractorError('Could not retrieve guest token')
@@ -161,7 +161,7 @@ class TwitterBaseIE(InfoExtractor):
             headers['x-csrf-token'] = csrf_token
         return headers
 
-    def _call_login_api(self, note, headers, query={}, data=None, expected=[]):
+    def _call_login_api(self, note, headers, query={}, data=None):
         response = self._download_json(
             f'{self._API_BASE}onboarding/task.json', None, note,
             headers=headers, query=query, data=data, expected_status=400)
@@ -172,8 +172,7 @@ class TwitterBaseIE(InfoExtractor):
             raise ExtractorError('Login was unsuccessful')
 
         subtask = traverse_obj(
-            response, ('subtasks', lambda _, v: v['subtask_id'] in expected, 'subtask_id'),
-            ('subtasks', ..., 'subtask_id', {str}), get_all=False)
+            response, ('subtasks', ..., 'subtask_id', {str}), get_all=False)
         if not subtask:
             raise ExtractorError('Twitter API did not return next login subtask')
 
@@ -226,7 +225,7 @@ class TwitterBaseIE(InfoExtractor):
                             'response': '{}',
                             'link': 'next_link'
                         }
-                    }), expected=('LoginEnterUserIdentifierSSO'))
+                    }))
 
             elif next_subtask == 'LoginEnterUserIdentifierSSO':
                 next_subtask = self._call_login_api(
@@ -243,11 +242,11 @@ class TwitterBaseIE(InfoExtractor):
                             }],
                             'link': 'next_link'
                         }
-                    }), expected=('LoginEnterAlternateIdentifierSubtask', 'LoginEnterPassword'))
+                    }))
 
             elif next_subtask == 'LoginEnterAlternateIdentifierSubtask':
                 next_subtask = self._call_login_api(
-                    'Submitting alternate identifier', headers, expected=('LoginEnterPassword'),
+                    'Submitting alternate identifier', headers,
                     data=build_login_json(input_dict(next_subtask, self._get_tfa_info(
                         'one of username, phone number or email that was not used as --username'))))
 
@@ -259,7 +258,7 @@ class TwitterBaseIE(InfoExtractor):
                             'password': password,
                             'link': 'next_link'
                         }
-                    }), expected=('AccountDuplicationCheck', 'LoginTwoFactorAuthChallenge', 'LoginAcid', 'LoginSuccessSubtask'))
+                    }))
 
             elif next_subtask == 'AccountDuplicationCheck':
                 next_subtask = self._call_login_api(
@@ -268,19 +267,17 @@ class TwitterBaseIE(InfoExtractor):
                         'check_logged_in_account': {
                             'link': 'AccountDuplicationCheck_false'
                         }
-                    }), expected=('LoginTwoFactorAuthChallenge', 'LoginAcid', 'LoginSuccessSubtask'))
+                    }))
 
             elif next_subtask == 'LoginTwoFactorAuthChallenge':
                 next_subtask = self._call_login_api(
                     'Submitting 2FA token', headers, data=build_login_json(input_dict(
-                        next_subtask, self._get_tfa_info('two-factor authentication token'))),
-                    expected=('AccountDuplicationCheck', 'LoginAcid', 'LoginSuccessSubtask'))
+                        next_subtask, self._get_tfa_info('two-factor authentication token'))))
 
             elif next_subtask == 'LoginAcid':
                 next_subtask = self._call_login_api(
                     'Submitting confirmation code', headers, data=build_login_json(input_dict(
-                        next_subtask, self._get_tfa_info('confirmation code sent to your email or phone'))),
-                    expected=('AccountDuplicationCheck', 'LoginTwoFactorAuthChallenge', 'LoginSuccessSubtask'))
+                        next_subtask, self._get_tfa_info('confirmation code sent to your email or phone'))))
 
             elif next_subtask == 'LoginSuccessSubtask':
                 raise ExtractorError('Twitter API did not grant auth token cookie')
