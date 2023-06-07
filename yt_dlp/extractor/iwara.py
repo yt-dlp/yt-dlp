@@ -1,16 +1,20 @@
 import functools
 import urllib.parse
+import urllib.error
 import hashlib
 import json
+import time
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     int_or_none,
+    jwt_decode_hs256,
     mimetype2ext,
     qualities,
     traverse_obj,
+    try_call,
     unified_timestamp,
 )
 
@@ -27,7 +31,8 @@ class IwaraBaseIE(InfoExtractor):
 
         username, password = self._get_login_info()
         IwaraBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
-        if not IwaraBaseIE._USERTOKEN or invalidate:
+        expiry = try_call(lambda: jwt_decode_hs256(IwaraBaseIE._USERTOKEN)['exp']) or 0
+        if not IwaraBaseIE._USERTOKEN or invalidate or expiry <= time.time():
             IwaraBaseIE._USERTOKEN = self._download_json(
                 'https://api.iwara.tv/user/login', None, note='Logging in',
                 data=json.dumps({
@@ -45,6 +50,8 @@ class IwaraBaseIE(InfoExtractor):
     def _get_media_token(self, invalidate=False):
         if not invalidate and self._MEDIATOKEN:
             return self._MEDIATOKEN
+        elif invalidate:
+            IwaraBaseIE._MEDIATOKEN = None
 
         try:
             IwaraBaseIE._MEDIATOKEN = self._download_json(
@@ -55,9 +62,28 @@ class IwaraBaseIE(InfoExtractor):
                     'Content-Type': 'application/json'
                 })['accessToken']
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
-                self.write_debug('User Token Expired')
+            if not isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                raise
+            self.write_debug('User token has expired')
         return self._MEDIATOKEN
+
+    def _perform_login(self, username, password):
+        if self._USERTOKEN and self._MEDIATOKEN:
+            return
+        elif self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
+            self.write_debug('Skipping logging in')
+            return
+
+        IwaraBaseIE._USERTOKEN = self._get_user_token(True)
+        self._get_media_token(True)
+        self.cache.store(self._NETRC_MACHINE, username, IwaraBaseIE._USERTOKEN)
+
+    def _prepare_auth_header(self):
+        username, password = self._get_login_info()
+        if username and password:
+            self._get_media_token()
+
+        return {'Authorization': f'Bearer {self._MEDIATOKEN}'} if self._MEDIATOKEN else None
 
 
 class IwaraIE(IwaraBaseIE):
@@ -146,7 +172,9 @@ class IwaraIE(IwaraBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         username, _ = self._get_login_info()
-        video_data = self._download_json(f'https://api.iwara.tv/video/{video_id}', video_id, expected_status=lambda x: True, headers=self._prepare_auth_header())
+        video_data = self._download_json(
+            f'https://api.iwara.tv/video/{video_id}', video_id,
+            expected_status=lambda x: True, headers=self._prepare_auth_header())
         errmsg = video_data.get('message')
         # at this point we can actually get uploaded user info, but do we need it?
         if errmsg == 'errors.privateVideo':
@@ -181,25 +209,8 @@ class IwaraIE(IwaraBaseIE):
             'formats': list(self._extract_formats(video_id, video_data.get('fileUrl'))),
         }
 
-    def _perform_login(self, username, password):
-        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
-            self.write_debug('Skipping logging in')
-            return
 
-        IwaraBaseIE._USERTOKEN = self._get_user_token(True)
-        self._get_media_token(True)
-        self.cache.store(self._NETRC_MACHINE, username, IwaraBaseIE._USERTOKEN)
-
-    def _prepare_auth_header(self):
-        username, password = self._get_login_info()
-        headers = {
-            'Authorization': f'Bearer {self._get_media_token()}',
-        } if username and password else None
-
-        return headers
-
-
-class IwaraUserIE(IwaraIE):
+class IwaraUserIE(IwaraBaseIE):
     _VALID_URL = r'https?://(?:www\.)?iwara\.tv/profile/(?P<id>[^/?#&]+)'
     IE_NAME = 'iwara:user'
     _PER_PAGE = 32
@@ -257,7 +268,7 @@ class IwaraUserIE(IwaraIE):
             playlist_id, traverse_obj(user_info, ('user', 'name')))
 
 
-class IwaraPlaylistIE(IwaraIE):
+class IwaraPlaylistIE(IwaraBaseIE):
     # the ID is an UUID but I don't think it's necessary to write concrete regex
     _VALID_URL = r'https?://(?:www\.)?iwara\.tv/playlist/(?P<id>[0-9a-f-]+)'
     IE_NAME = 'iwara:playlist'
