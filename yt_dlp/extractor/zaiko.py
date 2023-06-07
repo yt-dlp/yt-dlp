@@ -18,7 +18,6 @@ class ZaikoIE(InfoExtractor):
             'id': '324868',
             'ext': 'mp4',
             'title': 'ZAIKO STREAMING TEST',
-
             'alt_title': '[VOD] ZAIKO STREAMING TEST_20210603(Do Not Delete)',
             'uploader_id': '454',
             'uploader': 'ZAIKO ZERO',
