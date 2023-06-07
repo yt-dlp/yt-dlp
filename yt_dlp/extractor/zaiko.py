@@ -51,5 +51,4 @@ class ZaikoIE(InfoExtractor):
             "release_timestamp": traverse_obj(stream_meta, ("stream", "start", "timestamp")),
             "uploader_id": traverse_obj(stream_meta, ("profile", "id")),
             "categories": traverse_obj(stream_meta, ("event", "genres")),
-            "_raw": [stream_meta, player_meta],
         }
