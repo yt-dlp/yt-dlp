@@ -33,11 +33,12 @@ class ZaikoIE(InfoExtractor):
         webpage, urlh = self._download_webpage_handle(url, video_id)
         if 'zaiko.io/login' in urlh.geturl():
             self.raise_login_required()
-        stream_meta = self._parse_vue_element_attr('stream-page', webpage)
+        stream_meta = self._parse_vue_element_attr('stream-page', webpage, video_id)
 
-        headers = {'referer': 'https://zaiko.io/'}
-        player_page = self._download_webpage(stream_meta['stream-access']['video_source'], video_id, headers=headers)
-        player_meta = self._parse_vue_element_attr('player', player_page)
+        player_page = self._download_webpage(
+            stream_meta['stream-access']['video_source'], video_id,
+            'Downloading player page', headers={'referer': 'https://zaiko.io/'})
+        player_meta = self._parse_vue_element_attr('player', player_page, video_id)
 
         return {
             'id': video_id,
