@@ -15,11 +15,17 @@ class ZaikoIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://zaiko.io/event/324868/stream/20571/20571',
         'info_dict': {
-            'id': 324868,
+            'id': '324868',
             'ext': 'mp4',
             'title': 'ZAIKO STREAMING TEST',
-            'uploader_id': 454,
+
+            'alt_title': '[VOD] ZAIKO STREAMING TEST_20210603(Do Not Delete)',
+            'uploader_id': '454',
+            'uploader': 'ZAIKO ZERO',
             'timestamp': 1583809200,
+            'thumbnail': r're:https://[a-z0-9]+.cloudfront.net/[a-z0-9_]+/[a-z0-9_]+',
+            'upload_date': '20200310',
+            'categories': ['Tech House'],
         }
     }]
 
@@ -56,7 +62,6 @@ class ZaikoIE(InfoExtractor):
                 'uploader': ('profile', 'name', {str}),
                 'uploader_id': ('profile', 'id', {str_or_none}),
                 'timestamp': ('stream', 'start', 'timestamp', {int_or_none}),
-                'release_timestamp': ('stream', 'start', 'timestamp', {int_or_none}),
                 'categories': ('event', 'genres', ..., {lambda x: x or None}),
             }),
             **traverse_obj(player_meta, ('initial_event_info', {
