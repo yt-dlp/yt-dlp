@@ -7,7 +7,7 @@ from ..utils import traverse_obj
 
 
 class ZaikoIE(InfoExtractor):
-    _VALID_URL = r'https://zaiko\.io/event/(?P<id>\d+)/stream(?:/\d+)+'
+    _VALID_URL = r'https?://(?:www\.)?zaiko\.io/event/(?P<id>\d+)/stream(?:/\d+)+'
     _TESTS = [{
         'url': 'https://zaiko.io/event/324868/stream/20571/20571',
         'info_dict': {
