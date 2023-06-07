@@ -1625,6 +1625,7 @@ from .rottentomatoes import RottenTomatoesIE
 from .rozhlas import (
     RozhlasIE,
     RozhlasVltavaIE,
+    MujRozhlasIE,
 )
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
