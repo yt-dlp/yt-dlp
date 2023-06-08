@@ -3,7 +3,6 @@ import re
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
-from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_unquote,
@@ -142,7 +141,7 @@ class TwitterBaseIE(InfoExtractor):
                 'height': int(m.group('height')),
             })
 
-    @functools.cached_property
+    @property
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
@@ -214,9 +213,7 @@ class TwitterBaseIE(InfoExtractor):
         next_subtask = self._call_login_api(
             'Downloading flow token', headers, query={'flow_name': 'login'}, data=self._LOGIN_INIT_DATA)
 
-        while self.is_logged_in is False:
-            del self.__dict__['is_logged_in']
-
+        while not self.is_logged_in:
             if next_subtask == 'LoginJsInstrumentationSubtask':
                 next_subtask = self._call_login_api(
                     'Submitting JS instrumentation response', headers, data=build_login_json({
