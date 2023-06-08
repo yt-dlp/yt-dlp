@@ -1292,6 +1292,7 @@ The available fields are:
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
  - `channel_follower_count` (numeric): Number of followers of the channel
+ - `channel_is_verified` (boolean): Whether the channel is verified on the platform
  - `location` (string): Physical location where the video was filmed
  - `duration` (numeric): Length of the video in seconds
  - `duration_string` (string): Length of the video (HH:mm:ss)

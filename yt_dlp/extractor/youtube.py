@@ -803,12 +803,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC,
             'CHECK_CIRCLE_THICK': BadgeType.VERIFIED,
             'OFFICIAL_ARTIST_BADGE': BadgeType.VERIFIED,
+            'CHECK': BadgeType.VERIFIED,
         }
 
         badge_style_map = {
             'BADGE_STYLE_TYPE_MEMBERS_ONLY': BadgeType.AVAILABILITY_SUBSCRIPTION,
             'BADGE_STYLE_TYPE_PREMIUM': BadgeType.AVAILABILITY_PREMIUM,
             'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW,
+            'BADGE_STYLE_TYPE_VERIFIED': BadgeType.VERIFIED,
+            'BADGE_STYLE_TYPE_VERIFIED_ARTIST': BadgeType.VERIFIED
         }
 
         label_map = {
@@ -817,6 +820,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'members only': BadgeType.AVAILABILITY_SUBSCRIPTION,
             'live': BadgeType.LIVE_NOW,
             'premium': BadgeType.AVAILABILITY_PREMIUM,
+            'verified': BadgeType.VERIFIED,
+            'official artist channel': BadgeType.VERIFIED
         }
 
         badges = []
@@ -1029,6 +1034,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
             get_all=False, expected_type=str)
         badges = self._extract_badges(traverse_obj(renderer, 'badges'))
+        owner_badges = self._extract_badges(traverse_obj(renderer, 'ownerBadges'))
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
             renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
             expected_type=str)) or ''
@@ -1087,6 +1093,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
             view_count_field: view_count,
             'live_status': live_status,
+            'channel_is_verified': True if self._has_badge(owner_badges, BadgeType.VERIFIED) else None
         }
 
 
@@ -1424,6 +1431,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@thewitcher',
                 'uploader_id': '@thewitcher',
                 'comment_count': int,
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             },
         },
@@ -1454,6 +1462,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
                 'uploader_id': '@FlyingKitty900',
                 'comment_count': int,
+                'channel_is_verified': True,
             },
         },
         {
@@ -1587,6 +1596,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Olympics',
                 'uploader_url': 'https://www.youtube.com/@Olympics',
                 'uploader_id': '@Olympics',
+                'channel_is_verified': True,
             },
             'params': {
                 'skip_download': 'requires avconv',
@@ -1904,6 +1914,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'Bernie Sanders',
                 'uploader_url': 'https://www.youtube.com/@BernieSanders',
                 'uploader_id': '@BernieSanders',
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             },
             'params': {
@@ -1967,6 +1978,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@Vsauce',
                 'uploader_id': '@Vsauce',
                 'comment_count': int,
+                'channel_is_verified': True,
             },
             'params': {
                 'skip_download': True,
@@ -2159,6 +2171,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'kudvenkat',
                 'uploader_url': 'https://www.youtube.com/@Csharp-video-tutorialsBlogspot',
                 'uploader_id': '@Csharp-video-tutorialsBlogspot',
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             },
             'params': {
@@ -2241,6 +2254,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@CBSMornings',
                 'uploader_id': '@CBSMornings',
                 'comment_count': int,
+                'channel_is_verified': True,
             }
         },
         {
@@ -2312,6 +2326,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@colinfurze',
                 'uploader_id': '@colinfurze',
                 'comment_count': int,
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             },
             'params': {
@@ -2359,6 +2374,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@SciShow',
                 'uploader_id': '@SciShow',
                 'comment_count': int,
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             }, 'params': {'format': 'mhtml', 'skip_download': True}
         }, {
@@ -2449,6 +2465,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@Quackity',
                 'uploader_url': 'https://www.youtube.com/@Quackity',
                 'comment_count': int,
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             }
         },
@@ -2617,6 +2634,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'https://www.youtube.com/@MrBeast',
                 'uploader_id': '@MrBeast',
                 'comment_count': int,
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
@@ -2679,6 +2697,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader': 'さなちゃんねる',
                 'uploader_url': 'https://www.youtube.com/@sana_natori',
                 'uploader_id': '@sana_natori',
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             },
         },
@@ -2710,6 +2729,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UCxzC4EngIsMrPmbm6Nxvb-A',
                 'playable_in_embed': True,
                 'comment_count': int,
+                'channel_is_verified': True,
                 'heatmap': 'count:100',
             },
             'params': {
@@ -4483,6 +4503,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         info['artist'] = mrr_contents_text
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
+            owner_badges = self._extract_badges(traverse_obj(vsir, ('owner', 'videoOwnerRenderer', 'badges')))
+            if self._has_badge(owner_badges, BadgeType.VERIFIED):
+                info['channel_is_verified'] = True
 
         info.update({
             'uploader': info.get('channel'),
@@ -4611,6 +4634,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 self._get_count(renderer, 'videoCountText')
                 if self._get_count(renderer, 'subscriberCountText') is not None else None),
             'description': self._get_text(renderer, 'descriptionSnippet'),
+            'channel_is_verified': True if self._has_badge(
+                self._extract_badges(traverse_obj(renderer, 'ownerBadges')), BadgeType.VERIFIED) else None,
         }
 
     def _grid_entries(self, grid_renderer):
@@ -5026,6 +5051,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'uploader_id': channel_handle,
                 'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             })
+
+        channel_badges = self._extract_badges(traverse_obj(data, ('header', ..., 'badges'), get_all=False))
+        if self._has_badge(channel_badges, BadgeType.VERIFIED):
+            info['channel_is_verified'] = True
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
         playlist_stats = get_first(
@@ -5385,6 +5414,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': '3Blue1Brown',
             'tags': ['Mathematics'],
             'channel_follower_count': int,
+            'channel_is_verified': True,
         },
     }, {
         'note': 'playlists, singlepage',
@@ -5561,6 +5591,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@3blue1brown',
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
+            'channel_is_verified': True,
         },
     }, {
         'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
@@ -5748,6 +5779,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@SkyNews',
             'uploader_id': '@SkyNews',
             'uploader': 'Sky News',
+            'channel_is_verified': True,
         },
         'params': {
             'skip_download': True,
@@ -6237,6 +6269,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader': str,
                 'uploader_url': str,
                 'uploader_id': str,
+                'channel_is_verified': bool,  # this will keep changing
             }
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
@@ -6272,6 +6305,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'uploader': 'PewDiePie',
                 'uploader_url': 'https://www.youtube.com/@PewDiePie',
                 'uploader_id': '@PewDiePie',
+                'channel_is_verified': True,
             }
         }],
         'params': {'extract_flat': True},
@@ -6290,6 +6324,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/@3blue1brown',
             'uploader_id': '@3blue1brown',
             'uploader': '3Blue1Brown',
+            'channel_is_verified': True,
         },
         'playlist_count': 0,
     }, {
@@ -6324,6 +6359,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'description': 'I make music',
             'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
             'channel_follower_count': int,
+            'channel_is_verified': True,
         },
         'playlist_mincount': 10,
     }]
@@ -6906,6 +6942,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'uploader_id': '@kurzgesagt',
                 'uploader_url': 'https://www.youtube.com/@kurzgesagt',
                 'uploader': 'Kurzgesagt – In a Nutshell',
+                'channel_is_verified': True,
                 'channel_follower_count': int,
             }
         }],
@@ -7232,6 +7269,7 @@ class YoutubeConsentRedirectIE(YoutubeBaseInfoExtractor):
             'channel': 'さなちゃんねる',
             'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
             'uploader': 'さなちゃんねる',
+            'channel_is_verified': True,
             'heatmap': 'count:100',
         },
         'add_ie': ['Youtube'],
