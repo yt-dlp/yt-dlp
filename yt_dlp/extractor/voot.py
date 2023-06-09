@@ -149,7 +149,9 @@ class VootIE(VootBaseIE):
 
         return {
             'id': video_id,
-            'formats': formats,
+            # '/_definst_/smil:vod/' m3u8 manifests claim to have 720p+ formats but max out at 480p
+            'formats': traverse_obj(formats, (
+                lambda _, v: '/_definst_/smil:vod/' not in v['url'] or v['height'] <= 480)),
             'http_headers': self._API_HEADERS,
             **traverse_obj(media_info, ('result', 0, {
                 'title': ('fullTitle', {str}),
