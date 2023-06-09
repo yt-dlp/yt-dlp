@@ -479,14 +479,17 @@ class VKIE(VKBaseIE):
                 'url': url_or_none(sub.get('url')),
             })
 
+        description = video.get('description')
+        duration = int_or_none(date.get('duration')) or mv_data.get('duration'))
         return {
             'id': video_id,
             'formats': formats,
             'title': title,
+            'description': description,
             'thumbnail': data.get('jpg'),
             'uploader': data.get('md_author'),
             'uploader_id': str_or_none(data.get('author_id') or mv_data.get('authorId')),
-            'duration': int_or_none(data.get('duration') or mv_data.get('duration')),
+            'duration': duration,
             'timestamp': timestamp,
             'view_count': view_count,
             'like_count': int_or_none(mv_data.get('likes')),
