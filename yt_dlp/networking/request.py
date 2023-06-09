@@ -17,16 +17,16 @@ _TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 
 class PreparedRequest:
 
-    def __init__(self, req: Request, ydl):
-        self.headers = self._prepare_headers(req.headers, ydl.params.get('http_headers', {}))
+    def __init__(self, req: Request):
+        self.headers = self._prepare_headers(req.headers)
         self.url = self._prepare_url(req.url)
         self.data = self._prepare_data(req.data)
         self.method = self._prepare_method(req.method)
-        self.timeout = self._prepare_timeout(req.timeout, ydl.params.get('socket_timeout'))
-        self.proxies = self._prepare_proxies(req.proxies, ydl.proxies)
+        self.timeout = self._prepare_timeout(req.timeout)
+        self.proxies = self._prepare_proxies(req.proxies)
 
     def _prepare_timeout(self, timeout, default_timeout=None):
-        return float(timeout or default_timeout or 20)  # do not accept 0
+        return float(timeout or 20)  # do not accept 0
 
     def _prepare_url(self, url):
         url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
@@ -36,12 +36,10 @@ class PreparedRequest:
         # rely on urllib Request's url parsing
         return urllib.request.Request(url).full_url
 
-    def _prepare_proxies(self, proxies, default_proxies=None):
-        proxies = proxies or default_proxies
+    def _prepare_proxies(self, proxies):
         if not isinstance(proxies, dict):
             proxies = {}
         proxies = proxies.copy()
-
         req_proxy = self.headers.pop('Ytdl-request-proxy', None)
         if req_proxy:
             proxies = {'all': req_proxy}
@@ -58,8 +56,8 @@ class PreparedRequest:
                     proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
         return proxies
 
-    def _prepare_headers(self, headers, global_headers):
-        headers = CaseInsensitiveDict(global_headers, headers)
+    def _prepare_headers(self, headers):
+        headers = CaseInsensitiveDict(headers)
         if 'Youtubedl-no-compression' in headers:  # compat
             del headers['Youtubedl-no-compression']
             headers['Accept-Encoding'] = 'identity'
@@ -160,8 +158,8 @@ class Request:
         self.headers.update(headers or {})
         self.url = update_url_query(url or self.url, query or {})
 
-    def prepare(self, ydl):
-        return PreparedRequest(self, ydl)
+    def prepare(self):
+        return PreparedRequest(self)
 
 
 HEADRequest = functools.partial(Request, method='HEAD')

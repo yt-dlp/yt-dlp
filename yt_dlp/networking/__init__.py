@@ -44,6 +44,14 @@ class RequestDirector:
         self.remove_handler(handler)
         self.add_handler(handler)
 
+    def _merge_ydl(self, request: Request):
+        # TODO: need to make a copy of request
+        # TODO: make request director not directly depend on ydl
+        request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
+        request.timeout = request.timeout or self.ydl.params.get('socket_timeout')
+        request.proxies = request.proxies or self.ydl.proxies
+        return request
+
     def send(self, request: Request) -> Response:
         """
         Passes a request onto a suitable RequestHandler
@@ -55,7 +63,7 @@ class RequestDirector:
 
         unexpected_errors = []
         unsupported_errors = []
-        prepared_request = request.prepare(self.ydl)
+        prepared_request = self._merge_ydl(request).prepare()
         for handler in reversed(self._handlers):
             try:
                 self.ydl.to_debugtraffic(f'Forwarding request to "{handler.RH_NAME}" request handler')
