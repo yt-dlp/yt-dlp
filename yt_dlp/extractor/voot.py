@@ -132,6 +132,7 @@ class VootIE(VootBaseIE):
             m3u8_url = self._download_json(
                 'https://vootapi.media.jio.com/playback/v1/playbackrights', video_id,
                 'Downloading playback JSON', data=b'{}', headers={
+                    **self.geo_verification_headers(),
                     **self._API_HEADERS,
                     'Content-Type': 'application/json;charset=utf-8',
                     'platform': 'androidwebdesktop',
