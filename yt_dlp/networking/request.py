@@ -161,6 +161,9 @@ class Request:
     def prepare(self):
         return PreparedRequest(self)
 
+    def add_header(self, key, value):
+        self.headers[key] = value
+
 
 HEADRequest = functools.partial(Request, method='HEAD')
 PUTRequest = functools.partial(Request, method='PUT')
