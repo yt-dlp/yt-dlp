@@ -241,7 +241,6 @@ class InstanceStoreMixin:
         raise NotImplementedError
 
     def _get_instance(self, **kwargs):
-
         key_items = set()
         for key in sorted(kwargs.keys()):
             key_items.add(key)
@@ -275,3 +274,11 @@ class InstanceStoreMixin:
             if callable(getattr(instance, 'close', None)):
                 instance.close()
         self.__instances = None
+
+
+def add_accept_encoding_header(headers, supported_encodings):
+    if supported_encodings and 'Accept-Encoding' not in headers:
+        headers['Accept-Encoding'] = ', '.join(supported_encodings)
+
+    elif 'Accept-Encoding' not in headers:
+        headers['Accept-Encoding'] = 'identity'

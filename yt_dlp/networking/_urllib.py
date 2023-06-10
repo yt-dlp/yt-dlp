@@ -30,6 +30,7 @@ from .utils import (
     select_proxy,
     make_socks_proxy_opts,
     InstanceStoreMixin,
+    add_accept_encoding_header,
 )
 from ..dependencies import brotli
 from ..socks import (
@@ -44,7 +45,6 @@ from .exceptions import (
     IncompleteRead,
     SSLError,
     ProxyError,
-    UnsupportedRequest
 )
 
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -381,7 +381,6 @@ def handle_response_read_exceptions(e):
 
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp', 'file']
-    SUPPORTED_ENCODINGS = SUPPORTED_ENCODINGS
     SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
     SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
     RH_NAME = 'urllib'
@@ -418,7 +417,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
 
     def _real_handle(self, request):
         headers = request.headers.copy()
-        self._add_accept_encoding_header(headers)
+        add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
         opener = self._get_instance(proxies=request.proxies, cookiejar=request.cookiejar)

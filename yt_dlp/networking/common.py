@@ -21,11 +21,6 @@ try:
 except ImportError:
     _parse_proxy = None
 
-from ..utils import (
-    CaseInsensitiveDict,
-    YoutubeDLError,
-    remove_start,
-)
 
 from .utils import make_ssl_context
 
@@ -68,8 +63,6 @@ class RequestHandler:
     SUPPORTED_PROXY_SCHEMES may contain a list of support proxy url schemes. Any Request that contains
     a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
-    SUPPORTED_ENCODINGS may contain a list of supported content encodings for the Accept-Encoding header.
-
     SUPPORTED_FEATURES may contain a list of supported features, as defined in Features enum.
 
     RH_NAME may contain a display name for the RequestHandler.
@@ -77,7 +70,6 @@ class RequestHandler:
 
     SUPPORTED_URL_SCHEMES = None
     SUPPORTED_PROXY_SCHEMES = None
-    SUPPORTED_ENCODINGS = None
     SUPPORTED_FEATURES = []
 
     def __init__(self, ydl: YoutubeDL):
@@ -112,7 +104,6 @@ class RequestHandler:
                     raise UnsupportedRequest('\'no\' proxy is not supported')
                 continue
             if proxy_key == 'all' and Features.ALL_PROXY not in self.SUPPORTED_FEATURES:
-                # XXX: If necessary, we could break up all_proxy here using SUPPORTED_SCHEMES
                 raise UnsupportedRequest('\'all\' proxy is not supported')
 
             # Unlikely this handler will use this proxy, so ignore.
@@ -124,14 +115,6 @@ class RequestHandler:
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
             if scheme not in self.SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'unsupported proxy type: "{scheme}"')
-
-    def _add_accept_encoding_header(self, headers):
-        # TODO, can just make a general function
-        if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in headers:
-            headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
-
-        elif 'Accept-Encoding' not in headers:
-            headers['Accept-Encoding'] = 'identity'
 
     @handle_request_errors
     def can_handle(self, prepared_request: PreparedRequest):

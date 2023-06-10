@@ -64,6 +64,9 @@ class PreparedRequest:
         return proxies
 
     def _prepare_headers(self, headers):
+        if not isinstance(headers, Mapping):
+            return CaseInsensitiveDict()
+
         headers = CaseInsensitiveDict(headers)
         if 'Youtubedl-no-compression' in headers:  # compat
             del headers['Youtubedl-no-compression']
@@ -128,7 +131,6 @@ class Request:
         if query:
             url = update_url_query(url, query)
         self.url = url
-        # rely on urllib Request's url parsing
         self.method = method
         self._headers = CaseInsensitiveDict(headers)
         self._data = None
