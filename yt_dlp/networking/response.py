@@ -18,7 +18,6 @@ class Response(io.IOBase):
     @param status: Response HTTP status code. Default is 200 OK.
     @param reason: HTTP status reason. Will use built-in reasons based on status code if not provided.
     """
-    REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308]
 
     def __init__(
             self, raw,
@@ -39,9 +38,6 @@ class Response(io.IOBase):
                 self.reason = HTTPStatus(status).phrase
             except ValueError:
                 pass
-
-    def get_redirect_url(self):
-        return self.headers.get('location') if self.status in self.REDIRECT_STATUS_CODES else None
 
     def readable(self):
         return True
