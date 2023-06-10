@@ -3,13 +3,16 @@
 # Allow direct execution
 import io
 import os
+import random
 import sys
 import unittest
+
+from yt_dlp.cookies import YoutubeDLCookieJar
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from yt_dlp.networking.utils import select_proxy
+from yt_dlp.networking.utils import select_proxy, InstanceRepository
 from yt_dlp.networking import Request
 from yt_dlp.utils import CaseInsensitiveDict
 
@@ -87,6 +90,51 @@ class TestRequest(unittest.TestCase):
         self.assertEqual(auth_header('http://:pass@foo.bar'), 'Basic OnBhc3M=')
         self.assertEqual(auth_header('http://user:@foo.bar'), 'Basic dXNlcjo=')
         self.assertEqual(auth_header('http://user:pass@foo.bar'), 'Basic dXNlcjpwYXNz')
+
+
+class TestInstanceRepository(unittest.TestCase):
+
+    class FakeInstanceRepository(InstanceRepository):
+        def create_instance(self, **kwargs):
+            return random.randint(0, 1000000)
+
+    def test_repo(self):
+        repo = self.FakeInstanceRepository()
+        self.assertEqual(
+            repo.get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}),
+            repo.get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}))
+
+        # Nested dict is ignored
+        self.assertEqual(
+            repo.get_instance(d={'a': 1, 'b': 2, 'c': {'e', 4}}),
+            repo.get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}))
+
+        # But not the key
+        self.assertNotEqual(
+            repo.get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}),
+            repo.get_instance(d={'a': 1, 'b': 2, 'g': {'d', 4}}))
+
+        self.assertEqual(
+            repo.get_instance(d={'a': 1}, e=[1, 2, 3]),
+            repo.get_instance(d={'a': 1}, e=[1, 2, 3]))
+
+        self.assertNotEqual(
+            repo.get_instance(d={'a': 1}, e=[1, 2, 3]),
+            repo.get_instance(d={'a': 1}, e=[1, 2, 3, 4]))
+
+        cookiejar = YoutubeDLCookieJar()
+        self.assertEqual(
+            repo.get_instance(b=[1, 2], c=cookiejar),
+            repo.get_instance(b=[1, 2], c=cookiejar))
+
+        self.assertNotEqual(
+            repo.get_instance(b=[1, 2], c=cookiejar),
+            repo.get_instance(b=[1, 2], c=YoutubeDLCookieJar()))
+
+        # Different order
+        self.assertEqual(
+            repo.get_instance(c=cookiejar, b=[1, 2]),
+            repo.get_instance(b=[1, 2], c=cookiejar))
 
 
 if __name__ == '__main__':

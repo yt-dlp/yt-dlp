@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import contextlib
 import functools
 import random
@@ -7,6 +8,7 @@ import ssl
 import sys
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable, Hashable
 
 from .exceptions import UnsupportedRequest
 from ..dependencies import certifi
@@ -227,3 +229,44 @@ def make_ssl_context(
         if getattr(context, 'post_handshake_auth', None) is not None:
             context.post_handshake_auth = True
     return context
+
+
+class InstanceRepository:
+
+    def __init__(self):
+        self._instances = {}
+
+    @staticmethod
+    def create_instance(**kwargs):
+        """returns a new instance"""
+
+    def get_instance(self, **kwargs):
+
+        key_items = set()
+        for key in sorted(kwargs.keys()):
+            key_items.add(key)
+            if isinstance(kwargs[key], dict):
+                dict_items = {
+                    frozenset(frozenset({k, v}) if isinstance(v, Hashable) else k for k, v in kwargs[key].items())}
+                key_items.add(frozenset(dict_items))
+            elif isinstance(kwargs[key], Hashable):
+                key_items.add(kwargs[key])
+            elif isinstance(kwargs[key], Iterable):
+                key_items.add(frozenset(v for v in kwargs[key] if isinstance(v, Hashable)))
+            else:
+                raise ValueError(f'unable to handle key {kwargs[key]}')
+        instance_key = frozenset(key_items)
+
+        instance = self._instances.get(instance_key)
+        if instance:
+            return instance
+
+        instance = self.create_instance(**kwargs)
+        self._instances[instance_key] = instance
+        return instance
+
+    def clear(self):
+        for instance in self._instances:
+            if callable(getattr(instance, 'close', None)):
+                instance.close()
+        self._instances.clear()
