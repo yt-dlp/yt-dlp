@@ -389,14 +389,14 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
     def __init__(self, ydl):
         super().__init__(ydl)
 
-    def _create_instance(self, proxies, **kwargs):
+    def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()
         handlers = [
             ProxyHandler(proxies),
             HTTPHandler(
                 self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
                 context=self.make_sslcontext()),
-            HTTPCookieProcessor(self.cookiejar),
+            HTTPCookieProcessor(cookiejar),
             DataHandler(),
             UnknownHandler(),
             HTTPDefaultErrorHandler(),
@@ -421,7 +421,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         self._add_accept_encoding_header(headers)
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
-        opener = self._get_instance(proxies=request.proxies)
+        opener = self._get_instance(proxies=request.proxies, cookiejar=request.cookiejar)
         try:
             res = opener.open(urllib_req, timeout=request.timeout)
         except urllib.error.HTTPError as e:

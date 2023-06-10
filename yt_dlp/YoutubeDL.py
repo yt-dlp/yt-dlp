@@ -3790,10 +3790,11 @@ class YoutubeDL:
                 timeout=req.timeout if hasattr(req, 'timeout') else None)
         assert isinstance(req, Request)
 
-        # Merge some global settings
+        # Merge global settings
         req.headers = CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers)
         req.timeout = req.timeout or self.params.get('socket_timeout')
         req.proxies = req.proxies or self.params.get('proxies')
+        req.cookiejar = req.cookiejar or self.cookiejar
 
         return self._request_director.send(req)
 

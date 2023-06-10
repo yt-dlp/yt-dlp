@@ -4,6 +4,7 @@ import functools
 import io
 import typing
 import urllib.request
+from http.cookiejar import CookieJar
 from typing import Union, Iterable, Mapping
 try:
     from urllib.request import _parse_proxy
@@ -18,14 +19,20 @@ _TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 class PreparedRequest:
 
     def __init__(self, req: Request):
-        self.headers = self._prepare_headers(req.headers)
-        self.url = self._prepare_url(req.url)
-        self.data = self._prepare_data(req.data)
-        self.method = self._prepare_method(req.method)
-        self.timeout = self._prepare_timeout(req.timeout)
-        self.proxies = self._prepare_proxies(req.proxies)
+        self.headers: CaseInsensitiveDict = self._prepare_headers(req.headers)
+        self.url: str = self._prepare_url(req.url)
+        self.data: _TYPE_REQ_DATA = self._prepare_data(req.data)
+        self.method: str = self._prepare_method(req.method)
+        self.timeout: float = self._prepare_timeout(req.timeout)
+        self.proxies: dict = self._prepare_proxies(req.proxies)
+        self.cookiejar: CookieJar = self._prepare_cookies(req.cookiejar)
 
-    def _prepare_timeout(self, timeout, default_timeout=None):
+    def _prepare_cookies(self, cookiejar):
+        if isinstance(cookiejar, CookieJar):
+            return cookiejar
+        return CookieJar()
+
+    def _prepare_timeout(self, timeout):
         return float(timeout or 20)  # do not accept 0
 
     def _prepare_url(self, url):
@@ -94,6 +101,7 @@ class Request:
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
     @param timeout: socket timeout value for this request.
+    @param cookiejar: Cookiejar to use for this request.
 
     A Request may also have the following special headers:
     Ytdl-request-proxy: proxy url to use for request.
@@ -114,6 +122,7 @@ class Request:
             query: dict = None,
             method: str = None,
             timeout: Union[float, int] = None,
+            cookiejar: CookieJar = None,
     ):
 
         if query:
@@ -126,6 +135,7 @@ class Request:
         self.data = data
         self.timeout = timeout
         self.proxies = dict(proxies or {})
+        self.cookiejar = cookiejar
 
     @property
     def data(self):

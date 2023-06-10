@@ -82,7 +82,6 @@ class RequestHandler:
 
     def __init__(self, ydl: YoutubeDL):
         self.ydl = ydl
-        self.cookiejar = self.ydl.cookiejar
 
     def make_sslcontext(self):
         return make_ssl_context(
