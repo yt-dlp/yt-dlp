@@ -9,6 +9,7 @@ import sys
 import urllib.parse
 import urllib.request
 from collections.abc import Iterable, Hashable
+from typing import Any
 
 from .exceptions import UnsupportedRequest
 from ..dependencies import certifi
@@ -231,16 +232,15 @@ def make_ssl_context(
     return context
 
 
-class InstanceRepository:
+class InstanceStoreMixin:
 
-    def __init__(self):
-        self._instances = {}
+    __instances = None
 
     @staticmethod
-    def create_instance(**kwargs):
-        """returns a new instance"""
+    def _create_instance(**kwargs) -> Any:
+        raise NotImplementedError
 
-    def get_instance(self, **kwargs):
+    def _get_instance(self, **kwargs):
 
         key_items = set()
         for key in sorted(kwargs.keys()):
@@ -257,16 +257,21 @@ class InstanceRepository:
                 raise ValueError(f'unable to handle key {kwargs[key]}')
         instance_key = frozenset(key_items)
 
-        instance = self._instances.get(instance_key)
+        if self.__instances is None:
+            self.__instances = {}
+
+        instance = self.__instances.get(instance_key)
         if instance:
             return instance
 
-        instance = self.create_instance(**kwargs)
-        self._instances[instance_key] = instance
+        instance = self._create_instance(**kwargs)
+        self.__instances[instance_key] = instance
         return instance
 
-    def clear(self):
-        for instance in self._instances:
+    def _clear_instances(self):
+        if self.__instances is None:
+            return
+        for instance in self.__instances.values():
             if callable(getattr(instance, 'close', None)):
                 instance.close()
-        self._instances.clear()
+        self.__instances = None

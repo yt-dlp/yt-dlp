@@ -29,7 +29,7 @@ from .utils import (
     get_redirect_method,
     select_proxy,
     make_socks_proxy_opts,
-    InstanceRepository,
+    InstanceStoreMixin,
 )
 from ..dependencies import brotli
 from ..socks import (
@@ -379,7 +379,7 @@ def handle_response_read_exceptions(e):
         raise TransportError(cause=e) from e
 
 
-class UrllibRH(RequestHandler):
+class UrllibRH(RequestHandler, InstanceStoreMixin):
     SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp', 'file']
     SUPPORTED_ENCODINGS = SUPPORTED_ENCODINGS
     SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
@@ -389,42 +389,39 @@ class UrllibRH(RequestHandler):
     def __init__(self, ydl):
         super().__init__(ydl)
 
-        class OpenerInstanceRepository(InstanceRepository):
-            @staticmethod
-            def create_instance(proxies, **kwargs):
-                opener = urllib.request.OpenerDirector()
-                handlers = [
-                    ProxyHandler(proxies),
-                    HTTPHandler(
-                        self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
-                        context=self.make_sslcontext()),
-                    HTTPCookieProcessor(self.cookiejar),
-                    DataHandler(),
-                    UnknownHandler(),
-                    HTTPDefaultErrorHandler(),
-                    FTPHandler(),
-                    HTTPErrorProcessor(),
-                    RedirectHandler()]
+    def _create_instance(self, proxies, **kwargs):
+        opener = urllib.request.OpenerDirector()
+        handlers = [
+            ProxyHandler(proxies),
+            HTTPHandler(
+                self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
+                context=self.make_sslcontext()),
+            HTTPCookieProcessor(self.cookiejar),
+            DataHandler(),
+            UnknownHandler(),
+            HTTPDefaultErrorHandler(),
+            FTPHandler(),
+            HTTPErrorProcessor(),
+            RedirectHandler()]
 
-                if self.ydl.params.get('enable_file_urls'):
-                    handlers.append(FileHandler())
+        if self.ydl.params.get('enable_file_urls'):
+            handlers.append(FileHandler())
 
-                for handler in handlers:
-                    opener.add_handler(handler)
+        for handler in handlers:
+            opener.add_handler(handler)
 
-                # Delete the default user-agent header, which would otherwise apply in
-                # cases where our custom HTTP handler doesn't come into play
-                # (See https://github.com/ytdl-org/youtube-dl/issues/1309 for details)
-                opener.addheaders = []
-                return opener
-        self._openers = OpenerInstanceRepository()
+        # Delete the default user-agent header, which would otherwise apply in
+        # cases where our custom HTTP handler doesn't come into play
+        # (See https://github.com/ytdl-org/youtube-dl/issues/1309 for details)
+        opener.addheaders = []
+        return opener
 
     def _real_handle(self, request):
         headers = request.headers.copy()
         self._add_accept_encoding_header(headers)
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
-        opener = self._openers.get_instance(proxies=request.proxies)
+        opener = self._get_instance(proxies=request.proxies)
         try:
             res = opener.open(urllib_req, timeout=request.timeout)
         except urllib.error.HTTPError as e:
