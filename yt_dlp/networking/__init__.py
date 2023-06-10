@@ -10,14 +10,13 @@ from .common import (
 from .response import Response
 from .request import Request
 from .exceptions import RequestError, UnsupportedRequest
-from ..utils import CaseInsensitiveDict, bug_reports_message
+from ..utils import bug_reports_message
 
 
 class RequestDirector:
-
-    def __init__(self, ydl):
+    def __init__(self, logger):
         self._handlers = []
-        self.ydl = ydl
+        self.logger = logger
 
     def close(self):
         for handler in self._handlers:
@@ -44,14 +43,6 @@ class RequestDirector:
         self.remove_handler(handler)
         self.add_handler(handler)
 
-    def _merge_ydl(self, request: Request):
-        # TODO: need to make a copy of request
-        # TODO: make request director not directly depend on ydl
-        request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
-        request.timeout = request.timeout or self.ydl.params.get('socket_timeout')
-        request.proxies = request.proxies or self.ydl.proxies
-        return request
-
     def send(self, request: Request) -> Response:
         """
         Passes a request onto a suitable RequestHandler
@@ -63,14 +54,14 @@ class RequestDirector:
 
         unexpected_errors = []
         unsupported_errors = []
-        prepared_request = self._merge_ydl(request).prepare()
+        prepared_request = request.prepare()
         for handler in reversed(self._handlers):
             try:
-                self.ydl.to_debugtraffic(f'Forwarding request to "{handler.RH_NAME}" request handler')
+                self.logger.to_debugtraffic(f'Forwarding request to "{handler.RH_NAME}" request handler')
                 handler.can_handle(prepared_request)
                 response = handler.handle(prepared_request)
             except UnsupportedRequest as e:
-                self.ydl.to_debugtraffic(
+                self.logger.to_debugtraffic(
                     f'"{handler.RH_NAME}" request handler cannot handle this request, trying another handler... (cause: {type(e).__name__}:{e})')
                 unsupported_errors.append(e)
                 continue
@@ -79,7 +70,7 @@ class RequestDirector:
                 if isinstance(e, RequestError):
                     raise
                 # something went very wrong, try fallback to next handler
-                self.ydl.report_error(
+                self.logger.report_error(
                     f'Unexpected error from "{handler.RH_NAME}" request handler: {type(e).__name__}:{e}' + bug_reports_message(),
                     is_error=False)
                 unexpected_errors.append(e)

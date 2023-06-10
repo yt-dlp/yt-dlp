@@ -3788,6 +3788,13 @@ class YoutubeDL:
                 req.get_full_url(), data=req.data, method=req.get_method(),
                 headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
                 timeout=req.timeout if hasattr(req, 'timeout') else None)
+        assert isinstance(req, Request)
+
+        # Merge some global settings
+        req.headers = CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers)
+        req.timeout = req.timeout or self.params.get('socket_timeout')
+        req.proxies = req.proxies or self.params.get('proxies')
+
         return self._request_director.send(req)
 
     def print_debug_header(self):
@@ -3939,7 +3946,8 @@ class YoutubeDL:
         return self._request_director.get_handlers(UrllibRH)[0].get_opener(Request('http://', proxies=self.proxies))
 
     def build_request_director(self, handlers):
-        director = RequestDirector(self)
+
+        director = RequestDirector(logger=self)
         for klass in handlers:
             if klass is not None:
                 director.add_handler(klass(self))
