@@ -1268,6 +1268,11 @@ class XAttrMetadataError(YoutubeDLError):
 class XAttrUnavailableError(YoutubeDLError):
     pass
 
+class CookiesFromBrowserUnavailableError(YoutubeDLError):
+    """Used to denote the Cookies from a browser are not available
+    """
+    pass
+
 
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
     hc = http_class(*args, **kwargs)

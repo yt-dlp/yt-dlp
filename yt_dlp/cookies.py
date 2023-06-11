@@ -12,18 +12,25 @@ import struct
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
+try:
+    import wmi
+    wmi_available = True
+except ImportError:
+    wmi_available = False
+
 from .aes import (
     aes_cbc_decrypt_bytes,
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import functools
+from .compat import functools, compat_os_name
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
@@ -40,6 +47,7 @@ from .utils import (
     str_or_none,
     try_call,
     write_string,
+    CookiesFromBrowserUnavailableError
 )
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
@@ -165,7 +173,7 @@ def _extract_firefox_cookies(profile, container, logger):
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
-            cursor = _open_database_copy(cookie_database_path, tmpdir)
+            cursor = _open_database_copy(cookie_database_path, tmpdir, logger)
             if isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
@@ -293,7 +301,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
-            cursor = _open_database_copy(cookie_database_path, tmpdir)
+            cursor = _open_database_copy(cookie_database_path, tmpdir, logger)
             cursor.connection.text_factory = bytes
             column_names = _get_column_names(cursor, 'cookies')
             secure_column = 'is_secure' if 'is_secure' in column_names else 'secure'
@@ -1051,10 +1059,41 @@ def _config_home():
     return os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
 
 
-def _open_database_copy(database_path, tmpdir):
+def _open_database_copy(database_path, tmpdir, logger):
     # cannot open sqlite databases if they are already in use (e.g. by the browser)
     database_copy_path = os.path.join(tmpdir, 'temporary.sqlite')
-    shutil.copy(database_path, database_copy_path)
+    try:
+        shutil.copy(database_path, database_copy_path)
+    except PermissionError:
+        if compat_os_name == 'nt' and wmi_available:
+            # If we're on Windows and have the wmi module: try to create a copy from a temporary
+            # shadow copy of the underlying volume.
+            # Generally, shadow copies require admin, so if we fail to create, recommend the user run as admin.
+            c = wmi.WMI()
+
+            drive_letter_with_colon, rest_of_path = os.path.splitdrive(database_path)
+            try:
+                result, shadow_id = c.Win32_ShadowCopy.Create(Context="ClientAccessible", Volume=f'{drive_letter_with_colon}{os.sep}')
+            except wmi.x_wmi as x:
+                logger.debug(f'Win32_ShadowCopy.Create failed exception: {x}')
+                result = "Rerun yt-dlp as administrator"
+
+            if result != 0:
+                raise CookiesFromBrowserUnavailableError(textwrap.dedent(f'''
+                        Unable to create a shadow copy of the cookies database.
+                        Win32_ShadowCopy. Create Error: {result}.'''))
+
+            shadow_obj = c.Win32_ShadowCopy(ID=shadow_id)[0]
+            try:
+                shadow_volume_path = shadow_obj.DeviceObject
+                logger.debug(f"shadow volume path: {shadow_volume_path}")
+                # note that os.path.join(..) does not work properly with shadow_volume_path. It would start with \\?\GLOBALROOT...
+                shutil.copy(shadow_volume_path + os.sep + rest_of_path, database_copy_path)
+            finally:
+                # Make sure we remove the newly created shadow copy
+                shadow_obj.Delete_()
+        else:
+            raise
     conn = sqlite3.connect(database_copy_path)
     return conn.cursor()
 
