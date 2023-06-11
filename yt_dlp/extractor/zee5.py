@@ -101,7 +101,7 @@ class Zee5IE(InfoExtractor):
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
     _GEO_COUNTRIES = ['IN']
-    _USER_COUNTRY = 'IN'
+    _USER_COUNTRY = None
 
     def _perform_login(self, username, password):
         if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
@@ -128,7 +128,7 @@ class Zee5IE(InfoExtractor):
         token = jwt_decode_hs256(self._USER_TOKEN)
         if token.get('exp', 0) <= time.time():
             raise ExtractorError('User token has expired', expected=True)
-        self._USER_COUNTRY = token.get('current_country') or 'IN'
+        self._USER_COUNTRY = token.get('current_country')
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
@@ -148,7 +148,7 @@ class Zee5IE(InfoExtractor):
                 'content_id': video_id,
                 'device_id': self._DEVICE_ID,
                 'platform_name': 'desktop_web',
-                'country': self._USER_COUNTRY,
+                'country': self._USER_COUNTRY or self.get_param('geo_bypass_country') or 'IN',
                 'check_parental_control': False,
             }, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
         asset_data = json_data['assetDetails']
