@@ -81,8 +81,8 @@ from ..utils import (
     update_Request,
     update_url_query,
     url_basename,
-    urlhandle_detect_ext,
     url_or_none,
+    urlhandle_detect_ext,
     urljoin,
     variadic,
     xpath_element,
@@ -132,6 +132,7 @@ class InfoExtractor:
                                        is parsed from a string (in case of
                                        fragmented media)
                                    for MSS - URL of the ISM manifest.
+                    * request_data  Data to send in POST request to the URL
                     * manifest_url
                                  The URL of the manifest file in case of
                                  fragmented media:
@@ -220,6 +221,17 @@ class InfoExtractor:
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
+                    * extra_param_to_segment_url  A query string to append to each
+                                 fragment's URL, or to update each existing query string
+                                 with. Only applied by the native HLS/DASH downloaders.
+                    * hls_aes    A dictionary of HLS AES-128 decryption information
+                                 used by the native HLS downloader to override the
+                                 values in the media playlist when an '#EXT-X-KEY' tag
+                                 is present in the playlist:
+                                 * uri  The URI from which the key will be downloaded
+                                 * key  The key (as hex) used to decrypt fragments.
+                                        If `key` is given, any key URI will be ignored
+                                 * iv   The IV (as hex) used to decrypt fragments
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -274,6 +286,7 @@ class InfoExtractor:
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
     channel_follower_count: Number of followers of the channel.
+    channel_is_verified: Whether the channel is verified on the platform.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -302,6 +315,11 @@ class InfoExtractor:
                         * "author" - human-readable name of the comment author
                         * "author_id" - user ID of the comment author
                         * "author_thumbnail" - The thumbnail of the comment author
+                        * "author_url" - The url to the comment author's page
+                        * "author_is_verified" - Whether the author is verified
+                                                 on the platform
+                        * "author_is_uploader" - Whether the comment is made by
+                                                 the video uploader
                         * "id" - Comment ID
                         * "html" - Comment as HTML
                         * "text" - Plain text of the comment
@@ -313,8 +331,8 @@ class InfoExtractor:
                         * "dislike_count" - Number of negative ratings of the comment
                         * "is_favorited" - Whether the comment is marked as
                                            favorite by the video uploader
-                        * "author_is_uploader" - Whether the comment is made by
-                                                 the video uploader
+                        * "is_pinned" - Whether the comment is pinned to
+                                        the top of the comments
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -338,6 +356,10 @@ class InfoExtractor:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    heatmap:        A list of dictionaries, with the following entries:
+                        * "start_time" - The start time of the data point in seconds
+                        * "end_time" - The end time of the data point in seconds
+                        * "value" - The normalized value of the data point (float between 0 and 1)
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
@@ -1327,7 +1349,7 @@ class InfoExtractor:
     # Helper functions for extracting OpenGraph info
     @staticmethod
     def _og_regexes(prop):
-        content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?))'
+        content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?)(?=\s|/?>))'
         property_re = (r'(?:name|property)=(?:\'og%(sep)s%(prop)s\'|"og%(sep)s%(prop)s"|\s*og%(sep)s%(prop)s\b)'
                        % {'prop': re.escape(prop), 'sep': '(?:&#x3A;|[:-])'})
         template = r'<meta[^>]+?%s[^>]+?%s'
@@ -1659,11 +1681,8 @@ class InfoExtractor:
         if js is None:
             return {}
 
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
-
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
+        args = dict(zip(arg_keys.split(','), map(json.dumps, self._parse_json(
+            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ())))
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
@@ -2055,6 +2074,7 @@ class InfoExtractor:
                     'protocol': entry_protocol,
                     'preference': preference,
                     'quality': quality,
+                    'has_drm': has_drm,
                     'vcodec': 'none' if media_type == 'AUDIO' else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
@@ -2114,6 +2134,7 @@ class InfoExtractor:
                         'protocol': entry_protocol,
                         'preference': preference,
                         'quality': quality,
+                        'has_drm': has_drm,
                     }
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
@@ -2972,6 +2993,8 @@ class InfoExtractor:
                         'protocol': 'ism',
                         'fragments': fragments,
                         'has_drm': ism_doc.find('Protection') is not None,
+                        'language': stream_language,
+                        'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,
@@ -3427,7 +3450,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return LenientSimpleCookie(self._downloader._calc_cookies(url))
+        return LenientSimpleCookie(self._downloader.cookiejar.get_cookie_header(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
@@ -3502,8 +3525,8 @@ class InfoExtractor:
     @classmethod
     def is_single_video(cls, url):
         """Returns whether the URL is of a single video, None if unknown"""
-        assert cls.suitable(url), 'The URL must be suitable for the extractor'
-        return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
+        if cls.suitable(url):
+            return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
 
     @classmethod
     def is_suitable(cls, age_limit):
@@ -3516,7 +3539,7 @@ class InfoExtractor:
         desc = ''
         if cls._NETRC_MACHINE:
             if markdown:
-                desc += f' [<abbr title="netrc machine"><em>{cls._NETRC_MACHINE}</em></abbr>]'
+                desc += f' [*{cls._NETRC_MACHINE}*](## "netrc machine")'
             else:
                 desc += f' [{cls._NETRC_MACHINE}]'
         if cls.IE_DESC is False:
@@ -3637,6 +3660,42 @@ class InfoExtractor:
                 or self._html_extract_title(webpage, default=None)
                 or urllib.parse.unquote(os.path.splitext(url_basename(url))[0])
                 or default)
+
+    def _extract_chapters_helper(self, chapter_list, start_function, title_function, duration, strict=True):
+        if not duration:
+            return
+        chapter_list = [{
+            'start_time': start_function(chapter),
+            'title': title_function(chapter),
+        } for chapter in chapter_list or []]
+        if strict:
+            warn = self.report_warning
+        else:
+            warn = self.write_debug
+            chapter_list.sort(key=lambda c: c['start_time'] or 0)
+
+        chapters = [{'start_time': 0}]
+        for idx, chapter in enumerate(chapter_list):
+            if chapter['start_time'] is None:
+                warn(f'Incomplete chapter {idx}')
+            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
+                chapters.append(chapter)
+            elif chapter not in chapters:
+                issue = (f'{chapter["start_time"]} > {duration}' if chapter['start_time'] > duration
+                         else f'{chapter["start_time"]} < {chapters[-1]["start_time"]}')
+                warn(f'Invalid start time ({issue}) for chapter "{chapter["title"]}"')
+        return chapters[1:]
+
+    def _extract_chapters_from_description(self, description, duration):
+        duration_re = r'(?:\d+:)?\d{1,2}:\d{2}'
+        sep_re = r'(?m)^\s*(%s)\b\W*\s(%s)\s*$'
+        return self._extract_chapters_helper(
+            re.findall(sep_re % (duration_re, r'.+?'), description or ''),
+            start_function=lambda x: parse_duration(x[0]), title_function=lambda x: x[1],
+            duration=duration, strict=False) or self._extract_chapters_helper(
+            re.findall(sep_re % (r'.+?', duration_re), description or ''),
+            start_function=lambda x: parse_duration(x[1]), title_function=lambda x: x[0],
+            duration=duration, strict=False)
 
     @staticmethod
     def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):

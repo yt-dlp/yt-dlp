@@ -12,7 +12,6 @@ from ..utils import (
     mimetype2ext,
     str_or_none,
     traverse_obj,
-    try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
@@ -25,7 +24,7 @@ class DRTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:www\.)?dr\.dk/(?:tv/se|nyheder|(?:radio|lyd)(?:/ondemand)?)/(?:[^/]+/)*|
+                            (?:www\.)?dr\.dk/(?:tv/se|nyheder|(?P<radio>radio|lyd)(?:/ondemand)?)/(?:[^/]+/)*|
                             (?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/(?:se|episode|program)/
                         )
                         (?P<id>[\da-z_-]+)
@@ -80,7 +79,7 @@ class DRTVIE(InfoExtractor):
             'description': 'md5:8c66dcbc1669bbc6f873879880f37f2a',
             'timestamp': 1546628400,
             'upload_date': '20190104',
-            'duration': 3504.618,
+            'duration': 3504.619,
             'formats': 'mincount:20',
             'release_year': 2017,
             'season_id': 'urn:dr:mu:bundle:5afc03ad6187a4065ca5fd35',
@@ -101,14 +100,16 @@ class DRTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Bonderøven 2019 (1:8)',
             'description': 'md5:b6dcfe9b6f0bea6703e9a0092739a5bd',
-            'timestamp': 1603188600,
-            'upload_date': '20201020',
+            'timestamp': 1654856100,
+            'upload_date': '20220610',
             'duration': 2576.6,
             'season': 'Bonderøven 2019',
             'season_id': 'urn:dr:mu:bundle:5c201667a11fa01ca4528ce5',
             'release_year': 2019,
             'season_number': 2019,
-            'series': 'Frank & Kastaniegaarden'
+            'series': 'Frank & Kastaniegaarden',
+            'episode_number': 1,
+            'episode': 'Episode 1',
         },
         'params': {
             'skip_download': True,
@@ -140,10 +141,26 @@ class DRTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'this video has been removed',
+    }, {
+        'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/regionale-nyheder-2023-03-14-10-30-9',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '14802310112',
+            'timestamp': 1678786200,
+            'duration': 120.043,
+            'season_id': 'urn:dr:mu:bundle:63a4f7c87140143504b6710f',
+            'series': 'P4 København regionale nyheder',
+            'upload_date': '20230314',
+            'release_year': 0,
+            'description': 'Hør seneste regionale nyheder fra P4 København.',
+            'season': 'Regionale nyheder',
+            'title': 'Regionale nyheder',
+        },
     }]
 
     def _real_extract(self, url):
-        raw_video_id = self._match_id(url)
+        raw_video_id, is_radio_url = self._match_valid_url(url).group('id', 'radio')
 
         webpage = self._download_webpage(url, raw_video_id)
 
@@ -170,15 +187,17 @@ class DRTVIE(InfoExtractor):
             programcard_url = '%s/%s' % (_PROGRAMCARD_BASE, video_id)
         else:
             programcard_url = _PROGRAMCARD_BASE
-            page = self._parse_json(
-                self._search_regex(
-                    r'data\s*=\s*({.+?})\s*(?:;|</script)', webpage,
-                    'data'), '1')['cache']['page']
-            page = page[list(page.keys())[0]]
-            item = try_get(
-                page, (lambda x: x['item'], lambda x: x['entries'][0]['item']),
-                dict)
-            video_id = item['customId'].split(':')[-1]
+            if is_radio_url:
+                video_id = self._search_nextjs_data(
+                    webpage, raw_video_id)['props']['pageProps']['episode']['productionNumber']
+            else:
+                json_data = self._search_json(
+                    r'window\.__data\s*=', webpage, 'data', raw_video_id)
+                video_id = traverse_obj(json_data, (
+                    'cache', 'page', ..., (None, ('entries', 0)), 'item', 'customId',
+                    {lambda x: x.split(':')[-1]}), get_all=False)
+                if not video_id:
+                    raise ExtractorError('Unable to extract video id')
             query['productionnumber'] = video_id
 
         data = self._download_json(
@@ -269,10 +288,11 @@ class DRTVIE(InfoExtractor):
                                 f['vcodec'] = 'none'
                         formats.extend(f4m_formats)
                     elif target == 'HLS':
-                        formats.extend(self._extract_m3u8_formats(
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
                             uri, video_id, 'mp4', entry_protocol='m3u8_native',
-                            quality=preference, m3u8_id=format_id,
-                            fatal=False))
+                            quality=preference, m3u8_id=format_id, fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
                     else:
                         bitrate = link.get('Bitrate')
                         if bitrate:

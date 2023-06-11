@@ -45,6 +45,7 @@ class RokfinIE(InfoExtractor):
             'live_status': 'not_live',
             'dislike_count': int,
             'like_count': int,
+            'duration': 213,
         }
     }, {
         'url': 'https://rokfin.com/post/223/Julian-Assange-Arrested-Streaming-In-Real-Time',
@@ -72,7 +73,7 @@ class RokfinIE(InfoExtractor):
             'title': '"It\'s A Crazy Mess" Regional Director Blows Whistle On Pfizer\'s Vaccine Trial Data',
             'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
             'description': 'md5:324ce2d3e3b62e659506409e458b9d8e',
-            'channel': 'Ryan Cristián',
+            'channel': 'TLAVagabond',
             'channel_id': 53856,
             'channel_url': 'https://rokfin.com/TLAVagabond',
             'availability': 'public',
@@ -85,6 +86,47 @@ class RokfinIE(InfoExtractor):
             'upload_date': '20211102',
             'dislike_count': int,
             'like_count': int,
+            'tags': ['FreeThinkingMedia^'],
+            'duration': None,
+        }
+    }, {
+        'url': 'https://rokfin.com/post/126703/Brave-New-World--Aldous-Huxley-DEEPDIVE--Chpts-13--Quite-Frankly--Jay-Dyer',
+        'info_dict': {
+            'id': 'post/126703',
+            'ext': 'mp4',
+            'title': 'Brave New World - Aldous Huxley DEEPDIVE!  (Chpts 1-3) - Quite Frankly & Jay Dyer',
+            'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
+            'channel': 'Jay Dyer',
+            'channel_id': 186881,
+            'channel_url': 'https://rokfin.com/jaydyer',
+            'availability': 'premium_only',
+            'live_status': 'not_live',
+            'dislike_count': int,
+            'like_count': int,
+            'timestamp': 1678213357,
+            'upload_date': '20230307',
+            'tags': ['FreeThinkingMedia^', 'OpenMind^'],
+            'description': 'md5:cb04e32e68326c9b2b251b297bacff35',
+            'duration': 3100,
+        }
+    }, {
+        'url': 'https://rokfin.com/stream/31332/The-Grayzone-live-on-Nordstream-blame-game',
+        'info_dict': {
+            'id': 'stream/31332',
+            'ext': 'mp4',
+            'title': 'The Grayzone live on Nordstream blame game',
+            'thumbnail': r're:https://image\.v\.rokfin\.com/.+',
+            'channel': 'Max Blumenthal',
+            'channel_id': 248902,
+            'channel_url': 'https://rokfin.com/MaxBlumenthal',
+            'availability': 'premium_only',
+            'live_status': 'was_live',
+            'dislike_count': int,
+            'like_count': int,
+            'timestamp': 1678475166,
+            'release_timestamp': 1678475166.0,
+            'release_date': '20230310',
+            'upload_date': '20230310',
             'tags': ['FreeThinkingMedia^'],
         }
     }]
@@ -100,6 +142,12 @@ class RokfinIE(InfoExtractor):
                        else 'not_live')
 
         video_url = traverse_obj(metadata, 'url', ('content', 'contentUrl'), expected_type=url_or_none)
+        if video_url in (None, 'fake.m3u8'):
+            video_url = format_field(self._search_regex(
+                r'https?://[^/]+/([^/]+)/storyboard.vtt',
+                traverse_obj(metadata, 'timelineUrl', ('content', 'timelineUrl'), expected_type=url_or_none),
+                video_id, default=None), None, 'https://stream.v.rokfin.com/%s.m3u8')
+
         formats, subtitles = [{'url': video_url}] if video_url else [], {}
         if determine_ext(video_url) == 'm3u8':
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(

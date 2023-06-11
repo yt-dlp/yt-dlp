@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt_bytes
 from ..utils import (
     ExtractorError,
+    float_or_none,
     determine_ext,
     int_or_none,
     js_to_json,
@@ -18,6 +19,16 @@ from ..utils import (
 
 class TencentBaseIE(InfoExtractor):
     """Subclasses must set _API_URL, _APP_VERSION, _PLATFORM, _HOST, _REFERER"""
+
+    def _check_api_response(self, api_response):
+        msg = api_response.get('msg')
+        if api_response.get('code') != '0.0' and msg is not None:
+            if msg in (
+                '您所在区域暂无此内容版权（如设置VPN请关闭后重试）',
+                'This content is not available in your area due to copyright restrictions. Please choose other videos.'
+            ):
+                self.raise_geo_restricted()
+            raise ExtractorError(f'Tencent said: {msg}')
 
     def _get_ckey(self, video_id, url, guid):
         ua = self.get_param('http_headers')['User-Agent']
@@ -47,6 +58,11 @@ class TencentBaseIE(InfoExtractor):
             'sphttps': '1',  # Enable HTTPS
             'otype': 'json',
             'spwm': '1',
+            'hevclv': '28',  # Enable HEVC
+            'drm': '40',  # Enable DRM
+            # For HDR
+            'spvideo': '4',
+            'spsfrhdr': '100',
             # For SHD
             'host': self._HOST,
             'referer': self._REFERER,
@@ -63,7 +79,6 @@ class TencentBaseIE(InfoExtractor):
 
     def _extract_video_formats_and_subtitles(self, api_response, video_id):
         video_response = api_response['vl']['vi'][0]
-        video_width, video_height = video_response.get('vw'), video_response.get('vh')
 
         formats, subtitles = [], {}
         for video_format in video_response['ul']['ui']:
@@ -71,47 +86,61 @@ class TencentBaseIE(InfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     video_format['url'] + traverse_obj(video_format, ('hls', 'pt'), default=''),
                     video_id, 'mp4', fatal=False)
-                for f in fmts:
-                    f.update({'width': video_width, 'height': video_height})
 
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
                 formats.append({
                     'url': f'{video_format["url"]}{video_response["fn"]}?vkey={video_response["fvkey"]}',
-                    'width': video_width,
-                    'height': video_height,
                     'ext': 'mp4',
                 })
 
+        identifier = video_response.get('br')
+        format_response = traverse_obj(
+            api_response, ('fl', 'fi', lambda _, v: v['br'] == identifier),
+            expected_type=dict, get_all=False) or {}
+        common_info = {
+            'width': video_response.get('vw'),
+            'height': video_response.get('vh'),
+            'abr': float_or_none(format_response.get('audiobandwidth'), scale=1000),
+            'vbr': float_or_none(format_response.get('bandwidth'), scale=1000),
+            'fps': format_response.get('vfps'),
+            'format': format_response.get('sname'),
+            'format_id': format_response.get('name'),
+            'format_note': format_response.get('resolution'),
+            'dynamic_range': {'hdr10': 'hdr10'}.get(format_response.get('name'), 'sdr'),
+            'has_drm': format_response.get('drm', 0) != 0,
+        }
+        for f in formats:
+            f.update(common_info)
+
         return formats, subtitles
 
-    def _extract_video_native_subtitles(self, api_response, subtitles_format):
+    def _extract_video_native_subtitles(self, api_response):
         subtitles = {}
         for subtitle in traverse_obj(api_response, ('sfl', 'fi')) or ():
             subtitles.setdefault(subtitle['lang'].lower(), []).append({
                 'url': subtitle['url'],
-                'ext': subtitles_format,
+                'ext': 'srt' if subtitle.get('captionType') == 1 else 'vtt',
                 'protocol': 'm3u8_native' if determine_ext(subtitle['url']) == 'm3u8' else 'http',
             })
 
         return subtitles
 
     def _extract_all_video_formats_and_subtitles(self, url, video_id, series_id):
+        api_responses = [self._get_video_api_response(url, video_id, series_id, 'srt', 'hls', 'hd')]
+        self._check_api_response(api_responses[0])
+        qualities = traverse_obj(api_responses, (0, 'fl', 'fi', ..., 'name')) or ('shd', 'fhd')
+        for q in qualities:
+            if q not in ('ld', 'sd', 'hd'):
+                api_responses.append(self._get_video_api_response(
+                    url, video_id, series_id, 'vtt', 'hls', q))
+                self._check_api_response(api_responses[-1])
+
         formats, subtitles = [], {}
-        for video_format, subtitle_format, video_quality in (
-                # '': 480p, 'shd': 720p, 'fhd': 1080p
-                ('mp4', 'srt', ''), ('hls', 'vtt', 'shd'), ('hls', 'vtt', 'fhd')):
-            api_response = self._get_video_api_response(
-                url, video_id, series_id, subtitle_format, video_format, video_quality)
-
-            if api_response.get('em') != 0 and api_response.get('exem') != 0:
-                if '您所在区域暂无此内容版权' in api_response.get('msg'):
-                    self.raise_geo_restricted()
-                raise ExtractorError(f'Tencent said: {api_response.get("msg")}')
-
+        for api_response in api_responses:
             fmts, subs = self._extract_video_formats_and_subtitles(api_response, video_id)
-            native_subtitles = self._extract_video_native_subtitles(api_response, subtitle_format)
+            native_subtitles = self._extract_video_native_subtitles(api_response)
 
             formats.extend(fmts)
             self._merge_subtitles(subs, native_subtitles, target=subtitles)
@@ -120,7 +149,7 @@ class TencentBaseIE(InfoExtractor):
 
     def _get_clean_title(self, title):
         return re.sub(
-            r'\s*[_\-]\s*(?:Watch online|腾讯视频|(?:高清)?1080P在线观看平台).*?$',
+            r'\s*[_\-]\s*(?:Watch online|Watch HD Video Online|WeTV|腾讯视频|(?:高清)?1080P在线观看平台).*?$',
             '', title or '').strip() or None
 
 
@@ -134,11 +163,9 @@ class VQQBaseIE(TencentBaseIE):
     _REFERER = 'v.qq.com'
 
     def _get_webpage_metadata(self, webpage, video_id):
-        return self._parse_json(
-            self._search_regex(
-                r'(?s)<script[^>]*>[^<]*window\.__pinia\s*=\s*([^<]+)</script>',
-                webpage, 'pinia data', fatal=False),
-            video_id, transform_source=js_to_json, fatal=False)
+        return self._search_json(
+            r'<script[^>]*>[^<]*window\.__(?:pinia|PINIA__)\s*=',
+            webpage, 'pinia data', video_id, transform_source=js_to_json, fatal=False)
 
 
 class VQQVideoIE(VQQBaseIE):
@@ -147,27 +174,29 @@ class VQQVideoIE(VQQBaseIE):
 
     _TESTS = [{
         'url': 'https://v.qq.com/x/page/q326831cny0.html',
-        'md5': '826ef93682df09e3deac4a6e6e8cdb6e',
+        'md5': 'b11c9cb781df710d686b950376676e2a',
         'info_dict': {
             'id': 'q326831cny0',
             'ext': 'mp4',
             'title': '我是选手：雷霆裂阵，终极时刻',
             'description': 'md5:e7ed70be89244017dac2a835a10aeb1e',
             'thumbnail': r're:^https?://[^?#]+q326831cny0',
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://v.qq.com/x/page/o3013za7cse.html',
-        'md5': 'b91cbbeada22ef8cc4b06df53e36fa21',
+        'md5': 'a1bcf42c6d28c189bd2fe2d468abb287',
         'info_dict': {
             'id': 'o3013za7cse',
             'ext': 'mp4',
             'title': '欧阳娜娜VLOG',
             'description': 'md5:29fe847497a98e04a8c3826e499edd2e',
             'thumbnail': r're:^https?://[^?#]+o3013za7cse',
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://v.qq.com/x/cover/7ce5noezvafma27/a00269ix3l8.html',
-        'md5': '71459c5375c617c265a22f083facce67',
+        'md5': '87968df6238a65d2478f19c25adf850b',
         'info_dict': {
             'id': 'a00269ix3l8',
             'ext': 'mp4',
@@ -175,10 +204,12 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:8cae3534327315b3872fbef5e51b5c5b',
             'thumbnail': r're:^https?://[^?#]+7ce5noezvafma27',
             'series': '鸡毛飞上天',
+            'format_id': r're:^shd',
         },
+        'skip': '404',
     }, {
         'url': 'https://v.qq.com/x/cover/mzc00200p29k31e/s0043cwsgj0.html',
-        'md5': '96b9fd4a189fdd4078c111f21d7ac1bc',
+        'md5': 'fadd10bf88aec3420f06f19ee1d24c5b',
         'info_dict': {
             'id': 's0043cwsgj0',
             'ext': 'mp4',
@@ -186,7 +217,9 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:1d8c3a0b8729ae3827fa5b2d3ebd5213',
             'thumbnail': r're:^https?://[^?#]+s0043cwsgj0',
             'series': '青年理工工作者生活研究所',
+            'format_id': r're:^shd',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Geo-restricted to China
         'url': 'https://v.qq.com/x/cover/mcv8hkc8zk8lnov/x0036x5qqsr.html',
@@ -319,6 +352,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2835,
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://wetv.vip/en/play/u37kgfnfzs73kiu/p0039b9nvik',
@@ -333,6 +367,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2454,
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://wetv.vip/en/play/lcxgwod5hapghvw-WeTV-PICK-A-BOO/i0042y00lxp-Zhao-Lusi-Describes-The-First-Experiences-She-Had-In-Who-Rules-The-World-%7C-WeTV-PICK-A-BOO',
@@ -342,11 +377,12 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'ext': 'mp4',
             'title': 'md5:f7a0857dbe5fbbe2e7ad630b92b54e6a',
             'description': 'md5:76260cb9cdc0ef76826d7ca9d92fadfa',
-            'thumbnail': r're:^https?://[^?#]+lcxgwod5hapghvw',
+            'thumbnail': r're:^https?://[^?#]+i0042y00lxp',
             'series': 'WeTV PICK-A-BOO',
             'episode': 'Episode 0',
             'episode_number': 0,
             'duration': 442,
+            'format_id': r're:^shd',
         },
     }]
 
@@ -406,6 +442,7 @@ class IflixEpisodeIE(IflixBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2639,
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://www.iflix.com/en/play/fvvrcc3ra9lbtt1-Take-My-Brother-Away/i0029sd3gm1-EP1%EF%BC%9ATake-My-Brother-Away',
@@ -420,6 +457,7 @@ class IflixEpisodeIE(IflixBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 228,
+            'format_id': r're:^shd',
         },
     }]
 
