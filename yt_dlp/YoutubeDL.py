@@ -3796,7 +3796,7 @@ class YoutubeDL:
         req.proxies = req.proxies or self.params.get('proxies')
         req.cookiejar = req.cookiejar or self.cookiejar
 
-        return self._request_director.send(req)
+        return self._request_director.send(req.prepare())
 
     def print_debug_header(self):
         if not self.params.get('verbose'):

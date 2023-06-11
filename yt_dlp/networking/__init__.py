@@ -5,7 +5,7 @@ from .common import (
     RequestHandler,
 )
 from .response import Response
-from .request import Request
+from .request import Request, PreparedRequest
 from .exceptions import RequestError, UnsupportedRequest
 from ..utils import bug_reports_message
 
@@ -40,23 +40,22 @@ class RequestDirector:
         self.remove_handler(handler)
         self.add_handler(handler)
 
-    def send(self, request: Request) -> Response:
+    def send(self, request: PreparedRequest) -> Response:
         """
         Passes a request onto a suitable RequestHandler
         """
         if len(self._handlers) == 0:
             raise RequestError('No request handlers configured')
 
-        assert isinstance(request, Request)
+        assert isinstance(request, PreparedRequest)
 
         unexpected_errors = []
         unsupported_errors = []
-        prepared_request = request.prepare()
         for handler in reversed(self._handlers):
             self.logger.to_debugtraffic(
                 f'director: checking if "{handler.RH_NAME}" request handler supports this request.')
             try:
-                handler.validate(prepared_request)
+                handler.validate(request)
             except UnsupportedRequest as e:
                 self.logger.to_debugtraffic(
                     f'director: "{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}:{e})')
@@ -64,7 +63,7 @@ class RequestDirector:
                 continue
             self.logger.to_debugtraffic(f'director: sending request via "{handler.RH_NAME}" request handler.')
             try:
-                response = handler.send(prepared_request)
+                response = handler.send(request)
             except RequestError:
                 raise
             except Exception as e:
