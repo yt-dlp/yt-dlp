@@ -166,7 +166,7 @@ def get_redirect_method(method, status):
     return method
 
 
-def handle_request_errors(func):
+def wrap_request_errors(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         try:

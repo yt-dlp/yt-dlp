@@ -380,9 +380,9 @@ def handle_response_read_exceptions(e):
 
 
 class UrllibRH(RequestHandler, InstanceStoreMixin):
-    SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp', 'file']
-    SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
-    SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
+    _SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp', 'file']
+    _SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
+    _SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
     RH_NAME = 'urllib'
 
     def __init__(self, ydl):
@@ -394,7 +394,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             ProxyHandler(proxies),
             HTTPHandler(
                 self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
-                context=self.make_sslcontext()),
+                context=self._make_sslcontext()),
             HTTPCookieProcessor(cookiejar),
             DataHandler(),
             UnknownHandler(),
@@ -415,7 +415,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         opener.addheaders = []
         return opener
 
-    def _real_handle(self, request):
+    def _send(self, request):
         headers = request.headers.copy()
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
         urllib_req = urllib.request.Request(

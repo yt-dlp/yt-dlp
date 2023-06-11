@@ -34,7 +34,7 @@ class TestMultipleSocks(unittest.TestCase):
             return
         with make_rh({'proxy': params['primary_proxy']}) as rh:
             self.assertEqual(
-                rh.handle(Request('http://yt-dl.org/ip')).read().decode('utf-8'),
+                rh.send(Request('http://yt-dl.org/ip')).read().decode('utf-8'),
                 params['primary_server_ip'])
 
     @with_make_rh()
@@ -44,7 +44,7 @@ class TestMultipleSocks(unittest.TestCase):
             return
         with make_rh({'proxy': params['primary_proxy']}) as rh:
             self.assertEqual(
-                rh.handle(Request('https://yt-dl.org/ip')).read().decode('utf-8'),
+                rh.send(Request('https://yt-dl.org/ip')).read().decode('utf-8'),
                 params['primary_server_ip'])
 
     @with_make_rh()
@@ -55,7 +55,7 @@ class TestMultipleSocks(unittest.TestCase):
         with make_rh() as rh:
             req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
             self.assertEqual(
-                rh.handle(req).read().decode('utf-8'),
+                rh.send(req).read().decode('utf-8'),
                 params['secondary_server_ip'])
 
     @with_make_rh()
@@ -66,7 +66,7 @@ class TestMultipleSocks(unittest.TestCase):
         with make_rh() as rh:
             req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
             self.assertEqual(
-                rh.handle(req).read().decode('utf-8'),
+                rh.send(req).read().decode('utf-8'),
                 params['secondary_server_ip'])
 
 
@@ -98,7 +98,7 @@ class TestSocks(unittest.TestCase):
         with make_rh({
             'proxy': '%s://127.0.0.1:%d' % (protocol, self.port),
         }) as rh:
-            return rh.handle(Request('http://yt-dl.org/ip')).read().decode('utf-8')
+            return rh.send(Request('http://yt-dl.org/ip')).read().decode('utf-8')
 
     def test_socks4(self):
         self.assertTrue(isinstance(self._get_ip('socks4'), str))

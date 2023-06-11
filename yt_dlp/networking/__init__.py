@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import urllib.request
-from typing import Union
-
 from ._urllib import UrllibRH  # noqa: F401
 from .common import (
     RequestHandler,
@@ -57,18 +54,16 @@ class RequestDirector:
         prepared_request = request.prepare()
         for handler in reversed(self._handlers):
             try:
-                self.logger.to_debugtraffic(f'Forwarding request to "{handler.RH_NAME}" request handler')
-                handler.can_handle(prepared_request)
-                response = handler.handle(prepared_request)
+                self.logger.to_debugtraffic(f'director: Trying "{handler.RH_NAME}" request handler')
+                response = handler.send(prepared_request)
             except UnsupportedRequest as e:
                 self.logger.to_debugtraffic(
-                    f'"{handler.RH_NAME}" request handler cannot handle this request, trying another handler... (cause: {type(e).__name__}:{e})')
+                    f'director: "{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}:{e})')
                 unsupported_errors.append(e)
                 continue
-
+            except RequestError:
+                raise
             except Exception as e:
-                if isinstance(e, RequestError):
-                    raise
                 # something went very wrong, try fallback to next handler
                 self.logger.report_error(
                     f'Unexpected error from "{handler.RH_NAME}" request handler: {type(e).__name__}:{e}' + bug_reports_message(),

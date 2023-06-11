@@ -321,23 +321,23 @@ class TestHTTP(unittest.TestCase):
     @with_make_rh()
     def test_raise(self, make_rh):
         with make_rh() as rh:
-            for func in (rh.handle, rh.prepare_request, functools.partial(rh.can_handle, fatal=True)):
+            for func in (rh.send, rh.prepare_request, functools.partial(rh.check_supported, fatal=True)):
                 try:
                     func(Request('bad123://'))
                 except RequestError as e:
                     self.assertIs(e.handler, rh)
 
             with self.assertRaises(TypeError):
-                rh.handle(None)
+                rh.send(None)
 
     @with_make_rh()
     def test_nocheckcertificate(self, make_rh):
         with make_rh({'logger': FakeLogger()}) as rh:
             with self.assertRaises(SSLError):
-                rh.handle(Request(f'https://127.0.0.1:{self.https_port}/headers'))
+                rh.send(Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
         with make_rh({'logger': FakeLogger(), 'nocheckcertificate': True}) as rh:
-            r = rh.handle(Request(f'https://127.0.0.1:{self.https_port}/headers'))
+            r = rh.send(Request(f'https://127.0.0.1:{self.https_port}/headers'))
             self.assertEqual(r.status, 200)
             r.close()
 
@@ -345,18 +345,18 @@ class TestHTTP(unittest.TestCase):
     def test_percent_encode(self, make_rh):
         with make_rh() as rh:
             # Unicode characters should be encoded with uppercase percent-encoding
-            res = rh.handle(Request(f'http://127.0.0.1:{self.http_port}/中文.html'))
+            res = rh.send(Request(f'http://127.0.0.1:{self.http_port}/中文.html'))
             self.assertEqual(res.status, 200)
             res.close()
             # don't normalize existing percent encodings
-            res = rh.handle(Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
+            res = rh.send(Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
             self.assertEqual(res.status, 200)
             res.close()
 
     @with_make_rh()
     def test_unicode_path_redirection(self, make_rh):
         with make_rh() as rh:
-            r = rh.handle(Request(f'http://127.0.0.1:{self.http_port}/302-non-ascii-redirect'))
+            r = rh.send(Request(f'http://127.0.0.1:{self.http_port}/302-non-ascii-redirect'))
             self.assertEqual(r.url, f'http://127.0.0.1:{self.http_port}/%E4%B8%AD%E6%96%87.html')
             r.close()
 
@@ -365,24 +365,24 @@ class TestHTTP(unittest.TestCase):
         with make_rh() as rh:
             for bad_status in (400, 500, 599, 302):
                 with self.assertRaises(HTTPError):
-                    rh.handle(Request('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status)))
+                    rh.send(Request('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status)))
 
             # Should not raise an error
-            rh.handle(Request('http://127.0.0.1:%d/gen_200' % self.http_port)).close()
+            rh.send(Request('http://127.0.0.1:%d/gen_200' % self.http_port)).close()
 
     @with_make_rh()
     def test_redirect_loop(self, make_rh):
         with make_rh() as rh:
             with self.assertRaisesRegex(HTTPError, r'HTTP Error 301: Moved Permanently \(redirect loop detected\)'):
-                rh.handle(Request('http://127.0.0.1:%d/redirect_loop' % self.http_port))
+                rh.send(Request('http://127.0.0.1:%d/redirect_loop' % self.http_port))
 
     @with_make_rh()
     def test_get_url(self, make_rh):
         with make_rh() as rh:
-            res = rh.handle(Request('http://127.0.0.1:%d/redirect_301' % self.http_port))
+            res = rh.send(Request('http://127.0.0.1:%d/redirect_301' % self.http_port))
             self.assertEqual(res.url, 'http://127.0.0.1:%d/method' % self.http_port)
             res.close()
-            res2 = rh.handle(Request('http://127.0.0.1:%d/gen_200' % self.http_port))
+            res2 = rh.send(Request('http://127.0.0.1:%d/gen_200' % self.http_port))
             self.assertEqual(res2.url, 'http://127.0.0.1:%d/gen_200' % self.http_port)
             res2.close()
 
@@ -391,7 +391,7 @@ class TestHTTP(unittest.TestCase):
         with make_rh() as rh:
             def do_req(redirect_status, method):
                 data = b'testdata' if method in ('POST', 'PUT') else None
-                res = rh.handle(
+                res = rh.send(
                     Request(f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method,
                             data=data))
                 return res.read().decode('utf-8'), res.headers.get('method', '')
@@ -430,19 +430,19 @@ class TestHTTP(unittest.TestCase):
             # method should be auto-detected as POST
             r = Request(f'https://localhost:{self.https_port}/headers', data=urlencode_postdata({'test': 'test'}))
 
-            headers = rh.handle(r).read().decode('utf-8')
+            headers = rh.send(r).read().decode('utf-8')
             self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
 
             # test http
             r.update(url=f'http://localhost:{self.http_port}/headers')
-            headers = rh.handle(r).read().decode('utf-8')
+            headers = rh.send(r).read().decode('utf-8')
             self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
 
     @with_make_rh()
     def test_incompleteread(self, make_rh):
         with make_rh({'socket_timeout': 2}) as rh:
             with self.assertRaises(IncompleteRead):
-                rh.handle(Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
+                rh.send(Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
 
     @with_make_rh()
     def test_cookiejar(self, make_rh):
@@ -450,13 +450,13 @@ class TestHTTP(unittest.TestCase):
             rh.ydl.cookiejar.set_cookie(http.cookiejar.Cookie(
                 0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
                 False, '/headers', True, False, None, False, None, None, {}))
-            data = rh.handle(Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            data = rh.send(Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
             self.assertIn(b'Cookie: test=ytdlp', data)
 
     @with_make_rh()
     def test_no_compression_compat_header(self, make_rh):
         with make_rh() as rh:
-            data = rh.handle(
+            data = rh.send(
                 Request(f'http://127.0.0.1:{self.http_port}/headers',
                         headers={'Youtubedl-no-compression': True})).read()
             self.assertIn(b'Accept-Encoding: identity', data)
@@ -467,14 +467,14 @@ class TestHTTP(unittest.TestCase):
         # https://github.com/ytdl-org/youtube-dl/commit/aa3e950764337ef9800c936f4de89b31c00dfcf5
         # https://github.com/ytdl-org/youtube-dl/commit/6f2ec15cee79d35dba065677cad9da7491ec6e6f
         with make_rh() as rh:
-            data = rh.handle(Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
+            data = rh.send(Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
             self.assertEqual(data, '<html><video src="/vid.mp4" /></html>')
 
     @unittest.skipUnless(brotli, 'brotli support is not installed')
     @with_make_rh(handlers=[UrllibRH])
     def test_brotli(self, make_rh):
         with make_rh() as rh:
-            res = rh.handle(
+            res = rh.send(
                 Request(
                     f'http://127.0.0.1:{self.http_port}/content-encoding',
                     headers={'ytdl-encoding': 'br'}))
@@ -484,7 +484,7 @@ class TestHTTP(unittest.TestCase):
     @with_make_rh(handlers=[UrllibRH])
     def test_deflate(self, make_rh):
         with make_rh() as rh:
-            res = rh.handle(
+            res = rh.send(
                 Request(
                     f'http://127.0.0.1:{self.http_port}/content-encoding',
                     headers={'ytdl-encoding': 'deflate'}))
@@ -494,7 +494,7 @@ class TestHTTP(unittest.TestCase):
     @with_make_rh(handlers=[UrllibRH])
     def test_gzip(self, make_rh):
         with make_rh() as rh:
-            res = rh.handle(
+            res = rh.send(
                 Request(
                     f'http://127.0.0.1:{self.http_port}/content-encoding',
                     headers={'ytdl-encoding': 'gzip'}))
@@ -506,7 +506,7 @@ class TestHTTP(unittest.TestCase):
         # https://www.rfc-editor.org/rfc/rfc9110.html#section-8.4
         with make_rh() as rh:
             for pair in ('gzip,deflate', 'deflate, gzip', 'gzip, gzip', 'deflate, deflate'):
-                res = rh.handle(
+                res = rh.send(
                     Request(
                         f'http://127.0.0.1:{self.http_port}/content-encoding',
                         headers={'ytdl-encoding': pair}))
@@ -517,7 +517,7 @@ class TestHTTP(unittest.TestCase):
     def test_unsupported_encoding(self, make_rh):
         # it should return the raw content
         with make_rh() as rh:
-            res = rh.handle(
+            res = rh.send(
                 Request(
                     f'http://127.0.0.1:{self.http_port}/content-encoding',
                     headers={'ytdl-encoding': 'unsupported'}))
@@ -540,10 +540,10 @@ class TestHTTP(unittest.TestCase):
         with make_rh() as rh:
             self.assertRaisesRegex(
                 UnsupportedRequest, 'file:// URLs are disabled by default in yt-dlp for security reasons. Use --enable-file-urls to at your own risk.',
-                rh.handle, req)
+                rh.send, req)
         with make_rh({'enable_file_urls': True}) as rh:
             try:
-                res = rh.handle(req)
+                res = rh.send(req)
                 self.assertEqual(res.read(), b'foobar')
                 res.close()
             except UnsupportedRequest:
@@ -564,28 +564,28 @@ class TestHTTP(unittest.TestCase):
             'proxy': f'//127.0.0.1:{self.proxy_port}',
             'geo_verification_proxy': geo_proxy,
         }) as rh:
-            response = rh.handle(Request(url)).read().decode('utf-8')
+            response = rh.send(Request(url)).read().decode('utf-8')
             self.assertEqual(response, f'normal: {url}')
 
             # Test Ytdl-request-proxy header
             req = Request(url, headers={'Ytdl-request-proxy': geo_proxy2})
-            response1 = rh.handle(req).read().decode('utf-8')
+            response1 = rh.send(req).read().decode('utf-8')
             self.assertEqual(response1, f'geo: {url}')
 
             # Test proxies dict in request
-            response2 = rh.handle(Request(url, proxies={'http': geo_proxy})).read().decode('utf-8')
+            response2 = rh.send(Request(url, proxies={'http': geo_proxy})).read().decode('utf-8')
             self.assertEqual(response2, f'geo: {url}')
 
             # test that __noproxy__ disables all proxies for that request
             real_url = 'http://127.0.0.1:%d/headers' % self.http_port
-            response3 = rh.handle(
+            response3 = rh.send(
                 Request(real_url, headers={'Ytdl-request-proxy': '__noproxy__'})).read().decode('utf-8')
             self.assertNotEqual(response3, f'normal: {real_url}')
             self.assertNotIn('Ytdl-request-proxy', response3)
             self.assertIn('Accept', response3)
 
             # test unrelated proxy is ignored (would cause all handlers to be unsupported otherwise)
-            response4 = rh.handle(
+            response4 = rh.send(
                 Request('http://localhost:%d/headers' % self.http_port,
                         proxies={'unrelated': 'unrelated://example.com'})).read().decode('utf-8')
             self.assertIn('Accept', response4)
@@ -595,7 +595,7 @@ class TestHTTP(unittest.TestCase):
         with make_rh({'proxy': f'http://127.0.0.1:{self.proxy_port}'}) as rh:
             # NO_PROXY
             for no_proxy in (f'127.0.0.1:{self.http_port}', '127.0.0.1', 'localhost'):
-                nop_response = rh.handle(
+                nop_response = rh.send(
                     Request(f'http://127.0.0.1:{self.http_port}/headers', proxies={'no': no_proxy})).read().decode(
                     'utf-8')
                 self.assertIn('Accept', nop_response)
@@ -605,7 +605,7 @@ class TestHTTP(unittest.TestCase):
         # test all proxy
         url = 'http://foo.com/bar'
         with make_rh() as rh:
-            response = rh.handle(Request(url, proxies={'all': f'http://127.0.0.1:{self.proxy_port}'})).read().decode(
+            response = rh.send(Request(url, proxies={'all': f'http://127.0.0.1:{self.proxy_port}'})).read().decode(
                 'utf-8')
             self.assertEqual(response, f'normal: {url}')
 
@@ -615,7 +615,7 @@ class TestHTTP(unittest.TestCase):
             'proxy': f'127.0.0.1:{self.proxy_port}',
         }) as rh:
             url = 'http://中文.tw/'
-            response = rh.handle(Request(url)).read().decode('utf-8')
+            response = rh.send(Request(url)).read().decode('utf-8')
             # b'xn--fiq228c' is '中文'.encode('idna')
             self.assertEqual(response, 'normal: http://xn--fiq228c.tw/')
 
@@ -645,7 +645,7 @@ class TestClientCert(unittest.TestCase):
             'nocheckcertificate': True,
             **params,
         }, ydl_fake=False) as rh:
-            rh.handle(Request(f'https://127.0.0.1:{self.port}/video.html')).read().decode('utf-8')
+            rh.send(Request(f'https://127.0.0.1:{self.port}/video.html')).read().decode('utf-8')
 
     def test_certificate_combined_nopass(self):
         self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
