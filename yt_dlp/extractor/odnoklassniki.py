@@ -241,7 +241,7 @@ class OdnoklassnikiIE(InfoExtractor):
         if self._get_cookies('https://notarealsubdomain.mycdn.me/'):
             self.cookiejar.clear(domain='.mycdn.me')
         if self._get_cookies(cdn_url):
-            self.cookiejar.clear(domain=urllib.parse.urlparse(cdn_url).netloc)
+            self.cookiejar.clear(domain=urllib.parse.urlparse(cdn_url).hostname)
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
