@@ -39,13 +39,19 @@ class Features(enum.Enum):
 class RequestHandlerBase(abc.ABC):
     """Base Request Handler. See RequestHandler."""
     def _validate(self, prepared_request: PreparedRequest):
-        """Validate a request. raises UnsupportedError if a request is not supported."""
+        """Validate a request is supported by this handler.
+         raises UnsupportedError if a request is not supported."""
+
+    @wrap_request_errors
+    def validate(self, prepared_request: PreparedRequest):
+        if not isinstance(prepared_request, PreparedRequest):
+            raise TypeError('Expected an instance of PreparedRequest')
+        self._validate(prepared_request)
 
     @wrap_request_errors
     def send(self, prepared_request: PreparedRequest) -> Response:
         if not isinstance(prepared_request, PreparedRequest):
             raise TypeError('Expected an instance of PreparedRequest')
-        self._validate(prepared_request)
         return self._send(prepared_request)
 
     @abc.abstractmethod

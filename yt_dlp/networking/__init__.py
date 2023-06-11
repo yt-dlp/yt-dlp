@@ -53,14 +53,18 @@ class RequestDirector:
         unsupported_errors = []
         prepared_request = request.prepare()
         for handler in reversed(self._handlers):
+            self.logger.to_debugtraffic(
+                f'director: checking if "{handler.RH_NAME}" request handler supports this request.')
             try:
-                self.logger.to_debugtraffic(f'director: Trying "{handler.RH_NAME}" request handler')
-                response = handler.send(prepared_request)
+                handler.validate(prepared_request)
             except UnsupportedRequest as e:
                 self.logger.to_debugtraffic(
                     f'director: "{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}:{e})')
                 unsupported_errors.append(e)
                 continue
+            self.logger.to_debugtraffic(f'director: sending request via "{handler.RH_NAME}" request handler.')
+            try:
+                response = handler.send(prepared_request)
             except RequestError:
                 raise
             except Exception as e:
