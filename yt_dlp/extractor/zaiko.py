@@ -21,11 +21,13 @@ class ZaikoIE(InfoExtractor):
             'alt_title': '[VOD] ZAIKO STREAMING TEST_20210603(Do Not Delete)',
             'uploader_id': '454',
             'uploader': 'ZAIKO ZERO',
-            'timestamp': 1583809200,
+            'release_timestamp': 1583809200,
             'thumbnail': r're:https://[a-z0-9]+.cloudfront.net/[a-z0-9_]+/[a-z0-9_]+',
-            'upload_date': '20200310',
+            'release_date': '20200310',
             'categories': ['Tech House'],
-        }
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _parse_vue_element_attr(self, name, string, video_id):
