@@ -44,7 +44,7 @@ def _js_arith_op(op):
 
 
 def _js_div(a, b):
-    if JS_Undefined in (a, b) or not (a and b):
+    if JS_Undefined in (a, b) or not (a or b):
         return float('nan')
     return (a or 0) / b if b else float('inf')
 
