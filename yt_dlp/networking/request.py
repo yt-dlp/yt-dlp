@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import functools
 import io
 import typing
@@ -18,22 +19,32 @@ _TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 
 class PreparedRequest:
 
-    def __init__(self, req: Request):
-        self.headers: CaseInsensitiveDict = self._prepare_headers(req.headers)
-        self.url: str = self._prepare_url(req.url)
-        self.data: _TYPE_REQ_DATA = self._prepare_data(req.data)
-        self.method: str = self._prepare_method(req.method)
-        self.timeout: float = self._prepare_timeout(req.timeout)
-        self.proxies: dict = self._prepare_proxies(req.proxies)
-        self.cookiejar: CookieJar = self._prepare_cookies(req.cookiejar)
+    def __init__(self):
+        self.headers: CaseInsensitiveDict
+        self.url: str
+        self.data: _TYPE_REQ_DATA
+        self.method: str
+        self.extensions: dict
 
-    def _prepare_cookies(self, cookiejar):
-        if isinstance(cookiejar, CookieJar):
-            return cookiejar
-        return CookieJar()
-
-    def _prepare_timeout(self, timeout):
-        return float(timeout or 20)  # do not accept 0
+    def prepare(
+        self,
+        url=None,
+        headers=None,
+        data=None,
+        method=None,
+        proxies=None,
+        extensions=None,
+        prepare_hooks=None
+    ):
+        self.headers = self._prepare_headers(headers)
+        self.url = self._prepare_url(url)
+        self.data = self._prepare_data(data)
+        self.method = self._prepare_method(method)
+        self.proxies = self._prepare_proxies(proxies)
+        self.extensions = dict(extensions or {})
+        for hook in prepare_hooks or []:
+            if callable(hook):
+                hook(self)
 
     def _prepare_url(self, url):
         url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
@@ -171,10 +182,32 @@ class Request:
         self.url = update_url_query(url or self.url, query or {})
 
     def prepare(self):
-        return PreparedRequest(self)
+        return PreparedRequest().prepare(
+            url=self.url,
+            headers=self.headers,
+            data=self.data,
+            method=self.method,
+            proxies=self.proxies,
+            extensions=self.get_extensions(),
+            prepare_hooks=self.get_prepare_hooks()
+        )
+
+    def get_prepare_hooks(self):
+        return []
+
+    def get_extensions(self):
+        extensions = {}
+        if self.cookiejar:
+            extensions['cookiejar'] = self.cookiejar
+        if self.timeout:
+            extensions['timeout'] = self.timeout
+        return extensions
 
     def add_header(self, key, value):
         self.headers[key] = value
+
+    def copy(self):
+        return copy.deepcopy(self)
 
 
 HEADRequest = functools.partial(Request, method='HEAD')

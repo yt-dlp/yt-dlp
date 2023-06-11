@@ -12,6 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import zlib
+from http.cookiejar import CookieJar
 from typing import Union
 from urllib.request import (
     FTPHandler,
@@ -420,9 +421,12 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
-        opener = self._get_instance(proxies=request.proxies, cookiejar=request.cookiejar)
+        opener = self._get_instance(
+            proxies=request.proxies,
+            cookiejar=request.extensions.get('cookiejar') or CookieJar()
+        )
         try:
-            res = opener.open(urllib_req, timeout=request.timeout)
+            res = opener.open(urllib_req, timeout=request.extensions.get('timeout') or 20)
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 raise HTTPError(UrllibResponseAdapter(e.fp), redirect_loop='redirect error' in str(e))

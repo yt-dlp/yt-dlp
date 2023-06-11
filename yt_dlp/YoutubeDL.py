@@ -37,7 +37,7 @@ from .networking import (
     RequestDirector,
     UrllibRH
 )
-from .networking.request import HEADRequest, Request
+from .networking.request import HEADRequest, Request, PreparedRequest
 from .networking.utils import std_headers
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
@@ -3789,14 +3789,23 @@ class YoutubeDL:
                 headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
                 timeout=req.timeout if hasattr(req, 'timeout') else None)
         assert isinstance(req, Request)
-
+        p = PreparedRequest()
         # Merge global settings
-        req.headers = CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers)
-        req.timeout = req.timeout or self.params.get('socket_timeout')
-        req.proxies = req.proxies or self.params.get('proxies')
-        req.cookiejar = req.cookiejar or self.cookiejar
+        extensions = req.get_extensions()
+        if not extensions.get('cookiejar'):
+            extensions['cookiejar'] = self.cookiejar
+        if not extensions.get('timeout'):
+            extensions['timeout'] = self.params.get('socket_timeout')
+        p.prepare(
+            url=req.url,
+            headers=CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers),
+            data=req.data,
+            method=req.method,
+            proxies=req.proxies or self.params.get('proxies'),
+            extensions=extensions,
+            prepare_hooks=req.get_prepare_hooks())
 
-        return self._request_director.send(req.prepare())
+        return self._request_director.send(p)
 
     def print_debug_header(self):
         if not self.params.get('verbose'):
