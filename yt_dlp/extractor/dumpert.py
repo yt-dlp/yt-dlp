@@ -7,7 +7,11 @@ from ..utils import (
 
 
 class DumpertIE(InfoExtractor):
-    _VALID_URL = r'(?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl(?:/(?:mediabase|embed|item)/|(?:/toppers|/latest|/?)\?selectedId=)(?P<id>[0-9]+[/_][0-9a-zA-Z]+)'
+    _VALID_URL = r'''(?x)
+        (?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl(?:
+            /(?:mediabase|embed|item)/|
+            (?:/toppers|/latest|/?)\?selectedId=
+        )(?P<id>[0-9]+[/_][0-9a-zA-Z]+)'''
     _TESTS = [{
         'url': 'https://www.dumpert.nl/item/6646981_951bc60f',
         'md5': '1b9318d7d5054e7dcb9dc7654f21d643',
@@ -17,6 +21,9 @@ class DumpertIE(InfoExtractor):
             'title': 'Ik heb nieuws voor je',
             'description': 'Niet schrikken hoor',
             'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 9,
+            'view_count': int,
+            'like_count': int,
         }
     }, {
         'url': 'https://www.dumpert.nl/embed/6675421_dc440fe7',
@@ -29,14 +36,17 @@ class DumpertIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.dumpert.nl/item/100031688_b317a185',
-        'md5': '34a0c10c91d281141b959b27ee862b8f',
         'info_dict': {
             'id': '100031688/b317a185',
             'ext': 'mp4',
             'title': 'Epic schijnbeweging',
             'description': '<p>Die zag je niet eh</p>',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'duration': 12,
+            'view_count': int,
+            'like_count': int,
         },
+        'params': {'skip_download': 'm3u8'}
     }, {
         'url': 'https://www.dumpert.nl/toppers?selectedId=100031688_b317a185',
         'only_matching': True,
