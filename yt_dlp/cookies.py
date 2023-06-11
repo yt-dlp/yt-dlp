@@ -1073,7 +1073,7 @@ def _open_database_copy(database_path, tmpdir, logger):
 
             drive_letter_with_colon, rest_of_path = os.path.splitdrive(database_path)
             try:
-                result, shadow_id = c.Win32_ShadowCopy.Create(Context="ClientAccessible", Volume=f'{drive_letter_with_colon}{os.sep}')
+                result, shadow_id = c.Win32_ShadowCopy.Create(Context='ClientAccessible', Volume=f'{drive_letter_with_colon}{os.sep}')
             except wmi.x_wmi as x:
                 logger.debug(f'Win32_ShadowCopy.Create failed exception: {x}')
                 result = "Rerun yt-dlp as administrator"
@@ -1086,7 +1086,7 @@ def _open_database_copy(database_path, tmpdir, logger):
             shadow_obj = c.Win32_ShadowCopy(ID=shadow_id)[0]
             try:
                 shadow_volume_path = shadow_obj.DeviceObject
-                logger.debug(f"shadow volume path: {shadow_volume_path}")
+                logger.debug(f'shadow volume path: {shadow_volume_path}')
                 # note that os.path.join(..) does not work properly with shadow_volume_path. It would start with \\?\GLOBALROOT...
                 shutil.copy(shadow_volume_path + os.sep + rest_of_path, database_copy_path)
             finally:

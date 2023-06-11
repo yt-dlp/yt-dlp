@@ -1268,6 +1268,7 @@ class XAttrMetadataError(YoutubeDLError):
 class XAttrUnavailableError(YoutubeDLError):
     pass
 
+
 class CookiesFromBrowserUnavailableError(YoutubeDLError):
     """Used to denote the Cookies from a browser are not available
     """
