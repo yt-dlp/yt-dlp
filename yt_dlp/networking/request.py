@@ -19,30 +19,26 @@ _TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 
 class PreparedRequest:
 
-    def __init__(self):
-        self.headers: CaseInsensitiveDict
-        self.url: str
-        self.data: _TYPE_REQ_DATA
-        self.method: str
-        self.extensions: dict
+    # contains list of func(prepare_request)
+    # useful for preparing any extensions
+    PREPARE_HOOKS = []
 
-    def prepare(
+    def __init__(
         self,
         url=None,
         headers=None,
         data=None,
         method=None,
         proxies=None,
-        extensions=None,
-        prepare_hooks=None
+        extensions=None
     ):
-        self.headers = self._prepare_headers(headers)
-        self.url = self._prepare_url(url)
-        self.data = self._prepare_data(data)
-        self.method = self._prepare_method(method)
+        self.headers: CaseInsensitiveDict = self._prepare_headers(headers)
+        self.url: str = self._prepare_url(url)
+        self.data: _TYPE_REQ_DATA = self._prepare_data(data)
+        self.method: str = self._prepare_method(method)
         self.proxies = self._prepare_proxies(proxies)
-        self.extensions = dict(extensions or {})
-        for hook in prepare_hooks or []:
+        self.extensions: dict = copy.deepcopy(extensions or {})
+        for hook in self.PREPARE_HOOKS or []:
             if callable(hook):
                 hook(self)
 
@@ -137,6 +133,7 @@ class Request:
             method: str = None,
             timeout: Union[float, int] = None,
             cookiejar: CookieJar = None,
+            extensions: dict = None,
     ):
 
         if query:
@@ -146,9 +143,28 @@ class Request:
         self._headers = CaseInsensitiveDict(headers)
         self._data = None
         self.data = data
-        self.timeout = timeout
         self.proxies = dict(proxies or {})
-        self.cookiejar = cookiejar
+        self.extensions = extensions or {}
+        if timeout:
+            self.timeout = timeout
+        if cookiejar:
+            self.cookiejar = cookiejar
+
+    @property
+    def timeout(self):
+        return self.extensions.get('timeout')
+
+    @timeout.setter
+    def timeout(self, timeout):
+        self.extensions['timeout'] = timeout
+
+    @property
+    def cookiejar(self):
+        return self.extensions.get('cookiejar')
+
+    @cookiejar.setter
+    def cookiejar(self, cookiejar):
+        self.extensions['cookiejar'] = cookiejar
 
     @property
     def data(self):
@@ -182,26 +198,14 @@ class Request:
         self.url = update_url_query(url or self.url, query or {})
 
     def prepare(self):
-        return PreparedRequest().prepare(
+        return PreparedRequest(
             url=self.url,
             headers=self.headers,
             data=self.data,
             method=self.method,
             proxies=self.proxies,
-            extensions=self.get_extensions(),
-            prepare_hooks=self.get_prepare_hooks()
+            extensions=self.extensions
         )
-
-    def get_prepare_hooks(self):
-        return []
-
-    def get_extensions(self):
-        extensions = {}
-        if self.cookiejar:
-            extensions['cookiejar'] = self.cookiejar
-        if self.timeout:
-            extensions['timeout'] = self.timeout
-        return extensions
 
     def add_header(self, key, value):
         self.headers[key] = value

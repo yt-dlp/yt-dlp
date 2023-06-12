@@ -1,5 +1,6 @@
 import collections
 import contextlib
+import copy
 import datetime
 import errno
 import fileinput
@@ -3789,21 +3790,21 @@ class YoutubeDL:
                 headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
                 timeout=req.timeout if hasattr(req, 'timeout') else None)
         assert isinstance(req, Request)
-        p = PreparedRequest()
+
         # Merge global settings
-        extensions = req.get_extensions()
+        # TODO: should these be set globally in request handlers or here?
+        extensions = copy.deepcopy(req.extensions)
         if not extensions.get('cookiejar'):
             extensions['cookiejar'] = self.cookiejar
         if not extensions.get('timeout'):
             extensions['timeout'] = self.params.get('socket_timeout')
-        p.prepare(
+        p = PreparedRequest(
             url=req.url,
             headers=CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers),
             data=req.data,
             method=req.method,
             proxies=req.proxies or self.params.get('proxies'),
-            extensions=extensions,
-            prepare_hooks=req.get_prepare_hooks())
+            extensions=extensions)
 
         return self._request_director.send(p)
 
