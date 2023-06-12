@@ -1,17 +1,13 @@
 # coding: utf-8
-from __future__ import unicode_literals
-
-import re
 
 from .common import InfoExtractor
 from .rumble import RumbleEmbedIE
 from .youtube import YoutubeIE
-from ..utils import clean_html
+from ..utils import clean_html, ExtractorError, strip_or_none, get_element_by_class
 
 
 class Funker530IE(InfoExtractor):
-    _VALID_URL = r'https?:\/\/(?:www\.)?funker530\.com\/video\/(?P<id>[^\/]+)\/?'
-    # TODO: `python test/test_download.py TestDownload.test_Funker530` only runs the first test?
+    _VALID_URL = r'https?://(?:www\.)?funker530\.com/video/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://funker530.com/video/azov-patrol-caught-in-open-under-automatic-grenade-launcher-fire/',
         'md5': '085f50fea27523a388bbc22e123e09c8',
@@ -34,42 +30,52 @@ class Funker530IE(InfoExtractor):
         }
     }, {
         'url': 'https://funker530.com/video/my-friends-joined-the-russians-civdiv/',
-        'md5': '',
+        'md5': 'a42c2933391210662e93e867d7124b70',
         'info_dict': {
-            'id': '',
+            'id': 'k-pk4bOvoac',
             'ext': 'mp4',
-            'title': 'My “Friends” Joined the Russians - CivDiv',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': '',
-            'width': '',
-            'height': '',
-            'fps': '',
-            'duration': '',
-            'upload_date': '',
-            'description': 'md5:',
+            'view_count': int,
+            'channel': 'Civ Div',
+            'comment_count': int,
+            'channel_follower_count': int,
+            'thumbnail': 'https://i.ytimg.com/vi/k-pk4bOvoac/maxresdefault.jpg',
+            'uploader_id': '@CivDiv',
+            'duration': 357,
+            'channel_url': 'https://www.youtube.com/channel/UCgsCiwJ88up-YyMHo7hL5-A',
+            'tags': [],
+            'uploader_url': 'https://www.youtube.com/@CivDiv',
+            'channel_id': 'UCgsCiwJ88up-YyMHo7hL5-A',
+            'like_count': int,
+            'description': 'md5:aef75ec3f59c07a0e39400f609b24429',
+            'live_status': 'not_live',
+            'age_limit': 0,
+            'uploader': 'Civ Div',
+            'categories': ['People & Blogs'],
+            'title': 'My “Friends” joined the Russians.',
+            'availability': 'public',
+            'upload_date': '20230608',
+            'playable_in_embed': True,
         }
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        rumble = RumbleEmbedIE(downloader=self._downloader)
-        youtube = YoutubeIE(downloader=self._downloader)
-        found_rumble_videos = rumble._extract_embed_urls(url, webpage)
-        found_yt_videos = list(youtube._extract_embed_urls(url, webpage))  # TODO: is converting it to a list OK if there's only one video?
-        if len(list(found_yt_videos)):
-            embedded_video = youtube.extract(found_yt_videos[0])  # TODO: do I need to do all found videos or is [0] ok?
-        elif len(found_rumble_videos):
-            embedded_video = rumble.extract(found_rumble_videos[0])  # TODO: see above
-            desc_regex = re.compile(r'(?s)<div class="row video-desc-paragraph">.*?<p>(.*?)(About the Author|<\/div>\n?<\/div>\n?<\/div>)')
-            # _html_search_regex is not cleaning <style> tags so we'll do it ourselves.
-            # description = self._html_search_regex(desc_regex, webpage, 'description', fatal=False)
-            description = re.search(desc_regex, webpage).group(1)
-            if description:
-                description = clean_html(re.sub(r'<style>(.|\s)*?<\/style>', '', description))
-
-            embedded_video['description'] = description
+        info = {}
+        rumble_urls = RumbleEmbedIE._extract_embed_urls(url, webpage)
+        if rumble_urls:
+            info.update({'url': rumble_urls[0], 'ie_key': RumbleEmbedIE.ie_key()})
         else:
-            # TODO: is this correct if nothing is found?
-            return
-        return embedded_video
+            youtube_url = next(YoutubeIE._extract_embed_urls(url, webpage), None)
+            if youtube_url:
+                info.update({'url': youtube_url, 'ie_key': YoutubeIE.ie_key()})
+        if not info:
+            raise ExtractorError('No videos found on webpage')
+
+        return {
+            **info,
+            '_type': 'url_transparent',
+            'description': strip_or_none(self._search_regex(
+                r'(?s)(.+)About the Author', clean_html(get_element_by_class('video-desc-paragraph', webpage)),
+                'description', default=None))
+        }
