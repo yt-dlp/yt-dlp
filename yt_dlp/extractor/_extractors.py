@@ -2441,6 +2441,7 @@ from .younow import (
 from .youporn import YouPornIE
 from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
+from .zaiko import ZaikoIE
 from .zapiks import ZapiksIE
 from .zattoo import (
     BBVTVIE,
