@@ -59,7 +59,7 @@ class Funker530IE(InfoExtractor):
             'duration': metadata['duration'],
             'upload_date': unified_strdate(metadata['pubDate']),
             'description': description,
-            'display_id': display_id,
+            # 'display_id': display_id,
         }
 
     @staticmethod
