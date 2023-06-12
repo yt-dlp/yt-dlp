@@ -9,7 +9,7 @@ from ..utils import clean_html, unified_strdate
 
 
 class Funker530IE(InfoExtractor):
-    _VALID_URL = r'^https?:\/\/(?:www\.)?funker530\.com\/video\/(?P<id>[^\/]+)\/?$'
+    _VALID_URL = r'https?:\/\/(?:www\.)?funker530\.com\/video\/(?P<id>[^\/]+)\/?'
     _TEST = {
         'url': 'https://funker530.com/video/azov-patrol-caught-in-open-under-automatic-grenade-launcher-fire/',
         'md5': 'fcb1880a5703f5c17e9191bab27fb822',
@@ -42,7 +42,7 @@ class Funker530IE(InfoExtractor):
         metadata = self.extract_video_metadata(metadata_js, video_id)
 
         description = self._html_search_regex(
-            r'(?s)<div class="row video-desc-paragraph">.*?<p>(.*?)<div style="display: flex; flex-direction: column;',
+            r'(?s)<div class="row video-desc-paragraph">.*?<p>(.*?)<\/div>\n?<\/div>\n?<\/div>',
             webpage, 'description', fatal=False)
         if description:
             description = clean_html(description)
