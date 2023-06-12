@@ -5,11 +5,13 @@ import re
 
 from .common import InfoExtractor
 from .rumble import RumbleEmbedIE
+from .youtube import YoutubeIE
 from ..utils import clean_html
 
 
 class Funker530IE(InfoExtractor):
     _VALID_URL = r'https?:\/\/(?:www\.)?funker530\.com\/video\/(?P<id>[^\/]+)\/?'
+    # TODO: `python test/test_download.py TestDownload.test_Funker530` only runs the first test?
     _TESTS = [{
         'url': 'https://funker530.com/video/azov-patrol-caught-in-open-under-automatic-grenade-launcher-fire/',
         'md5': '085f50fea27523a388bbc22e123e09c8',
@@ -30,44 +32,44 @@ class Funker530IE(InfoExtractor):
             'live_status': 'not_live',
             'description': 'md5:bea2e1f458095414e04b5ac189c2f980',
         }
-    }
-        # TODO: add test for embedded YouTube videos
-        #     , {
-        #     'url': 'https://funker530.com/video/my-friends-joined-the-russians-civdiv/',
-        #     'md5': '',
-        #     'info_dict': {
-        #         'id': '',
-        #         'ext': 'mp4',
-        #         'title': 'My “Friends” Joined the Russians - CivDiv',
-        #         'thumbnail': r're:^https?://.*\.jpg$',
-        #         'uploader': '',
-        #         'width': ,
-        #         'height': ,
-        #         'fps': ,
-        #         'duration': ,
-        #         'upload_date': '',
-        #         'description': 'md5:',
-        #     }
-        # }
-    ]
+    }, {
+        'url': 'https://funker530.com/video/my-friends-joined-the-russians-civdiv/',
+        'md5': '',
+        'info_dict': {
+            'id': '',
+            'ext': 'mp4',
+            'title': 'My “Friends” Joined the Russians - CivDiv',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': '',
+            'width': '',
+            'height': '',
+            'fps': '',
+            'duration': '',
+            'upload_date': '',
+            'description': 'md5:',
+        }
+    }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         rumble = RumbleEmbedIE(downloader=self._downloader)
-        found_videos = rumble._extract_embed_urls(url, webpage)
-        if len(found_videos):
-            # TODO: do I need to do all found videos or is [0] ok?
-            embedded_video = rumble.extract(found_videos[0])
+        youtube = YoutubeIE(downloader=self._downloader)
+        found_rumble_videos = rumble._extract_embed_urls(url, webpage)
+        found_yt_videos = list(youtube._extract_embed_urls(url, webpage))  # TODO: is converting it to a list OK if there's only one video?
+        if len(list(found_yt_videos)):
+            embedded_video = youtube.extract(found_yt_videos[0])  # TODO: do I need to do all found videos or is [0] ok?
+        elif len(found_rumble_videos):
+            embedded_video = rumble.extract(found_rumble_videos[0])  # TODO: see above
+            desc_regex = re.compile(r'(?s)<div class="row video-desc-paragraph">.*?<p>(.*?)(About the Author|<\/div>\n?<\/div>\n?<\/div>)')
+            # _html_search_regex is not cleaning <style> tags so we'll do it ourselves.
+            # description = self._html_search_regex(desc_regex, webpage, 'description', fatal=False)
+            description = re.search(desc_regex, webpage).group(1)
+            if description:
+                description = clean_html(re.sub(r'<style>(.|\s)*?<\/style>', '', description))
+
+            embedded_video['description'] = description
         else:
+            # TODO: is this correct if nothing is found?
             return
-
-        desc_regex = re.compile(r'(?s)<div class="row video-desc-paragraph">.*?<p>(.*?)(About the Author|<\/div>\n?<\/div>\n?<\/div>)')
-        # _html_search_regex is not cleaning <style> tags so we'll do it ourselves.
-        # description = self._html_search_regex(desc_regex, webpage, 'description', fatal=False)
-        description = re.search(desc_regex, webpage).group(1)
-        if description:
-            description = clean_html(re.sub(r'<style>(.|\s)*?<\/style>', '', description))
-
-        embedded_video['description'] = description
         return embedded_video
