@@ -132,8 +132,7 @@ class Request:
             query: dict = None,
             method: str = None,
             timeout: Union[float, int] = None,
-            cookiejar: CookieJar = None,
-            extensions: dict = None,
+            cookiejar: CookieJar = None
     ):
 
         if query:
@@ -144,7 +143,7 @@ class Request:
         self._data = None
         self.data = data
         self.proxies = dict(proxies or {})
-        self.extensions = extensions or {}
+        self.extensions = {}
         if timeout:
             self.timeout = timeout
         if cookiejar:
