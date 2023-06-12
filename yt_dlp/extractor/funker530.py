@@ -70,7 +70,4 @@ class Funker530IE(InfoExtractor):
             description = clean_html(re.sub(r'<style>(.|\s)*?<\/style>', '', description))
 
         embedded_video['description'] = description
-
-        print(embedded_video)
-
         return embedded_video
