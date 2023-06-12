@@ -9,7 +9,7 @@ from ..utils import clean_html, unified_strdate
 
 
 class Funker530IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?funker530\.com/video/(?P<id>[^/]+)'
+    _VALID_URL = r'^https?:\/\/(?:www\.)?funker530\.com\/video\/(?P<id>[^\/]+)\/?$'
     _TEST = {
         'url': 'https://funker530.com/video/azov-patrol-caught-in-open-under-automatic-grenade-launcher-fire/',
         'md5': 'fcb1880a5703f5c17e9191bab27fb822',
