@@ -1,88 +1,76 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import json
 import re
 
 from .common import InfoExtractor
-from ..utils import clean_html, unified_strdate
+from .rumble import RumbleEmbedIE
+from ..utils import clean_html
 
 
 class Funker530IE(InfoExtractor):
     _VALID_URL = r'https?:\/\/(?:www\.)?funker530\.com\/video\/(?P<id>[^\/]+)\/?'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://funker530.com/video/azov-patrol-caught-in-open-under-automatic-grenade-launcher-fire/',
-        'md5': 'fcb1880a5703f5c17e9191bab27fb822',
+        'md5': '085f50fea27523a388bbc22e123e09c8',
         'info_dict': {
             'id': 'v2qbmu4',
             'ext': 'mp4',
             'title': 'Azov Patrol Caught In Open Under Automatic Grenade Launcher Fire',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Funker530',
+            'channel': 'Funker530',
+            'channel_url': 'https://rumble.com/c/c-1199543',
             'width': 1280,
             'height': 720,
             'fps': 25,
             'duration': 27,
             'upload_date': '20230608',
-            'description': 'md5:e717a9120bccae558927dfd0bcbd07a0',
+            'timestamp': 1686241321,
+            'live_status': 'not_live',
+            'description': 'md5:bea2e1f458095414e04b5ac189c2f980',
         }
     }
+        # TODO: add test for embedded YouTube videos
+        #     , {
+        #     'url': 'https://funker530.com/video/my-friends-joined-the-russians-civdiv/',
+        #     'md5': '',
+        #     'info_dict': {
+        #         'id': '',
+        #         'ext': 'mp4',
+        #         'title': 'My “Friends” Joined the Russians - CivDiv',
+        #         'thumbnail': r're:^https?://.*\.jpg$',
+        #         'uploader': '',
+        #         'width': ,
+        #         'height': ,
+        #         'fps': ,
+        #         'duration': ,
+        #         'upload_date': '',
+        #         'description': 'md5:',
+        #     }
+        # }
+    ]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
+        rumble = RumbleEmbedIE(downloader=self._downloader)
+        found_videos = rumble._extract_embed_urls(url, webpage)
+        if len(found_videos):
+            # TODO: do I need to do all found videos or is [0] ok?
+            embedded_video = rumble.extract(found_videos[0])
+        else:
+            return
 
-        video_id = self._search_regex(
-            r'Rumble\("play",\s*\{video:\s*"([^"]+)"',
-            webpage, 'video_id')
-
-        metadata_url = f'https://rumble.com/embedJS/{video_id}.{video_id}/?url={url}&args=%5B%22play%22%2C%7B%22video%22%3A%22{video_id}%22%2C%22div%22%3A%22rumblePlayer%22%7D%5D'
-        metadata_js = self._download_webpage(metadata_url, video_id, 'Downloading metadata')
-
-        metadata = self.extract_video_metadata(metadata_js, video_id)
-
-        description = self._html_search_regex(
-            r'(?s)<div class="row video-desc-paragraph">.*?<p>(.*?)<\/div>\n?<\/div>\n?<\/div>',
-            webpage, 'description', fatal=False)
+        desc_regex = re.compile(r'(?s)<div class="row video-desc-paragraph">.*?<p>(.*?)(About the Author|<\/div>\n?<\/div>\n?<\/div>)')
+        # _html_search_regex is not cleaning <style> tags so we'll do it ourselves.
+        # description = self._html_search_regex(desc_regex, webpage, 'description', fatal=False)
+        description = re.search(desc_regex, webpage).group(1)
         if description:
-            description = clean_html(description)
+            description = clean_html(re.sub(r'<style>(.|\s)*?<\/style>', '', description))
 
-        return {
-            'id': video_id,
-            'url': metadata['url'],
-            'title': metadata['title'],
-            'thumbnail': metadata['thumbnail'],
-            'uploader': metadata['author'],
-            'width': metadata['width'],
-            'height': metadata['height'],
-            'fps': metadata['fps'],
-            'duration': metadata['duration'],
-            'upload_date': unified_strdate(metadata['pubDate']),
-            'description': description,
-            # 'display_id': display_id,
-        }
+        embedded_video['description'] = description
 
-    @staticmethod
-    def clean_json_string(json_string):
-        cleaned_json = re.sub(r',\s*\w+:\w+\(\)', '', json_string)
-        return cleaned_json
+        print(embedded_video)
 
-    def extract_video_metadata(self, js_file, video_id):
-        video_metadata = {}
-        metadata_match = re.search(rf'f\.f\["{video_id}"\]\s*=\s*(\{{.*?\}});', js_file)
-        if metadata_match:
-            metadata_json = self.clean_json_string(metadata_match.group(1))
-            metadata = json.loads(metadata_json)
-
-            # Extract relevant video metadata
-            video_metadata["fps"] = metadata.get("fps")
-            video_metadata["width"] = metadata.get("w")
-            video_metadata["height"] = metadata.get("h")
-            video_metadata["url"] = metadata.get("u", {}).get("mp4", {}).get("url")
-            video_metadata["thumbnail"] = metadata.get("i")
-            video_metadata["title"] = metadata.get("title")
-            video_metadata["author"] = metadata.get("author", {}).get("name")
-            video_metadata["duration"] = metadata.get("duration")
-            video_metadata["pubDate"] = metadata.get("pubDate")
-
-        return video_metadata
+        return embedded_video
