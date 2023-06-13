@@ -38,7 +38,7 @@ from .networking import (
     RequestDirector,
     UrllibRH
 )
-from .networking.request import HEADRequest, Request, PreparedRequest
+from .networking.request import HEADRequest, Request
 from .networking.utils import std_headers
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
@@ -147,7 +147,7 @@ from .utils import (
     version_tuple,
     windows_enable_vt_mode,
     write_json_file,
-    write_string,
+    write_string, extract_basic_auth, clean_proxies, clean_headers,
 )
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 from .networking.exceptions import network_exceptions
@@ -3791,22 +3791,23 @@ class YoutubeDL:
                 timeout=req.timeout if hasattr(req, 'timeout') else None)
         assert isinstance(req, Request)
 
-        # Merge global settings
-        # TODO: should these be set globally in request handlers or here?
-        extensions = copy.deepcopy(req.extensions)
-        if not extensions.get('cookiejar'):
-            extensions['cookiejar'] = self.cookiejar
-        if not extensions.get('timeout'):
-            extensions['timeout'] = self.params.get('socket_timeout')
-        p = PreparedRequest(
-            url=req.url,
-            headers=CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers),
-            data=req.data,
-            method=req.method,
-            proxies=req.proxies or self.params.get('proxies'),
-            extensions=extensions)
+        # Assume user:pass url params are basic auth
+        # XXX: this should only be sent if the server requests it?
+        url, basic_auth_header = extract_basic_auth(req.url)
+        if basic_auth_header:
+            req.headers['Authorization'] = basic_auth_header
+        req.url = url
 
-        return self._request_director.send(p)
+        # TODO: this should be global params in the handlers, not here
+        req.headers = CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers)
+        req.proxies = req.proxies or self.params.get('proxies') or {}
+        req.extensions['timeout'] = req.extensions.get('timeout') or self.params.get('socket_timeout')
+        req.extensions['cookiejar'] = req.extensions.get('cookiejar') or self.cookiejar
+
+        clean_proxies(req)
+        clean_headers(req)
+
+        return self._request_director.send(req)
 
     def print_debug_header(self):
         if not self.params.get('verbose'):

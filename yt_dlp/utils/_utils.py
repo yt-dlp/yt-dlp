@@ -44,6 +44,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 import io
+from urllib.request import _parse_proxy  # TODO
 
 from . import traversal
 
@@ -5468,3 +5469,32 @@ class FormatSorter:
                 format['abr'] = format.get('tbr') - format.get('vbr', 0)
 
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
+
+
+def clean_proxies(request):
+    # TODO: generalise this so it can be used by e.g. external downloaders
+    proxies = request.proxies
+    if not isinstance(request.proxies, dict):
+        proxies = {}
+    proxies = proxies.copy()
+    req_proxy = request.headers.pop('Ytdl-request-proxy', None)
+    if req_proxy:
+        proxies = {'all': req_proxy}
+    for proxy_key, proxy_url in proxies.items():
+        if proxy_url == '__noproxy__':
+            proxies[proxy_key] = None
+            continue
+        if proxy_key == 'no':  # special case
+            continue
+        if proxy_url is not None and _parse_proxy is not None:
+            # Ensure proxies without a scheme are http.
+            proxy_scheme = _parse_proxy(proxy_url)[0]
+            if proxy_scheme is None:
+                proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
+    return proxies
+
+
+def clean_headers(request):
+    if 'Youtubedl-no-compression' in request.headers:  # compat
+        del request.headers['Youtubedl-no-compression']
+        request.headers['Accept-Encoding'] = 'identity'

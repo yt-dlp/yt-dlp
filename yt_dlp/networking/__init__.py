@@ -5,7 +5,7 @@ from .common import (
     RequestHandler,
 )
 from .response import Response
-from .request import Request, PreparedRequest
+from .request import Request
 from .exceptions import RequestError, UnsupportedRequest
 from ..utils import bug_reports_message
 
@@ -40,14 +40,14 @@ class RequestDirector:
         self.remove_handler(handler)
         self.add_handler(handler)
 
-    def send(self, request: PreparedRequest) -> Response:
+    def send(self, request: Request) -> Response:
         """
         Passes a request onto a suitable RequestHandler
         """
         if len(self._handlers) == 0:
             raise RequestError('No request handlers configured')
 
-        assert isinstance(request, PreparedRequest)
+        assert isinstance(request, Request)
 
         unexpected_errors = []
         unsupported_errors = []

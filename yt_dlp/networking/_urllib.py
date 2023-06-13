@@ -426,7 +426,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             cookiejar=request.extensions.get('cookiejar') or CookieJar()
         )
         try:
-            res = opener.open(urllib_req, timeout=request.extensions.get('timeout') or 20)
+            res = opener.open(urllib_req, timeout=float(request.extensions.get('timeout') or 20))
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 raise HTTPError(UrllibResponseAdapter(e.fp), redirect_loop='redirect error' in str(e))

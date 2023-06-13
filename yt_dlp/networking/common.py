@@ -8,8 +8,9 @@ import typing
 import urllib.parse
 import urllib.request
 import urllib.response
+from http.cookiejar import CookieJar
 
-from .request import Request, PreparedRequest
+from .request import Request
 from .utils import (
     wrap_request_errors
 )
@@ -38,24 +39,24 @@ class Features(enum.Enum):
 
 class RequestHandlerBase(abc.ABC):
     """Base Request Handler. See RequestHandler."""
-    def _validate(self, prepared_request: PreparedRequest):
+    def _validate(self, request: Request):
         """Validate a request is supported by this handler.
          raises UnsupportedError if a request is not supported."""
 
     @wrap_request_errors
-    def validate(self, prepared_request: PreparedRequest):
-        if not isinstance(prepared_request, PreparedRequest):
-            raise TypeError('Expected an instance of PreparedRequest')
-        self._validate(prepared_request)
+    def validate(self, request: Request):
+        if not isinstance(request, Request):
+            raise TypeError('Expected an instance of Request')
+        self._validate(request)
 
     @wrap_request_errors
-    def send(self, prepared_request: PreparedRequest) -> Response:
-        if not isinstance(prepared_request, PreparedRequest):
-            raise TypeError('Expected an instance of PreparedRequest')
-        return self._send(prepared_request)
+    def send(self, request: Request) -> Response:
+        if not isinstance(request, Request):
+            raise TypeError('Expected an instance of Request')
+        return self._send(request)
 
     @abc.abstractmethod
-    def _send(self, prepared_request: PreparedRequest):
+    def _send(self, request: Request):
         """Handle a request from start to finish. Redefine in subclasses."""
 
     def close(self):
@@ -117,18 +118,19 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
             use_certifi='no-certifi' not in self.ydl.params.get('compat_opts', [])
         )
 
-    def _check_url_scheme(self, prepared_request: PreparedRequest):
-        scheme = urllib.parse.urlparse(prepared_request.url).scheme.lower()
+    def _check_url_scheme(self, request: Request):
+        scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme not in (self._SUPPORTED_URL_SCHEMES or []):
             raise UnsupportedRequest(f'unsupported url scheme: "{scheme}"')
         elif scheme == 'file' and not self.ydl.params.get('enable_file_urls'):
+            # TODO: provide a generic error message
             raise UnsupportedRequest('file:// URLs are disabled by default in yt-dlp for security reasons. '
                                      'Use --enable-file-urls to at your own risk.')
 
-    def _check_proxies(self, prepared_request: PreparedRequest):
+    def _check_proxies(self, request: Request):
         if self._SUPPORTED_PROXY_SCHEMES is None:
             return
-        for proxy_key, proxy_url in prepared_request.proxies.items():
+        for proxy_key, proxy_url in request.proxies.items():
             if proxy_url is None:
                 continue
             if proxy_key == 'no':
@@ -144,10 +146,27 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
             if self._SUPPORTED_URL_SCHEMES is not None and proxy_key not in self._SUPPORTED_URL_SCHEMES + ['all']:
                 continue
 
+            # TODO: check no proxy
+            # TODO: test these cases
+            # TODO: test proxy is a url
+            # Scheme-less proxies are not supported
+            if _parse_proxy is not None and _parse_proxy(proxy_url)[0] is None:
+                raise UnsupportedRequest(f'Proxy "{proxy_url}" missing scheme')
+
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
             if scheme not in self._SUPPORTED_PROXY_SCHEMES:
-                raise UnsupportedRequest(f'unsupported proxy type: "{scheme}"')
+                raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
-    def _validate(self, prepared_request):
-        self._check_url_scheme(prepared_request)
-        self._check_proxies(prepared_request)
+    def _check_cookiejar(self, extensions):
+        if not extensions.get('cookiejar'):
+            return
+        if not isinstance(extensions['cookiejar'], CookieJar):
+            raise UnsupportedRequest('cookiejar is not a CookieJar')
+
+    def _check_extensions(self, extensions):
+        self._check_cookiejar(extensions)
+
+    def _validate(self, request):
+        self._check_url_scheme(request)
+        self._check_proxies(request)
+        self._check_extensions(request.extensions)
