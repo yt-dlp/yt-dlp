@@ -1,5 +1,3 @@
-# coding: utf-8
-
 from .common import InfoExtractor
 from .rumble import RumbleEmbedIE
 from .youtube import YoutubeIE
@@ -62,11 +60,11 @@ class Funker530IE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         info = {}
-        rumble_urls = RumbleEmbedIE._extract_embed_urls(url, webpage)
+        rumble_urls = list(RumbleEmbedIE._extract_embed_urls(url, webpage))
         if rumble_urls:
             info = {'url': rumble_urls[0], 'ie_key': RumbleEmbedIE.ie_key()}
         else:
-            youtube_url = next(YoutubeIE._extract_embed_urls(url, webpage), None)
+            youtube_url = list(YoutubeIE._extract_embed_urls(url, webpage))
             if youtube_url:
                 info = {'url': youtube_url, 'ie_key': YoutubeIE.ie_key()}
         if not info:
