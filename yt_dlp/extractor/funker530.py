@@ -59,14 +59,13 @@ class Funker530IE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        info = {}
-        rumble_urls = list(RumbleEmbedIE._extract_embed_urls(url, webpage))
-        if rumble_urls:
-            info = {'url': rumble_urls[0], 'ie_key': RumbleEmbedIE.ie_key()}
+        rumble_url = list(RumbleEmbedIE._extract_embed_urls(url, webpage))
+        if rumble_url:
+            info = {'url': rumble_url[0], 'ie_key': RumbleEmbedIE.ie_key()}
         else:
             youtube_url = list(YoutubeIE._extract_embed_urls(url, webpage))
             if youtube_url:
-                info = {'url': youtube_url, 'ie_key': YoutubeIE.ie_key()}
+                info = {'url': youtube_url[0], 'ie_key': YoutubeIE.ie_key()}
         if not info:
             raise ExtractorError('No videos found on webpage', expected=True)
 
