@@ -3,6 +3,7 @@ from .vimeo import VHXEmbedIE
 from ..utils import (
     ExtractorError,
     clean_html,
+    get_element_by_attribute,
     get_element_by_class,
     get_element_by_id,
     get_elements_by_class,
