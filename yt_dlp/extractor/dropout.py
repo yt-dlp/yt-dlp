@@ -1,7 +1,11 @@
+import functools
+from urllib.error import HTTPError
+
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     clean_html,
     get_element_by_attribute,
     get_element_by_class,
@@ -163,7 +167,8 @@ class DropoutIE(InfoExtractor):
 
 
 class DropoutSeasonIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:[0-9]+/?$)'
+    _PAGE_SIZE = 24
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:(?P<season>[0-9]+)/?$)'
     _TESTS = [
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
@@ -203,42 +208,32 @@ class DropoutSeasonIE(InfoExtractor):
         }
     ]
 
-    def _real_extract(self, url):
-        season_id = self._match_id(url)
-        season_title = season_id.replace('-', ' ').title()
-        webpage = self._download_webpage(url, season_id)
-        page_num = 1
-
-        entries = [
-            self.url_result(
-                url=self._search_regex(r'<a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
-                                       item, 'item_url'),
-                ie=DropoutIE.ie_key()
-            ) for item in get_elements_by_class('js-collection-item', webpage)
-        ]
-
-        next_page = False
-        next_page = get_element_by_attribute('data-load-more-target', 'js-load-more-items-container', webpage)
-        while next_page:
-            page_num += 1
-            webpage_next = self._download_webpage(f'{url}?page={page_num}', season_id)
-            page_entries = [
-                self.url_result(
+    def _fetch_page(self, url, season_id, page):
+        page += 1
+        try:
+            webpage = self._download_webpage(
+                f'{url}?page={page}',
+                season_id,
+                note=f'Downloading page {page}'
+            )
+            for item in get_elements_by_class('js-collection-item', webpage):
+                yield self.url_result(
                     url=self._search_regex(r'<a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
                                            item, 'item_url'),
                     ie=DropoutIE.ie_key()
-                ) for item in get_elements_by_class('js-collection-item', webpage_next)
-            ]
-            entries.extend(page_entries)
-            next_page = get_element_by_attribute('data-load-more-target', 'js-load-more-items-container', webpage_next)
+                )
+        except Exception as e:
+            if e.exc_info[0] == HTTPError and e.exc_info[1].code == 400: #Site returns 400 when you page past the end
+                return
+            else:
+                raise
+    
+    def _real_extract(self, url):
+        season_id = self._match_id(url)
+        season_num = self._match_valid_url(url).group('season') or 1
+        season_title = season_id.replace('-', ' ').title()
 
-        seasons = (get_element_by_class('select-dropdown-wrapper', webpage) or '').strip().replace('\n', '')
-        current_season = self._search_regex(r'<option[^>]+selected>([^<]+)</option>',
-                                            seasons, 'current_season', default='').strip()
-
-        return {
-            '_type': 'playlist',
-            'id': join_nonempty(season_id, current_season.lower().replace(' ', '-')),
-            'title': join_nonempty(season_title, current_season, delim=' - '),
-            'entries': entries
-        }
+        entries = OnDemandPagedList(functools.partial(
+            self._fetch_page, url, season_id), self._PAGE_SIZE)
+        
+        return self.playlist_result(entries, playlist_id=f'{season_id}-season-{season_num}', playlist_title=f'{season_title} - Season {season_num}')
