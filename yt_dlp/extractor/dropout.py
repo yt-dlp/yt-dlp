@@ -197,7 +197,8 @@ class DropoutSeasonIE(InfoExtractor):
         season_id = self._match_id(url)
         season_title = season_id.replace('-', ' ').title()
         webpage = self._download_webpage(url, season_id)
-
+        page_num = 1
+        
         entries = [
             self.url_result(
                 url=self._search_regex(r'<a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
@@ -205,6 +206,21 @@ class DropoutSeasonIE(InfoExtractor):
                 ie=DropoutIE.ie_key()
             ) for item in get_elements_by_class('js-collection-item', webpage)
         ]
+        
+        next_page = False
+        next_page = get_element_by_attribute('data-load-more-target', 'js-load-more-items-container', webpage)
+        while next_page:
+            page_num += 1
+            webpage_next = self._download_webpage(f'{url}?page={page_num}', season_id)
+            page_entries = [
+                self.url_result(
+                    url=self._search_regex(r'<a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
+                                           item, 'item_url'),
+                    ie=DropoutIE.ie_key()
+                ) for item in get_elements_by_class('js-collection-item', webpage_next)
+            ]
+            entries.extend(page_entries)
+            next_page = get_element_by_attribute('data-load-more-target', 'js-load-more-items-container', webpage_next)
 
         seasons = (get_element_by_class('select-dropdown-wrapper', webpage) or '').strip().replace('\n', '')
         current_season = self._search_regex(r'<option[^>]+selected>([^<]+)</option>',
