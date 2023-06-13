@@ -168,7 +168,7 @@ class DropoutSeasonIE(InfoExtractor):
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
             'note': 'Multi-season series with the season in the url',
-            'playlist_count': 17,
+            'playlist_count': 24,
             'info_dict': {
                 'id': 'dimension-20-fantasy-high-season-1',
                 'title': 'Dimension 20 Fantasy High - Season 1'
@@ -177,7 +177,7 @@ class DropoutSeasonIE(InfoExtractor):
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
             'note': 'Multi-season series with the season not in the url',
-            'playlist_count': 17,
+            'playlist_count': 24,
             'info_dict': {
                 'id': 'dimension-20-fantasy-high-season-1',
                 'title': 'Dimension 20 Fantasy High - Season 1'
@@ -190,6 +190,15 @@ class DropoutSeasonIE(InfoExtractor):
             'info_dict': {
                 'id': 'dimension-20-shriek-week-season-1',
                 'title': 'Dimension 20 Shriek Week - Season 1'
+            }
+        },
+        {
+            'url': 'https://www.dropout.tv/breaking-news-no-laugh-newsroom/season:3',
+            'note': 'Multi-season series with season in the url that requires pagination',
+            'playlist_count': 25,
+            'info_dict': {
+                'id': 'breaking-news-no-laugh-newsroom-season-3',
+                'title': 'Breaking News No Laugh Newsroom - Season 3'
             }
         }
     ]
