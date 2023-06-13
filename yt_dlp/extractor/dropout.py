@@ -233,5 +233,5 @@ class DropoutSeasonIE(InfoExtractor):
 
         entries = OnDemandPagedList(functools.partial(
             self._fetch_page, url, season_id), self._PAGE_SIZE)
-	
+
         return self.playlist_result(entries, playlist_id=f'{season_id}-season-{season_num}', playlist_title=f'{season_title} - Season {season_num}')
