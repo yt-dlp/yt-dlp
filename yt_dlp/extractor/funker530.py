@@ -3,7 +3,7 @@
 from .common import InfoExtractor
 from .rumble import RumbleEmbedIE
 from .youtube import YoutubeIE
-from ..utils import clean_html, ExtractorError, strip_or_none, get_element_by_class
+from ..utils import ExtractorError, clean_html, get_element_by_class, strip_or_none
 
 
 class Funker530IE(InfoExtractor):
@@ -64,13 +64,13 @@ class Funker530IE(InfoExtractor):
         info = {}
         rumble_urls = RumbleEmbedIE._extract_embed_urls(url, webpage)
         if rumble_urls:
-            info.update({'url': rumble_urls[0], 'ie_key': RumbleEmbedIE.ie_key()})
+            info = {'url': rumble_urls[0], 'ie_key': RumbleEmbedIE.ie_key()}
         else:
             youtube_url = next(YoutubeIE._extract_embed_urls(url, webpage), None)
             if youtube_url:
-                info.update({'url': youtube_url, 'ie_key': YoutubeIE.ie_key()})
+                info = {'url': youtube_url, 'ie_key': YoutubeIE.ie_key()}
         if not info:
-            raise ExtractorError('No videos found on webpage')
+            raise ExtractorError('No videos found on webpage', expected=True)
 
         return {
             **info,
