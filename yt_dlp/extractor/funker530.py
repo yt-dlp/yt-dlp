@@ -53,6 +53,7 @@ class Funker530IE(InfoExtractor):
             'availability': 'public',
             'upload_date': '20230608',
             'playable_in_embed': True,
+            'heatmap': 'count:100',
         }
     }]
 
