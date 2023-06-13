@@ -7,12 +7,10 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
-    get_element_by_attribute,
     get_element_by_class,
     get_element_by_id,
     get_elements_by_class,
     int_or_none,
-    join_nonempty,
     unified_strdate,
     urlencode_postdata,
 )
@@ -223,11 +221,11 @@ class DropoutSeasonIE(InfoExtractor):
                     ie=DropoutIE.ie_key()
                 )
         except Exception as e:
-            if e.exc_info[0] == HTTPError and e.exc_info[1].code == 400: #Site returns 400 when you page past the end
+            if e.exc_info[0] == HTTPError and e.exc_info[1].code == 400:  # Site returns 400 when you page past the end
                 return
             else:
                 raise
-    
+
     def _real_extract(self, url):
         season_id = self._match_id(url)
         season_num = self._match_valid_url(url).group('season') or 1
@@ -235,5 +233,5 @@ class DropoutSeasonIE(InfoExtractor):
 
         entries = OnDemandPagedList(functools.partial(
             self._fetch_page, url, season_id), self._PAGE_SIZE)
-        
+	
         return self.playlist_result(entries, playlist_id=f'{season_id}-season-{season_num}', playlist_title=f'{season_title} - Season {season_num}')
