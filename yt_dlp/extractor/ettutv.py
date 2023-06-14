@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, unified_timestamp
+from ..utils import bool_or_none, traverse_obj, unified_timestamp, url_or_none
 
 
 class EttuTvIE(InfoExtractor):
@@ -53,8 +53,8 @@ class EttuTvIE(InfoExtractor):
             **traverse_obj(player_settings, {
                 'title': 'title',
                 'description': ('metaInformation', 'competition'),
-                'thumbnail': 'image',
+                'thumbnail': ('image', {url_or_none}),
                 'timestamp': ('date', {unified_timestamp}),
-                'is_live': 'isLivestream',
+                'is_live': ('isLivestream', {bool_or_none}),
             })
         }
