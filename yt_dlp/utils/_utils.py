@@ -4147,6 +4147,7 @@ class ISO639Utils:
         'or': 'ori',
         'os': 'oss',
         'pa': 'pan',
+        'pe': 'per',
         'pi': 'pli',
         'pl': 'pol',
         'ps': 'pus',
