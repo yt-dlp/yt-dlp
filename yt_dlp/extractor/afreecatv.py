@@ -179,31 +179,21 @@ class AfreecaTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(url, video_id)
-
-        if re.search(r'alert\(["\']This video has been deleted', webpage):
-            raise ExtractorError(
-                'Video %s has been deleted' % video_id, expected=True)
-
-        video_id = self._search_regex(
-            r'vod.afreecatv.com/player/(\d+)/', webpage, 'title', default=video_id)
 
         partial_view = False
         adult_view = False
         for _ in range(2):
-            video_json = self._download_json(
-                "https://api.m.afreecatv.com/station/video/a/view",
+            data = self._download_json(
+                'https://api.m.afreecatv.com/station/video/a/view',
                 video_id, headers={'Referer': url}, data=urlencode_postdata({
                     'nTitleNo': video_id,
                     'nApiLevel': 10,
-                }))
-            station_id = video_json['data']['station_no']
-            bbs_id = video_json['data']['bbs_no']
+                }))['data']
             query = {
                 'nTitleNo': video_id,
-                'nStationNo': station_id,
-                'nBbsNo': bbs_id,
+                'nStationNo': data['station_no'],
+                'nBbsNo': data['bbs_no'],
             }
             if partial_view:
                 query['partialView'] = 'SKIP_ADULT'
