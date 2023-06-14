@@ -49,7 +49,7 @@ class StripchatIE(InfoExtractor):
         for host in traverse_obj(data, ('config', 'data', (
                 (('features', 'featuresV2'), 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
             formats = self._extract_m3u8_formats(
-                f'https://b-{server}.{host}/hls/{model_id}/master/{model_id}_auto.m3u8',
+                f'https://b-{server}.{host}/hls/{model_id}/{model_id}.m3u8',
                 video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
             if formats:
                 break
