@@ -108,8 +108,7 @@ class AfreecaTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'skip': 'Requires login to get adult content',
-        'expected_warnings': ['adult content'],
+        'skip': 'The VOD does not exist',
     }, {
         'url': 'http://www.afreecatv.com/player/Player.swf?szType=szBjId=djleegoon&nStationNo=11273158&nBbsNo=13161095&nTitleNo=36327652',
         'only_matching': True,
@@ -189,6 +188,8 @@ class AfreecaTVIE(InfoExtractor):
                     'nTitleNo': video_id,
                     'nApiLevel': 10,
                 }))['data']
+            if traverse_obj(data, ('code', {int})) == -6221:
+                raise ExtractorError('The VOD does not exist', expected=True)
             query = {
                 'nTitleNo': video_id,
                 'nStationNo': data['station_no'],
