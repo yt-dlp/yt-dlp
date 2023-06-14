@@ -212,10 +212,10 @@ class TestCookies(unittest.TestCase):
             self.assert_cursor_points_at_temp_db(cursor, tmpdir)
 
             c.Win32_ShadowCopy.Create.assert_called_once_with(Context='ClientAccessible', Volume=str(tmpdir)[:3])
-            assert copy_mock.mock_calls == [
+            self.assertEqual(copy_mock.mock_calls, [
                 unittest.mock.call(db_path, str(tmpdir / 'temporary.sqlite')),
                 unittest.mock.call(rf'\\?\SHADOWPATH\{str(db_path)[3:]}', str(tmpdir / 'temporary.sqlite')),
-            ]
+            ])
             shadow_obj.Delete_.assert_called_once_with()
 
 
