@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, remove_end
+from ..utils import extract_attributes, remove_end, traverse_obj
 
 
 class RheinMainTVIE(InfoExtractor):
@@ -19,6 +19,7 @@ class RheinMainTVIE(InfoExtractor):
             'timestamp': 1667933057,
             'duration': 243.0,
         },
+        'params': {'skip_download': 'ism'},
     }, {
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
         'info_dict': {
@@ -33,7 +34,8 @@ class RheinMainTVIE(InfoExtractor):
             'duration': 345.0,
             'description': 'md5:9370ba29526984006c2cba1372e5c5a0',
             'upload_date': '20221115',
-        }
+        },
+        'params': {'skip_download': 'ism'},
     }, {
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/casino-mainz-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
         'info_dict': {
@@ -49,6 +51,7 @@ class RheinMainTVIE(InfoExtractor):
             'thumbnail': r're:^https://.+\.jpg',
             'description': 'md5:70fc1660eeba96da17199e5bdff4c0aa',
         },
+        'params': {'skip_download': 'ism'},
     }]
 
     def _real_extract(self, url):
@@ -86,7 +89,9 @@ class RheinMainTVIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': img['src']}] if 'src' in img else json_ld.get('thumbnails'),
-            'timestamp': json_ld.get('timestamp'),
-            'duration': json_ld.get('duration'),
-            'view_count': json_ld.get('view_count')
+            **traverse_obj(json_ld, {
+                'timestamp': 'timestamp',
+                'duration': 'duration',
+                'view_count': 'view_count',
+            }),
         }
