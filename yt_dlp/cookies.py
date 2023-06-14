@@ -19,12 +19,6 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
-try:
-    import wmi
-    wmi_available = True
-except ImportError:
-    wmi_available = False
-
 from .aes import (
     aes_cbc_decrypt_bytes,
     aes_gcm_decrypt_and_verify_bytes,
@@ -35,6 +29,7 @@ from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
     sqlite3,
+    wmi,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
@@ -47,7 +42,7 @@ from .utils import (
     str_or_none,
     try_call,
     write_string,
-    CookiesFromBrowserUnavailableError
+    CookiesFromBrowserUnavailableError,
 )
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
@@ -1065,13 +1060,14 @@ def _open_database_copy(database_path, tmpdir, logger):
     try:
         shutil.copy(database_path, database_copy_path)
     except PermissionError:
-        if compat_os_name == 'nt' and wmi_available:
+        if compat_os_name == 'nt' and wmi is not None:
             # If we're on Windows and have the wmi module: try to create a copy from a temporary
             # shadow copy of the underlying volume.
             # Generally, shadow copies require admin, so if we fail to create, recommend the user run as admin.
             c = wmi.WMI()
 
             drive_letter_with_colon, rest_of_path = os.path.splitdrive(database_path)
+            rest_of_path = rest_of_path.lstrip(os.sep)
             try:
                 result, shadow_id = c.Win32_ShadowCopy.Create(Context='ClientAccessible', Volume=f'{drive_letter_with_colon}{os.sep}')
             except wmi.x_wmi as x:

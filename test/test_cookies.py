@@ -1,17 +1,26 @@
+import contextlib
+import pathlib
+import shutil
+import tempfile
 import unittest
+import unittest.mock
+
 from datetime import datetime, timezone
 
 from yt_dlp import cookies
+from yt_dlp.compat import compat_os_name
 from yt_dlp.cookies import (
     LenientSimpleCookie,
     LinuxChromeCookieDecryptor,
     MacChromeCookieDecryptor,
     WindowsChromeCookieDecryptor,
     _get_linux_desktop_environment,
+    _open_database_copy,
     _LinuxDesktopEnvironment,
     parse_safari_cookies,
     pbkdf2_sha1,
 )
+from yt_dlp.utils import CookiesFromBrowserUnavailableError
 
 
 class Logger:
@@ -145,6 +154,69 @@ class TestCookies(unittest.TestCase):
         key = pbkdf2_sha1(b'peanuts', b' ' * 16, 1, 16)
         self.assertEqual(key, b'g\xe1\x8e\x0fQ\x1c\x9b\xf3\xc9`!\xaa\x90\xd9\xd34')
 
+    @contextlib.contextmanager
+    def tmp_db_path_and_tmpdir(self):
+        db_path = pathlib.Path(tempfile.NamedTemporaryFile(delete=False).name)
+        tmpdir = pathlib.Path(tempfile.mkdtemp())
+        try:
+            yield db_path, tmpdir
+        finally:
+            shutil.rmtree(tmpdir)
+            db_path.unlink()
+
+    def assert_cursor_points_at_temp_db(self, cursor, tmpdir):
+        _, _, filename = cursor.execute('PRAGMA database_list').fetchone()
+        self.assertEqual(pathlib.Path(filename), tmpdir / 'temporary.sqlite')
+        cursor.connection.close()
+
+    def test_open_database_copy_non_locked_db(self):
+        with self.tmp_db_path_and_tmpdir() as (db_path, tmpdir):
+            cursor = _open_database_copy(db_path, tmpdir, Logger())
+            self.assert_cursor_points_at_temp_db(cursor, tmpdir)
+
+    @unittest.skipIf(compat_os_name != 'nt', 'Test only applies to Windows')
+    def test_open_database_copy_win32_locked_db_not_admin(self):
+        with self.tmp_db_path_and_tmpdir() as (db_path, tmpdir):
+            copy_mock = unittest.mock.Mock(side_effect=PermissionError())
+            fake_wmi = unittest.mock.Mock()
+            fake_wmi.x_wmi = ValueError
+            c = fake_wmi.WMI()
+            c.Win32_ShadowCopy.Create = unittest.mock.Mock(side_effect=ValueError())
+            with MonkeyPatch(cookies, {'wmi': fake_wmi}):
+                with MonkeyPatch(shutil, {'copy': copy_mock}):
+                    try:
+                        _open_database_copy(db_path, tmpdir, Logger())
+                        raise AssertionError('Expected CookiesFromBrowserUnavailableError')
+                    except CookiesFromBrowserUnavailableError as ex:
+                        self.assertIn('Rerun yt-dlp as administrator', str(ex))
+
+            c.Win32_ShadowCopy.Create.assert_called_once_with(Context='ClientAccessible', Volume=str(tmpdir)[:3])
+            copy_mock.assert_called_once_with(db_path, str(tmpdir / 'temporary.sqlite'))
+
+    @unittest.skipIf(compat_os_name != 'nt', 'Test only applies to Windows')
+    def test_open_database_copy_win32_locked_db_admin(self):
+        with self.tmp_db_path_and_tmpdir() as (db_path, tmpdir):
+            copy_mock = unittest.mock.Mock(side_effect=[PermissionError(), None])
+            fake_wmi = unittest.mock.Mock()
+            fake_wmi.x_wmi = ValueError
+            c = fake_wmi.WMI()
+            shadow_obj = unittest.mock.Mock()
+            shadow_obj.DeviceObject = r'\\?\SHADOWPATH'
+            c.Win32_ShadowCopy = unittest.mock.Mock(return_value=(shadow_obj, 'ignored'))
+            c.Win32_ShadowCopy.Create = unittest.mock.Mock(return_value=(0, 'shadowid'))
+
+            with MonkeyPatch(cookies, {'wmi': fake_wmi}):
+                with MonkeyPatch(shutil, {'copy': copy_mock}):
+                    cursor = _open_database_copy(db_path, tmpdir, Logger())
+
+            self.assert_cursor_points_at_temp_db(cursor, tmpdir)
+
+            c.Win32_ShadowCopy.Create.assert_called_once_with(Context='ClientAccessible', Volume=str(tmpdir)[:3])
+            assert copy_mock.mock_calls == [
+                unittest.mock.call(db_path, str(tmpdir / 'temporary.sqlite')),
+                unittest.mock.call(rf'\\?\SHADOWPATH\{str(db_path)[3:]}', str(tmpdir / 'temporary.sqlite')),
+            ]
+            shadow_obj.Delete_.assert_called_once_with()
 
 class TestLenientSimpleCookie(unittest.TestCase):
     def _run_tests(self, *cases):

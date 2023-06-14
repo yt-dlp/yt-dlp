@@ -58,6 +58,12 @@ except (ImportError, SyntaxError):
 
 
 try:
+    import wmi
+except ImportError:
+    wmi = None
+
+
+try:
     import xattr  # xattr or pyxattr
 except ImportError:
     xattr = None

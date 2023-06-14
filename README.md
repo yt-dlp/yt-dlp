@@ -267,7 +267,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
     There are bugs in ffmpeg that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
-    
+
     **Important**: What you need is ffmpeg *binary*, **NOT** [the python package of the same name](https://pypi.org/project/ffmpeg)
 
 ### Networking
@@ -286,6 +286,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**pycryptodomex**](https://github.com/Legrandin/pycryptodome)\* - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD-2-Clause](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licensed under [BSD-3-Clause](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
 * [**secretstorage**](https://github.com/mitya57/secretstorage) - For `--cookies-from-browser` to access the **Gnome** keyring while decrypting cookies of **Chromium**-based browsers on **Linux**. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
+* [**wmi**](https://github.com/tjguk/wmi) - For `--cookies-from-browser` to pull cookies from **Chromium**-based browsers on **Windows**. Licensed under [MIT License](https://github.com/tjguk/wmi/blob/master/readme.rst)
 * Any external downloader that you want to use with `--downloader`
 
 ### Deprecated
@@ -492,7 +493,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-filesize SIZE             Abort download if filesize is larger than
                                     SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
-                                    The date can be "YYYYMMDD" or in the format 
+                                    The date can be "YYYYMMDD" or in the format
                                     [now|today|yesterday][-N[day|week|month|year]].
                                     E.g. "--date today-2weeks" downloads only
                                     videos uploaded on the same day two weeks ago
@@ -1329,7 +1330,7 @@ The available fields are:
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
  - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
- 
+
 All the fields in [Filtering Formats](#filtering-formats) can also be used
 
 Available for the video that belongs to some logical chapter or section:
@@ -1376,8 +1377,8 @@ Available only when used in `--print`:
  - `thumbnails_table` (table): The thumbnail format table as printed by `--list-thumbnails`
  - `subtitles_table` (table): The subtitle format table as printed by `--list-subs`
  - `automatic_captions_table` (table): The automatic subtitle format table as printed by `--list-subs`
- 
- 
+
+
 Available only in `--sponsorblock-chapter-title`:
 
  - `start_time` (numeric): Start time of the chapter in seconds
@@ -1570,7 +1571,7 @@ The available fields are:
  - `abr`: Average audio bitrate in KBit/s
  - `br`: Equivalent to using `tbr,vbr,abr`
  - `asr`: Audio sample rate in Hz
- 
+
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
 
 All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. E.g. `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. E.g. `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. E.g. `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. E.g. `filesize~1G` prefers the format with filesize closest to 1 GiB.
@@ -1859,8 +1860,8 @@ The following extractors use this feature:
 
 Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
 
-Plugins can be of `<type>`s `extractor` or `postprocessor`. 
-- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. 
+Plugins can be of `<type>`s `extractor` or `postprocessor`.
+- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it.
 - Extractor plugins take priority over builtin extractors.
 - Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
@@ -1868,7 +1869,7 @@ Plugins can be of `<type>`s `extractor` or `postprocessor`.
 Plugins are loaded from the namespace packages `yt_dlp_plugins.extractor` and `yt_dlp_plugins.postprocessor`.
 
 In other words, the file structure on the disk looks something like:
-    
+
         yt_dlp_plugins/
             extractor/
                 myplugin.py
