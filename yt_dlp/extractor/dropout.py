@@ -210,7 +210,7 @@ class DropoutSeasonIE(InfoExtractor):
     def _fetch_page(self, url, season_id, page):
         page += 1
         webpage = self._download_webpage(
-            f'{url}?page={page}', season_id, note=f'Downloading page {page}')
+            f'{url}?page={page}', season_id, note=f'Downloading page {page}', expected_status={400})
         yield from [self.url_result(item_url, DropoutIE) for item_url in traverse_obj(
             get_elements_html_by_class('browse-item-link', webpage), (..., {extract_attributes}, 'href'))]
 
