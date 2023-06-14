@@ -83,7 +83,7 @@ class HotStarIE(HotStarBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
         (?:
-            (?P<type>movies|sports|episode|(?P<tv>tv))/
+            (?P<type>movies|sports|episode|(?P<tv>tv|shows))/
             (?(tv)(?:[^/?#]+/){2}|[^?#]*)
         )?
         [^/?#]+/
@@ -123,6 +123,25 @@ class HotStarIE(HotStarBaseIE):
             'episode_number': 8,
         }
     }, {
+        'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
+        'info_dict': {
+            'id': '1000282843',
+            'ext': 'mp4',
+            'title': 'Anupama, Anuj Share a Moment',
+            'season': 'Chapter 1',
+            'description': 'md5:8d74ed2248423b8b06d5c8add4d7a0c0',
+            'timestamp': 1678149000,
+            'channel': 'StarPlus',
+            'series': 'Anupama',
+            'season_number': 1,
+            'season_id': 7399,
+            'upload_date': '20230307',
+            'episode': 'Anupama, Anuj Share a Moment',
+            'episode_number': 853,
+            'duration': 1272,
+            'channel_id': 3,
+        },
+    }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
     }, {
@@ -139,6 +158,7 @@ class HotStarIE(HotStarBaseIE):
         'sports': 'match',
         'episode': 'episode',
         'tv': 'episode',
+        'shows': 'episode',
         None: 'content',
     }
 
@@ -146,6 +166,12 @@ class HotStarIE(HotStarBaseIE):
         'res': 'resolution',
         'vcodec': 'video_codec',
         'dr': 'dynamic_range',
+    }
+
+    _TAG_FIELDS = {
+        'language': 'language',
+        'acodec': 'audio_codec',
+        'vcodec': 'video_codec',
     }
 
     @classmethod
@@ -182,24 +208,22 @@ class HotStarIE(HotStarBaseIE):
                    for key, prefix in self._IGNORE_MAP.items()
                    for ignore in self._configuration_arg(key)):
                 continue
+            tag_dict = dict((t.split(':', 1) + [None])[:2] for t in tags.split(';'))
 
             format_url = url_or_none(playback_set.get('playbackUrl'))
             if not format_url:
                 continue
             format_url = re.sub(r'(?<=//staragvod)(\d)', r'web\1', format_url)
-            dr = re.search(r'dynamic_range:(?P<dr>[a-z]+)', playback_set.get('tagsCombination')).group('dr')
             ext = determine_ext(format_url)
 
             current_formats, current_subs = [], {}
             try:
                 if 'package:hls' in tags or ext == 'm3u8':
                     current_formats, current_subs = self._extract_m3u8_formats_and_subtitles(
-                        format_url, video_id, 'mp4',
-                        entry_protocol='m3u8_native',
-                        m3u8_id=f'{dr}-hls', headers=headers)
+                        format_url, video_id, ext='mp4', headers=headers)
                 elif 'package:dash' in tags or ext == 'mpd':
                     current_formats, current_subs = self._extract_mpd_formats_and_subtitles(
-                        format_url, video_id, mpd_id=f'{dr}-dash', headers=headers)
+                        format_url, video_id, headers=headers)
                 elif ext == 'f4m':
                     pass  # XXX: produce broken files
                 else:
@@ -213,20 +237,32 @@ class HotStarIE(HotStarBaseIE):
                     geo_restricted = True
                 continue
 
-            if tags and 'encryption:plain' not in tags:
+            if tag_dict.get('encryption') not in ('plain', None):
                 for f in current_formats:
                     f['has_drm'] = True
-            if tags and 'language' in tags:
-                lang = re.search(r'language:(?P<lang>[a-z]+)', tags).group('lang')
-                for f in current_formats:
-                    if not f.get('langauge'):
-                        f['language'] = lang
+            for f in current_formats:
+                for k, v in self._TAG_FIELDS.items():
+                    if not f.get(k):
+                        f[k] = tag_dict.get(v)
+                if f.get('vcodec') != 'none' and not f.get('dynamic_range'):
+                    f['dynamic_range'] = tag_dict.get('dynamic_range')
+                if f.get('acodec') != 'none' and not f.get('audio_channels'):
+                    f['audio_channels'] = {
+                        'stereo': 2,
+                        'dolby51': 6,
+                    }.get(tag_dict.get('audio_channel'))
+                f['format_note'] = join_nonempty(
+                    tag_dict.get('ladder'),
+                    tag_dict.get('audio_channel') if f.get('acodec') != 'none' else None,
+                    f.get('format_note'),
+                    delim=', ')
 
             formats.extend(current_formats)
             subs = self._merge_subtitles(subs, current_subs)
 
         if not formats and geo_restricted:
             self.raise_geo_restricted(countries=['IN'], metadata_available=True)
+        self._remove_duplicate_formats(formats)
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
 
@@ -235,7 +271,7 @@ class HotStarIE(HotStarBaseIE):
             'title': video_data.get('title'),
             'description': video_data.get('description'),
             'duration': int_or_none(video_data.get('duration')),
-            'timestamp': int_or_none(video_data.get('broadcastDate') or video_data.get('startDate')),
+            'timestamp': int_or_none(traverse_obj(video_data, 'broadcastDate', 'startDate')),
             'formats': formats,
             'subtitles': subs,
             'channel': video_data.get('channelName'),
@@ -288,13 +324,16 @@ class HotStarPrefixIE(InfoExtractor):
 
 class HotStarPlaylistIE(HotStarBaseIE):
     IE_NAME = 'hotstar:playlist'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com(?:/in)?/tv(?:/[^/]+){2}/list/[^/]+/t-(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)(?:/[^/]+){2}/list/[^/]+/t-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
         'info_dict': {
             'id': '3_2_26',
         },
         'playlist_mincount': 20,
+    }, {
+        'url': 'https://www.hotstar.com/shows/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
+        'only_matching': True,
     }, {
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/extras/t-2480',
         'only_matching': True,
@@ -311,7 +350,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
 
 class HotStarSeasonIE(HotStarBaseIE):
     IE_NAME = 'hotstar:season'
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/\w+)/seasons/[^/]+/ss-(?P<id>\w+)'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)/[^/]+/\w+)/seasons/[^/]+/ss-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/tv/radhakrishn/1260000646/seasons/season-2/ss-8028',
         'info_dict': {
@@ -330,6 +369,9 @@ class HotStarSeasonIE(HotStarBaseIE):
             'id': '8208',
         },
         'playlist_mincount': 19,
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/bigg-boss/14714/seasons/season-4/ss-8208/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -340,7 +382,7 @@ class HotStarSeasonIE(HotStarBaseIE):
 
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))/?(?:[#?]|$)'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/(?:tv|shows)/[^/]+/(?P<id>\d+))/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
         'info_dict': {
@@ -359,6 +401,12 @@ class HotStarSeriesIE(HotStarBaseIE):
             'id': '435',
         },
         'playlist_mincount': 267,
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/',
+        'info_dict': {
+            'id': '1260022017',
+        },
+        'playlist_mincount': 940,
     }]
 
     def _real_extract(self, url):
