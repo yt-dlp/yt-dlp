@@ -4,7 +4,7 @@ from ..utils import traverse_obj
 
 
 class DiscogsReleasePlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?discogs\.com/(?P<type>(release|master))/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?discogs\.com/(?P<type>release|master)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.discogs.com/release/1-The-Persuader-Stockholm',
         'info_dict': {
