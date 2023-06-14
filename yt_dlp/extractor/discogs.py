@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from .youtube import YoutubeIE
 from ..utils import traverse_obj
 
 
@@ -28,7 +29,7 @@ class DiscogsReleasePlaylistIE(InfoExtractor):
             f'https://api.discogs.com/{playlist_type}s/{playlist_id}', display_id)
 
         entries = [
-            self.url_result(video['uri'], video_title=video.get('title'))
-            for video in traverse_obj(response, ('videos', lambda _, v: v['uri']))]
+            self.url_result(video['uri'], YoutubeIE, video_title=video.get('title'))
+            for video in traverse_obj(response, ('videos', lambda _, v: YoutubeIE.suitable(v['uri'])))]
 
         return self.playlist_result(entries, display_id, response.get('title'))
