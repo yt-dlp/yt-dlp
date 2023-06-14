@@ -132,7 +132,7 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
         *,
         headers: Optional[CaseInsensitiveDict] = None,
         cookiejar: Optional[CookieJar] = None,
-        timeout: Union[float, int] = None,
+        timeout: Union[float, int, None] = None,
         proxies: Optional[dict] = None,
         source_address: Optional[str] = None,
         verbose: bool = False,
