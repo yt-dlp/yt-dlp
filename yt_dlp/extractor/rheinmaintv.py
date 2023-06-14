@@ -8,7 +8,7 @@ class RheinMainTVIE(InfoExtractor):
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/auf-dem-weg-zur-deutschen-meisterschaft/vom-07.11.2022/',
         'info_dict': {
             'id': 'auf-dem-weg-zur-deutschen-meisterschaft-vom-07.11.2022',
-            'ext': 'ismv',
+            'ext': 'ismv',  # ismv+isma will be merged into mp4
             'alt_title': 'Auf dem Weg zur Deutschen Meisterschaft',
             'title': 'Auf dem Weg zur Deutschen Meisterschaft',
             'upload_date': '20221108',
