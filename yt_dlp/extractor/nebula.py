@@ -102,7 +102,7 @@ class NebulaBaseIE(InfoExtractor):
             'creator': channel_title,
             'extractor_key': NebulaIE.ie_key(),
             'extractor': NebulaIE.IE_NAME,
-            '_old_archive_ids': [make_archive_id(self, zype_id)] if zype_id else None,
+            '_old_archive_ids': [make_archive_id(NebulaIE, zype_id)] if zype_id else None,
         }
 
     def _perform_login(self, username=None, password=None):
