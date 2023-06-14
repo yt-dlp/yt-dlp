@@ -218,6 +218,7 @@ class TestCookies(unittest.TestCase):
             ]
             shadow_obj.Delete_.assert_called_once_with()
 
+
 class TestLenientSimpleCookie(unittest.TestCase):
     def _run_tests(self, *cases):
         for message, raw_cookie, expected in cases:
