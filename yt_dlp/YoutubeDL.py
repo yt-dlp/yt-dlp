@@ -2017,7 +2017,7 @@ class YoutubeDL:
             else 'bestvideo*+bestaudio/best' if not compat
             else 'bestvideo+bestaudio/best')
 
-    def build_format_selector(self, format_spec, default_output_format=None):
+    def build_format_selector(self, format_spec):
         def syntax_error(note, start):
             message = (
                 'Invalid format specification: '
@@ -2167,8 +2167,7 @@ class YoutubeDL:
                 vexts=[f['ext'] for f in video_fmts],
                 aexts=[f['ext'] for f in audio_fmts],
                 preferences=(try_call(lambda: self.params['merge_output_format'].split('/'))
-                             or self.params.get('prefer_free_formats') and ('webm', 'mkv')
-                             or default_output_format and variadic(default_output_format)))
+                             or self.params.get('prefer_free_formats') and ('webm', 'mkv')))
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 
@@ -2706,14 +2705,14 @@ class YoutubeDL:
         if format_selector is None:
             req_format = self._default_format_spec(info_dict, download=download)
             self.write_debug('Default format spec: %s' % req_format)
-            format_selector = self.build_format_selector(req_format, info_dict.get('ext'))
+            format_selector = self.build_format_selector(req_format)
 
         while True:
             if interactive_format_selection:
                 req_format = input(
                     self._format_screen('\nEnter format selector: ', self.Styles.EMPHASIS))
                 try:
-                    format_selector = self.build_format_selector(req_format, info_dict.get('ext'))
+                    format_selector = self.build_format_selector(req_format)
                 except SyntaxError as err:
                     self.report_error(err, tb=False, is_error=False)
                     continue
