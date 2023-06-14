@@ -4312,9 +4312,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, None, ' from %s')
-                    # Add an "-orig" label to the original language so that it can be distinguished.
-                    # The subs are returned without "-orig" as well for compatibility
                     if lang_code == f'a-{orig_trans_code}':
+                        # Set audio language based on original subtitles
+                        for f in formats:
+                            if f.get('acodec') != 'none' and not f.get('language'):
+                                f['language'] = orig_trans_code
+                        # Add an "-orig" label to the original language so that it can be distinguished.
+                        # The subs are returned without "-orig" as well for compatibility
                         process_language(
                             automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {})
                     # Setting tlang=lang returns damaged subtitles.
