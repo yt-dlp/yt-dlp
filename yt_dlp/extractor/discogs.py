@@ -20,17 +20,14 @@ class DiscogsReleasePlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        playlist_id, playlist_type = mobj.group('id', 'type')
+        playlist_id, playlist_type = self._match_valid_url(url).group('id', 'type')
 
-        api = f'https://api.discogs.com/{playlist_type}s/{playlist_id}'
         display_id = f'{playlist_type}{playlist_id}'
-        response = self._download_json(api, display_id)
+        response = self._download_json(
+            f'https://api.discogs.com/{playlist_type}s/{playlist_id}', display_id)
 
-        playlist_title = response.get('title')
         entries = [
-            self.url_result(video.get('uri'), video_title=video.get('title'))
-            for video in response.get('videos')
-        ]
+            self.url_result(video['uri'], video_title=video.get('title'))
+            for video in traverse_obj(response, ('videos', lambda _, v: v['uri']))]
 
-        return self.playlist_result(entries, display_id, playlist_title)
+        return self.playlist_result(entries, display_id, response.get('title'))
