@@ -1,4 +1,5 @@
 import contextlib
+import gc
 import pathlib
 import shutil
 import tempfile
@@ -161,6 +162,10 @@ class TestCookies(unittest.TestCase):
         try:
             yield db_path, tmpdir
         finally:
+            # on pypy3, we don't have a guarantee that the files opened by shutil.copy will be closed until garbage collection
+            # force garbage colleciton now to avoid a PermissionError when we try to delete the db_path
+            gc.collect()
+
             shutil.rmtree(tmpdir)
             db_path.unlink()
 
