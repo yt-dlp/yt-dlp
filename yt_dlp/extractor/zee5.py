@@ -1,14 +1,16 @@
 import json
-import random
-import string
+import time
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
+    jwt_decode_hs256,
     parse_age_limit,
     str_or_none,
+    try_call,
     try_get,
     unified_strdate,
     unified_timestamp,
@@ -94,12 +96,12 @@ class Zee5IE(InfoExtractor):
         'url': 'https://www.zee5.com/music-videos/details/adhento-gaani-vunnapaatuga-jersey-nani-shraddha-srinath/0-0-56973',
         'only_matching': True
     }]
-    _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails/secure?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
-    _DEVICE_ID = ''.join(random.choices(string.ascii_letters + string.digits, k=20)).ljust(32, '0')
+    _DEVICE_ID = str(uuid.uuid4())
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
     _GEO_COUNTRIES = ['IN']
+    _USER_COUNTRY = None
 
     def _perform_login(self, username, password):
         if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
@@ -118,10 +120,15 @@ class Zee5IE(InfoExtractor):
             self._USER_TOKEN = otp_verify_json.get('token')
             if not self._USER_TOKEN:
                 raise ExtractorError(otp_request_json['message'], expected=True)
-        elif username.lower() == 'token' and len(password) > 1198:
+        elif username.lower() == 'token' and try_call(lambda: jwt_decode_hs256(password)):
             self._USER_TOKEN = password
         else:
             raise ExtractorError(self._LOGIN_HINT, expected=True)
+
+        token = jwt_decode_hs256(self._USER_TOKEN)
+        if token.get('exp', 0) <= int(time.time()):
+            raise ExtractorError('User token has expired', expected=True)
+        self._USER_COUNTRY = token.get('current_country')
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
@@ -137,8 +144,13 @@ class Zee5IE(InfoExtractor):
             data['X-Z5-Guest-Token'] = self._DEVICE_ID
 
         json_data = self._download_json(
-            self._DETAIL_API_URL.format(video_id, self._DEVICE_ID),
-            video_id, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
+            'https://spapi.zee5.com/singlePlayback/getDetails/secure', video_id, query={
+                'content_id': video_id,
+                'device_id': self._DEVICE_ID,
+                'platform_name': 'desktop_web',
+                'country': self._USER_COUNTRY or self.get_param('geo_bypass_country') or 'IN',
+                'check_parental_control': False,
+            }, headers={'content-type': 'application/json'}, data=json.dumps(data).encode('utf-8'))
         asset_data = json_data['assetDetails']
         show_data = json_data.get('showDetails', {})
         if 'premium' in asset_data['business_type']:
