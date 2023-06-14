@@ -32,9 +32,9 @@ class RequestDirector:
         """
         self._handlers = [h for h in self._handlers if not (type(h) == handler or h is handler)]
 
-    def get_handlers(self, handler=None):
+    def get_handlers(self, handler=None, key=None):
         """Get all handlers for a particular class type"""
-        return [h for h in self._handlers if (type(h) == handler or h is handler)]
+        return [h for h in self._handlers if (type(h) == handler or h is handler or h.rh_key() == key)]
 
     def replace_handler(self, handler):
         self.remove_handler(handler)

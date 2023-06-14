@@ -46,6 +46,7 @@ from .exceptions import (
     IncompleteRead,
     SSLError,
     ProxyError,
+    UnsupportedRequest,
 )
 
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -59,9 +60,8 @@ if brotli:
     CONTENT_DECODE_ERRORS.append(brotli.error)
 
 
-def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
+def _create_http_connection(http_class, source_address, *args, **kwargs):
     hc = http_class(*args, **kwargs)
-    source_address = ydl_handler._params.get('source_address')
 
     if source_address is not None:
         # This is to workaround _create_connection() from socket where it will try all
@@ -121,11 +121,10 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
     public domain.
     """
 
-    def __init__(self, params, context=None, check_hostname=None, *args, **kwargs):
+    def __init__(self, context=None, source_address=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._params = params
+        self._source_address = source_address
         self._context = context
-        self._check_hostname = check_hostname
 
     @staticmethod
     def _make_conn_class(base, req):
@@ -137,13 +136,15 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
 
     def http_open(self, req):
         conn_class = self._make_conn_class(http.client.HTTPConnection, req)
-        return self.do_open(functools.partial(_create_http_connection, self, conn_class, False), req)
+        return self.do_open(functools.partial(
+            _create_http_connection, conn_class, self._source_address,), req)
 
     def https_open(self, req):
         conn_class = self._make_conn_class(http.client.HTTPSConnection, req)
         return self.do_open(
-            functools.partial(_create_http_connection, self, conn_class, True),
-            req, check_hostname=self._check_hostname, context=self._context)
+            functools.partial(
+                _create_http_connection, conn_class, self._source_address),
+            req, context=self._context)
 
     @staticmethod
     def deflate(data):
@@ -386,16 +387,25 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
     RH_NAME = 'urllib'
 
-    def __init__(self, ydl):
-        super().__init__(ydl)
+    def __init__(self, *, enable_file_urls: bool = False, **kwargs):
+        super().__init__(**kwargs)
+        self._enable_file_urls = enable_file_urls
+
+    def _check_url_scheme(self, request):
+        scheme = super()._check_url_scheme(request)
+        if scheme == 'file' and not self._enable_file_urls:
+            # TODO: provide a generic error message
+            raise UnsupportedRequest('file:// URLs are disabled by default in yt-dlp for security reasons. '
+                                     'Use --enable-file-urls to at your own risk.')
 
     def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()
         handlers = [
             ProxyHandler(proxies),
             HTTPHandler(
-                self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
-                context=self._make_sslcontext()),
+                debuglevel=int(bool(self._verbose)),
+                context=self._make_sslcontext(),
+                source_address=self._source_address),
             HTTPCookieProcessor(cookiejar),
             DataHandler(),
             UnknownHandler(),
@@ -404,7 +414,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             HTTPErrorProcessor(),
             RedirectHandler()]
 
-        if self.ydl.params.get('enable_file_urls'):
+        if self._enable_file_urls:
             handlers.append(FileHandler())
 
         for handler in handlers:
@@ -417,16 +427,21 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         return opener
 
     def _send(self, request):
-        headers = request.headers.copy()
+        headers = self._merge_headers(request.headers)
         add_accept_encoding_header(headers, SUPPORTED_ENCODINGS)
         urllib_req = urllib.request.Request(
-            url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
+            url=request.url,
+            data=request.data,
+            headers=dict(headers),
+            method=request.method
+        )
+
         opener = self._get_instance(
-            proxies=request.proxies,
-            cookiejar=request.extensions.get('cookiejar') or CookieJar()
+            proxies=request.proxies or self._proxies,
+            cookiejar=request.extensions.get('cookiejar') or self._cookiejar
         )
         try:
-            res = opener.open(urllib_req, timeout=float(request.extensions.get('timeout') or 20))
+            res = opener.open(urllib_req, timeout=float(request.extensions.get('timeout') or self._timeout))
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 raise HTTPError(UrllibResponseAdapter(e.fp), redirect_loop='redirect error' in str(e))

@@ -16,6 +16,7 @@ from .utils import (
 )
 
 from .. import utils
+from ..utils import CaseInsensitiveDict
 
 try:
     from urllib.request import _parse_proxy
@@ -30,6 +31,7 @@ from .exceptions import UnsupportedRequest
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
     from .response import Response
+    from typing import Union, Tuple, Optional
 
 
 class Features(enum.Enum):
@@ -99,33 +101,82 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
         a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
     - _SUPPORTED_FEATURES: may contain a list of supported features, as defined in Features enum.
+
+    Parameters:
+        logger: logger instance
+
+    Optional Parameters:
+        headers: HTTP Headers to include when sending requests.
+        cookiejar: Cookiejar to use for requests.
+        timeout: Socket timeout to use when sending requests.
+        proxies: Proxies to use for sending requests.
+        source_address: Client-side IP address to bind to for requests.
+        verbose: Print debug traffic
+        prefer_system_certs: Whether to prefer system certificates over other means (e.g. certifi).
+        client_cert: SSL client certificate configuration.
+            Tuple of (client_certificate, client_certificate_key, client_certificate_password).
+        verify: Verify SSL certificates
+        legacy_ssl_support: Enable various legacy SSL options.
+
+    Some configuration options may be available for individual Requests too. In this case,
+    either the Request configuration option takes precedence or they are merged.
     """
 
     _SUPPORTED_URL_SCHEMES: list = None
     _SUPPORTED_PROXY_SCHEMES: list = None
     _SUPPORTED_FEATURES: list = None
 
-    def __init__(self, ydl: YoutubeDL):
-        self.ydl = ydl
+    def __init__(
+        self,
+        logger,
+        *,
+        headers: Optional[CaseInsensitiveDict] = None,
+        cookiejar: Optional[CookieJar] = None,
+        timeout: Union[float, int] = None,
+        proxies: Optional[dict] = None,
+        source_address: Optional[str] = None,
+        verbose: bool = False,
+        prefer_system_certs: bool = False,
+        client_cert: Optional[Tuple[str, Optional[str], Optional[str]]] = None,
+        verify: bool = True,
+        legacy_ssl_support: bool = False,  # todo: should probably generalise to some ssl_opts
+    ):
+
+        self._logger = logger
+        self._headers = headers or {}
+        self._cookiejar = cookiejar or CookieJar()
+        self._timeout = float(timeout or 20)  # TODO: set default somewhere
+        self._proxies = proxies or {}
+        self._source_address = source_address
+        self._verbose = verbose,
+        self._prefer_system_certs = prefer_system_certs
+        self._client_cert = client_cert
+        self._verify = verify
+        self._legacy_ssl_support = legacy_ssl_support
 
     def _make_sslcontext(self):
+        client_cert_opts = {}
+        if self._client_cert:
+            client_cert_opts = {
+                'client_certificate': self._client_cert[0],
+                'client_certificate_key': self._client_cert[1],
+                'client_certificate_password': self._client_cert[2]
+            }
         return make_ssl_context(
-            verify=not self.ydl.params.get('nocheckcertificate'),
-            legacy_support=self.ydl.params.get('legacyserverconnect'),
-            client_certificate=self.ydl.params.get('client_certificate'),
-            client_certificate_key=self.ydl.params.get('client_certificate_key'),
-            client_certificate_password=self.ydl.params.get('client_certificate_password'),
-            use_certifi='no-certifi' not in self.ydl.params.get('compat_opts', [])
+            verify=self._verify,
+            legacy_support=self._legacy_ssl_support,
+            use_certifi=not self._prefer_system_certs,
+            **client_cert_opts
         )
+
+    def _merge_headers(self, request_headers):
+        return CaseInsensitiveDict(self._headers or {}, request_headers)
 
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme not in (self._SUPPORTED_URL_SCHEMES or []):
             raise UnsupportedRequest(f'unsupported url scheme: "{scheme}"')
-        elif scheme == 'file' and not self.ydl.params.get('enable_file_urls'):
-            # TODO: provide a generic error message
-            raise UnsupportedRequest('file:// URLs are disabled by default in yt-dlp for security reasons. '
-                                     'Use --enable-file-urls to at your own risk.')
+        return scheme  # for further processing
 
     def _check_proxies(self, request: Request):
         if self._SUPPORTED_PROXY_SCHEMES is None:

@@ -3779,36 +3779,6 @@ class YoutubeDL:
     def list_subtitles(self, video_id, subtitles, name='subtitles'):
         self.__list_table(video_id, name, self.render_subtitles_table, video_id, subtitles)
 
-    def urlopen(self, req):
-        """ Start an HTTP download """
-        if isinstance(req, str):
-            req = Request(req)
-        elif isinstance(req, urllib.request.Request):
-            # compat
-            req = Request(
-                req.get_full_url(), data=req.data, method=req.get_method(),
-                headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
-                timeout=req.timeout if hasattr(req, 'timeout') else None)
-        assert isinstance(req, Request)
-
-        # Assume user:pass url params are basic auth
-        # XXX: this should only be sent if the server requests it?
-        url, basic_auth_header = extract_basic_auth(req.url)
-        if basic_auth_header:
-            req.headers['Authorization'] = basic_auth_header
-        req.url = url
-
-        # TODO: this should be global params in the handlers, not here
-        req.headers = CaseInsensitiveDict(self.params.get('http_headers', {}), req.headers)
-        req.proxies = req.proxies or self.params.get('proxies') or {}
-        req.extensions['timeout'] = req.extensions.get('timeout') or self.params.get('socket_timeout')
-        req.extensions['cookiejar'] = req.extensions.get('cookiejar') or self.cookiejar
-
-        clean_proxies(req)
-        clean_headers(req)
-
-        return self._request_director.send(req)
-
     def print_debug_header(self):
         if not self.params.get('verbose'):
             return
@@ -3955,14 +3925,59 @@ class YoutubeDL:
         Deprecated: use YoutubeDL.urlopen() instead.
         Get an urllib OpenerDirector from the Urllib handler.
         """
-        return self._request_director.get_handlers(UrllibRH)[0].get_opener(Request('http://', proxies=self.proxies))
+        handler = self._request_director.get_handlers(key='urllib')[0]
+        return handler.get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
+
+    def urlopen(self, req):
+        """ Start an HTTP download """
+        if isinstance(req, str):
+            req = Request(req)
+        elif isinstance(req, urllib.request.Request):
+            # compat
+            req = Request(
+                req.get_full_url(), data=req.data, method=req.get_method(),
+                headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
+                timeout=req.timeout if hasattr(req, 'timeout') else None)
+        assert isinstance(req, Request)
+
+        # Assume user:pass url params are basic auth
+        # XXX: this should only be sent if the server requests it?
+        url, basic_auth_header = extract_basic_auth(req.url)
+        if basic_auth_header:
+            req.headers['Authorization'] = basic_auth_header
+        req.url = url
+
+        clean_proxies(req)
+        clean_headers(req)
+
+        return self._request_director.send(req)
 
     def build_request_director(self, handlers):
 
         director = RequestDirector(logger=self)
-        for klass in handlers:
-            if klass is not None:
-                director.add_handler(klass(self))
+        for handler in handlers:
+            params = {
+                'headers': self.params.get('http_headers'),
+                'cookiejar': self.cookiejar,
+                'timeout': self.params.get('socket_timeout'),
+                'proxies': self.proxies,
+                'source_address': self.params.get('source_address'),
+                'verbose': bool(self.params.get('debug_printtraffic')),
+                'prefer_system_certs': 'no-certifi' in self.params.get('compat_opts', []),
+                'verify': not self.params.get('nocheckcertificate'),
+                'legacy_ssl_support': bool(self.params.get('legacy_server_connect'))  # TODO
+            }
+            if self.params.get('client_certificate'):
+                params['client_cert'] = (
+                    self.params['client_certificate'],
+                    self.params.get('client_certificate_key'),
+                    self.params.get('client_certificate_password')
+                )
+            if handler.rh_key() == 'urllib':
+                params['enable_file_urls'] = bool(self.params.get('enable_file_urls'))
+
+            director.add_handler(handler(logger=self, **params))
+
         return director
 
     def encode(self, s):
