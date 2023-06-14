@@ -5473,16 +5473,14 @@ class FormatSorter:
 
 def clean_proxies(request):
     # TODO: generalise this so it can be used by e.g. external downloaders
-    proxies = request.proxies
     if not isinstance(request.proxies, dict):
-        proxies = {}
-    proxies = proxies.copy()
+        request.proxies = {}
     req_proxy = request.headers.pop('Ytdl-request-proxy', None)
     if req_proxy:
-        proxies = {'all': req_proxy}
-    for proxy_key, proxy_url in proxies.items():
+        request.proxies = {'all': req_proxy}
+    for proxy_key, proxy_url in request.proxies.items():
         if proxy_url == '__noproxy__':
-            proxies[proxy_key] = None
+            request.proxies[proxy_key] = None
             continue
         if proxy_key == 'no':  # special case
             continue
@@ -5490,8 +5488,7 @@ def clean_proxies(request):
             # Ensure proxies without a scheme are http.
             proxy_scheme = _parse_proxy(proxy_url)[0]
             if proxy_scheme is None:
-                proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
-    return proxies
+                request.proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
 
 
 def clean_headers(request):
