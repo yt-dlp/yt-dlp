@@ -3,11 +3,7 @@ import json
 import urllib.error
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    parse_iso8601,
-    make_archive_id
-)
+from ..utils import ExtractorError, make_archive_id, parse_iso8601, remove_start
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
@@ -80,12 +76,9 @@ class NebulaBaseIE(InfoExtractor):
         fmts, subs = self._fetch_video_formats(episode['slug'])
         channel_slug = episode['channel_slug']
         channel_title = episode['channel_title']
-        if episode['zype_id']:
-            zype_id = episode['zype_id']
-        else:
-            zype_id = None
+        zype_id = episode.get('zype_id')
         return {
-            'id': episode['id'].replace('video_episode:', ''),
+            'id': remove_start(episode['id'], 'video_episode:'),
             'display_id': episode['slug'],
             'formats': fmts,
             'subtitles': subs,
@@ -107,6 +100,8 @@ class NebulaBaseIE(InfoExtractor):
             'uploader_url': f'https://nebula.tv/{channel_slug}',
             'series': channel_title,
             'creator': channel_title,
+            'extractor_key': NebulaIE.ie_key(),
+            'extractor': NebulaIE.IE_NAME,
             '_old_archive_ids': [make_archive_id(self, zype_id)] if zype_id else None,
         }
 
