@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, mimetype2ext, remove_end
+from ..utils import extract_attributes, remove_end
 
 
 class RheinMainTVIE(InfoExtractor):
@@ -837,12 +837,6 @@ class RheinMainTVIE(InfoExtractor):
             or next(json_ld.get('embedUrl') for json_ld in raw_json_ld if json_ld.get('@type') == 'VideoObject')
         )
         formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
-        # Override fixed extensions ('ismv' for video, 'isma' for audio) in the formats.
-        # This is equivalent to setting merge_output_format (at least for 'mp4').
-        ext = mimetype2ext(source.get('type'))
-        if ext in ('mp4', 'mov', 'flv', 'avi'):  # it's 'mp4', but just to make sure
-            for f in formats:
-                f['ext'] = ext
 
         return {
             'id': video_id,
@@ -854,7 +848,6 @@ class RheinMainTVIE(InfoExtractor):
                 or remove_end(self._html_extract_title(webpage), ' -'),
             'alt_title': img.get('alt'),
             'description': json_ld.get('description') or self._og_search_description(webpage),
-            'ext': ext,  # will be discarded (see above)
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': img['src']}] if 'src' in img else json_ld.get('thumbnails'),
