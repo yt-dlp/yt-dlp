@@ -3,7 +3,7 @@ from ..utils import extract_attributes, remove_end, traverse_obj
 
 
 class RheinMainTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[a-z-]+/)*(?P<video_id>(?P<display_id>[a-z-]+)/vom-[0-9]{2}\.[0-9]{2}\.[0-9]{4}(?:/[0-9]+)?)'
+    _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[\w-]+/)*(?P<video_id>(?P<display_id>[\w-]+)/vom-\d{2}\.\d{2}\.\d{4}(?:/\d+)?)'
     _TESTS = [{
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/auf-dem-weg-zur-deutschen-meisterschaft/vom-07.11.2022/',
         'info_dict': {
