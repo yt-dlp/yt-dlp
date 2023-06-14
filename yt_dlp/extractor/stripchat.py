@@ -42,7 +42,6 @@ class StripchatIE(InfoExtractor):
         elif not traverse_obj(data, ('viewCam', 'model', 'isLive'), expected_type=bool):
             raise UserNotLive(video_id=video_id)
 
-        server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=str)
         model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
 
         formats = []
