@@ -579,6 +579,7 @@ from .espn import (
     ESPNCricInfoIE,
 )
 from .esri import EsriVideoIE
+from .ettutv import EttuTvIE
 from .europa import EuropaIE, EuroParlWebstreamIE
 from .europeantour import EuropeanTourIE
 from .eurosport import EurosportIE
