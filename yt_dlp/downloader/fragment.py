@@ -34,8 +34,8 @@ class FragmentFD(FileDownloader):
 
     Available options:
 
-    fragment_retries:   Number of times to retry a fragment for HTTP error (DASH
-                        and hlsnative only)
+    fragment_retries:   Number of times to retry a fragment for HTTP error
+                        (DASH and hlsnative only). Default is 0 for API, but 10 for CLI
     skip_unavailable_fragments:
                         Skip unavailable fragments (DASH and hlsnative only)
     keep_fragments:     Keep downloaded fragments on disk after downloading is
@@ -121,6 +121,11 @@ class FragmentFD(FileDownloader):
             'request_data': request_data,
             'ctx_id': ctx.get('ctx_id'),
         }
+        frag_resume_len = 0
+        if ctx['dl'].params.get('continuedl', True):
+            frag_resume_len = self.filesize_or_none(self.temp_name(fragment_filename))
+        fragment_info_dict['frag_resume_len'] = ctx['frag_resume_len'] = frag_resume_len
+
         success, _ = ctx['dl'].download(fragment_filename, fragment_info_dict)
         if not success:
             return False
@@ -155,9 +160,7 @@ class FragmentFD(FileDownloader):
             del ctx['fragment_filename_sanitized']
 
     def _prepare_frag_download(self, ctx):
-        if 'live' not in ctx:
-            ctx['live'] = False
-        if not ctx['live']:
+        if not ctx.setdefault('live', False):
             total_frags_str = '%d' % ctx['total_frags']
             ad_frags = ctx.get('ad_frags', 0)
             if ad_frags:
@@ -173,12 +176,11 @@ class FragmentFD(FileDownloader):
         })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
-        resume_len = 0
 
         # Establish possible resume length
-        if os.path.isfile(encodeFilename(tmpfilename)):
+        resume_len = self.filesize_or_none(tmpfilename)
+        if resume_len > 0:
             open_mode = 'ab'
-            resume_len = os.path.getsize(encodeFilename(tmpfilename))
 
         # Should be initialized before ytdl file check
         ctx.update({
@@ -187,7 +189,9 @@ class FragmentFD(FileDownloader):
         })
 
         if self.__do_ytdl_file(ctx):
-            if os.path.isfile(encodeFilename(self.ytdl_filename(ctx['filename']))):
+            ytdl_file_exists = os.path.isfile(encodeFilename(self.ytdl_filename(ctx['filename'])))
+            continuedl = self.params.get('continuedl', True)
+            if continuedl and ytdl_file_exists:
                 self._read_ytdl_file(ctx)
                 is_corrupt = ctx.get('ytdl_corrupt') is True
                 is_inconsistent = ctx['fragment_index'] > 0 and resume_len == 0
@@ -201,7 +205,12 @@ class FragmentFD(FileDownloader):
                     if 'ytdl_corrupt' in ctx:
                         del ctx['ytdl_corrupt']
                     self._write_ytdl_file(ctx)
+
             else:
+                if not continuedl:
+                    if ytdl_file_exists:
+                        self._read_ytdl_file(ctx)
+                    ctx['fragment_index'] = resume_len = 0
                 self._write_ytdl_file(ctx)
                 assert ctx['fragment_index'] == 0
 
@@ -274,12 +283,10 @@ class FragmentFD(FileDownloader):
             else:
                 frag_downloaded_bytes = s['downloaded_bytes']
                 state['downloaded_bytes'] += frag_downloaded_bytes - ctx['prev_frag_downloaded_bytes']
-                if not ctx['live']:
-                    state['eta'] = self.calc_eta(
-                        start, time_now, estimated_size - resume_len,
-                        state['downloaded_bytes'] - resume_len)
                 ctx['speed'] = state['speed'] = self.calc_speed(
-                    ctx['fragment_started'], time_now, frag_downloaded_bytes)
+                    ctx['fragment_started'], time_now, frag_downloaded_bytes - ctx.get('frag_resume_len', 0))
+                if not ctx['live']:
+                    state['eta'] = self.calc_eta(state['speed'], estimated_size - state['downloaded_bytes'])
                 ctx['prev_frag_downloaded_bytes'] = frag_downloaded_bytes
             self._hook_progress(state, info_dict)
 
@@ -297,7 +304,7 @@ class FragmentFD(FileDownloader):
 
         to_file = ctx['tmpfilename'] != '-'
         if to_file:
-            downloaded_bytes = os.path.getsize(encodeFilename(ctx['tmpfilename']))
+            downloaded_bytes = self.filesize_or_none(ctx['tmpfilename'])
         else:
             downloaded_bytes = ctx['complete_frags_downloaded_bytes']
 
@@ -360,7 +367,8 @@ class FragmentFD(FileDownloader):
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
             iv = decrypt_info.get('IV') or struct.pack('>8xq', fragment['media_sequence'])
-            decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
+            decrypt_info['KEY'] = (decrypt_info.get('KEY')
+                                   or _get_key(traverse_obj(info_dict, ('hls_aes', 'uri')) or decrypt_info['URI']))
             # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
             # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
             # not what it decrypts to.
@@ -382,7 +390,7 @@ class FragmentFD(FileDownloader):
         max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if max_progress > 1:
             self._prepare_multiline_status(max_progress)
-        is_live = any(traverse_obj(args, (..., 2, 'is_live'), default=[]))
+        is_live = any(traverse_obj(args, (..., 2, 'is_live')))
 
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress
@@ -465,7 +473,8 @@ class FragmentFD(FileDownloader):
             for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
                 try:
                     ctx['fragment_count'] = fragment.get('fragment_count')
-                    if not self._download_fragment(ctx, fragment['url'], info_dict, headers):
+                    if not self._download_fragment(
+                            ctx, fragment['url'], info_dict, headers, info_dict.get('request_data')):
                         return
                 except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
                     retry.error = err
@@ -495,7 +504,7 @@ class FragmentFD(FileDownloader):
                 download_fragment(fragment, ctx_copy)
                 return fragment, fragment['frag_index'], ctx_copy.get('fragment_filename_sanitized')
 
-            self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
+            self.report_warning('The download speed shown is only of one thread. This is a known issue')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 try:
                     for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):

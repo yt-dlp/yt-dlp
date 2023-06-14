@@ -20,7 +20,7 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
-from .update import detect_variant, is_non_updateable
+from .update import UPDATE_SOURCES, detect_variant, is_non_updateable
 from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
@@ -34,55 +34,35 @@ from .utils import (
     join_nonempty,
     orderedSet_from_options,
     remove_end,
+    variadic,
     write_string,
 )
-from .version import __version__
+from .version import CHANNEL, __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
+    PACKAGE_NAME = 'yt-dlp'
+
     root = Config(create_parser())
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
 
+    def read_config(*paths):
+        path = os.path.join(*paths)
+        conf = Config.read_file(path, default=None)
+        if conf is not None:
+            return conf, path
+
     def _load_from_config_dirs(config_dirs):
         for config_dir in config_dirs:
-            conf_file_path = os.path.join(config_dir, 'config')
-            conf = Config.read_file(conf_file_path, default=None)
-            if conf is None:
-                conf_file_path += '.txt'
-                conf = Config.read_file(conf_file_path, default=None)
-            if conf is not None:
-                return conf, conf_file_path
-        return None, None
+            head, tail = os.path.split(config_dir)
+            assert tail == PACKAGE_NAME or config_dir == os.path.join(compat_expanduser('~'), f'.{PACKAGE_NAME}')
 
-    def _read_user_conf(package_name, default=None):
-        # .config/package_name.conf
-        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-        user_conf_file = os.path.join(xdg_config_home, '%s.conf' % package_name)
-        user_conf = Config.read_file(user_conf_file, default=None)
-        if user_conf is not None:
-            return user_conf, user_conf_file
-
-        # home (~/package_name.conf or ~/package_name.conf.txt)
-        user_conf_file = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
-        user_conf = Config.read_file(user_conf_file, default=None)
-        if user_conf is None:
-            user_conf_file += '.txt'
-            user_conf = Config.read_file(user_conf_file, default=None)
-        if user_conf is not None:
-            return user_conf, user_conf_file
-
-        # Package config directories (e.g. ~/.config/package_name/package_name.txt)
-        user_conf, user_conf_file = _load_from_config_dirs(get_user_config_dirs(package_name))
-        if user_conf is not None:
-            return user_conf, user_conf_file
-        return default if default is not None else [], None
-
-    def _read_system_conf(package_name, default=None):
-        system_conf, system_conf_file = _load_from_config_dirs(get_system_config_dirs(package_name))
-        if system_conf is not None:
-            return system_conf, system_conf_file
-        return default if default is not None else [], None
+            yield read_config(head, f'{PACKAGE_NAME}.conf')
+            if tail.startswith('.'):  # ~/.PACKAGE_NAME
+                yield read_config(head, f'{PACKAGE_NAME}.conf.txt')
+            yield read_config(config_dir, 'config')
+            yield read_config(config_dir, 'config.txt')
 
     def add_config(label, path=None, func=None):
         """ Adds config and returns whether to continue """
@@ -90,21 +70,21 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return False
         elif func:
             assert path is None
-            args, current_path = func('yt-dlp')
+            args, current_path = next(
+                filter(None, _load_from_config_dirs(func(PACKAGE_NAME))), (None, None))
         else:
             current_path = os.path.join(path, 'yt-dlp.conf')
             args = Config.read_file(current_path, default=None)
         if args is not None:
             root.append_config(args, current_path, label=label)
-            return True
         return True
 
     def load_configs():
         yield not ignore_config_files
         yield add_config('Portable', get_executable_path())
         yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
-        yield add_config('User', func=_read_user_conf)
-        yield add_config('System', func=_read_system_conf)
+        yield add_config('User', func=get_user_config_dirs)
+        yield add_config('System', func=get_system_config_dirs)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
@@ -264,14 +244,14 @@ def create_parser():
         if multiple_keys:
             allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
+            fr'(?is)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
             if multiple_args:
                 val = [val, *value[1:]]
         elif default_key is not None:
-            keys, val = [default_key], value
+            keys, val = variadic(default_key), value
         else:
             raise optparse.OptionValueError(
                 f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
@@ -344,14 +324,21 @@ def create_parser():
         help='Print program version and exit')
     general.add_option(
         '-U', '--update',
-        action='store_true', dest='update_self',
+        action='store_const', dest='update_self', const=CHANNEL,
         help=format_field(
             is_non_updateable(), None, 'Check if updates are available. %s',
-            default='Update this program to the latest version'))
+            default=f'Update this program to the latest {CHANNEL} version'))
     general.add_option(
         '--no-update',
         action='store_false', dest='update_self',
         help='Do not check for updates (default)')
+    general.add_option(
+        '--update-to',
+        action='store', dest='update_self', metavar='[CHANNEL]@[TAG]',
+        help=(
+            'Upgrade/downgrade to a specific version. CHANNEL can be a repository as well. '
+            f'CHANNEL and TAG default to "{CHANNEL.partition("@")[0]}" and "latest" respectively if omitted; '
+            f'See "UPDATE" for details. Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -425,7 +412,7 @@ def create_parser():
     general.add_option(
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',
-        help='Extract the videos of a playlist')
+        help='Fully extract the videos of a playlist (default)')
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
@@ -454,8 +441,25 @@ def create_parser():
         help='Do not mark videos watched (default)')
     general.add_option(
         '--no-colors', '--no-colours',
-        action='store_true', dest='no_color', default=False,
-        help='Do not emit color codes in output (Alias: --no-colours)')
+        action='store_const', dest='color', const={
+            'stdout': 'no_color',
+            'stderr': 'no_color',
+        },
+        help=optparse.SUPPRESS_HELP)
+    general.add_option(
+        '--color',
+        dest='color', metavar='[STREAM:]POLICY', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'stdout|stderr',
+            'default_key': ['stdout', 'stderr'],
+            'process': str.strip,
+        }, help=(
+            'Whether to emit color codes in output, optionally prefixed by '
+            'the STREAM (stdout or stderr) to apply the setting to. '
+            'Can be one of "always", "auto" (default), "never", or '
+            '"no_color" (use non color terminal sequences). '
+            'Can be used multiple times'))
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
@@ -534,21 +538,26 @@ def create_parser():
         dest='cn_verification_proxy', default=None, metavar='URL',
         help=optparse.SUPPRESS_HELP)
     geo.add_option(
+        '--xff', metavar='VALUE',
+        dest='geo_bypass', default='default',
+        help=(
+            'How to fake X-Forwarded-For HTTP header to try bypassing geographic restriction. '
+            'One of "default" (only when known to be useful), "never", '
+            'an IP block in CIDR notation, or a two-letter ISO 3166-2 country code'))
+    geo.add_option(
         '--geo-bypass',
-        action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
+        action='store_const', dest='geo_bypass', const='default',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass',
-        help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        action='store_const', dest='geo_bypass', const='never',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-country', metavar='CODE',
-        dest='geo_bypass_country', default=None,
-        help='Force bypass geographic restriction with explicitly provided two-letter ISO 3166-2 country code')
+        '--geo-bypass-country', metavar='CODE', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
     geo.add_option(
-        '--geo-bypass-ip-block', metavar='IP_BLOCK',
-        dest='geo_bypass_ip_block', default=None,
-        help='Force bypass geographic restriction with explicitly provided IP block in CIDR notation')
+        '--geo-bypass-ip-block', metavar='IP_BLOCK', dest='geo_bypass',
+        help=optparse.SUPPRESS_HELP)
 
     selection = optparse.OptionGroup(parser, 'Video Selection')
     selection.add_option(
@@ -626,9 +635,17 @@ def create_parser():
             'that contains the phrase "cats & dogs" (caseless). '
             'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
-        '--no-match-filter',
-        metavar='FILTER', dest='match_filter', action='store_const', const=None,
-        help='Do not use generic video filter (default)')
+        '--no-match-filters',
+        dest='match_filter', action='store_const', const=None,
+        help='Do not use any --match-filter (default)')
+    selection.add_option(
+        '--break-match-filters',
+        metavar='FILTER', dest='breaking_match_filter', action='append',
+        help='Same as "--match-filters" but stops the download process when a video is rejected')
+    selection.add_option(
+        '--no-break-match-filters',
+        dest='breaking_match_filter', action='store_const', const=None,
+        help='Do not use any --break-match-filters (default)')
     selection.add_option(
         '--no-playlist',
         action='store_true', dest='noplaylist', default=False,
@@ -660,11 +677,11 @@ def create_parser():
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
-        help='Stop the download process when encountering a file that has been filtered out')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Alters --max-downloads, --break-on-existing, --break-on-reject, and autonumber to reset per input URL')
+        help='Alters --max-downloads, --break-on-existing, --break-match-filter, and autonumber to reset per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
@@ -1052,7 +1069,7 @@ def create_parser():
         metavar='URL', dest='referer', default=None,
         help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
-        '--add-header',
+        '--add-headers',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={'multiple_keys': False},
@@ -1085,8 +1102,12 @@ def create_parser():
     verbosity = optparse.OptionGroup(parser, 'Verbosity and Simulation Options')
     verbosity.add_option(
         '-q', '--quiet',
-        action='store_true', dest='quiet', default=False,
+        action='store_true', dest='quiet', default=None,
         help='Activate quiet mode. If used with --verbose, print the log to stderr')
+    verbosity.add_option(
+        '--no-quiet',
+        action='store_false', dest='quiet',
+        help='Deactivate quiet mode. (Default)')
     verbosity.add_option(
         '--no-warnings',
         dest='no_warnings', action='store_true', default=False,
