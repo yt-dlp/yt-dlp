@@ -382,7 +382,7 @@ def handle_response_read_exceptions(e):
 
 
 class UrllibRH(RequestHandler, InstanceStoreMixin):
-    _SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp', 'file']
+    _SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp']
     _SUPPORTED_PROXY_SCHEMES = ['http', 'socks', 'socks4', 'socks4a', 'socks5']
     _SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
     RH_NAME = 'urllib'
@@ -390,13 +390,8 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
     def __init__(self, *, enable_file_urls: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._enable_file_urls = enable_file_urls
-
-    def _check_url_scheme(self, request):
-        scheme = super()._check_url_scheme(request)
-        if scheme == 'file' and not self._enable_file_urls:
-            # TODO: provide a generic error message
-            raise UnsupportedRequest('file:// URLs are disabled by default in yt-dlp for security reasons. '
-                                     'Use --enable-file-urls to at your own risk.')
+        if self._enable_file_urls:
+            self._SUPPORTED_URL_SCHEMES.append('file')
 
     def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()

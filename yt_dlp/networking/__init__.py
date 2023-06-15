@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 
 from ._urllib import UrllibRH  # noqa: F401
 from .common import (
@@ -27,7 +27,7 @@ class RequestDirector:
         if handler not in self._handlers:
             self._handlers.append(handler)
 
-    def remove_handler(self, handler: Optional[RequestHandler] = None, rh_key: Optional[str] = None):
+    def remove_handler(self, handler: RequestHandler = None, rh_key: str = None):
         """
         Remove a RequestHandler.
         If a class is provided, all handlers of that class type are removed.
@@ -36,8 +36,8 @@ class RequestDirector:
 
     def get_handlers(
         self,
-        handler: Optional[RequestHandler] = None,
-        rh_key: Optional[str] = None
+        handler: RequestHandler = None,
+        rh_key: str = None
     ) -> List[RequestHandler]:
         """Get all handlers for a particular class type or rh_key"""
         return [h for h in self._handlers if (type(h) == handler or h is handler or h.rh_key() == rh_key)]

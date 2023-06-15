@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-import typing
+from typing import Mapping
 from email.message import Message
 from http import HTTPStatus
 
@@ -22,9 +22,9 @@ class Response(io.IOBase):
     def __init__(
             self, raw,
             url: str,
-            headers: typing.Mapping[str, str],
+            headers: Mapping[str, str],
             status: int = 200,
-            reason: typing.Optional[str] = None):
+            reason: str = None):
 
         self.raw = raw
         self.headers: Message = Message()
@@ -42,7 +42,7 @@ class Response(io.IOBase):
     def readable(self):
         return True
 
-    def read(self, amt: int = None):
+    def read(self, amt: int = None) -> bytes:
         return self.raw.read(amt)
 
     def tell(self) -> int:
@@ -58,7 +58,7 @@ class Response(io.IOBase):
         """Deprecated, use HTTPResponse.status"""
         return self.status
 
-    def getstatus(self):
+    def getcode(self):
         """Deprecated, use HTTPResponse.status"""
         return self.status
 

@@ -146,10 +146,11 @@ from .utils import (
     version_tuple,
     windows_enable_vt_mode,
     write_json_file,
-    write_string, extract_basic_auth, clean_proxies, clean_headers,
+    write_string, extract_basic_auth, clean_proxies, clean_headers, YoutubeDLError,
 )
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
-from .networking.exceptions import network_exceptions
+from .networking.exceptions import network_exceptions, NoSupportingHandlers, SSLError
+
 if compat_os_name == 'nt':
     import ctypes
 
@@ -3949,7 +3950,23 @@ class YoutubeDL:
         clean_proxies(req)
         clean_headers(req)
 
-        return self._request_director.send(req)
+        try:
+            return self._request_director.send(req)
+        except NoSupportingHandlers as e:
+            for ue in e.unsupported_errors:
+                if not (ue.handler and ue.msg):
+                    continue
+                if ue.handler.rh_key() == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
+                    raise YoutubeDLError(
+                        'file:// URLs are disabled by default in yt-dlp for security reasons. '
+                        'Use --enable-file-urls to enable at your own risk.')
+            raise
+        except SSLError as e:
+            if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
+                e.msg = 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect'
+            elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
+                e.msg = 'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. Try using --legacy-server-connect'
+            raise e
 
     def build_request_director(self, handlers):
 
