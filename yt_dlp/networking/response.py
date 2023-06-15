@@ -52,20 +52,36 @@ class Response(io.IOBase):
         self.raw.close()
         return super().close()
 
+    def get_header(self, name, default=None):
+        """Get header for name.
+        If there are multiple matching headers, return all seperated by comma."""
+        headers = self.headers.get_all(name)
+        if not headers:
+            return default
+        if name.title() == 'Set-Cookie':
+            # Special case, only get the first one
+            # https://www.rfc-editor.org/rfc/rfc9110.html#section-5.3-4.1
+            return headers[0]
+        return ', '.join(headers)
+
     # The following methods are for compatability reasons and are deprecated
     @property
     def code(self):
-        """Deprecated, use HTTPResponse.status"""
+        """Deprecated, use `Response.status`"""
         return self.status
 
     def getcode(self):
-        """Deprecated, use HTTPResponse.status"""
+        """Deprecated, use `Response.status`"""
         return self.status
 
     def geturl(self):
-        """Deprecated, use HTTPResponse.url"""
+        """Deprecated, use `Response.url`"""
         return self.url
 
     def info(self):
-        """Deprecated, use HTTPResponse.headers"""
+        """Deprecated, use `Response.headers`"""
         return self.headers
+
+    def getheader(self, name, default=None):
+        """Deprecated, use `Response.get_header()`"""
+        return self.get_header(name, default)
