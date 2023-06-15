@@ -4,8 +4,6 @@ import copy
 import functools
 import io
 import typing
-import urllib.request
-from http.cookiejar import CookieJar
 from typing import Union, Iterable, Mapping
 try:
     from urllib.request import _parse_proxy
@@ -28,14 +26,11 @@ class Request:
     @param proxies: proxy dict mapping of proto:proxy to use for the request and any redirects.
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
-    @param extensions:
-    @param timeout: socket timeout value for this request. Sets the timeout extension.
-    @param cookiejar: Cookiejar to use for this request. Sets the cookiejar extension.
+    @param extensions: Dictionary of Request extensions to add, as supported by handlers.
 
     Apart from the url protocol, proxy dict also supports the following keys:
     - all: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
     - no: comma seperated list of hostnames (optionally with port) to not use a proxy for.
-
     """
 
     def __init__(
@@ -46,9 +41,7 @@ class Request:
             proxies: dict = None,
             query: dict = None,
             method: str = None,
-            extensions: dict = None,
-            timeout: Union[float, int] = None,
-            cookiejar: CookieJar = None
+            extensions: dict = None
     ):
 
         self._headers = CaseInsensitiveDict()
@@ -61,15 +54,10 @@ class Request:
         self.method = method
         self.data = data
         if headers:
-            self.headers = headers  # XXX: must be done after setting data
+            self.headers = headers  # note: must be done after setting data
 
         self.proxies = proxies or {}
         self.extensions = extensions or {}
-
-        if timeout:
-            self.extensions['timeout'] = timeout
-        if cookiejar:
-            self.extensions['cookiejar'] = cookiejar
 
     @property
     def url(self):
