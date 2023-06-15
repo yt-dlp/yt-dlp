@@ -52,6 +52,9 @@ class RheinMainTVIE(InfoExtractor):
             'description': 'md5:70fc1660eeba96da17199e5bdff4c0aa',
         },
         'params': {'skip_download': 'ism'},
+    }, {
+        'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/bricks4kids/vom-22.06.2022/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
