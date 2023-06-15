@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import http.client
-import typing
 import urllib.error
 
 from ..utils import YoutubeDLError
-
+import typing
 if typing.TYPE_CHECKING:
     from .response import Response
+    from typing import List
 
 
 class RequestError(YoutubeDLError):
@@ -22,6 +22,28 @@ class RequestError(YoutubeDLError):
 class UnsupportedRequest(RequestError):
     """raised when a handler cannot handle a request"""
     pass
+
+
+class NoSupportingHandlers(RequestError):
+    """raised when no handlers can support a request for various reasons"""
+    def __init__(self, unsupported_errors: List[UnsupportedRequest], unexpected_errors: List[Exception]):
+        self.unsupported_errors = unsupported_errors or []
+        self.unexpected_errors = unexpected_errors or []
+
+        # Print a quick summary of the errors
+        err_handler_map = {}
+        for err in unsupported_errors:
+            err_handler_map.setdefault(err.msg, []).append(err.handler.RH_NAME)
+
+        reason_str = ', '.join([f'{msg} ({", ".join(handlers)})' for msg, handlers in err_handler_map.items()])
+        if unexpected_errors:
+            reason_str = ' + '.join(filter(None, [reason_str, f'{len(unexpected_errors)} unexpected error(s)']))
+
+        err_str = 'Unable to handle request'
+        if reason_str:
+            err_str += f': {reason_str}'
+
+        super().__init__(msg=err_str)
 
 
 class TransportError(RequestError):

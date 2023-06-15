@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from typing import List, Optional
+
 from ._urllib import UrllibRH  # noqa: F401
 from .common import (
     RequestHandler,
 )
 from .response import Response
 from .request import Request
-from .exceptions import RequestError, UnsupportedRequest
+from .exceptions import RequestError, UnsupportedRequest, NoSupportingHandlers
 from ..utils import bug_reports_message
 
 
@@ -19,24 +21,28 @@ class RequestDirector:
         for handler in self._handlers:
             handler.close()
 
-    def add_handler(self, handler):
+    def add_handler(self, handler: RequestHandler):
         """Add a handler. It will be prioritized over existing handlers"""
         assert isinstance(handler, RequestHandler)
         if handler not in self._handlers:
             self._handlers.append(handler)
 
-    def remove_handler(self, handler):
+    def remove_handler(self, handler: Optional[RequestHandler] = None, rh_key: Optional[str] = None):
         """
         Remove a RequestHandler.
         If a class is provided, all handlers of that class type are removed.
         """
-        self._handlers = [h for h in self._handlers if not (type(h) == handler or h is handler)]
+        self._handlers = [h for h in self._handlers if not (type(h) == handler or h is handler or h.rh_key() == rh_key)]
 
-    def get_handlers(self, handler=None, key=None):
-        """Get all handlers for a particular class type"""
-        return [h for h in self._handlers if (type(h) == handler or h is handler or h.rh_key() == key)]
+    def get_handlers(
+        self,
+        handler: Optional[RequestHandler] = None,
+        rh_key: Optional[str] = None
+    ) -> List[RequestHandler]:
+        """Get all handlers for a particular class type or rh_key"""
+        return [h for h in self._handlers if (type(h) == handler or h is handler or h.rh_key() == rh_key)]
 
-    def replace_handler(self, handler):
+    def replace_handler(self, handler: RequestHandler):
         self.remove_handler(handler)
         self.add_handler(handler)
 
@@ -69,7 +75,7 @@ class RequestDirector:
             except Exception as e:
                 # something went very wrong, try fallback to next handler
                 self.logger.report_error(
-                    f'Unexpected error from "{handler.RH_NAME}" request handler: {type(e).__name__}:{e}' + bug_reports_message(),
+                    f'Unexpected error from "{handler.RH_NAME}" request handler: {type(e).__name__}: {e}' + bug_reports_message(),
                     is_error=False)
                 unexpected_errors.append(e)
                 continue
@@ -77,21 +83,7 @@ class RequestDirector:
             assert isinstance(response, Response)
             return response
 
-        # no handler was able to handle the request, try print some useful info
-        # FIXME: this is a bit ugly
-        err_handler_map = {}
-        for err in unsupported_errors:
-            err_handler_map.setdefault(err.msg, []).append(err.handler.RH_NAME)
-
-        reasons = [f'{msg} ({", ".join(handlers)})' for msg, handlers in err_handler_map.items()]
-        if unexpected_errors:
-            reasons.append(f'{len(unexpected_errors)} unexpected error(s)')
-
-        err_str = 'Unable to handle request'
-        if reasons:
-            err_str += ', possible reason(s): ' + ', '.join(reasons)
-
-        raise RequestError(err_str)
+        raise NoSupportingHandlers(unsupported_errors, unexpected_errors)
 
 
 def get_request_handler(key):
@@ -99,7 +91,7 @@ def get_request_handler(key):
     return globals()[key + 'RH']
 
 
-def list_request_handler_classes():
+def list_request_handler_classes() -> List[RequestHandler]:
     """List all RequestHandler classes, sorted by name."""
     return sorted(
         (rh for name, rh in globals().items() if name.endswith('RH')),

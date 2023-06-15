@@ -383,7 +383,7 @@ def handle_response_read_exceptions(e):
 
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp', 'file']
-    _SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
+    _SUPPORTED_PROXY_SCHEMES = ['http', 'socks', 'socks4', 'socks4a', 'socks5']
     _SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
     RH_NAME = 'urllib'
 

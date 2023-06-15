@@ -36,7 +36,6 @@ from .minicurses import format_text
 from .networking import (
     list_request_handler_classes,
     RequestDirector,
-    UrllibRH
 )
 from .networking.request import HEADRequest, Request
 from .networking.utils import std_headers
@@ -3925,8 +3924,8 @@ class YoutubeDL:
         Deprecated: use YoutubeDL.urlopen() instead.
         Get an urllib OpenerDirector from the Urllib handler.
         """
-        handler = self._request_director.get_handlers(key='urllib')[0]
-        return handler.get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
+        handler = self._request_director.get_handlers(rh_key='urllib')[0]
+        return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
     def urlopen(self, req):
         """ Start an HTTP download """
@@ -3975,7 +3974,6 @@ class YoutubeDL:
                 )
             if handler.rh_key() == 'urllib':
                 params['enable_file_urls'] = bool(self.params.get('enable_file_urls'))
-
             director.add_handler(handler(logger=self, **params))
 
         return director

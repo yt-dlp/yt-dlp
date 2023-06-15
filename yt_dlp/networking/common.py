@@ -104,8 +104,6 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
 
     Parameters:
         logger: logger instance
-
-    Optional Parameters:
         headers: HTTP Headers to include when sending requests.
         cookiejar: Cookiejar to use for requests.
         timeout: Socket timeout to use when sending requests.
@@ -148,7 +146,7 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
         self._timeout = float(timeout or 20)  # TODO: set default somewhere
         self._proxies = proxies or {}
         self._source_address = source_address
-        self._verbose = verbose,
+        self._verbose = verbose
         self._prefer_system_certs = prefer_system_certs
         self._client_cert = client_cert
         self._verify = verify
@@ -175,13 +173,13 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme not in (self._SUPPORTED_URL_SCHEMES or []):
-            raise UnsupportedRequest(f'unsupported url scheme: "{scheme}"')
+            raise UnsupportedRequest(f'Unsupported url scheme: "{scheme}"')
         return scheme  # for further processing
 
-    def _check_proxies(self, request: Request):
+    def _check_proxies(self, proxies):
         if self._SUPPORTED_PROXY_SCHEMES is None:
             return
-        for proxy_key, proxy_url in request.proxies.items():
+        for proxy_key, proxy_url in proxies.items():
             if proxy_url is None:
                 continue
             if proxy_key == 'no':
@@ -219,5 +217,5 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
 
     def _validate(self, request):
         self._check_url_scheme(request)
-        self._check_proxies(request)
+        self._check_proxies(request.proxies or self._proxies)
         self._check_extensions(request.extensions)
