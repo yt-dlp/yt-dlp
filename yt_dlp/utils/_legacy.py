@@ -9,11 +9,12 @@ import urllib.request
 import http.client
 import functools
 import urllib.error
+import socket
+
 from ._utils import decode_base_n, preferredencoding, YoutubeDLError
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 import ssl
-# isort: split
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import (  # noqa: F401
     PUTRequest,
@@ -21,10 +22,10 @@ from ..networking._urllib import (  # noqa: F401
     make_socks_conn_class,
     RedirectHandler as YoutubeDLRedirectHandler,
     update_Request,
-    _create_http_connection,
-    HTTPHandler as YoutubeDLHandler
+    HTTPHandler as YoutubeDLHandler,
+    SUPPORTED_ENCODINGS,
 )
-from ..networking.utils import random_user_agent, _ssl_load_windows_store_certs  # noqa: F401
+from ..networking.utils import random_user_agent, _ssl_load_windows_store_certs, std_headers  # noqa: F401
 from ..networking.exceptions import network_exceptions, HTTPError  # noqa: F401
 from ..socks import ProxyType, sockssocket   # noqa: F401
 
@@ -198,13 +199,6 @@ def request_to_url(req):
         return req
 
 
-# TODO: compat (doesn't exist)
-SUPPORTED_ENCODINGS = []
-
-# TODO: compat (moved to networking.utils)
-std_headers = {}
-
-
 def sanitized_Request(url, *args, **kwargs):
     from ..utils import extract_basic_auth, escape_url, sanitize_url
     url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
@@ -212,6 +206,53 @@ def sanitized_Request(url, *args, **kwargs):
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
         headers['Authorization'] = auth_header
     return urllib.request.Request(url, *args, **kwargs)
+
+
+def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
+    hc = http_class(*args, **kwargs)
+    source_address = ydl_handler._params.get('source_address')
+
+    if source_address is not None:
+        # This is to workaround _create_connection() from socket where it will try all
+        # address data from getaddrinfo() including IPv6. This filters the result from
+        # getaddrinfo() based on the source_address value.
+        # This is based on the cpython socket.create_connection() function.
+        # https://github.com/python/cpython/blob/master/Lib/socket.py#L691
+        def _create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+            host, port = address
+            err = None
+            addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+            af = socket.AF_INET if '.' in source_address[0] else socket.AF_INET6
+            ip_addrs = [addr for addr in addrs if addr[0] == af]
+            if addrs and not ip_addrs:
+                ip_version = 'v4' if af == socket.AF_INET else 'v6'
+                raise OSError(
+                    "No remote IP%s addresses available for connect, can't use '%s' as source address"
+                    % (ip_version, source_address[0]))
+            for res in ip_addrs:
+                af, socktype, proto, canonname, sa = res
+                sock = None
+                try:
+                    sock = socket.socket(af, socktype, proto)
+                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+                        sock.settimeout(timeout)
+                    sock.bind(source_address)
+                    sock.connect(sa)
+                    err = None  # Explicitly break reference cycle
+                    return sock
+                except OSError as _:
+                    err = _
+                    if sock is not None:
+                        sock.close()
+            if err is not None:
+                raise err
+            else:
+                raise OSError('getaddrinfo returns an empty list')
+        if hasattr(hc, '_create_connection'):
+            hc._create_connection = _create_connection
+        hc.source_address = (source_address, 0)
+
+    return hc
 
 
 class YoutubeDLHTTPSHandler(urllib.request.HTTPSHandler):
