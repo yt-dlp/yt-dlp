@@ -112,7 +112,7 @@ class HttpFD(FileDownloader):
             request = Request(url, request_data, headers)
             has_range = range_start is not None
             if has_range:
-                request.add_header('Range', f'bytes={int(range_start)}-{int_or_none(range_end) or ""}')
+                request.headers['Range'] = f'bytes={int(range_start)}-{int_or_none(range_end) or ""}'
             # Establish connection
             try:
                 ctx.data = self.ydl.urlopen(request)
