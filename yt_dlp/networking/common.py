@@ -72,6 +72,12 @@ class RequestHandlerBase(abc.ABC):
     def rh_key(cls):
         return cls.__name__[:-2]
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
 
 class RequestHandler(RequestHandlerBase, abc.ABC):
 

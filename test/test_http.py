@@ -428,6 +428,7 @@ class TestHTTP(unittest.TestCase):
     def test_content_type(self, make_rh):
         with make_rh({'nocheckcertificate': True}) as rh:
             # method should be auto-detected as POST
+            # TODO: convert to ydl test
             r = Request(f'https://localhost:{self.https_port}/headers', data=urlencode_postdata({'test': 'test'}))
 
             headers = rh.send(r).read().decode('utf-8')
@@ -455,6 +456,7 @@ class TestHTTP(unittest.TestCase):
 
     @with_make_rh()
     def test_no_compression_compat_header(self, make_rh):
+        # TODO: for ydl specific tests
         with make_rh() as rh:
             data = rh.send(
                 Request(f'http://127.0.0.1:{self.http_port}/headers',
@@ -526,6 +528,7 @@ class TestHTTP(unittest.TestCase):
 
     @with_make_rh([UrllibRH])
     def test_ydl_compat_opener(self, make_rh):
+        # TODO: for ydl tests
         with make_rh() as rh:
             res = rh.ydl._opener.open('http://127.0.0.1:%d/gen_200' % self.http_port)
             self.assertIsInstance(res, http.client.HTTPResponse)
@@ -559,6 +562,7 @@ class TestHTTP(unittest.TestCase):
         geo_proxy = f'127.0.0.1:{self.geo_port}'
         geo_proxy2 = f'localhost:{self.geo_port}'  # tests no scheme handling
 
+        # TODO: some of this goes in ydl test and validate test
         url = 'http://foo.com/bar'
         with make_rh({
             'proxy': f'//127.0.0.1:{self.proxy_port}',
