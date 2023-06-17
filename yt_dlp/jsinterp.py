@@ -779,7 +779,7 @@ class JSInterpreter:
         obj = {}
         obj_m = re.search(
             r'''(?x)
-                (?<!this\.)%s\s*=\s*{\s*
+                (?<!\.)%s\s*=\s*{\s*
                     (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
                 }\s*;
             ''' % (re.escape(objname), _FUNC_NAME_RE),
