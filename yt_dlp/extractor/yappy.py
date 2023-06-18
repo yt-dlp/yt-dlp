@@ -52,9 +52,9 @@ class YappyIE(InfoExtractor):
         nextjs_data = self._search_nextjs_data(webpage, video_id)
 
         media_data = (
-                traverse_obj(
-                    nextjs_data, ('props', 'pageProps', ('data', 'OpenGraphParameters')), get_all=False)
-                or self._download_json(f'https://yappy.media/api/video/{video_id}', video_id))
+            traverse_obj(
+                nextjs_data, ('props', 'pageProps', ('data', 'OpenGraphParameters')), get_all=False)
+            or self._download_json(f'https://yappy.media/api/video/{video_id}', video_id))
 
         media_url = traverse_obj(media_data, ('link', {url_or_none})) or ''
         has_watermark = media_url.endswith('-wm.mp4')
