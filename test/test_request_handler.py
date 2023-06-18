@@ -434,16 +434,16 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         with handler() as rh:
             # Default timeout is 20 seconds, so this should go through
             validate_and_send(
-                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_5'))
+                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_3'))
 
         with handler(timeout=0.5) as rh:
             with pytest.raises(TransportError):
                 validate_and_send(
-                    rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_2'))
+                    rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1'))
 
             # Per request timeout, should override handler timeout
             validate_and_send(
-                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_2', extensions={'timeout': 4}))
+                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1', extensions={'timeout': 4}))
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_source_address(self, handler):
