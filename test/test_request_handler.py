@@ -35,6 +35,7 @@ from yt_dlp.utils import urlencode_postdata
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def _build_proxy_handler(name):
     class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         proxy_name = name
@@ -48,7 +49,6 @@ def _build_proxy_handler(name):
             self.end_headers()
             self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode('utf-8'))
     return HTTPTestRequestHandler
-
 
 class FakeLogger:
     def debug(self, msg):
@@ -243,11 +243,13 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
 
         self._headers_buffer.append(f'{keyword}: {value}\r\n'.encode())
 
+
 def validate_and_send(rh, req):
     rh.validate(req)
     return rh.send(req)
 
-class TestRequestHandler:
+
+class TestRequestHandlerBase:
     @classmethod
     def setup_class(cls):
         cls.http_httpd = http.server.ThreadingHTTPServer(
@@ -271,34 +273,21 @@ class TestRequestHandler:
         cls.https_server_thread.daemon = True
         cls.https_server_thread.start()
 
-        # HTTP Proxy server
-        cls.proxy = http.server.ThreadingHTTPServer(
-            ('127.0.0.1', 0), _build_proxy_handler('normal'))
-        cls.proxy_port = http_server_port(cls.proxy)
-        cls.proxy_thread = threading.Thread(target=cls.proxy.serve_forever)
-        cls.proxy_thread.daemon = True
-        cls.proxy_thread.start()
 
-        # Geo proxy server
-        cls.geo_proxy = http.server.ThreadingHTTPServer(
-            ('127.0.0.1', 0), _build_proxy_handler('geo'))
-        cls.geo_port = http_server_port(cls.geo_proxy)
-        cls.geo_proxy_thread = threading.Thread(target=cls.geo_proxy.serve_forever)
-        cls.geo_proxy_thread.daemon = True
-        cls.geo_proxy_thread.start()
+@pytest.fixture
+def handler(request):
+    rh_key = request.param
+    try:
+        handler = get_request_handler(rh_key)
+    except KeyError:
+        handler = None
+    if handler is None:
+        pytest.skip(f'{rh_key} request handler is not available')
 
-    @pytest.fixture
-    def handler(self, request):
-        rh_key = request.param
-        try:
-            handler = get_request_handler(rh_key)
-        except KeyError:
-            handler = None
-        if handler is None:
-            pytest.skip(f'{rh_key} request handler is not available')
+    return functools.partial(handler, logger=FakeLogger)
 
-        return functools.partial(handler, logger=FakeLogger)
 
+class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_verify_cert(self, handler):
         with handler() as rh:
@@ -469,27 +458,26 @@ class TestRequestHandler:
             assert res.headers.get('Content-Encoding') == 'unsupported'
             assert res.read() == b'raw'
 
-    # TODO: split out into separate urllib rh tests
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_file_urls(self, handler):
-        # See https://github.com/ytdl-org/youtube-dl/issues/8227
-        tf = tempfile.NamedTemporaryFile(delete=False)
-        tf.write(b'foobar')
-        tf.close()
-        req = Request(pathlib.Path(tf.name).as_uri())
-        with handler() as rh:
-            with pytest.raises(UnsupportedRequest):
-                rh.validate(req)
 
-            # Test that urllib never loaded FileHandler
-            with pytest.raises(TransportError):
-                rh.send(req)
+class TestHTTPProxy(TestRequestHandlerBase):
+    @classmethod
+    def setup_class(cls):
+        super().setup_class()
+        # HTTP Proxy server
+        cls.proxy = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), _build_proxy_handler('normal'))
+        cls.proxy_port = http_server_port(cls.proxy)
+        cls.proxy_thread = threading.Thread(target=cls.proxy.serve_forever)
+        cls.proxy_thread.daemon = True
+        cls.proxy_thread.start()
 
-        with handler(enable_file_urls=True) as rh:
-            res = validate_and_send(rh, req)
-            assert res.read() == b'foobar'
-
-        os.unlink(tf.name)
+        # Geo proxy server
+        cls.geo_proxy = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 0), _build_proxy_handler('geo'))
+        cls.geo_port = http_server_port(cls.geo_proxy)
+        cls.geo_proxy_thread = threading.Thread(target=cls.geo_proxy.serve_forever)
+        cls.geo_proxy_thread.daemon = True
+        cls.geo_proxy_thread.start()
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_http_proxy(self, handler):
@@ -544,3 +532,78 @@ class TestRequestHandler:
             response = rh.send(Request(url)).read().decode('utf-8')
             # b'xn--fiq228c' is '中文'.encode('idna')
             assert response == 'normal: http://xn--fiq228c.tw/'
+
+
+class TestClientCertificate:
+
+    @classmethod
+    def setup_class(cls):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        cls.certdir = os.path.join(TEST_DIR, 'testdata', 'certificate')
+        cacertfn = os.path.join(cls.certdir, 'ca.crt')
+        cls.httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.verify_mode = ssl.CERT_REQUIRED
+        sslctx.load_verify_locations(cafile=cacertfn)
+        sslctx.load_cert_chain(certfn, None)
+        cls.httpd.socket = sslctx.wrap_socket(cls.httpd.socket, server_side=True)
+        cls.port = http_server_port(cls.httpd)
+        cls.server_thread = threading.Thread(target=cls.httpd.serve_forever)
+        cls.server_thread.daemon = True
+        cls.server_thread.start()
+
+    def _run_test(self, handler, **handler_kwargs):
+        with handler(
+            # Disable client-side validation of unacceptable self-signed testcert.pem
+            # The test is of a check on the server side, so unaffected
+            verify=False,
+            **handler_kwargs,
+        ) as rh:
+            validate_and_send(rh, Request(f'https://127.0.0.1:{self.port}/video.html')).read().decode('utf-8')
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_certificate_combined_nopass(self, handler):
+        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'clientwithkey.crt'), None, None))
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_certificate_nocombined_nopass(self, handler):
+        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'client.crt'), os.path.join(self.certdir, 'client.key'), None))
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_certificate_combined_pass(self, handler):
+        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'clientwithencryptedkey.crt'), None, 'foobar'))
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_certificate_nocombined_pass(self, handler):
+        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'client.crt'), os.path.join(self.certdir, 'clientencrypted.key'),'foobar'))
+
+
+class TestUrllibRequestHandler(TestRequestHandlerBase):
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_file_urls(self, handler):
+        # See https://github.com/ytdl-org/youtube-dl/issues/8227
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        tf.write(b'foobar')
+        tf.close()
+        req = Request(pathlib.Path(tf.name).as_uri())
+        with handler() as rh:
+            with pytest.raises(UnsupportedRequest):
+                rh.validate(req)
+
+            # Test that urllib never loaded FileHandler
+            with pytest.raises(TransportError):
+                rh.send(req)
+
+        with handler(enable_file_urls=True) as rh:
+            res = validate_and_send(rh, req)
+            assert res.read() == b'foobar'
+
+        os.unlink(tf.name)
+
+
+class TestRequestHandlerValidation:
+    pass
+
+
+class TestUrllibRequestHandlerValidation:
+    pass

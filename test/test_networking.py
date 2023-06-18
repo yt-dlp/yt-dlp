@@ -138,5 +138,13 @@ class TestInstanceStoreMixin(unittest.TestCase):
             handler._get_instance(b=[1, 2], c=cookiejar))
 
 
+class TestResponse:
+    pass
+
+
+class TestRequestDirector:
+    pass
+
+
 if __name__ == '__main__':
     unittest.main()
