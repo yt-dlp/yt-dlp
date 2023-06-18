@@ -535,7 +535,7 @@ class NhkRadiruLiveIE(InfoExtractor):
         }
     }]
 
-    _NOA_STATION_IDS = {'r1': 'n1', 'r2': 'n2', 'fm': 'n3'}  # lookup table is easier than working it out
+    _NOA_STATION_IDS = {'r1': 'n1', 'r2': 'n2', 'fm': 'n3'}
 
     def _real_extract(self, url):
         station = self._match_id(url)
