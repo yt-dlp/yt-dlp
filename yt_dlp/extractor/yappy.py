@@ -5,6 +5,7 @@ from ..utils import (
     unified_timestamp,
     url_or_none
 )
+import itertools
 
 
 class YappyIE(InfoExtractor):
@@ -51,9 +52,9 @@ class YappyIE(InfoExtractor):
         nextjs_data = self._search_nextjs_data(webpage, video_id)
 
         media_data = (
-            traverse_obj(
-                nextjs_data, ('props', 'pageProps', ('data', 'OpenGraphParameters')), get_all=False)
-            or self._download_json(f'https://yappy.media/api/video/{video_id}', video_id))
+                traverse_obj(
+                    nextjs_data, ('props', 'pageProps', ('data', 'OpenGraphParameters')), get_all=False)
+                or self._download_json(f'https://yappy.media/api/video/{video_id}', video_id))
 
         media_url = traverse_obj(media_data, ('link', {url_or_none})) or ''
         has_watermark = media_url.endswith('-wm.mp4')
@@ -97,3 +98,39 @@ class YappyIE(InfoExtractor):
             'categories': traverse_obj(media_data, ('categories', ..., 'name')) or None,
             'repost_count': int_or_none(media_data.get('sharingCount'))
         }
+
+
+class YappyProfileIE(InfoExtractor):
+    _VALID_URL = r'https?://yappy\.media/profile/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://yappy.media/profile/59a0c8c485e5410b9c43474bf4c6a373',
+        'info_dict': {
+            'id': '59a0c8c485e5410b9c43474bf4c6a373',
+            'title': 'profile',
+        },
+        'playlist_count': 16,
+    }]
+
+    def _real_extract(self, url):
+        profile_id = self._match_id(url)
+
+        entries = []
+        for page_num in itertools.count(1):
+            profile_data = self._download_json(f'https://yappy.media/api/video/list/{profile_id}?page={page_num}',
+                                               note='Downloading API JSON',
+                                               errnote='Unable to download API page',
+                                               video_id=f'{profile_id} page {page_num}')
+
+            if not profile_data['results']:
+                break
+
+            entries.extend([
+                self.url_result(
+                    f'https://yappy.media/video/{video["uuid"]}',
+                    ie=YappyIE.ie_key(),
+                    video_id=video['uuid'],
+                    video_title=video.get('description') or video['uuid'])
+                for video in profile_data['results']
+            ])
+
+        return self.playlist_result(entries, profile_id)
