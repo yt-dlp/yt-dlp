@@ -2,15 +2,15 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    int_or_none,
+    join_nonempty,
     parse_duration,
     traverse_obj,
     unescapeHTML,
     unified_timestamp,
-    urljoin,
     url_or_none,
-    join_nonempty,
-    int_or_none,
-    ExtractorError,
+    urljoin,
 )
 
 
@@ -539,30 +539,29 @@ class NhkRadiruLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         station = self._match_id(url)
-        area = traverse_obj(self._configuration_arg('area'), 0) or "tokyo"
+        area = self._configuration_arg('area', ['tokyo'])[0]
 
-        config = self._download_xml('https://www.nhk.or.jp/radio/config/config_web.xml', None, 'Downloading area information')
-        data = config.find(f'.//data//area[.="{area}"]/..')  # a <data> element with an <area> that matches the ^variable
+        config = self._download_xml(
+            'https://www.nhk.or.jp/radio/config/config_web.xml', station, 'Downloading area information')
+        data = config.find(f'.//data//area[.="{area}"]/..')
 
-        if data is None:
-            raise ExtractorError('Invalid area - valid areas are: %s'
-                                 % ', '.join([i.text for i in config.findall('.//data//area')]),
-                                 expected=True)
+        if not data:
+            raise ExtractorError('Invalid area. Valid areas are: %s' % ', '.join(
+                [i.text for i in config.findall('.//data//area')]), expected=True)
 
-        noa_info = self._download_json(f'https:{config.find(".//url_program_noa").text}'
-                                       .replace("{area}", data.find('areakey').text), station)
-
+        noa_info = self._download_json(
+            f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),
+            station, note=f'Downloading {area} station metadata')
         present_info = traverse_obj(noa_info, ('nowonair_list', self._NOA_STATION_IDS.get(station), 'present'))
-        service = present_info.get('service')
 
         return {
-            'title': join_nonempty(service.get('name'), traverse_obj(present_info, ('area', 'name')), delim=" "),
+            'title': ' '.join(traverse_obj(present_info, (('service', 'area',), 'name', {str}))),
             'id': join_nonempty(station, area),
-            'thumbnails': traverse_obj(service, ('images', ..., {
-                                       'url': 'url',
-                                       'width': ('width', {int_or_none}),
-                                       'height': ('height', {int_or_none}),
-                                       })),
+            'thumbnails': traverse_obj(present_info, ('service', 'images', ..., {
+                'url': 'url',
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+            })),
             'formats': self._extract_m3u8_formats(data.find(f'{station}hls').text, station),
             'is_live': True,
         }
