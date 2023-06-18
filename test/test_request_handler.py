@@ -2,7 +2,9 @@
 
 # Allow direct execution
 import os
+import random
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -31,7 +33,7 @@ from .helper import FakeYDL
 from yt_dlp.networking import Request, UrllibRH, list_request_handler_classes
 from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest, RequestError, \
     TransportError
-from yt_dlp.utils import urlencode_postdata
+from yt_dlp.utils import urlencode_postdata, CaseInsensitiveDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -226,6 +228,17 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
             self.finish()
+        elif self.path.startswith('/timeout_'):
+            time.sleep(int(self.path[len('/timeout_'):]))
+            self._headers()
+        elif self.path == '/source_address':
+            payload = str(self.client_address[0]).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            self.finish()
         else:
             self._status(404)
 
@@ -399,6 +412,46 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             data = validate_and_send(rh,
                 Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': cookiejar})).read()
             assert b'Cookie: test=ytdlp' in data
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_headers(self, handler):
+
+        with handler(headers=CaseInsensitiveDict({'test1': 'test', 'test2': 'test2'})) as rh:
+            # Global Headers
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
+            assert b'Test1: test' in data
+
+            # Per request headers, merged with global
+            data = validate_and_send(rh, Request(
+                f'http://127.0.0.1:{self.http_port}/headers', headers={'test2': 'changed', 'test3': 'test3'})).read()
+            assert b'Test1: test' in data
+            assert b'Test2: changed' in data
+            assert b'Test2: test2' not in data
+            assert b'Test3: test3' in data
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_timeout(self, handler):
+        with handler() as rh:
+            # Default timeout is 20 seconds, so this should go through
+            validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_5'))
+
+        with handler(timeout=0.5) as rh:
+            with pytest.raises(TransportError):
+                validate_and_send(
+                    rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_2'))
+
+            # Per request timeout, should override handler timeout
+            validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_2', extensions={'timeout': 4}))
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_source_address(self, handler):
+        source_address = f'127.0.0.{random.randint(5, 255)}'
+        with handler(source_address=source_address) as rh:
+            data = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode('utf-8')
+            assert source_address == data
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_gzip_trailing_garbage(self, handler):
