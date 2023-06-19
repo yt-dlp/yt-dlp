@@ -109,11 +109,10 @@ class ZaikoETicketIE(ZaikoBaseIE):
         ticket_id = self._match_id(url)
 
         webpage = self._download_real_webpage(url, ticket_id)
-        eticket_meta = self._parse_vue_element_attr('eticket', webpage, ticket_id)
-
-        ticket_details = eticket_meta.get('ticket-details')
-        streams = eticket_meta.get('streams') or []
-
+        eticket = self._parse_vue_element_attr('eticket', webpage, ticket_id)
         return self.playlist_result(
-            [self.url_result(stream.get('url'), ZaikoIE) for stream in streams], ticket_id,
-            ticket_details.get('event_name'), thumbnail=ticket_details.get('event_img_url'))
+            [self.url_result(stream, ZaikoIE) for stream in traverse_obj(eticket, ('streams', ..., 'url'))],
+            ticket_id, **traverse_obj(eticket, ('ticket-details', {
+                'title': 'event_name',
+                'thumbnail': 'event_img_url',
+            })))
