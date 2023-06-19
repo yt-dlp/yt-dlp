@@ -99,7 +99,7 @@ class ZaikoIE(ZaikoBaseIE):
 
 
 class ZaikoETicketIE(ZaikoBaseIE):
-    _VALID_URL = r'https?://(?:www.)?zaiko\.io/account/eticket/(?P<id>\w{48}=)'
+    _VALID_URL = r'https?://(?:www.)?zaiko\.io/account/eticket/(?P<id>[\w=-]{49})'
     _TESTS = [{
         'url': 'https://zaiko.io/account/eticket/000000000000000000000000000000000000000000000000=',
         'only_matching': True,
@@ -110,6 +110,7 @@ class ZaikoETicketIE(ZaikoBaseIE):
 
         webpage = self._download_real_webpage(url, ticket_id)
         eticket = self._parse_vue_element_attr('eticket', webpage, ticket_id)
+
         return self.playlist_result(
             [self.url_result(stream, ZaikoIE) for stream in traverse_obj(eticket, ('streams', ..., 'url'))],
             ticket_id, **traverse_obj(eticket, ('ticket-details', {
