@@ -2428,7 +2428,7 @@ from .yandexvideo import (
 from .yapfiles import YapFilesIE
 from .yappy import (
     YappyIE,
-    YappyProfileIE
+    YappyProfileIE,
 )
 from .yesjapan import YesJapanIE
 from .yinyuetai import YinYueTaiIE
