@@ -39,47 +39,7 @@ class Features(enum.Enum):
     NO_PROXY = enum.auto()
 
 
-class RequestHandlerBase(abc.ABC):
-    """Base Request Handler. See RequestHandler."""
-    def _validate(self, request: Request):
-        """Validate a request is supported by this handler.
-         raises UnsupportedError if a request is not supported."""
-
-    @wrap_request_errors
-    def validate(self, request: Request):
-        if not isinstance(request, Request):
-            raise TypeError('Expected an instance of Request')
-        self._validate(request)
-
-    @wrap_request_errors
-    def send(self, request: Request) -> Response:
-        if not isinstance(request, Request):
-            raise TypeError('Expected an instance of Request')
-        return self._send(request)
-
-    @abc.abstractmethod
-    def _send(self, request: Request):
-        """Handle a request from start to finish. Redefine in subclasses."""
-
-    def close(self):
-        pass
-
-    @utils.classproperty
-    def RH_NAME(cls):
-        return cls.__name__[:-2]
-
-    @classmethod
-    def rh_key(cls):
-        return cls.__name__[:-2]
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.close()
-
-
-class RequestHandler(RequestHandlerBase, abc.ABC):
+class RequestHandler(abc.ABC):
 
     """Request Handler class
 
@@ -232,3 +192,36 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
         self._check_url_scheme(request)
         self._check_proxies(request.proxies or self._proxies)
         self._check_extensions(request.extensions)
+
+    def close(self):
+        pass
+
+    @utils.classproperty
+    def RH_NAME(cls):
+        return cls.__name__[:-2]
+
+    @classmethod
+    def rh_key(cls):
+        return cls.__name__[:-2]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    @wrap_request_errors
+    def validate(self, request: Request):
+        if not isinstance(request, Request):
+            raise TypeError('Expected an instance of Request')
+        self._validate(request)
+
+    @wrap_request_errors
+    def send(self, request: Request) -> Response:
+        if not isinstance(request, Request):
+            raise TypeError('Expected an instance of Request')
+        return self._send(request)
+
+    @abc.abstractmethod
+    def _send(self, request: Request):
+        """Handle a request from start to finish. Redefine in subclasses."""
