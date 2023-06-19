@@ -705,11 +705,11 @@ class _LinuxKeyring(Enum):
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/sync/key_storage_util_linux.h
     SelectedLinuxBackend
     """
-    KWALLET4 = auto()  # this value is just called KWALLET in the chromium source but it is for KDE4 only
+    KWALLET = auto()  # KDE4
     KWALLET5 = auto()
     KWALLET6 = auto()
-    GNOME_KEYRING = auto()
-    BASIC_TEXT = auto()
+    GNOMEKEYRING = auto()
+    BASICTEXT = auto()
 
 
 SUPPORTED_KEYRINGS = _LinuxKeyring.__members__.keys()
@@ -803,7 +803,7 @@ def _choose_linux_keyring(logger):
     desktop_environment = _get_linux_desktop_environment(os.environ, logger)
     logger.debug(f'detected desktop environment: {desktop_environment.name}')
     if desktop_environment == _LinuxDesktopEnvironment.KDE4:
-        linux_keyring = _LinuxKeyring.KWALLET4
+        linux_keyring = _LinuxKeyring.KWALLET
     elif desktop_environment == _LinuxDesktopEnvironment.KDE5:
         linux_keyring = _LinuxKeyring.KWALLET5
     elif desktop_environment == _LinuxDesktopEnvironment.KDE6:
@@ -811,9 +811,9 @@ def _choose_linux_keyring(logger):
     elif desktop_environment in (
         _LinuxDesktopEnvironment.KDE3, _LinuxDesktopEnvironment.LXQT, _LinuxDesktopEnvironment.OTHER
     ):
-        linux_keyring = _LinuxKeyring.BASIC_TEXT
+        linux_keyring = _LinuxKeyring.BASICTEXT
     else:
-        linux_keyring = _LinuxKeyring.GNOME_KEYRING
+        linux_keyring = _LinuxKeyring.GNOMEKEYRING
     return linux_keyring
 
 
@@ -828,7 +828,7 @@ def _get_kwallet_network_wallet(keyring, logger):
     """
     default_wallet = 'kdewallet'
     try:
-        if keyring == _LinuxKeyring.KWALLET4:
+        if keyring == _LinuxKeyring.KWALLET:
             service_name = 'org.kde.kwalletd'
             wallet_path = '/modules/kwalletd'
         elif keyring == _LinuxKeyring.KWALLET5:
@@ -929,11 +929,11 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     keyring = _LinuxKeyring[keyring] if keyring else _choose_linux_keyring(logger)
     logger.debug(f'Chosen keyring: {keyring.name}')
 
-    if keyring in (_LinuxKeyring.KWALLET4, _LinuxKeyring.KWALLET5, _LinuxKeyring.KWALLET6):
+    if keyring in (_LinuxKeyring.KWALLET, _LinuxKeyring.KWALLET5, _LinuxKeyring.KWALLET6):
         return _get_kwallet_password(browser_keyring_name, keyring, logger)
-    elif keyring == _LinuxKeyring.GNOME_KEYRING:
+    elif keyring == _LinuxKeyring.GNOMEKEYRING:
         return _get_gnome_keyring_password(browser_keyring_name, logger)
-    elif keyring == _LinuxKeyring.BASIC_TEXT:
+    elif keyring == _LinuxKeyring.BASICTEXT:
         # when basic text is chosen, all cookies are stored as v10 (so no keyring password is required)
         return None
     assert False, f'Unknown keyring {keyring}'
