@@ -1,4 +1,5 @@
 import itertools
+
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -106,9 +107,8 @@ class YappyProfileIE(InfoExtractor):
         'url': 'https://yappy.media/profile/59a0c8c485e5410b9c43474bf4c6a373',
         'info_dict': {
             'id': '59a0c8c485e5410b9c43474bf4c6a373',
-            'title': 'profile',
         },
-        'playlist_count': 16,
+        'playlist_mincount': 527,
     }]
 
     def _real_extract(self, url):
