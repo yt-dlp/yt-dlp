@@ -654,9 +654,58 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
         os.unlink(tf.name)
 
 
-class TestRequestHandlerValidation:
-    pass
+def run_validation(handler, fail, req, **handler_kwargs):
+    with handler(**handler_kwargs) as rh:
+        if fail:
+            with pytest.raises(UnsupportedRequest):
+                rh.validate(req)
+        else:
+            rh.validate(req)
 
 
-class TestUrllibRequestHandlerValidation:
-    pass
+# TODO: may want to create a dummy request handler to test the core behaviour
+# Then real handler specific code can me more simpler and specific to it
+@pytest.mark.parametrize('handler', ['Urllib'], indirect=['handler'])
+class TestUrllibRHValidation:
+    @pytest.mark.parametrize('scheme,fail,handler_kwargs', [
+        ('http', False, {}),
+        ('https', False, {}),
+        ('data', False, {}),
+        ('ftp', False, {}),
+        ('file', True, {}),
+        ('file', False, {'enable_file_urls': True}),
+    ])
+    def test_url_scheme(self, handler, scheme, fail, handler_kwargs):
+        run_validation(handler, fail, Request(f'{scheme}://'), **(handler_kwargs or {}))
+
+    def test_no_proxy(self, handler):
+        run_validation(handler, False, Request(f'http://', proxies={'no': '127.0.0.1,github.com'}))
+        run_validation(handler, False, Request(f'http://'), proxies={'no': '127.0.0.1,github.com'})
+
+    def test_all_proxy(self, handler):
+        run_validation(handler, False, Request(f'http://', proxies={'all': 'http://example.com'}))
+        run_validation(handler, False, Request(f'http://'), proxies={'all': 'http://example.com'})
+
+    def test_unrelated_proxy(self, handler):
+        run_validation(handler, False, Request(f'http://', proxies={'unrelated': 'http://example.com'}))
+        run_validation(handler, False, Request(f'http://'), proxies={'unrelated': 'http://example.com'})
+
+    @pytest.mark.parametrize('scheme', ['http', 'socks', 'socks5', 'socks4a', 'socks4'])
+    def test_proxy_scheme(self, handler, scheme):
+        run_validation(handler, False, Request(f'http://', proxies={'http': f'{scheme}://example.com'}))
+        run_validation(handler, False, Request(f'http://'), proxies={'http': f'{scheme}://example.com'})
+
+    @pytest.mark.parametrize('scheme', ['https', 'test'])
+    def test_unsupported_proxy_scheme(self, handler, scheme):
+        run_validation(handler, True, Request(f'http://', proxies={'http': f'{scheme}://example.com'}))
+        run_validation(handler, True, Request(f'http://'), proxies={'http': f'{scheme}://example.com'})
+
+    @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1'])
+    def test_missing_proxy_scheme(self, handler, proxy_url):
+        run_validation(handler, True, Request(f'http://', proxies={'http': f'example.com'}))
+
+    def test_cookiejar_extension(self, handler):
+        run_validation(handler, True, Request(f'http://', extensions={'cookiejar': 'notacookiejar'}))
+
+    def test_timeout_extension(self, handler):
+        run_validation(handler, True, Request(f'http://', extensions={'timeout': 'notavalidtimeout'}))

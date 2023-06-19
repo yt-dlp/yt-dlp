@@ -126,9 +126,9 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
     either the Request configuration option takes precedence or they are merged.
     """
 
-    _SUPPORTED_URL_SCHEMES: list = None
-    _SUPPORTED_PROXY_SCHEMES: list = None
-    _SUPPORTED_FEATURES: list = None
+    _SUPPORTED_URL_SCHEMES: tuple = None
+    _SUPPORTED_PROXY_SCHEMES: tuple = None
+    _SUPPORTED_FEATURES: tuple = None
 
     def __init__(
         self,
@@ -189,16 +189,16 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
             if proxy_url is None:
                 continue
             if proxy_key == 'no':
-                if Features.NO_PROXY not in (self._SUPPORTED_FEATURES or []):
+                if Features.NO_PROXY not in (self._SUPPORTED_FEATURES or ()):
                     raise UnsupportedRequest('\'no\' proxy is not supported')
                 continue
-            if proxy_key == 'all' and Features.ALL_PROXY not in (self._SUPPORTED_FEATURES or []):
+            if proxy_key == 'all' and Features.ALL_PROXY not in (self._SUPPORTED_FEATURES or ()):
                 raise UnsupportedRequest('\'all\' proxy is not supported')
 
             # Unlikely this handler will use this proxy, so ignore.
             # This is to allow a case where a proxy may be set for a protocol
             # for one handler in which such protocol (and proxy) is not supported by another handler.
-            if self._SUPPORTED_URL_SCHEMES is not None and proxy_key not in self._SUPPORTED_URL_SCHEMES + ['all']:
+            if self._SUPPORTED_URL_SCHEMES is not None and proxy_key not in (*self._SUPPORTED_URL_SCHEMES, 'all'):
                 continue
 
             # TODO: check no proxy
@@ -212,14 +212,21 @@ class RequestHandler(RequestHandlerBase, abc.ABC):
             if scheme not in self._SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
-    def _check_cookiejar(self, extensions):
+    def _check_cookiejar_extension(self, extensions):
         if not extensions.get('cookiejar'):
             return
         if not isinstance(extensions['cookiejar'], CookieJar):
             raise UnsupportedRequest('cookiejar is not a CookieJar')
 
+    def _check_timeout_extension(self, extensions):
+        if extensions.get('timeout') is None:
+            return
+        if not isinstance(extensions['timeout'], (float, int)):
+            raise UnsupportedRequest('timeout is not a float or int')
+
     def _check_extensions(self, extensions):
-        self._check_cookiejar(extensions)
+        self._check_cookiejar_extension(extensions)
+        self._check_timeout_extension(extensions)
 
     def _validate(self, request):
         self._check_url_scheme(request)

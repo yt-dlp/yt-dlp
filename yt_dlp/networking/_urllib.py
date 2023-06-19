@@ -382,16 +382,16 @@ def handle_response_read_exceptions(e):
 
 
 class UrllibRH(RequestHandler, InstanceStoreMixin):
-    _SUPPORTED_URL_SCHEMES = ['http', 'https', 'data', 'ftp']
-    _SUPPORTED_PROXY_SCHEMES = ['http', 'socks', 'socks4', 'socks4a', 'socks5']
-    _SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
+    _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
+    _SUPPORTED_PROXY_SCHEMES = ('http', 'socks', 'socks4', 'socks4a', 'socks5')
+    _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     RH_NAME = 'urllib'
 
     def __init__(self, *, enable_file_urls: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._enable_file_urls = enable_file_urls
         if self._enable_file_urls:
-            self._SUPPORTED_URL_SCHEMES.append('file')
+            self._SUPPORTED_URL_SCHEMES = (*self._SUPPORTED_URL_SCHEMES, 'file')
 
     def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()
