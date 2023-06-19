@@ -1851,7 +1851,7 @@ The following extractors use this feature:
 * `client_id`: Client ID value to be sent with GraphQL requests, e.g. `twitchstream:client_id=kimne78kx3ncx6brgo4mv6wki5h1ko`
 
 #### nhkradirulive (NHK らじる★らじる LIVE)
-* `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`.
+* `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
