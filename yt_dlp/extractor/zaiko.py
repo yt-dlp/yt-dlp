@@ -11,6 +11,15 @@ from ..utils import (
 
 
 class ZaikoBaseIE(InfoExtractor):
+    def _download_real_webpage(self, url, video_id):
+        webpage, urlh = self._download_webpage_handle(url, video_id)
+        final_url = urlh.geturl()
+        if 'zaiko.io/login' in final_url:
+            self.raise_login_required()
+        elif '/_buy/' in final_url:
+            raise ExtractorError('Your account does not have tickets to this event', expected=True)
+        return webpage
+
     def _parse_vue_element_attr(self, name, string, video_id):
         page_elem = self._search_regex(rf'(<{name}[^>]+>)', string, name)
         attrs = {}
@@ -44,12 +53,7 @@ class ZaikoIE(ZaikoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage, urlh = self._download_webpage_handle(url, video_id)
-        final_url = urlh.geturl()
-        if 'zaiko.io/login' in final_url:
-            self.raise_login_required()
-        elif '/_buy/' in final_url:
-            raise ExtractorError('Your account does not have tickets to this event', expected=True)
+        webpage = self._download_real_webpage(url, video_id)
         stream_meta = self._parse_vue_element_attr('stream-page', webpage, video_id)
 
         player_page = self._download_webpage(
@@ -104,10 +108,7 @@ class ZaikoETicketIE(ZaikoBaseIE):
     def _real_extract(self, url):
         ticket_id = self._match_id(url)
 
-        webpage, urlh = self._download_webpage_handle(url, ticket_id)
-        final_url = urlh.geturl()
-        if 'zaiko.io/login' in final_url:
-            self.raise_login_required()
+        webpage = self._download_real_webpage(url, ticket_id)
         eticket_meta = self._parse_vue_element_attr('eticket', webpage, ticket_id)
 
         ticket_details = eticket_meta.get('ticket-details')
