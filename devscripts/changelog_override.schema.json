@@ -1,0 +1,96 @@
+{
+    "$schema": "http://json-schema.org/draft/2020-12/schema",
+    "type": "array",
+    "uniqueItems": true,
+    "items": {
+        "type": "object",
+        "oneOf": [
+            {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "enum": [
+                            "add"
+                        ]
+                    },
+                    "when": {
+                        "type": "string",
+                        "pattern": "^([0-9a-f]{40}|\\d{4}\\.\\d{2}\\.\\d{2})$"
+                    },
+                    "hash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{40}$"
+                    },
+                    "short": {
+                        "type": "string"
+                    },
+                    "authors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "action",
+                    "short"
+                ]
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "enum": [
+                            "remove"
+                        ]
+                    },
+                    "when": {
+                        "type": "string",
+                        "pattern": "^([0-9a-f]{40}|\\d{4}\\.\\d{2}\\.\\d{2})$"
+                    },
+                    "hash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{40}$"
+                    }
+                },
+                "required": [
+                    "action",
+                    "hash"
+                ]
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "enum": [
+                            "change"
+                        ]
+                    },
+                    "when": {
+                        "type": "string",
+                        "pattern": "^([0-9a-f]{40}|\\d{4}\\.\\d{2}\\.\\d{2})$"
+                    },
+                    "hash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{40}$"
+                    },
+                    "short": {
+                        "type": "string"
+                    },
+                    "authors": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "action",
+                    "hash",
+                    "short",
+                    "authors"
+                ]
+            }
+        ]
+    }
+}

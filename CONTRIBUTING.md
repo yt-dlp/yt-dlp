@@ -79,7 +79,7 @@ Before reporting any issue, type `yt-dlp -U`. This should report that you're up-
 
 ###  Is the issue already documented?
 
-Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, feel free to write something along the lines of "This affects me as well, with version 2021.01.01. Here is some more information on the issue: ...". While some issues may be old, a new post into them often spurs rapid activity.
+Make sure that someone has not already opened the issue you're trying to open. Search at the top of the window or browse the [GitHub Issues](https://github.com/yt-dlp/yt-dlp/search?type=Issues) of this repository. If there is an issue, subcribe to it to be notified when there is any progress. Unless you have something useful to add to the converation, please refrain from commenting.
 
 Additionally, it is also helpful to see if the issue has already been documented in the [youtube-dl issue tracker](https://github.com/ytdl-org/youtube-dl/issues). If similar issues have already been reported in youtube-dl (but not in our issue tracker), links to them can be included in your issue report here.
 
@@ -127,7 +127,7 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 
 ### Is the website primarily used for piracy?
 
-We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in deep fake. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
+We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
 
 
 
@@ -246,7 +246,7 @@ In any case, thank you very much for your contributions!
 
 This section introduces a guide lines for writing idiomatic, robust and future-proof extractor code.
 
-Extractors are very fragile by nature since they depend on the layout of the source data provided by 3rd party media hosters out of your control and this layout tends to change. As an extractor implementer your task is not only to write code that will extract media links and metadata correctly but also to minimize dependency on the source's layout and even to make the code foresee potential future changes and be ready for that. This is important because it will allow the extractor not to break on minor layout changes thus keeping old yt-dlp versions working. Even though this breakage issue may be easily fixed by a new version of yt-dlp, this could take some time, during which the the extractor will remain broken.
+Extractors are very fragile by nature since they depend on the layout of the source data provided by 3rd party media hosters out of your control and this layout tends to change. As an extractor implementer your task is not only to write code that will extract media links and metadata correctly but also to minimize dependency on the source's layout and even to make the code foresee potential future changes and be ready for that. This is important because it will allow the extractor not to break on minor layout changes thus keeping old yt-dlp versions working. Even though this breakage issue may be easily fixed by a new version of yt-dlp, this could take some time, during which the extractor will remain broken.
 
 
 ### Mandatory and optional metafields
@@ -351,8 +351,9 @@ Say you extracted a list of thumbnails into `thumbnail_data` and want to iterate
 ```python
 thumbnail_data = data.get('thumbnails') or []
 thumbnails = [{
-    'url': item['url']
-} for item in thumbnail_data]  # correct
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in thumbnail_data if item.get('url')]  # correct
 ```
 
 and not like:
@@ -360,12 +361,27 @@ and not like:
 ```python
 thumbnail_data = data.get('thumbnails')
 thumbnails = [{
-    'url': item['url']
+    'url': item['url'],
+    'height': item.get('h'),
 } for item in thumbnail_data]  # incorrect
 ```
 
 In this case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `or []` avoids this error and results in setting an empty list in `thumbnails` instead.
 
+Alternately, this can be further simplified by using `traverse_obj`
+
+```python
+thumbnails = [{
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in traverse_obj(data, ('thumbnails', lambda _, v: v['url']))]
+```
+
+or, even better,
+
+```python
+thumbnails = traverse_obj(data, ('thumbnails', ..., {'url': 'url', 'height': 'h'}))
+```
 
 ### Provide fallbacks
 

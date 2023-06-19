@@ -240,7 +240,7 @@ class FiveThirtyEightIE(InfoExtractor):
 
 
 class ESPNCricInfoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?espncricinfo\.com/video/[^#$&?/]+-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?espncricinfo\.com/(?:cricket-)?videos?/[^#$&?/]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.espncricinfo.com/video/finch-chasing-comes-with-risks-despite-world-cup-trend-1289135',
         'info_dict': {
@@ -252,6 +252,17 @@ class ESPNCricInfoIE(InfoExtractor):
             'duration': 96,
         },
         'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.espncricinfo.com/cricket-videos/daryl-mitchell-mitchell-santner-is-one-of-the-best-white-ball-spinners-india-vs-new-zealand-1356225',
+        'info_dict': {
+            'id': '1356225',
+            'ext': 'mp4',
+            'description': '"Santner has done it for a long time for New Zealand - we\'re lucky to have him"',
+            'upload_date': '20230128',
+            'title': 'Mitchell: \'Santner is one of the best white-ball spinners at the moment\'',
+            'duration': 87,
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):

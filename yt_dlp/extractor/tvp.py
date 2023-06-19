@@ -268,8 +268,11 @@ class TVPIE(InfoExtractor):
 
 class TVPStreamIE(InfoExtractor):
     IE_NAME = 'tvp:stream'
-    _VALID_URL = r'(?:tvpstream:|https?://tvpstream\.vod\.tvp\.pl/(?:\?(?:[^&]+[&;])*channel_id=)?)(?P<id>\d*)'
+    _VALID_URL = r'(?:tvpstream:|https?://(?:tvpstream\.vod|stream)\.tvp\.pl/(?:\?(?:[^&]+[&;])*channel_id=)?)(?P<id>\d*)'
     _TESTS = [{
+        'url': 'https://stream.tvp.pl/?channel_id=56969941',
+        'only_matching': True,
+    }, {
         # untestable as "video" id changes many times across a day
         'url': 'https://tvpstream.vod.tvp.pl/?channel_id=1455',
         'only_matching': True,
@@ -285,28 +288,21 @@ class TVPStreamIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _PLAYER_BOX_RE = r'<div\s[^>]*id\s*=\s*["\']?tvp_player_box["\']?[^>]+data-%s-id\s*=\s*["\']?(\d+)'
-    _BUTTON_RE = r'<div\s[^>]*data-channel-id=["\']?%s["\']?[^>]*\sdata-title=(?:"([^"]*)"|\'([^\']*)\')[^>]*\sdata-stationname=(?:"([^"]*)"|\'([^\']*)\')'
-
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        channel_url = self._proto_relative_url('//tvpstream.vod.tvp.pl/?channel_id=%s' % channel_id or 'default')
-        webpage = self._download_webpage(channel_url, channel_id, 'Downloading channel webpage')
-        if not channel_id:
-            channel_id = self._search_regex(self._PLAYER_BOX_RE % 'channel',
-                                            webpage, 'default channel id')
-        video_id = self._search_regex(self._PLAYER_BOX_RE % 'video',
-                                      webpage, 'video id')
-        audition_title, station_name = self._search_regex(
-            self._BUTTON_RE % (re.escape(channel_id)), webpage,
-            'audition title and station name',
-            group=(1, 2))
+        channel_url = self._proto_relative_url('//stream.tvp.pl/?channel_id=%s' % channel_id or 'default')
+        webpage = self._download_webpage(channel_url, channel_id or 'default', 'Downloading channel webpage')
+        channels = self._search_json(
+            r'window\.__channels\s*=', webpage, 'channel list', channel_id,
+            contains_pattern=r'\[\s*{(?s:.+)}\s*]')
+        channel = traverse_obj(channels, (lambda _, v: channel_id == str(v['id'])), get_all=False) if channel_id else channels[0]
+        audition = traverse_obj(channel, ('items', lambda _, v: v['is_live'] is True), get_all=False)
         return {
             '_type': 'url_transparent',
-            'id': channel_id,
-            'url': 'tvp:%s' % video_id,
-            'title': audition_title,
-            'alt_title': station_name,
+            'id': channel_id or channel['id'],
+            'url': 'tvp:%s' % audition['video_id'],
+            'title': audition.get('title'),
+            'alt_title': channel.get('title'),
             'is_live': True,
             'ie_key': 'TVPEmbed',
         }
@@ -486,21 +482,34 @@ class TVPEmbedIE(InfoExtractor):
 class TVPVODBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://vod.tvp.pl/api/products'
 
-    def _call_api(self, resource, video_id, **kwargs):
-        return self._download_json(
+    def _call_api(self, resource, video_id, query={}, **kwargs):
+        is_valid = lambda x: 200 <= x < 300
+        document, urlh = self._download_json_handle(
             f'{self._API_BASE_URL}/{resource}', video_id,
-            query={'lang': 'pl', 'platform': 'BROWSER'}, **kwargs)
+            query={'lang': 'pl', 'platform': 'BROWSER', **query},
+            expected_status=lambda x: is_valid(x) or 400 <= x < 500, **kwargs)
+        if is_valid(urlh.status):
+            return document
+        raise ExtractorError(f'Woronicza said: {document.get("code")} (HTTP {urlh.status})')
 
-    def _parse_video(self, video):
-        return {
-            '_type': 'url',
-            'url': 'tvp:' + video['externalUid'],
-            'ie_key': TVPEmbedIE.ie_key(),
-            'title': video.get('title'),
-            'description': traverse_obj(video, ('lead', 'description')),
-            'age_limit': int_or_none(video.get('rating')),
-            'duration': int_or_none(video.get('duration')),
-        }
+    def _parse_video(self, video, with_url=True):
+        info_dict = traverse_obj(video, {
+            'id': ('id', {str_or_none}),
+            'title': 'title',
+            'age_limit': ('rating', {int_or_none}),
+            'duration': ('duration', {int_or_none}),
+            'episode_number': ('number', {int_or_none}),
+            'series': ('season', 'serial', 'title', {str_or_none}),
+            'thumbnails': ('images', ..., ..., {'url': ('url', {url_or_none})}),
+        })
+        info_dict['description'] = clean_html(dict_get(video, ('lead', 'description')))
+        if with_url:
+            info_dict.update({
+                '_type': 'url',
+                'url': video['webUrl'],
+                'ie_key': TVPVODVideoIE.ie_key(),
+            })
+        return info_dict
 
 
 class TVPVODVideoIE(TVPVODBaseIE):
@@ -510,37 +519,70 @@ class TVPVODVideoIE(TVPVODBaseIE):
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
         'info_dict': {
-            'id': '60468609',
+            'id': '311357',
             'ext': 'mp4',
-            'title': 'Laboratorium alchemika, Tusze termiczne. Jak zobaczyć niewidoczne. Odcinek 24',
+            'title': 'Tusze termiczne. Jak zobaczyć niewidoczne. Odcinek 24',
             'description': 'md5:1d4098d3e537092ccbac1abf49b7cd4c',
             'duration': 300,
             'episode_number': 24,
             'episode': 'Episode 24',
             'age_limit': 0,
             'series': 'Laboratorium alchemika',
-            'thumbnail': 're:https://.+',
+            'thumbnail': 're:https?://.+',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://vod.tvp.pl/filmy-dokumentalne,163/ukrainski-sluga-narodu,339667',
         'info_dict': {
-            'id': '51640077',
+            'id': '339667',
             'ext': 'mp4',
-            'title': 'Ukraiński sługa narodu, Ukraiński sługa narodu',
-            'series': 'Ukraiński sługa narodu',
+            'title': 'Ukraiński sługa narodu',
             'description': 'md5:b7940c0a8e439b0c81653a986f544ef3',
             'age_limit': 12,
-            'episode': 'Episode 0',
-            'episode_number': 0,
             'duration': 3051,
-            'thumbnail': 're:https://.+',
+            'thumbnail': 're:https?://.+',
+            'subtitles': 'count:2',
         },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'note': 'embed fails with "payment required"',
+        'url': 'https://vod.tvp.pl/seriale,18/polowanie-na-cmy-odcinki,390116/odcinek-7,S01E07,398869',
+        'info_dict': {
+            'id': '398869',
+            'ext': 'mp4',
+            'title': 'odc. 7',
+            'description': 'md5:dd2bb33f023dc5c2fbaddfbe4cb5dba0',
+            'duration': 2750,
+            'age_limit': 16,
+            'series': 'Polowanie na ćmy',
+            'episode_number': 7,
+            'episode': 'Episode 7',
+            'thumbnail': 're:https?://.+',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        return self._parse_video(self._call_api(f'vods/{video_id}', video_id))
+        info_dict = self._parse_video(self._call_api(f'vods/{video_id}', video_id), with_url=False)
+
+        playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
+
+        info_dict['formats'] = []
+        for manifest_url in traverse_obj(playlist, ('sources', 'HLS', ..., 'src')):
+            info_dict['formats'].extend(self._extract_m3u8_formats(manifest_url, video_id, fatal=False))
+        for manifest_url in traverse_obj(playlist, ('sources', 'DASH', ..., 'src')):
+            info_dict['formats'].extend(self._extract_mpd_formats(manifest_url, video_id, fatal=False))
+
+        info_dict['subtitles'] = {}
+        for sub in playlist.get('subtitles') or []:
+            info_dict['subtitles'].setdefault(sub.get('language') or 'und', []).append({
+                'url': sub['url'],
+                'ext': 'ttml',
+            })
+
+        return info_dict
 
 
 class TVPVODSeriesIE(TVPVODBaseIE):
@@ -555,7 +597,7 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             'age_limit': 12,
             'categories': ['seriale'],
         },
-        'playlist_count': 129,
+        'playlist_count': 130,
     }, {
         'url': 'https://vod.tvp.pl/programy,88/rolnik-szuka-zony-odcinki,284514',
         'only_matching': True,

@@ -44,6 +44,7 @@ EXT_TO_OUT_FORMATS = {
     'ts': 'mpegts',
     'wma': 'asf',
     'wmv': 'asf',
+    'weba': 'webm',
     'vtt': 'webvtt',
 }
 ACODECS = {
@@ -301,6 +302,11 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
+    def _fixup_chapters(self, info):
+        last_chapter = traverse_obj(info, ('chapters', -1))
+        if last_chapter and not last_chapter.get('end_time'):
+            last_chapter['end_time'] = self._get_real_video_duration(info['filepath'])
+
     def _get_real_video_duration(self, filepath, fatal=True):
         try:
             duration = float_or_none(
@@ -407,7 +413,7 @@ class FFmpegPostProcessor(PostProcessor):
         """
         concat_file = f'{out_file}.concat'
         self.write_debug(f'Writing concat spec to {concat_file}')
-        with open(concat_file, 'wt', encoding='utf-8') as f:
+        with open(concat_file, 'w', encoding='utf-8') as f:
             f.writelines(self._concat_spec(in_files, concat_opts))
 
         out_flags = list(self.stream_copy_opts(ext=determine_ext(out_file)))
@@ -507,8 +513,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         if acodec != 'copy':
             more_opts = self._quality_args(acodec)
 
-        # not os.path.splitext, since the latter does not work on unicode in all setups
-        temp_path = new_path = f'{path.rpartition(".")[0]}.{extension}'
+        temp_path = new_path = replace_extension(path, extension, information['ext'])
 
         if new_path == path:
             if acodec == 'copy':
@@ -538,7 +543,10 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = (*MEDIA_EXTENSIONS.common_video, *sorted(MEDIA_EXTENSIONS.common_audio + ('aac', 'vorbis')))
+    SUPPORTED_EXTS = (
+        *sorted((*MEDIA_EXTENSIONS.common_video, 'gif')),
+        *sorted((*MEDIA_EXTENSIONS.common_audio, 'aac', 'vorbis')),
+    )
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
     _ACTION = 'converting'
 
@@ -675,6 +683,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        self._fixup_chapters(info)
         filename, metadata_filename = info['filepath'], None
         files_to_delete, options = [], []
         if self._add_chapters and info.get('chapters'):
@@ -708,7 +717,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @staticmethod
     def _get_chapter_opts(chapters, metadata_filename):
-        with open(metadata_filename, 'wt', encoding='utf-8') as f:
+        with open(metadata_filename, 'w', encoding='utf-8') as f:
             def ffmpeg_escape(text):
                 return re.sub(r'([\\=;#\n])', r'\\\1', text)
 
@@ -800,7 +809,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             new_stream -= 1
 
         yield (
-            '-attach', infofn,
+            '-attach', self._ffmpeg_filename_argument(infofn),
             f'-metadata:s:{new_stream}', 'mimetype=application/json',
             f'-metadata:s:{new_stream}', 'filename=info.json',
         )
@@ -889,8 +898,11 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         if all(self._needs_fixup(info)):
+            args = ['-f', 'mp4']
+            if self.get_audio_codec(info['filepath']) == 'aac':
+                args.extend(['-bsf:a', 'aac_adtstoasc'])
             self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
-                *self.stream_copy_opts(), '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
+                *self.stream_copy_opts(), *args])
         return [], info
 
 
@@ -978,7 +990,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 with open(dfxp_file, 'rb') as f:
                     srt_data = dfxp2srt(f.read())
 
-                with open(srt_file, 'wt', encoding='utf-8') as f:
+                with open(srt_file, 'w', encoding='utf-8') as f:
                     f.write(srt_data)
                 old_file = srt_file
 
@@ -1037,6 +1049,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        self._fixup_chapters(info)
         chapters = info.get('chapters') or []
         if not chapters:
             self.to_screen('Chapter information is unavailable')
