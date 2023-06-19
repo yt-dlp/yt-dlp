@@ -135,7 +135,34 @@ class BilibiliBaseIE(InfoExtractor):
         for children in map(self._get_all_children, traverse_obj(reply, ('replies', ...))):
             yield from children
 
-
+    def _get_divisions(self, aid, graph_version, edges={}, edge_id=""):
+        division_data = self._download_json(
+            f'https://api.bilibili.com/x/stein/edgeinfo_v2?graph_version={graph_version}&edge_id={edge_id}&aid={aid}',
+            aid, note=f'Extracting divisions from edge {edge_id}', fatal=True)
+        print(division_data)
+        for node in traverse_obj(division_data, ('data', 'story_list'), default=[]):
+            edges[node['edge_id']] = traverse_obj(node, {
+                'title': ('title', {str_or_none}),
+                'cid': ('cid', {int}),
+            })
+        edges[edge_id] = {
+            **edges.get(edge_id, {}),
+            'title': str_or_none(traverse_obj(division_data, ("data", "title"))),
+            'choices': traverse_obj(division_data, ("data", "edges", "questions", ..., "choices", ..., {
+                'edge_id': ('id', {int}),
+                'cid': ('cid', {int}),
+                'text': ('option', {str_or_none}),
+            })),
+        }
+        print(edges)
+        for choice in edges[edge_id]['choices']:
+            if choice['edge_id'] not in edges:
+                edges[choice['edge_id']] = {
+                    'cid': choice['cid'],
+                }
+                self._get_divisions(aid, graph_version, edges=edges, edge_id=choice['edge_id'])
+        return edges
+import json
 class BiliBiliIE(BilibiliBaseIE):
     _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
@@ -323,11 +350,14 @@ class BiliBiliIE(BilibiliBaseIE):
         'params': {'skip_download': True},
     }]
 
+    def print_json(self, data):
+        print(json.dumps(data, indent=4, ensure_ascii=False))
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-
+        # self.print_json(initial_state)
         is_festival = 'videoData' not in initial_state
         if is_festival:
             video_data = initial_state['videoInfo']
@@ -336,6 +366,8 @@ class BiliBiliIE(BilibiliBaseIE):
             video_data = initial_state['videoData']
 
         video_id, title = video_data['bvid'], video_data.get('title')
+
+        is_interactive = traverse_obj(video_data, ("rights","is_stein_gate"))
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
         page_list_json = not is_festival and traverse_obj(
@@ -360,6 +392,17 @@ class BiliBiliIE(BilibiliBaseIE):
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
 
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
+
+        if is_interactive:
+            graph_version = traverse_obj(
+                self._download_json(
+                    f'https://api.bilibili.com/x/player/wbi/v2?aid={aid}&cid={cid}',
+                    aid, note=f'Extracting graph version for av{aid}', fatal=True),
+                ('data', 'interaction', 'graph_version'))
+            divisions = self._get_divisions(aid, graph_version, {1: {"cid": cid}}, 1)
+            self.print_json(divisions)
+            # TO DO: download each segment using aid-cid pair
+            exit(0)
 
         festival_info = {}
         if is_festival:
