@@ -114,23 +114,17 @@ class YappyProfileIE(InfoExtractor):
     def _real_extract(self, url):
         profile_id = self._match_id(url)
 
-        entries = []
-        for page_num in itertools.count(1):
-            profile_data = self._download_json(f'https://yappy.media/api/video/list/{profile_id}?page={page_num}',
-                                               note='Downloading API JSON',
-                                               errnote='Unable to download API page',
-                                               video_id=f'{profile_id} page {page_num}')
+        def entries(profile_id):
+            for page_num in itertools.count(1):
+                videos = traverse_obj(self._download_json(
+                    f'https://yappy.media/api/video/list/{profile_id}?page={page_num}',
+                    profile_id, f'Downloading profile page {page_num} JSON'),
+                    ('results', lambda _, v: v['uuid']))
+                if not videos:
+                    break
+                for video in videos:
+                    yield self.url_result(
+                        f'https://yappy.media/video/{video["uuid"]}', YappyIE,
+                        video['uuid'], video.get('description'))
 
-            if not profile_data['results']:
-                break
-
-            entries.extend([
-                self.url_result(
-                    f'https://yappy.media/video/{video["uuid"]}',
-                    ie=YappyIE.ie_key(),
-                    video_id=video['uuid'],
-                    video_title=video.get('description') or video['uuid'])
-                for video in profile_data['results']
-            ])
-
-        return self.playlist_result(entries, profile_id)
+        return self.playlist_result(entries(profile_id), profile_id)
