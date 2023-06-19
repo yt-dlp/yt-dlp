@@ -95,7 +95,7 @@ class ZaikoIE(ZaikoBaseIE):
 
 
 class ZaikoETicketIE(ZaikoBaseIE):
-    _VALID_URL = r'https?://zaiko\.io/account/eticket/(?P<id>\w{48}=)'
+    _VALID_URL = r'https?://(?:www.)?zaiko\.io/account/eticket/(?P<id>\w{48}=)'
     _TESTS = [{
         'url': 'https://zaiko.io/account/eticket/000000000000000000000000000000000000000000000000=',
         'only_matching': True,
