@@ -1,3 +1,5 @@
+import base64
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -5,6 +7,7 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
+    try_call,
     unescapeHTML,
     url_or_none,
 )
@@ -107,6 +110,8 @@ class ZaikoETicketIE(ZaikoBaseIE):
 
     def _real_extract(self, url):
         ticket_id = self._match_id(url)
+        ticket_id = try_call(
+            lambda: base64.urlsafe_b64decode(ticket_id[1:]).decode().replace('|', '-')) or ticket_id
 
         webpage = self._download_real_webpage(url, ticket_id)
         eticket = self._parse_vue_element_attr('eticket', webpage, ticket_id)
