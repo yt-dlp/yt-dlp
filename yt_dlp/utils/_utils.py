@@ -5669,6 +5669,7 @@ def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None)
     return orderedSet(requested)
 
 
+# TODO: Rewrite
 class FormatSorter:
     regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
@@ -5717,8 +5718,10 @@ class FormatSorter:
         'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
 
         'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
-        'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
-        'size': {'type': 'combined', 'same_limit': True, 'field': ('filesize', 'fs_approx')},
+        'br': {'type': 'multiple', 'field': ('tbr', 'vbr', 'abr'),
+               'function': lambda it: next(filter(None, it), None)},
+        'size': {'type': 'multiple', 'field': ('filesize', 'fs_approx'),
+                 'function': lambda it: next(filter(None, it), None)},
         'ext': {'type': 'combined', 'field': ('vext', 'aext')},
         'res': {'type': 'multiple', 'field': ('height', 'width'),
                 'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
@@ -5949,13 +5952,15 @@ class FormatSorter:
             format['preference'] = -100
 
         # Determine missing bitrates
-        if format.get('tbr') is None:
-            if format.get('vbr') is not None and format.get('abr') is not None:
-                format['tbr'] = format.get('vbr', 0) + format.get('abr', 0)
-        else:
-            if format.get('vcodec') != 'none' and format.get('vbr') is None:
-                format['vbr'] = format.get('tbr') - format.get('abr', 0)
-            if format.get('acodec') != 'none' and format.get('abr') is None:
-                format['abr'] = format.get('tbr') - format.get('vbr', 0)
+        if format.get('vcodec') == 'none':
+            format['vbr'] = 0
+        if format.get('acodec') == 'none':
+            format['abr'] = 0
+        if not format.get('vbr') and format.get('vcodec') != 'none':
+            format['vbr'] = try_call(lambda: format['tbr'] - format['abr']) or None
+        if not format.get('abr') and format.get('acodec') != 'none':
+            format['abr'] = try_call(lambda: format['tbr'] - format['vbr']) or None
+        if not format.get('tbr'):
+            format['tbr'] = try_call(lambda: format['vbr'] + format['abr']) or None
 
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
