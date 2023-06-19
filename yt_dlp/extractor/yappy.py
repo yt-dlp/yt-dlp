@@ -1,3 +1,4 @@
+import itertools
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -5,7 +6,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none
 )
-import itertools
 
 
 class YappyIE(InfoExtractor):
