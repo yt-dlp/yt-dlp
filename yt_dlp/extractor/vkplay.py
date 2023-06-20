@@ -110,7 +110,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'url': ('url', {url_or_none}),
             'format_id': ('type', {str_or_none}),
         }))
-        print(stream_info)
+
         return {
             'formats': self._parse_playurls(playurls, username),
             **traverse_obj(stream_info, {
