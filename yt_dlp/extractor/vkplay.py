@@ -115,7 +115,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'format_id': ('type', {str_or_none}),
         }))
         if not playurls:
-            if traverse_obj(stream_info, ('isOnline', {bool})) == False:
+            if not traverse_obj(stream_info, ('isOnline', {bool})):
                 raise ExtractorError('Stream is offline', expected=True)
 
         return {
