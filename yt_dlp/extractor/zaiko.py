@@ -104,8 +104,14 @@ class ZaikoIE(ZaikoBaseIE):
 class ZaikoETicketIE(ZaikoBaseIE):
     _VALID_URL = r'https?://(?:www.)?zaiko\.io/account/eticket/(?P<id>[\w=-]{49})'
     _TESTS = [{
-        'url': 'https://zaiko.io/account/eticket/000000000000000000000000000000000000000000000000=',
-        'only_matching': True,
+        'url': 'https://zaiko.io/account/eticket/TZjMwMzQ2Y2EzMXwyMDIzMDYwNzEyMTMyNXw1MDViOWU2Mw==',
+        'playlist_count': 1,
+        'info_dict': {
+            'id': 'f30346ca31-20230607121325-505b9e63',
+            'title': 'ZAIKO STREAMING TEST',
+            'thumbnail': 'https://media.zkocdn.net/pf_1/1_3wdyjcjyupseatkwid34u',
+        },
+        'skip': 'Only available with the ticketholding account',
     }]
 
     def _real_extract(self, url):
