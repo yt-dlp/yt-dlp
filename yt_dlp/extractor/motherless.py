@@ -8,6 +8,7 @@ from ..utils import (
     OnDemandPagedList,
     str_to_int,
     unified_strdate,
+    remove_end,
 )
 
 
@@ -72,7 +73,7 @@ class MotherlessIE(InfoExtractor):
         'info_dict': {
             'id': '8B4BBC1',
             'ext': 'mp4',
-            'title': 'VIDEO00441.Mp4',
+            'title': 'VIDEO00441.mp4',
             'categories': [],
             'upload_date': '20160214',
             'uploader_id': 'NMWildGirl',
@@ -153,14 +154,13 @@ class MotherlessIE(InfoExtractor):
                 kwargs = {_AGO_UNITS.get(uploaded_ago[-1]): delta}
                 upload_date = (datetime.datetime.utcnow() - datetime.timedelta(**kwargs)).strftime('%Y%m%d')
 
-        comment_count = webpage.count('class="media-comment-contents"')
+        comment_count = len(re.findall(r'''class\s*=\s*['"]media-comment-contents\b''', webpage))
         uploader_id = self._html_search_regex(
-            (r'"media-meta-member">\s+<a href="/m/([^"]+)"',
-             r'<span\b[^>]+\bclass="username">([^<]+)</span>'),
+            (r'''<span\b[^>]+\bclass\s*=\s*["']username\b[^>]*>([^<]+)</span>''',
+             r'''(?s)['"](?:media-meta-member|thumb-member-username)\b[^>]+>\s*<a\b[^>]+\bhref\s*=\s*['"]/m/([^"']+)'''),
             webpage, 'uploader_id', fatal=False)
-        categories = self._html_search_meta('keywords', webpage, default=None)
-        if categories:
-            categories = [cat.strip() for cat in categories.split(',') if cat.strip()]
+        categories = self._html_search_meta('keywords', webpage, default="")
+        categories = [cat.strip() for cat in categories.split(',') if cat.strip()]
 
         return {
             'id': video_id,
@@ -195,22 +195,17 @@ class MotherlessPaginatedIE(InfoExtractor):
     def _real_extract(self, url):
         item_id = self._match_id(url)
         real_url = self._correct_path(url, item_id)
-        title = self._search_regex(
-            r'^([\w\s]+)\s+', self._html_extract_title(self._download_webpage(real_url, item_id)),
-            'title', default=None)
+        webpage = self._download_webpage(real_url, item_id, 'Downloading page 1')
 
-        def _get_page(idx):
+        def get_page(idx):
             page = idx + 1
-            query = {}
-            if idx:
-                query['page'] = page
-
-            current_page = self._download_webpage(real_url, item_id, query=query,
-                                                  note=f'Downloading page {page}')
+            current_page = webpage if not idx else self._download_webpage(
+                real_url, item_id, note=f'Downloading page {page}', query={'page': page})
             yield from self._extract_entries(current_page, real_url)
 
         return self.playlist_result(
-            OnDemandPagedList(_get_page, self._PAGE_SIZE), item_id, title)
+            OnDemandPagedList(get_page, self._PAGE_SIZE), item_id,
+            remove_end(self._html_extract_title(webpage), ' | MOTHERLESS.COM ™'))
 
 
 class MotherlessGroupIE(MotherlessPaginatedIE):
@@ -237,10 +232,6 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
         },
         'playlist_mincount': 2040,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if MotherlessIE.suitable(url) else super(MotherlessGroupIE, cls).suitable(url)
 
     def _correct_path(self, url, item_id):
         return urllib.parse.urljoin(url, f'/gv/{item_id}')
@@ -277,10 +268,6 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
         },
         'playlist_mincount': 420,
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if MotherlessIE.suitable(url) else super(MotherlessGalleryIE, cls).suitable(url)
 
     def _correct_path(self, url, item_id):
         return urllib.parse.urljoin(url, f'/GV{item_id}')
