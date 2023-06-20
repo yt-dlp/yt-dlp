@@ -3849,6 +3849,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
             name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
+            fps = int_or_none(fmt.get('fps')) or 0
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
@@ -3865,7 +3866,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
                 'source_preference': ((-10 if throttled else -5 if itag == '22' else -1)
                                       + (100 if 'Premium' in name else 0)),
-                'fps': int_or_none(fmt.get('fps')) or None,
+                'fps': fps if fps > 1 else None,  # For some formats, fps is wrongly returned as 1
                 'audio_channels': fmt.get('audioChannels'),
                 'height': height,
                 'quality': q(quality) - bool(fmt.get('isDrc')) / 2,
@@ -3936,6 +3937,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
             if self.get_param('verbose'):
                 f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
+            if f.get('fps') and f['fps'] <= 1:
+                del f['fps']
             return True
 
         subtitles = {}
