@@ -3302,7 +3302,7 @@ STR_FORMAT_RE_TMPL = r'''(?x)
 '''
 
 
-STR_FORMAT_TYPES = 'diouxXeEfFgGcrs'
+STR_FORMAT_TYPES = 'diouxXeEfFgGcrsa'
 
 
 def limit_length(s, length):
