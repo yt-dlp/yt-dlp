@@ -1,5 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    DownloadError,
     int_or_none,
     str_or_none,
     traverse_obj,
@@ -19,7 +21,10 @@ class VKPlayBaseIE(InfoExtractor):
             if not playurl.get('url', None):
                 continue
             elif '.m3u8' in playurl['url']:
-                formats.extend(self._extract_m3u8_formats(playurl['url'], playurl['format_id'], fatal=False))
+                try:
+                    formats.extend(self._extract_m3u8_formats(playurl['url'], playurl['format_id']))
+                except Exception:
+                    pass
             else:
                 formats.append(playurl)
         return formats
@@ -47,8 +52,8 @@ class VKPlayIE(VKPlayBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        initial_state = self._extract_initial_state(url, video_id)
 
+        initial_state = self._extract_initial_state(url, video_id)
         record_info = traverse_obj(initial_state, ('record', 'currentRecord', 'data'))
         playurls = traverse_obj(record_info, ('data', 0, 'playerUrls', ..., {
             'url': ('url', {url_or_none}),
@@ -73,15 +78,39 @@ class VKPlayIE(VKPlayBaseIE):
 
 class VKPlayLiveIE(VKPlayBaseIE):
     _VALID_URL = r'https?://vkplay\.live/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://vkplay.live/bayda',
+        'info_dict': {
+            'id': 'f02c321e-427b-408d-b12f-ae34e53e0ea2',
+            'ext': 'mp4',
+            'title': r're:эскапизм крута .*',
+            'live_status': 'is_live',
+            'is_live': True,
+            'uploader': 'Bayda',
+            'uploader_id': 12279401,
+            'release_timestamp': 1687209962,
+            'release_date': '20230619',
+            'thumbnail': r're:https://images.vkplay.live/public_video_stream/12279401/preview\?change_time=\d+',
+            'view_count': int,
+            'concurrent_view_count': int,
+            'like_count': int,
+            'categories': ['EVE Online'],
+        },
+        'params': {'skip_download': True},
+    }]
 
     def _real_extract(self, url):
         username = self._match_id(url)
+
         initial_state = self._extract_initial_state(url, username)
         stream_info = traverse_obj(initial_state, ('stream', 'stream', 'data', 'stream'))
+        if not stream_info:
+            raise ExtractorError('Stream is offline', expected=True)
         playurls = traverse_obj(stream_info, ('data', 0, 'playerUrls', ..., {
             'url': ('url', {url_or_none}),
             'format_id': ('type', {str_or_none}),
         }))
+        print(stream_info)
         return {
             'formats': self._parse_playurls(playurls, username),
             **traverse_obj(stream_info, {
