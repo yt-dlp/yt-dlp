@@ -96,6 +96,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'like_count': int,
             'categories': ['EVE Online'],
         },
+        'skip': 'livestream',
         'params': {'skip_download': True},
     }]
 
