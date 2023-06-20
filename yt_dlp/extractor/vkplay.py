@@ -31,7 +31,7 @@ class VKPlayBaseIE(InfoExtractor):
 
 
 class VKPlayIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/\w+/record/(?P<id>[a-f0-9\-]+)'
+    _VALID_URL = r'https?://vkplay\.live/(?P<username>[^/]+)/record/(?P<id>[a-f0-9\-]+)'
     _TESTS = [{
         'url': 'https://vkplay.live/zitsmann/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da',
         'info_dict': {
@@ -52,10 +52,12 @@ class VKPlayIE(VKPlayBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        username, video_id = self._match_valid_url(url).groups()
 
         initial_state = self._extract_initial_state(url, video_id)
         record_info = traverse_obj(initial_state, ('record', 'currentRecord', 'data'))
+        if not record_info:
+            record_info = self._download_json('https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id)
         playurls = traverse_obj(record_info, ('data', 0, 'playerUrls', ..., {
             'url': ('url', {url_or_none}),
             'format_id': ('type', {str_or_none}),
@@ -79,7 +81,7 @@ class VKPlayIE(VKPlayBaseIE):
 
 
 class VKPlayLiveIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<id>\w+)'
+    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://vkplay.live/bayda',
         'info_dict': {
@@ -107,7 +109,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
         initial_state = self._extract_initial_state(url, username)
         stream_info = traverse_obj(initial_state, ('stream', 'stream', 'data', 'stream'))
         if not stream_info:
-            stream_info = self._download_json('https://api.vkplay.live/v1/blog/%s/public_video_stream' % username, username)
+            stream_info = self._download_json(f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username)
         playurls = traverse_obj(stream_info, ('data', 0, 'playerUrls', ..., {
             'url': ('url', {url_or_none}),
             'format_id': ('type', {str_or_none}),
