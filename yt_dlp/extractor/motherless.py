@@ -181,7 +181,7 @@ class MotherlessPaginatedIE(InfoExtractor):
     _PAGE_SIZE = 60
 
     def _correct_path(self, url, item_id):
-        pass
+        raise NotImplementedError('This method must be implemented by subclasses')
 
     def _extract_entries(self, webpage, base):
         for mobj in re.finditer(r'href="[^"]*(?P<href>/[A-F0-9]+)"\s+title="(?P<title>[^"]+)',
@@ -214,7 +214,7 @@ class MotherlessPaginatedIE(InfoExtractor):
 
 
 class MotherlessGroupIE(MotherlessPaginatedIE):
-    _VALID_URL = r'https?://(?:www\.)?motherless\.com/g[vifm]?/(?P<id>[a-z0-9_]+)'
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/g[vifm]?/(?P<id>[a-z0-9_]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'http://motherless.com/gv/movie_scenes',
         'info_dict': {
@@ -247,7 +247,7 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
 
 
 class MotherlessGalleryIE(MotherlessPaginatedIE):
-    _VALID_URL = r'https?://(?:www\.)?motherless\.com/G[VIG]?(?P<id>[A-F0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/G[VIG]?(?P<id>[A-F0-9]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://motherless.com/GV338999F',
         'info_dict': {
