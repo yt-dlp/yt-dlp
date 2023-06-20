@@ -2452,7 +2452,10 @@ def strftime_or_none(timestamp, date_format, default=None):
         if isinstance(timestamp, (int, float)):  # unix timestamp
             # Using naive datetime here can break timestamp() in Windows
             # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
-            datetime_object = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
+            # Also, datetime.datetime.fromtimestamp breaks for negative timestamps
+            # Ref: https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
+            datetime_object = (datetime.datetime.fromtimestamp(0, datetime.timezone.utc)
+                               + datetime.timedelta(seconds=timestamp))
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = datetime.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
