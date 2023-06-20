@@ -157,14 +157,15 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
 * yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
 * yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: [~~aria2c~~](https://github.com/yt-dlp/yt-dlp/issues/5931)). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is
+* yt-dlp versions between 2021.09.01 and 2023.01.02 applies `--match-filter` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
 
 For ease of use, a few more compat options are available:
 
 * `--compat-options all`: Use all compat options (Do NOT use)
-* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams`
-* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
+* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter`
+* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options no-external-downloader-progress`. Use this to enable all future compat options
+* `--compat-options 2022`: Same as `--compat-options playlist-match-filter,no-external-downloader-progress`. Use this to enable all future compat options
 
 
 # INSTALLATION

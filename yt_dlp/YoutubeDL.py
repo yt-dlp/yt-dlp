@@ -1403,7 +1403,7 @@ class YoutubeDL:
 
     def _match_entry(self, info_dict, incomplete=False, silent=False):
         """Returns None if the file should be downloaded"""
-        _type = info_dict.get('_type', 'video')
+        _type = 'video' if 'playlist-match-filter' in self.params['compat_opts'] else info_dict.get('_type', 'video')
         assert incomplete or _type == 'video', 'Only video result can be considered complete'
 
         video_title = info_dict.get('title', info_dict.get('id', 'entry'))
