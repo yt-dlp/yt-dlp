@@ -1,12 +1,12 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    DownloadError,
     int_or_none,
     str_or_none,
     traverse_obj,
     url_or_none,
 )
+
 
 class VKPlayBaseIE(InfoExtractor):
     def _extract_initial_state(self, url, video_id):
@@ -28,6 +28,7 @@ class VKPlayBaseIE(InfoExtractor):
             else:
                 formats.append(playurl)
         return formats
+
 
 class VKPlayIE(VKPlayBaseIE):
     _VALID_URL = r'https?://vkplay\.live/\w+/record/(?P<id>[a-f0-9\-]+)'
@@ -75,6 +76,7 @@ class VKPlayIE(VKPlayBaseIE):
                 'categories': ('category', 'title', {lambda i: [str_or_none(i)]}),
             })
         }
+
 
 class VKPlayLiveIE(VKPlayBaseIE):
     _VALID_URL = r'https?://vkplay\.live/(?P<id>\w+)'
