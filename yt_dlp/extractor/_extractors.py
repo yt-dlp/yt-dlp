@@ -2265,7 +2265,10 @@ from .vk import (
     VKUserVideosIE,
     VKWallPostIE,
 )
-from .vkplay import VKPlayIE
+from .vkplay import (
+    VKPlayIE,
+    VKPlayLiveIE,
+)
 from .vocaroo import VocarooIE
 from .vodlocker import VodlockerIE
 from .vodpl import VODPlIE
