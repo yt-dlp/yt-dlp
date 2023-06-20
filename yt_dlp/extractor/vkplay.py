@@ -12,7 +12,7 @@ class VKPlayBaseIE(InfoExtractor):
     def _extract_initial_state(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
         initial_state_json = self._search_regex(r'id="initial-state"[^>]*>([^<]+)</script>', webpage, 'initial_state')
-        initial_state = self._parse_json(initial_state_json, video_id)
+        initial_state = self._parse_json(initial_state_json, video_id, fatal=False)
         return initial_state
 
     def _parse_playurls(self, playurls, video_id):
@@ -22,7 +22,7 @@ class VKPlayBaseIE(InfoExtractor):
                 continue
             elif '.m3u8' in playurl['url']:
                 try:
-                    formats.extend(self._extract_m3u8_formats(playurl['url'], playurl['format_id']))
+                    formats.extend(self._extract_m3u8_formats(playurl['url'], video_id))
                 except Exception:
                     pass
             else:
@@ -66,10 +66,10 @@ class VKPlayIE(VKPlayBaseIE):
             'formats': self._parse_playurls(playurls, video_id),
             **traverse_obj(record_info, {
                 'title': ('title', {str}),
-                'thumbnail': ('previewUrl', {url_or_none}),
                 'release_timestamp': ('startTime', {int_or_none}),
                 'uploader': ('blog', 'owner', 'nick', {str_or_none}),
                 'uploader_id': ('blog', 'owner', 'id', {int_or_none}),
+                'thumbnail': ('previewUrl', {url_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'view_count': ('count', 'views', {int_or_none}),
                 'like_count': ('count', 'likes', {int_or_none}),
@@ -86,8 +86,6 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'id': 'f02c321e-427b-408d-b12f-ae34e53e0ea2',
             'ext': 'mp4',
             'title': r're:эскапизм крута .*',
-            'live_status': 'is_live',
-            'is_live': True,
             'uploader': 'Bayda',
             'uploader_id': 12279401,
             'release_timestamp': 1687209962,
@@ -97,6 +95,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'concurrent_view_count': int,
             'like_count': int,
             'categories': ['EVE Online'],
+            'live_status': 'is_live',
         },
         'skip': 'livestream',
         'params': {'skip_download': True},
@@ -119,14 +118,14 @@ class VKPlayLiveIE(VKPlayBaseIE):
             **traverse_obj(stream_info, {
                 'id': ('id', {str}),
                 'title': ('title', {str}),
-                'is_live': ('isOnline', {bool}),
-                'thumbnail': ('previewUrl', {url_or_none}),
                 'release_timestamp': ('startTime', {int_or_none}),
                 'uploader': ('user', 'nick', {str_or_none}),
                 'uploader_id': ('user', 'id', {int_or_none}),
+                'thumbnail': ('previewUrl', {url_or_none}),
                 'view_count': ('count', 'views', {int_or_none}),
                 'concurrent_view_count': ('count', 'viewers', {int_or_none}),
                 'like_count': ('count', 'likes', {int_or_none}),
                 'categories': ('category', 'title', {lambda i: [str_or_none(i)]}),
+                'is_live': ('isOnline', {bool}),
             })
         }
