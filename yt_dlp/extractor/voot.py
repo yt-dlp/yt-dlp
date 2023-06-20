@@ -1,14 +1,86 @@
+import json
+import time
+import urllib.error
+import uuid
+
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
+    float_or_none,
     int_or_none,
+    jwt_decode_hs256,
+    parse_age_limit,
+    traverse_obj,
+    try_call,
     try_get,
-    unified_timestamp,
+    unified_strdate,
 )
 
 
-class VootIE(InfoExtractor):
+class VootBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'voot'
+    _GEO_BYPASS = False
+    _LOGIN_HINT = 'Log in with "-u <email_address> -p <password>", or use "-u token -p <auth_token>" to login with auth token.'
+    _TOKEN = None
+    _EXPIRY = 0
+    _API_HEADERS = {'Origin': 'https://www.voot.com', 'Referer': 'https://www.voot.com/'}
+
+    def _perform_login(self, username, password):
+        if self._TOKEN and self._EXPIRY:
+            return
+
+        if username.lower() == 'token' and try_call(lambda: jwt_decode_hs256(password)):
+            VootBaseIE._TOKEN = password
+            VootBaseIE._EXPIRY = jwt_decode_hs256(password)['exp']
+            self.report_login()
+
+        # Mobile number as username is not supported
+        elif not username.isdigit():
+            check_username = self._download_json(
+                'https://userauth.voot.com/usersV3/v3/checkUser', None, data=json.dumps({
+                    'type': 'email',
+                    'email': username
+                }, separators=(',', ':')).encode(), headers={
+                    **self._API_HEADERS,
+                    'Content-Type': 'application/json;charset=utf-8',
+                }, note='Checking username', expected_status=403)
+            if not traverse_obj(check_username, ('isExist', {bool})):
+                if traverse_obj(check_username, ('status', 'code', {int})) == 9999:
+                    self.raise_geo_restricted(countries=['IN'])
+                raise ExtractorError('Incorrect username', expected=True)
+            auth_token = traverse_obj(self._download_json(
+                'https://userauth.voot.com/usersV3/v3/login', None, data=json.dumps({
+                    'type': 'traditional',
+                    'deviceId': str(uuid.uuid4()),
+                    'deviceBrand': 'PC/MAC',
+                    'data': {
+                        'email': username,
+                        'password': password
+                    }
+                }, separators=(',', ':')).encode(), headers={
+                    **self._API_HEADERS,
+                    'Content-Type': 'application/json;charset=utf-8',
+                }, note='Logging in', expected_status=400), ('data', 'authToken', {dict}))
+            if not auth_token:
+                raise ExtractorError('Incorrect password', expected=True)
+            VootBaseIE._TOKEN = auth_token['accessToken']
+            VootBaseIE._EXPIRY = auth_token['expirationTime']
+
+        else:
+            raise ExtractorError(self._LOGIN_HINT, expected=True)
+
+    def _check_token_expiry(self):
+        if int(time.time()) >= self._EXPIRY:
+            raise ExtractorError('Access token has expired', expected=True)
+
+    def _real_initialize(self):
+        if not self._TOKEN:
+            self.raise_login_required(self._LOGIN_HINT, method=None)
+        self._check_token_expiry()
+
+
+class VootIE(VootBaseIE):
     _VALID_URL = r'''(?x)
                     (?:
                         voot:|
@@ -20,27 +92,25 @@ class VootIE(InfoExtractor):
                      )
                     (?P<id>\d{3,})
                     '''
-    _GEO_COUNTRIES = ['IN']
     _TESTS = [{
         'url': 'https://www.voot.com/shows/ishq-ka-rang-safed/1/360558/is-this-the-end-of-kamini-/441353',
         'info_dict': {
-            'id': '0_8ledb18o',
+            'id': '441353',
             'ext': 'mp4',
-            'title': 'Ishq Ka Rang Safed - Season 01 - Episode 340',
+            'title': 'Is this the end of Kamini?',
             'description': 'md5:06291fbbbc4dcbe21235c40c262507c1',
-            'timestamp': 1472162937,
+            'timestamp': 1472103000,
             'upload_date': '20160825',
             'series': 'Ishq Ka Rang Safed',
             'season_number': 1,
             'episode': 'Is this the end of Kamini?',
             'episode_number': 340,
-            'view_count': int,
-            'like_count': int,
+            'release_date': '20160825',
+            'season': 'Season 1',
+            'age_limit': 13,
+            'duration': 1146.0,
         },
-        'params': {
-            'skip_download': True,
-        },
-        'expected_warnings': ['Failed to download m3u8 information'],
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.voot.com/kids/characters/mighty-cat-masked-niyander-e-/400478/school-bag-disappears/440925',
         'only_matching': True,
@@ -55,59 +125,50 @@ class VootIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         media_info = self._download_json(
-            'https://wapi.voot.com/ws/ott/getMediaInfo.json', video_id,
-            query={
-                'platform': 'Web',
-                'pId': 2,
-                'mediaId': video_id,
-            })
+            'https://psapi.voot.com/jio/voot/v1/voot-web/content/query/asset-details', video_id,
+            query={'ids': f'include:{video_id}', 'responseType': 'common'}, headers={'accesstoken': self._TOKEN})
 
-        status_code = try_get(media_info, lambda x: x['status']['code'], int)
-        if status_code != 0:
-            raise ExtractorError(media_info['status']['message'], expected=True)
+        try:
+            m3u8_url = self._download_json(
+                'https://vootapi.media.jio.com/playback/v1/playbackrights', video_id,
+                'Downloading playback JSON', data=b'{}', headers={
+                    **self.geo_verification_headers(),
+                    **self._API_HEADERS,
+                    'Content-Type': 'application/json;charset=utf-8',
+                    'platform': 'androidwebdesktop',
+                    'vootid': video_id,
+                    'voottoken': self._TOKEN,
+                })['m3u8']
+        except ExtractorError as e:
+            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 400:
+                self._check_token_expiry()
+            raise
 
-        media = media_info['assets']
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+        self._remove_duplicate_formats(formats)
 
-        entry_id = media['EntryId']
-        title = media['MediaName']
-        formats = self._extract_m3u8_formats(
-            'https://cdnapisec.kaltura.com/p/1982551/playManifest/pt/https/f/applehttp/t/web/e/' + entry_id,
-            video_id, 'mp4', m3u8_id='hls')
-
-        description, series, season_number, episode, episode_number = [None] * 5
-
-        for meta in try_get(media, lambda x: x['Metas'], list) or []:
-            key, value = meta.get('Key'), meta.get('Value')
-            if not key or not value:
-                continue
-            if key == 'ContentSynopsis':
-                description = value
-            elif key == 'RefSeriesTitle':
-                series = value
-            elif key == 'RefSeriesSeason':
-                season_number = int_or_none(value)
-            elif key == 'EpisodeMainTitle':
-                episode = value
-            elif key == 'EpisodeNo':
-                episode_number = int_or_none(value)
         return {
-            'extractor_key': 'Kaltura',
-            'id': entry_id,
-            'title': title,
-            'description': description,
-            'series': series,
-            'season_number': season_number,
-            'episode': episode,
-            'episode_number': episode_number,
-            'timestamp': unified_timestamp(media.get('CreationDate')),
-            'duration': int_or_none(media.get('Duration')),
-            'view_count': int_or_none(media.get('ViewCounter')),
-            'like_count': int_or_none(media.get('like_counter')),
-            'formats': formats,
+            'id': video_id,
+            # '/_definst_/smil:vod/' m3u8 manifests claim to have 720p+ formats but max out at 480p
+            'formats': traverse_obj(formats, (
+                lambda _, v: '/_definst_/smil:vod/' not in v['url'] or v['height'] <= 480)),
+            'http_headers': self._API_HEADERS,
+            **traverse_obj(media_info, ('result', 0, {
+                'title': ('fullTitle', {str}),
+                'description': ('fullSynopsis', {str}),
+                'series': ('showName', {str}),
+                'season_number': ('season', {int_or_none}),
+                'episode': ('fullTitle', {str}),
+                'episode_number': ('episode', {int_or_none}),
+                'timestamp': ('uploadTime', {int_or_none}),
+                'release_date': ('telecastDate', {unified_strdate}),
+                'age_limit': ('ageNemonic', {parse_age_limit}),
+                'duration': ('duration', {float_or_none}),
+            })),
         }
 
 
-class VootSeriesIE(InfoExtractor):
+class VootSeriesIE(VootBaseIE):
     _VALID_URL = r'https?://(?:www\.)?voot\.com/shows/[^/]+/(?P<id>\d{3,})'
     _TESTS = [{
         'url': 'https://www.voot.com/shows/chakravartin-ashoka-samrat/100002',

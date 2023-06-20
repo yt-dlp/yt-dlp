@@ -77,59 +77,6 @@ class AfreecaTVIE(InfoExtractor):
         }],
         'skip': 'Video is gone',
     }, {
-        'url': 'http://vod.afreecatv.com/PLAYER/STATION/18650793',
-        'info_dict': {
-            'id': '18650793',
-            'ext': 'mp4',
-            'title': '오늘은 다르다! 쏘님의 우월한 위아래~ 댄스리액션!',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': '윈아디',
-            'uploader_id': 'badkids',
-            'duration': 107,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://vod.afreecatv.com/PLAYER/STATION/10481652',
-        'info_dict': {
-            'id': '10481652',
-            'title': "BJ유트루와 함께하는 '팅커벨 메이크업!'",
-            'thumbnail': 're:^https?://(?:video|st)img.afreecatv.com/.*$',
-            'uploader': 'dailyapril',
-            'uploader_id': 'dailyapril',
-            'duration': 6492,
-        },
-        'playlist_count': 2,
-        'playlist': [{
-            'md5': 'd8b7c174568da61d774ef0203159bf97',
-            'info_dict': {
-                'id': '20160502_c4c62b9d_174361386_1',
-                'ext': 'mp4',
-                'title': "BJ유트루와 함께하는 '팅커벨 메이크업!' (part 1)",
-                'thumbnail': 're:^https?://(?:video|st)img.afreecatv.com/.*$',
-                'uploader': 'dailyapril',
-                'uploader_id': 'dailyapril',
-                'upload_date': '20160502',
-                'duration': 3601,
-            },
-        }, {
-            'md5': '58f2ce7f6044e34439ab2d50612ab02b',
-            'info_dict': {
-                'id': '20160502_39e739bb_174361386_2',
-                'ext': 'mp4',
-                'title': "BJ유트루와 함께하는 '팅커벨 메이크업!' (part 2)",
-                'thumbnail': 're:^https?://(?:video|st)img.afreecatv.com/.*$',
-                'uploader': 'dailyapril',
-                'uploader_id': 'dailyapril',
-                'upload_date': '20160502',
-                'duration': 2891,
-            },
-        }],
-        'params': {
-            'skip_download': True,
-        },
-    }, {
         # non standard key
         'url': 'http://vod.afreecatv.com/PLAYER/STATION/20515605',
         'info_dict': {
@@ -146,8 +93,8 @@ class AfreecaTVIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # PARTIAL_ADULT
-        'url': 'http://vod.afreecatv.com/PLAYER/STATION/32028439',
+        # adult content
+        'url': 'https://vod.afreecatv.com/player/97267690',
         'info_dict': {
             'id': '20180327_27901457_202289533_1',
             'ext': 'mp4',
@@ -161,16 +108,25 @@ class AfreecaTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['adult content'],
+        'skip': 'The VOD does not exist',
     }, {
         'url': 'http://www.afreecatv.com/player/Player.swf?szType=szBjId=djleegoon&nStationNo=11273158&nBbsNo=13161095&nTitleNo=36327652',
         'only_matching': True,
     }, {
-        'url': 'http://vod.afreecatv.com/PLAYER/STATION/15055030',
-        'only_matching': True,
-    }, {
-        'url': 'http://vod.afreecatv.com/player/15055030',
-        'only_matching': True,
+        'url': 'https://vod.afreecatv.com/player/96753363',
+        'info_dict': {
+            'id': '20230108_9FF5BEE1_244432674_1',
+            'ext': 'mp4',
+            'uploader_id': 'rlantnghks',
+            'uploader': '페이즈으',
+            'duration': 10840,
+            'thumbnail': 'http://videoimg.afreecatv.com/php/SnapshotLoad.php?rowKey=20230108_9FF5BEE1_244432674_1_r',
+            'upload_date': '20230108',
+            'title': '젠지 페이즈',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     @staticmethod
@@ -223,26 +179,21 @@ class AfreecaTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
-
-        if re.search(r'alert\(["\']This video has been deleted', webpage):
-            raise ExtractorError(
-                'Video %s has been deleted' % video_id, expected=True)
-
-        station_id = self._search_regex(
-            r'nStationNo\s*=\s*(\d+)', webpage, 'station')
-        bbs_id = self._search_regex(
-            r'nBbsNo\s*=\s*(\d+)', webpage, 'bbs')
-        video_id = self._search_regex(
-            r'nTitleNo\s*=\s*(\d+)', webpage, 'title', default=video_id)
-
         partial_view = False
         adult_view = False
         for _ in range(2):
+            data = self._download_json(
+                'https://api.m.afreecatv.com/station/video/a/view',
+                video_id, headers={'Referer': url}, data=urlencode_postdata({
+                    'nTitleNo': video_id,
+                    'nApiLevel': 10,
+                }))['data']
+            if traverse_obj(data, ('code', {int})) == -6221:
+                raise ExtractorError('The VOD does not exist', expected=True)
             query = {
                 'nTitleNo': video_id,
-                'nStationNo': station_id,
-                'nBbsNo': bbs_id,
+                'nStationNo': data['station_no'],
+                'nBbsNo': data['bbs_no'],
             }
             if partial_view:
                 query['partialView'] = 'SKIP_ADULT'

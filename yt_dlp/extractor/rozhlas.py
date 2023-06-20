@@ -1,10 +1,15 @@
+import itertools
+import urllib.error
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     extract_attributes,
     int_or_none,
     remove_start,
     str_or_none,
     traverse_obj,
+    unified_timestamp,
     url_or_none,
 )
 
@@ -51,7 +56,40 @@ class RozhlasIE(InfoExtractor):
         }
 
 
-class RozhlasVltavaIE(InfoExtractor):
+class RozhlasBaseIE(InfoExtractor):
+    def _extract_formats(self, entry, audio_id):
+        formats = []
+        for audio in traverse_obj(entry, ('audioLinks', lambda _, v: url_or_none(v['url']))):
+            ext = audio.get('variant')
+            for retry in self.RetryManager():
+                if retry.attempt > 1:
+                    self._sleep(1, audio_id)
+                try:
+                    if ext == 'dash':
+                        formats.extend(self._extract_mpd_formats(
+                            audio['url'], audio_id, mpd_id=ext))
+                    elif ext == 'hls':
+                        formats.extend(self._extract_m3u8_formats(
+                            audio['url'], audio_id, 'm4a', m3u8_id=ext))
+                    else:
+                        formats.append({
+                            'url': audio['url'],
+                            'ext': ext,
+                            'format_id': ext,
+                            'abr': int_or_none(audio.get('bitrate')),
+                            'acodec': ext,
+                            'vcodec': 'none',
+                        })
+                except ExtractorError as e:
+                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 429:
+                        retry.error = e.cause
+                    else:
+                        self.report_warning(e.msg)
+
+        return formats
+
+
+class RozhlasVltavaIE(RozhlasBaseIE):
     _VALID_URL = r'https?://(?:\w+\.rozhlas|english\.radio)\.cz/[\w-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://wave.rozhlas.cz/papej-masicko-porcujeme-a-bilancujeme-filmy-a-serialy-ktere-letos-zabily-8891337',
@@ -168,33 +206,14 @@ class RozhlasVltavaIE(InfoExtractor):
     }]
 
     def _extract_video(self, entry):
-        formats = []
         audio_id = entry['meta']['ga']['contentId']
-        for audio in traverse_obj(entry, ('audioLinks', lambda _, v: url_or_none(v['url']))):
-            ext = audio.get('variant')
-            if ext == 'dash':
-                formats.extend(self._extract_mpd_formats(
-                    audio['url'], audio_id, mpd_id=ext, fatal=False))
-            elif ext == 'hls':
-                formats.extend(self._extract_m3u8_formats(
-                    audio['url'], audio_id, 'm4a', m3u8_id=ext, fatal=False))
-            else:
-                formats.append({
-                    'url': audio['url'],
-                    'ext': ext,
-                    'format_id': ext,
-                    'abr': int_or_none(audio.get('bitrate')),
-                    'acodec': ext,
-                    'vcodec': 'none',
-                })
-
         chapter_number = traverse_obj(entry, ('meta', 'ga', 'contentSerialPart', {int_or_none}))
 
         return {
             'id': audio_id,
             'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')) if chapter_number else None,
             'chapter_number': chapter_number,
-            'formats': formats,
+            'formats': self._extract_formats(entry, audio_id),
             **traverse_obj(entry, {
                 'title': ('meta', 'ga', 'contentName'),
                 'description': 'title',
@@ -219,3 +238,106 @@ class RozhlasVltavaIE(InfoExtractor):
             'title': traverse_obj(data, ('series', 'title')),
             'entries': map(self._extract_video, data['playlist']),
         }
+
+
+class MujRozhlasIE(RozhlasBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?mujrozhlas\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        # single episode extraction
+        'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
+        'md5': '6f8fd68663e64936623e67c152a669e0',
+        'info_dict': {
+            'id': '10739193',
+            'ext': 'mp3',
+            'title': 'Ach jo, zase to telecí! Řízek je mnohem míň český, než jsme si mysleli',
+            'description': 'md5:db7141e9caaedc9041ec7cefb9a62908',
+            'timestamp': 1684915200,
+            'modified_timestamp': 1684922446,
+            'series': 'Vykopávky',
+            'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/84377046610af6ddc54d910b1dd7a22b.jpg',
+            'channel_id': 'radio-wave',
+            'upload_date': '20230524',
+            'modified_date': '20230524',
+        },
+    }, {
+        # serial extraction
+        'url': 'https://www.mujrozhlas.cz/radiokniha/jaroslava-janackova-pribeh-tajemneho-psani-o-pramenech-genezi-babicky',
+        'playlist_mincount': 7,
+        'info_dict': {
+            'id': 'bb2b5f4e-ffb4-35a6-a34a-046aa62d6f6b',
+            'title': 'Jaroslava Janáčková: Příběh tajemného psaní. O pramenech a genezi Babičky',
+            'description': 'md5:7434d8fac39ac9fee6df098e11dfb1be',
+        },
+    }, {
+        # show extraction
+        'url': 'https://www.mujrozhlas.cz/nespavci',
+        'playlist_mincount': 14,
+        'info_dict': {
+            'id': '09db9b37-d0f4-368c-986a-d3439f741f08',
+            'title': 'Nespavci',
+            'description': 'md5:c430adcbf9e2b9eac88b745881e814dc',
+        },
+    }]
+
+    def _call_api(self, path, item_id, msg='API JSON'):
+        return self._download_json(
+            f'https://api.mujrozhlas.cz/{path}/{item_id}', item_id,
+            note=f'Downloading {msg}', errnote=f'Failed to download {msg}')['data']
+
+    def _extract_audio_entry(self, entry):
+        audio_id = entry['meta']['ga']['contentId']
+
+        return {
+            'id': audio_id,
+            'formats': self._extract_formats(entry['attributes'], audio_id),
+            **traverse_obj(entry, {
+                'title': ('attributes', 'title'),
+                'description': ('attributes', 'description'),
+                'episode_number': ('attributes', 'part'),
+                'series': ('attributes', 'mirroredShow', 'title'),
+                'chapter': ('attributes', 'mirroredSerial', 'title'),
+                'artist': ('meta', 'ga', 'contentAuthor'),
+                'channel_id': ('meta', 'ga', 'contentCreator'),
+                'timestamp': ('attributes', 'since', {unified_timestamp}),
+                'modified_timestamp': ('attributes', 'updated', {unified_timestamp}),
+                'thumbnail': ('attributes', 'asset', 'url', {url_or_none}),
+            })
+        }
+
+    def _entries(self, api_url, playlist_id):
+        for page in itertools.count(1):
+            episodes = self._download_json(
+                api_url, playlist_id, note=f'Downloading episodes page {page}',
+                errnote=f'Failed to download episodes page {page}', fatal=False)
+            for episode in traverse_obj(episodes, ('data', lambda _, v: v['meta']['ga']['contentId'])):
+                yield self._extract_audio_entry(episode)
+            api_url = traverse_obj(episodes, ('links', 'next', {url_or_none}))
+            if not api_url:
+                break
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        info = self._search_json(r'\bvar\s+dl\s*=', webpage, 'info json', display_id)
+
+        entity = info['siteEntityBundle']
+
+        if entity == 'episode':
+            return self._extract_audio_entry(self._call_api(
+                'episodes', info['contentId'], 'episode info API JSON'))
+
+        elif entity in ('show', 'serial'):
+            playlist_id = info['contentShow'].split(':')[0] if entity == 'show' else info['contentId']
+            data = self._call_api(f'{entity}s', playlist_id, f'{entity} playlist JSON')
+            api_url = data['relationships']['episodes']['links']['related']
+            return self.playlist_result(
+                self._entries(api_url, playlist_id), playlist_id,
+                **traverse_obj(data, ('attributes', {
+                    'title': 'title',
+                    'description': 'description',
+                })))
+
+        else:
+            # `entity == 'person'` not implemented yet by API, ref:
+            # https://api.mujrozhlas.cz/persons/8367e456-2a57-379a-91bb-e699619bea49/participation
+            raise ExtractorError(f'Unsupported entity type "{entity}"')

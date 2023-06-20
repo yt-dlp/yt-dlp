@@ -44,7 +44,7 @@ def _js_arith_op(op):
 
 
 def _js_div(a, b):
-    if JS_Undefined in (a, b) or not (a and b):
+    if JS_Undefined in (a, b) or not (a or b):
         return float('nan')
     return (a or 0) / b if b else float('inf')
 
@@ -779,7 +779,7 @@ class JSInterpreter:
         obj = {}
         obj_m = re.search(
             r'''(?x)
-                (?<!this\.)%s\s*=\s*{\s*
+                (?<!\.)%s\s*=\s*{\s*
                     (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
                 }\s*;
             ''' % (re.escape(objname), _FUNC_NAME_RE),

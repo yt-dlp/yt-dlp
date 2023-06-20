@@ -1292,6 +1292,7 @@ The available fields are:
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
  - `channel_follower_count` (numeric): Number of followers of the channel
+ - `channel_is_verified` (boolean): Whether the channel is verified on the platform
  - `location` (string): Physical location where the video was filmed
  - `duration` (numeric): Length of the video in seconds
  - `duration_string` (string): Length of the video (HH:mm:ss)
@@ -1845,6 +1846,12 @@ The following extractors use this feature:
 
 ### wrestleuniverse
 * `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
+
+#### twitchstream (Twitch)
+* `client_id`: Client ID value to be sent with GraphQL requests, e.g. `twitchstream:client_id=kimne78kx3ncx6brgo4mv6wki5h1ko`
+
+#### nhkradirulive (NHK らじる★らじる LIVE)
+* `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

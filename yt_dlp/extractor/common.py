@@ -286,6 +286,7 @@ class InfoExtractor:
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
     channel_follower_count: Number of followers of the channel.
+    channel_is_verified: Whether the channel is verified on the platform.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -314,6 +315,11 @@ class InfoExtractor:
                         * "author" - human-readable name of the comment author
                         * "author_id" - user ID of the comment author
                         * "author_thumbnail" - The thumbnail of the comment author
+                        * "author_url" - The url to the comment author's page
+                        * "author_is_verified" - Whether the author is verified
+                                                 on the platform
+                        * "author_is_uploader" - Whether the comment is made by
+                                                 the video uploader
                         * "id" - Comment ID
                         * "html" - Comment as HTML
                         * "text" - Plain text of the comment
@@ -325,8 +331,8 @@ class InfoExtractor:
                         * "dislike_count" - Number of negative ratings of the comment
                         * "is_favorited" - Whether the comment is marked as
                                            favorite by the video uploader
-                        * "author_is_uploader" - Whether the comment is made by
-                                                 the video uploader
+                        * "is_pinned" - Whether the comment is pinned to
+                                        the top of the comments
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -3444,7 +3450,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return LenientSimpleCookie(self._downloader._calc_cookies(url))
+        return LenientSimpleCookie(self._downloader.cookiejar.get_cookie_header(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """

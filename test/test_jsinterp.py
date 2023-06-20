@@ -28,6 +28,13 @@ class TestJSInterpreter(unittest.TestCase):
     def test_calc(self):
         self._test('function f(a){return 2*a+1;}', 7, args=[3])
 
+    def test_div(self):
+        jsi = JSInterpreter('function f(a, b){return a / b;}')
+        self.assertTrue(math.isnan(jsi.call_function('f', 0, 0)))
+        self.assertTrue(math.isnan(jsi.call_function('f', JS_Undefined, 1)))
+        self.assertTrue(math.isinf(jsi.call_function('f', 2, 0)))
+        self.assertEqual(jsi.call_function('f', 0, 3), 0)
+
     def test_empty_return(self):
         self._test('function f(){return; y()}', None)
 
