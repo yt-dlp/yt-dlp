@@ -467,15 +467,15 @@ def create_parser():
         callback_kwargs={
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
-                'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
+                'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge', 'playlist-match-filter',
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress'],
+                '2022': ['no-external-downloader-progress', 'playlist-match-filter'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '

@@ -755,7 +755,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)d %(id)r', "1234 '1234'")
         test('%(id)r %(height)r', "'1234' 1080")
         test('%(ext)s-%(ext|def)d', 'mp4-def')
-        test('%(width|0)04d', '0000')
+        test('%(width|0)04d', '0')
         test('a%(width|b)d', 'ab', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']

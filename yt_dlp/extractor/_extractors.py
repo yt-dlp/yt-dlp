@@ -1260,6 +1260,7 @@ from .nhk import (
     NhkForSchoolProgramListIE,
     NhkRadioNewsPageIE,
     NhkRadiruIE,
+    NhkRadiruLiveIE,
 )
 from .nhl import NHLIE
 from .nick import (
@@ -2426,7 +2427,10 @@ from .yandexvideo import (
     ZenYandexChannelIE,
 )
 from .yapfiles import YapFilesIE
-from .yappy import YappyIE
+from .yappy import (
+    YappyIE,
+    YappyProfileIE,
+)
 from .yesjapan import YesJapanIE
 from .yinyuetai import YinYueTaiIE
 from .yle_areena import YleAreenaIE
@@ -2444,7 +2448,10 @@ from .younow import (
 from .youporn import YouPornIE
 from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
-from .zaiko import ZaikoIE
+from .zaiko import (
+    ZaikoIE,
+    ZaikoETicketIE,
+)
 from .zapiks import ZapiksIE
 from .zattoo import (
     BBVTVIE,

@@ -1286,17 +1286,17 @@ class YoutubeDL:
             if fmt == 's' and value is not None and key in field_size_compat_map.keys():
                 fmt = f'0{field_size_compat_map[key]:d}d'
 
-            if value is None:
-                value = default
-            elif replacement is not None:
+            if None not in (value, replacement):
                 try:
                     value = replacement_formatter.format(replacement, value)
                 except ValueError:
-                    value = na
+                    value, default = None, na
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
-            if fmt[-1] == 'l':  # list
+            if value is None:
+                value, fmt = default, 's'
+            elif fmt[-1] == 'l':  # list
                 delim = '\n' if '#' in flags else ', '
                 value, fmt = delim.join(map(str, variadic(value, allowed_types=(str, bytes)))), str_fmt
             elif fmt[-1] == 'j':  # json
@@ -1403,7 +1403,7 @@ class YoutubeDL:
 
     def _match_entry(self, info_dict, incomplete=False, silent=False):
         """Returns None if the file should be downloaded"""
-        _type = info_dict.get('_type', 'video')
+        _type = 'video' if 'playlist-match-filter' in self.params['compat_opts'] else info_dict.get('_type', 'video')
         assert incomplete or _type == 'video', 'Only video result can be considered complete'
 
         video_title = info_dict.get('title', info_dict.get('id', 'entry'))

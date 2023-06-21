@@ -149,7 +149,7 @@ class Updater:
                     f'You are switching to an {self.ydl._format_err("unofficial", "red")} executable '
                     f'from {self.ydl._format_err(self._target_repo, self.ydl.Styles.EMPHASIS)}. '
                     f'Run {self.ydl._format_err("at your own risk", "light red")}')
-                self.restart = self._blocked_restart
+                self._block_restart('Automatically restarting into custom builds is disabled for security reasons')
         else:
             self._target_repo = UPDATE_SOURCES.get(self.target_channel)
             if not self._target_repo:
@@ -294,6 +294,7 @@ class Updater:
         if (_VERSION_RE.fullmatch(self.target_tag[5:])
                 and version_tuple(self.target_tag[5:]) < (2023, 3, 2)):
             self.ydl.report_warning('You are downgrading to a version without --update-to')
+            self._block_restart('Cannot automatically restart to a version without --update-to')
 
         directory = os.path.dirname(self.filename)
         if not os.access(self.filename, os.W_OK):
@@ -381,11 +382,11 @@ class Updater:
         _, _, returncode = Popen.run(self.cmd)
         return returncode
 
-    def _blocked_restart(self):
-        self._report_error(
-            'Automatically restarting into custom builds is disabled for security reasons. '
-            'Restart yt-dlp to use the updated version', expected=True)
-        return self.ydl._download_retcode
+    def _block_restart(self, msg):
+        def wrapper():
+            self._report_error(f'{msg}. Restart yt-dlp to use the updated version', expected=True)
+            return self.ydl._download_retcode
+        self.restart = wrapper
 
 
 def run_update(ydl):
