@@ -131,8 +131,7 @@ class N1InfoIIE(InfoExtractor):
                     'title': title,
                     'thumbnail': thumbnail,
                     'timestamp': timestamp,
-                    }
-                )
+                })
         else:
             # Old player still present in older articles
             videos = re.findall(r'(?m)(<video[^>]+>)', webpage)
