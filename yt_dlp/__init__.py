@@ -188,8 +188,8 @@ def validate_options(opts):
         raise ValueError(f'{max_name} "{max_val}" must be must be greater than or equal to {min_name} "{min_val}"')
 
     # Usernames and passwords
-    validate(not opts.usenetrc or (opts.username is None and opts.password is None),
-             '.netrc', msg='using {name} conflicts with giving username/password')
+    validate(sum(map(bool, (opts.usenetrc, opts.netrc_cmd, opts.username))) <= 1, '.netrc',
+             msg='{name}, netrc command and username/password are mutually exclusive options')
     validate(opts.password is None or opts.username is not None, 'account username', msg='{name} missing')
     validate(opts.ap_password is None or opts.ap_username is not None,
              'TV Provider account username', msg='{name} missing')
@@ -741,6 +741,7 @@ def parse_options(argv=None):
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
+        'netrc_cmd': opts.netrc_cmd,
         'username': opts.username,
         'password': opts.password,
         'twofactor': opts.twofactor,

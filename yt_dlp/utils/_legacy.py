@@ -11,7 +11,7 @@ import functools
 import urllib.error
 import socket
 
-from ._utils import decode_base_n, preferredencoding, YoutubeDLError
+from ._utils import Popen, decode_base_n, preferredencoding, YoutubeDLError
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 import ssl
@@ -382,3 +382,7 @@ class PerRequestProxyHandler(urllib.request.ProxyHandler):
             return None
         return urllib.request.ProxyHandler.proxy_open(
             self, req, proxy, type)
+
+
+def process_communicate_or_kill(p, *args, **kwargs):
+    return Popen.communicate_or_kill(p, *args, **kwargs)

@@ -24,7 +24,7 @@ from ..utils import (
 
 class ZDFBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
-    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd', 'uhd')
+    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd', 'fhd', 'uhd')
 
     def _call_api(self, url, video_id, item, api_token=None, referrer=None):
         headers = {}
@@ -61,6 +61,9 @@ class ZDFBaseIE(InfoExtractor):
         elif mime_type == 'application/f4m+xml' or ext == 'f4m':
             new_formats = self._extract_f4m_formats(
                 update_url_query(format_url, {'hdcore': '3.7.0'}), video_id, f4m_id='hds', fatal=False)
+        elif ext == 'mpd':
+            new_formats = self._extract_mpd_formats(
+                format_url, video_id, mpd_id='dash', fatal=False)
         else:
             f = parse_codecs(meta.get('mimeCodec'))
             if not f and meta.get('type'):

@@ -40,28 +40,33 @@ class ACastBaseIE(InfoExtractor):
 
 class ACastIE(ACastBaseIE):
     IE_NAME = 'acast'
-    _VALID_URL = r'''(?x)
+    _VALID_URL = r'''(?x:
                     https?://
                         (?:
                             (?:(?:embed|www)\.)?acast\.com/|
                             play\.acast\.com/s/
                         )
-                        (?P<channel>[^/]+)/(?P<id>[^/#?]+)
-                    '''
+                        (?P<channel>[^/]+)/(?P<id>[^/#?"]+)
+                    )'''
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.acast.com/sparpodcast/2.raggarmordet-rosterurdetforflutna',
-        'md5': 'f5598f3ad1e4776fed12ec1407153e4b',
         'info_dict': {
             'id': '2a92b283-1a75-4ad8-8396-499c641de0d9',
             'ext': 'mp3',
             'title': '2. Raggarmordet - Röster ur det förflutna',
-            'description': 'md5:a992ae67f4d98f1c0141598f7bebbf67',
+            'description': 'md5:013959207e05011ad14a222cf22278cc',
             'timestamp': 1477346700,
             'upload_date': '20161024',
             'duration': 2766,
-            'creator': 'Anton Berg & Martin Johnson',
+            'creator': 'Third Ear Studio',
             'series': 'Spår',
             'episode': '2. Raggarmordet - Röster ur det förflutna',
+            'thumbnail': 'https://assets.pippa.io/shows/616ebe1886d7b1398620b943/616ebe33c7e6e70013cae7da.jpg',
+            'episode_number': 2,
+            'display_id': '2.raggarmordet-rosterurdetforflutna',
+            'season_number': 4,
+            'season': 'Season 4',
         }
     }, {
         'url': 'http://embed.acast.com/adambuxton/ep.12-adam-joeschristmaspodcast2015',
@@ -72,6 +77,23 @@ class ACastIE(ACastBaseIE):
     }, {
         'url': 'https://play.acast.com/s/sparpodcast/2a92b283-1a75-4ad8-8396-499c641de0d9',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://ausi.anu.edu.au/news/democracy-sausage-episode-can-labor-be-long-form-government',
+        'info_dict': {
+            'id': '646c68fb21fbf20011e9c651',
+            'ext': 'mp3',
+            'creator': 'The Australian National University',
+            'display_id': 'can-labor-be-a-long-form-government',
+            'duration': 2618,
+            'thumbnail': 'https://assets.pippa.io/shows/6113e8578b4903809f16f7e5/1684821529295-515b9520db9ce53275b995eb302f941c.jpeg',
+            'title': 'Can Labor be a long-form government?',
+            'episode': 'Can Labor be a long-form government?',
+            'upload_date': '20230523',
+            'series': 'Democracy Sausage with Mark Kenny',
+            'timestamp': 1684826362,
+            'description': 'md5:feabe1fc5004c78ee59c84a46bf4ba16',
+        }
     }]
 
     def _real_extract(self, url):

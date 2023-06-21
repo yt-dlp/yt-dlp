@@ -7,8 +7,8 @@ from .common import FileDownloader
 from .external import FFmpegFD
 from ..utils import (
     DownloadError,
-    str_or_none,
     WebSocketsWrapper,
+    str_or_none,
     try_get,
 )
 from ..networking import Request
