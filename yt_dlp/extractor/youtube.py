@@ -258,7 +258,7 @@ def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('android', 'web', 'tv', 'ios', 'mweb')
+    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -3625,7 +3625,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['android', 'web']
+        default = ['ios', 'android', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
@@ -3931,6 +3931,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = f'{itag}-{proto}'
             elif itag:
                 f['format_id'] = itag
+
+            if itag in ('616', '235'):
+                f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
+                f['source_preference'] = (f.get('source_preference') or -1) + 100
 
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
