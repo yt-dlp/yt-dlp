@@ -95,6 +95,16 @@ class N1InfoIIE(InfoExtractor):
             'timestamp': 1635861677,
         },
     }, {
+        'url': 'https://n1info.rs/vesti/cuta-biti-u-kosovskoj-mitrovici-znaci-da-te-docekaju-eksplozivnim-napravama/',
+        'info_dict': {
+            'id': '1332368',
+            'ext': 'mp4',
+            'title': 'Ćuta: Biti u Kosovskoj Mitrovici znači da te dočekaju eksplozivnim napravama',
+            'upload_date': '20230620',
+            'timestamp': 1687290536,
+            'thumbnail': 'https://cdn.brid.tv/live/partners/26827/snapshot/1332368_th_6492013a8356f_1687290170.jpg'
+        },
+    }, {
         'url': 'https://hr.n1info.com/vijesti/pravobraniteljica-o-ubojstvu-u-zagrebu-radi-se-o-doista-nezapamcenoj-situaciji/',
         'only_matching': True,
     }]
