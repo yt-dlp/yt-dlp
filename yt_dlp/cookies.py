@@ -1326,3 +1326,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
         cookie_req = urllib.request.Request(escape_url(sanitize_url(url)))
         self.add_cookie_header(cookie_req)
         return cookie_req.get_header('Cookie')
+
+    def clear(self, *args, **kwargs):
+        with contextlib.suppress(KeyError):
+            return super().clear(*args, **kwargs)

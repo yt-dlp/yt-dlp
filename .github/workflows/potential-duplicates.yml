@@ -12,7 +12,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           label: potential-duplicate
           state: all
-          threshold: 0.7
+          threshold: 0.3
           comment: |
             This issue is potentially a duplicate of one of the following issues:
             {{#issues}}
