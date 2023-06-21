@@ -66,7 +66,7 @@ class NebulaBaseIE(InfoExtractor):
         stream_info = self._call_api(
             f'https://content.watchnebula.com/video/{slug}/stream/',
             slug, note='Fetching video stream info')
-        fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug)
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug, 'mp4')
         return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
