@@ -30,8 +30,8 @@ class MotherlessIE(InfoExtractor):
             'like_count': int,
         },
         'params': {
-            # Downloads are currently broken because of an incomplete cert chain
-            'skip_download': True,
+            # Incomplete cert chains
+            'nocheckcertificate': True,
         },
     }, {
         'url': 'http://motherless.com/532291B',
@@ -65,8 +65,7 @@ class MotherlessIE(InfoExtractor):
             'view_count': int,
         },
         'params': {
-            # Downloads are currently broken because of an incomplete cert chain
-            'skip_download': True,
+            'nocheckcertificate': True,
         },
     }, {
         'url': 'http://motherless.com/8B4BBC1',
@@ -84,8 +83,7 @@ class MotherlessIE(InfoExtractor):
             'view_count': int,
         },
         'params': {
-            # Downloads are currently broken because of an incomplete cert chain
-            'skip_download': True,
+            'nocheckcertificate': True,
         },
     }, {
         # see https://motherless.com/videos/recent for recent videos with
@@ -105,7 +103,7 @@ class MotherlessIE(InfoExtractor):
             'view_count': int,
         },
         'params': {
-            'skip_download': True,
+            'nocheckcertificate': True,
         },
     }]
 
