@@ -70,7 +70,7 @@ class NebulaBaseIE(InfoExtractor):
                                             auth_type='bearer',
                                             note='Fetching video stream info')
         manifest_url = stream_info['manifest']
-        return self._extract_m3u8_formats_and_subtitles(manifest_url, slug)
+        return self._extract_m3u8_formats_and_subtitles(manifest_url, slug, 'mp4')
 
     def _build_video_info(self, episode):
         fmts, subs = self._fetch_video_formats(episode['slug'])
