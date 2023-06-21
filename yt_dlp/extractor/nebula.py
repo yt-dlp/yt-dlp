@@ -5,7 +5,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     format_field,
+    make_archive_id,
     parse_iso8601,
+    remove_start,
     smuggle_url,
     traverse_obj,
     unsmuggle_url,
@@ -70,8 +72,8 @@ class NebulaBaseIE(InfoExtractor):
     def _extract_video_metadata(self, episode):
         channel_url = format_field(episode, 'channel_slug', 'https://nebula.app/%s')
         return {
+            'id': remove_start(episode['id'], 'video_episode:'),
             **traverse_obj(episode, {
-                'id': 'zype_id',
                 'display_id': 'slug',
                 'title': 'title',
                 'description': 'description',
@@ -83,6 +85,7 @@ class NebulaBaseIE(InfoExtractor):
                 'uploader': 'channel_title',
                 'series': 'channel_title',
                 'creator': 'channel_title',
+                '_old_archive_ids': ('zype_id', {lambda x: [make_archive_id(NebulaIE, x)]}),
             }),
             'channel_url': channel_url,
             'uploader_url': channel_url,
@@ -172,7 +175,8 @@ class NebulaIE(NebulaBaseIE):
         }, {
             'url': 'https://nebula.tv/videos/tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
             'info_dict': {
-                'id': '63f64c74366fcd00017c1513',
+                'id': 'e389af9d-1dab-44f2-8788-ee24deb7ff0d',
+                'ext': 'mp4',
                 'display_id': 'tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
                 'title': 'Did the US Really Blow Up the NordStream Pipelines?',
                 'description': 'md5:b4e2a14e3ff08f546a3209c75261e789',
@@ -188,7 +192,7 @@ class NebulaIE(NebulaBaseIE):
                 'series': 'TLDR News EU',
                 'thumbnail': r're:https?://.*\.jpeg',
                 'creator': 'TLDR News EU',
-                'ext': 'mp4',
+                '_old_archive_ids': ['nebula 63f64c74366fcd00017c1513'],
             },
             'params': {'skip_download': 'm3u8'},
         },
