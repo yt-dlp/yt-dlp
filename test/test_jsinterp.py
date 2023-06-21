@@ -35,12 +35,38 @@ class TestJSInterpreter(unittest.TestCase):
         self._test('function f(){42}', None)
         self._test('var f = function(){return 42;}', 42)
 
+    def test_add(self):
+        self._test('function f(){return 42 + 7;}', 49)
+        self._test('function f(){return 42 + undefined;}', NaN)
+        self._test('function f(){return 42 + null;}', 42)
+
+    def test_sub(self):
+        self._test('function f(){return 42 - 7;}', 35)
+        self._test('function f(){return 42 - undefined;}', NaN)
+        self._test('function f(){return 42 - null;}', 42)
+
+    def test_mul(self):
+        self._test('function f(){return 42 * 7;}', 294)
+        self._test('function f(){return 42 * undefined;}', NaN)
+        self._test('function f(){return 42 * null;}', 0)
+
     def test_div(self):
         jsi = JSInterpreter('function f(a, b){return a / b;}')
         self._test(jsi, NaN, args=(0, 0))
         self._test(jsi, NaN, args=(JS_Undefined, 1))
         self._test(jsi, float('inf'), args=(2, 0))
         self._test(jsi, 0, args=(0, 3))
+
+    def test_mod(self):
+        self._test('function f(){return 42 % 7;}', 0)
+        self._test('function f(){return 42 % 0;}', NaN)
+        self._test('function f(){return 42 % undefined;}', NaN)
+
+    def test_exp(self):
+        self._test('function f(){return 42 ** 2;}', 1764)
+        self._test('function f(){return 42 ** undefined;}', NaN)
+        self._test('function f(){return 42 ** null;}', 1)
+        self._test('function f(){return undefined ** 42;}', NaN)
 
     def test_calc(self):
         self._test('function f(a){return 2*a+1;}', 7, args=[3])

@@ -812,9 +812,9 @@ class JSInterpreter:
                 \((?P<args>[^)]*)\)\s*
                 (?P<code>{.+})''' % {'name': re.escape(funcname)},
             self.code)
-        code, _ = self._separate_at_paren(func_m.group('code'))
         if func_m is None:
             raise self.Exception(f'Could not find JS function "{funcname}"')
+        code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
     def extract_function(self, funcname):
