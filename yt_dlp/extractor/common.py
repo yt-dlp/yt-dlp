@@ -17,6 +17,7 @@ import subprocess
 import sys
 import time
 import types
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
@@ -58,6 +59,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    netrc_from_content,
     network_exceptions,
     orderedSet,
     parse_bitrate,
@@ -72,7 +74,6 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     str_to_int,
-    netrc_from_content,
     strip_or_none,
     traverse_obj,
     truncate_string,

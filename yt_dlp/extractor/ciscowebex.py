@@ -49,7 +49,7 @@ class CiscoWebexIE(InfoExtractor):
             'https://%s.webex.com/webappng/api/v1/recordings/%s/stream' % (subdomain, video_id),
             video_id, headers=headers, query={'siteurl': siteurl}, expected_status=(403, 429))
 
-        if urlh.status == 403:
+        if urlh.getcode() == 403:
             if stream['code'] == 53004:
                 self.raise_login_required()
             if stream['code'] == 53005:
@@ -59,7 +59,7 @@ class CiscoWebexIE(InfoExtractor):
                     'This video is protected by a password, use the --video-password option', expected=True)
             raise ExtractorError(f'{self.IE_NAME} said: {stream["code"]} - {stream["message"]}', expected=True)
 
-        if urlh.status == 429:
+        if urlh.getcode() == 429:
             self.raise_login_required(
                 f'{self.IE_NAME} asks you to solve a CAPTCHA. Solve CAPTCHA in browser and',
                 method='cookies')

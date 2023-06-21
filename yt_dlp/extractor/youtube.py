@@ -811,7 +811,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'BADGE_STYLE_TYPE_PREMIUM': BadgeType.AVAILABILITY_PREMIUM,
             'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW,
             'BADGE_STYLE_TYPE_VERIFIED': BadgeType.VERIFIED,
-            'BADGE_STYLE_TYPE_VERIFIED_ARTIST': BadgeType.VERIFIED
+            'BADGE_STYLE_TYPE_VERIFIED_ARTIST': BadgeType.VERIFIED,
         }
 
         label_map = {
@@ -821,7 +821,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'live': BadgeType.LIVE_NOW,
             'premium': BadgeType.AVAILABILITY_PREMIUM,
             'verified': BadgeType.VERIFIED,
-            'official artist channel': BadgeType.VERIFIED
+            'official artist channel': BadgeType.VERIFIED,
         }
 
         badges = []
@@ -3935,7 +3935,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
                 f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
-            if self.get_param('verbose'):
+            if self.get_param('verbose') or all_formats:
                 f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
             if f.get('fps') and f['fps'] <= 1:
                 del f['fps']
@@ -4531,7 +4531,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
         ):
             upload_date = strftime_or_none(
-                self._parse_time_text(self._get_text(vpir, 'dateText')), '%Y%m%d') or upload_date
+                self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
         info['upload_date'] = upload_date
 
         for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
@@ -5071,7 +5071,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         last_updated_unix = self._parse_time_text(
             self._get_text(playlist_stats, 2)  # deprecated, remove when old layout discontinued
             or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text')))
-        info['modified_date'] = strftime_or_none(last_updated_unix, '%Y%m%d')
+        info['modified_date'] = strftime_or_none(last_updated_unix)
 
         info['view_count'] = self._get_count(playlist_stats, 1)
         if info['view_count'] is None:  # 0 is allowed

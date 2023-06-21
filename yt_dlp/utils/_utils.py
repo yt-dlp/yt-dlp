@@ -872,12 +872,6 @@ class netrc_from_content(netrc.netrc):
             self._parse('-', stream, False)
 
 
-def process_communicate_or_kill(p, *args, **kwargs):
-    deprecation_warning(f'"{__name__}.process_communicate_or_kill" is deprecated and may be removed '
-                        f'in a future version. Use "{__name__}.Popen.communicate_or_kill" instead')
-    return Popen.communicate_or_kill(p, *args, **kwargs)
-
-
 class Popen(subprocess.Popen):
     if sys.platform == 'win32':
         _startupinfo = subprocess.STARTUPINFO()
@@ -1662,7 +1656,7 @@ def unified_strdate(date_str, day_first=True):
 
 
 def unified_timestamp(date_str, day_first=True):
-    if date_str is None:
+    if not isinstance(date_str, str):
         return None
 
     date_str = re.sub(r'\s+', ' ', re.sub(
@@ -2454,7 +2448,7 @@ def request_to_url(req):
         return req
 
 
-def strftime_or_none(timestamp, date_format, default=None):
+def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp

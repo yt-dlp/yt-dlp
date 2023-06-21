@@ -19,11 +19,11 @@ def parse_patched_options(opts):
         'extract_flat': False,
         'concat_playlist': 'never',
     })
-    yt_dlp.options.__dict__['create_parser'] = lambda: patched_parser
+    yt_dlp.options.create_parser = lambda: patched_parser
     try:
         return yt_dlp.parse_options(opts)
     finally:
-        yt_dlp.options.__dict__['create_parser'] = create_parser
+        yt_dlp.options.create_parser = create_parser
 
 
 default_opts = parse_patched_options([]).ydl_opts
