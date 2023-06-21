@@ -2806,11 +2806,13 @@ class YoutubeDL:
                 new_info.update(fmt)
                 offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
                 end_time = offset + min(chapter.get('end_time', duration), duration)
+                # duration may not be accurate. So allow deviations <1sec
+                if end_time == float('inf') or end_time > offset + duration + 1:
+                    end_time = None
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        # duration may not be accurate. So allow deviations <1sec
-                        'section_end': end_time if end_time <= offset + duration + 1 else None,
+                        'section_end': end_time,
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
