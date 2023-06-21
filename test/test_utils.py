@@ -7,6 +7,7 @@ import sys
 import unittest
 import warnings
 
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -131,6 +132,7 @@ from yt_dlp.utils import (
     xpath_element,
     xpath_text,
     xpath_with_ns,
+    extract_basic_auth
 )
 
 
@@ -2342,6 +2344,14 @@ Line 1
 
         headers4 = CaseInsensitiveDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+
+    def test_extract_basic_auth(self):
+        assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
+        assert extract_basic_auth('http://foo.bar') == ('http://foo.bar', None)
+        assert extract_basic_auth('http://@foo.bar') == ('http://foo.bar',  'Basic Og==')
+        assert extract_basic_auth('http://:pass@foo.bar') == ('http://foo.bar', 'Basic OnBhc3M=')
+        assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
+        assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
 
 if __name__ == '__main__':

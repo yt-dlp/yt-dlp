@@ -3925,7 +3925,7 @@ class YoutubeDL:
         Deprecated: use YoutubeDL.urlopen() instead.
         Get an urllib OpenerDirector from the Urllib handler.
         """
-        handler = self._request_director.get_handlers(rh_key='urllib')[0]
+        handler = self._request_director.get_handlers(rh_key='Urllib')[0]
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
     def urlopen(self, req):
@@ -3937,7 +3937,7 @@ class YoutubeDL:
             req = Request(
                 req.get_full_url(), data=req.data, method=req.get_method(),
                 headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
-                timeout=req.timeout if hasattr(req, 'timeout') else None)
+                extensions={'timeout': req.timeout} if hasattr(req, 'timeout') else None)
         assert isinstance(req, Request)
 
         # Assume user:pass url params are basic auth
@@ -3947,9 +3947,11 @@ class YoutubeDL:
             req.headers['Authorization'] = basic_auth_header
         req.url = url
 
+        # TODO
         clean_proxies(req)
         clean_headers(req)
 
+        # TODO: do we want to use YoutubeDLError here or something else?
         try:
             return self._request_director.send(req)
         except NoSupportingHandlers as e:
@@ -3963,10 +3965,11 @@ class YoutubeDL:
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
-                e.msg = 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect'
+                raise YoutubeDLError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect') from e
             elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
-                e.msg = 'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. Try using --legacy-server-connect'
-            raise e
+                raise YoutubeDLError(
+                    'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. Try using --legacy-server-connect') from e
+            raise
 
     def build_request_director(self, handlers):
 

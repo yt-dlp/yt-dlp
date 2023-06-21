@@ -9,7 +9,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from yt_dlp.networking import get_request_handler, RequestHandler
+from yt_dlp.networking import get_request_handler, RequestHandler, Response
 import gzip
 import http.cookiejar
 import functools
@@ -33,7 +33,7 @@ from .helper import FakeYDL
 from yt_dlp.networking import Request, UrllibRH, list_request_handler_classes
 from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest, RequestError, \
     TransportError
-from yt_dlp.utils import urlencode_postdata, CaseInsensitiveDict
+from yt_dlp.utils import urlencode_postdata, CaseInsensitiveDict, YoutubeDLError
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -709,3 +709,89 @@ class TestUrllibRHValidation:
 
     def test_timeout_extension(self, handler):
         run_validation(handler, True, Request(f'http://', extensions={'timeout': 'notavalidtimeout'}))
+
+
+class FakeResponse(Response):
+    def __init__(self, request):
+        # XXX: we could make request part of standard response interface
+        self.request = request
+        super().__init__(raw=io.BytesIO(b''), headers={}, url=request.url)
+
+
+class FakeRequestHandler(RequestHandler):
+
+    def _validate(self, request):
+        return
+
+    def _send(self, request: Request):
+        if request.url.startswith('ssl://'):
+            raise SSLError(request.url[len('ssl://'):])
+        return FakeResponse(request)
+
+
+class FakeRHYDL(FakeYDL):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._request_director = self.build_request_director([FakeRequestHandler])
+
+
+class TestYoutubeDLLayer:
+
+    def test_compat_opener(self):
+        with FakeYDL() as ydl:
+            assert isinstance(ydl._opener, urllib.request.OpenerDirector)
+
+    def test_compat_request(self):
+        with FakeRHYDL() as ydl:
+            assert ydl.urlopen('test://')
+            urllib_req = urllib.request.Request('http://foo.bar', data=b'test', method='PUT', headers={'X-Test': '1'})
+            urllib_req.add_unredirected_header('Cookie', 'bob=bob')
+            urllib_req.timeout = 2
+            req = ydl.urlopen(urllib_req).request
+            assert req.url == urllib_req.get_full_url()
+            assert req.data == urllib_req.data
+            assert req.method == urllib_req.get_method()
+            assert 'X-Test' in req.headers
+            assert 'Cookie' in req.headers
+            assert req.extensions.get('timeout') == 2
+
+            with pytest.raises(AssertionError):
+                ydl.urlopen(None)
+
+    def test_compat_compression(self):
+        with FakeRHYDL() as ydl:
+            res = ydl.urlopen(Request('test://', headers={'Youtubedl-no-compression': True}))
+            assert 'Youtubedl-no-compression' not in res.request.headers
+            assert res.request.headers.get('Accept-Encoding') == 'identity'
+
+    def test_extract_basic_auth(self):
+        with FakeRHYDL() as ydl:
+            res = ydl.urlopen(Request('http://user:pass@foo.bar'))
+            assert res.request.headers['Authorization'] == 'Basic dXNlcjpwYXNz'
+
+    def test_file_urls_error(self):
+        # use urllib handler
+        with FakeYDL() as ydl:
+            with pytest.raises(YoutubeDLError, match=r'file:// URLs are disabled by default'):
+                ydl.urlopen('file://')
+
+    def test_legacy_server_connect_error(self):
+        with FakeRHYDL() as ydl:
+            for error in ('UNSAFE_LEGACY_RENEGOTIATION_DISABLED', 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
+                with pytest.raises(YoutubeDLError, match=r'Try using --legacy-server-connect'):
+                    ydl.urlopen(f'ssl://{error}')
+
+            with pytest.raises(SSLError, match='testerror'):
+                ydl.urlopen(f'ssl://testerror')
+
+    def test_clean_proxy(self):
+        with FakeRHYDL() as ydl:
+            get_req = lambda x: ydl.urlopen(x).request
+            req = get_req(Request('test://', headers={'ytdl-request-proxy': '//foo.bar'}))
+            assert 'ytdl-request-proxy' not in req.headers
+            assert req.proxies['all'] == 'http://foo.bar'
+
+            req = get_req(Request('test://', proxies={'http': '__noproxy__', 'no': '127.0.0.1,foo.bar', 'https': 'example.com'}))
+            assert req.proxies['http'] == None
+            assert req.proxies['no'] == '127.0.0.1,foo.bar'
+            assert req.proxies['https'] == 'http://example.com'
