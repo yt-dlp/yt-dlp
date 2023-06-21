@@ -721,6 +721,10 @@ def create_parser():
         dest='netrc_location', metavar='PATH',
         help='Location of .netrc authentication data; either the path or its containing directory. Defaults to ~/.netrc')
     authentication.add_option(
+        '--netrc-cmd',
+        dest='netrc_cmd', metavar='NETRC_CMD',
+        help='Command to execute to get the credentials for an extractor.')
+    authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
         help='Video password (vimeo, youku)')

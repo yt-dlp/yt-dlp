@@ -190,6 +190,7 @@ class YoutubeDL:
     ap_password:       Multiple-system operator account password.
     usenetrc:          Use netrc for authentication instead.
     netrc_location:    Location of the netrc file. Defaults to ~/.netrc.
+    netrc_cmd:         Use a shell command to get credentials
     verbose:           Print additional info to stdout.
     quiet:             Do not print messages to stdout.
     no_warnings:       Do not print out anything for warnings.

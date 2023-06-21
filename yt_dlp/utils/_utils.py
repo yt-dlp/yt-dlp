@@ -25,6 +25,7 @@ import json
 import locale
 import math
 import mimetypes
+import netrc
 import operator
 import os
 import platform
@@ -862,6 +863,13 @@ def escapeHTML(text):
         .replace('"', '&quot;')
         .replace("'", '&#39;')
     )
+
+
+class netrc_from_content(netrc.netrc):
+    def __init__(self, content):
+        self.hosts, self.macros = {}, {}
+        with io.StringIO(content) as stream:
+            self._parse('-', stream, False)
 
 
 def process_communicate_or_kill(p, *args, **kwargs):

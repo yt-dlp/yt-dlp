@@ -49,7 +49,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Configuration file encoding](#configuration-file-encoding)
-    * [Authentication with .netrc file](#authentication-with-netrc-file)
+    * [Authentication with netrc](#authentication-with-netrc)
     * [Notes about environment variables](#notes-about-environment-variables)
 * [OUTPUT TEMPLATE](#output-template)
     * [Output template examples](#output-template-examples)
@@ -910,6 +910,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --netrc-location PATH           Location of .netrc authentication data;
                                     either the path or its containing directory.
                                     Defaults to ~/.netrc
+    --netrc-cmd NETRC_CMD           Command to execute to get the credentials
+                                    credentials for an extractor.
     --video-password PASSWORD       Video password (vimeo, youku)
     --ap-mso MSO                    Adobe Pass multiple-system operator (TV
                                     provider) identifier, use --ap-list-mso for
@@ -1203,7 +1205,7 @@ The configuration files are decoded according to the UTF BOM if present, and in 
 
 If you want your file to be decoded differently, add `# coding: ENCODING` to the beginning of the file (e.g. `# coding: shift-jis`). There must be no characters before that, even spaces or BOM.
 
-### Authentication with `.netrc` file
+### Authentication with netrc
 
 You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per-extractor basis. For that you will need to create a `.netrc` file in `--netrc-location` and restrict permissions to read/write by only you:
 ```
@@ -1222,6 +1224,15 @@ machine twitch login my_twitch_account_name password my_twitch_password
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
 The default location of the .netrc file is `~` (see below).
+
+As an alternative to using the `.netrc` file, which has the disadvantage of keeping your passwords in a plain text file, you can configure a custom shell command to provide the credentials for an extractor. This is done by providing the `--netrc-cmd` parameter, it shall output the credentials in the netrc format and return `0` on success, other values will be treated as an error. `{}` in the command will be replaced by the name of the extractor to make it possible to select the credentials for the right extractor.
+To use braces in the command, they need to be escaped by doubling them. (see example bellow)
+
+E.g. To use an encrypted `.netrc` file stored as `.authinfo.gpg`
+```
+yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch?v=BaW_jenozKc
+```
+
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
