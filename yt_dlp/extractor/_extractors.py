@@ -2264,8 +2264,6 @@ from .vk import (
     VKIE,
     VKUserVideosIE,
     VKWallPostIE,
-)
-from .vkplay import (
     VKPlayIE,
     VKPlayLiveIE,
 )
