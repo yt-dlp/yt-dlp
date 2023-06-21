@@ -59,9 +59,7 @@ class WDRIE(InfoExtractor):
 
         formats = []
         subtitles = {}
-
-        # list to track the urls and ensure that not a second manifest url with the same value is added
-        avoid_duplicate_manifest_urls = []
+        seen_manifest_urls = set()
 
         # check if the metadata contains a direct URL to a file
         for kind, media in media_resource.items():
@@ -82,10 +80,9 @@ class WDRIE(InfoExtractor):
                 if tag_name not in ('videoURL', 'audioURL'):
                     continue
 
-                if medium_url not in avoid_duplicate_manifest_urls:
-                    avoid_duplicate_manifest_urls.append(medium_url)
-                else:
+                if medium_url in seen_manifest_urls:
                     continue
+                seen_manifest_urls.add(medium_url)
 
                 ext = determine_ext(medium_url)
                 if ext == 'm3u8':
