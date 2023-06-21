@@ -3212,6 +3212,8 @@ class YoutubeDL:
                     dl_filename = existing_video_file(full_filename, temp_filename)
 
                     info_dict['__real_download'] = False
+                    # NOTE: Copy so that original format dicts are not modified
+                    info_dict['requested_formats'] = list(map(dict, info_dict['requested_formats']))
 
                     merger = FFmpegMergerPP(self)
                     downloaded = []
