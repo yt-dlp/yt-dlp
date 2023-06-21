@@ -1328,17 +1328,19 @@ class YoutubeDL:
                     value = str(value)[0]
                 else:
                     fmt = str_fmt
-            elif fmt[-1] not in 'rs':  # numeric
+            elif fmt[-1] not in 'rsa':  # numeric
                 value = float_or_none(value)
                 if value is None:
                     value, fmt = default, 's'
 
             if sanitize:
+                # If value is an object, sanitize might convert it to a string
+                # So we convert it to repr first
                 if fmt[-1] == 'r':
-                    # If value is an object, sanitize might convert it to a string
-                    # So we convert it to repr first
                     value, fmt = repr(value), str_fmt
-                if fmt[-1] in 'csr':
+                elif fmt[-1] == 'a':
+                    value, fmt = ascii(value), str_fmt
+                if fmt[-1] in 'csra':
                     value = sanitizer(initial_field, value)
 
             key = '%s\0%s' % (key.replace('%', '%\0'), outer_mobj.group('format'))

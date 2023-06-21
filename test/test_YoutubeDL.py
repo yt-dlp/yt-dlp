@@ -631,6 +631,7 @@ class TestYoutubeDL(unittest.TestCase):
 
     outtmpl_info = {
         'id': '1234',
+        'id': '1234',
         'ext': 'mp4',
         'width': None,
         'height': 1080,
@@ -754,6 +755,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(ext)c', 'm')
         test('%(id)d %(id)r', "1234 '1234'")
         test('%(id)r %(height)r', "'1234' 1080")
+        test('%(title5)a %(height)a', (R"'\xe1\xe9\xed \U0001d400' 1080", None))
         test('%(ext)s-%(ext|def)d', 'mp4-def')
         test('%(width|0)04d', '0')
         test('a%(width|b)d', 'ab', outtmpl_na_placeholder='none')
