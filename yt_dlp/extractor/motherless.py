@@ -6,9 +6,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    remove_end,
     str_to_int,
     unified_strdate,
-    remove_end,
 )
 
 
@@ -159,7 +159,7 @@ class MotherlessIE(InfoExtractor):
             (r'''<span\b[^>]+\bclass\s*=\s*["']username\b[^>]*>([^<]+)</span>''',
              r'''(?s)['"](?:media-meta-member|thumb-member-username)\b[^>]+>\s*<a\b[^>]+\bhref\s*=\s*['"]/m/([^"']+)'''),
             webpage, 'uploader_id', fatal=False)
-        categories = self._html_search_meta('keywords', webpage, default="")
+        categories = self._html_search_meta('keywords', webpage, default='')
         categories = [cat.strip() for cat in categories.split(',') if cat.strip()]
 
         return {
