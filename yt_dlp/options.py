@@ -721,6 +721,10 @@ def create_parser():
         dest='netrc_location', metavar='PATH',
         help='Location of .netrc authentication data; either the path or its containing directory. Defaults to ~/.netrc')
     authentication.add_option(
+        '--netrc-cmd',
+        dest='netrc_cmd', metavar='NETRC_CMD',
+        help='Command to execute to get the credentials for an extractor.')
+    authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
         help='Video password (vimeo, youku)')
@@ -1410,8 +1414,7 @@ def create_parser():
         '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
-            'Remove some private fields such as filenames from the infojson. '
-            'Note that it could still contain some personal information (default)'))
+            'Remove some internal metadata such as filenames from the infojson (default)'))
     filesystem.add_option(
         '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
@@ -1674,8 +1677,7 @@ def create_parser():
             'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
-            'After download, an additional field "filepath" that contains the final path of the downloaded file '
-            'is also available, and if no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
+            'If no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',

@@ -3,7 +3,7 @@ import json
 import urllib.error
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, parse_iso8601
+from ..utils import ExtractorError, make_archive_id, parse_iso8601, remove_start
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
@@ -65,19 +65,20 @@ class NebulaBaseIE(InfoExtractor):
         return response['token']
 
     def _fetch_video_formats(self, slug):
-        stream_info = self._call_nebula_api(f'https://content.watchnebula.com/video/{slug}/stream/',
+        stream_info = self._call_nebula_api(f'https://content.api.nebula.app/video/{slug}/stream/',
                                             video_id=slug,
                                             auth_type='bearer',
                                             note='Fetching video stream info')
         manifest_url = stream_info['manifest']
-        return self._extract_m3u8_formats_and_subtitles(manifest_url, slug)
+        return self._extract_m3u8_formats_and_subtitles(manifest_url, slug, 'mp4')
 
     def _build_video_info(self, episode):
         fmts, subs = self._fetch_video_formats(episode['slug'])
         channel_slug = episode['channel_slug']
         channel_title = episode['channel_title']
+        zype_id = episode.get('zype_id')
         return {
-            'id': episode['zype_id'],
+            'id': remove_start(episode['id'], 'video_episode:'),
             'display_id': episode['slug'],
             'formats': fmts,
             'subtitles': subs,
@@ -99,6 +100,9 @@ class NebulaBaseIE(InfoExtractor):
             'uploader_url': f'https://nebula.tv/{channel_slug}',
             'series': channel_title,
             'creator': channel_title,
+            'extractor_key': NebulaIE.ie_key(),
+            'extractor': NebulaIE.IE_NAME,
+            '_old_archive_ids': [make_archive_id(NebulaIE, zype_id)] if zype_id else None,
         }
 
     def _perform_login(self, username=None, password=None):
@@ -113,7 +117,7 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
             'md5': '14944cfee8c7beeea106320c47560efc',
             'info_dict': {
-                'id': '5c271b40b13fd613090034fd',
+                'id': '84ed544d-4afd-4723-8cd5-2b95261f0abf',
                 'ext': 'mp4',
                 'title': 'That Time Disney Remade Beauty and the Beast',
                 'description': 'Note: this video was originally posted on YouTube with the sponsor read included. We weren’t able to remove it without reducing video quality, so it’s presented here in its original context.',
@@ -137,22 +141,22 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.tv/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
             'md5': 'd05739cf6c38c09322422f696b569c23',
             'info_dict': {
-                'id': '5e7e78171aaf320001fbd6be',
+                'id': '7e623145-1b44-4ca3-aa0b-ed25a247ea34',
                 'ext': 'mp4',
                 'title': 'Landing Craft - How The Allies Got Ashore',
                 'description': r're:^In this episode we explore the unsung heroes of D-Day, the landing craft.',
                 'upload_date': '20200327',
                 'timestamp': 1585348140,
-                'channel': 'Real Engineering',
-                'channel_id': 'realengineering',
-                'uploader': 'Real Engineering',
-                'uploader_id': 'realengineering',
-                'series': 'Real Engineering',
+                'channel': 'Real Engineering — The Logistics of D-Day',
+                'channel_id': 'd-day',
+                'uploader': 'Real Engineering — The Logistics of D-Day',
+                'uploader_id': 'd-day',
+                'series': 'Real Engineering — The Logistics of D-Day',
                 'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
-                'creator': 'Real Engineering',
+                'creator': 'Real Engineering — The Logistics of D-Day',
                 'duration': 841,
-                'channel_url': 'https://nebula.tv/realengineering',
-                'uploader_url': 'https://nebula.tv/realengineering',
+                'channel_url': 'https://nebula.tv/d-day',
+                'uploader_url': 'https://nebula.tv/d-day',
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
@@ -160,7 +164,7 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.tv/videos/money-episode-1-the-draw',
             'md5': 'ebe28a7ad822b9ee172387d860487868',
             'info_dict': {
-                'id': '5e779ebdd157bc0001d1c75a',
+                'id': 'b96c5714-9e2b-4ec3-b3f1-20f6e89cc553',
                 'ext': 'mp4',
                 'title': 'Episode 1: The Draw',
                 'description': r'contains:There’s free money on offer… if the players can all work together.',
@@ -190,7 +194,7 @@ class NebulaIE(NebulaBaseIE):
     ]
 
     def _fetch_video_metadata(self, slug):
-        return self._call_nebula_api(f'https://content.watchnebula.com/video/{slug}/',
+        return self._call_nebula_api(f'https://content.api.nebula.app/video/{slug}/',
                                      video_id=slug,
                                      auth_type='bearer',
                                      note='Fetching video meta data')

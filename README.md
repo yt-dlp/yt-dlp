@@ -49,7 +49,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Configuration file encoding](#configuration-file-encoding)
-    * [Authentication with .netrc file](#authentication-with-netrc-file)
+    * [Authentication with netrc](#authentication-with-netrc)
     * [Notes about environment variables](#notes-about-environment-variables)
 * [OUTPUT TEMPLATE](#output-template)
     * [Output template examples](#output-template-examples)
@@ -152,7 +152,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * The upload dates extracted from YouTube are in UTC [when available](https://github.com/yt-dlp/yt-dlp/blob/89e4d86171c7b7c997c77d4714542e0383bf0db0/yt_dlp/extractor/youtube.py#L3898-L3900). Use `--compat-options no-youtube-prefer-utc-upload-date` to prefer the non-UTC upload date.
 * If `ffmpeg` is used as the downloader, the downloading and merging of formats happen in a single step when possible. Use `--compat-options no-direct-merge` to revert this
 * Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
-* Some private fields such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
+* Some internal metadata such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
 * `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
 * yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
@@ -242,7 +242,7 @@ File|Description
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 
-**Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp.tar.gz)
+**Note**: The manpages, shell completion (autocomplete) files etc. are available inside the [source tarball](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
 Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -690,9 +690,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     --write-description etc. (default)
     --no-write-playlist-metafiles   Do not write playlist metadata when using
                                     --write-info-json, --write-description etc.
-    --clean-info-json               Remove some private fields such as filenames
-                                    from the infojson. Note that it could still
-                                    contain some personal information (default)
+    --clean-info-json               Remove some internal metadata such as
+                                    filenames from the infojson (default)
     --no-clean-info-json            Write all fields to the infojson
     --write-comments                Retrieve video comments to be placed in the
                                     infojson. The comments are fetched even
@@ -901,6 +900,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --netrc-location PATH           Location of .netrc authentication data;
                                     either the path or its containing directory.
                                     Defaults to ~/.netrc
+    --netrc-cmd NETRC_CMD           Command to execute to get the credentials
+                                    for an extractor.
     --video-password PASSWORD       Video password (vimeo, youku)
     --ap-mso MSO                    Adobe Pass multiple-system operator (TV
                                     provider) identifier, use --ap-list-mso for
@@ -1030,13 +1031,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     that of --use-postprocessor (default:
                                     after_move). Same syntax as the output
                                     template can be used to pass any field as
-                                    arguments to the command. After download, an
-                                    additional field "filepath" that contains
-                                    the final path of the downloaded file is
-                                    also available, and if no fields are passed,
-                                    %(filepath,_filename|)q is appended to the
-                                    end of the command. This option can be used
-                                    multiple times
+                                    arguments to the command. If no fields are
+                                    passed, %(filepath,_filename|)q is appended
+                                    to the end of the command. This option can
+                                    be used multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
                                     (currently supported: ass, lrc, srt, vtt)
@@ -1194,7 +1192,7 @@ The configuration files are decoded according to the UTF BOM if present, and in 
 
 If you want your file to be decoded differently, add `# coding: ENCODING` to the beginning of the file (e.g. `# coding: shift-jis`). There must be no characters before that, even spaces or BOM.
 
-### Authentication with `.netrc` file
+### Authentication with netrc
 
 You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per-extractor basis. For that you will need to create a `.netrc` file in `--netrc-location` and restrict permissions to read/write by only you:
 ```
@@ -1213,6 +1211,14 @@ machine twitch login my_twitch_account_name password my_twitch_password
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
 The default location of the .netrc file is `~` (see below).
+
+As an alternative to using the `.netrc` file, which has the disadvantage of keeping your passwords in a plain text file, you can configure a custom shell command to provide the credentials for an extractor. This is done by providing the `--netrc-cmd` parameter, it shall output the credentials in the netrc format and return `0` on success, other values will be treated as an error. `{}` in the command will be replaced by the name of the extractor to make it possible to select the credentials for the right extractor.
+
+E.g. To use an encrypted `.netrc` file stored as `.authinfo.gpg`
+```
+yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch?v=BaW_jenozKc
+```
+
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
@@ -1369,7 +1375,10 @@ Available only when used in `--print`:
  - `subtitles_table` (table): The subtitle format table as printed by `--list-subs`
  - `automatic_captions_table` (table): The automatic subtitle format table as printed by `--list-subs`
  
+ Available only after the video is downloaded (`post_process`/`after_move`):
  
+ - `filepath`: Actual path of downloaded video file
+
 Available only in `--sponsorblock-chapter-title`:
 
  - `start_time` (numeric): Start time of the chapter in seconds
@@ -1415,7 +1424,7 @@ $ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.y
 $ yt-dlp -o "%(upload_date>%Y)s/%(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
 
 # Prefix playlist index with " - " separator, but only if it is available
-$ yt-dlp -o '%(playlist_index|)s%(playlist_index& - |)s%(title)s.%(ext)s' BaW_jenozKc "https://www.youtube.com/user/TheLinuxFoundation/playlists"
+$ yt-dlp -o "%(playlist_index&{} - |)s%(title)s.%(ext)s" BaW_jenozKc "https://www.youtube.com/user/TheLinuxFoundation/playlists"
 
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
 $ yt-dlp -o "%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/user/TheLinuxFoundation/playlists"
@@ -1762,7 +1771,7 @@ $ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --embed-metadat
 $ yt-dlp --parse-metadata ":(?P<meta_synopsis>)"
 
 # Remove "formats" field from the infojson by setting it to an empty string
-$ yt-dlp --parse-metadata ":(?P<formats>)" -j
+$ yt-dlp --parse-metadata "video::(?P<formats>)" --write-info-json
 
 # Replace all spaces and "_" in title and uploader with a `-`
 $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
@@ -1836,11 +1845,11 @@ The following extractors use this feature:
 #### twitter
 * `legacy_api`: Force usage of the legacy Twitter API instead of the GraphQL API for tweet extraction. Has no effect if login cookies are passed
 
-### wrestleuniverse
+#### wrestleuniverse
 * `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
 
-#### twitchstream (Twitch)
-* `client_id`: Client ID value to be sent with GraphQL requests, e.g. `twitchstream:client_id=kimne78kx3ncx6brgo4mv6wki5h1ko`
+#### twitch
+* `client_id`: Client ID value to be sent with GraphQL requests, e.g. `twitch:client_id=kimne78kx3ncx6brgo4mv6wki5h1ko`
 
 #### nhkradirulive (NHK らじる★らじる LIVE)
 * `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`

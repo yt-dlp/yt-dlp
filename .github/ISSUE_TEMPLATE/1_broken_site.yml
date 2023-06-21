@@ -72,8 +72,8 @@ body:
         [debug] Optional libraries: Cryptodome-3.15.0, brotli-1.0.9, certifi-2022.06.15, mutagen-1.45.1, sqlite3-2.6.0, websockets-10.3
         [debug] Proxy map: {}
         [debug] Fetching release info: https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest
-        Latest version: 2023.04.29.034632, Current version: 2023.04.29.034632
-        yt-dlp is up to date (2023.04.29.034632)
+        Latest version: 2023.06.21, Current version: 2023.06.21
+        yt-dlp is up to date (2023.06.21)
         <more lines>
       render: shell
     validations:

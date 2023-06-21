@@ -13,9 +13,11 @@ import netrc
 import os
 import random
 import re
+import subprocess
 import sys
 import time
 import types
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
@@ -34,6 +36,7 @@ from ..utils import (
     GeoUtils,
     HEADRequest,
     LenientJSONDecoder,
+    Popen,
     RegexNotFoundError,
     RetryManager,
     UnsupportedError,
@@ -56,6 +59,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    netrc_from_content,
     network_exceptions,
     orderedSet,
     parse_bitrate,
@@ -535,7 +539,7 @@ class InfoExtractor:
     _EMBED_REGEX = []
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
-        password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
         return {
             None: '',
             'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
@@ -1291,45 +1295,48 @@ class InfoExtractor:
         return clean_html(res)
 
     def _get_netrc_login_info(self, netrc_machine=None):
-        username = None
-        password = None
         netrc_machine = netrc_machine or self._NETRC_MACHINE
 
-        if self.get_param('usenetrc', False):
-            try:
-                netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
-                if os.path.isdir(netrc_file):
-                    netrc_file = os.path.join(netrc_file, '.netrc')
-                info = netrc.netrc(file=netrc_file).authenticators(netrc_machine)
-                if info is not None:
-                    username = info[0]
-                    password = info[2]
-                else:
-                    raise netrc.NetrcParseError(
-                        'No authenticators for %s' % netrc_machine)
-            except (OSError, netrc.NetrcParseError) as err:
-                self.report_warning(
-                    'parsing .netrc: %s' % error_to_compat_str(err))
+        cmd = self.get_param('netrc_cmd')
+        if cmd:
+            cmd = cmd.replace('{}', netrc_machine)
+            self.to_screen(f'Executing command: {cmd}')
+            stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
+            if ret != 0:
+                raise OSError(f'Command returned error code {ret}')
+            info = netrc_from_content(stdout).authenticators(netrc_machine)
 
-        return username, password
+        elif self.get_param('usenetrc', False):
+            netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
+            if os.path.isdir(netrc_file):
+                netrc_file = os.path.join(netrc_file, '.netrc')
+            info = netrc.netrc(netrc_file).authenticators(netrc_machine)
+
+        else:
+            return None, None
+        if not info:
+            raise netrc.NetrcParseError(f'No authenticators for {netrc_machine}')
+        return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
         """
         Get the login info as (username, password)
         First look for the manually specified credentials using username_option
         and password_option as keys in params dictionary. If no such credentials
-        available look in the netrc file using the netrc_machine or _NETRC_MACHINE
-        value.
+        are available try the netrc_cmd if it is defined or look in the
+        netrc file using the netrc_machine or _NETRC_MACHINE value.
         If there's no info available, return (None, None)
         """
 
-        # Attempt to use provided username and password or .netrc data
         username = self.get_param(username_option)
         if username is not None:
             password = self.get_param(password_option)
         else:
-            username, password = self._get_netrc_login_info(netrc_machine)
-
+            try:
+                username, password = self._get_netrc_login_info(netrc_machine)
+            except (OSError, netrc.NetrcParseError) as err:
+                self.report_warning(f'Failed to parse .netrc: {err}')
+                return None, None
         return username, password
 
     def _get_tfa_info(self, note='two-factor verification code'):
