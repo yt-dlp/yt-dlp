@@ -16,6 +16,7 @@ class MotherlessIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?motherless\.com/(?:g/[a-z0-9_]+/|G[VIG]?[A-F0-9]+/)?(?P<id>[A-F0-9]+)'
     _TESTS = [{
         'url': 'http://motherless.com/EE97006',
+        'md5': 'cb5e7438f7a3c4e886b7bccc1292a3bc',
         'info_dict': {
             'id': 'EE97006',
             'ext': 'mp4',
