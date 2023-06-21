@@ -910,7 +910,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     either the path or its containing directory.
                                     Defaults to ~/.netrc
     --netrc-cmd NETRC_CMD           Command to execute to get the credentials
-                                    credentials for an extractor.
+                                    for an extractor.
     --video-password PASSWORD       Video password (vimeo, youku)
     --ap-mso MSO                    Adobe Pass multiple-system operator (TV
                                     provider) identifier, use --ap-list-mso for
