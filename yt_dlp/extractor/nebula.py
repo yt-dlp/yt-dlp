@@ -235,7 +235,11 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
         for page_num in itertools.count(1):
             channel = self._call_api(
                 next_url, 'myshows', note=f'Retrieving subscriptions page {page_num}')
-            yield from map(self._extract_video_metadata, channel['results'])
+            for episode in channel['results']:
+                metadata = self._extract_video_metadata(episode)
+                yield self.url_result(smuggle_url(
+                    f'https://nebula.tv/videos/{metadata["display_id"]}',
+                    {'id': metadata['id']}), NebulaIE, url_transparent=True, **metadata)
             next_url = channel.get('next')
             if not next_url:
                 return
