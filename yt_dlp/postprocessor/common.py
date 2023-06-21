@@ -187,7 +187,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         tmpl = progress_template.get('postprocess')
         if tmpl:
             self._downloader.to_screen(
-                self._downloader.evaluate_outtmpl(tmpl, progress_dict), skip_eol=True, quiet=False)
+                self._downloader.evaluate_outtmpl(tmpl, progress_dict), quiet=False)
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',

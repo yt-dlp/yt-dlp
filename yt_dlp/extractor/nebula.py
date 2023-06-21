@@ -3,6 +3,7 @@ import json
 import urllib.error
 
 from .common import InfoExtractor
+from ..utils import ExtractorError, make_archive_id, parse_iso8601, remove_start
 from ..utils import (
     ExtractorError,
     format_field,
@@ -63,7 +64,7 @@ class NebulaBaseIE(InfoExtractor):
 
     def _extract_formats(self, slug):
         stream_info = self._call_api(
-            f'https://content.watchnebula.com/video/{slug}/stream/',
+            f'https://content.api.nebula.app/video/{slug}/stream/',
             slug, note='Fetching video stream info')
         fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug)
         return {'formats': fmts, 'subtitles': subs}
@@ -84,6 +85,7 @@ class NebulaBaseIE(InfoExtractor):
                 'uploader': 'channel_title',
                 'series': 'channel_title',
                 'creator': 'channel_title',
+                '_old_archive_ids': ('zype_id', {lambda x: make_archive_id(self, x)}),
             }),
             'channel_url': channel_url,
             'uploader_url': channel_url,
@@ -101,7 +103,7 @@ class NebulaIE(NebulaBaseIE):
         {
             'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
             'info_dict': {
-                'id': '5c271b40b13fd613090034fd',
+                'id': '84ed544d-4afd-4723-8cd5-2b95261f0abf',
                 'ext': 'mp4',
                 'title': 'That Time Disney Remade Beauty and the Beast',
                 'description': 'md5:2aae3c4cfc5ee09a1ecdff0909618cf4',
@@ -125,22 +127,22 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.tv/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
             'md5': 'd05739cf6c38c09322422f696b569c23',
             'info_dict': {
-                'id': '5e7e78171aaf320001fbd6be',
+                'id': '7e623145-1b44-4ca3-aa0b-ed25a247ea34',
                 'ext': 'mp4',
                 'title': 'Landing Craft - How The Allies Got Ashore',
                 'description': r're:^In this episode we explore the unsung heroes of D-Day, the landing craft.',
                 'upload_date': '20200327',
                 'timestamp': 1585348140,
-                'channel': 'Real Engineering',
-                'channel_id': 'realengineering',
-                'uploader': 'Real Engineering',
-                'uploader_id': 'realengineering',
-                'series': 'Real Engineering',
+                'channel': 'Real Engineering — The Logistics of D-Day',
+                'channel_id': 'd-day',
+                'uploader': 'Real Engineering — The Logistics of D-Day',
+                'uploader_id': 'd-day',
+                'series': 'Real Engineering — The Logistics of D-Day',
                 'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
-                'creator': 'Real Engineering',
+                'creator': 'Real Engineering — The Logistics of D-Day',
                 'duration': 841,
-                'channel_url': 'https://nebula.tv/realengineering',
-                'uploader_url': 'https://nebula.tv/realengineering',
+                'channel_url': 'https://nebula.tv/d-day',
+                'uploader_url': 'https://nebula.tv/d-day',
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
@@ -148,7 +150,7 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.tv/videos/money-episode-1-the-draw',
             'md5': 'ebe28a7ad822b9ee172387d860487868',
             'info_dict': {
-                'id': '5e779ebdd157bc0001d1c75a',
+                'id': 'b96c5714-9e2b-4ec3-b3f1-20f6e89cc553',
                 'ext': 'mp4',
                 'title': 'Episode 1: The Draw',
                 'description': r'contains:There’s free money on offer… if the players can all work together.',
@@ -212,7 +214,7 @@ class NebulaIE(NebulaBaseIE):
 
         return {
             **self._extract_video_metadata(self._call_api(
-                f'https://content.watchnebula.com/video/{slug}/',
+                f'https://content.api.nebula.app/video/{slug}',
                 slug, note='Fetching video metadata')),
             **self._extract_formats(slug),
         }

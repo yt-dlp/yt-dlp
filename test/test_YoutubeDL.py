@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import copy
 import json
-import urllib.error
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
@@ -632,6 +631,7 @@ class TestYoutubeDL(unittest.TestCase):
 
     outtmpl_info = {
         'id': '1234',
+        'id': '1234',
         'ext': 'mp4',
         'width': None,
         'height': 1080,
@@ -669,7 +669,7 @@ class TestYoutubeDL(unittest.TestCase):
             for (name, got), expect in zip((('outtmpl', out), ('filename', fname)), expected):
                 if callable(expect):
                     self.assertTrue(expect(got), f'Wrong {name} from {tmpl}')
-                else:
+                elif expect is not None:
                     self.assertEqual(got, expect, f'Wrong {name} from {tmpl}')
 
         # Side-effects
@@ -755,20 +755,23 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(ext)c', 'm')
         test('%(id)d %(id)r', "1234 '1234'")
         test('%(id)r %(height)r', "'1234' 1080")
+        test('%(title5)a %(height)a', (R"'\xe1\xe9\xed \U0001d400' 1080", None))
         test('%(ext)s-%(ext|def)d', 'mp4-def')
-        test('%(width|0)04d', '0000')
-        test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
+        test('%(width|0)04d', '0')
+        test('a%(width|b)d', 'ab', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
-        sanitize = lambda x: x.replace(':', '：').replace('"', "＂").replace('\n', ' ')
 
         # Custom type casting
         test('%(formats.:.id)l', 'id 1, id 2, id 3')
         test('%(formats.:.id)#l', ('id 1\nid 2\nid 3', 'id 1 id 2 id 3'))
         test('%(ext)l', 'mp4')
         test('%(formats.:.id) 18l', '  id 1, id 2, id 3')
-        test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
-        test('%(formats)#j', (json.dumps(FORMATS, indent=4), sanitize(json.dumps(FORMATS, indent=4))))
+        test('%(formats)j', (json.dumps(FORMATS), None))
+        test('%(formats)#j', (
+            json.dumps(FORMATS, indent=4),
+            json.dumps(FORMATS, indent=4).replace(':', '：').replace('"', "＂").replace('\n', ' ')
+        ))
         test('%(title5).3B', 'á')
         test('%(title5)U', 'áéí 𝐀')
         test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
@@ -793,8 +796,8 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title|%)s %(title|%%)s', '% %%')
         test('%(id+1-height+3)05d', '00158')
         test('%(width+100)05d', 'NA')
-        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % sanitize(str(FORMATS[0]))))
-        test('%(formats.0)r', (repr(FORMATS[0]), sanitize(repr(FORMATS[0]))))
+        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], None))
+        test('%(formats.0)r', (repr(FORMATS[0]), None))
         test('%(height.0)03d', '001')
         test('%(-height.0)04d', '-001')
         test('%(formats.-1.id)s', FORMATS[-1]['id'])
@@ -806,7 +809,7 @@ class TestYoutubeDL(unittest.TestCase):
         out = json.dumps([{'id': f['id'], 'height.:2': str(f['height'])[:2]}
                           if 'height' in f else {'id': f['id']}
                           for f in FORMATS])
-        test('%(formats.:.{id,height.:2})j', (out, sanitize(out)))
+        test('%(formats.:.{id,height.:2})j', (out, None))
         test('%(formats.:.{id,height}.id)l', ', '.join(f['id'] for f in FORMATS))
         test('%(.{id,title})j', ('{"id": "1234"}', '{＂id＂： ＂1234＂}'))
 
@@ -822,6 +825,10 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title&foo|baz)s.bar', 'baz.bar')
         test('%(x,id&foo|baz)s.bar', 'foo.bar')
         test('%(x,title&foo|baz)s.bar', 'baz.bar')
+        test('%(id&a\nb|)s', ('a\nb', 'a b'))
+        test('%(id&hi {:>10} {}|)s', 'hi       1234 1234')
+        test(R'%(id&{0} {}|)s', 'NA')
+        test(R'%(id&{0.1}|)s', 'NA')
 
         # Laziness
         def gen():
@@ -867,12 +874,12 @@ class TestYoutubeDL(unittest.TestCase):
 
         class SimplePP(PostProcessor):
             def run(self, info):
-                with open(audiofile, 'wt') as f:
+                with open(audiofile, 'w') as f:
                     f.write('EXAMPLE')
                 return [info['filepath']], info
 
         def run_pp(params, PP):
-            with open(filename, 'wt') as f:
+            with open(filename, 'w') as f:
                 f.write('EXAMPLE')
             ydl = YoutubeDL(params)
             ydl.add_post_processor(PP())
@@ -891,7 +898,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         class ModifierPP(PostProcessor):
             def run(self, info):
-                with open(info['filepath'], 'wt') as f:
+                with open(info['filepath'], 'w') as f:
                     f.write('MODIFIED')
                 return [], info
 
@@ -1092,11 +1099,6 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '11::3'}, [], True)
         test_selection({'playlist_items': '-15::2'}, INDICES[1::2], True)
         test_selection({'playlist_items': '-15::15'}, [], True)
-
-    def test_urlopen_no_file_protocol(self):
-        # see https://github.com/ytdl-org/youtube-dl/issues/8227
-        ydl = YDL()
-        self.assertRaises(urllib.error.URLError, ydl.urlopen, 'file:///etc/passwd')
 
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()

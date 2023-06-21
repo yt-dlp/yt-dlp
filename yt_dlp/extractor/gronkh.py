@@ -3,6 +3,7 @@ import functools
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    float_or_none,
     traverse_obj,
     unified_strdate,
 )
@@ -19,7 +20,9 @@ class GronkhIE(InfoExtractor):
             'title': 'H.O.R.D.E. - DAS ZWEiTE ZEiTALTER 🎲 Session 1',
             'view_count': int,
             'thumbnail': 'https://01.cdn.vod.farm/preview/9e2555d3a23bf4e5c5b7c6b3b70a9d84.jpg',
-            'upload_date': '20221111'
+            'upload_date': '20221111',
+            'chapters': 'count:3',
+            'duration': 31463,
         },
         'params': {'skip_download': True}
     }, {
@@ -30,7 +33,8 @@ class GronkhIE(InfoExtractor):
             'title': 'GTV0536, 2021-10-01 - MARTHA IS DEAD  #FREiAB1830  !FF7 !horde !archiv',
             'view_count': int,
             'thumbnail': 'https://01.cdn.vod.farm/preview/6436746cce14e25f751260a692872b9b.jpg',
-            'upload_date': '20211001'
+            'upload_date': '20211001',
+            'duration': 32058,
         },
         'params': {'skip_download': True}
     }, {
@@ -56,6 +60,12 @@ class GronkhIE(InfoExtractor):
             'upload_date': unified_strdate(data_json.get('created_at')),
             'formats': formats,
             'subtitles': subtitles,
+            'duration': float_or_none(data_json.get('source_length')),
+            'chapters': traverse_obj(data_json, (
+                'chapters', lambda _, v: float_or_none(v['offset']) is not None, {
+                    'title': 'title',
+                    'start_time': ('offset', {float_or_none}),
+                })) or None,
         }
 
 

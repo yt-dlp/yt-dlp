@@ -7,8 +7,11 @@ from ..utils import (
     ExtractorError,
     UnsupportedError,
     clean_html,
+    determine_ext,
+    format_field,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     parse_count,
     parse_iso8601,
     traverse_obj,
@@ -141,7 +144,7 @@ class RumbleEmbedIE(InfoExtractor):
         if embeds:
             return embeds
         return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
-            r'<script>\s*Rumble\(\s*"play"\s*,\s*{\s*[\'"]video[\'"]\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
+            r'<script>[^<]*\bRumble\(\s*"play"\s*,\s*{\s*[\'"]?video[\'"]?\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -164,7 +167,13 @@ class RumbleEmbedIE(InfoExtractor):
 
         formats = []
         for ext, ext_info in (video.get('ua') or {}).items():
-            for height, video_info in (ext_info or {}).items():
+            if isinstance(ext_info, dict):
+                for height, video_info in ext_info.items():
+                    if not traverse_obj(video_info, ('meta', 'h', {int_or_none})):
+                        video_info.setdefault('meta', {})['h'] = height
+                ext_info = ext_info.values()
+
+            for video_info in ext_info:
                 meta = video_info.get('meta') or {}
                 if not video_info.get('url'):
                     continue
@@ -175,12 +184,16 @@ class RumbleEmbedIE(InfoExtractor):
                         video_info['url'], video_id,
                         ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
                     continue
+                timeline = ext == 'timeline'
+                if timeline:
+                    ext = determine_ext(video_info['url'])
                 formats.append({
                     'ext': ext,
+                    'acodec': 'none' if timeline else None,
                     'url': video_info['url'],
-                    'format_id': '%s-%sp' % (ext, height),
-                    'height': int_or_none(height),
-                    'fps': video.get('fps'),
+                    'format_id': join_nonempty(ext, format_field(meta, 'h', '%sp')),
+                    'format_note': 'Timeline' if timeline else None,
+                    'fps': None if timeline else video.get('fps'),
                     **traverse_obj(meta, {
                         'tbr': 'bitrate',
                         'filesize': 'size',
@@ -247,6 +260,43 @@ class RumbleIE(InfoExtractor):
     }, {
         'url': 'http://www.rumble.com/vDMUM1?key=value',
         'only_matching': True,
+    }, {
+        'note': 'timeline format',
+        'url': 'https://rumble.com/v2ea9qb-the-u.s.-cannot-hide-this-in-ukraine-anymore-redacted-with-natali-and-clayt.html',
+        'md5': '40d61fec6c0945bca3d0e1dc1aa53d79',
+        'params': {'format': 'wv'},
+        'info_dict': {
+            'id': 'v2bou5f',
+            'ext': 'mp4',
+            'uploader': 'Redacted News',
+            'upload_date': '20230322',
+            'timestamp': 1679445010,
+            'title': 'The U.S. CANNOT hide this in Ukraine anymore | Redacted with Natali and Clayton Morris',
+            'duration': 892,
+            'channel': 'Redacted News',
+            'description': 'md5:aaad0c5c3426d7a361c29bdaaced7c42',
+            'channel_url': 'https://rumble.com/c/Redacted',
+            'live_status': 'not_live',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/d/x/2/O/dx2Oi.qR4e-small-The-U.S.-CANNOT-hide-this-i.jpg',
+        },
+    }, {
+        'url': 'https://rumble.com/v2e7fju-the-covid-twitter-files-drop-protecting-fauci-while-censoring-the-truth-wma.html',
+        'info_dict': {
+            'id': 'v2blzyy',
+            'ext': 'mp4',
+            'live_status': 'was_live',
+            'release_timestamp': 1679446804,
+            'description': 'md5:2ac4908ccfecfb921f8ffa4b30c1e636',
+            'release_date': '20230322',
+            'timestamp': 1679445692,
+            'duration': 4435,
+            'upload_date': '20230322',
+            'title': 'The Covid Twitter Files Drop: Protecting Fauci While Censoring The Truth w/Matt Taibbi',
+            'uploader': 'Kim Iversen',
+            'channel_url': 'https://rumble.com/c/KimIversen',
+            'channel': 'Kim Iversen',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/6/b/w/O/6bwOi.qR4e-small-The-Covid-Twitter-Files-Dro.jpg',
+        },
     }]
 
     _WEBPAGE_TESTS = [{

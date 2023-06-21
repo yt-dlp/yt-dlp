@@ -13,9 +13,11 @@ import netrc
 import os
 import random
 import re
+import subprocess
 import sys
 import time
 import types
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
@@ -34,6 +36,7 @@ from ..utils import (
     GeoUtils,
     HEADRequest,
     LenientJSONDecoder,
+    Popen,
     RegexNotFoundError,
     RetryManager,
     UnsupportedError,
@@ -56,6 +59,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    netrc_from_content,
     network_exceptions,
     orderedSet,
     parse_bitrate,
@@ -286,6 +290,7 @@ class InfoExtractor:
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
     channel_follower_count: Number of followers of the channel.
+    channel_is_verified: Whether the channel is verified on the platform.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -314,6 +319,11 @@ class InfoExtractor:
                         * "author" - human-readable name of the comment author
                         * "author_id" - user ID of the comment author
                         * "author_thumbnail" - The thumbnail of the comment author
+                        * "author_url" - The url to the comment author's page
+                        * "author_is_verified" - Whether the author is verified
+                                                 on the platform
+                        * "author_is_uploader" - Whether the comment is made by
+                                                 the video uploader
                         * "id" - Comment ID
                         * "html" - Comment as HTML
                         * "text" - Plain text of the comment
@@ -325,8 +335,8 @@ class InfoExtractor:
                         * "dislike_count" - Number of negative ratings of the comment
                         * "is_favorited" - Whether the comment is marked as
                                            favorite by the video uploader
-                        * "author_is_uploader" - Whether the comment is made by
-                                                 the video uploader
+                        * "is_pinned" - Whether the comment is pinned to
+                                        the top of the comments
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -350,6 +360,10 @@ class InfoExtractor:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    heatmap:        A list of dictionaries, with the following entries:
+                        * "start_time" - The start time of the data point in seconds
+                        * "end_time" - The end time of the data point in seconds
+                        * "value" - The normalized value of the data point (float between 0 and 1)
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
@@ -525,7 +539,7 @@ class InfoExtractor:
     _EMBED_REGEX = []
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
-        password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
         return {
             None: '',
             'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
@@ -1281,45 +1295,48 @@ class InfoExtractor:
         return clean_html(res)
 
     def _get_netrc_login_info(self, netrc_machine=None):
-        username = None
-        password = None
         netrc_machine = netrc_machine or self._NETRC_MACHINE
 
-        if self.get_param('usenetrc', False):
-            try:
-                netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
-                if os.path.isdir(netrc_file):
-                    netrc_file = os.path.join(netrc_file, '.netrc')
-                info = netrc.netrc(file=netrc_file).authenticators(netrc_machine)
-                if info is not None:
-                    username = info[0]
-                    password = info[2]
-                else:
-                    raise netrc.NetrcParseError(
-                        'No authenticators for %s' % netrc_machine)
-            except (OSError, netrc.NetrcParseError) as err:
-                self.report_warning(
-                    'parsing .netrc: %s' % error_to_compat_str(err))
+        cmd = self.get_param('netrc_cmd')
+        if cmd:
+            cmd = cmd.replace('{}', netrc_machine)
+            self.to_screen(f'Executing command: {cmd}')
+            stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
+            if ret != 0:
+                raise OSError(f'Command returned error code {ret}')
+            info = netrc_from_content(stdout).authenticators(netrc_machine)
 
-        return username, password
+        elif self.get_param('usenetrc', False):
+            netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
+            if os.path.isdir(netrc_file):
+                netrc_file = os.path.join(netrc_file, '.netrc')
+            info = netrc.netrc(netrc_file).authenticators(netrc_machine)
+
+        else:
+            return None, None
+        if not info:
+            raise netrc.NetrcParseError(f'No authenticators for {netrc_machine}')
+        return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
         """
         Get the login info as (username, password)
         First look for the manually specified credentials using username_option
         and password_option as keys in params dictionary. If no such credentials
-        available look in the netrc file using the netrc_machine or _NETRC_MACHINE
-        value.
+        are available try the netrc_cmd if it is defined or look in the
+        netrc file using the netrc_machine or _NETRC_MACHINE value.
         If there's no info available, return (None, None)
         """
 
-        # Attempt to use provided username and password or .netrc data
         username = self.get_param(username_option)
         if username is not None:
             password = self.get_param(password_option)
         else:
-            username, password = self._get_netrc_login_info(netrc_machine)
-
+            try:
+                username, password = self._get_netrc_login_info(netrc_machine)
+            except (OSError, netrc.NetrcParseError) as err:
+                self.report_warning(f'Failed to parse .netrc: {err}')
+                return None, None
         return username, password
 
     def _get_tfa_info(self, note='two-factor verification code'):
@@ -2983,6 +3000,8 @@ class InfoExtractor:
                         'protocol': 'ism',
                         'fragments': fragments,
                         'has_drm': ism_doc.find('Protection') is not None,
+                        'language': stream_language,
+                        'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,
@@ -3438,7 +3457,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return LenientSimpleCookie(self._downloader._calc_cookies(url))
+        return LenientSimpleCookie(self._downloader.cookiejar.get_cookie_header(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
@@ -3513,8 +3532,8 @@ class InfoExtractor:
     @classmethod
     def is_single_video(cls, url):
         """Returns whether the URL is of a single video, None if unknown"""
-        assert cls.suitable(url), 'The URL must be suitable for the extractor'
-        return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
+        if cls.suitable(url):
+            return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
 
     @classmethod
     def is_suitable(cls, age_limit):
@@ -3656,18 +3675,22 @@ class InfoExtractor:
             'start_time': start_function(chapter),
             'title': title_function(chapter),
         } for chapter in chapter_list or []]
-        if not strict:
+        if strict:
+            warn = self.report_warning
+        else:
+            warn = self.write_debug
             chapter_list.sort(key=lambda c: c['start_time'] or 0)
 
         chapters = [{'start_time': 0}]
         for idx, chapter in enumerate(chapter_list):
             if chapter['start_time'] is None:
-                self.report_warning(f'Incomplete chapter {idx}')
+                warn(f'Incomplete chapter {idx}')
             elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
                 chapters.append(chapter)
             elif chapter not in chapters:
-                self.report_warning(
-                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
+                issue = (f'{chapter["start_time"]} > {duration}' if chapter['start_time'] > duration
+                         else f'{chapter["start_time"]} < {chapters[-1]["start_time"]}')
+                warn(f'Invalid start time ({issue}) for chapter "{chapter["title"]}"')
         return chapters[1:]
 
     def _extract_chapters_from_description(self, description, duration):
