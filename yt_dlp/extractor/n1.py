@@ -33,7 +33,7 @@ class N1InfoAssetIE(InfoExtractor):
 
 class N1InfoIIE(InfoExtractor):
     IE_NAME = 'N1Info:article'
-    _VALID_URL = r'https?://(?:(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)|nova\.rs)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si|rs|hr|ba)|nova\.rs)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
     _TESTS = [{
         # Youtube embedded
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
@@ -105,19 +105,38 @@ class N1InfoIIE(InfoExtractor):
 
         title = self._html_search_regex(r'<h1[^>]+>(.+?)</h1>', webpage, 'title')
         timestamp = unified_timestamp(self._html_search_meta('article:published_time', webpage))
-
-        videos = re.findall(r'(?m)(<video[^>]+>)', webpage)
+        plugin_data = self._html_search_meta('BridPlugin', webpage)
         entries = []
-        for video in videos:
-            video_data = extract_attributes(video)
-            entries.append({
-                '_type': 'url_transparent',
-                'url': video_data.get('data-url'),
-                'id': video_data.get('id'),
-                'title': title,
-                'thumbnail': video_data.get('data-thumbnail'),
-                'timestamp': timestamp,
-                'ie_key': 'N1InfoAsset'})
+        if plugin_data:
+            brid_data = re.findall(r'\$bp\("Brid_\d+", (.+)\);', webpage)
+            site_id = re.search(r'site:(\d+)', webpage).group(1)
+            for video_data in brid_data:
+                video_data = self._parse_json(video_data, title)
+                video_id = video_data['video']
+                thumbnail = self._html_search_meta('thumbnailURL', webpage)
+                formats = self._extract_m3u8_formats(f'https://cdn-uc.brid.tv/live/partners/{site_id}/streaming/{video_id}/{video_id}.m3u8', video_id)
+                entries.append({
+                    'formats': formats,
+                    'id': video_id,
+                    'title': title,
+                    'thumbnail': thumbnail,
+                    'timestamp': timestamp,
+                    }
+                )
+        else:
+            # Old player still present in older articles
+            videos = re.findall(r'(?m)(<video[^>]+>)', webpage)
+            for video in videos:
+                video_data = extract_attributes(video)
+                entries.append({
+                    '_type': 'url_transparent',
+                    'url': video_data.get('data-url'),
+                    'id': video_data.get('id'),
+                    'title': title,
+                    'thumbnail': video_data.get('data-thumbnail'),
+                    'timestamp': timestamp,
+                    'ie_key': 'N1InfoAsset'}
+                )
 
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for embedded_video in embedded_videos:
