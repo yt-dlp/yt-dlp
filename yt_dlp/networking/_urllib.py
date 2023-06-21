@@ -389,8 +389,8 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
 
     def __init__(self, *, enable_file_urls: bool = False, **kwargs):
         super().__init__(**kwargs)
-        self._enable_file_urls = enable_file_urls
-        if self._enable_file_urls:
+        self.enable_file_urls = enable_file_urls
+        if self.enable_file_urls:
             self._SUPPORTED_URL_SCHEMES = (*self._SUPPORTED_URL_SCHEMES, 'file')
 
     def _create_instance(self, proxies, cookiejar):
@@ -400,7 +400,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             HTTPHandler(
                 debuglevel=int(bool(self._verbose)),
                 context=self._make_sslcontext(),
-                source_address=self._source_address),
+                source_address=self.source_address),
             HTTPCookieProcessor(cookiejar),
             DataHandler(),
             UnknownHandler(),
@@ -409,7 +409,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             HTTPErrorProcessor(),
             RedirectHandler()]
 
-        if self._enable_file_urls:
+        if self.enable_file_urls:
             handlers.append(FileHandler())
 
         for handler in handlers:
@@ -432,11 +432,11 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         )
 
         opener = self._get_instance(
-            proxies=request.proxies or self._proxies,
-            cookiejar=request.extensions.get('cookiejar') or self._cookiejar
+            proxies=request.proxies or self.proxies,
+            cookiejar=request.extensions.get('cookiejar') or self.cookiejar
         )
         try:
-            res = opener.open(urllib_req, timeout=float(request.extensions.get('timeout') or self._timeout))
+            res = opener.open(urllib_req, timeout=float(request.extensions.get('timeout') or self.timeout))
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 raise HTTPError(UrllibResponseAdapter(e.fp), redirect_loop='redirect error' in str(e))

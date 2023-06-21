@@ -107,34 +107,34 @@ class RequestHandler(abc.ABC):
     ):
 
         self._logger = logger
-        self._headers = headers or {}
-        self._cookiejar = cookiejar or CookieJar()
-        self._timeout = float(timeout or 20)  # TODO: set default somewhere
-        self._proxies = proxies or {}
-        self._source_address = source_address
+        self.headers = headers or {}
+        self.cookiejar = cookiejar or CookieJar()
+        self.timeout = float(timeout or 20)  # TODO: set default somewhere
+        self.proxies = proxies or {}
+        self.source_address = source_address
         self._verbose = verbose
-        self._prefer_system_certs = prefer_system_certs
-        self._client_cert = client_cert
-        self._verify = verify
-        self._legacy_ssl_support = legacy_ssl_support
+        self.prefer_system_certs = prefer_system_certs
+        self.client_cert = client_cert
+        self.verify = verify
+        self.legacy_ssl_support = legacy_ssl_support
 
     def _make_sslcontext(self):
         client_cert_opts = {}
-        if self._client_cert:
+        if self.client_cert:
             client_cert_opts = {
-                'client_certificate': self._client_cert[0],
-                'client_certificate_key': self._client_cert[1],
-                'client_certificate_password': self._client_cert[2]
+                'client_certificate': self.client_cert[0],
+                'client_certificate_key': self.client_cert[1],
+                'client_certificate_password': self.client_cert[2]
             }
         return make_ssl_context(
-            verify=self._verify,
-            legacy_support=self._legacy_ssl_support,
-            use_certifi=not self._prefer_system_certs,
+            verify=self.verify,
+            legacy_support=self.legacy_ssl_support,
+            use_certifi=not self.prefer_system_certs,
             **client_cert_opts
         )
 
     def _merge_headers(self, request_headers):
-        return CaseInsensitiveDict(self._headers or {}, request_headers)
+        return CaseInsensitiveDict(self.headers or {}, request_headers)
 
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
@@ -190,7 +190,7 @@ class RequestHandler(abc.ABC):
 
     def _validate(self, request):
         self._check_url_scheme(request)
-        self._check_proxies(request.proxies or self._proxies)
+        self._check_proxies(request.proxies or self.proxies)
         self._check_extensions(request.extensions)
 
     def close(self):
