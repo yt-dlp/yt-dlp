@@ -1297,8 +1297,9 @@ class InfoExtractor:
     def _get_netrc_login_info(self, netrc_machine=None):
         netrc_machine = netrc_machine or self._NETRC_MACHINE
 
-        cmd = self.get_param('netrc_cmd', '').format(netrc_machine)
+        cmd = self.get_param('netrc_cmd')
         if cmd:
+            cmd = cmd.replace('{}', netrc_machine)
             self.to_screen(f'Executing command: {cmd}')
             stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
             if ret != 0:
