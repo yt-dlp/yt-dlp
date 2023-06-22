@@ -61,33 +61,27 @@ class PornboxIE(InfoExtractor):
 
         public_data = self._download_json(f'https://pornbox.com/contents/{video_id}', video_id)
 
-        date = traverse_obj(public_data, ('studios', 'release_date'), 'publish_date')
-        cast = traverse_obj(public_data, (('models', 'male_models'), ..., 'model_name'))
-
         subtitles = {country_code: [{
             'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
             'ext': 'srt'
         }] for country_code in traverse_obj(public_data, ('subtitles', ...))}
+
+        is_free_scene = traverse_obj(public_data, ('price', 'is_available_for_free'), default=False, expected_type=bool)
 
         metadata = {
             'id': video_id,
             'title': public_data.get('scene_name').strip(),
             'description': strip_or_none(public_data.get('small_description')),
             'uploader': public_data.get('studio'),
-            'timestamp': parse_iso8601(date),
+            'timestamp': parse_iso8601(traverse_obj(public_data, ('studios', 'release_date'), 'publish_date')),
             'age_limit': 18,
             'duration': parse_duration(public_data.get('runtime')),
-            'cast': cast,
+            'cast': traverse_obj(public_data, (('models', 'male_models'), ..., 'model_name')),
             'tags': traverse_obj(public_data, ('niches', ..., 'niche'), default=[]),
             'thumbnail': str_or_none(public_data.get('player_poster')),
             'subtitles': subtitles,
+            'availability': self._availability(needs_auth=True, needs_premium=(not is_free_scene))
         }
-
-        is_free_scene = traverse_obj(public_data, ('price', 'is_available_for_free'), default=False, expected_type=bool)
-        if is_free_scene:
-            metadata['availability'] = 'needs_auth'
-        else:
-            metadata['availability'] = 'premium_only'
 
         if (not public_data.get('is_purchased')) or (not is_free_scene):
             self.raise_login_required('You are either not logged in or do not have access to this scene',
