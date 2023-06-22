@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, remove_end, traverse_obj
+from ..utils import extract_attributes, merge_dicts, remove_end
 
 
 class RheinMainTVIE(InfoExtractor):
@@ -70,6 +70,7 @@ class RheinMainTVIE(InfoExtractor):
 
         raw_json_ld = list(self._yield_json_ld(webpage, video_id))
         json_ld = self._json_ld(raw_json_ld, video_id)
+        json_ld.pop('url', None)
 
         ism_manifest_url = (
             source.get('src')
@@ -77,7 +78,7 @@ class RheinMainTVIE(InfoExtractor):
         )
         formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
 
-        return {
+        return merge_dicts({
             'id': video_id,
             'display_id': display_id,
             'title':
@@ -90,9 +91,4 @@ class RheinMainTVIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': img['src']}] if 'src' in img else json_ld.get('thumbnails'),
-            **traverse_obj(json_ld, {
-                'timestamp': 'timestamp',
-                'duration': 'duration',
-                'view_count': 'view_count',
-            }),
-        }
+        }, json_ld)
