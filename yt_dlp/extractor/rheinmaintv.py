@@ -68,8 +68,6 @@ class RheinMainTVIE(InfoExtractor):
         source = extract_attributes(source)
         img = extract_attributes(img)
 
-        # Work around the method self._json_ld (called by self._search_json_ld), which
-        # extracts the useless 'contentUrl' (as 'url') instead of the essential 'embedUrl'.
         raw_json_ld = list(self._yield_json_ld(webpage, video_id))
         json_ld = self._json_ld(raw_json_ld, video_id)
 
