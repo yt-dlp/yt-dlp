@@ -61,18 +61,12 @@ class PornboxIE(InfoExtractor):
         public_data = self._download_json(f'https://pornbox.com/contents/{video_id}', video_id)
 
         date = traverse_obj(public_data, ('studios', 'release_date'), 'publish_date')
-        cast = []
-        for m in public_data.get('models') or []:
-            cast.append(m.get('model_name'))
-        for m in public_data.get('male_models') or []:
-            cast.append(m.get('model_name'))
+        cast = traverse_obj(public_data, (('models', 'male_models'), ..., 'model_name'))
 
-        subtitles = {}
-        for country_code in public_data.get('subtitles') or []:
-            subtitles[country_code] = [{
-                'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
-                'ext': 'srt'
-            }]
+        subtitles = {country_code: [{
+            'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
+            'ext': 'srt'
+        }] for country_code in traverse_obj(public_data, ('subtitles', ...)}
 
         metadata = {
             'id': video_id,
@@ -99,13 +93,10 @@ class PornboxIE(InfoExtractor):
                                       metadata_available=True, method='cookies')
             return metadata
 
-        media_id = traverse_obj(public_data, ('medias', lambda _, v: v['title'] == 'Full video', 'media_id'),
-                                default=[], expected_type=int)
+        media_id = traverse_obj(public_data, (
+            'medias', lambda _, v: v['title'] == 'Full video', 'media_id', {int}), get_all=False)
         if not media_id:
-            self.raise_no_formats(msg='Could not find stream id', video_id=video_id)
-
-        # traverse_obj branches, therefore media_id is a list
-        media_id = media_id[0]
+            self.raise_no_formats('Could not find stream id', video_id=video_id)
 
         headers = {
             'Accept': '*/*',
@@ -122,16 +113,12 @@ class PornboxIE(InfoExtractor):
                                           headers=headers, note='Getting manifest urls')
 
         get_quality = qualities(['web', 'vga', 'hd', '1080p', '4k', '8k'])
-        formats = []
-        for q in stream_data.get('qualities') or []:
-            formats.append({
-                'url': q.get('src'),
-                'vbr': int_or_none(q.get('bitrate'), scale=1000),
-                'format_id': str_or_none(q.get('quality')),
-                'quality': get_quality(q.get('quality')),
-                'width': int_or_none(str_or_none(q.get('size'), default='')[:-1])
-            })
-
-        metadata['formats'] = formats
+        metadata['formats'] = [traverse_obj(q, {
+            'url': 'src',
+            'vbr': ('bitrate', {functools.partial(int_or_none, scale=1000)}),
+            'format_id': ('quality', {str_or_none}),
+            'quality': ('quality', {get_quality}),
+            'width': ('size', {lambda x: int(x[:-1])})
+        } for q in stream_data.get('qualities') or []]
 
         return metadata
