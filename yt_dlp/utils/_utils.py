@@ -3758,8 +3758,6 @@ class download_range_func:
         self.chapters, self.ranges, self.from_info = chapters, ranges, from_info
 
     def __call__(self, info_dict, ydl):
-        if not any((self.ranges, self.chapters, self.from_info)):
-            yield {}
 
         warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
                    else 'Cannot match chapters since chapter information is unavailable')
@@ -3779,9 +3777,11 @@ class download_range_func:
 
         if self.from_info and (info_dict.get('start_time') or info_dict.get('end_time')):
             yield {
-                'start_time': info_dict.get('start_time'),
-                'end_time': info_dict.get('end_time'),
+                'start_time': info_dict.get('start_time') or 0,
+                'end_time': info_dict.get('end_time') or float('inf'),
             }
+        elif not self.ranges and not self.chapters:
+            yield {}
 
     @staticmethod
     def _handle_negative_timestamp(time, info):
