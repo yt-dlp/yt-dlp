@@ -3,6 +3,7 @@ from ..utils import (
     parse_duration,
     traverse_obj,
     str_or_none,
+    int_or_none,
     strip_or_none,
     parse_iso8601,
     qualities
@@ -12,24 +13,6 @@ from ..utils import (
 class PornboxIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?pornbox\.com/application/watch-page/(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'https://pornbox.com/application/watch-page/429019',
-        'md5': '7c2f09cc7be6d9084a9faa7186d395d7',
-        'info_dict': {
-            'id': '429019',
-            'ext': 'mp4',
-            'title': 'md5:9c5decc32bc4d96c255e328282a9730a',
-            'description': 'md5:c47331c98221bc55c2d02a142a13f562',
-            'uploader': 'Giorgio Grandi',
-            'timestamp': 1686348000,
-            'upload_date': '20230609',
-            'age_limit': 18,
-            'availability': 'needs_auth',
-            'duration': 1961,
-            'cast': ['Tina Kay', 'Monika Wild', 'Neeo', 'Mr. Anderson', 'Thomas Lee', 'Angelo Godshack', 'Dylan Brown'],
-            'tags': 'count:40',
-            'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$'
-        }
-    }, {
         'url': 'https://pornbox.com/application/watch-page/426095',
         'md5': '0cc35f4d4300bc8e0496aef2a9ec20b9',
         'info_dict': {
@@ -45,9 +28,6 @@ class PornboxIE(InfoExtractor):
             'cast': ['Tina Kay', 'Neeo', 'Mr. Anderson', 'Thomas Lee', 'Brian Ragnastone', 'Rycky Optimal'],
             'tags': 'count:37',
             'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$'
-        },
-        'params': {
-            'skip_download': True
         }
     }, {
         'url': 'https://pornbox.com/application/watch-page/216045',
@@ -146,9 +126,10 @@ class PornboxIE(InfoExtractor):
         for q in stream_data.get('qualities') or []:
             formats.append({
                 'url': q.get('src'),
-                'vbr': int(q.get('bitrate')) // 1000,
-                'format_id': q.get('quality'),
-                'quality': get_quality(q.get('quality'))
+                'vbr': int_or_none(q.get('bitrate'), scale=1000),
+                'format_id': str_or_none(q.get('quality')),
+                'quality': get_quality(q.get('quality')),
+                'width': int_or_none(str_or_none(q.get('size'), default='')[:-1])
             })
 
         metadata['formats'] = formats
