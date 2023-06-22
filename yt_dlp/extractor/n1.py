@@ -118,9 +118,8 @@ class N1InfoIIE(InfoExtractor):
         plugin_data = self._html_search_meta('BridPlugin', webpage)
         entries = []
         if plugin_data:
-            brid_data = re.findall(r'\$bp\("Brid_\d+", (.+)\);', webpage)
             site_id = re.search(r'site:(\d+)', webpage).group(1)
-            for video_data in brid_data:
+            for video_data in re.findall(r'\$bp\("Brid_\d+", (.+)\);', webpage):
                 video_data = self._parse_json(video_data, title)
                 video_id = video_data['video']
                 entries.append({
