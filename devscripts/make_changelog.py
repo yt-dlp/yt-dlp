@@ -44,7 +44,7 @@ class CommitGroup(enum.Enum):
         return {
             name: group
             for group, names in {
-                cls.PRIORITY: {''},
+                cls.PRIORITY: {'priority'},
                 cls.CORE: {
                     'aes',
                     'cache',
@@ -68,7 +68,7 @@ class CommitGroup(enum.Enum):
                     'misc',
                     'test',
                 },
-                cls.EXTRACTOR: {'extractor', 'extractors'},
+                cls.EXTRACTOR: {'extractor'},
                 cls.DOWNLOADER: {'downloader'},
                 cls.POSTPROCESSOR: {'postprocessor'},
             }.items()
@@ -323,7 +323,7 @@ class CommitRange:
                 logger.debug(f'Ignored {when!r}, not in commits {self._start!r}')
                 continue
 
-            override_hash = override.get('hash')
+            override_hash = override.get('hash') or when
             if override['action'] == 'add':
                 commit = Commit(override.get('hash'), override['short'], override.get('authors') or [])
                 logger.info(f'ADD    {commit}')
@@ -337,7 +337,7 @@ class CommitRange:
             elif override['action'] == 'change':
                 if override_hash not in self._commits:
                     continue
-                commit = Commit(override_hash, override['short'], override['authors'])
+                commit = Commit(override_hash, override['short'], override.get('authors') or [])
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
                 self._commits[commit.hash] = commit
 
@@ -348,7 +348,7 @@ class CommitRange:
         for commit in self:
             upstream_re = self.UPSTREAM_MERGE_RE.search(commit.short)
             if upstream_re:
-                commit.short = f'[upstream] Merged with youtube-dl {upstream_re.group(1)}'
+                commit.short = f'[core/upstream] Merged with youtube-dl {upstream_re.group(1)}'
 
             match = self.MESSAGE_RE.fullmatch(commit.short)
             if not match:
@@ -394,10 +394,10 @@ class CommitRange:
             return CommitGroup.CORE, None, ()
 
         prefix, _, details = prefix.partition('/')
-        prefix = prefix.strip().lower()
+        prefix = prefix.strip()
         details = details.strip()
 
-        group = CommitGroup.get(prefix)
+        group = CommitGroup.get(prefix.lower())
         if group is CommitGroup.PRIORITY:
             prefix, _, details = details.partition('/')
 

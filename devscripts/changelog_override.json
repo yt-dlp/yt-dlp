@@ -8,5 +8,32 @@
         "action": "add",
         "when": "776d1c3f0c9b00399896dd2e40e78e9a43218109",
         "short": "[priority] **YouTube throttling fixes!**"
+    },
+    {
+        "action": "remove",
+        "when": "2e023649ea4e11151545a34dc1360c114981a236"
+    },
+    {
+        "action": "add",
+        "when": "01aba2519a0884ef17d5f85608dbd2a455577147",
+        "short": "[priority] YouTube: Improved throttling and signature fixes"
+    },
+    {
+        "action": "change",
+        "when": "c86e433c35fe5da6cb29f3539eef97497f84ed38",
+        "short": "[extractor/niconico:series] Fix extraction (#6898)",
+        "authors": ["sqrtNOT"]
+    },
+    {
+        "action": "change",
+        "when": "69a40e4a7f6caa5662527ebd2f3c4e8aa02857a2",
+        "short": "[extractor/youtube:music_search_url] Extract title (#7102)",
+        "authors": ["kangalio"]
+    },
+    {
+        "action": "change",
+        "when": "8417f26b8a819cd7ffcd4e000ca3e45033e670fb",
+        "short": "Add option `--color` (#6904)",
+        "authors": ["Grub4K"]
     }
 ]

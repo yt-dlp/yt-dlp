@@ -1,12 +1,17 @@
 from .common import InfoExtractor
 from ..utils import (
+    determine_ext,
     int_or_none,
     qualities,
 )
 
 
 class DumpertIE(InfoExtractor):
-    _VALID_URL = r'(?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl/(?:mediabase|embed|item)/(?P<id>[0-9]+[/_][0-9a-zA-Z]+)'
+    _VALID_URL = r'''(?x)
+        (?P<protocol>https?)://(?:(?:www|legacy)\.)?dumpert\.nl(?:
+            /(?:mediabase|embed|item)/|
+            (?:/toppers|/latest|/?)\?selectedId=
+        )(?P<id>[0-9]+[/_][0-9a-zA-Z]+)'''
     _TESTS = [{
         'url': 'https://www.dumpert.nl/item/6646981_951bc60f',
         'md5': '1b9318d7d5054e7dcb9dc7654f21d643',
@@ -16,6 +21,9 @@ class DumpertIE(InfoExtractor):
             'title': 'Ik heb nieuws voor je',
             'description': 'Niet schrikken hoor',
             'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 9,
+            'view_count': int,
+            'like_count': int,
         }
     }, {
         'url': 'https://www.dumpert.nl/embed/6675421_dc440fe7',
@@ -25,6 +33,28 @@ class DumpertIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://legacy.dumpert.nl/embed/6675421/dc440fe7',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dumpert.nl/item/100031688_b317a185',
+        'info_dict': {
+            'id': '100031688/b317a185',
+            'ext': 'mp4',
+            'title': 'Epic schijnbeweging',
+            'description': '<p>Die zag je niet eh</p>',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'duration': 12,
+            'view_count': int,
+            'like_count': int,
+        },
+        'params': {'skip_download': 'm3u8'}
+    }, {
+        'url': 'https://www.dumpert.nl/toppers?selectedId=100031688_b317a185',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dumpert.nl/latest?selectedId=100031688_b317a185',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dumpert.nl/?selectedId=100031688_b317a185',
         'only_matching': True,
     }]
 
@@ -36,18 +66,23 @@ class DumpertIE(InfoExtractor):
         title = item['title']
         media = next(m for m in item['media'] if m.get('mediatype') == 'VIDEO')
 
-        quality = qualities(['flv', 'mobile', 'tablet', '720p'])
+        quality = qualities(['flv', 'mobile', 'tablet', '720p', '1080p'])
         formats = []
         for variant in media.get('variants', []):
             uri = variant.get('uri')
             if not uri:
                 continue
             version = variant.get('version')
-            formats.append({
-                'url': uri,
-                'format_id': version,
-                'quality': quality(version),
-            })
+            preference = quality(version)
+            if determine_ext(uri) == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    uri, video_id, 'mp4', m3u8_id=version, quality=preference))
+            else:
+                formats.append({
+                    'url': uri,
+                    'format_id': version,
+                    'quality': preference,
+                })
 
         thumbnails = []
         stills = item.get('stills') or {}

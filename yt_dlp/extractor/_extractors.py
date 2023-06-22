@@ -520,6 +520,7 @@ from .deuxm import (
     DeuxMNewsIE
 )
 from .digitalconcerthall import DigitalConcertHallIE
+from .discogs import DiscogsReleasePlaylistIE
 from .discovery import DiscoveryIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
@@ -578,6 +579,7 @@ from .espn import (
     ESPNCricInfoIE,
 )
 from .esri import EsriVideoIE
+from .ettutv import EttuTvIE
 from .europa import EuropaIE, EuroParlWebstreamIE
 from .europeantour import EuropeanTourIE
 from .eurosport import EurosportIE
@@ -664,6 +666,7 @@ from .funimation import (
     FunimationShowIE,
 )
 from .funk import FunkIE
+from .funker530 import Funker530IE
 from .fusion import FusionIE
 from .fuyintv import FuyinTVIE
 from .gab import (
@@ -1116,7 +1119,8 @@ from .mojvideo import MojvideoIE
 from .morningstar import MorningstarIE
 from .motherless import (
     MotherlessIE,
-    MotherlessGroupIE
+    MotherlessGroupIE,
+    MotherlessGalleryIE,
 )
 from .motorsport import MotorsportIE
 from .movieclips import MovieClipsIE
@@ -1257,6 +1261,7 @@ from .nhk import (
     NhkForSchoolProgramListIE,
     NhkRadioNewsPageIE,
     NhkRadiruIE,
+    NhkRadiruLiveIE,
 )
 from .nhl import NHLIE
 from .nick import (
@@ -1625,6 +1630,7 @@ from .rottentomatoes import RottenTomatoesIE
 from .rozhlas import (
     RozhlasIE,
     RozhlasVltavaIE,
+    MujRozhlasIE,
 )
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
@@ -2422,7 +2428,10 @@ from .yandexvideo import (
     ZenYandexChannelIE,
 )
 from .yapfiles import YapFilesIE
-from .yappy import YappyIE
+from .yappy import (
+    YappyIE,
+    YappyProfileIE,
+)
 from .yesjapan import YesJapanIE
 from .yinyuetai import YinYueTaiIE
 from .yle_areena import YleAreenaIE
@@ -2440,6 +2449,10 @@ from .younow import (
 from .youporn import YouPornIE
 from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
+from .zaiko import (
+    ZaikoIE,
+    ZaikoETicketIE,
+)
 from .zapiks import ZapiksIE
 from .zattoo import (
     BBVTVIE,

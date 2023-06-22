@@ -218,8 +218,8 @@ class TikTokBaseIE(InfoExtractor):
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
             if res:
-                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height'))
-                known_resolutions[res].setdefault('width', add_meta.get('width'))
+                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height') or addr.get('height'))
+                known_resolutions[res].setdefault('width', add_meta.get('width') or addr.get('width'))
                 parsed_meta.update(known_resolutions.get(res, {}))
                 add_meta.setdefault('height', int_or_none(res[:-1]))
             return [{
