@@ -52,10 +52,9 @@ class Request:
 
         self.url = url
         self.method = method
-        self.data = data
         if headers:
-            self.headers = headers  # note: must be done after setting data
-
+            self.headers = headers
+        self.data = data  # note: must be done after setting headers
         self.proxies = proxies or {}
         self.extensions = extensions or {}
 
@@ -112,19 +111,20 @@ class Request:
         ):
             raise TypeError('data must be bytes, iterable of bytes, or a file-like object')
 
-        # https://docs.python.org/3/library/urllib.request.html#urllib.request.Request.data
-        if data and data != self._data:
-            self._data = data
-            if 'Content-Length' in self.headers:
-                del self.headers['Content-Length']
-
-            if 'Content-Type' not in self.headers:
-                if isinstance(data, (str, bytes)) or hasattr(data, 'read'):
-                    self.headers['Content-Type'] = 'application/x-www-form-urlencoded'
-
-        elif data is None:
+        if data == self._data and self._data is None:
             self.headers.pop('Content-Length', None)
+
+        # https://docs.python.org/3/library/urllib.request.html#urllib.request.Request.data
+        if data != self._data:
+            if self._data is not None:
+                self.headers.pop('Content-Length', None)
+            self._data = data
+
+        if self._data is None:
             self.headers.pop('Content-Type', None)
+
+        if 'Content-Type' not in self.headers and self._data is not None:
+            self.headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
     @property
     def headers(self) -> CaseInsensitiveDict:
@@ -146,7 +146,14 @@ class Request:
         self.url = update_url_query(url or self.url, query or {})
 
     def copy(self):
-        return copy.deepcopy(self)
+        return self.__class__(
+            url=self.url,
+            headers=copy.deepcopy(self.headers),
+            proxies=copy.deepcopy(self.proxies),
+            data=self._data,
+            extensions=copy.copy(self.extensions),
+            method=self._method,
+        )
 
 
 HEADRequest = functools.partial(Request, method='HEAD')
