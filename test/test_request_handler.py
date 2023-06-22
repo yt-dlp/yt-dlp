@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 from yt_dlp.networking import get_request_handler, RequestHandler, Response
+from yt_dlp.networking.utils import std_headers
 import gzip
 import http.cookiejar
 import functools
@@ -735,11 +736,26 @@ class FakeRHYDL(FakeYDL):
         self._request_director = self.build_request_director([FakeRequestHandler])
 
 
-class TestYoutubeDLLayer:
+class TestYoutubeDLHTTP:
 
     def test_compat_opener(self):
         with FakeYDL() as ydl:
             assert isinstance(ydl._opener, urllib.request.OpenerDirector)
+
+    @pytest.mark.parametrize('proxy,expected', [
+        ('http://127.0.0.1:8080', {'all': 'http://127.0.0.1:8080'}),
+        ('', {'all': '__noproxy__'}),
+        (None, {'http': 'http://127.0.0.1:8081', 'https': 'http://127.0.0.1:8081'})  # env, set https
+    ])
+    def test_proxy(self, proxy, expected):
+        old_http_proxy = os.environ.get('HTTP_PROXY')
+        try:
+            os.environ['HTTP_PROXY'] = 'http://127.0.0.1:8081'  # ensure that provided proxies override env
+            with FakeYDL({'proxy': proxy}) as ydl:
+                assert ydl.proxies == expected
+        finally:
+            if old_http_proxy:
+                os.environ['HTTP_PROXY'] = old_http_proxy
 
     def test_compat_request(self):
         with FakeRHYDL() as ydl:
@@ -795,3 +811,66 @@ class TestYoutubeDLLayer:
             assert req.proxies['http'] == None
             assert req.proxies['no'] == '127.0.0.1,foo.bar'
             assert req.proxies['https'] == 'http://example.com'
+
+
+class TestYDLRequestDirectorBuilder:
+
+    @staticmethod
+    def build_handler(ydl, handler=FakeRequestHandler):
+        return ydl.build_request_director([handler]).get_handlers(rh_key=handler.rh_key())[0]
+
+    def test_default_params(self):
+        with FakeYDL() as ydl:
+            rh = self.build_handler(ydl)
+            assert rh.headers.items() == std_headers.items()
+            assert rh.timeout == 20.0
+            assert rh.source_address is None
+            assert rh.verbose is False
+            assert rh.prefer_system_certs is False
+            assert rh.verify is True
+            assert rh.legacy_ssl_support is False
+            assert rh.client_cert is None
+            assert rh.cookiejar is ydl.cookiejar
+
+    def test_params(self):
+        with FakeYDL({
+            'http_headers': {'test': 'testtest'},
+            'socket_timeout': 2,
+            'proxy': 'http://127.0.0.1:8080',
+            'source_address': '127.0.0.45',
+            'debug_printtraffic': True,
+            'compat_opts': ['no-certifi'],
+            'nocheckcertificate': True,
+            'legacy_server_connect': True,
+        }) as ydl:
+            rh = self.build_handler(ydl)
+            assert rh.headers.get('test') == 'testtest'
+            assert 'Accept' in rh.headers  # ensure std_headers are still there
+            assert rh.timeout == 2
+            assert rh.proxies.get('all') == 'http://127.0.0.1:8080'
+            assert rh.source_address == '127.0.0.45'
+            assert rh.verbose is True
+            assert rh.prefer_system_certs is True
+            assert rh.verify is False
+            assert rh.legacy_ssl_support is True
+
+    @pytest.mark.parametrize('ydl_params,expected', [
+        ({'client_certificate': 'fakecert.crt'}, ('fakecert.crt', None, None)),
+        ({'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key'}, ('fakecert.crt', 'fakekey.key', None)),
+        ({'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key',
+          'client_certificate_password': 'foobar'}, ('fakecert.crt', 'fakekey.key', 'foobar')),
+        ({'client_certificate_key': 'fakekey.key', 'client_certificate_password': 'foobar'}, None),
+    ])
+    def test_client_certificate(self, ydl_params, expected):
+        with FakeYDL(ydl_params) as ydl:
+            rh = self.build_handler(ydl)
+            assert rh.client_cert == expected
+
+    def test_urllib_file_urls(self):
+        with FakeYDL({'enable_file_urls': False}) as ydl:
+            rh = self.build_handler(ydl, UrllibRH)
+            assert rh.enable_file_urls is False
+
+        with FakeYDL({'enable_file_urls': True}) as ydl:
+            rh = self.build_handler(ydl, UrllibRH)
+            assert rh.enable_file_urls is True

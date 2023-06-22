@@ -398,7 +398,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         handlers = [
             ProxyHandler(proxies),
             HTTPHandler(
-                debuglevel=int(bool(self._verbose)),
+                debuglevel=int(bool(self.verbose)),
                 context=self._make_sslcontext(),
                 source_address=self.source_address),
             HTTPCookieProcessor(cookiejar),

@@ -108,11 +108,11 @@ class RequestHandler(abc.ABC):
 
         self._logger = logger
         self.headers = headers or {}
-        self.cookiejar = cookiejar or CookieJar()
+        self.cookiejar = cookiejar if cookiejar is not None else CookieJar()
         self.timeout = float(timeout or 20)  # TODO: set default somewhere
         self.proxies = proxies or {}
         self.source_address = source_address
-        self._verbose = verbose
+        self.verbose = verbose
         self.prefer_system_certs = prefer_system_certs
         self.client_cert = client_cert
         self.verify = verify

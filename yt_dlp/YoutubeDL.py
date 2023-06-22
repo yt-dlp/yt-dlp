@@ -3996,7 +3996,7 @@ class YoutubeDL:
                     self.params.get('client_certificate_key'),
                     self.params.get('client_certificate_password')
                 )
-            if handler.rh_key() == 'urllib':
+            if handler.rh_key() == 'Urllib':
                 params['enable_file_urls'] = bool(self.params.get('enable_file_urls'))
             director.add_handler(handler(logger=self, **params))
 
