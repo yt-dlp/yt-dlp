@@ -297,6 +297,10 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
 
         formats, subtitles = self._extract_theplatform_smil(smil_url, video_id)
 
+        if not subtitles:
+            pdb.set_trace()
+            void, subtitles = self._extract_m3u8_formats_and_subtitles(url.split("&")[0],video_id)
+        
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
         ret.update({
