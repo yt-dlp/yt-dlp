@@ -515,6 +515,7 @@
  - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
  - **Glide**: Glide mobile video messages (glide.me)
+ - **GlobalCyclingNetworkPlus**
  - **GlobalPlayerAudio**
  - **GlobalPlayerAudioEpisode**
  - **GlobalPlayerLive**
@@ -814,6 +815,7 @@
  - **MonsterSirenHypergryphMusic**
  - **Morningstar**: morningstar.com
  - **Motherless**
+ - **MotherlessGallery**
  - **MotherlessGroup**
  - **Motorsport**: motorsport.com
  - **MotorTrend**
@@ -1198,6 +1200,7 @@
  - **Restudy**
  - **Reuters**
  - **ReverbNation**
+ - **RheinMainTV**
  - **RICE**
  - **RMCDecouverte**
  - **RockstarGames**
