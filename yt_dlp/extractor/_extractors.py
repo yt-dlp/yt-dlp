@@ -497,6 +497,7 @@ from .dplay import (
     DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
     DiscoveryPlusIndiaShowIE,
+    GlobalCyclingNetworkPlusIE,
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
