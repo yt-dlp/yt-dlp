@@ -26,7 +26,7 @@ from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
-from ..networking import Request
+from ..networking.request import Request, HEADRequest
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -35,7 +35,6 @@ from ..utils import (
     FormatSorter,
     GeoRestrictedError,
     GeoUtils,
-    HEADRequest,
     LenientJSONDecoder,
     Popen,
     RegexNotFoundError,
