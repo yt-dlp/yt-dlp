@@ -40,7 +40,6 @@ from ..utils import (
     RegexNotFoundError,
     RetryManager,
     UnsupportedError,
-    update_Request,
     age_restricted,
     base_url,
     bug_reports_message,
@@ -89,6 +88,7 @@ from ..utils import (
     xpath_element,
     xpath_text,
     xpath_with_ns,
+    CaseInsensitiveDict,
 )
 from ..networking.exceptions import HTTPError, IncompleteRead, network_exceptions
 
@@ -793,11 +793,17 @@ class InfoExtractor:
 
     def _create_request(self, url_or_request, data=None, headers=None, query=None):
         if isinstance(url_or_request, urllib.request.Request):
-            return update_Request(url_or_request, data=data, headers=headers, query=query)
-        elif isinstance(url_or_request, Request):
-            url_or_request.update(data=data, headers=headers, query=query)
-            return url_or_request
-        return Request(url_or_request, data, headers, query=query)
+            # TODO: do we want to generalise this to a util/compat helper function?
+            # It is also used in YoutubeDL urlopen
+            url_or_request = Request(
+                url_or_request.get_full_url(), data=url_or_request.data, method=url_or_request.get_method(),
+                headers=CaseInsensitiveDict(url_or_request.headers, url_or_request.unredirected_hdrs),
+                extensions={'timeout': url_or_request.timeout} if hasattr(url_or_request, 'timeout') else None)
+        elif not isinstance(url_or_request, Request):
+            url_or_request = Request(url_or_request)
+
+        url_or_request.update(data=data, headers=headers, query=query)
+        return url_or_request
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers=None, query=None, expected_status=None):
         """
