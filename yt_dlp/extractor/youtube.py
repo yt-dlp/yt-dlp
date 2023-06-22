@@ -3356,7 +3356,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             info['author_is_uploader'] = author_is_uploader
 
         comment_abr = traverse_obj(
-            comment_renderer, ('actionsButtons', 'commentActionButtonsRenderer'), expected_type=dict)
+            comment_renderer, ('actionButtons', 'commentActionButtonsRenderer'), expected_type=dict)
         if comment_abr is not None:
             info['is_favorited'] = 'creatorHeart' in comment_abr
 
