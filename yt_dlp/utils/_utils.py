@@ -3507,7 +3507,8 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
         },
     }
 
-    sanitize_codec = functools.partial(try_get, getter=lambda x: x[0].split('.')[0].replace('0', ''))
+    sanitize_codec = functools.partial(
+        try_get, getter=lambda x: x[0].split('.')[0].replace('0', '').lower())
     vcodec, acodec = sanitize_codec(vcodecs), sanitize_codec(acodecs)
 
     for ext in preferences or COMPATIBLE_CODECS.keys():
@@ -5737,9 +5738,9 @@ class FormatSorter:
         'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
 
         'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
-        'br': {'type': 'multiple', 'field': ('tbr', 'vbr', 'abr'),
+        'br': {'type': 'multiple', 'field': ('tbr', 'vbr', 'abr'), 'convert': 'float_none',
                'function': lambda it: next(filter(None, it), None)},
-        'size': {'type': 'multiple', 'field': ('filesize', 'fs_approx'),
+        'size': {'type': 'multiple', 'field': ('filesize', 'fs_approx'), 'convert': 'bytes',
                  'function': lambda it: next(filter(None, it), None)},
         'ext': {'type': 'combined', 'field': ('vext', 'aext')},
         'res': {'type': 'multiple', 'field': ('height', 'width'),
