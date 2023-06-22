@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..compat import functools
 from ..utils import (
     parse_duration,
     traverse_obj,
@@ -66,7 +67,7 @@ class PornboxIE(InfoExtractor):
         subtitles = {country_code: [{
             'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
             'ext': 'srt'
-        }] for country_code in traverse_obj(public_data, ('subtitles', ...)}
+        }] for country_code in traverse_obj(public_data, ('subtitles', ...))}
 
         metadata = {
             'id': video_id,
@@ -98,19 +99,8 @@ class PornboxIE(InfoExtractor):
         if not media_id:
             self.raise_no_formats('Could not find stream id', video_id=video_id)
 
-        headers = {
-            'Accept': '*/*',
-            'Accept-Language': 'en-US;q=0.7,en;q=0.3',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'X-Requested-With': 'XMLHttpRequest',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin'
-        }
-        stream_data = self._download_json(f'https://pornbox.com/media/{media_id}/stream', video_id=video_id,
-                                          headers=headers, note='Getting manifest urls')
+        stream_data = self._download_json(
+            f'https://pornbox.com/media/{media_id}/stream', video_id=video_id, note='Getting manifest urls')
 
         get_quality = qualities(['web', 'vga', 'hd', '1080p', '4k', '8k'])
         metadata['formats'] = [traverse_obj(q, {
@@ -119,6 +109,6 @@ class PornboxIE(InfoExtractor):
             'format_id': ('quality', {str_or_none}),
             'quality': ('quality', {get_quality}),
             'width': ('size', {lambda x: int(x[:-1])})
-        } for q in stream_data.get('qualities') or []]
+        }) for q in stream_data.get('qualities') or []]
 
         return metadata
