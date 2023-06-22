@@ -123,14 +123,13 @@ class N1InfoIIE(InfoExtractor):
             for video_data in brid_data:
                 video_data = self._parse_json(video_data, title)
                 video_id = video_data['video']
-                thumbnail = self._html_search_meta('thumbnailURL', webpage)
-                formats = self._extract_m3u8_formats(f'https://cdn-uc.brid.tv/live/partners/{site_id}/streaming/{video_id}/{video_id}.m3u8', video_id)
                 entries.append({
-                    'formats': formats,
                     'id': video_id,
                     'title': title,
-                    'thumbnail': thumbnail,
                     'timestamp': timestamp,
+                    'thumbnail': self._html_search_meta('thumbnailURL', webpage),
+                    'formats': self._extract_m3u8_formats(
+                        f'https://cdn-uc.brid.tv/live/partners/{site_id}/streaming/{video_id}/{video_id}.m3u8', video_id),
                 })
         else:
             # Old player still present in older articles
