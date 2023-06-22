@@ -16,15 +16,16 @@ from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
-    network_exceptions,
     remove_end,
     remove_start,
-    sanitized_Request,
     shell_quote,
     system_identifier,
     version_tuple,
 )
 from .version import CHANNEL, UPDATE_HINT, VARIANT, __version__
+
+from .networking.exceptions import network_exceptions
+from .networking.request import Request
 
 UPDATE_SOURCES = {
     'stable': 'yt-dlp/yt-dlp',
@@ -190,7 +191,7 @@ class Updater:
     def _get_version_info(self, tag):
         url = f'{API_BASE_URL}/{self._target_repo}/releases/{tag}'
         self.ydl.write_debug(f'Fetching release info: {url}')
-        return json.loads(self.ydl.urlopen(sanitized_Request(url, headers={
+        return json.loads(self.ydl.urlopen(Request(url, headers={
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'yt-dlp',
             'X-GitHub-Api-Version': '2022-11-28',
