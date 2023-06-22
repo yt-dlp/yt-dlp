@@ -24,9 +24,10 @@ from ..utils import (
     encodeFilename,
     find_available_port,
     remove_end,
-    sanitized_Request,
     traverse_obj,
 )
+
+from ..networking.request import Request
 
 
 class Features(enum.Enum):
@@ -333,7 +334,7 @@ class Aria2cFD(ExternalFD):
             'method': method,
             'params': [f'token:{rpc_secret}', *params],
         }).encode('utf-8')
-        request = sanitized_Request(
+        request = Request(
             f'http://localhost:{rpc_port}/jsonrpc',
             data=d, headers={
                 'Content-Type': 'application/json',
