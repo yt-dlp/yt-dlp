@@ -658,6 +658,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
         with handler(enable_file_urls=True) as rh:
             res = validate_and_send(rh, req)
             assert res.read() == b'foobar'
+            res.close()
 
         os.unlink(tf.name)
 
