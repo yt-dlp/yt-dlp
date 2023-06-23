@@ -54,7 +54,7 @@ class RequestDirector:
         unexpected_errors = []
         unsupported_errors = []
         # TODO (future): add a per-request preference system
-        for handler in reversed(self._handlers.values()):
+        for handler in reversed(list(self._handlers.values())):
             self.logger.to_debugtraffic(
                 f'director: checking if "{handler.RH_NAME}" request handler supports this request.')
             try:
