@@ -5,9 +5,9 @@ from ..utils import (
     traverse_obj,
     str_or_none,
     int_or_none,
-    strip_or_none,
     parse_iso8601,
-    qualities
+    qualities,
+    url_or_none,
 )
 
 
@@ -71,17 +71,20 @@ class PornboxIE(InfoExtractor):
 
         metadata = {
             'id': video_id,
-            'title': public_data.get('scene_name').strip(),
-            'description': strip_or_none(public_data.get('small_description')),
-            'uploader': public_data.get('studio'),
-            'timestamp': parse_iso8601(traverse_obj(public_data, ('studios', 'release_date'), 'publish_date')),
+            **traverse_obj(public_data, {
+                'title': ('scene_name', {str.strip}),
+                'description': ('small_description', {str.strip}),
+                'uploader': 'studio',
+                'duration': ('runtime', {parse_duration}),
+                'cast': (('models', 'male_models'), ..., 'model_name'),
+                'thumbnail': ('player_poster', {url_or_none}),
+                'tags': ('niches', ..., 'niche'),
+            }),
             'age_limit': 18,
-            'duration': parse_duration(public_data.get('runtime')),
-            'cast': traverse_obj(public_data, (('models', 'male_models'), ..., 'model_name')),
-            'tags': traverse_obj(public_data, ('niches', ..., 'niche'), default=[]),
-            'thumbnail': str_or_none(public_data.get('player_poster')),
-            'subtitles': subtitles,
+            'timestamp': parse_iso8601(traverse_obj(
+                public_data, ('studios', 'release_date'), 'publish_date'))
             'availability': self._availability(needs_auth=True, needs_premium=(not is_free_scene))
+            'subtitles': subtitles,
         }
 
         if not public_data.get('is_purchased') or not is_free_scene:
