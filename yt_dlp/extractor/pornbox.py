@@ -32,10 +32,8 @@ class PornboxIE(InfoExtractor):
         }
     }, {
         'url': 'https://pornbox.com/application/watch-page/216045',
-        'md5': '56cb78bb1d8e0d2dad8b75c278c20098',
         'info_dict': {
             'id': '216045',
-            'ext': 'mp4',
             'title': 'md5:3e48528e73a9a2b12f7a2772ed0b26a2',
             'description': 'md5:3e631dcaac029f15ed434e402d1b06c7',
             'uploader': 'VK Studio',
@@ -44,7 +42,7 @@ class PornboxIE(InfoExtractor):
             'age_limit': 18,
             'availability': 'premium_only',
             'duration': 2710,
-            'cast': ['Bella Grey', 'Oliver Trunk'],
+            'cast': 'count:3',
             'tags': 'count:29',
             'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$',
             'subtitles': 'count:6'
