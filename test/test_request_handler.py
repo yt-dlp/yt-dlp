@@ -26,11 +26,9 @@ import urllib.request
 import zlib
 import urllib.error
 
-from test.helper import http_server_port
-from yt_dlp import YoutubeDL
+from test.helper import http_server_port, FakeYDL
 from yt_dlp.dependencies import brotli
 
-from .helper import FakeYDL
 from yt_dlp.networking import Request, UrllibRH, list_request_handler_classes
 from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest, RequestError, \
     TransportError, NoSupportingHandlers
