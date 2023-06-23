@@ -35,5 +35,26 @@
         "when": "8417f26b8a819cd7ffcd4e000ca3e45033e670fb",
         "short": "Add option `--color` (#6904)",
         "authors": ["Grub4K"]
+    },
+    {
+        "action": "change",
+        "when": "7b37e8b23691613f331bd4ebc9d639dd6f93c972",
+        "short": "Improve `--download-sections`\n    - Support negative time-ranges\n    - Add `*from-url` to obey time-ranges in URL"
+    },
+    {
+        "action": "change",
+        "when": "1e75d97db21152acc764b30a688e516f04b8a142",
+        "short": "[extractor/youtube] Add `ios` to default clients used\n        - IOS is affected neither by 403 nor by nsig so helps mitigate them preemptively\n        - IOS also has higher bit-rate 'premium' formats though they are not labeled as such"
+    },
+    {
+        "action": "change",
+        "when": "f2ff0f6f1914b82d4a51681a72cc0828115dcb4a",
+        "short": "[extractor/motherless] Add gallery support, fix groups (#7211)",
+        "authors": ["rexlambert22", "Ti4eeT4e"]
+    },
+    {
+        "action": "change",
+        "when": "a4486bfc1dc7057efca9dd3fe70d7fa25c56f700",
+        "short": "[misc] Revert \"Add automatic duplicate issue detection\""
     }
 ]

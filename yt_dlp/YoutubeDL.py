@@ -2666,7 +2666,8 @@ class YoutubeDL:
                 format['dynamic_range'] = 'SDR'
             if format.get('aspect_ratio') is None:
                 format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
-            if (info_dict.get('duration') and format.get('tbr')
+            if (not format.get('manifest_url')  # For fragmented formats, "tbr" is often max bitrate and not average
+                    and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
@@ -2805,11 +2806,13 @@ class YoutubeDL:
                 new_info.update(fmt)
                 offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
                 end_time = offset + min(chapter.get('end_time', duration), duration)
+                # duration may not be accurate. So allow deviations <1sec
+                if end_time == float('inf') or end_time > offset + duration + 1:
+                    end_time = None
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        # duration may not be accurate. So allow deviations <1sec
-                        'section_end': end_time if end_time <= offset + duration + 1 else None,
+                        'section_end': end_time,
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
@@ -3707,8 +3710,11 @@ class YoutubeDL:
                 format_field(f, 'fps', '\t%d', func=round),
                 format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                 format_field(f, 'audio_channels', '\t%s'),
-                delim,
-                format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
+                delim, (
+                    format_field(f, 'filesize', ' \t%s', func=format_bytes)
+                    or format_field(f, 'filesize_approx', '≈\t%s', func=format_bytes)
+                    or format_field(try_call(lambda: format_bytes(int(info_dict['duration'] * f['tbr'] * (1024 / 8)))),
+                                    None, self._format_out('~\t%s', self.Styles.SUPPRESS))),
                 format_field(f, 'tbr', '\t%dk', func=round),
                 shorten_protocol_name(f.get('protocol', '')),
                 delim,

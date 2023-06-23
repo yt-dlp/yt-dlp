@@ -1,32 +1,39 @@
 import datetime
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
-    InAdvancePagedList,
-    orderedSet,
+    OnDemandPagedList,
+    remove_end,
     str_to_int,
     unified_strdate,
 )
 
 
 class MotherlessIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?motherless\.com/(?:g/[a-z0-9_]+/)?(?P<id>[A-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/(?:g/[a-z0-9_]+/|G[VIG]?[A-F0-9]+/)?(?P<id>[A-F0-9]+)'
     _TESTS = [{
-        'url': 'http://motherless.com/AC3FFE1',
-        'md5': '310f62e325a9fafe64f68c0bccb6e75f',
+        'url': 'http://motherless.com/EE97006',
+        'md5': 'cb5e7438f7a3c4e886b7bccc1292a3bc',
         'info_dict': {
-            'id': 'AC3FFE1',
+            'id': 'EE97006',
             'ext': 'mp4',
-            'title': 'Fucked in the ass while playing PS3',
-            'categories': ['Gaming', 'anal', 'reluctant', 'rough', 'Wife'],
-            'upload_date': '20100913',
-            'uploader_id': 'famouslyfuckedup',
+            'title': 'Dogging blond Brit getting glazed (comp)',
+            'categories': ['UK', 'slag', 'whore', 'dogging', 'cunt', 'cumhound', 'big tits', 'Pearl Necklace'],
+            'upload_date': '20230519',
+            'uploader_id': 'deathbird',
             'thumbnail': r're:https?://.*\.jpg',
             'age_limit': 18,
-        }
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+        },
+        'params': {
+            # Incomplete cert chains
+            'nocheckcertificate': True,
+        },
     }, {
         'url': 'http://motherless.com/532291B',
         'md5': 'bc59a6b47d1f958e61fbd38a4d31b131',
@@ -49,16 +56,36 @@ class MotherlessIE(InfoExtractor):
             'id': '633979F',
             'ext': 'mp4',
             'title': 'Turtlette',
-            'categories': ['superheroine heroine  superher'],
+            'categories': ['superheroine heroine superher'],
             'upload_date': '20140827',
             'uploader_id': 'shade0230',
             'thumbnail': r're:https?://.*\.jpg',
             'age_limit': 18,
-        }
+            'like_count': int,
+            'comment_count': int,
+            'view_count': int,
+        },
+        'params': {
+            'nocheckcertificate': True,
+        },
     }, {
-        # no keywords
         'url': 'http://motherless.com/8B4BBC1',
-        'only_matching': True,
+        'info_dict': {
+            'id': '8B4BBC1',
+            'ext': 'mp4',
+            'title': 'VIDEO00441.mp4',
+            'categories': [],
+            'upload_date': '20160214',
+            'uploader_id': 'NMWildGirl',
+            'thumbnail': r're:https?://.*\.jpg',
+            'age_limit': 18,
+            'like_count': int,
+            'comment_count': int,
+            'view_count': int,
+        },
+        'params': {
+            'nocheckcertificate': True,
+        },
     }, {
         # see https://motherless.com/videos/recent for recent videos with
         # uploaded date in "ago" format
@@ -72,9 +99,12 @@ class MotherlessIE(InfoExtractor):
             'uploader_id': 'anonymous',
             'thumbnail': r're:https?://.*\.jpg',
             'age_limit': 18,
+            'like_count': int,
+            'comment_count': int,
+            'view_count': int,
         },
         'params': {
-            'skip_download': True,
+            'nocheckcertificate': True,
         },
     }]
 
@@ -128,10 +158,8 @@ class MotherlessIE(InfoExtractor):
             (r'''<span\b[^>]+\bclass\s*=\s*["']username\b[^>]*>([^<]+)</span>''',
              r'''(?s)['"](?:media-meta-member|thumb-member-username)\b[^>]+>\s*<a\b[^>]+\bhref\s*=\s*['"]/m/([^"']+)'''),
             webpage, 'uploader_id', fatal=False)
-
-        categories = self._html_search_meta('keywords', webpage, default=None)
-        if categories:
-            categories = [cat.strip() for cat in categories.split(',')]
+        categories = self._html_search_meta('keywords', webpage, default='')
+        categories = [cat.strip() for cat in categories.split(',') if cat.strip()]
 
         return {
             'id': video_id,
@@ -148,102 +176,97 @@ class MotherlessIE(InfoExtractor):
         }
 
 
-class MotherlessGroupIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?motherless\.com/gv?/(?P<id>[a-z0-9_]+)'
+class MotherlessPaginatedIE(InfoExtractor):
+    _PAGE_SIZE = 60
+
+    def _correct_path(self, url, item_id):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _extract_entries(self, webpage, base):
+        for mobj in re.finditer(r'href="[^"]*(?P<href>/[A-F0-9]+)"\s+title="(?P<title>[^"]+)',
+                                webpage):
+            video_url = urllib.parse.urljoin(base, mobj.group('href'))
+            video_id = MotherlessIE.get_temp_id(video_url)
+
+            if video_id:
+                yield self.url_result(video_url, MotherlessIE, video_id, mobj.group('title'))
+
+    def _real_extract(self, url):
+        item_id = self._match_id(url)
+        real_url = self._correct_path(url, item_id)
+        webpage = self._download_webpage(real_url, item_id, 'Downloading page 1')
+
+        def get_page(idx):
+            page = idx + 1
+            current_page = webpage if not idx else self._download_webpage(
+                real_url, item_id, note=f'Downloading page {page}', query={'page': page})
+            yield from self._extract_entries(current_page, real_url)
+
+        return self.playlist_result(
+            OnDemandPagedList(get_page, self._PAGE_SIZE), item_id,
+            remove_end(self._html_extract_title(webpage), ' | MOTHERLESS.COM ™'))
+
+
+class MotherlessGroupIE(MotherlessPaginatedIE):
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/g[vifm]?/(?P<id>[a-z0-9_]+)/?(?:$|[#?])'
     _TESTS = [{
-        'url': 'http://motherless.com/g/movie_scenes',
+        'url': 'http://motherless.com/gv/movie_scenes',
         'info_dict': {
             'id': 'movie_scenes',
             'title': 'Movie Scenes',
-            'description': 'Hot and sexy scenes from "regular" movies... '
-                           'Beautiful actresses fully nude... A looot of '
-                           'skin! :)Enjoy!',
         },
-        'playlist_mincount': 662,
+        'playlist_mincount': 540,
     }, {
-        'url': 'http://motherless.com/gv/sex_must_be_funny',
+        'url': 'http://motherless.com/g/sex_must_be_funny',
         'info_dict': {
             'id': 'sex_must_be_funny',
             'title': 'Sex must be funny',
-            'description': 'Sex can be funny. Wide smiles,laugh, games, fun of '
-                           'any kind!'
         },
-        'playlist_mincount': 0,
-        'expected_warnings': [
-            'This group has no videos.',
-        ]
+        'playlist_count': 0,
     }, {
-        'url': 'https://motherless.com/g/beautiful_cock',
+        'url': 'https://motherless.com/gv/beautiful_cock',
         'info_dict': {
             'id': 'beautiful_cock',
             'title': 'Beautiful Cock',
-            'description': 'Group for lovely cocks yours, mine, a friends anything human',
         },
-        'playlist_mincount': 2500,
+        'playlist_mincount': 2040,
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return (False if MotherlessIE.suitable(url)
-                else super(MotherlessGroupIE, cls).suitable(url))
+    def _correct_path(self, url, item_id):
+        return urllib.parse.urljoin(url, f'/gv/{item_id}')
 
-    def _extract_entries(self, webpage, base):
-        entries = []
-        for mobj in re.finditer(
-                r'href="(?P<href>/[^"]+)"[^>]*>(?:\s*<img[^>]+alt="[^-]+-\s(?P<title>[^"]+)")?',
-                webpage):
-            video_url = compat_urlparse.urljoin(base, mobj.group('href'))
-            if not MotherlessIE.suitable(video_url):
-                continue
-            video_id = MotherlessIE._match_id(video_url)
-            title = mobj.group('title')
-            entries.append(self.url_result(
-                video_url, ie=MotherlessIE.ie_key(), video_id=video_id,
-                video_title=title))
-        # Alternative fallback
-        if not entries:
-            entries = [
-                self.url_result(
-                    compat_urlparse.urljoin(base, '/' + entry_id),
-                    ie=MotherlessIE.ie_key(), video_id=entry_id)
-                for entry_id in orderedSet(re.findall(
-                    r'data-codename=["\']([A-Z0-9]+)', webpage))]
-        return entries
 
-    def _real_extract(self, url):
-        group_id = self._match_id(url)
-        page_url = compat_urlparse.urljoin(url, '/gv/%s' % group_id)
-        webpage = self._download_webpage(page_url, group_id)
-        title = self._search_regex(
-            r'<title>([\w\s]+\w)\s+-', webpage, 'title', fatal=False)
-        description = self._html_search_meta(
-            'description', webpage, fatal=False)
-        page_count = str_to_int(self._search_regex(
-            r'(\d+)\s*</(?:a|span)>\s*<(?:a|span)[^>]+(?:>\s*NEXT|\brel\s*=\s*["\']?next)\b',
-            webpage, 'page_count', default=0))
-        if not page_count:
-            message = self._search_regex(
-                r'''class\s*=\s*['"]error-page\b[^>]*>\s*<p[^>]*>\s*(?P<error_msg>[^<]+)(?<=\S)\s*''',
-                webpage, 'error_msg', default=None) or 'This group has no videos.'
-            self.report_warning(message, group_id)
-            page_count = 1
-        PAGE_SIZE = 80
+class MotherlessGalleryIE(MotherlessPaginatedIE):
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/G[VIG]?(?P<id>[A-F0-9]+)/?(?:$|[#?])'
+    _TESTS = [{
+        'url': 'https://motherless.com/GV338999F',
+        'info_dict': {
+            'id': '338999F',
+            'title': 'Random',
+        },
+        'playlist_mincount': 190,
+    }, {
+        'url': 'https://motherless.com/GVABD6213',
+        'info_dict': {
+            'id': 'ABD6213',
+            'title': 'Cuties',
+        },
+        'playlist_mincount': 2,
+    }, {
+        'url': 'https://motherless.com/GVBCF7622',
+        'info_dict': {
+            'id': 'BCF7622',
+            'title': 'Vintage',
+        },
+        'playlist_count': 0,
+    }, {
+        'url': 'https://motherless.com/G035DE2F',
+        'info_dict': {
+            'id': '035DE2F',
+            'title': 'General',
+        },
+        'playlist_mincount': 420,
+    }]
 
-        def _get_page(idx):
-            if idx > 0:
-                webpage = self._download_webpage(
-                    page_url, group_id, query={'page': idx + 1},
-                    note='Downloading page %d/%d' % (idx + 1, page_count)
-                )
-            for entry in self._extract_entries(webpage, url):
-                yield entry
-
-        playlist = InAdvancePagedList(_get_page, page_count, PAGE_SIZE)
-
-        return {
-            '_type': 'playlist',
-            'id': group_id,
-            'title': title,
-            'description': description,
-            'entries': playlist
-        }
+    def _correct_path(self, url, item_id):
+        return urllib.parse.urljoin(url, f'/GV{item_id}')
