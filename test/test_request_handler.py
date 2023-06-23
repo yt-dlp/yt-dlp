@@ -643,21 +643,23 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_file_urls(self, handler):
         # See https://github.com/ytdl-org/youtube-dl/issues/8227
-        with tempfile.NamedTemporaryFile(delete=False) as tf:
-            tf.write(b'foobar')
-            tf.flush()
-            req = Request(pathlib.Path(tf.name).as_uri())
-            with handler() as rh:
-                with pytest.raises(UnsupportedRequest):
-                    rh.validate(req)
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        tf.write(b'foobar')
+        tf.close()
+        req = Request(pathlib.Path(tf.name).as_uri())
+        with handler() as rh:
+            with pytest.raises(UnsupportedRequest):
+                rh.validate(req)
 
-                # Test that urllib never loaded FileHandler
-                with pytest.raises(TransportError):
-                    rh.send(req)
+            # Test that urllib never loaded FileHandler
+            with pytest.raises(TransportError):
+                rh.send(req)
 
-            with handler(enable_file_urls=True) as rh:
-                res = validate_and_send(rh, req)
-                assert res.read() == b'foobar'
+        with handler(enable_file_urls=True) as rh:
+            res = validate_and_send(rh, req)
+            assert res.read() == b'foobar'
+
+        os.unlink(tf.name)
 
 
 def run_validation(handler, fail, req, **handler_kwargs):
