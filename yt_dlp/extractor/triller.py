@@ -5,7 +5,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     UnsupportedError,
     determine_ext,
     int_or_none,
@@ -17,6 +16,7 @@ from ..utils import (
     urljoin,
     url_or_none,
 )
+from ..networking.request import HEADRequest
 
 
 class TrillerBaseIE(InfoExtractor):

@@ -3,11 +3,11 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
-    HEADRequest,
     int_or_none,
     parse_duration,
     unified_strdate,
 )
+from ..networking.request import HEADRequest
 
 
 class LA7IE(InfoExtractor):

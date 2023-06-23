@@ -3,11 +3,11 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    sanitized_Request,
     urlencode_postdata,
     xpath_text,
     xpath_with_ns,
 )
+from ..networking.request import Request
 
 _x = lambda p: xpath_with_ns(p, {'xspf': 'http://xspf.org/ns/0/'})
 
@@ -36,8 +36,8 @@ class NosVideoIE(InfoExtractor):
             'op': 'download1',
             'method_free': 'Continue to Video',
         }
-        req = sanitized_Request(url, urlencode_postdata(fields))
-        req.add_header('Content-type', 'application/x-www-form-urlencoded')
+        req = Request(url, urlencode_postdata(fields))
+        req.headers['Content-type'] = 'application/x-www-form-urlencoded'
         webpage = self._download_webpage(req, video_id,
                                          'Downloading download page')
         if re.search(self._FILE_DELETED_REGEX, webpage) is not None:

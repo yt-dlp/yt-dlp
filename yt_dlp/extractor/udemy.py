@@ -1,5 +1,4 @@
 import re
-import urllib.request
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError, compat_str, compat_urlparse
@@ -10,7 +9,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     js_to_json,
-    sanitized_Request,
     smuggle_url,
     try_get,
     unescapeHTML,
@@ -18,6 +16,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
 )
+from ..networking.request import Request
 
 
 class UdemyIE(InfoExtractor):
@@ -153,11 +152,10 @@ class UdemyIE(InfoExtractor):
                 headers['X-Udemy-Bearer-Token'] = cookie.value
                 headers['X-Udemy-Authorization'] = 'Bearer %s' % cookie.value
 
-        if isinstance(url_or_request, urllib.request.Request):
-            for header, value in headers.items():
-                url_or_request.add_header(header, value)
+        if isinstance(url_or_request, Request):
+            url_or_request.headers.update(headers)
         else:
-            url_or_request = sanitized_Request(url_or_request, headers=headers)
+            url_or_request = Request(url_or_request, headers=headers)
 
         response = super(UdemyIE, self)._download_json(url_or_request, *args, **kwargs)
         self._handle_error(response)

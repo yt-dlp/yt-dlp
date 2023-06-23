@@ -3,7 +3,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     base_url,
     clean_html,
     extract_attributes,
@@ -18,6 +17,7 @@ from ..utils import (
     url_basename,
     urljoin,
 )
+from ..networking.request import HEADRequest
 
 
 class RCSBaseIE(InfoExtractor):

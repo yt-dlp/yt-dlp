@@ -1,9 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
-    HEADRequest,
     get_element_by_attribute,
     parse_iso8601,
 )
+from ..networking.request import HEADRequest
 
 
 class YesJapanIE(InfoExtractor):

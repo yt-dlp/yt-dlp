@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    HEADRequest,
     float_or_none,
     int_or_none,
     parse_duration,
@@ -9,6 +8,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
 )
+from ..networking.request import HEADRequest
 
 
 class SBSIE(InfoExtractor):

@@ -15,7 +15,6 @@ from ..utils import (
     error_to_compat_str,
     ExtractorError,
     float_or_none,
-    HEADRequest,
     int_or_none,
     KNOWN_EXTENSIONS,
     mimetype2ext,
@@ -26,8 +25,9 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlhandle_detect_ext,
-    sanitized_Request,
 )
+
+from ..networking.request import Request, HEADRequest
 
 
 class SoundcloudEmbedIE(InfoExtractor):
@@ -123,7 +123,7 @@ class SoundcloudBaseIE(InfoExtractor):
         self._access_token = password
         query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
         payload = {'session': {'access_token': self._access_token}}
-        token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
+        token_verification = Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
         response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
         if response is not False:
             self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}

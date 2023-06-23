@@ -22,7 +22,6 @@ from ..utils import (
     parse_count,
     parse_qs,
     qualities,
-    sanitized_Request,
     traverse_obj,
     try_get,
     url_or_none,
@@ -30,6 +29,7 @@ from ..utils import (
     urljoin,
     variadic,
 )
+from ..networking.request import Request
 from ..networking.exceptions import network_exceptions
 
 
@@ -319,7 +319,7 @@ class FacebookIE(InfoExtractor):
     }
 
     def _perform_login(self, username, password):
-        login_page_req = sanitized_Request(self._LOGIN_URL)
+        login_page_req = Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
         login_page = self._download_webpage(login_page_req, None,
                                             note='Downloading login page',
@@ -340,8 +340,8 @@ class FacebookIE(InfoExtractor):
             'timezone': '-60',
             'trynum': '1',
         }
-        request = sanitized_Request(self._LOGIN_URL, urlencode_postdata(login_form))
-        request.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        request = Request(self._LOGIN_URL, urlencode_postdata(login_form))
+        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
         try:
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
@@ -367,8 +367,8 @@ class FacebookIE(InfoExtractor):
                 'h': h,
                 'name_action_selected': 'dont_save',
             }
-            check_req = sanitized_Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
-            check_req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+            check_req = Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
+            check_req.headers['Content-Type'] = 'application/x-www-form-urlencoded'
             check_response = self._download_webpage(check_req, None,
                                                     note='Confirming login')
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:

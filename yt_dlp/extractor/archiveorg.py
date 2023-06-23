@@ -10,7 +10,6 @@ from ..compat import compat_HTTPError, compat_urllib_parse_unquote
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
-    HEADRequest,
     bug_reports_message,
     clean_html,
     dict_get,
@@ -33,6 +32,7 @@ from ..utils import (
     url_or_none,
     urlhandle_detect_ext,
 )
+from ..networking.request import HEADRequest
 
 
 class ArchiveOrgIE(InfoExtractor):

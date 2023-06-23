@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from .uplynk import UplynkPreplayIE
-from ..utils import HEADRequest, float_or_none, make_archive_id, smuggle_url
+from ..utils import float_or_none, make_archive_id, smuggle_url
+from ..networking.request import HEADRequest
 
 
 class FoxSportsIE(InfoExtractor):

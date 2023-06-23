@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import HEADRequest
+from ..networking.request import HEADRequest
 
 
 class ThisOldHouseIE(InfoExtractor):

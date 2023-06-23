@@ -2,11 +2,11 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    HEADRequest,
     ExtractorError,
     determine_ext,
     scale_thumbnails_to_max_format_width,
 )
+from ..networking.request import HEADRequest
 
 
 class Ant1NewsGrBaseIE(InfoExtractor):

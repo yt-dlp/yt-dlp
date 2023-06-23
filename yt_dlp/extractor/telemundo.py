@@ -2,8 +2,8 @@ from .common import InfoExtractor
 from ..utils import (
     try_get,
     unified_timestamp,
-    HEADRequest,
 )
+from ..networking.request import HEADRequest
 
 
 class TelemundoIE(InfoExtractor):

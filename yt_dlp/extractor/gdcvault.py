@@ -3,12 +3,11 @@ import re
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from ..utils import (
-    HEADRequest,
     remove_start,
-    sanitized_Request,
     smuggle_url,
     urlencode_postdata,
 )
+from ..networking.request import Request, HEADRequest
 
 
 class GDCVaultIE(InfoExtractor):
@@ -138,8 +137,8 @@ class GDCVaultIE(InfoExtractor):
             'password': password,
         }
 
-        request = sanitized_Request(login_url, urlencode_postdata(login_form))
-        request.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        request = Request(login_url, urlencode_postdata(login_form))
+        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
         self._download_webpage(request, display_id, 'Logging in')
         start_page = self._download_webpage(webpage_url, display_id, 'Getting authenticated video page')
         self._download_webpage(logout_url, display_id, 'Logging out')

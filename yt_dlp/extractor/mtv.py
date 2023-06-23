@@ -7,11 +7,9 @@ from ..utils import (
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
-    HEADRequest,
     int_or_none,
     join_nonempty,
     RegexNotFoundError,
-    sanitized_Request,
     strip_or_none,
     timeconvert,
     try_get,
@@ -20,6 +18,8 @@ from ..utils import (
     url_basename,
     xpath_text,
 )
+
+from ..networking.request import Request, HEADRequest
 
 
 def _media_xml_tag(tag):
@@ -51,9 +51,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
     def _extract_mobile_video_formats(self, mtvn_id):
         webpage_url = self._MOBILE_TEMPLATE % mtvn_id
-        req = sanitized_Request(webpage_url)
+        req = Request(webpage_url)
         # Otherwise we get a webpage that would execute some javascript
-        req.add_header('User-Agent', 'curl/7')
+        req.headers['User-Agent'] = 'curl/7'
         webpage = self._download_webpage(req, mtvn_id,
                                          'Downloading mobile page')
         metrics_url = unescapeHTML(self._search_regex(r'<a href="(http://metrics.+?)"', webpage, 'url'))

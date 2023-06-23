@@ -9,7 +9,6 @@ from .common import InfoExtractor
 from .paramountplus import ParamountPlusIE
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     UserNotLive,
     determine_ext,
     float_or_none,
@@ -22,6 +21,7 @@ from ..utils import (
     traverse_obj,
     url_or_none,
 )
+from ..networking.request import HEADRequest
 
 
 class CBSNewsBaseIE(InfoExtractor):

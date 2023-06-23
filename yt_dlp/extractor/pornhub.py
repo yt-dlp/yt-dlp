@@ -3,8 +3,8 @@ import itertools
 import math
 import operator
 import re
-import urllib.request
 
+from ..networking import Request
 from .common import InfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import compat_HTTPError, compat_str
@@ -46,8 +46,8 @@ class PornHubBaseIE(InfoExtractor):
                 r'document\.cookie\s*=\s*["\']RNKEY=',
                 r'document\.location\.reload\(true\)')):
             url_or_request = args[0]
-            url = (url_or_request.get_full_url()
-                   if isinstance(url_or_request, urllib.request.Request)
+            url = (url_or_request.url
+                   if isinstance(url_or_request, Request)
                    else url_or_request)
             phantom = PhantomJSwrapper(self, required_version='2.0')
             phantom.get(url, html=webpage)

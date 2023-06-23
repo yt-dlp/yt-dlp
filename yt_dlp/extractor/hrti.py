@@ -7,9 +7,9 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_age_limit,
-    sanitized_Request,
     try_get,
 )
+from ..networking.request import Request
 
 
 class HRTiBaseIE(InfoExtractor):
@@ -42,7 +42,7 @@ class HRTiBaseIE(InfoExtractor):
             'application_version': self._APP_VERSION
         }
 
-        req = sanitized_Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
+        req = Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
         req.get_method = lambda: 'PUT'
 
         resources = self._download_json(

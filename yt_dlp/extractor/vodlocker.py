@@ -2,9 +2,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     NO_DEFAULT,
-    sanitized_Request,
     urlencode_postdata,
 )
+from ..networking.request import Request
 
 
 class VodlockerIE(InfoExtractor):
@@ -37,8 +37,8 @@ class VodlockerIE(InfoExtractor):
         if fields['op'] == 'download1':
             self._sleep(3, video_id)  # they do detect when requests happen too fast!
             post = urlencode_postdata(fields)
-            req = sanitized_Request(url, post)
-            req.add_header('Content-type', 'application/x-www-form-urlencoded')
+            req = Request(url, post)
+            req.headers['Content-type'] = 'application/x-www-form-urlencoded'
             webpage = self._download_webpage(
                 req, video_id, 'Downloading video page')
 

@@ -9,7 +9,6 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     LazyList,
     UnsupportedError,
     UserNotLive,
@@ -29,6 +28,7 @@ from ..utils import (
     try_get,
     url_or_none,
 )
+from ..networking.request import HEADRequest
 
 
 class TikTokBaseIE(InfoExtractor):

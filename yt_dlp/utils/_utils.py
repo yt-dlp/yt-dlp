@@ -1971,13 +1971,6 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
-def request_to_url(req):
-    if isinstance(req, urllib.request.Request):
-        return req.get_full_url()
-    else:
-        return req
-
-
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:

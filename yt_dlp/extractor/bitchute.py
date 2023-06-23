@@ -4,7 +4,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     OnDemandPagedList,
     clean_html,
     get_element_by_class,
@@ -18,6 +17,7 @@ from ..utils import (
     unified_strdate,
     urlencode_postdata,
 )
+from ..networking.request import HEADRequest
 
 
 class BitChuteIE(InfoExtractor):

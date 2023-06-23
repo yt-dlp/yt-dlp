@@ -2,11 +2,11 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    HEADRequest,
     ExtractorError,
     int_or_none,
     clean_html,
 )
+from ..networking.request import HEADRequest
 
 
 class TFOIE(InfoExtractor):

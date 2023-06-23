@@ -6,7 +6,6 @@ from base64 import b64decode
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -16,6 +15,7 @@ from ..utils import (
     update_url_query,
     urlhandle_detect_ext,
 )
+from ..networking.request import HEADRequest
 
 
 class WistiaBaseIE(InfoExtractor):

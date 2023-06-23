@@ -1,4 +1,4 @@
-from ..utils import HEADRequest
+from ..networking.request import HEADRequest
 from .common import InfoExtractor
 
 

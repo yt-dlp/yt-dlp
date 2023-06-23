@@ -3,10 +3,10 @@ import base64
 
 from .common import InfoExtractor
 from ..utils import (
-    HEADRequest,
     int_or_none,
     urlencode_postdata,
 )
+from ..networking.request import HEADRequest
 
 
 class TenPlayIE(InfoExtractor):

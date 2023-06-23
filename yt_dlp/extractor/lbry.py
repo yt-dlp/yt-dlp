@@ -5,7 +5,6 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     OnDemandPagedList,
     UnsupportedError,
     determine_ext,
@@ -18,6 +17,7 @@ from ..utils import (
     urlhandle_detect_ext,
     urljoin,
 )
+from ..networking.request import HEADRequest
 
 
 class LBRYBaseIE(InfoExtractor):

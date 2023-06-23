@@ -8,11 +8,11 @@ from ..utils import (
     extract_attributes,
     get_element_by_class,
     get_element_html_by_id,
-    HEADRequest,
     parse_qs,
     unescapeHTML,
     unified_timestamp,
 )
+from ..networking.request import HEADRequest
 
 
 class MegaTVComBaseIE(InfoExtractor):

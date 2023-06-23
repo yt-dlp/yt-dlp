@@ -15,7 +15,6 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     get_element_by_class,
-    HEADRequest,
     js_to_json,
     int_or_none,
     merge_dicts,
@@ -23,7 +22,6 @@ from ..utils import (
     parse_filesize,
     parse_iso8601,
     parse_qs,
-    sanitized_Request,
     smuggle_url,
     str_or_none,
     try_get,
@@ -33,6 +31,8 @@ from ..utils import (
     urljoin,
     urlhandle_detect_ext,
 )
+
+from ..networking.request import Request, HEADRequest
 
 
 class VimeoBaseInfoExtractor(InfoExtractor):
@@ -1309,10 +1309,10 @@ class VimeoWatchLaterIE(VimeoChannelIE):  # XXX: Do not subclass from concrete I
 
     def _page_url(self, base_url, pagenum):
         url = '%s/page:%d/' % (base_url, pagenum)
-        request = sanitized_Request(url)
+        request = Request(url)
         # Set the header to get a partial html page with the ids,
         # the normal page doesn't contain them.
-        request.add_header('X-Requested-With', 'XMLHttpRequest')
+        request.headers['X-Requested-With'] = 'XMLHttpRequest'
         return request
 
     def _real_extract(self, url):

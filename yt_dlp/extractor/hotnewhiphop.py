@@ -2,10 +2,10 @@ from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
     ExtractorError,
-    HEADRequest,
-    sanitized_Request,
     urlencode_postdata,
 )
+
+from ..networking.request import Request, HEADRequest
 
 
 class HotNewHipHopIE(InfoExtractor):
@@ -36,9 +36,9 @@ class HotNewHipHopIE(InfoExtractor):
             ('mediaType', 's'),
             ('mediaId', video_id),
         ])
-        r = sanitized_Request(
+        r = Request(
             'http://www.hotnewhiphop.com/ajax/media/getActions/', data=reqdata)
-        r.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        r.headers['Content-Type'] = 'application/x-www-form-urlencoded'
         mkd = self._download_json(
             r, video_id, note='Requesting media key',
             errnote='Could not download media key')
