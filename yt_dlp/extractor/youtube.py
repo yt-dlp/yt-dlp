@@ -3927,9 +3927,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             elif itag:
                 f['format_id'] = itag
 
+            if f.get('source_preference') is None:
+                f['source_preference'] = -1
+
             if itag in ('616', '235'):
                 f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
-                f['source_preference'] = (f.get('source_preference') or -1) + 100
+                f['source_preference'] += 100
 
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
@@ -3938,6 +3941,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
             if f.get('fps') and f['fps'] <= 1:
                 del f['fps']
+
+            if proto == 'hls' and f.get('has_drm'):
+                f['has_drm'] = 'maybe'
+                f['source_preference'] -= 5
             return True
 
         subtitles = {}
@@ -4037,6 +4044,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                        else None)
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
+        if all(f.get('has_drm') for f in formats):
+            # If there are no formats that definitely don't have DRM, all have DRM
+            for f in formats:
+                f['has_drm'] = True
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
 
