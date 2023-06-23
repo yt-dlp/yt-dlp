@@ -207,10 +207,10 @@ class GoogleDriveIE(InfoExtractor):
                 'export': 'download',
             })
 
-        def request_source_file(source_url, kind):
+        def request_source_file(source_url, kind, data=None):
             return self._request_webpage(
                 source_url, video_id, note='Requesting %s file' % kind,
-                errnote='Unable to request %s file' % kind, fatal=False)
+                errnote='Unable to request %s file' % kind, fatal=False, data=data)
         urlh = request_source_file(source_url, 'source')
         if urlh:
             def add_source_format(urlh):
@@ -237,14 +237,11 @@ class GoogleDriveIE(InfoExtractor):
                     urlh, url, video_id, note='Downloading confirmation page',
                     errnote='Unable to confirm download', fatal=False)
                 if confirmation_webpage:
-                    confirm = self._search_regex(
-                        r'confirm=([^&"\']+)', confirmation_webpage,
+                    confirmed_source_url = self._html_search_regex(
+                        r'action="(.+?)"', confirmation_webpage,
                         'confirmation code', default=None)
-                    if confirm:
-                        confirmed_source_url = update_url_query(source_url, {
-                            'confirm': confirm,
-                        })
-                        urlh = request_source_file(confirmed_source_url, 'confirmed source')
+                    if confirmed_source_url:
+                        urlh = request_source_file(confirmed_source_url, 'confirmed source', b'')
                         if urlh and urlh.headers.get('Content-Disposition'):
                             add_source_format(urlh)
                     else:
