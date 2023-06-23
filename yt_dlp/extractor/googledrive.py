@@ -34,6 +34,7 @@ class GoogleDriveIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Big Buck Bunny.mp4',
             'duration': 45,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         }
     }, {
         # video can't be watched anonymously due to view count limit reached,
