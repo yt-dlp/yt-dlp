@@ -10,6 +10,7 @@ from http.cookiejar import CookieJar
 
 import pytest
 
+from networking import RequestHandler, Response
 from yt_dlp.cookies import YoutubeDLCookieJar
 
 
@@ -181,6 +182,10 @@ class TestRequest:
         req = AnotherRequest(url='http://127.0.0.1')
         assert isinstance(req.copy(), AnotherRequest)
 
+    def test_url(self):
+        # test the url sanitization and escape
+        pass
+
 
 class TestInstanceStoreMixin(unittest.TestCase):
 
@@ -231,8 +236,8 @@ class TestResponse:
     pass
 
 
-class TestRequestDirector:
-    pass
+
+
 
 
 if __name__ == '__main__':

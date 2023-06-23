@@ -14,37 +14,33 @@ from ..utils import bug_reports_message
 
 class RequestDirector:
     def __init__(self, logger):
-        self._handlers = []
+        self._handlers = {}
         self.logger = logger
 
     def close(self):
-        for handler in self._handlers:
+        for handler in self._handlers.values():
             handler.close()
 
     def add_handler(self, handler: RequestHandler):
-        """Add a handler. It will be prioritized over existing handlers"""
+        """Add a handler. If a handler of the same rh_key exists, it will overwrite it"""
         assert isinstance(handler, RequestHandler)
-        if handler not in self._handlers:
-            self._handlers.append(handler)
+        self._handlers[handler.rh_key()] = handler
 
-    def remove_handler(self, handler: RequestHandler = None, rh_key: str = None):
+    def remove_handler(self, rh_key):
         """
-        Remove a RequestHandler.
-        If a class is provided, all handlers of that class type are removed.
+        Remove a RequestHandler, if it exists.
         """
-        self._handlers = [h for h in self._handlers if not (type(h) == handler or h is handler or h.rh_key() == rh_key)]
+        self._handlers.pop(rh_key, None)
 
-    def get_handlers(
-        self,
-        handler: RequestHandler = None,
-        rh_key: str = None
-    ) -> List[RequestHandler]:
-        """Get all handlers for a particular class type or rh_key"""
-        return [h for h in self._handlers if (type(h) == handler or h is handler or h.rh_key() == rh_key)]
+    def get_handler(self, rh_key):
+        """Get a handler instance by rh_key"""
+        return self._handlers.get(rh_key)
 
-    def replace_handler(self, handler: RequestHandler):
-        self.remove_handler(handler)
-        self.add_handler(handler)
+    def get_handlers(self):
+        return list(self._handlers.values())
+
+    def remove_handlers(self):
+        self._handlers = {}
 
     def send(self, request: Request) -> Response:
         """
@@ -57,7 +53,8 @@ class RequestDirector:
 
         unexpected_errors = []
         unsupported_errors = []
-        for handler in reversed(self._handlers):
+        # TODO (future): add a per-request preference system
+        for handler in reversed(self._handlers.values()):
             self.logger.to_debugtraffic(
                 f'director: checking if "{handler.RH_NAME}" request handler supports this request.')
             try:

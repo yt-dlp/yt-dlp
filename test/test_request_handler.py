@@ -9,7 +9,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from yt_dlp.networking import get_request_handler, RequestHandler, Response
+from yt_dlp.networking import get_request_handler, RequestHandler, Response, RequestDirector
 from yt_dlp.networking.utils import std_headers
 import gzip
 import http.cookiejar
@@ -33,7 +33,7 @@ from yt_dlp.dependencies import brotli
 from .helper import FakeYDL
 from yt_dlp.networking import Request, UrllibRH, list_request_handler_classes
 from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest, RequestError, \
-    TransportError
+    TransportError, NoSupportingHandlers
 from yt_dlp.utils import urlencode_postdata, CaseInsensitiveDict, YoutubeDLError
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -53,6 +53,7 @@ def _build_proxy_handler(name):
             self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode('utf-8'))
     return HTTPTestRequestHandler
 
+
 class FakeLogger:
     def debug(self, msg):
         pass
@@ -61,6 +62,12 @@ class FakeLogger:
         pass
 
     def error(self, msg):
+        pass
+
+    def to_debugtraffic(self, msg):
+        pass
+
+    def report_error(self, *args, **kwargs):
         pass
 
 
@@ -719,7 +726,7 @@ class FakeResponse(Response):
         super().__init__(raw=io.BytesIO(b''), headers={}, url=request.url)
 
 
-class FakeRequestHandler(RequestHandler):
+class FakeRH(RequestHandler):
 
     def _validate(self, request):
         return
@@ -733,7 +740,83 @@ class FakeRequestHandler(RequestHandler):
 class FakeRHYDL(FakeYDL):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._request_director = self.build_request_director([FakeRequestHandler])
+        self._request_director = self.build_request_director([FakeRH])
+
+
+class TestRequestDirector:
+
+    def test_handler_operations(self):
+        director = RequestDirector(FakeLogger())
+        handler = FakeRH(FakeLogger())
+        director.add_handler(handler)
+        assert director.get_handler(FakeRH.rh_key()) is handler
+
+        # Handler should overwrite
+        handler2 = FakeRH(FakeLogger())
+        director.add_handler(handler2)
+        assert director.get_handler(FakeRH.rh_key()) is not handler
+        assert director.get_handler(FakeRH.rh_key()) is handler2
+        assert len(director.get_handlers()) == 1
+
+        class AnotherFakeRH(FakeRH):
+            pass
+        director.add_handler(AnotherFakeRH(FakeLogger()))
+        assert len(director.get_handlers()) == 2
+        assert director.get_handler(AnotherFakeRH.rh_key()).rh_key() == AnotherFakeRH.rh_key()
+
+        director.remove_handler(FakeRH.rh_key())
+        assert director.get_handler(FakeRH.rh_key()) is None
+        assert len(director.get_handlers()) == 1
+
+        # RequestErrors should passthrough
+        with pytest.raises(SSLError):
+            director.send(Request('ssl://something'))
+
+    def test_send(self):
+        director = RequestDirector(FakeLogger())
+        with pytest.raises(RequestError):
+            director.send(Request('any://'))
+        director.add_handler(FakeRH(FakeLogger()))
+        assert isinstance(director.send(Request('http://')), FakeResponse)
+
+    def test_unsupported_handlers(self):
+        director = RequestDirector(FakeLogger())
+        director.add_handler(FakeRH(FakeLogger()))
+
+        class SupportedRH(RequestHandler):
+            _SUPPORTED_URL_SCHEMES = ['http']
+
+            def _send(self, request: Request):
+                return Response(raw=io.BytesIO(b'supported'), headers={}, url=request.url)
+
+        # This handler should by default take preference over FakeRH
+        director.add_handler(SupportedRH(FakeLogger()))
+        assert director.send(Request('http://')).read() == b'supported'
+        assert director.send(Request('any://')).read() == b''
+
+        director.remove_handler(FakeRH.rh_key())
+        with pytest.raises(NoSupportingHandlers):
+            director.send(Request('any://'))
+
+    def test_unexpected_error(self):
+        director = RequestDirector(FakeLogger())
+
+
+        class UnexpectedRH(FakeRH):
+            def _send(self, request: Request):
+                raise TypeError('something')
+
+        director.add_handler(UnexpectedRH(FakeLogger))
+        with pytest.raises(NoSupportingHandlers, match=r'1 unexpected error'):
+            director.send(Request('any://'))
+
+        director.remove_handlers()
+        assert len(director.get_handlers()) == 0
+
+        # Should not be fatal
+        director.add_handler(FakeRH(FakeLogger()))
+        director.add_handler(UnexpectedRH(FakeLogger))
+        assert director.send(Request('any://'))
 
 
 class TestYoutubeDLHTTP:
@@ -816,8 +899,8 @@ class TestYoutubeDLHTTP:
 class TestYDLRequestDirectorBuilder:
 
     @staticmethod
-    def build_handler(ydl, handler=FakeRequestHandler):
-        return ydl.build_request_director([handler]).get_handlers(rh_key=handler.rh_key())[0]
+    def build_handler(ydl, handler=FakeRH):
+        return ydl.build_request_director([handler]).get_handler(rh_key=handler.rh_key())
 
     def test_default_params(self):
         with FakeYDL() as ydl:
