@@ -983,6 +983,7 @@ class YoutubeDL:
         ID='green',
         DELIM='blue',
         ERROR='red',
+        BAD_FORMAT='light red',
         WARNING='yellow',
         SUPPRESS='light black',
     )
@@ -2086,8 +2087,6 @@ class YoutubeDL:
         allow_multiple_streams = {'audio': self.params.get('allow_multiple_audio_streams', False),
                                   'video': self.params.get('allow_multiple_video_streams', False)}
 
-        check_formats = self.params.get('check_formats') == 'selected'
-
         def _parse_filter(tokens):
             filter_parts = []
             for type, string_, start, _, _ in tokens:
@@ -2260,10 +2259,19 @@ class YoutubeDL:
             return new_dict
 
         def _check_formats(formats):
-            if not check_formats:
+            if (self.params.get('check_formats') is not None
+                    or self.params.get('allow_unplayable_formats')):
                 yield from formats
                 return
-            yield from self._check_formats(formats)
+            elif self.params.get('check_formats') == 'selected':
+                yield from self._check_formats(formats)
+                return
+
+            for f in formats:
+                if f.get('has_drm'):
+                    yield from self._check_formats([f])
+                else:
+                    yield f
 
         def _build_selector_function(selector):
             if isinstance(selector, list):  # ,
@@ -2615,10 +2623,10 @@ class YoutubeDL:
         if field_preference:
             info_dict['_format_sort_fields'] = field_preference
 
-        # or None ensures --clean-infojson removes it
-        info_dict['_has_drm'] = any(f.get('has_drm') for f in formats) or None
+        info_dict['_has_drm'] = any(  # or None ensures --clean-infojson removes it
+            f.get('has_drm') and f['has_drm'] != 'maybe' for f in formats) or None
         if not self.params.get('allow_unplayable_formats'):
-            formats = [f for f in formats if not f.get('has_drm')]
+            formats = [f for f in formats if not f.get('has_drm') or f['has_drm'] == 'maybe']
 
         if formats and all(f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
             self.report_warning(
@@ -3723,14 +3731,13 @@ class YoutubeDL:
                 simplified_codec(f, 'acodec'),
                 format_field(f, 'abr', '\t%dk', func=round),
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
-                join_nonempty(
-                    self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
-                    self._format_out('DRM', 'light red') if f.get('has_drm') else None,
-                    format_field(f, 'language', '[%s]'),
-                    join_nonempty(format_field(f, 'format_note'),
-                                  format_field(f, 'container', ignore=(None, f.get('ext'))),
-                                  delim=', '),
-                    delim=' '),
+                join_nonempty(format_field(f, 'language', '[%s]'), join_nonempty(
+                    self._format_out('UNSUPPORTED', self.Styles.BAD_FORMAT) if f.get('ext') in ('f4f', 'f4m') else None,
+                    (self._format_out('Maybe DRM', self.Styles.WARNING) if f.get('has_drm') == 'maybe'
+                     else self._format_out('DRM', self.Styles.BAD_FORMAT) if f.get('has_drm') else None),
+                    format_field(f, 'format_note'),
+                    format_field(f, 'container', ignore=(None, f.get('ext'))),
+                    delim=', '), delim=' '),
             ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
         header_line = self._list_format_headers(
             'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', 'CH', delim, '\tFILESIZE', '\tTBR', 'PROTO',
