@@ -643,7 +643,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_file_urls(self, handler):
         # See https://github.com/ytdl-org/youtube-dl/issues/8227
-        with tempfile.NamedTemporaryFile() as tf:
+        with tempfile.NamedTemporaryFile(delete=False) as tf:
             tf.write(b'foobar')
             tf.flush()
             req = Request(pathlib.Path(tf.name).as_uri())
