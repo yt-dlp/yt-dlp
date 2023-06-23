@@ -96,7 +96,7 @@ class HlsFD(FragmentFD):
                 hint = ('' if info_dict.get('has_drm') and self.params.get('test') else
                         '; Try selecting another format with --format or '
                         'add --check-formats to automatically fallback to the next best format')
-                self.report_error(f'This video is DRM protected{hint}', tb=False)
+                self.report_error(f'This stream is DRM protected{hint}', tb=False)
                 return False
             message = message or 'Unsupported features have been detected'
             fd = FFmpegFD(self.ydl, self.params)
