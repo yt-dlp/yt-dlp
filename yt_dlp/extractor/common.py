@@ -475,8 +475,8 @@ class InfoExtractor:
 
 
     Subclasses of this should also be added to the list of extractors and
-    should define a _VALID_URL regexp and, re-define the _real_extract() and
-    (optionally) _real_initialize() methods.
+    should define _VALID_URL as a regexp or a Sequence of regexps, and
+    re-define the _real_extract() and (optionally) _real_initialize() methods.
 
     Subclasses may also override suitable() if necessary, but ensure the function
     signature is preserved and that this function imports everything it needs
@@ -566,8 +566,8 @@ class InfoExtractor:
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
         if '_VALID_URL_RE' not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        return cls._VALID_URL_RE.match(url)
+            cls._VALID_URL_RE = tuple(map(re.compile, variadic(cls._VALID_URL)))
+        return next(filter(None, (regex.match(url) for regex in cls._VALID_URL_RE)), None)
 
     @classmethod
     def suitable(cls, url):
