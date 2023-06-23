@@ -51,7 +51,7 @@ class PornboxIE(InfoExtractor):
             'skip_download': True,
             'ignore_no_formats_error': True
         },
-        'skip': 'Only for subscribers'
+        'expected_warnings': ['This video is only available for registered users'],
     }]
 
     def _real_extract(self, url):
@@ -64,7 +64,8 @@ class PornboxIE(InfoExtractor):
             'ext': 'srt'
         }] for country_code in traverse_obj(public_data, ('subtitles', ...))}
 
-        is_free_scene = traverse_obj(public_data, ('price', 'is_available_for_free'), default=False, expected_type=bool)
+        is_free_scene = traverse_obj(
+            public_data, ('price', 'is_available_for_free', {bool}), default=False)
 
         metadata = {
             'id': video_id,
@@ -81,7 +82,7 @@ class PornboxIE(InfoExtractor):
             'availability': self._availability(needs_auth=True, needs_premium=(not is_free_scene))
         }
 
-        if (not public_data.get('is_purchased')) or (not is_free_scene):
+        if not public_data.get('is_purchased') or not is_free_scene:
             self.raise_login_required('You are either not logged in or do not have access to this scene',
                                       metadata_available=True, method='cookies')
             return metadata
