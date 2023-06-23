@@ -10,7 +10,6 @@ from http.cookiejar import CookieJar
 
 import pytest
 
-from networking import RequestHandler, Response
 from yt_dlp.cookies import YoutubeDLCookieJar
 
 

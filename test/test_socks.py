@@ -10,10 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
 import subprocess
+import urllib.request
 
-from test.helper import get_params, is_download_test
-from test.test_http import with_make_rh
-from yt_dlp.networking import Request
+from test.helper import FakeYDL, get_params, is_download_test
 
 
 @is_download_test
@@ -27,47 +26,49 @@ class TestMultipleSocks(unittest.TestCase):
                 return
         return params
 
-    @with_make_rh()
-    def test_proxy_http(self, make_rh):
+    def test_proxy_http(self):
         params = self._check_params(['primary_proxy', 'primary_server_ip'])
         if params is None:
             return
-        with make_rh({'proxy': params['primary_proxy']}) as rh:
-            self.assertEqual(
-                rh.send(Request('http://yt-dl.org/ip')).read().decode('utf-8'),
-                params['primary_server_ip'])
+        ydl = FakeYDL({
+            'proxy': params['primary_proxy']
+        })
+        self.assertEqual(
+            ydl.urlopen('http://yt-dl.org/ip').read().decode(),
+            params['primary_server_ip'])
 
-    @with_make_rh()
-    def test_proxy_https(self, make_rh):
+    def test_proxy_https(self):
         params = self._check_params(['primary_proxy', 'primary_server_ip'])
         if params is None:
             return
-        with make_rh({'proxy': params['primary_proxy']}) as rh:
-            self.assertEqual(
-                rh.send(Request('https://yt-dl.org/ip')).read().decode('utf-8'),
-                params['primary_server_ip'])
+        ydl = FakeYDL({
+            'proxy': params['primary_proxy']
+        })
+        self.assertEqual(
+            ydl.urlopen('https://yt-dl.org/ip').read().decode(),
+            params['primary_server_ip'])
 
-    @with_make_rh()
-    def test_secondary_proxy_http(self, make_rh):
+    def test_secondary_proxy_http(self):
         params = self._check_params(['secondary_proxy', 'secondary_server_ip'])
         if params is None:
             return
-        with make_rh() as rh:
-            req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
-            self.assertEqual(
-                rh.send(req).read().decode('utf-8'),
-                params['secondary_server_ip'])
+        ydl = FakeYDL()
+        req = urllib.request.Request('http://yt-dl.org/ip')
+        req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
+        self.assertEqual(
+            ydl.urlopen(req).read().decode(),
+            params['secondary_server_ip'])
 
-    @with_make_rh()
-    def test_secondary_proxy_https(self, make_rh):
+    def test_secondary_proxy_https(self):
         params = self._check_params(['secondary_proxy', 'secondary_server_ip'])
         if params is None:
             return
-        with make_rh() as rh:
-            req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
-            self.assertEqual(
-                rh.send(req).read().decode('utf-8'),
-                params['secondary_server_ip'])
+        ydl = FakeYDL()
+        req = urllib.request.Request('https://yt-dl.org/ip')
+        req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
+        self.assertEqual(
+            ydl.urlopen(req).read().decode(),
+            params['secondary_server_ip'])
 
 
 @is_download_test
@@ -90,15 +91,14 @@ class TestSocks(unittest.TestCase):
         self.server_process.terminate()
         self.server_process.communicate()
 
-    @with_make_rh()
-    def _get_ip(self, make_rh, protocol):
+    def _get_ip(self, protocol):
         if self._SKIP_SOCKS_TEST:
             return '127.0.0.1'
 
-        with make_rh({
+        ydl = FakeYDL({
             'proxy': '%s://127.0.0.1:%d' % (protocol, self.port),
-        }) as rh:
-            return rh.send(Request('http://yt-dl.org/ip')).read().decode('utf-8')
+        })
+        return ydl.urlopen('http://yt-dl.org/ip').read().decode()
 
     def test_socks4(self):
         self.assertTrue(isinstance(self._get_ip('socks4'), str))
