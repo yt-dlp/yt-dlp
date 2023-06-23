@@ -3238,7 +3238,11 @@ def js_to_json(code, vars={}, *, strict=False):
         return mobj.group(1) + js_to_json(f'[{mobj.group(2)}]', vars=vars) + mobj.group(3)
 
     code = re.sub(r'new Map\((\[.*?\])?\)', create_map, code)
-    code = re.sub(r'^(.*?)(?:new\s+)?Array\((.*?)\)(.*?)$', create_array, code)
+    while True:
+        old_code = code
+        code = re.sub(r'^(.*?)(?:new\s+)?Array\((.*?)\)(.*?)$', create_array, old_code)
+        if old_code == code:
+            break
     if not strict:
         code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
         code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
