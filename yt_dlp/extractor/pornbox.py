@@ -83,7 +83,7 @@ class PornboxIE(InfoExtractor):
             'age_limit': 18,
             'timestamp': parse_iso8601(traverse_obj(
                 public_data, ('studios', 'release_date'), 'publish_date'))
-            'availability': self._availability(needs_auth=True, needs_premium=(not is_free_scene))
+            'availability': self._availability(needs_auth=True, needs_premium=not is_free_scene),
             'subtitles': subtitles,
         }
 
