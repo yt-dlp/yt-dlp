@@ -51,7 +51,9 @@ class PornboxIE(InfoExtractor):
             'skip_download': True,
             'ignore_no_formats_error': True
         },
-        'expected_warnings': ['This video is only available for registered users'],
+        'expected_warnings': [
+            'You are either not logged in or do not have access to this scene',
+            'No video formats found', 'Requested format is not available']
     }]
 
     def _real_extract(self, url):
