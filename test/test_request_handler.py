@@ -756,13 +756,13 @@ class FakeRHYDL(FakeYDL):
 class TestRequestDirector:
 
     def test_handler_operations(self):
-        director = RequestDirector(FakeLogger())
-        handler = FakeRH(FakeLogger())
+        director = RequestDirector(logger=FakeLogger())
+        handler = FakeRH(logger=FakeLogger())
         director.add_handler(handler)
         assert director.get_handler(FakeRH.rh_key()) is handler
 
         # Handler should overwrite
-        handler2 = FakeRH(FakeLogger())
+        handler2 = FakeRH(logger=FakeLogger())
         director.add_handler(handler2)
         assert director.get_handler(FakeRH.rh_key()) is not handler
         assert director.get_handler(FakeRH.rh_key()) is handler2
@@ -770,7 +770,7 @@ class TestRequestDirector:
 
         class AnotherFakeRH(FakeRH):
             pass
-        director.add_handler(AnotherFakeRH(FakeLogger()))
+        director.add_handler(AnotherFakeRH(logger=FakeLogger()))
         assert len(director.get_handlers()) == 2
         assert director.get_handler(AnotherFakeRH.rh_key()).rh_key() == AnotherFakeRH.rh_key()
 
@@ -783,15 +783,15 @@ class TestRequestDirector:
             director.send(Request('ssl://something'))
 
     def test_send(self):
-        director = RequestDirector(FakeLogger())
+        director = RequestDirector(logger=FakeLogger())
         with pytest.raises(RequestError):
             director.send(Request('any://'))
-        director.add_handler(FakeRH(FakeLogger()))
+        director.add_handler(FakeRH(logger=FakeLogger()))
         assert isinstance(director.send(Request('http://')), FakeResponse)
 
     def test_unsupported_handlers(self):
-        director = RequestDirector(FakeLogger())
-        director.add_handler(FakeRH(FakeLogger()))
+        director = RequestDirector(logger=FakeLogger())
+        director.add_handler(FakeRH(logger=FakeLogger()))
 
         class SupportedRH(RequestHandler):
             _SUPPORTED_URL_SCHEMES = ['http']
@@ -800,7 +800,7 @@ class TestRequestDirector:
                 return Response(raw=io.BytesIO(b'supported'), headers={}, url=request.url)
 
         # This handler should by default take preference over FakeRH
-        director.add_handler(SupportedRH(FakeLogger()))
+        director.add_handler(SupportedRH(logger=FakeLogger()))
         assert director.send(Request('http://')).read() == b'supported'
         assert director.send(Request('any://')).read() == b''
 
@@ -809,13 +809,13 @@ class TestRequestDirector:
             director.send(Request('any://'))
 
     def test_unexpected_error(self):
-        director = RequestDirector(FakeLogger())
+        director = RequestDirector(logger=FakeLogger())
 
         class UnexpectedRH(FakeRH):
             def _send(self, request: Request):
                 raise TypeError('something')
 
-        director.add_handler(UnexpectedRH(FakeLogger))
+        director.add_handler(UnexpectedRH(logger=FakeLogger))
         with pytest.raises(NoSupportingHandlers, match=r'1 unexpected error'):
             director.send(Request('any://'))
 
@@ -823,8 +823,8 @@ class TestRequestDirector:
         assert len(director.get_handlers()) == 0
 
         # Should not be fatal
-        director.add_handler(FakeRH(FakeLogger()))
-        director.add_handler(UnexpectedRH(FakeLogger))
+        director.add_handler(FakeRH(logger=FakeLogger()))
+        director.add_handler(UnexpectedRH(logger=FakeLogger))
         assert director.send(Request('any://'))
 
 

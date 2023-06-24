@@ -16,6 +16,7 @@ import hmac
 import html.entities
 import html.parser
 import inspect
+import io
 import itertools
 import json
 import locale
@@ -42,8 +43,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
-import io
-from urllib.request import _parse_proxy  # TODO
 
 from . import traversal
 
@@ -5491,9 +5490,9 @@ def clean_proxies(proxies: dict, headers: CaseInsensitiveDict):
             continue
         if proxy_key == 'no':  # special case
             continue
-        if proxy_url is not None and _parse_proxy is not None:
+        if proxy_url is not None:
             # Ensure proxies without a scheme are http.
-            proxy_scheme = _parse_proxy(proxy_url)[0]
+            proxy_scheme = urllib.request._parse_proxy(proxy_url)[0]
             if proxy_scheme is None:
                 proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
 
@@ -5502,3 +5501,12 @@ def clean_headers(headers: CaseInsensitiveDict):
     if 'Youtubedl-No-Compression' in headers:  # compat
         del headers['Youtubedl-No-Compression']
         headers['Accept-Encoding'] = 'identity'
+
+
+def urllib_req_to_req(urllib_request):
+    # Convert urllib Request to a networking Request
+    from ..networking.request import Request
+    return Request(
+        urllib_request.get_full_url(), data=urllib_request.data, method=urllib_request.get_method(),
+        headers=CaseInsensitiveDict(urllib_request.headers, urllib_request.unredirected_hdrs),
+        extensions={'timeout': urllib_request.timeout} if hasattr(urllib_request, 'timeout') else None)

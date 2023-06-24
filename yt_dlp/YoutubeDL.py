@@ -147,6 +147,7 @@ from .utils import (
     try_call,
     try_get,
     url_basename,
+    urllib_req_to_req,
     variadic,
     version_tuple,
     windows_enable_vt_mode,
@@ -3792,10 +3793,9 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
+        from .extractor.extractors import \
             _PLUGIN_OVERRIDES as plugin_ie_overrides
-        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
@@ -3939,10 +3939,7 @@ class YoutubeDL:
             req = Request(req)
         elif isinstance(req, urllib.request.Request):
             # compat
-            req = Request(
-                req.get_full_url(), data=req.data, method=req.get_method(),
-                headers=CaseInsensitiveDict(req.headers, req.unredirected_hdrs),
-                extensions={'timeout': req.timeout} if hasattr(req, 'timeout') else None)
+            req = urllib_req_to_req(req)
         assert isinstance(req, Request)
 
         # compat: Assume user:pass url params are basic auth
@@ -3975,10 +3972,10 @@ class YoutubeDL:
             raise
 
     def build_request_director(self, handlers):
-
         director = RequestDirector(logger=self)
         for handler in handlers:
             params = {
+                'logger': self,
                 'headers': self.params.get('http_headers'),
                 'cookiejar': self.cookiejar,
                 'timeout': self.params.get('socket_timeout'),
@@ -3987,7 +3984,7 @@ class YoutubeDL:
                 'verbose': bool(self.params.get('debug_printtraffic')),
                 'prefer_system_certs': 'no-certifi' in self.params.get('compat_opts', []),
                 'verify': not self.params.get('nocheckcertificate'),
-                'legacy_ssl_support': bool(self.params.get('legacy_server_connect'))  # TODO
+                'legacy_ssl_support': bool(self.params.get('legacy_server_connect'))
             }
             if self.params.get('client_certificate'):
                 params['client_cert'] = (
@@ -3997,7 +3994,7 @@ class YoutubeDL:
                 )
             if handler.rh_key() == 'Urllib':
                 params['enable_file_urls'] = bool(self.params.get('enable_file_urls'))
-            director.add_handler(handler(logger=self, **params))
+            director.add_handler(handler(**params))
 
         return director
 

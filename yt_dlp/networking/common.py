@@ -12,11 +12,6 @@ from .request import Request
 from .utils import make_ssl_context, wrap_request_errors
 from ..utils import CaseInsensitiveDict, classproperty
 
-try:
-    from urllib.request import _parse_proxy
-except ImportError:
-    _parse_proxy = None
-
 
 from .exceptions import UnsupportedRequest
 
@@ -162,7 +157,7 @@ class RequestHandler(abc.ABC):
                 continue
 
             # Scheme-less proxies are not supported
-            if _parse_proxy is not None and _parse_proxy(proxy_url)[0] is None:
+            if urllib.request._parse_proxy(proxy_url)[0] is None:
                 raise UnsupportedRequest(f'Proxy "{proxy_url}" missing scheme')
 
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()

@@ -36,7 +36,6 @@ from ..utils import (
     IDENTITY,
     JSON_LD_RE,
     NO_DEFAULT,
-    CaseInsensitiveDict,
     ExtractorError,
     FormatSorter,
     GeoRestrictedError,
@@ -90,6 +89,7 @@ from ..utils import (
     url_or_none,
     urlhandle_detect_ext,
     urljoin,
+    urllib_req_to_req,
     variadic,
     xpath_element,
     xpath_text,
@@ -797,12 +797,7 @@ class InfoExtractor:
 
     def _create_request(self, url_or_request, data=None, headers=None, query=None):
         if isinstance(url_or_request, urllib.request.Request):
-            # TODO: do we want to generalise this to a util/compat helper function?
-            # It is also used in YoutubeDL urlopen
-            url_or_request = Request(
-                url_or_request.get_full_url(), data=url_or_request.data, method=url_or_request.get_method(),
-                headers=CaseInsensitiveDict(url_or_request.headers, url_or_request.unredirected_hdrs),
-                extensions={'timeout': url_or_request.timeout} if hasattr(url_or_request, 'timeout') else None)
+            url_or_request = urllib_req_to_req(url_or_request)
         elif not isinstance(url_or_request, Request):
             url_or_request = Request(url_or_request)
 

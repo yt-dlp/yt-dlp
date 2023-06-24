@@ -4,11 +4,6 @@ import io
 import typing
 from typing import Iterable, Mapping, Union
 
-try:
-    from urllib.request import _parse_proxy
-except ImportError:
-    _parse_proxy = None
-
 from ..utils import (
     CaseInsensitiveDict,
     escape_url,
