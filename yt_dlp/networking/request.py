@@ -4,13 +4,19 @@ import copy
 import functools
 import io
 import typing
-from typing import Union, Iterable, Mapping
+from typing import Iterable, Mapping, Union
+
 try:
     from urllib.request import _parse_proxy
 except ImportError:
     _parse_proxy = None
 
-from ..utils import escape_url, sanitize_url, update_url_query, CaseInsensitiveDict
+from ..utils import (
+    CaseInsensitiveDict,
+    escape_url,
+    sanitize_url,
+    update_url_query,
+)
 
 _TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 

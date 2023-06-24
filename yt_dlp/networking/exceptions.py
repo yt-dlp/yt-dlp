@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import http.client
+import typing
 import urllib.error
 
 from ..utils import YoutubeDLError
-import typing
+
 if typing.TYPE_CHECKING:
-    from .response import Response
-    from . import RequestHandler
     from typing import List, Union
+
+    from . import RequestHandler
+    from .response import Response
 
 
 class RequestError(YoutubeDLError):

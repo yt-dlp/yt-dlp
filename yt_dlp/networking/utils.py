@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import contextlib
 import functools
 import random
@@ -8,13 +7,13 @@ import ssl
 import sys
 import urllib.parse
 import urllib.request
-from collections.abc import Iterable, Hashable
+from collections.abc import Hashable, Iterable
 from typing import Any
 
 from .exceptions import UnsupportedRequest
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, traverse_obj, YoutubeDLError
+from ..utils import CaseInsensitiveDict, YoutubeDLError, traverse_obj
 
 
 def random_user_agent():

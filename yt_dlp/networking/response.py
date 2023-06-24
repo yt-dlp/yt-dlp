@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import io
-from typing import Mapping
 from email.message import Message
 from http import HTTPStatus
+from typing import Mapping
 
 
 class Response(io.IOBase):

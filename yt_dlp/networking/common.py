@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import abc
-import contextlib
 import enum
-import ssl
 import typing
 import urllib.parse
 import urllib.request
@@ -11,12 +9,8 @@ import urllib.response
 from http.cookiejar import CookieJar
 
 from .request import Request
-from .utils import (
-    wrap_request_errors
-)
-
-from .. import utils
-from ..utils import CaseInsensitiveDict
+from .utils import make_ssl_context, wrap_request_errors
+from ..utils import CaseInsensitiveDict, classproperty
 
 try:
     from urllib.request import _parse_proxy
@@ -24,14 +18,12 @@ except ImportError:
     _parse_proxy = None
 
 
-from .utils import make_ssl_context
-
 from .exceptions import UnsupportedRequest
 
 if typing.TYPE_CHECKING:
-    from ..YoutubeDL import YoutubeDL
+    from typing import Optional, Tuple, Union
+
     from .response import Response
-    from typing import Union, Tuple, Optional
 
 
 class Features(enum.Enum):
@@ -196,7 +188,7 @@ class RequestHandler(abc.ABC):
     def close(self):
         pass
 
-    @utils.classproperty
+    @classproperty
     def RH_NAME(cls):
         return cls.__name__[:-2]
 

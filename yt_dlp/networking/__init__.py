@@ -3,12 +3,10 @@ from __future__ import annotations
 from typing import List
 
 from ._urllib import UrllibRH  # noqa: F401
-from .common import (
-    RequestHandler,
-)
-from .response import Response
+from .common import RequestHandler
+from .exceptions import NoSupportingHandlers, RequestError, UnsupportedRequest
 from .request import Request
-from .exceptions import RequestError, UnsupportedRequest, NoSupportingHandlers
+from .response import Response
 from ..utils import bug_reports_message
 
 

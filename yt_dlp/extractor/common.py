@@ -26,11 +26,17 @@ from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
-from ..networking.request import Request, HEADRequest
+from ..networking.exceptions import (
+    HTTPError,
+    IncompleteRead,
+    network_exceptions,
+)
+from ..networking.request import HEADRequest, Request
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
     NO_DEFAULT,
+    CaseInsensitiveDict,
     ExtractorError,
     FormatSorter,
     GeoRestrictedError,
@@ -88,9 +94,7 @@ from ..utils import (
     xpath_element,
     xpath_text,
     xpath_with_ns,
-    CaseInsensitiveDict,
 )
-from ..networking.exceptions import HTTPError, IncompleteRead, network_exceptions
 
 
 class InfoExtractor:

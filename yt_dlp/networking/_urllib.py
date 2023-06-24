@@ -12,42 +12,37 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import zlib
-from http.cookiejar import CookieJar
 from typing import Union
 from urllib.request import (
+    DataHandler,
+    FileHandler,
     FTPHandler,
+    HTTPCookieProcessor,
     HTTPDefaultErrorHandler,
     HTTPErrorProcessor,
     UnknownHandler,
-    HTTPCookieProcessor,
-    DataHandler,
-    FileHandler
 )
 
-from .common import RequestHandler, Features
-from .response import Response
-from .utils import (
-    get_redirect_method,
-    select_proxy,
-    make_socks_proxy_opts,
-    InstanceStoreMixin,
-    add_accept_encoding_header,
-)
-from ..dependencies import brotli
-from ..socks import (
-    sockssocket,
-    ProxyError as SocksProxyError,
-)
-from ..utils import escape_url, update_url_query
-
+from .common import Features, RequestHandler
 from .exceptions import (
-    TransportError,
     HTTPError,
     IncompleteRead,
-    SSLError,
     ProxyError,
-    UnsupportedRequest,
+    SSLError,
+    TransportError,
 )
+from .response import Response
+from .utils import (
+    InstanceStoreMixin,
+    add_accept_encoding_header,
+    get_redirect_method,
+    make_socks_proxy_opts,
+    select_proxy,
+)
+from ..dependencies import brotli
+from ..socks import ProxyError as SocksProxyError
+from ..socks import sockssocket
+from ..utils import escape_url, update_url_query
 
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
 

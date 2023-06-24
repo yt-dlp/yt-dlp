@@ -1,6 +1,5 @@
 import collections
 import contextlib
-import copy
 import datetime
 import errno
 import fileinput
@@ -23,9 +22,9 @@ import traceback
 import unicodedata
 
 from .cache import Cache
+
 from .compat import urllib  # isort: split
-from .compat import functools
-from .compat import compat_os_name, compat_shlex_quote
+from .compat import compat_os_name, compat_shlex_quote, functools
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -33,9 +32,11 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
-from .networking import (
-    list_request_handler_classes,
-    RequestDirector,
+from .networking import RequestDirector, list_request_handler_classes
+from .networking.exceptions import (
+    NoSupportingHandlers,
+    SSLError,
+    network_exceptions,
 )
 from .networking.request import HEADRequest, Request
 from .networking.utils import std_headers
@@ -91,9 +92,12 @@ from .utils import (
     SameFileError,
     UnavailableVideoError,
     UserNotLive,
+    YoutubeDLError,
     age_restricted,
     args_to_str,
     bug_reports_message,
+    clean_headers,
+    clean_proxies,
     date_from_str,
     deprecation_warning,
     determine_ext,
@@ -103,6 +107,7 @@ from .utils import (
     error_to_compat_str,
     escapeHTML,
     expand_path,
+    extract_basic_auth,
     filter_dict,
     float_or_none,
     format_bytes,
@@ -146,10 +151,9 @@ from .utils import (
     version_tuple,
     windows_enable_vt_mode,
     write_json_file,
-    write_string, extract_basic_auth, clean_proxies, clean_headers, YoutubeDLError,
+    write_string,
 )
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
-from .networking.exceptions import network_exceptions, NoSupportingHandlers, SSLError
 
 if compat_os_name == 'nt':
     import ctypes
@@ -3791,10 +3795,9 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
+        from .extractor.extractors import \
             _PLUGIN_OVERRIDES as plugin_ie_overrides
-        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
