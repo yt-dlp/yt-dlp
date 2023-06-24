@@ -5482,16 +5482,14 @@ class FormatSorter:
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
 
 
-def clean_proxies(request):
-    # TODO: generalise this so it can be used by e.g. external downloaders
-    if not isinstance(request.proxies, dict):
-        request.proxies = {}
-    req_proxy = request.headers.pop('Ytdl-request-proxy', None)
+def clean_proxies(proxies: dict, headers: CaseInsensitiveDict):
+    req_proxy = headers.pop('Ytdl-Request-Proxy', None)
     if req_proxy:
-        request.proxies = {'all': req_proxy}
-    for proxy_key, proxy_url in request.proxies.items():
+        proxies.clear()
+        proxies = {'all': req_proxy}
+    for proxy_key, proxy_url in proxies.items():
         if proxy_url == '__noproxy__':
-            request.proxies[proxy_key] = None
+            proxies[proxy_key] = None
             continue
         if proxy_key == 'no':  # special case
             continue
@@ -5499,10 +5497,10 @@ def clean_proxies(request):
             # Ensure proxies without a scheme are http.
             proxy_scheme = _parse_proxy(proxy_url)[0]
             if proxy_scheme is None:
-                request.proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
+                proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
 
 
-def clean_headers(request):
-    if 'Youtubedl-no-compression' in request.headers:  # compat
-        del request.headers['Youtubedl-no-compression']
-        request.headers['Accept-Encoding'] = 'identity'
+def clean_headers(headers: CaseInsensitiveDict):
+    if 'Youtubedl-No-Compression' in headers:  # compat
+        del headers['Youtubedl-No-Compression']
+        headers['Accept-Encoding'] = 'identity'

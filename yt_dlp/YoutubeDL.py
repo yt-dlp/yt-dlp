@@ -2417,9 +2417,7 @@ class YoutubeDL:
 
     def _calc_headers(self, info_dict):
         res = CaseInsensitiveDict(self.params['http_headers'], info_dict.get('http_headers') or {})
-        if 'Youtubedl-No-Compression' in res:  # deprecated
-            res.pop('Youtubedl-No-Compression', None)
-            res['Accept-Encoding'] = 'identity'
+        clean_headers(res)
         cookies = self.cookiejar.get_cookie_header(info_dict['url'])
         if cookies:
             res['Cookie'] = cookies
@@ -3947,16 +3945,14 @@ class YoutubeDL:
                 extensions={'timeout': req.timeout} if hasattr(req, 'timeout') else None)
         assert isinstance(req, Request)
 
-        # Assume user:pass url params are basic auth
-        # XXX: this should only be sent if the server requests it?
+        # compat: Assume user:pass url params are basic auth
         url, basic_auth_header = extract_basic_auth(req.url)
         if basic_auth_header:
             req.headers['Authorization'] = basic_auth_header
         req.url = url
 
-        # TODO
-        clean_proxies(req)
-        clean_headers(req)
+        clean_proxies(proxies=req.proxies, headers=req.headers)
+        clean_headers(req.headers)
 
         # TODO: do we want to use YoutubeDLError here or something else?
         try:
