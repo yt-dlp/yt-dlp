@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import io
 from email.message import Message
 from http import HTTPStatus

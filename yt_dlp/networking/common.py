@@ -22,7 +22,6 @@ from .exceptions import UnsupportedRequest
 
 if typing.TYPE_CHECKING:
     from typing import Optional, Tuple, Union
-
     from .response import Response
 
 

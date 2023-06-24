@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Dict, List
 
 # TODO: all request handlers should be safely imported

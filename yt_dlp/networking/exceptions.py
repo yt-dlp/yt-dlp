@@ -8,8 +8,7 @@ from ..utils import YoutubeDLError
 
 if typing.TYPE_CHECKING:
     from typing import List, Union
-
-    from . import RequestHandler
+    from .common import RequestHandler
     from .response import Response
 
 
