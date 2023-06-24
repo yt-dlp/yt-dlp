@@ -62,7 +62,7 @@ class QDanceIE(InfoExtractor):
     @property
     def _access_token(self):
         if not self._real_access_token:
-            self.raise_login_required(metadata_available=True)
+            self.raise_login_required()
         elif (try_call(lambda: jwt_decode_hs256(self._real_access_token)['exp']) or 0) <= int(time.time() - 120):
             # perform token refresh
             # if not self._refresh_token or not self._id_token:
@@ -115,10 +115,9 @@ class QDanceIE(InfoExtractor):
         data = self._search_nuxt_data(webpage, video_id)['data']
 
         def extract_availability(level):
-            # 20 == dedicated member, 15 == pay per view
             level = int_or_none(level) or 0
             return self._availability(
-                needs_premium=(level > 15), needs_subscription=(level > 10), needs_auth=True)
+                needs_premium=(level >= 20), needs_subscription=(level >= 15), needs_auth=True)
 
         info = traverse_obj(data, {
             'title': ('title', {str.strip}),
@@ -146,7 +145,7 @@ class QDanceIE(InfoExtractor):
         if not formats and info.get('is_live'):
             raise UserNotLive(video_id=video_id)
         elif not formats:
-            self.raise_no_formats('No working stream URL could be extracted')
+            self.raise_no_formats('No active stream URL found')
 
         return {
             **info,
