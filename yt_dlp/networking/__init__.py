@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Dict, List
 
+# TODO: all request handlers should be safely imported
 from ._urllib import UrllibRH  # noqa: F401
 from .common import RequestHandler
 from .exceptions import NoSupportingHandlers, RequestError, UnsupportedRequest
@@ -11,9 +12,13 @@ from ..utils import bug_reports_message
 
 
 class RequestDirector:
-    def __init__(self, logger):
-        self._handlers = {}
-        self.logger = logger
+    """RequestDirector class
+
+    Helper class that, when given a request, finds a RequestHandler that supports it.
+    """
+    def __init__(self, logger=None):
+        self._handlers: Dict[RequestHandler] = {}
+        self.logger = logger  # TODO: default logger
 
     def close(self):
         for handler in self._handlers.values():
@@ -25,9 +30,6 @@ class RequestDirector:
         self._handlers[handler.rh_key()] = handler
 
     def remove_handler(self, rh_key):
-        """
-        Remove a RequestHandler, if it exists.
-        """
         self._handlers.pop(rh_key, None)
 
     def get_handler(self, rh_key):
@@ -38,7 +40,7 @@ class RequestDirector:
         return list(self._handlers.values())
 
     def remove_handlers(self):
-        self._handlers = {}
+        self._handlers.clear()
 
     def send(self, request: Request) -> Response:
         """
