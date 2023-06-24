@@ -6,6 +6,7 @@ import os
 import random
 import sys
 import unittest
+from email.message import Message
 from http.cookiejar import CookieJar
 
 import pytest
@@ -18,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from yt_dlp.networking.utils import select_proxy, InstanceStoreMixin
 from yt_dlp.networking.request import HEADRequest, PUTRequest, Request
+from yt_dlp.networking.response import Response
 from yt_dlp.utils import CaseInsensitiveDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -232,11 +234,43 @@ class TestInstanceStoreMixin(unittest.TestCase):
 
 
 class TestResponse:
-    pass
 
+    @pytest.mark.parametrize('reason,status,expected', [
+        ('custom', 200, 'custom'),
+        (None, 404, 'Not Found'),  # fallback status
+        ('', 403, 'Forbidden'),
+        (None, 999, None)
+    ])
+    def test_reason(self, reason, status, expected):
+        res = Response(io.BytesIO(b''), url='test://', headers={}, status=status,reason=reason)
+        assert res.reason == expected
 
+    def test_headers(self):
+        headers = Message()
+        headers.add_header('Test', 'test')
+        headers.add_header('Test', 'test2')
+        headers.add_header('content-encoding', 'br')
+        res = Response(io.BytesIO(b''), headers=headers, url='test://')
+        assert res.headers.get_all('test') == ['test', 'test2']
+        assert 'Content-Encoding' in res.headers
 
+    def test_get_header(self):
+        headers = Message()
+        headers.add_header('Set-Cookie', 'cookie1')
+        headers.add_header('Set-cookie', 'cookie2')
+        headers.add_header('Test', 'test')
+        headers.add_header('Test', 'test2')
+        res = Response(io.BytesIO(b''), headers=headers, url='test://')
+        assert res.get_header('test') == 'test, test2'
+        assert res.get_header('set-Cookie') == 'cookie1'
+        assert res.get_header('notexist', 'default') == 'default'
 
+    def test_compat(self):
+        res = Response(io.BytesIO(b''), url='test://', status=404, headers={'test': 'test'})
+        assert res.code == res.getcode() == res.status
+        assert res.geturl() == res.url
+        assert res.info() is res.headers
+        assert res.getheader('test') == res.get_header('test')
 
 
 if __name__ == '__main__':
