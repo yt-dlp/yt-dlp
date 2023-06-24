@@ -173,6 +173,9 @@ class FragmentFD(FileDownloader):
             **self.params,
             'noprogress': True,
             'test': False,
+            'sleep_interval': 0,
+            'max_sleep_interval': 0,
+            'sleep_interval_subtitles': 0,
         })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
