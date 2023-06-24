@@ -5486,7 +5486,7 @@ def clean_proxies(proxies: dict, headers: CaseInsensitiveDict):
     req_proxy = headers.pop('Ytdl-Request-Proxy', None)
     if req_proxy:
         proxies.clear()
-        proxies = {'all': req_proxy}
+        proxies['all'] = req_proxy
     for proxy_key, proxy_url in proxies.items():
         if proxy_url == '__noproxy__':
             proxies[proxy_key] = None
