@@ -51,31 +51,40 @@ class RequestHandler(abc.ABC):
 
     If a Request is not supported by the handler, an UnsupportedRequest
     should be raised with a reason.
+
     By default, some checks are done on the request in _validate() based on the following class variables:
-    - _SUPPORTED_URL_SCHEMES: may contain a list of supported url schemes.
+    - `_SUPPORTED_URL_SCHEMES`: may contain a tuple of supported url schemes.
         Any Request with an url scheme not in this list will raise an UnsupportedRequest.
 
-    - _SUPPORTED_PROXY_SCHEMES: may contain a list of support proxy url schemes. Any Request that contains
+    - `_SUPPORTED_PROXY_SCHEMES`: may contain a tuple of support proxy url schemes. Any Request that contains
         a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
-    - _SUPPORTED_FEATURES: may contain a list of supported features, as defined in Features enum.
+    - `_SUPPORTED_FEATURES`: may contain a tuple of supported features, as defined in Features enum.
 
     Parameters:
-        logger: logger instance
-        headers: HTTP Headers to include when sending requests.
-        cookiejar: Cookiejar to use for requests.
-        timeout: Socket timeout to use when sending requests.
-        proxies: Proxies to use for sending requests.
-        source_address: Client-side IP address to bind to for requests.
-        verbose: Print debug traffic
-        prefer_system_certs: Whether to prefer system certificates over other means (e.g. certifi).
-        client_cert: SSL client certificate configuration.
+    @param logger: logger instance
+    @param headers: HTTP Headers to include when sending requests.
+    @param cookiejar: Cookiejar to use for requests.
+    @param timeout: Socket timeout to use when sending requests.
+    @param proxies: Proxies to use for sending requests.
+    @param source_address: Client-side IP address to bind to for requests.
+    @param verbose: Print debug traffic
+    @param prefer_system_certs: Whether to prefer system certificates over other means (e.g. certifi).
+    @param client_cert: SSL client certificate configuration.
             Tuple of (client_certificate, client_certificate_key, client_certificate_password).
-        verify: Verify SSL certificates
-        legacy_ssl_support: Enable various legacy SSL options.
+    @param verify: Verify SSL certificates
+    @param legacy_ssl_support: Enable legacy SSL options such as legacy server connect and older cipher support.
 
     Some configuration options may be available for individual Requests too. In this case,
     either the Request configuration option takes precedence or they are merged.
+
+    Requests may have additional optional parameters defined as extensions.
+     RequestHandler subclasses may choose to support custom extensions.
+
+    The following extensions are defined for RequestHandler:
+    - `cookiejar`: Cookiejar to use for this request
+    - `timeout`: socket timeout to use for this request
+
     """
 
     _SUPPORTED_URL_SCHEMES: tuple = None
@@ -84,8 +93,8 @@ class RequestHandler(abc.ABC):
 
     def __init__(
         self,
-        logger,
         *,
+        logger=None,  # TODO
         headers: CaseInsensitiveDict = None,
         cookiejar: CookieJar = None,
         timeout: Union[float, int, None] = None,
@@ -95,13 +104,13 @@ class RequestHandler(abc.ABC):
         prefer_system_certs: bool = False,
         client_cert: Tuple[str, Optional[str], Optional[str]] = None,
         verify: bool = True,
-        legacy_ssl_support: bool = False,  # todo: should probably generalise to some ssl_opts
+        legacy_ssl_support: bool = False,
     ):
 
-        self._logger = logger
+        self._logger = logger  # TODO: default logger
         self.headers = headers or {}
         self.cookiejar = cookiejar if cookiejar is not None else CookieJar()
-        self.timeout = float(timeout or 20)  # TODO: set default somewhere
+        self.timeout = float(timeout or 20)
         self.proxies = proxies or {}
         self.source_address = source_address
         self.verbose = verbose
@@ -153,9 +162,6 @@ class RequestHandler(abc.ABC):
             if self._SUPPORTED_URL_SCHEMES is not None and proxy_key not in (*self._SUPPORTED_URL_SCHEMES, 'all'):
                 continue
 
-            # TODO: check no proxy
-            # TODO: test these cases
-            # TODO: test proxy is a url
             # Scheme-less proxies are not supported
             if _parse_proxy is not None and _parse_proxy(proxy_url)[0] is None:
                 raise UnsupportedRequest(f'Proxy "{proxy_url}" missing scheme')
@@ -185,6 +191,22 @@ class RequestHandler(abc.ABC):
         self._check_proxies(request.proxies or self.proxies)
         self._check_extensions(request.extensions)
 
+    @wrap_request_errors
+    def validate(self, request: Request):
+        if not isinstance(request, Request):
+            raise TypeError('Expected an instance of Request')
+        self._validate(request)
+
+    @wrap_request_errors
+    def send(self, request: Request) -> Response:
+        if not isinstance(request, Request):
+            raise TypeError('Expected an instance of Request')
+        return self._send(request)
+
+    @abc.abstractmethod
+    def _send(self, request: Request):
+        """Handle a request from start to finish. Redefine in subclasses."""
+
     def close(self):
         pass
 
@@ -201,19 +223,3 @@ class RequestHandler(abc.ABC):
 
     def __exit__(self, *args):
         self.close()
-
-    @wrap_request_errors
-    def validate(self, request: Request):
-        if not isinstance(request, Request):
-            raise TypeError('Expected an instance of Request')
-        self._validate(request)
-
-    @wrap_request_errors
-    def send(self, request: Request) -> Response:
-        if not isinstance(request, Request):
-            raise TypeError('Expected an instance of Request')
-        return self._send(request)
-
-    @abc.abstractmethod
-    def _send(self, request: Request):
-        """Handle a request from start to finish. Redefine in subclasses."""
