@@ -673,6 +673,10 @@ class YoutubeDL:
                 else:
                     raise
 
+        # Set http_headers defaults according to std_headers
+        self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers', {}))
+        self._request_director = self.build_request_director(list_request_handler_classes())
+
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
@@ -744,9 +748,6 @@ class YoutubeDL:
             else self.params['format'] if callable(self.params['format'])
             else self.build_format_selector(self.params['format']))
 
-        # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers', {}))
-
         hooks = {
             'post_hooks': self.add_post_hook,
             'progress_hooks': self.add_progress_hook,
@@ -762,8 +763,6 @@ class YoutubeDL:
             self.add_post_processor(
                 get_postprocessor(pp_def.pop('key'))(self, **pp_def),
                 when=when)
-
-        self._request_director = self.build_request_director(list_request_handler_classes())
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
@@ -3795,9 +3794,10 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
-        from .extractor.extractors import \
+        from .extractor.extractors import (
+            _PLUGIN_CLASSES as plugin_ies,
             _PLUGIN_OVERRIDES as plugin_ie_overrides
+        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
@@ -3875,7 +3875,7 @@ class YoutubeDL:
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
-
+        write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.get_handlers())}')
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
