@@ -335,7 +335,7 @@ def validate_options(opts):
             if advanced and regex == '*from-url':
                 from_url = True
                 continue
-            elif not regex.startswith('*') or not regex.startswith('#'):
+            elif not regex.startswith('*') and not regex.startswith('#'):
                 try:
                     chapters.append(re.compile(regex))
                 except re.error as err:
@@ -344,8 +344,7 @@ def validate_options(opts):
 
             for range_ in map(str.strip, regex[1:].split(',')):
                 mobj = range_ != '-' and re.fullmatch(TIMESTAMP_RE, range_)
-                dur = mobj and [parse_timestamp(mobj.group('start') or '0'),
-                                parse_timestamp(mobj.group('end') or 'inf')]
+                dur = mobj and [parse_timestamp(mobj.group('start') or '0'), parse_timestamp(mobj.group('end') or 'inf')]
                 signs = mobj and (mobj.group('start_sign'), mobj.group('end_sign'))
 
                 err = None
