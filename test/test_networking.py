@@ -5,6 +5,9 @@ import io
 import os
 import random
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import unittest
 from email.message import Message
 from http.cookiejar import CookieJar
@@ -12,14 +15,9 @@ from http.cookiejar import CookieJar
 import pytest
 
 from yt_dlp.cookies import YoutubeDLCookieJar
-
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-
-from yt_dlp.networking.utils import select_proxy, InstanceStoreMixin
 from yt_dlp.networking.request import HEADRequest, PUTRequest, Request
 from yt_dlp.networking.response import Response
+from yt_dlp.networking.utils import InstanceStoreMixin, select_proxy
 from yt_dlp.utils import CaseInsensitiveDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +31,7 @@ class TestNetworkingUtils:
             'http': 'http://example.com:1080',
         }
 
-        assert select_proxy('https://example.com', proxies) ==  proxies['all']
+        assert select_proxy('https://example.com', proxies) == proxies['all']
         assert select_proxy('http://example.com', proxies) == proxies['http']
 
 
@@ -242,7 +240,7 @@ class TestResponse:
         (None, 999, None)
     ])
     def test_reason(self, reason, status, expected):
-        res = Response(io.BytesIO(b''), url='test://', headers={}, status=status,reason=reason)
+        res = Response(io.BytesIO(b''), url='test://', headers={}, status=status, reason=reason)
         assert res.reason == expected
 
     def test_headers(self):

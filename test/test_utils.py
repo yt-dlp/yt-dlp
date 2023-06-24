@@ -7,7 +7,6 @@ import sys
 import unittest
 import warnings
 
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -53,6 +52,7 @@ from yt_dlp.utils import (
     escape_url,
     expand_path,
     extract_attributes,
+    extract_basic_auth,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
@@ -132,7 +132,6 @@ from yt_dlp.utils import (
     xpath_element,
     xpath_text,
     xpath_with_ns,
-    extract_basic_auth
 )
 
 
@@ -2348,7 +2347,7 @@ Line 1
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
         assert extract_basic_auth('http://foo.bar') == ('http://foo.bar', None)
-        assert extract_basic_auth('http://@foo.bar') == ('http://foo.bar',  'Basic Og==')
+        assert extract_basic_auth('http://@foo.bar') == ('http://foo.bar', 'Basic Og==')
         assert extract_basic_auth('http://:pass@foo.bar') == ('http://foo.bar', 'Basic OnBhc3M=')
         assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
