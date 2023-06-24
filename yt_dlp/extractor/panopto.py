@@ -438,6 +438,7 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
                 'title': 'Featured Video Tutorials',
                 'id': 'f3b39fcf-882f-4849-93d6-a9f401236d36',
                 'description': '',
+                'playlist_mincount': 36
             },
         },
         {

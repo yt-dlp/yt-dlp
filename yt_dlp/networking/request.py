@@ -26,10 +26,6 @@ class Request:
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
     @param extensions: Dictionary of Request extensions to add, as supported by handlers.
-
-    Apart from the url protocol, proxy dict also supports the following keys:
-    - all: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
-    - no: comma seperated list of hostnames (optionally with port) to not use a proxy for.
     """
 
     def __init__(
