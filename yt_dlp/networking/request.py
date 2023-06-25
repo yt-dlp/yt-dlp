@@ -2,7 +2,7 @@ import copy
 import functools
 import io
 import typing
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Union
 
 from ..utils import (
     CaseInsensitiveDict,
@@ -11,7 +11,7 @@ from ..utils import (
     update_url_query,
 )
 
-_TYPE_REQ_DATA = bytes | typing.Iterable[bytes] | typing.IO | None
+_TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 
 
 class Request:
