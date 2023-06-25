@@ -3752,7 +3752,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...))
-        all_formats = self._configuration_arg('include_duplicate_formats')
+        format_types = self._configuration_arg('formats')
+        all_formats = 'duplicate' in format_types
+        if self._configuration_arg('include_duplicate_formats'):
+            all_formats = True
+            self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
+                                                'Use formats=duplicate extractor argument instead')
 
         def build_fragments(f):
             return LazyList({
@@ -3892,18 +3897,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if single_stream and dct.get('ext'):
                 dct['container'] = dct['ext'] + '_dash'
 
-            if all_formats and dct['filesize']:
+            if (all_formats or 'dashy' in format_types) and dct['filesize']:
                 yield {
                     **dct,
                     'format_id': f'{dct["format_id"]}-dashy' if all_formats else dct['format_id'],
                     'protocol': 'http_dash_segments',
                     'fragments': build_fragments(dct),
                 }
-            dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
-            yield dct
+            if all_formats or 'dashy' not in format_types:
+                dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
+                yield dct
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
-        skip_bad_formats = not self._configuration_arg('include_incomplete_formats')
+        skip_bad_formats = 'incomplete' not in format_types
+        if self._configuration_arg('include_incomplete_formats'):
+            skip_bad_formats = False
+            self._downloader.deprecated_feature('[youtube] include_incomplete_formats extractor argument is deprecated. '
+                                                'Use formats=incomplete extractor argument instead')
 
         skip_manifests = set(self._configuration_arg('skip'))
         if (not self.get_param('youtube_include_hls_manifest', True)
@@ -3915,7 +3925,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             skip_manifests.add('dash')
         if self._configuration_arg('include_live_dash'):
             self._downloader.deprecated_feature('[youtube] include_live_dash extractor argument is deprecated. '
-                                                'Use include_incomplete_formats extractor argument instead')
+                                                'Use formats=incomplete extractor argument instead')
         elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
