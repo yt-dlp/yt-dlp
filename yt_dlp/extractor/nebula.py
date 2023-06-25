@@ -85,7 +85,9 @@ class NebulaBaseIE(InfoExtractor):
                 'uploader': 'channel_title',
                 'series': 'channel_title',
                 'creator': 'channel_title',
-                '_old_archive_ids': ('zype_id', {lambda x: [make_archive_id(NebulaIE, x)]}),
+                # Old code was wrongly setting extractor_key from NebulaSubscriptionsIE
+                '_old_archive_ids': ('zype_id', {lambda x: [
+                    make_archive_id(NebulaIE, x), make_archive_id(NebulaSubscriptionsIE, x)]}),
             }),
             'channel_url': channel_url,
             'uploader_url': channel_url,
