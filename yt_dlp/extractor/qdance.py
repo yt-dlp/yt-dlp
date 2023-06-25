@@ -53,7 +53,7 @@ class QDanceIE(InfoExtractor):
             'live_status': 'is_live',
             'channel_id': 'qdancenetwork.video_149170353',
         },
-        'params': {'skip_download': 'm3u8'},
+        'skip': 'Completed livestream',
     }]
 
     _access_token = None
@@ -108,7 +108,7 @@ class QDanceIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        data = self._search_nuxt_data(webpage, video_id)['data']
+        data = self._search_nuxt_data(webpage, video_id, traverse=('data', 0, 'data'))
 
         def extract_availability(level):
             level = int_or_none(level) or 0
