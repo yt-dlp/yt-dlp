@@ -9,6 +9,7 @@ from ..utils import (
     get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
+    join_nonempty,
     parse_duration,
     remove_end,
     str_to_int,
@@ -33,6 +34,7 @@ class Rule34VideoIE(InfoExtractor):
                 'like_count': int,
                 'comment_count': int,
                 'description': 'https://discord.gg/aBqPrHSHvv',
+                'creator': None,
                 'uploader': 'Sweet HMV',
                 'uploader_url': 'https://rule34video.com/members/22119/',
                 'categories': ['3D', 'MMD', 'iwara'],
@@ -52,6 +54,7 @@ class Rule34VideoIE(InfoExtractor):
                 'like_count': int,
                 'comment_count': int,
                 'description': None,
+                'creator': 'WildeerStudio',
                 'uploader': 'CerZule',
                 'uploader_url': 'https://rule34video.com/members/36281/',
                 'categories': ['3D', 'Tomb Raider'],
@@ -91,11 +94,14 @@ class Rule34VideoIE(InfoExtractor):
                 break
 
         categories = None
+        creator = None
         uploader, uploader_url = None, None
         for col in get_elements_by_class('col', webpage):
             label = clean_html(get_element_by_class('label', col))
             if label == 'Categories:':
                 categories = list(map(clean_html, get_elements_by_class('item', col)))
+            elif label == 'Artist:':
+                creator = join_nonempty(*map(clean_html, get_elements_by_class('item', col)), delim=', ')
             elif label == 'Uploaded By:':
                 uploader = clean_html(get_element_by_class('name', col))
                 uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
@@ -110,6 +116,7 @@ class Rule34VideoIE(InfoExtractor):
             'like_count': like_count,
             'comment_count': comment_count,
             'description': description,
+            'creator': creator,
             'uploader': uploader,
             'uploader_url': uploader_url,
             'categories': categories,
