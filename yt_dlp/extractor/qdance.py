@@ -55,38 +55,19 @@ class QDanceIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }]
-    _real_access_token = None
-    # _refresh_token = None
-    # _id_token = None
 
-    @property
-    def _access_token(self):
-        if not self._real_access_token:
-            self.raise_login_required()
-        elif (try_call(lambda: jwt_decode_hs256(self._real_access_token)['exp']) or 0) <= int(time.time() - 120):
-            # perform token refresh
-            # if not self._refresh_token or not self._id_token:
-            raise ExtractorError(
-                'Access token expired, login with yt-dlp or refresh cookies in browser', expected=True)
-            # self._access_token = token
+    _access_token = None
+    _refresh_token = None
 
-        return self._real_access_token
-
-    @_access_token.setter
-    def _access_token(self, value):
-        self._real_access_token = value
-
-    def _perform_login(self, username, password):
+    def _call_login_api(self, data, note='Logging in'):
         login = self._download_json(
-            'https://members.id-t.com/api/auth/login', None, 'Logging in', headers={
+            'https://members.id-t.com/api/auth/login', None, note, headers={
                 'content-type': 'application/json',
                 'brand': 'qdance',
                 'origin': 'https://www.q-dance.com',
                 'referer': 'https://www.q-dance.com/',
-            }, data=json.dumps({
-                'email': username,
-                'password': password,
-            }, separators=(',', ':')).encode(), expected_status=lambda x: True)
+            }, data=json.dumps(data, separators=(',', ':')).encode(),
+            expected_status=lambda x: True)
 
         tokens = traverse_obj(login, ('data', {
             '_id-t-accounts-token': ('accessToken', {str}),
@@ -96,18 +77,33 @@ class QDanceIE(InfoExtractor):
 
         if not tokens.get('_id-t-accounts-token'):
             error = ': '.join(traverse_obj(login, ('error', ('code', 'message'), {str})))
-            if 'validation_error' in error:
-                raise ExtractorError('Invalid username or password', expected=True)
-            raise ExtractorError(f'Q-Dance API said "{error}"')
+            if 'validation_error' not in error:
+                raise ExtractorError(f'Q-Dance API said "{error}"')
+            msg = 'Invalid username or password' if 'email' in data else 'Refresh token has expired'
+            raise ExtractorError(msg, expected=True)
 
         for name, value in tokens.items():
             self._set_cookie('.q-dance.com', name, value)
 
+    def _perform_login(self, username, password):
+        self._call_login_api({'email': username, 'password': password})
+
     def _real_initialize(self):
         cookies = self._get_cookies('https://www.q-dance.com/')
-        # self._id_token = try_call(lambda: cookies['_id-t-accounts-id-token'].value)
-        # self._refresh_token = try_call(lambda: cookies['_id-t-accounts-refresh'].value)
+        self._refresh_token = try_call(lambda: cookies['_id-t-accounts-refresh'].value)
         self._access_token = try_call(lambda: cookies['_id-t-accounts-token'].value)
+        if not self._access_token:
+            self.raise_login_required()
+
+    def _get_auth(self):
+        if (try_call(lambda: jwt_decode_hs256(self._access_token)['exp']) or 0) <= int(time.time() - 120):
+            if not self._refresh_token:
+                raise ExtractorError(
+                    'Cannot refresh access token, login with yt-dlp or refresh cookies in browser')
+            self._call_login_api({'refreshToken': self._refresh_token}, note='Refreshing access token')
+            self._real_initialize()
+
+        return {'Authorization': self._access_token}
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -137,8 +133,7 @@ class QDanceIE(InfoExtractor):
 
         m3u8_url = traverse_obj(self._download_json(
             f'https://dc9h6qmsoymbq.cloudfront.net/api/content/videos/{video_id}/url', video_id,
-            headers={'Authorization': self._access_token}, fatal=False),
-            ('data', 'url', {url_or_none}))
+            headers=self._get_auth(), fatal=False), ('data', 'url', {url_or_none}))
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, fatal=False, live=True) if m3u8_url else []
