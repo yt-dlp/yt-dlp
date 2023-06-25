@@ -76,7 +76,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Merged with **youtube-dl v2021.12.17+ [commit/2dd6c6e](https://github.com/ytdl-org/youtube-dl/commit/2dd6c6e)** ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21)) and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+* Forked from [**yt-dlc@f9401f2**](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee) and merged with [**youtube-dl@42f2d4**](https://github.com/yt-dlp/yt-dlp/commit/42f2d4) ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in YouTube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -610,12 +610,14 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-hls-use-mpegts             Do not use the mpegts container for HLS
                                     videos. This is default when not downloading
                                     live streams
-    --download-sections REGEX       Download only chapters whose title matches
-                                    the given regular expression. Time ranges
-                                    prefixed by a "*" can also be used in place
-                                    of chapters to download the specified range.
-                                    Needs ffmpeg. This option can be used
-                                    multiple times to download multiple
+    --download-sections REGEX       Download only chapters that match the
+                                    regular expression. A "*" prefix denotes
+                                    time-range instead of chapter. Negative
+                                    timestamps are calculated from the end.
+                                    "*from-url" can be used to download between
+                                    the "start_time" and "end_time" extracted
+                                    from the URL. Needs ffmpeg. This option can
+                                    be used multiple times to download multiple
                                     sections, e.g. --download-sections
                                     "*10:15-inf" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
@@ -1798,13 +1800,12 @@ The following extractors use this feature:
 #### youtube
 * `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
+* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `ios,android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
-* `include_duplicate_formats`: Extract formats with identical content but different URLs or protocol. This is useful if some of the formats are unavailable or throttled.
-* `include_incomplete_formats`: Extract formats that cannot be downloaded completely (live dash and post-live m3u8)
+* `formats`: Change the types of formats to return. `dashy` (convert http to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash and post-live m3u8)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests
 

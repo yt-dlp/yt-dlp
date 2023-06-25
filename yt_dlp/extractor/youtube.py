@@ -258,7 +258,7 @@ def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('android', 'web', 'tv', 'ios', 'mweb')
+    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -3140,7 +3140,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return funcname
 
         return json.loads(js_to_json(self._search_regex(
-            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\]);', jscode,
+            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
     def _extract_n_function_code(self, video_id, player_url):
@@ -3356,7 +3356,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             info['author_is_uploader'] = author_is_uploader
 
         comment_abr = traverse_obj(
-            comment_renderer, ('actionsButtons', 'commentActionButtonsRenderer'), expected_type=dict)
+            comment_renderer, ('actionButtons', 'commentActionButtonsRenderer'), expected_type=dict)
         if comment_abr is not None:
             info['is_favorited'] = 'creatorHeart' in comment_abr
 
@@ -3599,7 +3599,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    _STORY_PLAYER_PARAMS = '8AEB'
+    _PLAYER_PARAMS = 'CgIQBg=='
 
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data):
 
@@ -3613,7 +3613,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'videoId': video_id,
         }
         if smuggled_data.get('is_story') or _split_innertube_client(client)[0] == 'android':
-            yt_query['params'] = self._STORY_PLAYER_PARAMS
+            yt_query['params'] = self._PLAYER_PARAMS
 
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
@@ -3625,7 +3625,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['android', 'web']
+        default = ['ios', 'android', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
@@ -3752,7 +3752,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...))
-        all_formats = self._configuration_arg('include_duplicate_formats')
+        format_types = self._configuration_arg('formats')
+        all_formats = 'duplicate' in format_types
+        if self._configuration_arg('include_duplicate_formats'):
+            all_formats = True
+            self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
+                                                'Use formats=duplicate extractor argument instead')
 
         def build_fragments(f):
             return LazyList({
@@ -3892,18 +3897,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if single_stream and dct.get('ext'):
                 dct['container'] = dct['ext'] + '_dash'
 
-            if all_formats and dct['filesize']:
+            if (all_formats or 'dashy' in format_types) and dct['filesize']:
                 yield {
                     **dct,
                     'format_id': f'{dct["format_id"]}-dashy' if all_formats else dct['format_id'],
                     'protocol': 'http_dash_segments',
                     'fragments': build_fragments(dct),
                 }
-            dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
-            yield dct
+            if all_formats or 'dashy' not in format_types:
+                dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
+                yield dct
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
-        skip_bad_formats = not self._configuration_arg('include_incomplete_formats')
+        skip_bad_formats = 'incomplete' not in format_types
+        if self._configuration_arg('include_incomplete_formats'):
+            skip_bad_formats = False
+            self._downloader.deprecated_feature('[youtube] include_incomplete_formats extractor argument is deprecated. '
+                                                'Use formats=incomplete extractor argument instead')
 
         skip_manifests = set(self._configuration_arg('skip'))
         if (not self.get_param('youtube_include_hls_manifest', True)
@@ -3915,7 +3925,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             skip_manifests.add('dash')
         if self._configuration_arg('include_live_dash'):
             self._downloader.deprecated_feature('[youtube] include_live_dash extractor argument is deprecated. '
-                                                'Use include_incomplete_formats extractor argument instead')
+                                                'Use formats=incomplete extractor argument instead')
         elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
@@ -3931,6 +3941,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = f'{itag}-{proto}'
             elif itag:
                 f['format_id'] = itag
+
+            if itag in ('616', '235'):
+                f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
+                f['source_preference'] = (f.get('source_preference') or -1) + 100
 
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
@@ -4011,8 +4025,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            if smuggled_data.get('is_story'):
-                query['pp'] = self._STORY_PLAYER_PARAMS
+            if smuggled_data.get('is_story'):  # XXX: Deprecated
+                query['pp'] = self._PLAYER_PARAMS
             webpage = self._download_webpage(
                 webpage_url, video_id, fatal=False, query=query)
 
@@ -4342,15 +4356,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         info[d_k] = parse_duration(query[k][0])
 
         # Youtube Music Auto-generated description
-        if video_description:
+        if (video_description or '').strip().endswith('\nAuto-generated by YouTube.'):
+            # XXX: Causes catastrophic backtracking if description has "·"
+            # E.g. https://www.youtube.com/watch?v=DoPaAxMQoiI
+            # Simulating atomic groups:  (?P<a>[^xy]+)x  =>  (?=(?P<a>[^xy]+))(?P=a)x
+            # reduces it, but does not fully fix it. https://regex101.com/r/8Ssf2h/2
             mobj = re.search(
                 r'''(?xs)
-                    (?P<track>[^·\n]+)·(?P<artist>[^\n]+)\n+
-                    (?P<album>[^\n]+)
+                    (?=(?P<track>[^\n·]+))(?P=track)·
+                    (?=(?P<artist>[^\n]+))(?P=artist)\n+
+                    (?=(?P<album>[^\n]+))(?P=album)\n
                     (?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?
                     (?:.+?Released on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
-                    (.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+))?
-                    .+\nAuto-generated\ by\ YouTube\.\s*$
+                    (.+?\nArtist\s*:\s*
+                        (?=(?P<clean_artist>[^\n]+))(?P=clean_artist)\n
+                    )?.+\nAuto-generated\ by\ YouTube\.\s*$
                 ''', video_description)
             if mobj:
                 release_year = mobj.group('release_year')

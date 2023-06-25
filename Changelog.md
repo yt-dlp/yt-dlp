@@ -4,6 +4,35 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.06.22
+
+#### Core changes
+- [Fix bug in db3ad8a67661d7b234a6954d9c6a4a9b1749f5eb](https://github.com/yt-dlp/yt-dlp/commit/d7cd97e8d8d42b500fea9abb2aa4ac9b0f98b2ad) by [pukkandan](https://github.com/pukkandan)
+- [Improve `--download-sections`](https://github.com/yt-dlp/yt-dlp/commit/b4e0d75848e9447cee2cd3646ce54d4744a7ff56) by [pukkandan](https://github.com/pukkandan)
+- [Indicate `filesize` approximated from `tbr` better](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) by [pukkandan](https://github.com/pukkandan)
+
+#### Extractor changes
+- [Support multiple `_VALID_URL`s](https://github.com/yt-dlp/yt-dlp/commit/5fd8367496b42c7b900b896a0d5460561a2859de) ([#5812](https://github.com/yt-dlp/yt-dlp/issues/5812)) by [nixxo](https://github.com/nixxo)
+- **dplay**: GlobalCyclingNetworkPlus: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/774aa09dd6aa61ced9ec818d1f67e53414d22762) ([#7360](https://github.com/yt-dlp/yt-dlp/issues/7360)) by [bashonly](https://github.com/bashonly)
+- **dropout**: [Fix season extraction](https://github.com/yt-dlp/yt-dlp/commit/db22142f6f817ff673d417b4b78e8db497bf8ab3) ([#7304](https://github.com/yt-dlp/yt-dlp/issues/7304)) by [OverlordQ](https://github.com/OverlordQ)
+- **motherless**: [Add gallery support, fix groups](https://github.com/yt-dlp/yt-dlp/commit/f2ff0f6f1914b82d4a51681a72cc0828115dcb4a) ([#7211](https://github.com/yt-dlp/yt-dlp/issues/7211)) by [rexlambert22](https://github.com/rexlambert22), [Ti4eeT4e](https://github.com/Ti4eeT4e)
+- **nebula**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/3f756c8c4095b942cf49788eb0862ceaf57847f2) ([#7156](https://github.com/yt-dlp/yt-dlp/issues/7156)) by [Lamieur](https://github.com/Lamieur), [rohieb](https://github.com/rohieb)
+- **rheinmaintv**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/98cb1eda7a4cf67c96078980dbd63e6c06ad7f7c) ([#7311](https://github.com/yt-dlp/yt-dlp/issues/7311)) by [barthelmannk](https://github.com/barthelmannk)
+- **youtube**
+    - [Add `ios` to default clients used](https://github.com/yt-dlp/yt-dlp/commit/1e75d97db21152acc764b30a688e516f04b8a142)
+        - IOS is affected neither by 403 nor by nsig so helps mitigate them preemptively
+        - IOS also has higher bit-rate 'premium' formats though they are not labeled as such
+    - [Improve description parsing performance](https://github.com/yt-dlp/yt-dlp/commit/71dc18fa29263a1ff0472c23d81bfc8dd4422d48) ([#7315](https://github.com/yt-dlp/yt-dlp/issues/7315)) by [berkanteber](https://github.com/berkanteber), [pukkandan](https://github.com/pukkandan)
+    - [Improve nsig function name extraction](https://github.com/yt-dlp/yt-dlp/commit/cd810afe2ac5567c822b7424800fc470ef2d0045) by [pukkandan](https://github.com/pukkandan)
+    - [Workaround 403 for android formats](https://github.com/yt-dlp/yt-dlp/commit/81ca451480051d7ce1a31c017e005358345a9149) by [pukkandan](https://github.com/pukkandan)
+
+#### Misc. changes
+- [Revert "Add automatic duplicate issue detection"](https://github.com/yt-dlp/yt-dlp/commit/a4486bfc1dc7057efca9dd3fe70d7fa25c56f700)
+- **cleanup**
+    - Miscellaneous
+        - [7f9c6a6](https://github.com/yt-dlp/yt-dlp/commit/7f9c6a63b16e145495479e9f666f5b9e2ee69e2f) by [bashonly](https://github.com/bashonly)
+        - [812cdfa](https://github.com/yt-dlp/yt-dlp/commit/812cdfa06c33a40e73a8e04b3e6f42c084666a43) by [pukkandan](https://github.com/pukkandan)
+
 ### 2023.06.21
 
 #### Important changes

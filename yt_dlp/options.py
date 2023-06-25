@@ -1012,8 +1012,9 @@ def create_parser():
         '--download-sections',
         metavar='REGEX', dest='download_ranges', action='append',
         help=(
-            'Download only chapters whose title matches the given regular expression. '
-            'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
+            'Download only chapters that match the regular expression. '
+            'A "*" prefix denotes time-range instead of chapter. Negative timestamps are calculated from the end. '
+            '"*from-url" can be used to download between the "start_time" and "end_time" extracted from the URL. '
             'Needs ffmpeg. This option can be used multiple times to download multiple sections, '
             'e.g. --download-sections "*10:15-inf" --download-sections "intro"'))
     downloader.add_option(
