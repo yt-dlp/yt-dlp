@@ -1,6 +1,6 @@
 import re
 
-from ..utils import parse_duration, unescapeHTML
+from ..utils import clean_html, get_element_by_id, get_elements_by_class, parse_duration, unescapeHTML
 from .common import InfoExtractor
 
 
@@ -17,6 +17,7 @@ class Rule34VideoIE(InfoExtractor):
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065157/preview.jpg',
                 'duration': 347.0,
                 'age_limit': 18,
+                'description': 'https://discord.gg/aBqPrHSHvv',
                 'tags': 'count:14'
             }
         },
@@ -30,6 +31,7 @@ class Rule34VideoIE(InfoExtractor):
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'duration': 938.0,
                 'age_limit': 18,
+                'description': None,
                 'tags': 'count:50'
             }
         },
@@ -53,6 +55,15 @@ class Rule34VideoIE(InfoExtractor):
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
 
+        description = None
+        video_info_element = get_element_by_id('tab_video_info', webpage)
+        info_labels = get_elements_by_class('label', video_info_element)
+        for label in info_labels:
+            label_clean = label.strip(' \n\t')
+            if label_clean.startswith('Description:'):
+                description = clean_html(label_clean[len('Description:'):])
+                break
+
         return {
             'id': video_id,
             'formats': formats,
@@ -60,6 +71,7 @@ class Rule34VideoIE(InfoExtractor):
             'thumbnail': thumbnail,
             'duration': parse_duration(duration),
             'age_limit': 18,
+            'description': description,
             'tags': list(map(unescapeHTML, re.findall(
                 r'<a class="tag_item"[^>]+\bhref="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage))),
         }
