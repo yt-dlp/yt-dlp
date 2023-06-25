@@ -6,6 +6,7 @@ from ..utils import (
     get_element_by_attribute,
     get_element_by_class,
     get_element_by_id,
+    get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
     parse_duration,
@@ -32,6 +33,8 @@ class Rule34VideoIE(InfoExtractor):
                 'like_count': int,
                 'comment_count': int,
                 'description': 'https://discord.gg/aBqPrHSHvv',
+                'uploader': 'Sweet HMV',
+                'uploader_url': 'https://rule34video.com/members/22119/',
                 'categories': ['3D', 'MMD', 'iwara'],
                 'tags': 'count:14'
             }
@@ -49,6 +52,8 @@ class Rule34VideoIE(InfoExtractor):
                 'like_count': int,
                 'comment_count': int,
                 'description': None,
+                'uploader': 'CerZule',
+                'uploader_url': 'https://rule34video.com/members/36281/',
                 'categories': ['3D', 'Tomb Raider'],
                 'tags': 'count:50'
             }
@@ -86,10 +91,14 @@ class Rule34VideoIE(InfoExtractor):
                 break
 
         categories = None
+        uploader, uploader_url = None, None
         for col in get_elements_by_class('col', webpage):
             label = clean_html(get_element_by_class('label', col))
             if label == 'Categories:':
                 categories = list(map(clean_html, get_elements_by_class('item', col)))
+            elif label == 'Uploaded By:':
+                uploader = clean_html(get_element_by_class('name', col))
+                uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
 
         return {
             'id': video_id,
@@ -101,6 +110,8 @@ class Rule34VideoIE(InfoExtractor):
             'like_count': like_count,
             'comment_count': comment_count,
             'description': description,
+            'uploader': uploader,
+            'uploader_url': uploader_url,
             'categories': categories,
             'tags': list(map(unescapeHTML, re.findall(
                 r'<a class="tag_item"[^>]+\bhref="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage))),
