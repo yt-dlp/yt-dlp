@@ -4,7 +4,6 @@ import time
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    UserNotLive,
     int_or_none,
     jwt_decode_hs256,
     str_or_none,
@@ -131,16 +130,18 @@ class QDanceIE(InfoExtractor):
             'channel_id': ('pubnub', 'channelName', {str}),
         })
 
-        m3u8_url = traverse_obj(self._download_json(
-            f'https://dc9h6qmsoymbq.cloudfront.net/api/content/videos/{video_id}/url', video_id,
-            headers=self._get_auth(), fatal=False), ('data', 'url', {url_or_none}))
+        stream = self._download_json(
+            f'https://dc9h6qmsoymbq.cloudfront.net/api/content/videos/{video_id}/url',
+            video_id, headers=self._get_auth(), expected_status=401)
+
+        m3u8_url = traverse_obj(stream, ('data', 'url', {url_or_none}))
+        if not m3u8_url and traverse_obj(stream, ('error', 'code')) == 'unauthorized':
+            raise ExtractorError('Your account does not have access to this content', expected=True)
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, fatal=False, live=True) if m3u8_url else []
-        if not formats and info.get('is_live'):
-            raise UserNotLive(video_id=video_id)
-        elif not formats:
-            self.raise_no_formats('No active stream URL found')
+        if not formats:
+            self.raise_no_formats('No active streams found', expected=bool(info.get('is_live')))
 
         return {
             **info,
