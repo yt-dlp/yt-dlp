@@ -62,10 +62,19 @@ _SIG_TESTS = [
         'https://s.ytimg.com/yts/jsbin/html5player-en_US-vflKjOTVq/html5player.js',
         '312AA52209E3623129A412D56A40F11CB0AF14AE.3EE09501CB14E3BCDC3B2AE808BF3F1D14E7FBF12',
         '112AA5220913623229A412D56A40F11CB0AF14AE.3EE0950FCB14EEBCDC3B2AE808BF331D14E7FBF3',
-    )
+    ),
+    (
+        'https://www.youtube.com/s/player/6ed0d907/player_ias.vflset/en_US/base.js',
+        '2aq0aqSyOoJXtK73m-uME_jv7-pT15gOFC02RFkGMqWpzEICs69VdbwQ0LDp1v7j8xx92efCJlYFYb1sUkkBSPOlPmXgIARw8JQ0qOAOAA',
+        'AOq0QJ8wRAIgXmPlOPSBkkUs1bYFYlJCfe29xx8j7v1pDL2QwbdV96sCIEzpWqMGkFR20CFOg51Tp-7vj_EMu-m37KtXJoOySqa0',
+    ),
 ]
 
 _NSIG_TESTS = [
+    (
+        'https://www.youtube.com/s/player/7862ca1f/player_ias.vflset/en_US/base.js',
+        'X_LCxVDjAavgE5t', 'yxJ1dM6iz5ogUg',
+    ),
     (
         'https://www.youtube.com/s/player/9216d1f7/player_ias.vflset/en_US/base.js',
         'SLp9F5bwjAdhE9F-', 'gWnb9IK2DJ8Q1w',
@@ -133,6 +142,26 @@ _NSIG_TESTS = [
     (
         'https://www.youtube.com/s/player/7a062b77/player_ias.vflset/en_US/base.js',
         'NRcE3y3mVtm_cV-W', 'VbsCYUATvqlt5w',
+    ),
+    (
+        'https://www.youtube.com/s/player/dac945fd/player_ias.vflset/en_US/base.js',
+        'o8BkRxXhuYsBCWi6RplPdP', '3Lx32v_hmzTm6A',
+    ),
+    (
+        'https://www.youtube.com/s/player/6f20102c/player_ias.vflset/en_US/base.js',
+        'lE8DhoDmKqnmJJ', 'pJTTX6XyJP2BYw',
+    ),
+    (
+        'https://www.youtube.com/s/player/cfa9e7cb/player_ias.vflset/en_US/base.js',
+        'aCi3iElgd2kq0bxVbQ', 'QX1y8jGb2IbZ0w',
+    ),
+    (
+        'https://www.youtube.com/s/player/8c7583ff/player_ias.vflset/en_US/base.js',
+        '1wWCVpRR96eAmMI87L', 'KSkWAVv1ZQxC3A',
+    ),
+    (
+        'https://www.youtube.com/s/player/b7910ca8/player_ias.vflset/en_US/base.js',
+        '_hXMCwMt9qE310D', 'LoZMgkkofRMCZQ',
     ),
 ]
 
@@ -210,7 +239,7 @@ def n_sig(jscode, sig_input):
 
 
 make_sig_test = t_factory(
-    'signature', signature, re.compile(r'.*-(?P<id>[a-zA-Z0-9_-]+)(?:/watch_as3|/html5player)?\.[a-z]+$'))
+    'signature', signature, re.compile(r'.*(?:-|/player/)(?P<id>[a-zA-Z0-9_-]+)(?:/.+\.js|(?:/watch_as3|/html5player)?\.[a-z]+)$'))
 for test_spec in _SIG_TESTS:
     make_sig_test(*test_spec)
 

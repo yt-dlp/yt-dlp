@@ -69,6 +69,7 @@ class TestInfoExtractor(unittest.TestCase):
             <meta name="og:test1" content='foo > < bar'/>
             <meta name="og:test2" content="foo >//< bar"/>
             <meta property=og-test3 content='Ill-formatted opengraph'/>
+            <meta property=og:test4 content=unquoted-value/>
             '''
         self.assertEqual(ie._og_search_title(html), 'Foo')
         self.assertEqual(ie._og_search_description(html), 'Some video\'s description ')
@@ -81,6 +82,7 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertEqual(ie._og_search_property(('test0', 'test1'), html), 'foo > < bar')
         self.assertRaises(RegexNotFoundError, ie._og_search_property, 'test0', html, None, fatal=True)
         self.assertRaises(RegexNotFoundError, ie._og_search_property, ('test0', 'test00'), html, None, fatal=True)
+        self.assertEqual(ie._og_search_property('test4', html), 'unquoted-value')
 
     def test_html_search_meta(self):
         ie = self.ie
@@ -915,8 +917,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 263.851,
-                    'abr': 0,
                 }, {
                     'format_id': '577',
                     'format_index': None,
@@ -934,8 +934,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 577.61,
-                    'abr': 0,
                 }, {
                     'format_id': '915',
                     'format_index': None,
@@ -953,8 +951,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 915.905,
-                    'abr': 0,
                 }, {
                     'format_id': '1030',
                     'format_index': None,
@@ -972,8 +968,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 1030.138,
-                    'abr': 0,
                 }, {
                     'format_id': '1924',
                     'format_index': None,
@@ -991,8 +985,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 1924.009,
-                    'abr': 0,
                 }],
                 {
                     'en': [{
@@ -1404,6 +1396,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'none',
                     'acodec': 'AACL',
                     'protocol': 'ism',
+                    'audio_channels': 2,
                     '_download_params': {
                         'stream_type': 'audio',
                         'duration': 8880746666,
@@ -1417,9 +1410,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'audio_ext': 'isma',
-                    'video_ext': 'none',
-                    'abr': 128,
                 }, {
                     'format_id': 'video-100',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1443,9 +1433,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 100,
                 }, {
                     'format_id': 'video-326',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1469,9 +1456,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 326,
                 }, {
                     'format_id': 'video-698',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1495,9 +1479,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 698,
                 }, {
                     'format_id': 'video-1493',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1521,9 +1502,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 1493,
                 }, {
                     'format_id': 'video-4482',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1547,9 +1525,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 4482,
                 }],
                 {
                     'eng': [
@@ -1573,34 +1548,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 'ec-3_test',
                 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
                 [{
-                    'format_id': 'audio_deu_1-224',
-                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
-                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
-                    'ext': 'isma',
-                    'tbr': 224,
-                    'asr': 48000,
-                    'vcodec': 'none',
-                    'acodec': 'EC-3',
-                    'protocol': 'ism',
-                    '_download_params':
-                    {
-                        'stream_type': 'audio',
-                        'duration': 370000000,
-                        'timescale': 10000000,
-                        'width': 0,
-                        'height': 0,
-                        'fourcc': 'EC-3',
-                        'language': 'deu',
-                        'codec_private_data': '00063F000000AF87FBA7022DFB42A4D405CD93843BDD0700200F00',
-                        'sampling_rate': 48000,
-                        'channels': 6,
-                        'bits_per_sample': 16,
-                        'nal_unit_length_field': 4
-                    },
-                    'audio_ext': 'isma',
-                    'video_ext': 'none',
-                    'abr': 224,
-                }, {
                     'format_id': 'audio_deu-127',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
                     'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1610,8 +1557,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'none',
                     'acodec': 'AACL',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    'audio_channels': 2,
+                    '_download_params': {
                         'stream_type': 'audio',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1625,9 +1573,32 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'audio_ext': 'isma',
-                    'video_ext': 'none',
-                    'abr': 127,
+                }, {
+                    'format_id': 'audio_deu_1-224',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'isma',
+                    'tbr': 224,
+                    'asr': 48000,
+                    'vcodec': 'none',
+                    'acodec': 'EC-3',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    'audio_channels': 6,
+                    '_download_params': {
+                        'stream_type': 'audio',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 0,
+                        'height': 0,
+                        'fourcc': 'EC-3',
+                        'language': 'deu',
+                        'codec_private_data': '00063F000000AF87FBA7022DFB42A4D405CD93843BDD0700200F00',
+                        'sampling_rate': 48000,
+                        'channels': 6,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
                 }, {
                     'format_id': 'video_deu-23',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1639,8 +1610,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1653,9 +1624,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 23,
                 }, {
                     'format_id': 'video_deu-403',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1667,8 +1635,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1681,9 +1649,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 403,
                 }, {
                     'format_id': 'video_deu-680',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1695,8 +1660,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1709,9 +1674,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 680,
                 }, {
                     'format_id': 'video_deu-1253',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1723,8 +1685,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'vbr': 1253,
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1737,9 +1700,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 1253,
                 }, {
                     'format_id': 'video_deu-2121',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1751,8 +1711,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1765,9 +1725,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 2121,
                 }, {
                     'format_id': 'video_deu-3275',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1779,8 +1736,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1793,9 +1750,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 3275,
                 }, {
                     'format_id': 'video_deu-5300',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1807,8 +1761,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1821,9 +1775,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 5300,
                 }, {
                     'format_id': 'video_deu-8079',
                     'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
@@ -1835,8 +1786,8 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'AVC1',
                     'acodec': 'none',
                     'protocol': 'ism',
-                    '_download_params':
-                    {
+                    'language': 'deu',
+                    '_download_params': {
                         'stream_type': 'video',
                         'duration': 370000000,
                         'timescale': 10000000,
@@ -1849,9 +1800,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 8079,
                 }],
                 {},
             ),

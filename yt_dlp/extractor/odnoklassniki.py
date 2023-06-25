@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
@@ -7,6 +9,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    HEADRequest,
     float_or_none,
     int_or_none,
     qualities,
@@ -15,6 +18,7 @@ from ..utils import (
     unescapeHTML,
     unified_strdate,
     unsmuggle_url,
+    url_or_none,
     urlencode_postdata,
 )
 
@@ -41,7 +45,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'ext': 'mp4',
             'timestamp': 1545580896,
             'view_count': int,
-            'thumbnail': 'https://coub-attachments.akamaized.net/coub_storage/coub/simple/cw_image/c5ac87553bd/608e806a1239c210ab692/1545580913_00026.jpg',
+            'thumbnail': r're:^https?://.*\.jpg$',
             'title': 'Народная забава',
             'uploader': 'Nevata',
             'upload_date': '20181223',
@@ -65,13 +69,14 @@ class OdnoklassnikiIE(InfoExtractor):
             'title': str,
             'uploader': str,
         },
+        'skip': 'vk extractor error',
     }, {
-        # metadata in JSON
+        # metadata in JSON, webm_dash with Firefox UA
         'url': 'http://ok.ru/video/20079905452',
-        'md5': '5d2b64756e2af296e3b383a0bc02a6aa',
+        'md5': '8f477d8931c531374a3e36daec617b2c',
         'info_dict': {
             'id': '20079905452',
-            'ext': 'mp4',
+            'ext': 'webm',
             'title': 'Культура меняет нас (прекрасный ролик!))',
             'thumbnail': str,
             'duration': 100,
@@ -81,10 +86,14 @@ class OdnoklassnikiIE(InfoExtractor):
             'like_count': int,
             'age_limit': 0,
         },
+        'params': {
+            'format': 'bv[ext=webm]',
+            'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:102.0) Gecko/20100101 Firefox/102.0'},
+        },
     }, {
         # metadataUrl
         'url': 'http://ok.ru/video/63567059965189-0?fromTime=5',
-        'md5': 'f8c951122516af72e6e6ffdd3c41103b',
+        'md5': '2bae2f58eefe1b3d26f3926c4a64d2f3',
         'info_dict': {
             'id': '63567059965189-0',
             'ext': 'mp4',
@@ -98,10 +107,11 @@ class OdnoklassnikiIE(InfoExtractor):
             'age_limit': 0,
             'start_time': 5,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # YouTube embed (metadataUrl, provider == USER_YOUTUBE)
         'url': 'https://ok.ru/video/3952212382174',
-        'md5': '91749d0bd20763a28d083fa335bbd37a',
+        'md5': '5fb5f83ce16cb212d6bf887282b5da53',
         'info_dict': {
             'id': '5axVgHHDBvU',
             'ext': 'mp4',
@@ -116,7 +126,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'live_status': 'not_live',
             'view_count': int,
             'thumbnail': 'https://i.mycdn.me/i?r=AEHujHvw2RjEbemUCNEorZbxYpb_p_9AcN2FmGik64Krkcmz37YtlY093oAM5-HIEAt7Zi9s0CiBOSDmbngC-I-k&fn=external_8',
-            'uploader_url': 'http://www.youtube.com/user/MrKewlkid94',
+            'uploader_url': 'https://www.youtube.com/@MrKewlkid94',
             'channel_follower_count': int,
             'tags': ['youtube-dl', 'youtube playlists', 'download videos', 'download audio'],
             'channel_id': 'UCVGtvURtEURYHtJFUegdSug',
@@ -145,7 +155,6 @@ class OdnoklassnikiIE(InfoExtractor):
         },
         'skip': 'Video has not been found',
     }, {
-        # TODO: HTTP Error 400: Bad Request, it only works if there's no cookies when downloading
         'note': 'Only available in mobile webpage',
         'url': 'https://m.ok.ru/video/2361249957145',
         'info_dict': {
@@ -153,8 +162,8 @@ class OdnoklassnikiIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Быковское крещение',
             'duration': 3038.181,
+            'thumbnail': r're:^https?://i\.mycdn\.me/videoPreview\?.+',
         },
-        'skip': 'HTTP Error 400',
     }, {
         'note': 'subtitles',
         'url': 'https://ok.ru/video/4249587550747',
@@ -225,6 +234,12 @@ class OdnoklassnikiIE(InfoExtractor):
         },
         'skip': 'Site no longer embeds',
     }]
+
+    def _clear_cookies(self, cdn_url):
+        # Direct http downloads will fail if CDN cookies are set
+        # so we need to reset them after each format extraction
+        self.cookiejar.clear(domain='.mycdn.me')
+        self.cookiejar.clear(domain=urllib.parse.urlparse(cdn_url).hostname)
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -364,14 +379,22 @@ class OdnoklassnikiIE(InfoExtractor):
         formats = [{
             'url': f['url'],
             'ext': 'mp4',
-            'format_id': f['name'],
-        } for f in metadata['videos']]
+            'format_id': f.get('name'),
+        } for f in traverse_obj(metadata, ('videos', lambda _, v: url_or_none(v['url'])))]
 
-        m3u8_url = metadata.get('hlsManifestUrl')
+        m3u8_url = traverse_obj(metadata, 'hlsManifestUrl', 'ondemandHls')
         if m3u8_url:
             formats.extend(self._extract_m3u8_formats(
                 m3u8_url, video_id, 'mp4', 'm3u8_native',
                 m3u8_id='hls', fatal=False))
+            self._clear_cookies(m3u8_url)
+
+        for mpd_id, mpd_key in [('dash', 'ondemandDash'), ('webm', 'metadataWebmUrl')]:
+            mpd_url = metadata.get(mpd_key)
+            if mpd_url:
+                formats.extend(self._extract_mpd_formats(
+                    mpd_url, video_id, mpd_id=mpd_id, fatal=False))
+                self._clear_cookies(mpd_url)
 
         dash_manifest = metadata.get('metadataEmbedded')
         if dash_manifest:
@@ -390,6 +413,7 @@ class OdnoklassnikiIE(InfoExtractor):
         if m3u8_url:
             formats.extend(self._extract_m3u8_formats(
                 m3u8_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+            self._clear_cookies(m3u8_url)
         rtmp_url = metadata.get('rtmpUrl')
         if rtmp_url:
             formats.append({
@@ -423,6 +447,10 @@ class OdnoklassnikiIE(InfoExtractor):
             r'data-video="(.+?)"', webpage, 'json data')
         json_data = self._parse_json(unescapeHTML(json_data), video_id) or {}
 
+        redirect_url = self._request_webpage(HEADRequest(
+            json_data['videoSrc']), video_id, 'Requesting download URL').geturl()
+        self._clear_cookies(redirect_url)
+
         return {
             'id': video_id,
             'title': json_data.get('videoName'),
@@ -430,7 +458,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'thumbnail': json_data.get('videoPosterSrc'),
             'formats': [{
                 'format_id': 'mobile',
-                'url': json_data.get('videoSrc'),
+                'url': redirect_url,
                 'ext': 'mp4',
             }]
         }
