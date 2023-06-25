@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .turner import TurnerBaseIE
-from ..utils import url_basename
+from ..utils import merge_dicts, try_call, url_basename
 
 
 class CNNIE(TurnerBaseIE):
@@ -141,3 +141,58 @@ class CNNArticleIE(InfoExtractor):
         webpage = self._download_webpage(url, url_basename(url))
         cnn_url = self._html_search_regex(r"video:\s*'([^']+)'", webpage, 'cnn url')
         return self.url_result('http://cnn.com/video/?/video/' + cnn_url, CNNIE.ie_key())
+
+
+class CNNIndonesiaIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.cnnindonesia\.com/[\w-]+/(?P<upload_date>\d{8})\d+-\d+-(?P<id>\d+)/(?P<display_id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.cnnindonesia.com/ekonomi/20220909212635-89-845885/alasan-harga-bbm-di-indonesia-masih-disubsidi',
+        'info_dict': {
+            'id': '845885',
+            'ext': 'mp4',
+            'description': 'md5:e7954bfa6f1749bc9ef0c079a719c347',
+            'upload_date': '20220909',
+            'title': 'Alasan Harga BBM di Indonesia Masih Disubsidi',
+            'timestamp': 1662859088,
+            'duration': 120.0,
+            'thumbnail': r're:https://akcdn\.detik\.net\.id/visual/2022/09/09/thumbnail-ekopedia-alasan-harga-bbm-disubsidi_169\.jpeg',
+            'tags': ['ekopedia', 'subsidi bbm', 'subsidi', 'bbm', 'bbm subsidi', 'harga pertalite naik'],
+            'age_limit': 0,
+            'release_timestamp': 1662859088,
+            'release_date': '20220911',
+            'uploader': 'Asfahan Yahsyi',
+        }
+    }, {
+        'url': 'https://www.cnnindonesia.com/internasional/20220911104341-139-846189/video-momen-charles-disambut-meriah-usai-dilantik-jadi-raja-inggris',
+        'info_dict': {
+            'id': '846189',
+            'ext': 'mp4',
+            'upload_date': '20220911',
+            'duration': 76.0,
+            'timestamp': 1662869995,
+            'description': 'md5:ece7b003b3ee7d81c6a5cfede7d5397d',
+            'thumbnail': r're:https://akcdn\.detik\.net\.id/visual/2022/09/11/thumbnail-video-1_169\.jpeg',
+            'title': 'VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
+            'tags': ['raja charles', 'raja charles iii', 'ratu elizabeth', 'ratu elizabeth meninggal dunia', 'raja inggris', 'inggris'],
+            'age_limit': 0,
+            'release_date': '20220911',
+            'uploader': 'REUTERS',
+            'release_timestamp': 1662869995,
+        }
+    }]
+
+    def _real_extract(self, url):
+        upload_date, video_id, display_id = self._match_valid_url(url).group('upload_date', 'id', 'display_id')
+        webpage = self._download_webpage(url, display_id)
+
+        json_ld_list = list(self._yield_json_ld(webpage, display_id))
+        json_ld_data = self._json_ld(json_ld_list, display_id)
+        embed_url = next(
+            json_ld.get('embedUrl') for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject')
+
+        return merge_dicts(json_ld_data, {
+            '_type': 'url_transparent',
+            'url': embed_url,
+            'upload_date': upload_date,
+            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', '))
+        })

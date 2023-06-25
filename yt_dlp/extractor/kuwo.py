@@ -104,7 +104,6 @@ class KuwoIE(KuwoBaseIE):
             lrc_content = None
 
         formats = self._get_formats(song_id)
-        self._sort_formats(formats)
 
         album_id = self._html_search_regex(
             r'<a[^>]+href="http://www\.kuwo\.cn/album/(\d+)/"',
@@ -338,8 +337,6 @@ class KuwoMvIE(KuwoBaseIE):
             'url': mv_url,
             'format_id': 'mv',
         })
-
-        self._sort_formats(formats)
 
         return {
             'id': song_id,

@@ -3,21 +3,18 @@ import sys
 import warnings
 import xml.etree.ElementTree as etree
 
-from . import re
 from ._deprecated import *  # noqa: F401, F403
 from .compat_utils import passthrough_module
 
-
 # XXX: Implement this the same way as other DeprecationWarnings without circular import
 passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
-    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=2))
-del passthrough_module
+    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=5))
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
 # Python 3.5. Introducing dummy exception for Python >3.5 for compatible
 # and uniform cross-version exception handling
-class compat_HTMLParseError(Exception):
+class compat_HTMLParseError(ValueError):
     pass
 
 
@@ -35,6 +32,7 @@ compat_os_name = os._name if os.name == 'java' else os.name
 
 if compat_os_name == 'nt':
     def compat_shlex_quote(s):
+        import re
         return s if re.match(r'^[-_\w./]+$', s) else '"%s"' % s.replace('"', '\\"')
 else:
     from shlex import quote as compat_shlex_quote  # noqa: F401
@@ -50,7 +48,7 @@ if compat_os_name == 'nt' and sys.version_info < (3, 8):
     def compat_realpath(path):
         while os.path.islink(path):
             path = os.path.abspath(os.readlink(path))
-        return path
+        return os.path.realpath(path)
 else:
     compat_realpath = os.path.realpath
 

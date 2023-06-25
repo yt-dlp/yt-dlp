@@ -13,7 +13,7 @@ from ..utils import (
     str_or_none,
     try_call,
     try_get,
-    unescapeHTML,
+    smuggle_url,
     unsmuggle_url,
     url_or_none,
     urljoin,
@@ -25,6 +25,7 @@ _ID_RE = r'(?:[0-9a-f]{32,34}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 
 class MediasiteIE(InfoExtractor):
     _VALID_URL = r'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/[^/#?]+/Presentation)/(?P<id>%s)(?P<query>\?[^#]+|)' % _ID_RE
+    _EMBED_REGEX = [r'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/%s(?:\?.*?)?)\1' % _ID_RE]
     _TESTS = [
         {
             'url': 'https://hitsmediaweb.h-its.org/mediasite/Play/2db6c271681e4f199af3c60d1f82869b1d',
@@ -112,13 +113,10 @@ class MediasiteIE(InfoExtractor):
         5: 'video3',
     }
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            unescapeHTML(mobj.group('url'))
-            for mobj in re.finditer(
-                r'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/%s(?:\?.*?)?)\1' % _ID_RE,
-                webpage)]
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            yield smuggle_url(embed_url, {'UrlReferrer': url})
 
     def __extract_slides(self, *, stream_id, snum, Stream, duration, images):
         slide_base_url = Stream['SlideBaseUrl']
@@ -265,8 +263,6 @@ class MediasiteIE(InfoExtractor):
                     'preference': -1 if stream_type != 0 else 0,
                 })
             formats.extend(stream_formats)
-
-        self._sort_formats(formats)
 
         # XXX: Presentation['Presenters']
         # XXX: Presentation['Transcript']

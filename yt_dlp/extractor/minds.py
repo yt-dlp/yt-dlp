@@ -76,7 +76,7 @@ class MindsIE(MindsBaseIE):
             else:
                 return self.url_result(entity['perma_url'])
         else:
-            assert(entity['subtype'] == 'video')
+            assert entity['subtype'] == 'video'
             video_id = entity_id
         # 1080p and webm formats available only on the sources array
         video = self._call_api(
@@ -92,7 +92,6 @@ class MindsIE(MindsBaseIE):
                 'height': int_or_none(source.get('size')),
                 'url': src,
             })
-        self._sort_formats(formats)
 
         entity = video.get('entity') or entity
         owner = entity.get('ownerObj') or {}
@@ -118,7 +117,7 @@ class MindsIE(MindsBaseIE):
             'timestamp': int_or_none(entity.get('time_created')),
             'uploader': strip_or_none(owner.get('name')),
             'uploader_id': uploader_id,
-            'uploader_url': format_field(uploader_id, template='https://www.minds.com/%s'),
+            'uploader_url': format_field(uploader_id, None, 'https://www.minds.com/%s'),
             'view_count': int_or_none(entity.get('play:count')),
             'like_count': int_or_none(entity.get('thumbs:up:count')),
             'dislike_count': int_or_none(entity.get('thumbs:down:count')),

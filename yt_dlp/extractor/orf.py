@@ -12,9 +12,10 @@ from ..utils import (
     join_nonempty,
     orderedSet,
     remove_end,
+    make_archive_id,
     smuggle_url,
-    str_or_none,
     strip_jsonp,
+    try_call,
     unescapeHTML,
     unified_strdate,
     unsmuggle_url,
@@ -133,8 +134,6 @@ class ORFTVthekIE(InfoExtractor):
                 HEADRequest(http_url), video_id, fatal=False, note='Testing for geoblocking',
                 errnote=f'This video seems to be blocked outside of {geo_str}. You may want to try the streaming-* formats')
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for sub in sd.get('subtitles', []):
             sub_src = sub.get('src')
@@ -200,208 +199,99 @@ class ORFTVthekIE(InfoExtractor):
 
 
 class ORFRadioIE(InfoExtractor):
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        show_date = mobj.group('date')
-        show_id = mobj.group('show')
+    IE_NAME = 'orf:radio'
 
-        data = self._download_json(
-            'http://audioapi.orf.at/%s/api/json/current/broadcast/%s/%s'
-            % (self._API_STATION, show_id, show_date), show_id)
-
-        entries = []
-        for info in data['streams']:
-            loop_stream_id = str_or_none(info.get('loopStreamId'))
-            if not loop_stream_id:
-                continue
-            title = str_or_none(data.get('title'))
-            if not title:
-                continue
-            start = int_or_none(info.get('start'), scale=1000)
-            end = int_or_none(info.get('end'), scale=1000)
-            duration = end - start if end and start else None
-            entries.append({
-                'id': loop_stream_id.replace('.mp3', ''),
-                'url': 'https://loopstream01.apa.at/?channel=%s&id=%s' % (self._LOOP_STATION, loop_stream_id),
-                'title': title,
-                'description': clean_html(data.get('subtitle')),
-                'duration': duration,
-                'timestamp': start,
-                'ext': 'mp3',
-                'series': data.get('programTitle'),
-            })
-
-        return {
-            '_type': 'playlist',
-            'id': show_id,
-            'title': data.get('title'),
-            'description': clean_html(data.get('subtitle')),
-            'entries': entries,
-        }
-
-
-class ORFFM4IE(ORFRadioIE):
-    IE_NAME = 'orf:fm4'
-    IE_DESC = 'radio FM4'
-    _VALID_URL = r'https?://(?P<station>fm4)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>4\w+)'
-    _API_STATION = 'fm4'
-    _LOOP_STATION = 'fm4'
-
-    _TEST = {
-        'url': 'http://fm4.orf.at/player/20170107/4CC',
-        'md5': '2b0be47375432a7ef104453432a19212',
-        'info_dict': {
-            'id': '2017-01-07_2100_tl_54_7DaysSat18_31295',
-            'ext': 'mp3',
-            'title': 'Solid Steel Radioshow',
-            'description': 'Die Mixshow von Coldcut und Ninja Tune.',
-            'duration': 3599,
-            'timestamp': 1483819257,
-            'upload_date': '20170107',
-        },
-        'skip': 'Shows from ORF radios are only available for 7 days.',
-        'only_matching': True,
+    STATION_INFO = {
+        'fm4': ('fm4', 'fm4', 'orffm4'),
+        'noe': ('noe', 'oe2n', 'orfnoe'),
+        'wien': ('wie', 'oe2w', 'orfwie'),
+        'burgenland': ('bgl', 'oe2b', 'orfbgl'),
+        'ooe': ('ooe', 'oe2o', 'orfooe'),
+        'steiermark': ('stm', 'oe2st', 'orfstm'),
+        'kaernten': ('ktn', 'oe2k', 'orfktn'),
+        'salzburg': ('sbg', 'oe2s', 'orfsbg'),
+        'tirol': ('tir', 'oe2t', 'orftir'),
+        'vorarlberg': ('vbg', 'oe2v', 'orfvbg'),
+        'oe3': ('oe3', 'oe3', 'orfoe3'),
+        'oe1': ('oe1', 'oe1', 'orfoe1'),
     }
+    _STATION_RE = '|'.join(map(re.escape, STATION_INFO.keys()))
 
+    _VALID_URL = rf'''(?x)
+        https?://(?:
+            (?P<station>{_STATION_RE})\.orf\.at/player|
+            radiothek\.orf\.at/(?P<station2>{_STATION_RE})
+        )/(?P<date>[0-9]+)/(?P<show>\w+)'''
 
-class ORFNOEIE(ORFRadioIE):
-    IE_NAME = 'orf:noe'
-    IE_DESC = 'Radio Niederösterreich'
-    _VALID_URL = r'https?://(?P<station>noe)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'noe'
-    _LOOP_STATION = 'oe2n'
-
-    _TEST = {
+    _TESTS = [{
+        'url': 'https://radiothek.orf.at/ooe/20220801/OGMO',
+        'info_dict': {
+            'id': 'OGMO',
+            'title': 'Guten Morgen OÖ',
+            'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
+        },
+        'playlist': [{
+            'md5': 'f33147d954a326e338ea52572c2810e8',
+            'info_dict': {
+                'id': '2022-08-01_0459_tl_66_7DaysMon1_319062',
+                'ext': 'mp3',
+                'title': 'Guten Morgen OÖ',
+                'upload_date': '20220801',
+                'duration': 18000,
+                'timestamp': 1659322789,
+                'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
+            }
+        }]
+    }, {
+        'url': 'https://ooe.orf.at/player/20220801/OGMO',
+        'info_dict': {
+            'id': 'OGMO',
+            'title': 'Guten Morgen OÖ',
+            'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
+        },
+        'playlist': [{
+            'md5': 'f33147d954a326e338ea52572c2810e8',
+            'info_dict': {
+                'id': '2022-08-01_0459_tl_66_7DaysMon1_319062',
+                'ext': 'mp3',
+                'title': 'Guten Morgen OÖ',
+                'upload_date': '20220801',
+                'duration': 18000,
+                'timestamp': 1659322789,
+                'description': 'md5:a3f6083399ef92b8cbe2d421b180835a',
+            }
+        }]
+    }, {
+        'url': 'http://fm4.orf.at/player/20170107/4CC',
+        'only_matching': True,
+    }, {
         'url': 'https://noe.orf.at/player/20200423/NGM',
         'only_matching': True,
-    }
-
-
-class ORFWIEIE(ORFRadioIE):
-    IE_NAME = 'orf:wien'
-    IE_DESC = 'Radio Wien'
-    _VALID_URL = r'https?://(?P<station>wien)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'wie'
-    _LOOP_STATION = 'oe2w'
-
-    _TEST = {
+    }, {
         'url': 'https://wien.orf.at/player/20200423/WGUM',
         'only_matching': True,
-    }
-
-
-class ORFBGLIE(ORFRadioIE):
-    IE_NAME = 'orf:burgenland'
-    IE_DESC = 'Radio Burgenland'
-    _VALID_URL = r'https?://(?P<station>burgenland)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'bgl'
-    _LOOP_STATION = 'oe2b'
-
-    _TEST = {
+    }, {
         'url': 'https://burgenland.orf.at/player/20200423/BGM',
         'only_matching': True,
-    }
-
-
-class ORFOOEIE(ORFRadioIE):
-    IE_NAME = 'orf:oberoesterreich'
-    IE_DESC = 'Radio Oberösterreich'
-    _VALID_URL = r'https?://(?P<station>ooe)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'ooe'
-    _LOOP_STATION = 'oe2o'
-
-    _TEST = {
-        'url': 'https://ooe.orf.at/player/20200423/OGMO',
-        'only_matching': True,
-    }
-
-
-class ORFSTMIE(ORFRadioIE):
-    IE_NAME = 'orf:steiermark'
-    IE_DESC = 'Radio Steiermark'
-    _VALID_URL = r'https?://(?P<station>steiermark)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'stm'
-    _LOOP_STATION = 'oe2st'
-
-    _TEST = {
+    }, {
         'url': 'https://steiermark.orf.at/player/20200423/STGMS',
         'only_matching': True,
-    }
-
-
-class ORFKTNIE(ORFRadioIE):
-    IE_NAME = 'orf:kaernten'
-    IE_DESC = 'Radio Kärnten'
-    _VALID_URL = r'https?://(?P<station>kaernten)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'ktn'
-    _LOOP_STATION = 'oe2k'
-
-    _TEST = {
+    }, {
         'url': 'https://kaernten.orf.at/player/20200423/KGUMO',
         'only_matching': True,
-    }
-
-
-class ORFSBGIE(ORFRadioIE):
-    IE_NAME = 'orf:salzburg'
-    IE_DESC = 'Radio Salzburg'
-    _VALID_URL = r'https?://(?P<station>salzburg)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'sbg'
-    _LOOP_STATION = 'oe2s'
-
-    _TEST = {
+    }, {
         'url': 'https://salzburg.orf.at/player/20200423/SGUM',
         'only_matching': True,
-    }
-
-
-class ORFTIRIE(ORFRadioIE):
-    IE_NAME = 'orf:tirol'
-    IE_DESC = 'Radio Tirol'
-    _VALID_URL = r'https?://(?P<station>tirol)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'tir'
-    _LOOP_STATION = 'oe2t'
-
-    _TEST = {
+    }, {
         'url': 'https://tirol.orf.at/player/20200423/TGUMO',
         'only_matching': True,
-    }
-
-
-class ORFVBGIE(ORFRadioIE):
-    IE_NAME = 'orf:vorarlberg'
-    IE_DESC = 'Radio Vorarlberg'
-    _VALID_URL = r'https?://(?P<station>vorarlberg)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'vbg'
-    _LOOP_STATION = 'oe2v'
-
-    _TEST = {
+    }, {
         'url': 'https://vorarlberg.orf.at/player/20200423/VGUM',
         'only_matching': True,
-    }
-
-
-class ORFOE3IE(ORFRadioIE):
-    IE_NAME = 'orf:oe3'
-    IE_DESC = 'Radio Österreich 3'
-    _VALID_URL = r'https?://(?P<station>oe3)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'oe3'
-    _LOOP_STATION = 'oe3'
-
-    _TEST = {
+    }, {
         'url': 'https://oe3.orf.at/player/20200424/3WEK',
         'only_matching': True,
-    }
-
-
-class ORFOE1IE(ORFRadioIE):
-    IE_NAME = 'orf:oe1'
-    IE_DESC = 'Radio Österreich 1'
-    _VALID_URL = r'https?://(?P<station>oe1)\.orf\.at/player/(?P<date>[0-9]+)/(?P<show>\w+)'
-    _API_STATION = 'oe1'
-    _LOOP_STATION = 'oe1'
-
-    _TEST = {
+    }, {
         'url': 'http://oe1.orf.at/player/20170108/456544',
         'md5': '34d8a6e67ea888293741c86a099b745b',
         'info_dict': {
@@ -413,7 +303,35 @@ class ORFOE1IE(ORFRadioIE):
             'upload_date': '20170108',
         },
         'skip': 'Shows from ORF radios are only available for 7 days.'
-    }
+    }]
+
+    def _entries(self, data, station):
+        _, loop_station, old_ie = self.STATION_INFO[station]
+        for info in data['streams']:
+            item_id = info.get('loopStreamId')
+            if not item_id:
+                continue
+            video_id = item_id.replace('.mp3', '')
+            yield {
+                'id': video_id,
+                'ext': 'mp3',
+                'url': f'https://loopstream01.apa.at/?channel={loop_station}&id={item_id}',
+                '_old_archive_ids': [make_archive_id(old_ie, video_id)],
+                'title': data.get('title'),
+                'description': clean_html(data.get('subtitle')),
+                'duration': try_call(lambda: (info['end'] - info['start']) / 1000),
+                'timestamp': int_or_none(info.get('start'), scale=1000),
+                'series': data.get('programTitle'),
+            }
+
+    def _real_extract(self, url):
+        station, station2, show_date, show_id = self._match_valid_url(url).group('station', 'station2', 'date', 'show')
+        api_station, _, _ = self.STATION_INFO[station or station2]
+        data = self._download_json(
+            f'http://audioapi.orf.at/{api_station}/api/json/current/broadcast/{show_id}/{show_date}', show_id)
+
+        return self.playlist_result(
+            self._entries(data, station or station2), show_id, data.get('title'), clean_html(data.get('subtitle')))
 
 
 class ORFIPTVIE(InfoExtractor):
@@ -487,7 +405,6 @@ class ORFIPTVIE(InfoExtractor):
                     format_url, video_id, 'mp4', m3u8_id=format_id))
             else:
                 continue
-        self._sort_formats(formats)
 
         title = remove_end(self._og_search_title(webpage), ' - iptv.ORF.at')
         description = self._og_search_description(webpage)
@@ -587,7 +504,6 @@ class ORFFM4StoryIE(InfoExtractor):
                         format_url, video_id, 'mp4', m3u8_id=format_id))
                 else:
                     continue
-            self._sort_formats(formats)
 
             title = remove_end(self._og_search_title(webpage), ' - fm4.ORF.at')
             if idx >= 1:

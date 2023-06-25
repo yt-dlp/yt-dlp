@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -9,7 +7,7 @@ from ..utils import (
 from .keezmovies import KeezMoviesIE
 
 
-class MofosexIE(KeezMoviesIE):
+class MofosexIE(KeezMoviesIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?mofosex\.com/videos/(?P<id>\d+)/(?P<display_id>[^/?#&.]+)\.html'
     _TESTS = [{
         'url': 'http://www.mofosex.com/videos/318131/amateur-teen-playing-and-masturbating-318131.html',
@@ -59,16 +57,11 @@ class MofosexIE(KeezMoviesIE):
 
 class MofosexEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mofosex\.com/embed/?\?.*?\bvideoid=(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?mofosex\.com/embed/?\?.*?\bvideoid=\d+)']
     _TESTS = [{
         'url': 'https://www.mofosex.com/embed/?videoid=318131&referrer=KM',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+\bsrc=["\']((?:https?:)?//(?:www\.)?mofosex\.com/embed/?\?.*?\bvideoid=\d+)',
-            webpage)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

@@ -82,7 +82,6 @@ class GlomexBaseIE(InfoExtractor):
         if video.get('language'):
             for fmt in formats:
                 fmt['language'] = video['language']
-        self._sort_formats(formats)
 
         images = (video.get('images') or []) + [video.get('image') or {}]
         thumbnails = [{
@@ -174,7 +173,7 @@ class GlomexEmbedIE(GlomexBaseIE):
         return cls._smuggle_origin_url(f'https:{cls._BASE_PLAYER_URL}?{query_string}', origin_url)
 
     @classmethod
-    def _extract_urls(cls, webpage, origin_url):
+    def _extract_embed_urls(cls, url, webpage):
         # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
         quot_re = r'["\']'
 
@@ -183,9 +182,9 @@ class GlomexEmbedIE(GlomexBaseIE):
                 (?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=q)).)+
             )(?P=q)'''
         for mobj in re.finditer(regex, webpage):
-            url = unescapeHTML(mobj.group('url'))
-            if cls.suitable(url):
-                yield cls._smuggle_origin_url(url, origin_url)
+            embed_url = unescapeHTML(mobj.group('url'))
+            if cls.suitable(embed_url):
+                yield cls._smuggle_origin_url(embed_url, url)
 
         regex = fr'''(?x)
             <glomex-player [^>]+?>|
@@ -193,7 +192,7 @@ class GlomexEmbedIE(GlomexBaseIE):
         for mobj in re.finditer(regex, webpage):
             attrs = extract_attributes(mobj.group(0))
             if attrs.get('data-integration-id') and attrs.get('data-playlist-id'):
-                yield cls.build_player_url(attrs['data-playlist-id'], attrs['data-integration-id'], origin_url)
+                yield cls.build_player_url(attrs['data-playlist-id'], attrs['data-integration-id'], url)
 
         # naive parsing of inline scripts for hard-coded integration parameters
         regex = fr'''(?x)
@@ -206,7 +205,7 @@ class GlomexEmbedIE(GlomexBaseIE):
                 continue
             playlist_id = re.search(regex % 'playlistId', script)
             if playlist_id:
-                yield cls.build_player_url(playlist_id, integration_id, origin_url)
+                yield cls.build_player_url(playlist_id, integration_id, url)
 
     def _real_extract(self, url):
         url, origin_url = self._unsmuggle_origin_url(url)

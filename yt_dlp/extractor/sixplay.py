@@ -104,7 +104,6 @@ class SixPlayIE(InfoExtractor):
                     'quality': quality_key(quality),
                     'ext': ext,
                 })
-        self._sort_formats(formats)
 
         def get(getter):
             for src in (data, clip_data):

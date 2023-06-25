@@ -52,6 +52,7 @@ class FreesoundIE(InfoExtractor):
         tags_str = get_element_by_class('tags', webpage)
         tags = re.findall(r'<a[^>]+>([^<]+)', tags_str) if tags_str else None
 
+        audio_url = re.sub(r'^https?://freesound\.org(https?://)', r'\1', audio_url)
         audio_urls = [audio_url]
 
         LQ_FORMAT = '-lq.mp3'
@@ -63,7 +64,6 @@ class FreesoundIE(InfoExtractor):
             'format_note': channels,
             'quality': quality,
         } for quality, format_url in enumerate(audio_urls)]
-        self._sort_formats(formats)
 
         return {
             'id': audio_id,

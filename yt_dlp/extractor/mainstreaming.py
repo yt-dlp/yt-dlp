@@ -14,6 +14,7 @@ from ..utils import (
 
 class MainStreamingIE(InfoExtractor):
     _VALID_URL = r'https?://(?:webtools-?)?(?P<host>[A-Za-z0-9-]*\.msvdn.net)/(?:embed|amp_embed|content)/(?P<id>\w+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=["\']?(?P<url>{_VALID_URL})["\']?']
     IE_DESC = 'MainStreaming Player'
 
     _TESTS = [
@@ -101,13 +102,6 @@ class MainStreamingIE(InfoExtractor):
             'only_matching': True
         }
     ]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        mobj = re.findall(
-            r'<iframe[^>]+?src=["\']?(?P<url>%s)["\']?' % MainStreamingIE._VALID_URL, webpage)
-        if mobj:
-            return [group[0] for group in mobj]
 
     def _playlist_entries(self, host, playlist_content):
         for entry in playlist_content:
@@ -202,8 +196,6 @@ class MainStreamingIE(InfoExtractor):
 
             subtitles = self._merge_subtitles(m3u8_subs, mpd_subs)
             formats.extend(m3u8_formats + mpd_formats)
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

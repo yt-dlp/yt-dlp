@@ -91,7 +91,7 @@ def _extract_moment(item, fatal=True):
 
     uploader = try_get(item, lambda x: x['owner']['name'], compat_str)
     uploader_id = try_get(item, lambda x: x['owner']['userId'])
-    uploader_url = format_field(uploader, template='https://www.younow.com/%s')
+    uploader_url = format_field(uploader, None, 'https://www.younow.com/%s')
 
     entry = {
         'extractor_key': 'YouNowMoment',

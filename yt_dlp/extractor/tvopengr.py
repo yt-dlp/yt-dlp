@@ -1,11 +1,8 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     get_elements_text_and_html_by_attribute,
     scale_thumbnails_to_max_format_width,
-    unescapeHTML,
 )
 
 
@@ -72,7 +69,6 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
                 continue
             formats.extend(formats_)
             self._merge_subtitles(subs_, target=subs)
-        self._sort_formats(formats)
         return formats, subs
 
     def _real_extract(self, url):
@@ -98,7 +94,7 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
     IE_NAME = 'tvopengr:embed'
     IE_DESC = 'tvopen.gr embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.|cdn\.|)(?:tvopen|ethnos).gr/embed/(?P<id>\d+)'
-    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''')
+    _EMBED_REGEX = [rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''']
 
     _TESTS = [{
         'url': 'https://cdn.ethnos.gr/embed/100963',
@@ -114,11 +110,6 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
             'timestamp': 1641600000,
         },
     }]
-
-    @classmethod
-    def _extract_urls(cls, webpage):
-        for mobj in cls._EMBED_RE.finditer(webpage):
-            yield unescapeHTML(mobj.group('url'))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

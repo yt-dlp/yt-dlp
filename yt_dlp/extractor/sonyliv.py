@@ -10,6 +10,8 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    jwt_decode_hs256,
+    try_call,
     try_get,
 )
 
@@ -77,8 +79,10 @@ class SonyLIVIE(InfoExtractor):
         self._HEADERS['device_id'] = self._get_device_id()
         self._HEADERS['content-type'] = 'application/json'
 
-        if username.lower() == 'token' and len(password) > 1198:
+        if username.lower() == 'token' and try_call(lambda: jwt_decode_hs256(password)):
             self._HEADERS['authorization'] = password
+            self.report_login()
+            return
         elif len(username) != 10 or not username.isdigit():
             raise ExtractorError(f'Invalid username/password; {self._LOGIN_HINT}')
 
@@ -150,7 +154,6 @@ class SonyLIVIE(InfoExtractor):
             video_id, 'mp4', m3u8_id='hls', headers=headers, fatal=False))
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
-        self._sort_formats(formats)
 
         metadata = self._call_api(
             '1.6', 'IN/DETAIL/' + video_id, video_id)['containers'][0]['metadata']

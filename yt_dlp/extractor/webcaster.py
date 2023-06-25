@@ -50,7 +50,6 @@ class WebcasterIE(InfoExtractor):
                             'format_note': track.get('title'),
                         })
                     formats.extend(m3u8_formats)
-        self._sort_formats(formats)
 
         thumbnail = xpath_text(video, './/image', 'thumbnail')
 
@@ -64,27 +63,23 @@ class WebcasterIE(InfoExtractor):
 
 class WebcasterFeedIE(InfoExtractor):
     _VALID_URL = r'https?://bl\.webcaster\.pro/feed/start/free_(?P<id>[^/]+)'
+    _EMBED_REGEX = [r'<(?:object|a[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_.*?)(?:[?&]|\1)']
     _TEST = {
         'url': 'http://bl.webcaster.pro/feed/start/free_c8cefd240aa593681c8d068cff59f407_hd/q393859/eb173f99dd5f558674dae55f4ba6806d/1480289104',
         'only_matching': True,
     }
 
-    @staticmethod
-    def _extract_url(ie, webpage):
-        mobj = re.search(
-            r'<(?:object|a[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_.*?)(?:[?&]|\1)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
+    def _extract_from_webpage(self, url, webpage):
+        yield from super()._extract_from_webpage(url, webpage)
+
         for secure in (True, False):
-            video_url = ie._og_search_video_url(
-                webpage, secure=secure, default=None)
+            video_url = self._og_search_video_url(webpage, secure=secure, default=None)
             if video_url:
                 mobj = re.search(
                     r'config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_[^?&=]+)',
                     video_url)
                 if mobj:
-                    return mobj.group('url')
+                    yield self.url_result(mobj.group('url'), self)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

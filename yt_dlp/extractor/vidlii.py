@@ -77,7 +77,6 @@ class VidLiiIE(InfoExtractor):
                     'format_id': f'{height}p',
                     'height': height,
                 })
-        self._sort_formats(formats)
 
         title = self._search_regex(
             (r'<h1>([^<]+)</h1>', r'<title>([^<]+) - VidLii<'), webpage,
@@ -100,7 +99,7 @@ class VidLiiIE(InfoExtractor):
         uploader = self._search_regex(
             r'<div[^>]+class=["\']wt_person[^>]+>\s*<a[^>]+\bhref=["\']/user/[^>]+>([^<]+)',
             webpage, 'uploader', fatal=False)
-        uploader_url = format_field(uploader, template='https://www.vidlii.com/user/%s')
+        uploader_url = format_field(uploader, None, 'https://www.vidlii.com/user/%s')
 
         upload_date = unified_strdate(self._html_search_meta(
             'datePublished', webpage, default=None) or self._search_regex(

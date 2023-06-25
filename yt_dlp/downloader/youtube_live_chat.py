@@ -1,9 +1,15 @@
 import json
 import time
+import urllib.error
 
 from .fragment import FragmentFD
-from ..compat import compat_urllib_error
-from ..utils import RegexNotFoundError, dict_get, int_or_none, try_get
+from ..utils import (
+    RegexNotFoundError,
+    RetryManager,
+    dict_get,
+    int_or_none,
+    try_get,
+)
 
 
 class YoutubeLiveChatFD(FragmentFD):
@@ -16,7 +22,6 @@ class YoutubeLiveChatFD(FragmentFD):
             self.report_warning('Live chat download runs until the livestream ends. '
                                 'If you wish to download the video simultaneously, run a separate yt-dlp instance')
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         test = self.params.get('test', False)
 
         ctx = {
@@ -104,8 +109,7 @@ class YoutubeLiveChatFD(FragmentFD):
             return continuation_id, live_offset, click_tracking_params
 
         def download_and_parse_fragment(url, frag_index, request_data=None, headers=None):
-            count = 0
-            while count <= fragment_retries:
+            for retry in RetryManager(self.params.get('fragment_retries'), self.report_retry, frag_index=frag_index):
                 try:
                     success = dl_fragment(url, request_data, headers)
                     if not success:
@@ -120,21 +124,15 @@ class YoutubeLiveChatFD(FragmentFD):
                     live_chat_continuation = try_get(
                         data,
                         lambda x: x['continuationContents']['liveChatContinuation'], dict) or {}
-                    if info_dict['protocol'] == 'youtube_live_chat_replay':
-                        if frag_index == 1:
-                            continuation_id, offset, click_tracking_params = try_refresh_replay_beginning(live_chat_continuation)
-                        else:
-                            continuation_id, offset, click_tracking_params = parse_actions_replay(live_chat_continuation)
-                    elif info_dict['protocol'] == 'youtube_live_chat':
-                        continuation_id, offset, click_tracking_params = parse_actions_live(live_chat_continuation)
-                    return True, continuation_id, offset, click_tracking_params
-                except compat_urllib_error.HTTPError as err:
-                    count += 1
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-            if count > fragment_retries:
-                self.report_error('giving up after %s fragment retries' % fragment_retries)
-                return False, None, None, None
+
+                    func = (info_dict['protocol'] == 'youtube_live_chat' and parse_actions_live
+                            or frag_index == 1 and try_refresh_replay_beginning
+                            or parse_actions_replay)
+                    return (True, *func(live_chat_continuation))
+                except urllib.error.HTTPError as err:
+                    retry.error = err
+                    continue
+            return False, None, None, None
 
         self._prepare_and_start_frag_download(ctx, info_dict)
 
@@ -193,8 +191,7 @@ class YoutubeLiveChatFD(FragmentFD):
             if test:
                 break
 
-        self._finish_frag_download(ctx, info_dict)
-        return True
+        return self._finish_frag_download(ctx, info_dict)
 
     @staticmethod
     def parse_live_timestamp(action):

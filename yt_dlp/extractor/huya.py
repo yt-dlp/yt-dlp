@@ -1,12 +1,12 @@
 import hashlib
 import random
+import re
 
 from ..compat import compat_urlparse, compat_b64decode
 
 from ..utils import (
     ExtractorError,
     int_or_none,
-    js_to_json,
     str_or_none,
     try_get,
     unescapeHTML,
@@ -38,7 +38,7 @@ class HuyaLiveIE(InfoExtractor):
     }]
 
     _RESOLUTION = {
-        '蓝光4M': {
+        '蓝光': {
             'width': 1920,
             'height': 1080,
         },
@@ -55,11 +55,7 @@ class HuyaLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id=video_id)
-        json_stream = self._search_regex(r'"stream":\s+"([a-zA-Z0-9+=/]+)"', webpage, 'stream', default=None)
-        if not json_stream:
-            raise ExtractorError('Video is offline', expected=True)
-        stream_data = self._parse_json(compat_b64decode(json_stream).decode(), video_id=video_id,
-                                       transform_source=js_to_json)
+        stream_data = self._search_json(r'stream:\s', webpage, 'stream', video_id=video_id, default=None)
         room_info = try_get(stream_data, lambda x: x['data'][0]['gameLiveInfo'])
         if not room_info:
             raise ExtractorError('Can not extract the room info', expected=True)
@@ -67,6 +63,8 @@ class HuyaLiveIE(InfoExtractor):
         screen_type = room_info.get('screenType')
         live_source_type = room_info.get('liveSourceType')
         stream_info_list = stream_data['data'][0]['gameStreamInfoList']
+        if not stream_info_list:
+            raise ExtractorError('Video is offline', expected=True)
         formats = []
         for stream_info in stream_info_list:
             stream_url = stream_info.get('sFlvUrl')
@@ -79,11 +77,15 @@ class HuyaLiveIE(InfoExtractor):
             if re_secret:
                 fm, ss = self.encrypt(params, stream_info, stream_name)
             for si in stream_data.get('vMultiStreamInfo'):
+                display_name, bitrate = re.fullmatch(
+                    r'(.+?)(?:(\d+)M)?', si.get('sDisplayName')).groups()
                 rate = si.get('iBitRate')
                 if rate:
                     params['ratio'] = rate
                 else:
                     params.pop('ratio', None)
+                    if bitrate:
+                        rate = int(bitrate) * 1000
                 if re_secret:
                     params['wsSecret'] = hashlib.md5(
                         '_'.join([fm, params['u'], stream_name, ss, params['wsTime']]))
@@ -93,10 +95,8 @@ class HuyaLiveIE(InfoExtractor):
                     'tbr': rate,
                     'url': update_url_query(f'{stream_url}/{stream_name}.{stream_info.get("sFlvUrlSuffix")}',
                                             query=params),
-                    **self._RESOLUTION.get(si.get('sDisplayName'), {}),
+                    **self._RESOLUTION.get(display_name, {}),
                 })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

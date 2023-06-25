@@ -65,7 +65,6 @@ class PerformGroupIE(InfoExtractor):
                 'vbr': int_or_none(c.get('videoRate'), 1000),
                 'abr': int_or_none(c.get('audioRate'), 1000),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
