@@ -1,6 +1,17 @@
 import re
 
-from ..utils import clean_html, get_element_by_id, get_elements_by_class, parse_duration, unescapeHTML
+from ..utils import (
+    clean_html,
+    get_element_by_attribute,
+    get_element_by_class,
+    get_element_by_id,
+    get_elements_by_class,
+    int_or_none,
+    parse_duration,
+    remove_end,
+    str_to_int,
+    unescapeHTML,
+)
 from .common import InfoExtractor
 
 
@@ -17,6 +28,8 @@ class Rule34VideoIE(InfoExtractor):
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065157/preview.jpg',
                 'duration': 347.0,
                 'age_limit': 18,
+                'like_count': int,
+                'comment_count': int,
                 'description': 'https://discord.gg/aBqPrHSHvv',
                 'tags': 'count:14'
             }
@@ -31,6 +44,8 @@ class Rule34VideoIE(InfoExtractor):
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'duration': 938.0,
                 'age_limit': 18,
+                'like_count': int,
+                'comment_count': int,
                 'description': None,
                 'tags': 'count:50'
             }
@@ -54,6 +69,9 @@ class Rule34VideoIE(InfoExtractor):
         title = self._html_extract_title(webpage)
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
+        like_count = str_to_int(remove_end(get_element_by_class('voters count', webpage), ' likes'))
+        comment_count = int_or_none(self._search_regex(r'[^(]+\((\d+)\)', get_element_by_attribute(
+            'href', '#tab_comments', webpage), 'comment count', fatal=False))
 
         description = None
         video_info_element = get_element_by_id('tab_video_info', webpage)
@@ -71,6 +89,8 @@ class Rule34VideoIE(InfoExtractor):
             'thumbnail': thumbnail,
             'duration': parse_duration(duration),
             'age_limit': 18,
+            'like_count': like_count,
+            'comment_count': comment_count,
             'description': description,
             'tags': list(map(unescapeHTML, re.findall(
                 r'<a class="tag_item"[^>]+\bhref="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage))),
