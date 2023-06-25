@@ -2,6 +2,7 @@ import re
 
 from ..utils import (
     clean_html,
+    extract_attributes,
     get_element_by_attribute,
     get_element_by_class,
     get_element_by_id,
@@ -31,6 +32,7 @@ class Rule34VideoIE(InfoExtractor):
                 'like_count': int,
                 'comment_count': int,
                 'description': 'https://discord.gg/aBqPrHSHvv',
+                'categories': ['3D', 'MMD', 'iwara'],
                 'tags': 'count:14'
             }
         },
@@ -47,6 +49,7 @@ class Rule34VideoIE(InfoExtractor):
                 'like_count': int,
                 'comment_count': int,
                 'description': None,
+                'categories': ['3D', 'Tomb Raider'],
                 'tags': 'count:50'
             }
         },
@@ -82,6 +85,12 @@ class Rule34VideoIE(InfoExtractor):
                 description = clean_html(label_clean[len('Description:'):])
                 break
 
+        categories = None
+        for col in get_elements_by_class('col', webpage):
+            label = clean_html(get_element_by_class('label', col))
+            if label == 'Categories:':
+                categories = list(map(clean_html, get_elements_by_class('item', col)))
+
         return {
             'id': video_id,
             'formats': formats,
@@ -92,6 +101,7 @@ class Rule34VideoIE(InfoExtractor):
             'like_count': like_count,
             'comment_count': comment_count,
             'description': description,
+            'categories': categories,
             'tags': list(map(unescapeHTML, re.findall(
                 r'<a class="tag_item"[^>]+\bhref="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage))),
         }
