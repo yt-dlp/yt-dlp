@@ -2,6 +2,7 @@ import functools
 import re
 
 from .common import InfoExtractor
+from ..networking.request import HEADRequest
 from ..utils import (
     clean_html,
     determine_ext,
@@ -20,7 +21,6 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
-from ..networking.request import HEADRequest
 
 
 class ORFTVthekIE(InfoExtractor):

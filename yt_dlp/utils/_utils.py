@@ -5139,6 +5139,7 @@ class CaseInsensitiveDict(collections.UserDict):
     Store and access keys case-insensitively.
     The constructor can take multiple dicts, in which keys in the latter are prioritised.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         for dct in args:

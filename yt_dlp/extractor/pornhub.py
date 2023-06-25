@@ -4,10 +4,10 @@ import math
 import operator
 import re
 
-from ..networking import Request
 from .common import InfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import compat_HTTPError, compat_str
+from ..networking import Request
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,

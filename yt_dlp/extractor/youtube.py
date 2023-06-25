@@ -22,6 +22,7 @@ from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
+from ..networking.exceptions import network_exceptions
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -64,7 +65,6 @@ from ..utils import (
     urljoin,
     variadic,
 )
-from ..networking.exceptions import network_exceptions
 
 STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 # any clients starting with _ cannot be explicitly requested by the user

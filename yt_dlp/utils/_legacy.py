@@ -1,33 +1,36 @@
 """No longer used and new code should not use. Exists only for API compat."""
-import contextlib
+import functools
+import http.client
 import platform
+import socket
+import ssl
 import struct
 import sys
-import urllib.parse
-import zlib
-import urllib.request
-import http.client
-import functools
 import urllib.error
-import socket
+import urllib.parse
+import urllib.request
+import zlib
 
-from ._utils import Popen, decode_base_n, preferredencoding, YoutubeDLError
+from ._utils import Popen, YoutubeDLError, decode_base_n, preferredencoding
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
-import ssl
+
+# isort: split
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
-from ..networking._urllib import (  # noqa: F401
-    PUTRequest,
-    HEADRequest,
-    make_socks_conn_class,
-    RedirectHandler as YoutubeDLRedirectHandler,
-    update_Request,
-    HTTPHandler as YoutubeDLHandler,
-    SUPPORTED_ENCODINGS,
+from ..networking._urllib import PUTRequest  # noqa: F401
+from ..networking._urllib import make_socks_conn_class  # noqa: F401
+from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
+from ..networking._urllib import HTTPHandler as YoutubeDLHandler  # noqa: F401
+from ..networking._urllib import \
+    RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
+from ..networking._urllib import update_Request  # noqa: F401
+from ..networking.exceptions import network_exceptions  # noqa: F401
+from ..networking.exceptions import HTTPError  # noqa: F401
+from ..networking.utils import (  # noqa: F401
+    _ssl_load_windows_store_certs,
+    random_user_agent,
+    std_headers,
 )
-from ..networking.utils import random_user_agent, _ssl_load_windows_store_certs, std_headers  # noqa: F401
-from ..networking.exceptions import network_exceptions, HTTPError  # noqa: F401
-from ..socks import ProxyType, sockssocket   # noqa: F401
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
@@ -200,7 +203,7 @@ def request_to_url(req):
 
 
 def sanitized_Request(url, *args, **kwargs):
-    from ..utils import extract_basic_auth, escape_url, sanitize_url
+    from ..utils import escape_url, extract_basic_auth, sanitize_url
     url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
     if auth_header is not None:
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})

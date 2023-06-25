@@ -7,7 +7,6 @@ import urllib.error
 from ..utils import YoutubeDLError
 
 if typing.TYPE_CHECKING:
-    from typing import List, Union
     from .common import RequestHandler
     from .response import Response
 
@@ -16,7 +15,7 @@ class RequestError(YoutubeDLError):
     def __init__(
         self,
         msg: str = None,
-        cause: Union[Exception, str, None] = None,
+        cause: Exception | str | None = None,
         handler: RequestHandler = None
     ):
         self.handler = handler
@@ -33,7 +32,8 @@ class UnsupportedRequest(RequestError):
 
 class NoSupportingHandlers(RequestError):
     """raised when no handlers can support a request for various reasons"""
-    def __init__(self, unsupported_errors: List[UnsupportedRequest], unexpected_errors: List[Exception]):
+
+    def __init__(self, unsupported_errors: list[UnsupportedRequest], unexpected_errors: list[Exception]):
         self.unsupported_errors = unsupported_errors or []
         self.unexpected_errors = unexpected_errors or []
 

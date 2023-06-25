@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
 from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
+from ..networking.request import HEADRequest
 from ..utils import (
     ExtractorError,
     RegexNotFoundError,
@@ -26,7 +27,6 @@ from ..utils import (
     update_url_query,
     url_basename,
 )
-from ..networking.request import HEADRequest
 
 
 class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE

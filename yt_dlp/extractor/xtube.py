@@ -2,6 +2,7 @@ import itertools
 import re
 
 from .common import InfoExtractor
+from ..networking.request import Request
 from ..utils import (
     int_or_none,
     js_to_json,
@@ -10,7 +11,6 @@ from ..utils import (
     str_to_int,
     url_or_none,
 )
-from ..networking.request import Request
 
 
 class XTubeIE(InfoExtractor):

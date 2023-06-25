@@ -7,6 +7,7 @@ from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlparse,
 )
+from ..networking.request import HEADRequest
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -20,7 +21,6 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
 )
-from ..networking.request import HEADRequest
 
 
 class OdnoklassnikiIE(InfoExtractor):

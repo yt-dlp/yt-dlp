@@ -2,6 +2,7 @@ import json
 import time
 
 from .fragment import FragmentFD
+from ..networking.exceptions import HTTPError
 from ..utils import (
     RegexNotFoundError,
     RetryManager,
@@ -9,8 +10,6 @@ from ..utils import (
     int_or_none,
     try_get,
 )
-
-from ..networking.exceptions import HTTPError
 
 
 class YoutubeLiveChatFD(FragmentFD):

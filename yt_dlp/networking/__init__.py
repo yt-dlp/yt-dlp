@@ -14,6 +14,7 @@ class RequestDirector:
 
     Helper class that, when given a request, finds a RequestHandler that supports it.
     """
+
     def __init__(self, logger=None):
         self._handlers: Dict[RequestHandler] = {}
         self.logger = logger  # TODO: default logger

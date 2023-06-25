@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
+from ..networking.request import HEADRequest, Request
 from ..utils import (
     ExtractorError,
     find_xpath_attr,
@@ -18,8 +19,6 @@ from ..utils import (
     url_basename,
     xpath_text,
 )
-
-from ..networking.request import Request, HEADRequest
 
 
 def _media_xml_tag(tag):

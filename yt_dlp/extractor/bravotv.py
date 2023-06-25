@@ -1,4 +1,5 @@
 from .adobepass import AdobePassIE
+from ..networking.request import HEADRequest
 from ..utils import (
     extract_attributes,
     float_or_none,
@@ -14,7 +15,6 @@ from ..utils import (
     update_url_query,
     url_or_none,
 )
-from ..networking.request import HEADRequest
 
 
 class BravoTVIE(AdobePassIE):

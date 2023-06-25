@@ -1,10 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    NO_DEFAULT,
-    urlencode_postdata,
-)
 from ..networking.request import Request
+from ..utils import NO_DEFAULT, ExtractorError, urlencode_postdata
 
 
 class VodlockerIE(InfoExtractor):

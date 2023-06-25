@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
 from ..dependencies import websockets
+from ..networking.request import Request
 from ..utils import (
     ExtractorError,
     WebSocketsWrapper,
@@ -12,7 +13,6 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
-from ..networking.request import Request
 
 
 class FC2IE(InfoExtractor):

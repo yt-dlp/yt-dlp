@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from ..compat import (
     compat_str,
 )
+from ..networking.request import HEADRequest
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -15,7 +16,6 @@ from ..utils import (
     str_or_none,
     try_get,
 )
-from ..networking.request import HEADRequest
 
 
 class GloboIE(InfoExtractor):

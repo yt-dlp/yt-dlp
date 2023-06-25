@@ -9,6 +9,7 @@ import uuid
 
 from .fragment import FragmentFD
 from ..compat import functools
+from ..networking.request import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
@@ -26,8 +27,6 @@ from ..utils import (
     remove_end,
     traverse_obj,
 )
-
-from ..networking.request import Request
 
 
 class Features(enum.Enum):

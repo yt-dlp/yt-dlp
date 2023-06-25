@@ -3801,7 +3801,7 @@ class YoutubeDL:
         from .extractor.extractors import _LAZY_LOADER
         from .extractor.extractors import (
             _PLUGIN_CLASSES as plugin_ies,
-            _PLUGIN_OVERRIDES as plugin_ie_overrides,
+            _PLUGIN_OVERRIDES as plugin_ie_overrides
         )
 
         def get_encoding(stream):

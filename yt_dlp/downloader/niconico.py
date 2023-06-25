@@ -5,13 +5,8 @@ import time
 from . import get_suitable_downloader
 from .common import FileDownloader
 from .external import FFmpegFD
-from ..utils import (
-    DownloadError,
-    WebSocketsWrapper,
-    str_or_none,
-    try_get,
-)
 from ..networking import Request
+from ..utils import DownloadError, WebSocketsWrapper, str_or_none, try_get
 
 
 class NiconicoDmcFD(FileDownloader):

@@ -1,10 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-)
 from ..networking.request import Request
+from ..utils import float_or_none, int_or_none, parse_iso8601
 
 
 class EitbIE(InfoExtractor):

@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from ..networking.request import HEADRequest
 from ..utils import (
     clean_html,
     determine_ext,
@@ -12,7 +13,6 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
 )
-from ..networking.request import HEADRequest
 
 
 class MegaTVComBaseIE(InfoExtractor):

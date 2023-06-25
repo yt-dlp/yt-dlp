@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from ..networking.request import Request
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -8,7 +9,6 @@ from ..utils import (
     urlencode_postdata,
     traverse_obj,
 )
-from ..networking.request import Request
 
 
 class TubiTvIE(InfoExtractor):

@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError, compat_str, compat_urlparse
+from ..networking.request import Request
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -16,7 +17,6 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
 )
-from ..networking.request import Request
 
 
 class UdemyIE(InfoExtractor):

@@ -2,12 +2,8 @@ import re
 
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..utils import (
-    remove_start,
-    smuggle_url,
-    urlencode_postdata,
-)
-from ..networking.request import Request, HEADRequest
+from ..networking.request import HEADRequest, Request
+from ..utils import remove_start, smuggle_url, urlencode_postdata
 
 
 class GDCVaultIE(InfoExtractor):

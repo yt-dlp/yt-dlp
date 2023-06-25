@@ -1,11 +1,7 @@
 from .common import InfoExtractor
 from ..compat import compat_b64decode
-from ..utils import (
-    ExtractorError,
-    urlencode_postdata,
-)
-
-from ..networking.request import Request, HEADRequest
+from ..networking.request import HEADRequest, Request
+from ..utils import ExtractorError, urlencode_postdata
 
 
 class HotNewHipHopIE(InfoExtractor):

@@ -1,10 +1,6 @@
 from .common import InfoExtractor
-
-from ..utils import (
-    xpath_text,
-    xpath_with_ns,
-)
 from ..networking.request import Request
+from ..utils import xpath_text, xpath_with_ns
 
 
 class RegioTVIE(InfoExtractor):

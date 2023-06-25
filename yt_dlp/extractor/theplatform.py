@@ -7,6 +7,7 @@ import hashlib
 
 from .once import OnceIE
 from .adobepass import AdobePassIE
+from ..networking.request import Request
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -19,7 +20,6 @@ from ..utils import (
     mimetype2ext,
     find_xpath_attr,
 )
-from ..networking.request import Request
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})

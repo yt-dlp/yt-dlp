@@ -7,6 +7,7 @@ import zlib
 from .anvato import AnvatoIE
 from .common import InfoExtractor
 from .paramountplus import ParamountPlusIE
+from ..networking.request import HEADRequest
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -21,7 +22,6 @@ from ..utils import (
     traverse_obj,
     url_or_none,
 )
-from ..networking.request import HEADRequest
 
 
 class CBSNewsBaseIE(InfoExtractor):

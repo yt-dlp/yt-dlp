@@ -1,8 +1,6 @@
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-)
 from ..networking.request import HEADRequest
+from ..utils import float_or_none
 
 
 class VocarooIE(InfoExtractor):

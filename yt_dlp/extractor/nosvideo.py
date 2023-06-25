@@ -1,13 +1,13 @@
 import re
 
 from .common import InfoExtractor
+from ..networking.request import Request
 from ..utils import (
     ExtractorError,
     urlencode_postdata,
     xpath_text,
     xpath_with_ns,
 )
-from ..networking.request import Request
 
 _x = lambda p: xpath_with_ns(p, {'xspf': 'http://xspf.org/ns/0/'})
 

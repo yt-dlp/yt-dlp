@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..networking.request import HEADRequest
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -7,7 +8,6 @@ from ..utils import (
     get_element_by_attribute,
     clean_html,
 )
-from ..networking.request import HEADRequest
 
 
 class SinaIE(InfoExtractor):

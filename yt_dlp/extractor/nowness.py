@@ -4,10 +4,8 @@ from .brightcove import (
 )
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-)
 from ..networking.request import Request
+from ..utils import ExtractorError
 
 
 class NownessBaseIE(InfoExtractor):

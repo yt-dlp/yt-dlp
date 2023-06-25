@@ -5,14 +5,14 @@ from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlparse,
 )
+from ..networking.request import Request
 from ..utils import (
     ExtractorError,
     float_or_none,
     str_or_none,
     traverse_obj,
-    urlencode_postdata
+    urlencode_postdata,
 )
-from ..networking.request import Request
 
 USER_AGENTS = {
     'Safari': 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27',

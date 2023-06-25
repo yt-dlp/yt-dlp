@@ -4,6 +4,7 @@ import time
 
 from .common import FileDownloader
 from ..networking import Request
+from ..networking.exceptions import HTTPError, TransportError
 from ..utils import (
     ContentTooShortError,
     RetryManager,
@@ -16,7 +17,6 @@ from ..utils import (
     try_call,
     write_xattr,
 )
-from ..networking.exceptions import TransportError, HTTPError
 
 
 class HttpFD(FileDownloader):

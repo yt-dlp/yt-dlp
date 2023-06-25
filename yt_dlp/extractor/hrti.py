@@ -2,6 +2,7 @@ import json
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
+from ..networking.request import Request
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -9,7 +10,6 @@ from ..utils import (
     parse_age_limit,
     try_get,
 )
-from ..networking.request import Request
 
 
 class HRTiBaseIE(InfoExtractor):

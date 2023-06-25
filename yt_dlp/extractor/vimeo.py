@@ -10,6 +10,7 @@ from ..compat import (
     compat_str,
     compat_urlparse,
 )
+from ..networking.request import HEADRequest, Request
 from ..utils import (
     clean_html,
     determine_ext,
@@ -31,8 +32,6 @@ from ..utils import (
     urljoin,
     urlhandle_detect_ext,
 )
-
-from ..networking.request import Request, HEADRequest
 
 
 class VimeoBaseInfoExtractor(InfoExtractor):

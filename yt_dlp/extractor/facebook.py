@@ -8,6 +8,8 @@ from ..compat import (
     compat_str,
     compat_urllib_parse_unquote,
 )
+from ..networking.exceptions import network_exceptions
+from ..networking.request import Request
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -29,8 +31,6 @@ from ..utils import (
     urljoin,
     variadic,
 )
-from ..networking.request import Request
-from ..networking.exceptions import network_exceptions
 
 
 class FacebookIE(InfoExtractor):

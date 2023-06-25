@@ -2,6 +2,7 @@ import functools
 import re
 
 from .common import InfoExtractor
+from ..networking.request import HEADRequest
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -17,7 +18,6 @@ from ..utils import (
     unified_strdate,
     urlencode_postdata,
 )
-from ..networking.request import HEADRequest
 
 
 class BitChuteIE(InfoExtractor):

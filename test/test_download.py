@@ -23,8 +23,10 @@ from test.helper import (
     report_warning,
     try_rm,
 )
+
 import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
+from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
@@ -32,7 +34,6 @@ from yt_dlp.utils import (
     format_bytes,
     join_nonempty,
 )
-from yt_dlp.networking.exceptions import TransportError, HTTPError
 
 RETRIES = 3
 

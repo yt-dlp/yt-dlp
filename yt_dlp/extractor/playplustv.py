@@ -2,13 +2,8 @@ import json
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    int_or_none,
-)
-
 from ..networking.request import PUTRequest
+from ..utils import ExtractorError, clean_html, int_or_none
 
 
 class PlayPlusTVIE(InfoExtractor):

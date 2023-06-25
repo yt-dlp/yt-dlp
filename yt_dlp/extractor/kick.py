@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-
+from ..networking.request import HEADRequest
 from ..utils import (
     UserNotLive,
     float_or_none,
@@ -9,7 +9,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
-from ..networking.request import HEADRequest
 
 
 class KickBaseIE(InfoExtractor):

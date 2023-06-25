@@ -3,6 +3,7 @@ import json
 import os
 
 from ..networking import Request
+from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     PostProcessingError,
     RetryManager,
@@ -10,7 +11,6 @@ from ..utils import (
     deprecation_warning,
     encodeFilename,
 )
-from ..networking.exceptions import HTTPError, network_exceptions
 
 
 class PostProcessorMetaClass(type):

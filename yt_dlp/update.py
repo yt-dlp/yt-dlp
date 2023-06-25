@@ -12,6 +12,8 @@ from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath, compat_shlex_quote
+from .networking.exceptions import network_exceptions
+from .networking.request import Request
 from .utils import (
     Popen,
     cached_method,
@@ -23,9 +25,6 @@ from .utils import (
     version_tuple,
 )
 from .version import CHANNEL, UPDATE_HINT, VARIANT, __version__
-
-from .networking.exceptions import network_exceptions
-from .networking.request import Request
 
 UPDATE_SOURCES = {
     'stable': 'yt-dlp/yt-dlp',

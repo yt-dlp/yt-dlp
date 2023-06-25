@@ -8,15 +8,12 @@ import urllib.request
 import urllib.response
 from http.cookiejar import CookieJar
 
+from .exceptions import UnsupportedRequest
 from .request import Request
 from .utils import make_ssl_context, wrap_request_errors
 from ..utils import CaseInsensitiveDict, classproperty
 
-
-from .exceptions import UnsupportedRequest
-
 if typing.TYPE_CHECKING:
-    from typing import Optional, Tuple, Union
     from .response import Response
 
 
@@ -96,12 +93,12 @@ class RequestHandler(abc.ABC):
         logger=None,  # TODO
         headers: CaseInsensitiveDict = None,
         cookiejar: CookieJar = None,
-        timeout: Union[float, int, None] = None,
+        timeout: float | int | None = None,
         proxies: dict = None,
         source_address: str = None,
         verbose: bool = False,
         prefer_system_certs: bool = False,
-        client_cert: Tuple[str, Optional[str], Optional[str]] = None,
+        client_cert: tuple[str, str | None, str | None] = None,
         verify: bool = True,
         legacy_ssl_support: bool = False,
     ):
