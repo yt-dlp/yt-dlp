@@ -41,22 +41,26 @@ class TwitchBaseIE(InfoExtractor):
     _USHER_BASE = 'https://usher.ttvnw.net'
     _LOGIN_FORM_URL = 'https://www.twitch.tv/login'
     _LOGIN_POST_URL = 'https://passport.twitch.tv/login'
-    _CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko'
     _NETRC_MACHINE = 'twitch'
 
     _OPERATION_HASHES = {
         'CollectionSideBar': '27111f1b382effad0b6def325caef1909c733fe6a4fbabf54f8d491ef2cf2f14',
         'FilterableVideoTower_Videos': 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
         'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
-        'ChannelCollectionsContent': '07e3691a1bad77a36aba590c351180439a40baefc1c275356f40fc7082419a84',
-        'StreamMetadata': '1c719a40e481453e5c48d9bb585d971b8b372f8ebb105b17076722264dfa5b3e',
+        'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
+        'StreamMetadata': 'a647c2a13599e5991e175155f798ca7f1ecddde73f7f341f39009c14dbf59962',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
         'VideoAccessToken_Clip': '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
-        'VideoMetadata': '226edb3e692509f727fd56821f5653c05740242c82b0388883e0c0e75dcbf687',
+        'VideoMetadata': '49b5b8f268cdeb259d75b58dcb0c1a748e3b575003448a2333dc5cdafd49adad',
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
+
+    @property
+    def _CLIENT_ID(self):
+        return self._configuration_arg(
+            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key='Twitch', casesense=True)[0]
 
     def _perform_login(self, username, password):
         def fail(message):
@@ -179,6 +183,14 @@ class TwitchBaseIE(InfoExtractor):
             video_id, ops,
             'Downloading %s access token GraphQL' % token_kind)['data'][method]
 
+    def _get_thumbnails(self, thumbnail):
+        return [{
+            'url': re.sub(r'\d+x\d+(\.\w+)($|(?=[?#]))', r'0x0\g<1>', thumbnail),
+            'preference': 1,
+        }, {
+            'url': thumbnail,
+        }] if thumbnail else None
+
 
 class TwitchVodIE(TwitchBaseIE):
     IE_NAME = 'twitch:vod'
@@ -186,7 +198,8 @@ class TwitchVodIE(TwitchBaseIE):
                     https?://
                         (?:
                             (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/v(?:ideo)?|videos)/|
-                            player\.twitch\.tv/\?.*?\bvideo=v?
+                            player\.twitch\.tv/\?.*?\bvideo=v?|
+                            www\.twitch\.tv/[^/]+/schedule\?vodID=
                         )
                         (?P<id>\d+)
                     '''
@@ -355,6 +368,9 @@ class TwitchVodIE(TwitchBaseIE):
             'skip_download': True
         },
         'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden']
+    }, {
+        'url': 'https://www.twitch.tv/tangotek/schedule?vodID=1822395420',
+        'only_matching': True,
     }]
 
     def _download_info(self, item_id):
@@ -380,13 +396,14 @@ class TwitchVodIE(TwitchBaseIE):
             }],
             'Downloading stream metadata GraphQL')
 
-        video = traverse_obj(data, (0, 'data', 'video'))
-        video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges', ..., 'node'))
-        video['storyboard'] = traverse_obj(data, (2, 'data', 'video', 'seekPreviewsURL'), expected_type=url_or_none)
-
+        video = traverse_obj(data, (..., 'data', 'video'), get_all=False)
         if video is None:
-            raise ExtractorError(
-                'Video %s does not exist' % item_id, expected=True)
+            raise ExtractorError(f'Video {item_id} does not exist', expected=True)
+
+        video['moments'] = traverse_obj(data, (..., 'data', 'video', 'moments', 'edges', ..., 'node'))
+        video['storyboard'] = traverse_obj(
+            data, (..., 'data', 'video', 'seekPreviewsURL', {url_or_none}), get_all=False)
+
         return video
 
     def _extract_info(self, info):
@@ -455,19 +472,17 @@ class TwitchVodIE(TwitchBaseIE):
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
         is_live = None
         if thumbnail:
-            if thumbnail.endswith('/404_processing_{width}x{height}.png'):
+            if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
                 is_live, thumbnail = True, None
             else:
                 is_live = False
-                for p in ('width', 'height'):
-                    thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         return {
             'id': vod_id,
             'title': info.get('title') or 'Untitled Broadcast',
             'description': info.get('description'),
             'duration': int_or_none(info.get('lengthSeconds')),
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': try_get(info, lambda x: x['owner']['displayName'], compat_str),
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
@@ -854,6 +869,13 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
             'title': 'spamfish - Collections',
         },
         'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat/videos?filter=collections',
+        'info_dict': {
+            'id': 'monstercat',
+            'title': 'monstercat - Collections',
+        },
+        'playlist_mincount': 13,
     }]
 
     _OPERATION_NAME = 'ChannelCollectionsContent'
@@ -922,6 +944,7 @@ class TwitchStreamIE(TwitchBaseIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'User does not exist',
     }, {
         'url': 'http://www.twitch.tv/miracle_doto#profile-0',
         'only_matching': True,
@@ -934,6 +957,25 @@ class TwitchStreamIE(TwitchBaseIE):
     }, {
         'url': 'https://m.twitch.tv/food',
         'only_matching': True,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat',
+        'info_dict': {
+            'id': '40500071752',
+            'display_id': 'monstercat',
+            'title': 're:Monstercat',
+            'description': 'md5:0945ad625e615bc8f0469396537d87d9',
+            'is_live': True,
+            'timestamp': 1677107190,
+            'upload_date': '20230222',
+            'uploader': 'Monstercat',
+            'uploader_id': 'monstercat',
+            'live_status': 'is_live',
+            'thumbnail': 're:https://.*.jpg',
+            'ext': 'mp4',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }]
 
     @classmethod
@@ -1025,7 +1067,7 @@ class TwitchStreamIE(TwitchBaseIE):
             'display_id': channel_name,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
+            'thumbnails': self._get_thumbnails(thumbnail),
             'uploader': uploader,
             'uploader_id': channel_name,
             'timestamp': timestamp,
@@ -1041,7 +1083,7 @@ class TwitchClipsIE(TwitchBaseIE):
                     https?://
                         (?:
                             clips\.twitch\.tv/(?:embed\?.*?\bclip=|(?:[^/]+/)*)|
-                            (?:(?:www|go|m)\.)?twitch\.tv/[^/]+/clip/
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?:[^/]+/)?clip/
                         )
                         (?P<id>[^/?#&]+)
                     '''
@@ -1076,6 +1118,9 @@ class TwitchClipsIE(TwitchBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://go.twitch.tv/rossbroadcast/clip/ConfidentBraveHumanChefFrank',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.twitch.tv/clip/FaintLightGullWholeWheat',
         'only_matching': True,
     }]
 

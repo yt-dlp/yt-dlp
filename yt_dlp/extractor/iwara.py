@@ -1,239 +1,298 @@
-import itertools
-import re
+import functools
 import urllib.parse
+import urllib.error
+import hashlib
+import json
+import time
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     int_or_none,
+    jwt_decode_hs256,
     mimetype2ext,
-    remove_end,
-    strip_or_none,
-    unified_strdate,
-    url_or_none,
-    urljoin,
+    qualities,
+    traverse_obj,
+    try_call,
+    unified_timestamp,
 )
 
 
 class IwaraBaseIE(InfoExtractor):
-    _BASE_REGEX = r'(?P<base_url>https?://(?:www\.|ecchi\.)?iwara\.tv)'
+    _NETRC_MACHINE = 'iwara'
+    _USERTOKEN = None
+    _MEDIATOKEN = None
 
-    def _extract_playlist(self, base_url, webpage):
-        for path in re.findall(r'class="title">\s*<a[^<]+href="([^"]+)', webpage):
-            yield self.url_result(urljoin(base_url, path))
+    def _is_token_expired(self, token, token_type):
+        # User token TTL == ~3 weeks, Media token TTL == ~1 hour
+        if (try_call(lambda: jwt_decode_hs256(token)['exp']) or 0) <= int(time.time() - 120):
+            self.to_screen(f'{token_type} token has expired')
+            return True
+
+    def _get_user_token(self):
+        username, password = self._get_login_info()
+        if not username or not password:
+            return
+
+        user_token = IwaraBaseIE._USERTOKEN or self.cache.load(self._NETRC_MACHINE, username)
+        if not user_token or self._is_token_expired(user_token, 'User'):
+            response = self._download_json(
+                'https://api.iwara.tv/user/login', None, note='Logging in',
+                headers={'Content-Type': 'application/json'}, data=json.dumps({
+                    'email': username,
+                    'password': password
+                }).encode(), expected_status=lambda x: True)
+            user_token = traverse_obj(response, ('token', {str}))
+            if not user_token:
+                error = traverse_obj(response, ('message', {str}))
+                if 'invalidLogin' in error:
+                    raise ExtractorError('Invalid login credentials', expected=True)
+                else:
+                    raise ExtractorError(f'Iwara API said: {error or "nothing"}')
+
+            self.cache.store(self._NETRC_MACHINE, username, user_token)
+
+        IwaraBaseIE._USERTOKEN = user_token
+
+    def _get_media_token(self):
+        self._get_user_token()
+        if not IwaraBaseIE._USERTOKEN:
+            return  # user has not passed credentials
+
+        if not IwaraBaseIE._MEDIATOKEN or self._is_token_expired(IwaraBaseIE._MEDIATOKEN, 'Media'):
+            IwaraBaseIE._MEDIATOKEN = self._download_json(
+                'https://api.iwara.tv/user/token', None, note='Fetching media token',
+                data=b'', headers={
+                    'Authorization': f'Bearer {IwaraBaseIE._USERTOKEN}',
+                    'Content-Type': 'application/json'
+                })['accessToken']
+
+        return {'Authorization': f'Bearer {IwaraBaseIE._MEDIATOKEN}'}
+
+    def _perform_login(self, username, password):
+        self._get_media_token()
 
 
 class IwaraIE(IwaraBaseIE):
-    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/videos/(?P<id>[a-zA-Z0-9]+)'
+    IE_NAME = 'iwara'
+    _VALID_URL = r'https?://(?:www\.|ecchi\.)?iwara\.tv/videos?/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
-        'url': 'http://iwara.tv/videos/amVwUl1EHpAD9RD',
-        # md5 is unstable
+        'url': 'https://www.iwara.tv/video/k2ayoueezfkx6gvq',
         'info_dict': {
-            'id': 'amVwUl1EHpAD9RD',
+            'id': 'k2ayoueezfkx6gvq',
             'ext': 'mp4',
-            'title': '【MMD R-18】ガールフレンド carry_me_off',
             'age_limit': 18,
-            'thumbnail': 'https://i.iwara.tv/sites/default/files/videos/thumbnails/7951/thumbnail-7951_0001.png',
-            'uploader': 'Reimu丨Action',
-            'upload_date': '20150828',
-            'description': 'md5:1d4905ce48c66c9299c617f08e106e0f',
+            'title': 'Defeat of Irybelda - アイリベルダの敗北',
+            'description': 'md5:70278abebe706647a8b4cb04cf23e0d3',
+            'uploader': 'Inwerwm',
+            'uploader_id': 'inwerwm',
+            'tags': 'count:1',
+            'like_count': 6133,
+            'view_count': 1050343,
+            'comment_count': 1,
+            'timestamp': 1677843869,
+            'modified_timestamp': 1679056362,
+        },
+        'skip': 'this video cannot be played because of migration',
+    }, {
+        'url': 'https://iwara.tv/video/1ywe1sbkqwumpdxz5/',
+        'md5': '7645f966f069b8ec9210efd9130c9aad',
+        'info_dict': {
+            'id': '1ywe1sbkqwumpdxz5',
+            'ext': 'mp4',
+            'age_limit': 18,
+            'title': 'Aponia アポニア SEX  Party Tonight 手の脱衣 巨乳 ',
+            'description': 'md5:3f60016fff22060eef1ef26d430b1f67',
+            'uploader': 'Lyu ya',
+            'uploader_id': 'user792540',
+            'tags': [
+                'uncategorized'
+            ],
+            'like_count': int,
+            'view_count': int,
+            'comment_count': int,
+            'timestamp': 1678732213,
+            'modified_timestamp': int,
+            'thumbnail': 'https://files.iwara.tv/image/thumbnail/581d12b5-46f4-4f15-beb2-cfe2cde5d13d/thumbnail-00.jpg',
+            'modified_date': '20230614',
+            'upload_date': '20230313',
         },
     }, {
-        'url': 'http://ecchi.iwara.tv/videos/Vb4yf2yZspkzkBO',
-        'md5': '7e5f1f359cd51a027ba4a7b7710a50f0',
+        'url': 'https://iwara.tv/video/blggmfno8ghl725bg',
         'info_dict': {
-            'id': '0B1LvuHnL-sRFNXB1WHNqbGw4SXc',
-            'ext': 'mp4',
-            'title': '[3D Hentai] Kyonyu × Genkai × Emaki Shinobi Girls.mp4',
-            'age_limit': 18,
-        },
-        'add_ie': ['GoogleDrive'],
-    }, {
-        'url': 'http://www.iwara.tv/videos/nawkaumd6ilezzgq',
-        # md5 is unstable
-        'info_dict': {
-            'id': '6liAP9s2Ojc',
+            'id': 'blggmfno8ghl725bg',
             'ext': 'mp4',
             'age_limit': 18,
-            'title': '[MMD] Do It Again Ver.2 [1080p 60FPS] (Motion,Camera,Wav+DL)',
-            'description': 'md5:590c12c0df1443d833fbebe05da8c47a',
-            'upload_date': '20160910',
-            'uploader': 'aMMDsork',
-            'uploader_id': 'UCVOFyOSCyFkXTYYHITtqB7A',
+            'title': 'お外でおしっこしちゃう猫耳ロリメイド',
+            'description': 'md5:0342ba9bf6db09edbbb28729657c3611',
+            'uploader': 'Fe_Kurosabi',
+            'uploader_id': 'fekurosabi',
+            'tags': [
+                'pee'
+            ],
+            'like_count': int,
+            'view_count': int,
+            'comment_count': int,
+            'timestamp': 1598880567,
+            'modified_timestamp': int,
+            'upload_date': '20200831',
+            'modified_date': '20230605',
+            'thumbnail': 'https://files.iwara.tv/image/thumbnail/7693e881-d302-42a4-a780-f16d66b5dadd/thumbnail-00.jpg',
+            # 'availability': 'needs_auth',
         },
-        'add_ie': ['Youtube'],
     }]
+
+    def _extract_formats(self, video_id, fileurl):
+        up = urllib.parse.urlparse(fileurl)
+        q = urllib.parse.parse_qs(up.query)
+        paths = up.path.rstrip('/').split('/')
+        # https://github.com/yt-dlp/yt-dlp/issues/6549#issuecomment-1473771047
+        x_version = hashlib.sha1('_'.join((paths[-1], q['expires'][0], '5nFp9kmbNnHdAFhaqMvt')).encode()).hexdigest()
+
+        preference = qualities(['preview', '360', '540', 'Source'])
+
+        files = self._download_json(fileurl, video_id, headers={'X-Version': x_version})
+        for fmt in files:
+            yield traverse_obj(fmt, {
+                'format_id': 'name',
+                'url': ('src', ('view', 'download'), {self._proto_relative_url}),
+                'ext': ('type', {mimetype2ext}),
+                'quality': ('name', {preference}),
+                'height': ('name', {int_or_none}),
+            }, get_all=False)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        username, _ = self._get_login_info()
+        video_data = self._download_json(
+            f'https://api.iwara.tv/video/{video_id}', video_id,
+            expected_status=lambda x: True, headers=self._get_media_token())
+        errmsg = video_data.get('message')
+        # at this point we can actually get uploaded user info, but do we need it?
+        if errmsg == 'errors.privateVideo':
+            self.raise_login_required('Private video. Login if you have permissions to watch', method='password')
+        elif errmsg == 'errors.notFound' and not username:
+            self.raise_login_required('Video may need login to view', method='password')
+        elif errmsg:  # None if success
+            raise ExtractorError(f'Iwara says: {errmsg}')
 
-        webpage, urlh = self._download_webpage_handle(url, video_id)
-
-        hostname = urllib.parse.urlparse(urlh.geturl()).hostname
-        # ecchi is 'sexy' in Japanese
-        age_limit = 18 if hostname.split('.')[0] == 'ecchi' else 0
-
-        video_data = self._download_json('http://www.iwara.tv/api/video/%s' % video_id, video_id)
-
-        if not video_data:
-            iframe_url = self._html_search_regex(
-                r'<iframe[^>]+src=([\'"])(?P<url>[^\'"]+)\1',
-                webpage, 'iframe URL', group='url')
-            return {
-                '_type': 'url_transparent',
-                'url': iframe_url,
-                'age_limit': age_limit,
-            }
-
-        title = remove_end(self._html_extract_title(webpage), ' | Iwara')
-
-        thumbnail = self._html_search_regex(
-            r'poster=[\'"]([^\'"]+)', webpage, 'thumbnail', default=None)
-
-        uploader = self._html_search_regex(
-            r'class="username">([^<]+)', webpage, 'uploader', fatal=False)
-
-        upload_date = unified_strdate(self._html_search_regex(
-            r'作成日:([^\s]+)', webpage, 'upload_date', fatal=False))
-
-        description = strip_or_none(self._search_regex(
-            r'<p>(.+?(?=</div))', webpage, 'description', fatal=False,
-            flags=re.DOTALL))
-
-        formats = []
-        for a_format in video_data:
-            format_uri = url_or_none(a_format.get('uri'))
-            if not format_uri:
-                continue
-            format_id = a_format.get('resolution')
-            height = int_or_none(self._search_regex(
-                r'(\d+)p', format_id, 'height', default=None))
-            formats.append({
-                'url': self._proto_relative_url(format_uri, 'https:'),
-                'format_id': format_id,
-                'ext': mimetype2ext(a_format.get('mime')) or 'mp4',
-                'height': height,
-                'width': int_or_none(height / 9.0 * 16.0 if height else None),
-                'quality': 1 if format_id == 'Source' else 0,
-            })
+        if not video_data.get('fileUrl'):
+            if video_data.get('embedUrl'):
+                return self.url_result(video_data.get('embedUrl'))
+            raise ExtractorError('This video is unplayable', expected=True)
 
         return {
             'id': video_id,
-            'title': title,
-            'age_limit': age_limit,
-            'formats': formats,
-            'thumbnail': self._proto_relative_url(thumbnail, 'https:'),
-            'uploader': uploader,
-            'upload_date': upload_date,
-            'description': description,
-        }
-
-
-class IwaraPlaylistIE(IwaraBaseIE):
-    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/playlist/(?P<id>[^/?#&]+)'
-    IE_NAME = 'iwara:playlist'
-
-    _TESTS = [{
-        'url': 'https://ecchi.iwara.tv/playlist/best-enf',
-        'info_dict': {
-            'title': 'Best enf',
-            'uploader': 'Jared98112',
-            'id': 'best-enf',
-        },
-        'playlist_mincount': 1097,
-    }, {
-        # urlencoded
-        'url': 'https://ecchi.iwara.tv/playlist/%E3%83%97%E3%83%AC%E3%82%A4%E3%83%AA%E3%82%B9%E3%83%88-2',
-        'info_dict': {
-            'id': 'プレイリスト-2',
-            'title': 'プレイリスト',
-            'uploader': 'mainyu',
-        },
-        'playlist_mincount': 91,
-    }]
-
-    def _real_extract(self, url):
-        playlist_id, base_url = self._match_valid_url(url).group('id', 'base_url')
-        playlist_id = urllib.parse.unquote(playlist_id)
-        webpage = self._download_webpage(url, playlist_id)
-
-        return {
-            '_type': 'playlist',
-            'id': playlist_id,
-            'title': self._html_search_regex(r'class="title"[^>]*>([^<]+)', webpage, 'title', fatal=False),
-            'uploader': self._html_search_regex(r'<h2>([^<]+)', webpage, 'uploader', fatal=False),
-            'entries': self._extract_playlist(base_url, webpage),
+            'age_limit': 18 if video_data.get('rating') == 'ecchi' else 0,  # ecchi is 'sexy' in Japanese
+            **traverse_obj(video_data, {
+                'title': 'title',
+                'description': 'body',
+                'uploader': ('user', 'name'),
+                'uploader_id': ('user', 'username'),
+                'tags': ('tags', ..., 'id'),
+                'like_count': 'numLikes',
+                'view_count': 'numViews',
+                'comment_count': 'numComments',
+                'timestamp': ('createdAt', {unified_timestamp}),
+                'modified_timestamp': ('updatedAt', {unified_timestamp}),
+                'thumbnail': ('file', 'id', {str}, {
+                    lambda x: f'https://files.iwara.tv/image/thumbnail/{x}/thumbnail-00.jpg'}),
+            }),
+            'formats': list(self._extract_formats(video_id, video_data.get('fileUrl'))),
         }
 
 
 class IwaraUserIE(IwaraBaseIE):
-    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/users/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?iwara\.tv/profile/(?P<id>[^/?#&]+)'
     IE_NAME = 'iwara:user'
+    _PER_PAGE = 32
 
     _TESTS = [{
-        'note': 'number of all videos page is just 1 page. less than 40 videos',
-        'url': 'https://ecchi.iwara.tv/users/infinityyukarip',
+        'url': 'https://iwara.tv/profile/user792540/videos',
         'info_dict': {
-            'title': 'Uploaded videos from Infinity_YukariP',
-            'id': 'infinityyukarip',
-            'uploader': 'Infinity_YukariP',
-            'uploader_id': 'infinityyukarip',
+            'id': 'user792540',
+            'title': 'Lyu ya',
         },
-        'playlist_mincount': 39,
+        'playlist_mincount': 70,
     }, {
-        'note': 'no even all videos page. probably less than 10 videos',
-        'url': 'https://ecchi.iwara.tv/users/mmd-quintet',
+        'url': 'https://iwara.tv/profile/theblackbirdcalls/videos',
         'info_dict': {
-            'title': 'Uploaded videos from mmd quintet',
-            'id': 'mmd-quintet',
-            'uploader': 'mmd quintet',
-            'uploader_id': 'mmd-quintet',
-        },
-        'playlist_mincount': 6,
-    }, {
-        'note': 'has paging. more than 40 videos',
-        'url': 'https://ecchi.iwara.tv/users/theblackbirdcalls',
-        'info_dict': {
-            'title': 'Uploaded videos from TheBlackbirdCalls',
             'id': 'theblackbirdcalls',
-            'uploader': 'TheBlackbirdCalls',
-            'uploader_id': 'theblackbirdcalls',
+            'title': 'TheBlackbirdCalls',
         },
-        'playlist_mincount': 420,
+        'playlist_mincount': 723,
     }, {
-        'note': 'foreign chars in URL. there must be foreign characters in URL',
-        'url': 'https://ecchi.iwara.tv/users/ぶた丼',
+        'url': 'https://iwara.tv/profile/user792540',
+        'only_matching': True,
+    }, {
+        'url': 'https://iwara.tv/profile/theblackbirdcalls',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.iwara.tv/profile/lumymmd',
         'info_dict': {
-            'title': 'Uploaded videos from ぶた丼',
-            'id': 'ぶた丼',
-            'uploader': 'ぶた丼',
-            'uploader_id': 'ぶた丼',
+            'id': 'lumymmd',
+            'title': 'Lumy MMD',
         },
-        'playlist_mincount': 170,
+        'playlist_mincount': 1,
     }]
 
-    def _entries(self, playlist_id, base_url):
-        webpage = self._download_webpage(
-            f'{base_url}/users/{playlist_id}', playlist_id)
-        videos_url = self._search_regex(r'<a href="(/users/[^/]+/videos)(?:\?[^"]+)?">', webpage, 'all videos url', default=None)
-        if not videos_url:
-            yield from self._extract_playlist(base_url, webpage)
-            return
-
-        videos_url = urljoin(base_url, videos_url)
-
-        for n in itertools.count(1):
-            page = self._download_webpage(
-                videos_url, playlist_id, note=f'Downloading playlist page {n}',
-                query={'page': str(n - 1)} if n > 1 else {})
-            yield from self._extract_playlist(
-                base_url, page)
-
-            if f'page={n}' not in page:
-                break
+    def _entries(self, playlist_id, user_id, page):
+        videos = self._download_json(
+            'https://api.iwara.tv/videos', playlist_id,
+            note=f'Downloading page {page}',
+            query={
+                'page': page,
+                'sort': 'date',
+                'user': user_id,
+                'limit': self._PER_PAGE,
+            }, headers=self._get_media_token())
+        for x in traverse_obj(videos, ('results', ..., 'id')):
+            yield self.url_result(f'https://iwara.tv/video/{x}')
 
     def _real_extract(self, url):
-        playlist_id, base_url = self._match_valid_url(url).group('id', 'base_url')
-        playlist_id = urllib.parse.unquote(playlist_id)
+        playlist_id = self._match_id(url)
+        user_info = self._download_json(
+            f'https://api.iwara.tv/profile/{playlist_id}', playlist_id,
+            note='Requesting user info')
+        user_id = traverse_obj(user_info, ('user', 'id'))
 
         return self.playlist_result(
-            self._entries(playlist_id, base_url), playlist_id)
+            OnDemandPagedList(
+                functools.partial(self._entries, playlist_id, user_id),
+                self._PER_PAGE),
+            playlist_id, traverse_obj(user_info, ('user', 'name')))
+
+
+class IwaraPlaylistIE(IwaraBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?iwara\.tv/playlist/(?P<id>[0-9a-f-]+)'
+    IE_NAME = 'iwara:playlist'
+    _PER_PAGE = 32
+
+    _TESTS = [{
+        'url': 'https://iwara.tv/playlist/458e5486-36a4-4ac0-b233-7e9eef01025f',
+        'info_dict': {
+            'id': '458e5486-36a4-4ac0-b233-7e9eef01025f',
+        },
+        'playlist_mincount': 3,
+    }]
+
+    def _entries(self, playlist_id, first_page, page):
+        videos = self._download_json(
+            'https://api.iwara.tv/videos', playlist_id, f'Downloading page {page}',
+            query={'page': page, 'limit': self._PER_PAGE},
+            headers=self._get_media_token()) if page else first_page
+        for x in traverse_obj(videos, ('results', ..., 'id')):
+            yield self.url_result(f'https://iwara.tv/video/{x}')
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        page_0 = self._download_json(
+            f'https://api.iwara.tv/playlist/{playlist_id}?page=0&limit={self._PER_PAGE}', playlist_id,
+            note='Requesting playlist info', headers=self._get_media_token())
+
+        return self.playlist_result(
+            OnDemandPagedList(
+                functools.partial(self._entries, playlist_id, page_0),
+                self._PER_PAGE),
+            playlist_id, traverse_obj(page_0, ('title', 'name')))

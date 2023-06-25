@@ -13,9 +13,11 @@ import netrc
 import os
 import random
 import re
+import subprocess
 import sys
 import time
 import types
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
@@ -32,7 +34,9 @@ from ..utils import (
     FormatSorter,
     GeoRestrictedError,
     GeoUtils,
+    HEADRequest,
     LenientJSONDecoder,
+    Popen,
     RegexNotFoundError,
     RetryManager,
     UnsupportedError,
@@ -55,6 +59,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
+    netrc_from_content,
     network_exceptions,
     orderedSet,
     parse_bitrate,
@@ -81,6 +86,7 @@ from ..utils import (
     update_url_query,
     url_basename,
     url_or_none,
+    urlhandle_detect_ext,
     urljoin,
     variadic,
     xpath_element,
@@ -130,6 +136,7 @@ class InfoExtractor:
                                        is parsed from a string (in case of
                                        fragmented media)
                                    for MSS - URL of the ISM manifest.
+                    * request_data  Data to send in POST request to the URL
                     * manifest_url
                                  The URL of the manifest file in case of
                                  fragmented media:
@@ -218,6 +225,17 @@ class InfoExtractor:
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
+                    * extra_param_to_segment_url  A query string to append to each
+                                 fragment's URL, or to update each existing query string
+                                 with. Only applied by the native HLS/DASH downloaders.
+                    * hls_aes    A dictionary of HLS AES-128 decryption information
+                                 used by the native HLS downloader to override the
+                                 values in the media playlist when an '#EXT-X-KEY' tag
+                                 is present in the playlist:
+                                 * uri  The URI from which the key will be downloaded
+                                 * key  The key (as hex) used to decrypt fragments.
+                                        If `key` is given, any key URI will be ignored
+                                 * iv   The IV (as hex) used to decrypt fragments
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -272,6 +290,7 @@ class InfoExtractor:
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
     channel_follower_count: Number of followers of the channel.
+    channel_is_verified: Whether the channel is verified on the platform.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -300,6 +319,11 @@ class InfoExtractor:
                         * "author" - human-readable name of the comment author
                         * "author_id" - user ID of the comment author
                         * "author_thumbnail" - The thumbnail of the comment author
+                        * "author_url" - The url to the comment author's page
+                        * "author_is_verified" - Whether the author is verified
+                                                 on the platform
+                        * "author_is_uploader" - Whether the comment is made by
+                                                 the video uploader
                         * "id" - Comment ID
                         * "html" - Comment as HTML
                         * "text" - Plain text of the comment
@@ -311,8 +335,8 @@ class InfoExtractor:
                         * "dislike_count" - Number of negative ratings of the comment
                         * "is_favorited" - Whether the comment is marked as
                                            favorite by the video uploader
-                        * "author_is_uploader" - Whether the comment is made by
-                                                 the video uploader
+                        * "is_pinned" - Whether the comment is pinned to
+                                        the top of the comments
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
                     should allow to get the same result again. (It will be set
@@ -336,6 +360,10 @@ class InfoExtractor:
                         * "start_time" - The start time of the chapter in seconds
                         * "end_time" - The end time of the chapter in seconds
                         * "title" (optional, string)
+    heatmap:        A list of dictionaries, with the following entries:
+                        * "start_time" - The start time of the data point in seconds
+                        * "end_time" - The end time of the data point in seconds
+                        * "value" - The normalized value of the data point (float between 0 and 1)
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
@@ -447,8 +475,8 @@ class InfoExtractor:
 
 
     Subclasses of this should also be added to the list of extractors and
-    should define a _VALID_URL regexp and, re-define the _real_extract() and
-    (optionally) _real_initialize() methods.
+    should define _VALID_URL as a regexp or a Sequence of regexps, and
+    re-define the _real_extract() and (optionally) _real_initialize() methods.
 
     Subclasses may also override suitable() if necessary, but ensure the function
     signature is preserved and that this function imports everything it needs
@@ -511,7 +539,7 @@ class InfoExtractor:
     _EMBED_REGEX = []
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
-        password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        password_hint = f'--username and --password, --netrc-cmd, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
         return {
             None: '',
             'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
@@ -538,8 +566,8 @@ class InfoExtractor:
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
         if '_VALID_URL_RE' not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        return cls._VALID_URL_RE.match(url)
+            cls._VALID_URL_RE = tuple(map(re.compile, variadic(cls._VALID_URL)))
+        return next(filter(None, (regex.match(url) for regex in cls._VALID_URL_RE)), None)
 
     @classmethod
     def suitable(cls, url):
@@ -1262,51 +1290,53 @@ class InfoExtractor:
         Like _search_regex, but strips HTML tags and unescapes entities.
         """
         res = self._search_regex(pattern, string, name, default, fatal, flags, group)
-        if res:
-            return clean_html(res).strip()
-        else:
-            return res
+        if isinstance(res, tuple):
+            return tuple(map(clean_html, res))
+        return clean_html(res)
 
     def _get_netrc_login_info(self, netrc_machine=None):
-        username = None
-        password = None
         netrc_machine = netrc_machine or self._NETRC_MACHINE
 
-        if self.get_param('usenetrc', False):
-            try:
-                netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
-                if os.path.isdir(netrc_file):
-                    netrc_file = os.path.join(netrc_file, '.netrc')
-                info = netrc.netrc(file=netrc_file).authenticators(netrc_machine)
-                if info is not None:
-                    username = info[0]
-                    password = info[2]
-                else:
-                    raise netrc.NetrcParseError(
-                        'No authenticators for %s' % netrc_machine)
-            except (OSError, netrc.NetrcParseError) as err:
-                self.report_warning(
-                    'parsing .netrc: %s' % error_to_compat_str(err))
+        cmd = self.get_param('netrc_cmd')
+        if cmd:
+            cmd = cmd.replace('{}', netrc_machine)
+            self.to_screen(f'Executing command: {cmd}')
+            stdout, _, ret = Popen.run(cmd, text=True, shell=True, stdout=subprocess.PIPE)
+            if ret != 0:
+                raise OSError(f'Command returned error code {ret}')
+            info = netrc_from_content(stdout).authenticators(netrc_machine)
 
-        return username, password
+        elif self.get_param('usenetrc', False):
+            netrc_file = compat_expanduser(self.get_param('netrc_location') or '~')
+            if os.path.isdir(netrc_file):
+                netrc_file = os.path.join(netrc_file, '.netrc')
+            info = netrc.netrc(netrc_file).authenticators(netrc_machine)
+
+        else:
+            return None, None
+        if not info:
+            raise netrc.NetrcParseError(f'No authenticators for {netrc_machine}')
+        return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
         """
         Get the login info as (username, password)
         First look for the manually specified credentials using username_option
         and password_option as keys in params dictionary. If no such credentials
-        available look in the netrc file using the netrc_machine or _NETRC_MACHINE
-        value.
+        are available try the netrc_cmd if it is defined or look in the
+        netrc file using the netrc_machine or _NETRC_MACHINE value.
         If there's no info available, return (None, None)
         """
 
-        # Attempt to use provided username and password or .netrc data
         username = self.get_param(username_option)
         if username is not None:
             password = self.get_param(password_option)
         else:
-            username, password = self._get_netrc_login_info(netrc_machine)
-
+            try:
+                username, password = self._get_netrc_login_info(netrc_machine)
+            except (OSError, netrc.NetrcParseError) as err:
+                self.report_warning(f'Failed to parse .netrc: {err}')
+                return None, None
         return username, password
 
     def _get_tfa_info(self, note='two-factor verification code'):
@@ -1326,7 +1356,7 @@ class InfoExtractor:
     # Helper functions for extracting OpenGraph info
     @staticmethod
     def _og_regexes(prop):
-        content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?))'
+        content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?)(?=\s|/?>))'
         property_re = (r'(?:name|property)=(?:\'og%(sep)s%(prop)s\'|"og%(sep)s%(prop)s"|\s*og%(sep)s%(prop)s\b)'
                        % {'prop': re.escape(prop), 'sep': '(?:&#x3A;|[:-])'})
         template = r'<meta[^>]+?%s[^>]+?%s'
@@ -1396,10 +1426,16 @@ class InfoExtractor:
         # And then there are the jokers who advertise that they use RTA, but actually don't.
         AGE_LIMIT_MARKERS = [
             r'Proudly Labeled <a href="http://www\.rtalabel\.org/" title="Restricted to Adults">RTA</a>',
+            r'>[^<]*you acknowledge you are at least (\d+) years old',
+            r'>\s*(?:18\s+U(?:\.S\.C\.|SC)\s+)?(?:§+\s*)?2257\b',
         ]
-        if any(re.search(marker, html) for marker in AGE_LIMIT_MARKERS):
-            return 18
-        return 0
+
+        age_limit = 0
+        for marker in AGE_LIMIT_MARKERS:
+            mobj = re.search(marker, html)
+            if mobj:
+                age_limit = max(age_limit, int(traverse_obj(mobj, 1, default=18)))
+        return age_limit
 
     def _media_rating_search(self, html):
         # See http://www.tjg-designs.com/WP/metadata-code-examples-adding-metadata-to-your-web-pages/
@@ -1652,11 +1688,8 @@ class InfoExtractor:
         if js is None:
             return {}
 
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
-
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
+        args = dict(zip(arg_keys.split(','), map(json.dumps, self._parse_json(
+            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ())))
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
@@ -1759,6 +1792,9 @@ class InfoExtractor:
     def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
                              fatal=True, m3u8_id=None, data=None, headers={}, query={}):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             manifest_url, video_id, 'Downloading f4m manifest',
             'Unable to download f4m manifest',
@@ -1908,6 +1944,9 @@ class InfoExtractor:
             errnote=None, fatal=True, live=False, data=None, headers={},
             query={}):
 
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         if not m3u8_url:
             if errnote is not False:
                 errnote = errnote or 'Failed to obtain m3u8 URL'
@@ -2042,6 +2081,7 @@ class InfoExtractor:
                     'protocol': entry_protocol,
                     'preference': preference,
                     'quality': quality,
+                    'has_drm': has_drm,
                     'vcodec': 'none' if media_type == 'AUDIO' else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
@@ -2101,6 +2141,7 @@ class InfoExtractor:
                         'protocol': entry_protocol,
                         'preference': preference,
                         'quality': quality,
+                        'has_drm': has_drm,
                     }
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
@@ -2167,12 +2208,22 @@ class InfoExtractor:
         return self._parse_m3u8_vod_duration(m3u8_vod or '', video_id)
 
     def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
-        if '#EXT-X-PLAYLIST-TYPE:VOD' not in m3u8_vod:
+        if '#EXT-X-ENDLIST' not in m3u8_vod:
             return None
 
         return int(sum(
             float(line[len('#EXTINF:'):].split(',')[0])
             for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
+
+    def _extract_mpd_vod_duration(
+            self, mpd_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+
+        mpd_doc = self._download_xml(
+            mpd_url, video_id,
+            note='Downloading MPD VOD manifest' if note is None else note,
+            errnote='Failed to download VOD manifest' if errnote is None else errnote,
+            fatal=False, data=data, headers=headers, query=query) or {}
+        return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
 
     @staticmethod
     def _xpath_ns(path, namespace=None):
@@ -2187,6 +2238,9 @@ class InfoExtractor:
         return '/'.join(out)
 
     def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
         if res is False:
             assert not fatal
@@ -2297,7 +2351,8 @@ class InfoExtractor:
             height = int_or_none(medium.get('height'))
             proto = medium.get('proto')
             ext = medium.get('ext')
-            src_ext = determine_ext(src)
+            src_ext = determine_ext(src, default_ext=None) or ext or urlhandle_detect_ext(
+                self._request_webpage(HEADRequest(src), video_id, note='Requesting extension info', fatal=False))
             streamer = medium.get('streamer') or base
 
             if proto == 'rtmp' or streamer.startswith('rtmp'):
@@ -2462,6 +2517,10 @@ class InfoExtractor:
     def _extract_mpd_formats_and_subtitles(
             self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
             fatal=True, data=None, headers={}, query={}):
+
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             mpd_url, video_id,
             note='Downloading MPD manifest' if note is None else note,
@@ -2831,6 +2890,9 @@ class InfoExtractor:
         return fmts
 
     def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             ism_url, video_id,
             note='Downloading ISM manifest' if note is None else note,
@@ -2938,6 +3000,8 @@ class InfoExtractor:
                         'protocol': 'ism',
                         'fragments': fragments,
                         'has_drm': ism_doc.find('Protection') is not None,
+                        'language': stream_language,
+                        'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
                             'duration': duration,
@@ -3200,7 +3264,7 @@ class InfoExtractor:
 
     def _find_jwplayer_data(self, webpage, video_id=None, transform_source=js_to_json):
         mobj = re.search(
-            r'(?s)jwplayer\((?P<quote>[\'"])[^\'" ]+(?P=quote)\)(?!</script>).*?\.setup\s*\((?P<options>[^)]+)\)',
+            r'''(?s)jwplayer\s*\(\s*(?P<q>'|")(?!(?P=q)).+(?P=q)\s*\)(?!</script>).*?\.\s*setup\s*\(\s*(?P<options>(?:\([^)]*\)|[^)])+)\s*\)''',
             webpage)
         if mobj:
             try:
@@ -3221,19 +3285,20 @@ class InfoExtractor:
 
     def _parse_jwplayer_data(self, jwplayer_data, video_id=None, require_title=True,
                              m3u8_id=None, mpd_id=None, rtmp_params=None, base_url=None):
-        # JWPlayer backward compatibility: flattened playlists
-        # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
-        if 'playlist' not in jwplayer_data:
-            jwplayer_data = {'playlist': [jwplayer_data]}
-
         entries = []
+        if not isinstance(jwplayer_data, dict):
+            return entries
 
-        # JWPlayer backward compatibility: single playlist item
+        playlist_items = jwplayer_data.get('playlist')
+        # JWPlayer backward compatibility: single playlist item/flattened playlists
         # https://github.com/jwplayer/jwplayer/blob/v7.7.0/src/js/playlist/playlist.js#L10
-        if not isinstance(jwplayer_data['playlist'], list):
-            jwplayer_data['playlist'] = [jwplayer_data['playlist']]
+        # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
+        if not isinstance(playlist_items, list):
+            playlist_items = (playlist_items or jwplayer_data, )
 
-        for video_data in jwplayer_data['playlist']:
+        for video_data in playlist_items:
+            if not isinstance(video_data, dict):
+                continue
             # JWPlayer backward compatibility: flattened sources
             # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/playlist/item.js#L29-L35
             if 'sources' not in video_data:
@@ -3271,6 +3336,13 @@ class InfoExtractor:
                 'timestamp': int_or_none(video_data.get('pubdate')),
                 'duration': float_or_none(jwplayer_data.get('duration') or video_data.get('duration')),
                 'subtitles': subtitles,
+                'alt_title': clean_html(video_data.get('subtitle')),  # attributes used e.g. by Tele5 ...
+                'genre': clean_html(video_data.get('genre')),
+                'channel': clean_html(dict_get(video_data, ('category', 'channel'))),
+                'season_number': int_or_none(video_data.get('season')),
+                'episode_number': int_or_none(video_data.get('episode')),
+                'release_year': int_or_none(video_data.get('releasedate')),
+                'age_limit': int_or_none(video_data.get('age_restriction')),
             }
             # https://github.com/jwplayer/jwplayer/blob/master/src/js/utils/validator.js#L32
             if len(formats) == 1 and re.search(r'^(?:http|//).*(?:youtube\.com|youtu\.be)/.+', formats[0]['url']):
@@ -3288,7 +3360,7 @@ class InfoExtractor:
 
     def _parse_jwplayer_formats(self, jwplayer_sources_data, video_id=None,
                                 m3u8_id=None, mpd_id=None, rtmp_params=None, base_url=None):
-        urls = []
+        urls = set()
         formats = []
         for source in jwplayer_sources_data:
             if not isinstance(source, dict):
@@ -3297,14 +3369,14 @@ class InfoExtractor:
                 base_url, self._proto_relative_url(source.get('file')))
             if not source_url or source_url in urls:
                 continue
-            urls.append(source_url)
+            urls.add(source_url)
             source_type = source.get('type') or ''
             ext = mimetype2ext(source_type) or determine_ext(source_url)
-            if source_type == 'hls' or ext == 'm3u8':
+            if source_type == 'hls' or ext == 'm3u8' or 'format=m3u8-aapl' in source_url:
                 formats.extend(self._extract_m3u8_formats(
                     source_url, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id=m3u8_id, fatal=False))
-            elif source_type == 'dash' or ext == 'mpd':
+            elif source_type == 'dash' or ext == 'mpd' or 'format=mpd-time-csf' in source_url:
                 formats.extend(self._extract_mpd_formats(
                     source_url, video_id, mpd_id=mpd_id, fatal=False))
             elif ext == 'smil':
@@ -3319,13 +3391,12 @@ class InfoExtractor:
                     'ext': ext,
                 })
             else:
+                format_id = str_or_none(source.get('label'))
                 height = int_or_none(source.get('height'))
-                if height is None:
+                if height is None and format_id:
                     # Often no height is provided but there is a label in
                     # format like "1080p", "720p SD", or 1080.
-                    height = int_or_none(self._search_regex(
-                        r'^(\d{3,4})[pP]?(?:\b|$)', str(source.get('label') or ''),
-                        'height', default=None))
+                    height = parse_resolution(format_id).get('height')
                 a_format = {
                     'url': source_url,
                     'width': int_or_none(source.get('width')),
@@ -3333,6 +3404,7 @@ class InfoExtractor:
                     'tbr': int_or_none(source.get('bitrate'), scale=1000),
                     'filesize': int_or_none(source.get('filesize')),
                     'ext': ext,
+                    'format_id': format_id
                 }
                 if source_url.startswith('rtmp'):
                     a_format['ext'] = 'flv'
@@ -3385,7 +3457,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return LenientSimpleCookie(self._downloader._calc_cookies(url))
+        return LenientSimpleCookie(self._downloader.cookiejar.get_cookie_header(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
@@ -3426,13 +3498,17 @@ class InfoExtractor:
                 continue
             t['name'] = cls.ie_key()
             yield t
+        if getattr(cls, '__wrapped__', None):
+            yield from cls.__wrapped__.get_testcases(include_onlymatching)
 
     @classmethod
     def get_webpage_testcases(cls):
         tests = vars(cls).get('_WEBPAGE_TESTS', [])
         for t in tests:
             t['name'] = cls.ie_key()
-        return tests
+            yield t
+        if getattr(cls, '__wrapped__', None):
+            yield from cls.__wrapped__.get_webpage_testcases()
 
     @classproperty(cache=True)
     def age_limit(cls):
@@ -3456,8 +3532,8 @@ class InfoExtractor:
     @classmethod
     def is_single_video(cls, url):
         """Returns whether the URL is of a single video, None if unknown"""
-        assert cls.suitable(url), 'The URL must be suitable for the extractor'
-        return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
+        if cls.suitable(url):
+            return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
 
     @classmethod
     def is_suitable(cls, age_limit):
@@ -3470,7 +3546,7 @@ class InfoExtractor:
         desc = ''
         if cls._NETRC_MACHINE:
             if markdown:
-                desc += f' [<abbr title="netrc machine"><em>{cls._NETRC_MACHINE}</em></abbr>]'
+                desc += f' [*{cls._NETRC_MACHINE}*](## "netrc machine")'
             else:
                 desc += f' [{cls._NETRC_MACHINE}]'
         if cls.IE_DESC is False:
@@ -3478,7 +3554,7 @@ class InfoExtractor:
         elif cls.IE_DESC:
             desc += f' {cls.IE_DESC}'
         if cls.SEARCH_KEY:
-            desc += f'; "{cls.SEARCH_KEY}:" prefix'
+            desc += f'{";" if cls.IE_DESC else ""} "{cls.SEARCH_KEY}:" prefix'
             if search_examples:
                 _COUNTS = ('', '5', '10', 'all')
                 desc += f' (e.g. "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
@@ -3592,6 +3668,42 @@ class InfoExtractor:
                 or urllib.parse.unquote(os.path.splitext(url_basename(url))[0])
                 or default)
 
+    def _extract_chapters_helper(self, chapter_list, start_function, title_function, duration, strict=True):
+        if not duration:
+            return
+        chapter_list = [{
+            'start_time': start_function(chapter),
+            'title': title_function(chapter),
+        } for chapter in chapter_list or []]
+        if strict:
+            warn = self.report_warning
+        else:
+            warn = self.write_debug
+            chapter_list.sort(key=lambda c: c['start_time'] or 0)
+
+        chapters = [{'start_time': 0}]
+        for idx, chapter in enumerate(chapter_list):
+            if chapter['start_time'] is None:
+                warn(f'Incomplete chapter {idx}')
+            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
+                chapters.append(chapter)
+            elif chapter not in chapters:
+                issue = (f'{chapter["start_time"]} > {duration}' if chapter['start_time'] > duration
+                         else f'{chapter["start_time"]} < {chapters[-1]["start_time"]}')
+                warn(f'Invalid start time ({issue}) for chapter "{chapter["title"]}"')
+        return chapters[1:]
+
+    def _extract_chapters_from_description(self, description, duration):
+        duration_re = r'(?:\d+:)?\d{1,2}:\d{2}'
+        sep_re = r'(?m)^\s*(%s)\b\W*\s(%s)\s*$'
+        return self._extract_chapters_helper(
+            re.findall(sep_re % (duration_re, r'.+?'), description or ''),
+            start_function=lambda x: parse_duration(x[0]), title_function=lambda x: x[1],
+            duration=duration, strict=False) or self._extract_chapters_helper(
+            re.findall(sep_re % (r'.+?', duration_re), description or ''),
+            start_function=lambda x: parse_duration(x[1]), title_function=lambda x: x[0],
+            duration=duration, strict=False)
+
     @staticmethod
     def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):
         all_known = all(map(
@@ -3694,10 +3806,12 @@ class InfoExtractor:
         if plugin_name:
             mro = inspect.getmro(cls)
             super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
-            cls.IE_NAME, cls.ie_key = f'{super_class.IE_NAME}+{plugin_name}', super_class.ie_key
+            cls.PLUGIN_NAME, cls.ie_key = plugin_name, super_class.ie_key
+            cls.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
             while getattr(super_class, '__wrapped__', None):
                 super_class = super_class.__wrapped__
             setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+            _PLUGIN_OVERRIDES[super_class].append(cls)
 
         return super().__init_subclass__(**kwargs)
 
@@ -3754,3 +3868,6 @@ class UnsupportedURLIE(InfoExtractor):
 
     def _real_extract(self, url):
         raise UnsupportedError(url)
+
+
+_PLUGIN_OVERRIDES = collections.defaultdict(list)
