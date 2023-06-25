@@ -10,7 +10,6 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import zlib
-from typing import Union
 from urllib.request import (
     DataHandler,
     FileHandler,
@@ -339,7 +338,7 @@ class UrllibResponseAdapter(Response):
     HTTP Response adapter class for urllib addinfourl and http.client.HTTPResponse
     """
 
-    def __init__(self, res: Union[http.client.HTTPResponse, urllib.response.addinfourl]):
+    def __init__(self, res: http.client.HTTPResponse | urllib.response.addinfourl):
         # addinfourl: In Python 3.9+, .status was introduced and .getcode() was deprecated [1]
         # HTTPResponse: .getcode() was deprecated, .status always existed [2]
         # 1. https://docs.python.org/3/library/urllib.request.html#urllib.response.addinfourl.getcode

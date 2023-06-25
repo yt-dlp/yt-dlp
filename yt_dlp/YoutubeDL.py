@@ -3927,9 +3927,8 @@ class YoutubeDL:
     @functools.cached_property
     def cookiejar(self):
         """Global cookiejar instance"""
-        opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
-        opts_cookiefile = self.params.get('cookiefile')
-        return load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self)
+        return load_cookies(
+            self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
 
     @property
     def _opener(self):
@@ -3975,7 +3974,8 @@ class YoutubeDL:
                 raise YoutubeDLError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect') from e
             elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
                 raise YoutubeDLError(
-                    'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. Try using --legacy-server-connect') from e
+                    'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
+                    'Try using --legacy-server-connect') from e
             raise
 
     def build_request_director(self, handlers):
