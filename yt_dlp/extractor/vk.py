@@ -808,13 +808,9 @@ class VKPlayLiveIE(VKPlayBaseIE):
         if not stream_info:
             stream_info = self._download_json(
                 f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username)
-        playurls = traverse_obj(stream_info, ('data', 0, 'playerUrls', ..., {
-            'url': ('url', {url_or_none}),
-            'format_id': ('type', {str_or_none}),
-        }))
-        if not playurls:
-            if not traverse_obj(stream_info, ('isOnline', {bool})):
-                raise ExtractorError('Stream is offline', expected=True)
+        formats = self._extract_formats(stream_info, username)
+        if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
+                raise UserNotLive(video_id=username)
 
         return {
             'formats': self._parse_playurls(playurls, username),
