@@ -75,7 +75,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
                 message = traverse_obj(
                     self._parse_json(e.cause.read().decode(), None), ('error', 'message', {str}))
-                self.report_warning(f'Unable to log in: {message}')
+                raise ExtractorError(f'Unable to log in: {message}', expected=True)
             else:
                 raise
         else:
