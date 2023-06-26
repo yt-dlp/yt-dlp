@@ -716,6 +716,7 @@ class VKPlayBaseIE(InfoExtractor):
         'full_hd': '1920x1080',
         'quad_hd': '2560x1440',
     }
+
     def _extract_initial_state(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
         return self._search_json(
@@ -821,7 +822,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
                 f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username)
         formats = self._extract_formats(stream_info, username)
         if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
-                raise UserNotLive(video_id=username)
+            raise UserNotLive(video_id=username)
 
         return {
             'formats': formats,
