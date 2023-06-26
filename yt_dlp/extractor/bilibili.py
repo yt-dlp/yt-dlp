@@ -451,40 +451,40 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'https://api.bilibili.com/pgc/view/web/season', video_id, 'Get episode details',
             query={'ep_id': episode_id}, headers=headers)['result']
 
-        episodes = bangumi_info.get('episodes')
-        episode_number = next((
-            idx + 1 for idx, e in enumerate(episodes or [])
-            if str(e.get('id')) == video_id
-        ), 1)
+        episode_number, episode_info = 1, {}
+        for idx, ep in enumerate(traverse_obj(bangumi_info, ('episodes', ..., {dict})), 1):
+            if str_or_none(ep.get('id')) == episode_id:
+                episode_number, episode_info = idx, ep
+                break
 
-        season_id = bangumi_info.get('season_id') or []
+        season_id = bangumi_info.get('season_id')
         season_number = season_id and next((
             idx + 1 for idx, e in enumerate(
                 traverse_obj(bangumi_info, ('seasons', ...)))
             if e.get('season_id') == season_id
         ), None)
 
-        aid = traverse_obj(bangumi_info, ('episodes', episode_number, 'aid'))
-        cid = traverse_obj(bangumi_info, ('episodes', episode_number, 'cid'))
+        aid = episode_info.get('aid')
 
         return {
             'id': video_id,
             'formats': formats,
-            'title': f"{traverse_obj(bangumi_info, ('episodes', episode_number - 1, 'title'), expected_type=str)} {traverse_obj(bangumi_info, ('episodes', episode_number - 1, 'long_title'), expected_type=str)}",
-            'episode': traverse_obj(bangumi_info, ('episodes', episode_number - 1, 'long_title'), expected_type=str),
-            'episode_id': video_id,
-            'episode_number': int_or_none(episode_number),
-            'series': traverse_obj(bangumi_info, ('series', 'series_title')),
-            'series_id': str_or_none(traverse_obj(bangumi_info, ('series', 'series_id'))),
-            'season': bangumi_info.get('season_title') or bangumi_info.get('title'),
+            **traverse_obj(bangumi_info, {
+                'series': ('series', 'series_title', {str}),
+                'series_id': ('series', 'series_id', {str_or_none}),
+                'thumbnail': ('square_cover', {url_or_none}),
+            }),
+            'title': join_nonempty('title', 'long_title', delim=' ', from_dict=episode_info)
+            'episode': episode_info.get('long_title'),
+            'episode_id': episode_id,
+            'episode_number': episode_number,
             'season_id': str_or_none(season_id),
-            'season_number': int_or_none(season_number),
-            'thumbnail': bangumi_info.get('square_cover'),
-            'timestamp': traverse_obj(bangumi_info, ('episodes', episode_number - 1, 'pub_time')),
+            'season_number': season_number,
+            'timestamp': int_or_none(episode_info.get('pub_time')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'subtitles': self.extract_subtitles(video_id, aid, cid),
+            'subtitles': self.extract_subtitles(video_id, aid, episode_info.get('cid')),
             '__post_extractor': self.extract_comments(aid),
-            'http_headers': {'Referer': url, **self.geo_verification_headers()},
+            'http_headers': headers,
         }
 
 
