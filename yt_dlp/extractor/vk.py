@@ -743,7 +743,7 @@ class VKPlayIE(VKPlayBaseIE):
             'like_count': int,
             'categories': ['Atomic Heart'],
         },
-        'params': {'skip_download': True},
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
