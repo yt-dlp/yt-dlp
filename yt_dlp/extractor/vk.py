@@ -813,7 +813,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
                 raise UserNotLive(video_id=username)
 
         return {
-            'formats': self._parse_playurls(playurls, username),
+            'formats': formats,
             **traverse_obj(stream_info, {
                 'id': ('id', {str}),
                 'title': ('title', {str}),
