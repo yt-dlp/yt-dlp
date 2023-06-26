@@ -11,11 +11,13 @@ from .vimeo import VimeoIE
 from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     clean_html,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
+    parse_resolution,
     str_or_none,
     str_to_int,
     try_call,
