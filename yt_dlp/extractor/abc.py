@@ -12,6 +12,7 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     str_or_none,
+    traverse_obj,
     try_get,
     unescapeHTML,
     update_url_query,
@@ -105,15 +106,6 @@ class ABCIE(InfoExtractor):
             urls_info = mobj.groupdict()
             youtube = False
             video = False
-        elif mobj is None:
-            mobj = re.search(r'"files":(?P<json_data>\[[^\]]+\])', webpage)
-            if mobj is None:
-                mobj = re.search(r'"renditions":(?P<json_data>\[[^\]]+\])', webpage)
-            if mobj:
-                import json
-                urls_info = json.loads(mobj.groupdict()["json_data"])
-                youtube = False
-                video = False
         else:
             mobj = re.search(r'<a href="(?P<url>http://www\.youtube\.com/watch\?v=[^"]+)"><span><strong>External Link:</strong>',
                              webpage)
@@ -125,7 +117,7 @@ class ABCIE(InfoExtractor):
                 video = True
 
         if mobj is None:
-            mobj = re.search(r'(?P<type>)"sources": (?P<json_data>\[[^\]]+\]),', webpage)
+            mobj = re.search(r'(?P<type>)"(?:sources|files|renditions)":\s*(?P<json_data>\[[^\]]+\])', webpage)
             if mobj is None:
                 mobj = re.search(
                     r'inline(?P<type>Video|Audio|YouTube)Data\.push\((?P<json_data>[^)]+)\);',
@@ -139,7 +131,7 @@ class ABCIE(InfoExtractor):
             urls_info = self._parse_json(
                 mobj.group('json_data'), video_id, transform_source=js_to_json)
             youtube = mobj.group('type') == 'YouTube'
-            video = mobj.group('type') == 'Video' or urls_info[0]['contentType'] == 'video/mp4'
+            video = mobj.group('type') == 'Video' or traverse_obj(urls_info, (0, 'contentType')) == 'video/mp4'
 
         if not isinstance(urls_info, list):
             urls_info = [urls_info]
