@@ -435,9 +435,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         if '您所在的地区无法观看本片' in webpage:
             raise GeoRestrictedError('This video is restricted')
-        elif ('成为大会员免费看' in webpage
-              or '正在观看预览，大会员免费看全片' in webpage
-              or '开通大会员观看' in webpage):
+        elif '正在观看预览，大会员免费看全片' in webpage:
             self.raise_login_required('This video is for premium members only')
 
         headers = {'Referer': url, **self.geo_verification_headers()}
@@ -447,6 +445,9 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             headers=headers)['result']['video_info']
 
         formats = self.extract_formats(play_info)
+        if not formats and (
+                '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
+            self.raise_login_required('This video is for premium members only')
 
         bangumi_info = self._download_json(
             'https://api.bilibili.com/pgc/view/web/season', video_id, 'Get episode details',
