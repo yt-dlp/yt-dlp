@@ -739,8 +739,17 @@ class VKPlayBaseIE(InfoExtractor):
                     'format_id': format_id,
                     **parse_resolution(self._RESOLUTIONS.get(format_id)),
                 })
-
         return formats
+
+    def _extract_common_meta(self, stream_info):
+        return traverse_obj(stream_info, {
+            'title': ('title', {str}),
+            'release_timestamp': ('startTime', {int_or_none}),
+            'thumbnail': ('previewUrl', {url_or_none}),
+            'view_count': ('count', 'views', {int_or_none}),
+            'like_count': ('count', 'likes', {int_or_none}),
+            'categories': ('category', 'title', {lambda i: [str_or_none(i)]}),
+        })
 
 
 class VKPlayIE(VKPlayBaseIE):
@@ -776,16 +785,11 @@ class VKPlayIE(VKPlayBaseIE):
         return {
             'id': video_id,
             'formats': self._extract_formats(record_info, video_id),
+            **self._extract_common_meta(record_info),
             **traverse_obj(record_info, {
-                'title': ('title', {str}),
-                'release_timestamp': ('startTime', {int_or_none}),
                 'uploader': ('blog', 'owner', 'nick', {str_or_none}),
                 'uploader_id': ('blog', 'owner', 'id', {int_or_none}),
-                'thumbnail': ('previewUrl', {url_or_none}),
                 'duration': ('duration', {int_or_none}),
-                'view_count': ('count', 'views', {int_or_none}),
-                'like_count': ('count', 'likes', {int_or_none}),
-                'categories': ('category', 'title', {lambda i: [str_or_none(i)]}),
             })
         }
 
@@ -827,17 +831,12 @@ class VKPlayLiveIE(VKPlayBaseIE):
 
         return {
             'formats': formats,
+            **self._extract_common_meta(stream_info),
             **traverse_obj(stream_info, {
                 'id': ('id', {str}),
-                'title': ('title', {str}),
-                'release_timestamp': ('startTime', {int_or_none}),
                 'uploader': ('user', 'nick', {str_or_none}),
                 'uploader_id': ('user', 'id', {int_or_none}),
-                'thumbnail': ('previewUrl', {url_or_none}),
-                'view_count': ('count', 'views', {int_or_none}),
                 'concurrent_view_count': ('count', 'viewers', {int_or_none}),
-                'like_count': ('count', 'likes', {int_or_none}),
-                'categories': ('category', 'title', {lambda i: [str_or_none(i)]}),
                 'is_live': ('isOnline', {bool}),
             })
         }
