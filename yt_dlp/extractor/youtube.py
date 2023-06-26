@@ -4899,7 +4899,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
                     'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
                     'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)],
-                    'richGridRenderer': lambda x: self._extract_entries(x, continuation_list)
+                    'richGridRenderer': lambda x: self._extract_entries(x, continuation_list),
                 }
                 for key, renderer in isr_content.items():
                     if key not in known_renderers:
@@ -6393,7 +6393,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 10,
     }, {
         # Playlist with only shorts, shown as reel renderers
-        # FIXME future: YouTube currently doesn't give continuation for this,
+        # FIXME: future: YouTube currently doesn't give continuation for this,
         # may do in future.
         'url': 'https://www.youtube.com/playlist?list=UUxqPAgubo4coVn9Lx1FuKcg',
         'info_dict': {
