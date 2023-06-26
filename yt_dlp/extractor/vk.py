@@ -776,7 +776,7 @@ class VKPlayIE(VKPlayBaseIE):
 
 
 class VKPlayLiveIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/]+)(:?\?|$)'
+    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/]+)(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://vkplay.live/bayda',
         'info_dict': {
