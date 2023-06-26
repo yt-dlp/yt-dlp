@@ -705,6 +705,15 @@ class VKWallPostIE(VKBaseIE):
 
 
 class VKPlayBaseIE(InfoExtractor):
+    _RESOLUTIONS = {
+        'tiny': '256x144',
+        'lowest': '426x240',
+        'low': '640x360',
+        'medium': '852x480',
+        'high': '1280x720',
+        'full_hd': '1920x1080',
+        'quad_hd': '2560x1440',
+    }
     def _extract_initial_state(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
         return self._search_json(
