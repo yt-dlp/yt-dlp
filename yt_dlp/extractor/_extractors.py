@@ -214,7 +214,7 @@ from .bigo import BigoIE
 from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
-    BiliBiliBangumiEpisodeIE,
+    BiliBiliBangumiIE,
     BiliBiliBangumiSeasonIE,
     BiliBiliBangumiMediaIE,
     BiliBiliSearchIE,
