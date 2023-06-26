@@ -429,6 +429,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        episode_id = video_id[2:]
         webpage = self._download_webpage(url, video_id)
 
         if '您所在的地区无法观看本片' in webpage:
@@ -535,7 +536,7 @@ class BiliBiliBangumiSeasonIE(InfoExtractor):
             ('result', 'main_section', 'episodes'))
 
         return self.playlist_result((
-            self.url_result(entry['share_url'], BiliBiliBangumiEpisodeIE, entry['id'])
+            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['id'])
             for entry in episode_list), ss_id)
 
 
