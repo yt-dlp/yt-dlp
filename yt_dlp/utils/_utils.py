@@ -5498,7 +5498,7 @@ class FormatSorter:
 def clean_proxies(proxies: dict, headers: CaseInsensitiveDict):
     req_proxy = headers.pop('Ytdl-Request-Proxy', None)
     if req_proxy:
-        proxies.clear()
+        proxies.clear()  # XXX: compat: Ytdl-Request-Proxy takes preference over everything, including NO_PROXY
         proxies['all'] = req_proxy
     for proxy_key, proxy_url in proxies.items():
         if proxy_url == '__noproxy__':
@@ -5511,6 +5511,14 @@ def clean_proxies(proxies: dict, headers: CaseInsensitiveDict):
             proxy_scheme = urllib.request._parse_proxy(proxy_url)[0]
             if proxy_scheme is None:
                 proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
+
+            replace_scheme = {
+                'socks5': 'socks5h',  # compat: socks5 was treated as socks5h
+                'socks': 'socks4'  # compat: non-standard
+            }
+            if proxy_scheme in replace_scheme:
+                proxies[proxy_key] = urllib.parse.urlunparse(
+                    urllib.parse.urlparse(proxy_url)._replace(scheme=replace_scheme[proxy_scheme]))
 
 
 def clean_headers(headers: CaseInsensitiveDict):

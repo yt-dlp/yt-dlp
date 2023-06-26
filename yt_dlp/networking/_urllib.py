@@ -297,7 +297,7 @@ class ProxyHandler(urllib.request.BaseHandler):
         proxy = select_proxy(req.get_full_url(), self.proxies)
         if proxy is None:
             return
-        if urllib.parse.urlparse(proxy).scheme.lower() in ('socks', 'socks4', 'socks4a', 'socks5'):
+        if urllib.parse.urlparse(proxy).scheme.lower() in ('socks4', 'socks4a', 'socks5', 'socks5h'):
             req.add_header('Ytdl-socks-proxy', proxy)
             # yt-dlp's http/https handlers do wrapping the socket with socks
             return None
@@ -377,7 +377,7 @@ def handle_response_read_exceptions(e):
 
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
-    _SUPPORTED_PROXY_SCHEMES = ('http', 'socks', 'socks4', 'socks4a', 'socks5')
+    _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     RH_NAME = 'urllib'
 

@@ -103,10 +103,18 @@ def make_socks_proxy_opts(socks_proxy):
     url_components = urllib.parse.urlparse(socks_proxy)
     if url_components.scheme.lower() == 'socks5':
         socks_type = ProxyType.SOCKS5
-    elif url_components.scheme.lower() in ('socks', 'socks4'):
+        rdns = False
+    elif url_components.scheme.lower() == 'socks5h':
+        socks_type = ProxyType.SOCKS5
+        rdns = True
+    elif url_components.scheme.lower() == 'socks4':
         socks_type = ProxyType.SOCKS4
+        rdns = False
     elif url_components.scheme.lower() == 'socks4a':
         socks_type = ProxyType.SOCKS4A
+        rdns = True
+    else:
+        raise ValueError(f'Unknown SOCKS proxy version: {url_components.scheme.lower()}')
 
     def unquote_if_non_empty(s):
         if not s:
@@ -116,7 +124,7 @@ def make_socks_proxy_opts(socks_proxy):
         'proxytype': socks_type,
         'addr': url_components.hostname,
         'port': url_components.port or 1080,
-        'rdns': True,
+        'rdns': rdns,
         'username': unquote_if_non_empty(url_components.username),
         'password': unquote_if_non_empty(url_components.password),
     }

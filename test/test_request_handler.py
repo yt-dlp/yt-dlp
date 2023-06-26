@@ -708,12 +708,12 @@ class TestUrllibRHValidation:
         run_validation(handler, False, Request('http://', proxies={'unrelated': 'http://example.com'}))
         run_validation(handler, False, Request('http://'), proxies={'unrelated': 'http://example.com'})
 
-    @pytest.mark.parametrize('scheme', ['http', 'socks', 'socks5', 'socks4a', 'socks4'])
+    @pytest.mark.parametrize('scheme', ['http', 'socks5', 'socks5h', 'socks4a', 'socks4'])
     def test_proxy_scheme(self, handler, scheme):
         run_validation(handler, False, Request('http://', proxies={'http': f'{scheme}://example.com'}))
         run_validation(handler, False, Request('http://'), proxies={'http': f'{scheme}://example.com'})
 
-    @pytest.mark.parametrize('scheme', ['https', 'test'])
+    @pytest.mark.parametrize('scheme', ['https', 'test', 'socks'])
     def test_unsupported_proxy_scheme(self, handler, scheme):
         run_validation(handler, True, Request('http://', proxies={'http': f'{scheme}://example.com'}))
         run_validation(handler, True, Request('http://'), proxies={'http': f'{scheme}://example.com'})
@@ -893,6 +893,7 @@ class TestYoutubeDLHTTP:
                 ydl.urlopen('ssl://testerror')
 
     def test_clean_proxy(self):
+        # TODO: we have duplicate tests here with building request handler
         with FakeRHYDL() as ydl:
             get_req = lambda x: ydl.urlopen(x).request
             req = get_req(Request('test://', headers={'ytdl-request-proxy': '//foo.bar'}))
@@ -903,6 +904,13 @@ class TestYoutubeDLHTTP:
             assert req.proxies['http'] is None
             assert req.proxies['no'] == '127.0.0.1,foo.bar'
             assert req.proxies['https'] == 'http://example.com'
+
+            # Clean socks proxies
+            req = get_req(
+                Request('test://', proxies={'http': 'socks://127.0.0.1', 'https': 'socks5://127.0.0.1'}))
+
+            assert req.proxies['http'] == 'socks4://127.0.0.1'
+            assert req.proxies['https'] == 'socks5h://127.0.0.1'
 
 
 class TestYDLRequestDirectorBuilder:
@@ -971,6 +979,8 @@ class TestYDLRequestDirectorBuilder:
         ('http', '__noproxy__', None),
         ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
         ('https', 'example.com', 'http://example.com'),
+        ('https', 'socks5://example.com', 'socks5h://example.com'),
+        ('http', 'socks://example.com', 'socks4://example.com'),
     ])
     def test_clean_proxy(self, proxy_key, proxy_url, expected):
         env_key = f'{proxy_key.upper()}_PROXY'
@@ -988,4 +998,4 @@ class TestYDLRequestDirectorBuilder:
         with FakeYDL({'http_headers': {'ytdl-request-proxy': '//foo.bar'}}) as ydl:
             rh = self.build_handler(ydl)
             assert 'ytdl-request-proxy' not in rh.headers
-            assert rh.proxies['all'] == 'http://foo.bar'
+            assert rh.proxies == {'all': 'http://foo.bar'}  # TODO: test takes preference over everything

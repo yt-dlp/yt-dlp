@@ -17,8 +17,9 @@ import pytest
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.networking.request import HEADRequest, PUTRequest, Request
 from yt_dlp.networking.response import Response
-from yt_dlp.networking.utils import InstanceStoreMixin, select_proxy
+from yt_dlp.networking.utils import InstanceStoreMixin, select_proxy, make_socks_proxy_opts
 from yt_dlp.utils import CaseInsensitiveDict
+from yt_dlp.socks import ProxyType
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -29,10 +30,54 @@ class TestNetworkingUtils:
         proxies = {
             'all': 'socks5://example.com',
             'http': 'http://example.com:1080',
+            'no': 'bypass.example.com,yt-dl.org'
         }
 
         assert select_proxy('https://example.com', proxies) == proxies['all']
         assert select_proxy('http://example.com', proxies) == proxies['http']
+        assert select_proxy('http://bypass.example.com', proxies) is None
+        assert select_proxy('https://yt-dl.org', proxies) is None
+
+    @pytest.mark.parametrize('socks_proxy,expected', [
+        ('socks5h://example.com', {
+            'proxytype': ProxyType.SOCKS5,
+            'addr': 'example.com',
+            'port': 1080,
+            'rdns': True,
+            'username': None,
+            'password': None
+        }),
+        ('socks5://user:@example.com:5555', {
+            'proxytype': ProxyType.SOCKS5,
+            'addr': 'example.com',
+            'port': 5555,
+            'rdns': False,
+            'username': 'user',
+            'password': ''
+        }),
+        ('socks4://u%40ser:pa%20ss@127.0.0.1:1080', {
+            'proxytype': ProxyType.SOCKS4,
+            'addr': '127.0.0.1',
+            'port': 1080,
+            'rdns': False,
+            'username': 'u@ser',
+            'password': 'pa ss'
+        }),
+        ('socks4a://:pa%20ss@127.0.0.1', {
+            'proxytype': ProxyType.SOCKS4A,
+            'addr': '127.0.0.1',
+            'port': 1080,
+            'rdns': True,
+            'username': '',
+            'password': 'pa ss'
+        })
+    ])
+    def test_make_socks_proxy_opts(self, socks_proxy, expected):
+        assert make_socks_proxy_opts(socks_proxy) == expected
+
+    def test_make_socks_proxy_unknown(self):
+        with pytest.raises(ValueError, match='Unknown SOCKS proxy version: socks'):
+            make_socks_proxy_opts('socks://127.0.0.1')
 
 
 class TestRequest:
