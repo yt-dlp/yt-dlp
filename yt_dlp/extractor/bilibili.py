@@ -402,8 +402,8 @@ class BiliBiliIE(BilibiliBaseIE):
         }
 
 
-class BiliBiliBangumiEpisodeIE(BilibiliBaseIE):
-    _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/ep(?P<id>\d+)$'
+class BiliBiliBangumiIE(BilibiliBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/play/(?P<id>ep\d+)/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/play/ep267851',
@@ -438,17 +438,17 @@ class BiliBiliBangumiEpisodeIE(BilibiliBaseIE):
               or '开通大会员观看' in webpage):
             self.raise_login_required('This video is for premium members only')
 
-        play_info = self._download_json('https://api.bilibili.com/pgc/player/web/v2/playurl',
-                                        video_id, 'Extracting episode',
-                                        query={'fnval': '4048', 'ep_id': video_id},
-                                        headers={'Referer': url, **self.geo_verification_headers()})['result']['video_info']
+        headers = {'Referer': url, **self.geo_verification_headers()}
+        play_info = self._download_json(
+            'https://api.bilibili.com/pgc/player/web/v2/playurl', video_id,
+            'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
+            headers=headers)['result']['video_info']
 
         formats = self.extract_formats(play_info)
 
-        bangumi_info = self._download_json('https://api.bilibili.com/pgc/view/web/season',
-                                           video_id, 'Get episode details',
-                                           query={'ep_id': video_id},
-                                           headers={'Referer': url, **self.geo_verification_headers()})['result']
+        bangumi_info = self._download_json(
+            'https://api.bilibili.com/pgc/view/web/season', video_id, 'Get episode details',
+            query={'ep_id': episode_id}, headers=headers)['result']
 
         episodes = bangumi_info.get('episodes')
         episode_number = next((
@@ -459,7 +459,7 @@ class BiliBiliBangumiEpisodeIE(BilibiliBaseIE):
         season_id = bangumi_info.get('season_id') or []
         season_number = season_id and next((
             idx + 1 for idx, e in enumerate(
-                bangumi_info.get('seasons') or [])
+                traverse_obj(bangumi_info, ('seasons', ...)))
             if e.get('season_id') == season_id
         ), None)
 
@@ -510,7 +510,7 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
             ('result', 'main_section', 'episodes'))
 
         return self.playlist_result((
-            self.url_result(entry['share_url'], BiliBiliBangumiEpisodeIE, entry['id'])
+            self.url_result(entry['share_url'], BiliBiliBangumiIE, f'ep{entry["id"]}')
             for entry in episode_list), media_id)
 
 
