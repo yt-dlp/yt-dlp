@@ -488,7 +488,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'title': join_nonempty('title', 'long_title', delim=' ', from_dict=episode_info),
             'episode': episode_info.get('long_title'),
             'episode_id': episode_id,
-            'episode_number': episode_number,
+            'episode_number': int_or_none(episode_info.get('title')) or episode_number,
             'season_id': str_or_none(season_id),
             'season_number': season_number,
             'timestamp': int_or_none(episode_info.get('pub_time')),
