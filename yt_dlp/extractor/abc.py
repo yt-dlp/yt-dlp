@@ -85,6 +85,15 @@ class ABCIE(InfoExtractor):
             'uploader': 'Behind the News',
             'uploader_id': 'behindthenews',
         }
+    }, {
+        'url': 'https://www.abc.net.au/news/2023-06-25/wagner-boss-orders-troops-back-to-bases-to-avoid-bloodshed/102520540',
+        'info_dict': {
+            'id': '102520540',
+            'title': 'Wagner Group retreating from Russia, leader Prigozhin to move to Belarus',
+            'ext': 'mp4',
+            'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
+            'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_crop_resize&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485',
+        }
     }]
 
     def _real_extract(self, url):
@@ -96,6 +105,15 @@ class ABCIE(InfoExtractor):
             urls_info = mobj.groupdict()
             youtube = False
             video = False
+        elif mobj is None:
+            mobj = re.search(r'"files":(?P<json_data>\[[^\]]+\])', webpage)
+            if mobj is None:
+                mobj = re.search(r'"renditions":(?P<json_data>\[[^\]]+\])', webpage)
+            if mobj:
+                import json
+                urls_info = json.loads(mobj.groupdict()["json_data"])
+                youtube = False
+                video = False
         else:
             mobj = re.search(r'<a href="(?P<url>http://www\.youtube\.com/watch\?v=[^"]+)"><span><strong>External Link:</strong>',
                              webpage)
