@@ -451,11 +451,10 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'https://api.bilibili.com/pgc/view/web/season', video_id, 'Get episode details',
             query={'ep_id': episode_id}, headers=headers)['result']
 
-        episode_number, episode_info = 1, {}
-        for idx, ep in enumerate(traverse_obj(bangumi_info, ('episodes', ..., {dict})), 1):
-            if str_or_none(ep.get('id')) == episode_id:
-                episode_number, episode_info = idx, ep
-                break
+        episode_number, episode_info = next((
+            (idx, ep) for idx, ep in enumerate(traverse_obj(
+                bangumi_info, ('episodes', ..., {dict})), 1)
+            if str_or_none(ep.get('id')) == episode_id), (1, {}))
 
         season_id = bangumi_info.get('season_id')
         season_number = season_id and next((
