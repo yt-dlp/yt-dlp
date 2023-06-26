@@ -131,7 +131,8 @@ class ABCIE(InfoExtractor):
             urls_info = self._parse_json(
                 mobj.group('json_data'), video_id, transform_source=js_to_json)
             youtube = mobj.group('type') == 'YouTube'
-            video = mobj.group('type') == 'Video' or traverse_obj(urls_info, (0, 'contentType')) == 'video/mp4'
+            video = mobj.group('type') == 'Video' or traverse_obj(
+                urls_info, (0, ('contentType', 'MIMEType')), get_all=False) == 'video/mp4'
 
         if not isinstance(urls_info, list):
             urls_info = [urls_info]
