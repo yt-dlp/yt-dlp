@@ -473,7 +473,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 'series_id': ('series', 'series_id', {str_or_none}),
                 'thumbnail': ('square_cover', {url_or_none}),
             }),
-            'title': join_nonempty('title', 'long_title', delim=' ', from_dict=episode_info)
+            'title': join_nonempty('title', 'long_title', delim=' ', from_dict=episode_info),
             'episode': episode_info.get('long_title'),
             'episode_id': episode_id,
             'episode_number': episode_number,
