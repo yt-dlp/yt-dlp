@@ -710,18 +710,24 @@ class VKPlayBaseIE(InfoExtractor):
         return self._search_json(
             r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id, fatal=False)
 
-    def _parse_playurls(self, playurls, video_id):
+    def _extract_formats(self, stream_info, video_id):
         formats = []
-        for playurl in playurls:
-            if not playurl.get('url', None):
-                continue
-            elif '.m3u8' in playurl['url']:
-                try:
-                    formats.extend(self._extract_m3u8_formats(playurl['url'], video_id))
-                except Exception:
-                    pass
+        for stream in traverse_obj(stream_info, (
+                'data', 0, 'playerUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
+            url = stream['url']
+            format_id = str_or_none(stream['type'])
+            if format_id in ('hls', 'live_hls', 'live_playback_hls') or '.m3u8' in url:
+                formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id=format_id, fatal=False))
+            elif format_id in ('dash', 'live_dash', 'live_playback_dash'):
+                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id=format_id, fatal=False))
             else:
-                formats.append(playurl)
+                formats.append({
+                    'url': url,
+                    'ext': 'mp4',
+                    'format_id': format_id,
+                    **parse_resolution(self._RESOLUTIONS.get(format_id)),
+                })
+
         return formats
 
 
