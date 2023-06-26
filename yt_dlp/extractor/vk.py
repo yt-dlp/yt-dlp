@@ -707,9 +707,8 @@ class VKWallPostIE(VKBaseIE):
 class VKPlayBaseIE(InfoExtractor):
     def _extract_initial_state(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
-        initial_state_json = self._search_regex(r'id="initial-state"[^>]*>([^<]+)</script>', webpage, 'initial_state')
-        initial_state = self._parse_json(initial_state_json, video_id, fatal=False)
-        return initial_state
+        return self._search_json(
+            r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id, fatal=False)
 
     def _parse_playurls(self, playurls, video_id):
         formats = []
