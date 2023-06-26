@@ -762,7 +762,7 @@ class VKPlayIE(VKPlayBaseIE):
 
         return {
             'id': video_id,
-            'formats': self._parse_playurls(playurls, video_id),
+            'formats': self._extract_formats(record_info, video_id),
             **traverse_obj(record_info, {
                 'title': ('title', {str}),
                 'release_timestamp': ('startTime', {int_or_none}),
