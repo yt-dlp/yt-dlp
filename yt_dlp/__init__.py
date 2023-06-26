@@ -13,6 +13,7 @@ import optparse
 import os
 import re
 import sys
+import traceback
 
 from .compat import compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
@@ -187,8 +188,8 @@ def validate_options(opts):
         raise ValueError(f'{max_name} "{max_val}" must be must be greater than or equal to {min_name} "{min_val}"')
 
     # Usernames and passwords
-    validate(not opts.usenetrc or (opts.username is None and opts.password is None),
-             '.netrc', msg='using {name} conflicts with giving username/password')
+    validate(sum(map(bool, (opts.usenetrc, opts.netrc_cmd, opts.username))) <= 1, '.netrc',
+             msg='{name}, netrc command and username/password are mutually exclusive options')
     validate(opts.password is None or opts.username is not None, 'account username', msg='{name} missing')
     validate(opts.ap_password is None or opts.ap_username is not None,
              'TV Provider account username', msg='{name} missing')
@@ -319,26 +320,49 @@ def validate_options(opts):
         opts.skip_download = None
         del opts.outtmpl['default']
 
-    def parse_chapters(name, value):
-        chapters, ranges = [], []
+    def parse_chapters(name, value, advanced=False):
         parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
-        for regex in value or []:
-            if regex.startswith('*'):
-                for range_ in map(str.strip, regex[1:].split(',')):
-                    mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
-                    dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
-                    if None in (dur or [None]):
-                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "*start-end"')
-                    ranges.append(dur)
-                continue
-            try:
-                chapters.append(re.compile(regex))
-            except re.error as err:
-                raise ValueError(f'invalid {name} regex "{regex}" - {err}')
-        return chapters, ranges
+        TIMESTAMP_RE = r'''(?x)(?:
+            (?P<start_sign>-?)(?P<start>[^-]+)
+        )?\s*-\s*(?:
+            (?P<end_sign>-?)(?P<end>[^-]+)
+        )?'''
 
-    opts.remove_chapters, opts.remove_ranges = parse_chapters('--remove-chapters', opts.remove_chapters)
-    opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges))
+        chapters, ranges, from_url = [], [], False
+        for regex in value or []:
+            if advanced and regex == '*from-url':
+                from_url = True
+                continue
+            elif not regex.startswith('*'):
+                try:
+                    chapters.append(re.compile(regex))
+                except re.error as err:
+                    raise ValueError(f'invalid {name} regex "{regex}" - {err}')
+                continue
+
+            for range_ in map(str.strip, regex[1:].split(',')):
+                mobj = range_ != '-' and re.fullmatch(TIMESTAMP_RE, range_)
+                dur = mobj and [parse_timestamp(mobj.group('start') or '0'), parse_timestamp(mobj.group('end') or 'inf')]
+                signs = mobj and (mobj.group('start_sign'), mobj.group('end_sign'))
+
+                err = None
+                if None in (dur or [None]):
+                    err = 'Must be of the form "*start-end"'
+                elif not advanced and any(signs):
+                    err = 'Negative timestamps are not allowed'
+                else:
+                    dur[0] *= -1 if signs[0] else 1
+                    dur[1] *= -1 if signs[1] else 1
+                    if dur[1] == float('-inf'):
+                        err = '"-inf" is not a valid end'
+                if err:
+                    raise ValueError(f'invalid {name} time range "{regex}". {err}')
+                ranges.append(dur)
+
+        return chapters, ranges, from_url
+
+    opts.remove_chapters, opts.remove_ranges, _ = parse_chapters('--remove-chapters', opts.remove_chapters)
+    opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges, True))
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
@@ -434,6 +458,10 @@ def validate_options(opts):
                 f'No such {format_field(proto, None, "%s ", ignore="default")}external downloader "{path}"')
         elif ed and proto == 'default':
             default_downloader = ed.get_basename()
+
+    for policy in opts.color.values():
+        if policy not in ('always', 'auto', 'no_color', 'never'):
+            raise ValueError(f'"{policy}" is not a valid color policy')
 
     warnings, deprecation_warnings = [], []
 
@@ -736,6 +764,7 @@ def parse_options(argv=None):
     return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
+        'netrc_cmd': opts.netrc_cmd,
         'username': opts.username,
         'password': opts.password,
         'twofactor': opts.twofactor,
@@ -893,7 +922,7 @@ def parse_options(argv=None):
         'playlist_items': opts.playlist_items,
         'xattr_set_filesize': opts.xattr_set_filesize,
         'match_filter': opts.match_filter,
-        'no_color': opts.no_color,
+        'color': opts.color,
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
         'hls_use_mpegts': opts.hls_use_mpegts,
@@ -937,14 +966,18 @@ def _real_main(argv=None):
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        updater = Updater(ydl, opts.update_self if isinstance(opts.update_self, str) else None)
-        if opts.update_self and updater.update() and actual_use:
-            if updater.cmd:
-                return updater.restart()
-            # This code is reachable only for zip variant in py < 3.10
-            # It makes sense to exit here, but the old behavior is to continue
-            ydl.report_warning('Restart yt-dlp to use the updated version')
-            # return 100, 'ERROR: The program must exit for the update to complete'
+        try:
+            updater = Updater(ydl, opts.update_self)
+            if opts.update_self and updater.update() and actual_use:
+                if updater.cmd:
+                    return updater.restart()
+                # This code is reachable only for zip variant in py < 3.10
+                # It makes sense to exit here, but the old behavior is to continue
+                ydl.report_warning('Restart yt-dlp to use the updated version')
+                # return 100, 'ERROR: The program must exit for the update to complete'
+        except Exception:
+            traceback.print_exc()
+            ydl._download_retcode = 100
 
         if not actual_use:
             if pre_process:

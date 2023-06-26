@@ -23,7 +23,6 @@ from ..utils import (
     encodeArgument,
     encodeFilename,
     find_available_port,
-    handle_youtubedl_headers,
     remove_end,
     sanitized_Request,
     traverse_obj,
@@ -272,7 +271,7 @@ class Aria2cFD(ExternalFD):
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-c',
+        cmd = [self.exe, '-c', '--no-conf',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
                '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
@@ -529,10 +528,9 @@ class FFmpegFD(ExternalFD):
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
             if fmt.get('http_headers') and re.match(r'^https?://', fmt['url']):
-                headers_dict = handle_youtubedl_headers(fmt['http_headers'])
                 # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in headers_dict.items())])
+                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
 
             if start_time:
                 args += ['-ss', str(start_time)]
