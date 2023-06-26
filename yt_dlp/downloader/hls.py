@@ -93,10 +93,12 @@ class HlsFD(FragmentFD):
                            f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
             if self._has_drm(s) and not self.params.get('allow_unplayable_formats'):
-                hint = ('' if info_dict.get('has_drm') and self.params.get('test') else
-                        '; Try selecting another format with --format or '
-                        'add --check-formats to automatically fallback to the next best format')
-                self.report_error(f'This stream is DRM protected{hint}', tb=False)
+                if info_dict.get('has_drm') and self.params.get('test'):
+                    self.to_screen(f'[{self.FD_NAME}] This format is DRM protected', skip_eol=True)
+                else:
+                    self.report_error(
+                        'This format is DRM protected; Try selecting another format with --format or '
+                        'add --check-formats to automatically fallback to the next best format', tb=False)
                 return False
             message = message or 'Unsupported features have been detected'
             fd = FFmpegFD(self.ydl, self.params)
