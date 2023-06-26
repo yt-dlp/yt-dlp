@@ -59,6 +59,7 @@ from ..compat import (
     compat_shlex_quote,
 )
 from ..dependencies import brotli, certifi, websockets, xattr
+from ..globals import _IN_CLI
 from ..socks import ProxyType, sockssocket
 
 __name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
@@ -1882,8 +1883,7 @@ def write_string(s, out=None, encoding=None):
 
 
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    from .. import _IN_CLI
-    if _IN_CLI:
+    if _IN_CLI.get():
         if msg in deprecation_warning._cache:
             return
         deprecation_warning._cache.add(msg)

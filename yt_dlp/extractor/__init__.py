@@ -1,16 +1,16 @@
 from ..compat.compat_utils import passthrough_module
+from ..globals import ALL_IES
 
 passthrough_module(__name__, '.extractors')
 del passthrough_module
 
 
 def gen_extractor_classes():
-    """ Return a list of supported extractors.
+    """ Return an iterable of supported extractors.
     The order does matter; the first extractor matched is the one handling the URL.
     """
-    from .extractors import _ALL_CLASSES
-
-    return _ALL_CLASSES
+    from . import extractors  # noqa: F401
+    return ALL_IES.get().values()
 
 
 def gen_extractors():
@@ -21,7 +21,7 @@ def gen_extractors():
 
 
 def list_extractor_classes(age_limit=None):
-    """Return a list of extractors that are suitable for the given age, sorted by extractor name"""
+    """Return an iterable of extractors that are suitable for the given age, sorted by extractor name"""
     from .generic import GenericIE
 
     yield from sorted(filter(
@@ -37,6 +37,5 @@ def list_extractors(age_limit=None):
 
 def get_info_extractor(ie_name):
     """Returns the info extractor class with the given ie_name"""
-    from . import extractors
-
-    return getattr(extractors, f'{ie_name}IE')
+    from . import extractors  # noqa: F401
+    return ALL_IES.get()[f'{ie_name}IE']

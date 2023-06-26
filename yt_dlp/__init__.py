@@ -20,11 +20,11 @@ from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
+from .globals import _IN_CLI, ffmpeg_location
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
-    FFmpegPostProcessor,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoConvertorPP,
@@ -63,8 +63,6 @@ from .utils import (
     write_string,
 )
 from .YoutubeDL import YoutubeDL
-
-_IN_CLI = False
 
 
 def _exit(status=0, *args):
@@ -957,7 +955,7 @@ def _real_main(argv=None):
     # We may need ffmpeg_location without having access to the YoutubeDL instance
     # See https://github.com/yt-dlp/yt-dlp/issues/2191
     if opts.ffmpeg_location:
-        FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
+        ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
@@ -1002,8 +1000,7 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    global _IN_CLI
-    _IN_CLI = True
+    _IN_CLI.set(True)
     try:
         _exit(*variadic(_real_main(argv)))
     except DownloadError:
