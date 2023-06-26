@@ -296,10 +296,13 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             smil_url = self._sign_url(smil_url, sig['key'], sig['secret'])
 
         formats, subtitles = self._extract_theplatform_smil(smil_url, video_id)
-
-        if not subtitles:
-            void, subtitles = self._extract_m3u8_formats_and_subtitles(url.split("&")[0],video_id)
         
+        #on at least one site reading just the SMIL data misses some formats as well as subtitles.
+        #Therefore also read the m3u8 file and add those formats and subtitles
+        formats2, subtitles2 = self._extract_m3u8_formats_and_subtitles(url.split("&")[0],video_id)
+        
+        formats += formats2
+        subtitles.update(subtitles2)
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
         ret.update({

@@ -161,7 +161,7 @@ class CBCPlayerIE(InfoExtractor):
             'upload_date': '20160210',
             'uploader': 'CBCC-NEW',
         },
-        'skip': 'Geo-restricted to Canada',
+        'skip': 'Geo-restricted to Canada and no longer available',
     }, {
         # Redirected from http://www.cbc.ca/player/AudioMobile/All%20in%20a%20Weekend%20Montreal/ID/2657632011/
         'url': 'http://www.cbc.ca/player/play/2657631896',
@@ -187,6 +187,37 @@ class CBCPlayerIE(InfoExtractor):
             'upload_date': '20111104',
             'uploader': 'CBCC-NEW',
         },
+    },
+    { # This generally lasts about a month. The reason this video is fitting is because it has subtitles, which are now also supported. 
+    # If this video is expired, look here for a new one: https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
+        'url': 'http://www.cbc.ca/player/play/2233316419710',
+        'md5': '8d60d5cc8b8afeee329c098dd9bce62e',
+        'info_dict': {
+            'id': '2233316419710',
+            'ext': 'mp4',
+            'title': 'The National | Sub implosion, Bus crash victims, Facebook blocks news',
+            'description': 'June 22, 2023 | The U.S. Coast Guard says the submersible that went missing near the Titanic likely imploded. Police release the photos and names of the 16 people killed in the Manitoba bus crash. Plus, Meta says it will block news on Facebook and Instagram in Canada.',
+            'timestamp': 1687485600,
+            'duration': 2692.066,
+            'subtitles': {
+                'eng': [
+                    {
+                        'ext': 'vtt',
+                        'protocol': 'm3u8_native',
+                    }
+                ]
+            },
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/961/523/thumbnail.jpeg',
+            'uploader': 'CBCC-NEW',
+            'chapters': [
+                {'end_time': 1202.433, 'start_time': 0.0},
+                {'end_time': 1520.961, 'start_time': 1202.433},
+                {'end_time': 2059.176, 'start_time': 1520.961},
+                {'end_time': 2559.192, 'start_time': 2059.176},
+                {'end_time': 2692.066, 'start_time': 2559.192}
+            ],
+            'upload_date': '20230623',
+        },
     }]
 
     def _real_extract(self, url):
@@ -199,6 +230,9 @@ class CBCPlayerIE(InfoExtractor):
                     'force_smil_url': True
                 }),
             'id': video_id,
+            '_format_sort_fields': ('res', 'proto') #needed because the m3u8 stream bandwidth info is wrong at least sometimes, 
+                #making the format chooser prefer a supposedly higher quality file when it's just the same mp4 split up and served via hls.
+                #Since the bandwidth for downloading the direct mp4 does not seem to be limited, it's better to just download the whole mp4 file at once.
         }
 
 
