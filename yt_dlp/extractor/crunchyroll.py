@@ -490,18 +490,18 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?crunchyroll\.com/
         (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
-        watch/(?P<type>concert|musicvideo)/(?P<id>\w{10})'''
+        watch/(?P<type>concert|musicvideo)/(?P<id>\w+)'''
     _TESTS = [{
-        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C',
+        'url': 'https://www.crunchyroll.com/de/watch/musicvideo/MV5B02C79',
         'info_dict': {
             'ext': 'mp4',
-            'id': 'MV88BB7F2C',
-            'display_id': 'crossing-field',
-            'title': 'Crossing Field',
-            'track': 'Crossing Field',
-            'artist': 'LiSA',
+            'id': 'MV5B02C79',
+            'display_id': 'egaono-hana',
+            'title': 'Egaono Hana',
+            'track': 'Egaono Hana',
+            'artist': 'Goose house',
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
-            'genre': ['Anime'],
+            'genre': ['j pop'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -519,7 +519,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C/crossing-field',
+        'url': 'https://www.crunchyroll.com/de/watch/musicvideo/MV5B02C79/egaono-hana',
         'only_matching': True,
     }, {
         'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135/live-is-smile-always-364joker-at-yokohama-arena',
