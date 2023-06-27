@@ -161,7 +161,6 @@ class CBCPlayerIE(InfoExtractor):
             'upload_date': '20160210',
             'uploader': 'CBCC-NEW',
         },
-        'skip': 'Geo-restricted to Canada',
         'skip': 'Geo-restricted to Canada and no longer available',
     }, {
         # Redirected from http://www.cbc.ca/player/AudioMobile/All%20in%20a%20Weekend%20Montreal/ID/2657632011/
