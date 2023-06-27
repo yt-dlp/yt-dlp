@@ -11,11 +11,6 @@ from ..utils import (
 class StacommuBaseIE(WrestleUniverseBaseIE):
     _NETRC_MACHINE = 'stacommu'
     _API_HOST = 'api.stacommu.jp'
-    _API_PATH = None
-    _REAL_TOKEN = None
-    _TOKEN_EXPIRY = None
-    _REFRESH_TOKEN = None
-    _DEVICE_ID = None
     _LOGIN_QUERY = {'key': 'AIzaSyCR9czxhH2eWuijEhTNWBZ5MCcOYEUTAhg'}
     _LOGIN_HEADERS = {
         'Accept': '*/*',
