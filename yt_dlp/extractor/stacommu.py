@@ -80,14 +80,8 @@ class StacommuVODIE(StacommuBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._call_api(video_id, msg='video information', auth=False, fatal=False)
-        if not video_info:
-            webpage = self._download_webpage(url, video_id)
-            nextjs_data = self._search_nextjs_data(webpage, video_id)
-            video_info = traverse_obj(
-                nextjs_data,
-                ('props', 'pageProps', 'dehydratedState', 'queries', 0, 'state', 'data', {dict})
-            ) or {}
+        video_info = self._download_metadata(
+            url, video_id, 'ja', ('dehydratedState', 'queries', 0, 'state', 'data'))
         hls_info, decrypt = self._call_encrypted_api(
             video_id, ':watch', 'stream information', data={'method': 1})
 

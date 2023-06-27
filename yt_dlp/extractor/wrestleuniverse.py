@@ -142,12 +142,12 @@ class WrestleUniverseBaseIE(InfoExtractor):
         }, query=query, fatal=fatal)
         return api_json, decrypt
 
-    def _download_metadata(self, url, video_id, lang, props_key):
+    def _download_metadata(self, url, video_id, lang, props_keys):
         metadata = self._call_api(video_id, msg='metadata', query={'al': lang or 'ja'}, auth=False, fatal=False)
         if not metadata:
             webpage = self._download_webpage(url, video_id)
             nextjs_data = self._search_nextjs_data(webpage, video_id)
-            metadata = traverse_obj(nextjs_data, ('props', 'pageProps', props_key, {dict})) or {}
+            metadata = traverse_obj(nextjs_data, ('props', 'pageProps', *props_keys, {dict})) or {}
         return metadata
 
     def _get_formats(self, data, path, video_id=None):
@@ -187,7 +187,7 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
-        metadata = self._download_metadata(url, video_id, lang, 'videoEpisodeFallbackData')
+        metadata = self._download_metadata(url, video_id, lang, ('videoEpisodeFallbackData',))
         video_data = self._call_api(video_id, ':watch', 'watch', data={
             # 'deviceId' is required if ignoreDeviceRestriction is False
             'ignoreDeviceRestriction': True,
@@ -266,7 +266,7 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
-        metadata = self._download_metadata(url, video_id, lang, 'eventFallbackData')
+        metadata = self._download_metadata(url, video_id, lang, ('eventFallbackData',))
 
         info = {
             'id': video_id,
