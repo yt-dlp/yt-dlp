@@ -3,6 +3,8 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
+    remove_start,
+    traverse_obj,
     update_url_query,
     urlencode_postdata,
 )
@@ -72,7 +74,14 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         requestor_id, brand = self._DOMAIN_MAP[domain]
         result = self._download_json(
             'https://feeds.video.aetnd.com/api/v2/%s/videos' % brand,
-            filter_value, query={'filter[%s]' % filter_key: filter_value})['results'][0]
+            filter_value, query={'filter[%s]' % filter_key: filter_value})
+        result = traverse_obj(
+            result, ('results',
+                     lambda k, v: k == 0 and v[filter_key] == filter_value),
+            get_all=False)
+        if not result:
+            raise ExtractorError('Show not found in A&E feed (too new?)', expected=True,
+                                 video_id=remove_start(filter_value, '/'))
         title = result['title']
         video_id = result['id']
         media_url = result['publicUrl']
@@ -123,7 +132,7 @@ class AENetworksIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
-        'skip': 'This video is only available for users of participating TV providers.',
+        'skip': 'Geo-restricted - This content is not available in your location.'
     }, {
         'url': 'http://www.aetv.com/shows/duck-dynasty/season-9/episode-1',
         'info_dict': {
@@ -140,6 +149,7 @@ class AENetworksIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'This video is only available for users of participating TV providers.',
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
         'only_matching': True
@@ -303,6 +313,7 @@ class HistoryTopicIE(AENetworksBaseIE):
 class HistoryPlayerIE(AENetworksBaseIE):
     IE_NAME = 'history:player'
     _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:history|biography)\.com)/player/(?P<id>\d+)'
+    _TESTS = []
 
     def _real_extract(self, url):
         domain, video_id = self._match_valid_url(url).groups()

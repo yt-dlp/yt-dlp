@@ -16,6 +16,7 @@ from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
+    network_exceptions,
     remove_end,
     remove_start,
     sanitized_Request,
@@ -128,27 +129,36 @@ class Updater:
         self.ydl = ydl
 
         self.target_channel, sep, self.target_tag = (target or CHANNEL).rpartition('@')
-        if not sep and self.target_tag in UPDATE_SOURCES:  # stable => stable@latest
-            self.target_channel, self.target_tag = self.target_tag, None
+        # stable => stable@latest
+        if not sep and ('/' in self.target_tag or self.target_tag in UPDATE_SOURCES):
+            self.target_channel = self.target_tag
+            self.target_tag = None
         elif not self.target_channel:
-            self.target_channel = CHANNEL
+            self.target_channel = CHANNEL.partition('@')[0]
 
         if not self.target_tag:
-            self.target_tag, self._exact = 'latest', False
+            self.target_tag = 'latest'
+            self._exact = False
         elif self.target_tag != 'latest':
             self.target_tag = f'tags/{self.target_tag}'
 
-    @property
-    def _target_repo(self):
-        try:
-            return UPDATE_SOURCES[self.target_channel]
-        except KeyError:
-            return self._report_error(
-                f'Invalid update channel {self.target_channel!r} requested. '
-                f'Valid channels are {", ".join(UPDATE_SOURCES)}', True)
+        if '/' in self.target_channel:
+            self._target_repo = self.target_channel
+            if self.target_channel not in (CHANNEL, *UPDATE_SOURCES.values()):
+                self.ydl.report_warning(
+                    f'You are switching to an {self.ydl._format_err("unofficial", "red")} executable '
+                    f'from {self.ydl._format_err(self._target_repo, self.ydl.Styles.EMPHASIS)}. '
+                    f'Run {self.ydl._format_err("at your own risk", "light red")}')
+                self._block_restart('Automatically restarting into custom builds is disabled for security reasons')
+        else:
+            self._target_repo = UPDATE_SOURCES.get(self.target_channel)
+            if not self._target_repo:
+                self._report_error(
+                    f'Invalid update channel {self.target_channel!r} requested. '
+                    f'Valid channels are {", ".join(UPDATE_SOURCES)}', True)
 
     def _version_compare(self, a, b, channel=CHANNEL):
-        if channel != self.target_channel:
+        if self._exact and channel != self.target_channel:
             return False
 
         if _VERSION_RE.fullmatch(f'{a}.{b}'):
@@ -258,8 +268,8 @@ class Updater:
             self.ydl.to_screen((
                 f'Available version: {self._label(self.target_channel, self.latest_version)}, ' if self.target_tag == 'latest' else ''
             ) + f'Current version: {self._label(CHANNEL, self.current_version)}')
-        except Exception:
-            return self._report_network_error('obtain version info', delim='; Please try again later or')
+        except network_exceptions as e:
+            return self._report_network_error(f'obtain version info ({e})', delim='; Please try again later or')
 
         if not is_non_updateable():
             self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
@@ -284,6 +294,7 @@ class Updater:
         if (_VERSION_RE.fullmatch(self.target_tag[5:])
                 and version_tuple(self.target_tag[5:]) < (2023, 3, 2)):
             self.ydl.report_warning('You are downgrading to a version without --update-to')
+            self._block_restart('Cannot automatically restart to a version without --update-to')
 
         directory = os.path.dirname(self.filename)
         if not os.access(self.filename, os.W_OK):
@@ -303,7 +314,7 @@ class Updater:
 
         try:
             newcontent = self._download(self.release_name, self._tag)
-        except Exception as e:
+        except network_exceptions as e:
             if isinstance(e, urllib.error.HTTPError) and e.code == 404:
                 return self._report_error(
                     f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
@@ -370,6 +381,12 @@ class Updater:
         self.ydl.write_debug(f'Restarting: {shell_quote(self.cmd)}')
         _, _, returncode = Popen.run(self.cmd)
         return returncode
+
+    def _block_restart(self, msg):
+        def wrapper():
+            self._report_error(f'{msg}. Restart yt-dlp to use the updated version', expected=True)
+            return self.ydl._download_retcode
+        self.restart = wrapper
 
 
 def run_update(ydl):

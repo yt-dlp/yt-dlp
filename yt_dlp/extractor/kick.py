@@ -30,7 +30,7 @@ class KickBaseIE(InfoExtractor):
 
 
 class KickIE(KickBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth)(?:[/?#]|$))(?P<id>[\w_]+)'
+    _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth)(?:[/?#]|$))(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://kick.com/yuppy',
         'info_dict': {
