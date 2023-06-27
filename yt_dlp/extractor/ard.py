@@ -13,6 +13,7 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp,
+    update_url,
     update_url_query,
     url_or_none,
     xpath_text,
@@ -408,6 +409,23 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         (?(playlist)/(?P<season>\d+)?/?(?:[?#]|$))'''
 
     _TESTS = [{
+        'url': 'https://www.ardmediathek.de/video/filme-im-mdr/wolfsland-die-traurigen-schwestern/mdr-fernsehen/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy8xZGY0ZGJmZS00ZWQwLTRmMGItYjhhYy0wOGQ4ZmYxNjVhZDI',
+        'md5': '3fd5fead7a370a819341129c8d713136',
+        'info_dict': {
+            'display_id': 'filme-im-mdr/wolfsland-die-traurigen-schwestern/mdr-fernsehen',
+            'id': '12172961',
+            'title': 'Wolfsland - Die traurigen Schwestern',
+            'description': r're:^Als der Polizeiobermeister Raaben',
+            'duration': 5241,
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:efa186f7b0054957',
+            'timestamp': 1670710500,
+            'upload_date': '20221210',
+            'ext': 'mp4',
+            'age_limit': 12,
+            'episode': 'Wolfsland - Die traurigen Schwestern',
+            'series': 'Filme im MDR'
+        },
+    }, {
         'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
         'md5': 'a1dc75a39c61601b980648f7c9f9f71d',
         'info_dict': {
@@ -424,7 +442,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         'skip': 'Error',
     }, {
         'url': 'https://www.ardmediathek.de/video/tagesschau-oder-tagesschau-20-00-uhr/das-erste/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhZ2Vzc2NoYXUvZmM4ZDUxMjgtOTE0ZC00Y2MzLTgzNzAtNDZkNGNiZWJkOTll',
-        'md5': 'f1837e563323b8a642a8ddeff0131f51',
+        'md5': '1e73ded21cb79bac065117e80c81dc88',
         'info_dict': {
             'id': '10049223',
             'ext': 'mp4',
@@ -432,13 +450,11 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'timestamp': 1636398000,
             'description': 'md5:39578c7b96c9fe50afdf5674ad985e6b',
             'upload_date': '20211108',
-        },
-    }, {
-        'url': 'https://www.ardmediathek.de/sendung/beforeigners/beforeigners/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw/1',
-        'playlist_count': 6,
-        'info_dict': {
-            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw',
-            'title': 'beforeigners/beforeigners/staffel-1',
+            'display_id': 'tagesschau-oder-tagesschau-20-00-uhr/das-erste',
+            'duration': 915,
+            'episode': 'tagesschau, 20:00 Uhr',
+            'series': 'tagesschau',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:fbb21142783b0a49',
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -602,6 +618,9 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
     show {
       title
     }
+    image {
+      src
+    }
     synopsis
     title
     tracking {
@@ -640,6 +659,15 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'description': description,
             'timestamp': unified_timestamp(player_page.get('broadcastedOn')),
             'series': try_get(player_page, lambda x: x['show']['title']),
+            'thumbnail': (media_collection.get('_previewImage')
+                          or try_get(player_page, lambda x: update_url(x['image']['src'], query=None, fragment=None))
+                          or self.get_thumbnail_from_html(display_id, url)),
         })
         info.update(self._ARD_extract_episode_info(info['title']))
         return info
+
+    def get_thumbnail_from_html(self, display_id, url):
+        webpage = self._download_webpage(url, display_id, fatal=False) or ''
+        return (
+            self._og_search_thumbnail(webpage, default=None)
+            or self._html_search_meta('thumbnailUrl', webpage, default=None))
