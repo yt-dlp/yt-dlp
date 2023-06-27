@@ -5,7 +5,6 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
@@ -63,26 +62,21 @@ class WrestleUniverseBaseIE(InfoExtractor):
         self._TOKEN_EXPIRY = expiry
 
     def _perform_login(self, username, password):
-        try:
-            login = self._download_json(
-                'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword', None,
-                'Logging in', query=self._LOGIN_QUERY, headers=self._LOGIN_HEADERS, data=json.dumps({
-                    'returnSecureToken': True,
-                    'email': username,
-                    'password': password,
-                }, separators=(',', ':')).encode())
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
-                message = traverse_obj(
-                    self._parse_json(e.cause.read().decode(), None), ('error', 'message', {str}))
-                raise ExtractorError(f'Unable to log in: {message}', expected=True)
-            else:
-                raise
-        else:
-            self._REFRESH_TOKEN = traverse_obj(login, ('refreshToken', {str}))
-            if not self._REFRESH_TOKEN:
-                self.report_warning('No refresh token was granted')
-            self._TOKEN = traverse_obj(login, ('idToken', {str}))
+        login = self._download_json(
+            'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword', None,
+            'Logging in', query=self._LOGIN_QUERY, headers=self._LOGIN_HEADERS, data=json.dumps({
+                'returnSecureToken': True,
+                'email': username,
+                'password': password,
+            }, separators=(',', ':')).encode(), expected_status=400)
+        token = traverse_obj(login, ('idToken', {str}))
+        if not token:
+            raise ExtractorError(
+                f'Unable to log in: {traverse_obj(login, ("error", "message"))}', expected=True)
+        self._REFRESH_TOKEN = traverse_obj(login, ('refreshToken', {str}))
+        if not self._REFRESH_TOKEN:
+            self.report_warning('No refresh token was granted')
+        self._TOKEN = token
 
     def _real_initialize(self):
         if self._DEVICE_ID:
