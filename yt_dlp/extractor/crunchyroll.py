@@ -501,7 +501,20 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'track': 'Egaono Hana',
             'artist': 'Goose house',
             'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
-            'genre': ['j pop'],
+            'genre': ['J-Pop'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    },{
+        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'MV88BB7F2C',
+            'display_id': 'crossing-field',
+            'title': 'Crossing Field',
+            'track': 'Crossing Field',
+            'artist': 'LiSA',
+            'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'genre': ['Anime'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -523,6 +536,9 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135/live-is-smile-always-364joker-at-yokohama-arena',
+        'only_matching': True,
+    },{
+        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C/crossing-field',
         'only_matching': True,
     }]
     _API_ENDPOINT = 'music'
