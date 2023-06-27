@@ -126,7 +126,7 @@ class StacommuLiveIE(StacommuBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._call_api(video_id, msg='video information', auth=False)
+        video_info = self._call_api(video_id, msg='video information', query={'al': 'ja'}, auth=False)
         hls_info, decrypt = self._call_encrypted_api(
             video_id, ':watchArchive', 'stream information', data={'method': 1})
 
