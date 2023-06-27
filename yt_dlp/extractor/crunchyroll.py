@@ -504,7 +504,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
             'genre': ['J-Pop'],
         },
         'params': {'skip_download': 'm3u8'},
-    },{
+    }, {
         'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C',
         'info_dict': {
             'ext': 'mp4',
@@ -537,7 +537,7 @@ class CrunchyrollMusicIE(CrunchyrollBaseIE):
     }, {
         'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135/live-is-smile-always-364joker-at-yokohama-arena',
         'only_matching': True,
-    },{
+    }, {
         'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C/crossing-field',
         'only_matching': True,
     }]
