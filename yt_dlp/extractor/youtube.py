@@ -4052,7 +4052,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
         if all(f.get('has_drm') for f in formats):
-            # If these are no formats that defenitely don't have DRM, all have DRM
+            # If there are no formats that definitely don't have DRM, all have DRM
             for f in formats:
                 f['has_drm'] = True
 
