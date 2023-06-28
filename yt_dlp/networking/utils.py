@@ -241,43 +241,28 @@ def make_ssl_context(
 
 class InstanceStoreMixin:
 
-    __instances = None
-
     @staticmethod
     def _create_instance(**kwargs) -> Any:
         raise NotImplementedError
 
+    __instances = None
+
     def _get_instance(self, **kwargs):
-        key_items = set()
-        for key in sorted(kwargs.keys()):
-            key_items.add(key)
-            if isinstance(kwargs[key], dict):
-                dict_items = {
-                    frozenset(frozenset({k, v}) if isinstance(v, Hashable) else k for k, v in kwargs[key].items())}
-                key_items.add(frozenset(dict_items))
-            elif isinstance(kwargs[key], Hashable):
-                key_items.add(kwargs[key])
-            elif isinstance(kwargs[key], Iterable):
-                key_items.add(frozenset(v for v in kwargs[key] if isinstance(v, Hashable)))
-            else:
-                raise ValueError(f'unable to handle key {kwargs[key]}')
-        instance_key = frozenset(key_items)
-
         if self.__instances is None:
-            self.__instances = {}
+            self.__instances = []
 
-        instance = self.__instances.get(instance_key)
-        if instance:
-            return instance
+        for key, instance in self.__instances:
+            if key == kwargs:
+                return instance
 
         instance = self._create_instance(**kwargs)
-        self.__instances[instance_key] = instance
+        self.__instances.append((kwargs, instance))
         return instance
 
     def _clear_instances(self):
         if self.__instances is None:
             return
-        for instance in self.__instances.values():
+        for _, instance in self.__instances:
             if callable(getattr(instance, 'close', None)):
                 instance.close()
         self.__instances = None

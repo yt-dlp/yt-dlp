@@ -243,12 +243,10 @@ class TestInstanceStoreMixin(unittest.TestCase):
             mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}),
             mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}))
 
-        # Nested dict is ignored
-        self.assertEqual(
+        self.assertNotEqual(
             mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'e', 4}}),
             mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}))
 
-        # But not the key
         self.assertNotEqual(
             mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}),
             mixin._get_instance(d={'a': 1, 'b': 2, 'g': {'d', 4}}))
