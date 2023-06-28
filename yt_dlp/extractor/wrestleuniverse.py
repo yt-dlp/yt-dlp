@@ -113,7 +113,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
         if data:
             headers['Content-Type'] = 'application/json;charset=utf-8'
             data = json.dumps(data, separators=(',', ':')).encode()
-        if auth and self._TOKEN:
+        if auth:
             headers['Authorization'] = f'Bearer {self._TOKEN}'
         return self._download_json(
             f'https://{self._API_HOST}/v1/{self._API_PATH}/{video_id}{param}', video_id,
@@ -143,7 +143,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
         return api_json, decrypt
 
     def _download_metadata(self, url, video_id, lang, props_keys):
-        metadata = self._call_api(video_id, msg='video information', query={'al': lang or 'ja'}, auth=False, fatal=False)
+        metadata = self._call_api(video_id, msg='metadata', query={'al': lang or 'ja'}, auth=False, fatal=False)
         if not metadata:
             webpage = self._download_webpage(url, video_id)
             nextjs_data = self._search_nextjs_data(webpage, video_id)
