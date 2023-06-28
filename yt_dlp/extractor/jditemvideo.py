@@ -4,7 +4,7 @@ import random
 import time
 
 from .common import InfoExtractor
-from ..utils import determine_ext, ExtractorError
+from ..utils import determine_ext, ExtractorError, traverse_obj
 
 
 class JdItemVideoIE(InfoExtractor):
@@ -52,8 +52,7 @@ class JdItemVideoIE(InfoExtractor):
     def _real_extract(self, url):
         item_id = self._match_id(url=url)
         resp = self._download_webpage(url_or_request=url, video_id=item_id)
-        pattern_data = self._html_search_regex(pattern=r'"mainVideoId":"(\d+?)"', string=resp, name='videoId',
-                                               default=None)
+        pattern_data = self._html_search_regex(pattern=r'"mainVideoId":"(\d+?)"', string=resp, name='videoId')
         if pattern_data is None:
             raise ExtractorError("There are no any video. %s" % url)
 
@@ -75,11 +74,11 @@ class JdItemVideoIE(InfoExtractor):
         info_dict = {
             'id': item_id,
             'ext': ext,
-            'title': detailRespJson.get("extInfo", {}).get("videoName") or "unknown_video_title",
+            'title': traverse_obj(detailRespJson, ('extInfo', 'videoName'), default="unknown_video_title"),
             'description': description,
-            'size': detailRespJson.get("extInfo", {}).get("size"),
-            'width': detailRespJson.get("extInfo", {}).get("vwidth"),
-            'height': detailRespJson.get("extInfo", {}).get("vheight"),
+            'size': traverse_obj(detailRespJson, ("extInfo","size")),
+            'width': traverse_obj(detailRespJson, ("extInfo", "vwidth")),
+            'height': traverse_obj(detailRespJson, ("extInfo", "vheight")),
             'duration': detailRespJson.get("duration"),
             'thumbnail': detailRespJson.get("imageUrl"),
             'url': detailRespJson.get("playUrl")
