@@ -1018,7 +1018,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
             snippet_text = []
             for snippet in metadata_snippets:
-                runs = snippet.get('snippetText').get('runs')
+                runs = snippet.get('snippetText', {}).get('runs', [])
                 for run in runs:
                     snippet_text.append(run['text'])
             if snippet_text:
