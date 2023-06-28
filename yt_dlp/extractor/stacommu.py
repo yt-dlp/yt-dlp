@@ -27,6 +27,11 @@ class StacommuBaseIE(WrestleUniverseBaseIE):
 
         return self._REAL_TOKEN
 
+    def _get_formats(self, data, path, video_id=None):
+        if not traverse_obj(data, path) and not data.get('canWatch') and not self._TOKEN:
+            self.raise_login_required(method='password')
+        return super()._get_formats(data, path, video_id)
+
     def _extract_hls_key(self, data, path, decrypt):
         encryption_data = traverse_obj(data, path)
         if traverse_obj(encryption_data, ('encryptType', {int})) == 0:
