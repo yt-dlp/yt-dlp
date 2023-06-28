@@ -1,4 +1,5 @@
 import io
+import warnings
 from email.message import Message
 from http import HTTPStatus
 from typing import Mapping
@@ -65,21 +66,21 @@ class Response(io.IOBase):
     # The following methods are for compatability reasons and are deprecated
     @property
     def code(self):
-        """Deprecated, use `Response.status`"""
+        warnings.warn("code is deprecated, use status", DeprecationWarning, stacklevel=2)
         return self.status
 
     def getcode(self):
-        """Deprecated, use `Response.status`"""
+        warnings.warn("getcode() is deprecated, use status", DeprecationWarning, stacklevel=2)
         return self.status
 
     def geturl(self):
-        """Deprecated, use `Response.url`"""
+        warnings.warn("geturl() is deprecated, use url", DeprecationWarning, stacklevel=2)
         return self.url
 
     def info(self):
-        """Deprecated, use `Response.headers`"""
+        warnings.warn("info() is deprecated, use headers", DeprecationWarning, stacklevel=2)
         return self.headers
 
     def getheader(self, name, default=None):
-        """Deprecated, use `Response.get_header()`"""
+        warnings.warn("getheader() is deprecated, use headers", DeprecationWarning, stacklevel=2)
         return self.get_header(name, default)
