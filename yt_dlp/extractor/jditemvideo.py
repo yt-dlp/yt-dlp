@@ -50,36 +50,25 @@ class JdItemVideoIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-
         item_id = self._match_id(url=url)
         resp = self._download_webpage(url_or_request=url, video_id=item_id)
         pattern_data = self._html_search_regex(pattern=r'"mainVideoId":"(\d+?)"', string=resp, name='videoId',
                                                default=None)
         if pattern_data is None:
-            raise ValueError(
-                "There are no any video. %s" % url
-            )
-
+            raise ValueError("There are no any video. %s" % url)
 
         description = self._html_extract_title(resp)
         rand = random.randint(433333, 999999)
         timestamp = int(time.time() * 1000)
         url = self._JD_API_VIDEO_CALLBACK_URL.format(rand=rand, timestamp=timestamp, video_id=pattern_data)
-        mp4resp = self._download_webpage(
-            url_or_request=url,
-            video_id=item_id
-        )
+        mp4resp = self._download_webpage(url_or_request=url, video_id=item_id)
         detailResp = self._html_search_regex(pattern=r'jQuery\d+\((.+)\)', string=mp4resp, name='detail', default=None)
         if detailResp is None:
-            raise ValueError(
-                "Callback fail. return: %s" % detailResp
-            )
+            raise ValueError("Callback fail. return: %s" % detailResp)
 
         detailRespJson = json.loads(detailResp)
         if detailRespJson.get("code", -1) != 0:
-            raise ValueError(
-                "Callback fail. return: %s" % detailResp
-            )
+            raise ValueError("Callback fail. return: %s" % detailResp)
 
         ext = determine_ext(url=detailRespJson.get("playUrl", ""))
 
