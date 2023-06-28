@@ -6942,6 +6942,37 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             'title': 'youtube-dl test video',
         }
     }, {
+        'url': 'https://www.youtube.com/results?baz=bar&search_query=IaSGqQa5O-M&filters=video&lclk=video',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': 'IaSGqQa5O-M',
+            'title': 'IaSGqQa5O-M'
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'IaSGqQa5O-M',
+                'ext': None,
+                'title': 'Convolutions and adding random variables, visually explained',
+                'description': 'Adding random variables, with connections to the central limit theorem. Help fund future projects:\xa0...',
+                'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
+                'uploader_url': 'https://www.youtube.com/@3blue1brown',
+                'channel_is_verified': True,
+                'view_count': int,
+                'uploader': '3Blue1Brown',
+                'ie_key': 'Youtube',
+                'uploader_id': '@3blue1brown',
+                'channel': '3Blue1Brown',
+                'url': 'https://www.youtube.com/watch?v=IaSGqQa5O-M',
+                'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
+                'duration': 1645.0,
+            }
+        }],
+        'params': {
+            'extractor_args': {'youtubetab': {'approximate_description': ['1']}},
+            'extract_flat': True,
+            'playlist_items': '1'
+        }
+    }, {
         'url': 'https://www.youtube.com/results?search_query=python&sp=EgIQAg%253D%253D',
         'playlist_mincount': 5,
         'info_dict': {

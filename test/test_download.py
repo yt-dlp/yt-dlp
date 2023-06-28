@@ -106,7 +106,7 @@ def generator(test_case, tname):
             params = tc.get('params', {})
             if not info_dict.get('id'):
                 raise Exception(f'Test {tname} definition incorrect - "id" key is not present')
-            elif not info_dict.get('ext') and info_dict.get('_type', 'video') == 'video':
+            elif 'ext' not in info_dict and info_dict.get('_type', 'video') == 'video':
                 if params.get('skip_download') and params.get('ignore_no_formats_error'):
                     continue
                 raise Exception(f'Test {tname} definition incorrect - "ext" key must be present to define the output file')
