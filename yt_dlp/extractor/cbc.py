@@ -174,6 +174,9 @@ class CBCPlayerIE(InfoExtractor):
             'timestamp': 1425704400,
             'upload_date': '20150307',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
+            'chapters': [],
+            'duration': 494.811,
         },
     }, {
         'url': 'http://www.cbc.ca/player/play/2164402062',
@@ -186,6 +189,9 @@ class CBCPlayerIE(InfoExtractor):
             'timestamp': 1320410746,
             'upload_date': '20111104',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
+            'chapters': [],
+            'duration': 186.867,
         },
     },
     { # This generally lasts about a month. The reason this video is fitting is because it has subtitles, which are now also supported. 
