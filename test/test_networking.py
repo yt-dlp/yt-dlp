@@ -5,6 +5,7 @@ import io
 import os
 import random
 import sys
+import warnings
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -308,10 +309,12 @@ class TestResponse:
 
     def test_compat(self):
         res = Response(io.BytesIO(b''), url='test://', status=404, headers={'test': 'test'})
-        assert res.code == res.getcode() == res.status
-        assert res.geturl() == res.url
-        assert res.info() is res.headers
-        assert res.getheader('test') == res.get_header('test')
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            assert res.code == res.getcode() == res.status
+            assert res.geturl() == res.url
+            assert res.info() is res.headers
+            assert res.getheader('test') == res.get_header('test')
 
 
 if __name__ == '__main__':
