@@ -76,7 +76,7 @@ class JdItemVideoIE(InfoExtractor):
             'ext': ext,
             'title': traverse_obj(detailRespJson, ('extInfo', 'videoName'), default="unknown_video_title"),
             'description': description,
-            'size': traverse_obj(detailRespJson, ("extInfo","size")),
+            'size': traverse_obj(detailRespJson, ("extInfo", "size")),
             'width': traverse_obj(detailRespJson, ("extInfo", "vwidth")),
             'height': traverse_obj(detailRespJson, ("extInfo", "vheight")),
             'duration': detailRespJson.get("duration"),
