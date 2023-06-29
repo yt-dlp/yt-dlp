@@ -158,7 +158,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         return self._download_json(
             'https://www.ximalaya.com/revision/album/v1/getTracksList',
             playlist_id, note=f'Downloading tracks list page {page_idx}',
-            query={'albumId': playlist_id, 'pageNum': page_idx, 'sort': 1})['data']
+            query={'albumId': playlist_id, 'pageNum': page_idx})['data']
 
     def _get_entries(self, page_data):
         for e in page_data['tracks']:

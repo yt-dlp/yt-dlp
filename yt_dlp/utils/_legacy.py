@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import zlib
 
-from ._utils import decode_base_n, preferredencoding
+from ._utils import Popen, decode_base_n, preferredencoding
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 
@@ -174,3 +174,7 @@ def handle_youtubedl_headers(headers):
         del filtered_headers['Youtubedl-no-compression']
 
     return filtered_headers
+
+
+def process_communicate_or_kill(p, *args, **kwargs):
+    return Popen.communicate_or_kill(p, *args, **kwargs)

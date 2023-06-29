@@ -467,15 +467,15 @@ def create_parser():
         callback_kwargs={
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
-                'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
+                'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge', 'playlist-match-filter',
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
-                'youtube-dl': ['all', '-multistreams'],
-                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
+                'youtube-dl': ['all', '-multistreams', '-playlist-match-filter'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress'],
+                '2022': ['no-external-downloader-progress', 'playlist-match-filter'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -720,6 +720,10 @@ def create_parser():
         '--netrc-location',
         dest='netrc_location', metavar='PATH',
         help='Location of .netrc authentication data; either the path or its containing directory. Defaults to ~/.netrc')
+    authentication.add_option(
+        '--netrc-cmd',
+        dest='netrc_cmd', metavar='NETRC_CMD',
+        help='Command to execute to get the credentials for an extractor.')
     authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
@@ -1008,8 +1012,9 @@ def create_parser():
         '--download-sections',
         metavar='REGEX', dest='download_ranges', action='append',
         help=(
-            'Download only chapters whose title matches the given regular expression. '
-            'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
+            'Download only chapters that match the regular expression. '
+            'A "*" prefix denotes time-range instead of chapter. Negative timestamps are calculated from the end. '
+            '"*from-url" can be used to download between the "start_time" and "end_time" extracted from the URL. '
             'Needs ffmpeg. This option can be used multiple times to download multiple sections, '
             'e.g. --download-sections "*10:15-inf" --download-sections "intro"'))
     downloader.add_option(
@@ -1410,8 +1415,7 @@ def create_parser():
         '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
-            'Remove some private fields such as filenames from the infojson. '
-            'Note that it could still contain some personal information (default)'))
+            'Remove some internal metadata such as filenames from the infojson (default)'))
     filesystem.add_option(
         '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
@@ -1674,8 +1678,7 @@ def create_parser():
             'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
-            'After download, an additional field "filepath" that contains the final path of the downloaded file '
-            'is also available, and if no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
+            'If no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',

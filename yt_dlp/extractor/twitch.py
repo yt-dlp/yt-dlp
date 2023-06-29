@@ -60,7 +60,7 @@ class TwitchBaseIE(InfoExtractor):
     @property
     def _CLIENT_ID(self):
         return self._configuration_arg(
-            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key=TwitchStreamIE, casesense=True)[0]
+            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key='Twitch', casesense=True)[0]
 
     def _perform_login(self, username, password):
         def fail(message):
