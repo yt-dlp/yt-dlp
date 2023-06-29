@@ -114,7 +114,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
         if data:
             headers['Content-Type'] = 'application/json;charset=utf-8'
             data = json.dumps(data, separators=(',', ':')).encode()
-        if auth:
+        if auth and self._TOKEN:
             headers['Authorization'] = f'Bearer {self._TOKEN}'
         return self._download_json(
             f'https://{self._API_HOST}/v1/{self._API_PATH}/{video_id}{param}', video_id,
