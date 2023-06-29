@@ -2500,29 +2500,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'params': {'skip_download': True}
         }, {
-            # Story. Requires specific player params to work.
-            'url': 'https://www.youtube.com/watch?v=vv8qTUWmulI',
-            'info_dict': {
-                'id': 'vv8qTUWmulI',
-                'ext': 'mp4',
-                'availability': 'unlisted',
-                'view_count': int,
-                'channel_id': 'UCzIZ8HrzDgc-pNQDUG6avBA',
-                'upload_date': '20220526',
-                'categories': ['Education'],
-                'title': 'Story',
-                'channel': 'IT\'S HISTORY',
-                'description': '',
-                'duration': 12,
-                'playable_in_embed': True,
-                'age_limit': 0,
-                'live_status': 'not_live',
-                'tags': [],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/vv8qTUWmulI/maxresdefault.webp',
-                'channel_url': 'https://www.youtube.com/channel/UCzIZ8HrzDgc-pNQDUG6avBA',
-            },
-            'skip': 'stories get removed after some period of time',
-        }, {
             'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
             'info_dict': {
                 'id': 'tjjjtzRLHvA',
@@ -7112,22 +7089,6 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
         'url': ':ythistory',
         'only_matching': True,
     }]
-
-
-class YoutubeStoriesIE(InfoExtractor):
-    IE_DESC = 'YouTube channel stories; "ytstories:" prefix'
-    IE_NAME = 'youtube:stories'
-    _VALID_URL = r'ytstories:UC(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
-    _TESTS = [{
-        'url': 'ytstories:UCwFCb4jeqaKWnciAYM-ZVHg',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        playlist_id = f'RLTD{self._match_id(url)}'
-        return self.url_result(
-            smuggle_url(f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1', {'is_story': True}),
-            ie=YoutubeTabIE, video_id=playlist_id)
 
 
 class YoutubeShortsAudioPivotIE(InfoExtractor):
