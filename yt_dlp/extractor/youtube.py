@@ -1011,7 +1011,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
         description = self._get_text(renderer, 'descriptionSnippet')
         if not description and self._configuration_arg(
-                'approximate_description', ie_key=YoutubeTabIE):
+                'approximate_metadata', ie_key=YoutubeTabIE):
             description = join_nonempty(*(self._get_text(x, 'snippetText') for x in traverse_obj(
                 renderer, ('detailedMetadataSnippets',))), delim='') or None
 
@@ -1085,7 +1085,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
-                          if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
+                          if self._configuration_arg('approximate_metadata', ie_key=YoutubeTabIE)
                           else None),
             'release_timestamp': scheduled_timestamp,
             'availability':
@@ -6854,7 +6854,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
             rf'{re.escape(channel or "")}[^:]+: (.+)', notification_title,
             'video title', default=None)
         timestamp = (self._parse_time_text(self._get_text(notification, 'sentTimeText'))
-                     if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
+                     if self._configuration_arg('approximate_metadata', ie_key=YoutubeTabIE)
                      else None)
         return {
             '_type': 'url',
@@ -6955,10 +6955,11 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'url': 'https://www.youtube.com/watch?v=IaSGqQa5O-M',
                 'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
                 'duration': 1645.0,
+                'timestamp': 1687910400,
             }
         }],
         'params': {
-            'extractor_args': {'youtubetab': {'approximate_description': ['1']}},
+            'extractor_args': {'youtubetab': {'approximate_metadata': ['1']}},
             'extract_flat': True,
             'playlist_items': '1'
         }
