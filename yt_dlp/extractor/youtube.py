@@ -3612,8 +3612,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
-        if smuggled_data.get('is_story') or _split_innertube_client(client)[0] == 'android':
+        if _split_innertube_client(client)[0] == 'android':
             yt_query['params'] = self._PLAYER_PARAMS
+
+        if smuggled_data.get('player_params'):
+            yt_query['params'] = smuggled_data['player_params']
 
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
@@ -4060,9 +4063,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
+        if self._configuration_arg('player_use_pp'):
+            smuggled_data['player_params'] = parse_qs(url).get('pp', [None])[0]
 
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
+
+        if smuggled_data.get('player_params'):
+            webpage_url = update_url_query(webpage_url, query={'pp': smuggled_data['player_params']})
 
         webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
 
