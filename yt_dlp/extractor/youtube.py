@@ -1056,8 +1056,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             url = f'https://www.youtube.com/shorts/{video_id}'
 
         time_text = (self._get_text(renderer, 'publishedTimeText', 'videoInfo')
-                     or self._get_text(reel_header_renderer, 'timestampText')
-                     or self._get_text(renderer, 'publishedTimeText', 'simpleText') or '')
+                     or self._get_text(reel_header_renderer, 'timestampText') or '')
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
 
         live_status = (
