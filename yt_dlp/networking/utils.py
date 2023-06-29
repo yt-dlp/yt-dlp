@@ -240,11 +240,10 @@ def make_ssl_context(
 
 class InstanceStoreMixin:
 
-    @staticmethod
-    def _create_instance(**kwargs) -> Any:
-        raise NotImplementedError
-
     __instances = None
+
+    def _create_instance(self, **kwargs) -> Any:
+        raise NotImplementedError
 
     def _get_instance(self, **kwargs):
         if self.__instances is None:
@@ -258,12 +257,15 @@ class InstanceStoreMixin:
         self.__instances.append((kwargs, instance))
         return instance
 
+    def _close_instance(self, instance):
+        if callable(getattr(instance, 'close', None)):
+            instance.close()
+
     def _clear_instances(self):
         if self.__instances is None:
             return
         for _, instance in self.__instances:
-            if callable(getattr(instance, 'close', None)):
-                instance.close()
+            self._close_instance(instance)
         self.__instances = None
 
 
