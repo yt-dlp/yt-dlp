@@ -877,6 +877,11 @@ class TestYoutubeDLHTTP:
             res = ydl.urlopen(Request('http://user:pass@foo.bar'))
             assert res.request.headers['Authorization'] == 'Basic dXNlcjpwYXNz'
 
+    def test_sanitize_url(self):
+        with FakeRHYDL() as ydl:
+            res = ydl.urlopen(Request('httpss://foo.bar'))
+            assert res.request.url == 'https://foo.bar'
+
     def test_file_urls_error(self):
         # use urllib handler
         with FakeYDL() as ydl:

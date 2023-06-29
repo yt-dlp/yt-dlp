@@ -3952,7 +3952,7 @@ class YoutubeDL:
         url, basic_auth_header = extract_basic_auth(req.url)
         if basic_auth_header:
             req.headers['Authorization'] = basic_auth_header
-        req.url = url
+        req.url = sanitize_url(url)
 
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)

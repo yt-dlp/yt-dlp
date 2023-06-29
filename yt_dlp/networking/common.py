@@ -278,7 +278,11 @@ class Request:
 
     @url.setter
     def url(self, url):
-        self._url = escape_url(sanitize_url(url))
+        if not isinstance(url, str):
+            raise TypeError('url must be a string')
+        elif url.startswith('//'):
+            url = 'http:' + url
+        self._url = escape_url(url)
 
     @property
     def method(self):

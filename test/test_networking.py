@@ -227,8 +227,13 @@ class TestRequest:
         assert isinstance(req.copy(), AnotherRequest)
 
     def test_url(self):
-        # test the url sanitization and escape
-        pass
+        req = Request(url='https://фtest.example.com/ some spaceв?ä=c',)
+        assert req.url == 'https://xn--test-z6d.example.com/%20some%20space%D0%B2?%C3%A4=c'
+
+        assert Request(url='//example.com').url == 'http://example.com'
+
+        with pytest.raises(TypeError):
+            Request(url='https://').url = None
 
 
 class TestInstanceStoreMixin(unittest.TestCase):
