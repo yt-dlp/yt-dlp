@@ -517,7 +517,7 @@ class FragmentFD(FileDownloader):
                         })
                         decrypted_fragment = decrypt_fragment(fragment, self._read_fragment(ctx))
                         if self.params.get('keep_fragments', False):
-                            f, _ = self.sanitize_open(format(fragment['frag_index'], '05d') + '.ts', 'wb')
+                            f, _ = self.sanitize_open(ctx.get('fragment_filename_sanitized'), 'wb')
                             f.write(decrypted_fragment)
                         if not append_fragment(decrypted_fragment, frag_index, ctx):
                             return False
@@ -535,7 +535,7 @@ class FragmentFD(FileDownloader):
                     download_fragment(fragment, ctx)
                     decrypted_fragment = decrypt_fragment(fragment, self._read_fragment(ctx))
                     if self.params.get('keep_fragments', False):
-                        f, _ = self.sanitize_open(format(fragment['frag_index'], '05d') + '.ts', 'wb')
+                        f, _ = self.sanitize_open(ctx.get('fragment_filename_sanitized'), 'wb')
                         f.write(decrypted_fragment)
                     result = append_fragment(decrypted_fragment, fragment['frag_index'], ctx)
                 except KeyboardInterrupt:
