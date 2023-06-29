@@ -16,7 +16,7 @@ from http.cookiejar import CookieJar
 import pytest
 
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.networking.request import HEADRequest, PUTRequest, Request
+from yt_dlp.networking.common import Request, HEADRequest, PUTRequest
 from yt_dlp.networking.response import Response
 from yt_dlp.networking.utils import InstanceStoreMixin, select_proxy, make_socks_proxy_opts
 from yt_dlp.utils import CaseInsensitiveDict

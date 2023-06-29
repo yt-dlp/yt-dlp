@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..networking.request import HEADRequest, Request
+from ..networking.common import Request, HEADRequest
 from ..utils import (
     ExtractorError,
     find_xpath_attr,

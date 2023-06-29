@@ -31,7 +31,7 @@ from ..networking.exceptions import (
     IncompleteRead,
     network_exceptions,
 )
-from ..networking.request import HEADRequest, Request
+from ..networking.common import Request, HEADRequest
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,

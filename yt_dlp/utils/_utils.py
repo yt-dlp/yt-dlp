@@ -5529,7 +5529,7 @@ def clean_headers(headers: CaseInsensitiveDict):
 
 def urllib_req_to_req(urllib_request):
     # Convert urllib Request to a networking Request
-    from ..networking.request import Request
+    from ..networking.common import Request
     return Request(
         urllib_request.get_full_url(), data=urllib_request.data, method=urllib_request.get_method(),
         headers=CaseInsensitiveDict(urllib_request.headers, urllib_request.unredirected_hdrs),

@@ -2,7 +2,7 @@ from datetime import datetime
 import base64
 
 from .common import InfoExtractor
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import int_or_none, urlencode_postdata
 
 

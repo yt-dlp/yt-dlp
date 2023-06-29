@@ -1,10 +1,8 @@
 from typing import Dict, List
 
-# TODO: all request handlers should be safely imported
 from ._urllib import UrllibRH  # noqa: F401
-from .common import RequestHandler
+from .common import RequestHandler, Request
 from .exceptions import NoSupportingHandlers, RequestError, UnsupportedRequest
-from .request import Request
 from .response import Response
 from ..utils import bug_reports_message
 

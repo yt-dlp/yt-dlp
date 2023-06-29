@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from ..compat import compat_b64decode
-from ..networking.request import HEADRequest, Request
+from ..networking.common import Request, HEADRequest
 from ..utils import ExtractorError, urlencode_postdata
 
 

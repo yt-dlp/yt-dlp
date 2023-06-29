@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import (
     clean_html,
     determine_ext,

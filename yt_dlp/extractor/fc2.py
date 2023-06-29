@@ -3,7 +3,7 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
 from ..dependencies import websockets
-from ..networking.request import Request
+from ..networking.common import Request
 from ..utils import (
     ExtractorError,
     WebSocketsWrapper,

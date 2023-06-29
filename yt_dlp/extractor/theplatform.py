@@ -7,7 +7,7 @@ import hashlib
 
 from .once import OnceIE
 from .adobepass import AdobePassIE
-from ..networking.request import Request
+from ..networking.common import Request
 from ..utils import (
     determine_ext,
     ExtractorError,

@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError, compat_str, compat_urlparse
-from ..networking.request import Request
+from ..networking.common import Request
 from ..utils import (
     ExtractorError,
     determine_ext,

@@ -9,7 +9,7 @@ from ..compat import (
     compat_urllib_parse_unquote,
 )
 from ..networking.exceptions import network_exceptions
-from ..networking.request import Request
+from ..networking.common import Request
 from ..utils import (
     ExtractorError,
     clean_html,

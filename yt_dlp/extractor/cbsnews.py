@@ -7,7 +7,7 @@ import zlib
 from .anvato import AnvatoIE
 from .common import InfoExtractor
 from .paramountplus import ParamountPlusIE
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import (
     ExtractorError,
     UserNotLive,

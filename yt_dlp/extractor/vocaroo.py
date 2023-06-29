@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import float_or_none
 
 

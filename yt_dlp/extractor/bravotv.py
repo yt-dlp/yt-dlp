@@ -1,5 +1,5 @@
 from .adobepass import AdobePassIE
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import (
     extract_attributes,
     float_or_none,

@@ -3,7 +3,7 @@ import json
 import urllib.parse
 
 from .common import InfoExtractor
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,

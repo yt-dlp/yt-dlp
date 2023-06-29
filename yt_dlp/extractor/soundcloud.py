@@ -11,7 +11,7 @@ from ..compat import (
     compat_HTTPError,
     compat_str,
 )
-from ..networking.request import HEADRequest, Request
+from ..networking.common import Request, HEADRequest
 from ..utils import (
     error_to_compat_str,
     ExtractorError,

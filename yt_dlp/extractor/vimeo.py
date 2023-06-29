@@ -10,7 +10,7 @@ from ..compat import (
     compat_str,
     compat_urlparse,
 )
-from ..networking.request import HEADRequest, Request
+from ..networking.common import Request, HEADRequest
 from ..utils import (
     clean_html,
     determine_ext,

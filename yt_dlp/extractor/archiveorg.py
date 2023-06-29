@@ -7,7 +7,7 @@ from .common import InfoExtractor
 from .naver import NaverBaseIE
 from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
 from ..compat import compat_HTTPError, compat_urllib_parse_unquote
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,

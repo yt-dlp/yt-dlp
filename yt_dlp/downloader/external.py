@@ -9,7 +9,7 @@ import uuid
 
 from .fragment import FragmentFD
 from ..compat import functools
-from ..networking.request import Request
+from ..networking.common import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,

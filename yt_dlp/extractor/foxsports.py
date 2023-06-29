@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .uplynk import UplynkPreplayIE
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import float_or_none, make_archive_id, smuggle_url
 
 

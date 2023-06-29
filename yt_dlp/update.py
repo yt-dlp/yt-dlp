@@ -13,7 +13,7 @@ from zipimport import zipimporter
 from .compat import functools  # isort: split
 from .compat import compat_realpath, compat_shlex_quote
 from .networking.exceptions import network_exceptions
-from .networking.request import Request
+from .networking.common import Request
 from .utils import (
     Popen,
     cached_method,

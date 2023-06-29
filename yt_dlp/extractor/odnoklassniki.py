@@ -7,7 +7,7 @@ from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlparse,
 )
-from ..networking.request import HEADRequest
+from ..networking.common import HEADRequest
 from ..utils import (
     ExtractorError,
     float_or_none,

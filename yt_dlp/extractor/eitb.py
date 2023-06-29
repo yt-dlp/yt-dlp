@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..networking.request import Request
+from ..networking.common import Request
 from ..utils import float_or_none, int_or_none, parse_iso8601
 
 

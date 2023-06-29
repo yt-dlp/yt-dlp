@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..networking.request import Request
+from ..networking.common import Request
 from ..utils import (
     ExtractorError,
     int_or_none,

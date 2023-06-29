@@ -2,7 +2,7 @@ import json
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..networking.request import Request
+from ..networking.common import Request
 from ..utils import (
     clean_html,
     ExtractorError,
