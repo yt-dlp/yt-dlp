@@ -1010,19 +1010,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
         description = self._get_text(renderer, 'descriptionSnippet')
-        metadata_snippets = renderer.get('detailedMetadataSnippets')
-        wants_approximate_description = self._configuration_arg('approximate_description', ie_key=YoutubeTabIE)
-        if description is None and metadata_snippets is not None and wants_approximate_description:
-            # use metadata snippets to construct a description
-            # it won't be a full one, but should be usable for --flat-playlist
-
-            snippet_text = []
-            for snippet in metadata_snippets:
-                runs = snippet.get('snippetText', {}).get('runs', [])
-                for run in runs:
-                    snippet_text.append(run['text'])
-            if snippet_text:
-                description = ''.join(snippet_text)
+        if not description and self._configuration_arg(
+                'approximate_description', ie_key=YoutubeTabIE):
+            description = join_nonempty(*(self._get_text(x, 'snippetText') for x in traverse_obj(
+                renderer, ('detailedMetadataSnippets',))), delim='') or None
 
         duration = int_or_none(renderer.get('lengthSeconds'))
         if duration is None:
