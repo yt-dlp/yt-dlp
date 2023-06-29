@@ -22,7 +22,7 @@ from urllib.request import (
     UnknownHandler,
 )
 
-from .common import Features, RequestHandler
+from .common import Features, RequestHandler, Response
 from .exceptions import (
     HTTPError,
     IncompleteRead,
@@ -30,7 +30,6 @@ from .exceptions import (
     SSLError,
     TransportError,
 )
-from .response import Response
 from .utils import (
     InstanceStoreMixin,
     add_accept_encoding_header,
