@@ -66,7 +66,7 @@ class HTTPError(urllib.error.HTTPError, RequestError):
             msg += ' (redirect loop detected)'
         RequestError.__init__(self)
         super().__init__(
-            url=response.url, code=response.code, msg=msg, hdrs=response.headers, fp=response)
+            url=response.url, code=response.status, msg=msg, hdrs=response.headers, fp=response)
 
 
 # Backwards compat with http.client.IncompleteRead

@@ -143,7 +143,7 @@ class HttpFD(FileDownloader):
                         self.report_unable_to_resume()
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
-                ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
+                ctx.data_len = ctx.content_len = int_or_none(ctx.data.headers.get('Content-length', None))
             except HTTPError as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
@@ -151,7 +151,7 @@ class HttpFD(FileDownloader):
                         # Open the connection again without the range header
                         ctx.data = self.ydl.urlopen(
                             Request(url, request_data, headers))
-                        content_length = ctx.data.info()['Content-Length']
+                        content_length = ctx.data.headers['Content-Length']
                     except HTTPError as err:
                         if err.code < 500 or err.code >= 600:
                             raise
@@ -195,9 +195,9 @@ class HttpFD(FileDownloader):
                 ctx.stream = None
 
         def download():
-            data_len = ctx.data.info().get('Content-length')
+            data_len = ctx.data.headers.get('Content-length')
 
-            if ctx.data.info().get('Content-encoding'):
+            if ctx.data.headers.get('Content-encoding'):
                 # Content-encoding is present, Content-length is not reliable anymore as we are
                 # doing auto decompression. (See: https://github.com/yt-dlp/yt-dlp/pull/6176)
                 data_len = None
@@ -342,7 +342,7 @@ class HttpFD(FileDownloader):
 
             # Update file modification time
             if self.params.get('updatetime', True):
-                info_dict['filetime'] = self.try_utime(ctx.filename, ctx.data.info().get('last-modified', None))
+                info_dict['filetime'] = self.try_utime(ctx.filename, ctx.data.headers.get('last-modified', None))
 
             self._hook_progress({
                 'downloaded_bytes': byte_counter,

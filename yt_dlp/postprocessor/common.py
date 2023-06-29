@@ -208,7 +208,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                     return None
                 retry.error = PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
                 continue
-        return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
+        return json.loads(rsp.read().decode(rsp.headers.get_param('charset') or 'utf-8'))
 
 
 class AudioConversionError(PostProcessingError):  # Deprecated
