@@ -148,10 +148,8 @@ class WrestleUniverseBaseIE(InfoExtractor):
         if not metadata:
             webpage = self._download_webpage(url, video_id)
             nextjs_data = self._search_nextjs_data(webpage, video_id)
-            metadata = traverse_obj(
-                nextjs_data,
-                ('props', 'pageProps', *variadic(props_keys, (str, bytes, dict, set)), {dict})
-            ) or {}
+            metadata = traverse_obj(nextjs_data, (
+                'props', 'pageProps', *variadic(props_keys, (str, bytes, dict, set)), {dict})) or {}
         return metadata
 
     def _get_formats(self, data, path, video_id=None):
