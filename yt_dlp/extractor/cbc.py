@@ -193,9 +193,11 @@ class CBCPlayerIE(InfoExtractor):
             'chapters': [],
             'duration': 186.867,
         },
-    },
-    { # This generally lasts about a month. The reason this video is fitting is because it has subtitles, which are now also supported. 
-    # If this video is expired, look here for a new one: https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
+    }, {
+        # This generally lasts about a month. The reason this video is fitting is
+        # because it has subtitles, which are now also supported.
+        # If this video is expired, look here for a new one:
+        # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
         'url': 'http://www.cbc.ca/player/play/2233316419710',
         'md5': '8d60d5cc8b8afeee329c098dd9bce62e',
         'info_dict': {
@@ -236,9 +238,10 @@ class CBCPlayerIE(InfoExtractor):
                     'force_smil_url': True
                 }),
             'id': video_id,
-            '_format_sort_fields': ('res', 'proto') #needed because the m3u8 stream bandwidth info is wrong at least sometimes, 
-                #making the format chooser prefer a supposedly higher quality file when it's just the same mp4 split up and served via hls.
-                #Since the bandwidth for downloading the direct mp4 does not seem to be limited, it's better to just download the whole mp4 file at once.
+            # needed because the m3u8 stream bandwidth info is wrong at least sometimes,
+            # making the format chooser prefer a supposedly higher quality file when it's just the same mp4 split up and served via hls.
+            # Since the bandwidth for downloading the direct mp4 does not seem to be limited, it's better to just download the whole mp4 file at once.
+            '_format_sort_fields': ('res', 'proto')
         }
 
 

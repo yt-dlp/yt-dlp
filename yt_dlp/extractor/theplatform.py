@@ -299,11 +299,11 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             smil_url = self._sign_url(smil_url, sig['key'], sig['secret'])
 
         formats, subtitles = self._extract_theplatform_smil(smil_url, video_id)
-        
-        note='Downloading m3u8 information'
-        errnote='Failed to download m3u8 information'
-        #on at least one site reading just the SMIL data misses some formats as well as subtitles.
-        #Therefore also read the m3u8 file and add those formats and subtitles
+
+        note = 'Downloading m3u8 information'
+        errnote = 'Failed to download m3u8 information'
+        # on at least one site reading just the SMIL data misses some formats as well as subtitles.
+        # Therefore also read the m3u8 file and add those formats and subtitles
         m3u8_url = url.split("&")[0]
         res = self._download_webpage_handle(
             m3u8_url, video_id,
@@ -313,14 +313,14 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         if res is not False:
             m3u8_doc, urlh = res
             m3u8_url = urlh.geturl()
-            if m3u8_url.split("?")[0][-4:].lower()=="m3u8":
+            if m3u8_url.split("?")[0][-4:].lower() == "m3u8":
                 formats2, subtitles2 = self._parse_m3u8_formats_and_subtitles(
                     m3u8_doc, m3u8_url, entry_protocol='m3u8_native',
                     note=note, errnote=errnote, fatal=False,
                     video_id=video_id)
                 formats += formats2
                 subtitles.update(subtitles2)
-        
+
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
         ret.update({
