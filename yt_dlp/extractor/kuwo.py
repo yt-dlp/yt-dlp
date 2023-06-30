@@ -74,273 +74,303 @@ class KuwoIE(KuwoBaseIE):
             'id': '6446136',
             'ext': 'mp3',
             'title': '心',
-            'description': 'md5:5d0e947b242c35dc0eb1d2fce9fbf02c',
-            'creator': 'IU',
-            'upload_date': '20150518',
-        },
-        'params': {
-            'format': 'mp3-320',
-        },
-    }, {
-        'url': 'http://www.kuwo.cn/yinyue/3197154?catalog=yueku2016',
-        'only_matching': True,
+            'description': 'md5:589730b2111d5ac605689d15e5d25926',
+            'upload_date': '20130527',
+        }
     }]
 
     def _real_extract(self, url):
         song_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(
-            url, song_id, note='Download song detail info',
-            errnote='Unable to get song detail info')
-        if song_id not in urlh.geturl() or '对不起，该歌曲由于版权问题已被下线，将返回网站首页' in webpage:
-            raise ExtractorError('this song has been offline because of copyright issues', expected=True)
-
-        song_name = self._html_search_regex(
-            r'<p[^>]+id="lrcName">([^<]+)</p>', webpage, 'song name')
-        singer_name = remove_start(self._html_search_regex(
-            r'<a[^>]+href="http://www\.kuwo\.cn/artist/content\?name=([^"]+)">',
-            webpage, 'singer name', fatal=False), '歌手')
-        lrc_content = clean_html(get_element_by_id('lrcContent', webpage))
-        if lrc_content == '暂无':     # indicates no lyrics
-            lrc_content = None
-
+        song_info = self._download_json(
+            'http://www.kuwo.cn/api/www/music/musicInfo?mid=MUSIC_%s' % song_id,
+            song_id, 'Downloading song info JSON',
+            query={
+                'httpsStatus': '1',
+                'reqId': 'd8dc5d10-4dc0-11eb-aae6-cfdb349a8527',
+            },
+        )['data']
+        title = song_info['songName']
+        creator = song_info.get('artist')
+        upload_date = song_info.get('releaseDate')
+        description = song_info.get('remark')
         formats = self._get_formats(song_id)
-
-        album_id = self._html_search_regex(
-            r'<a[^>]+href="http://www\.kuwo\.cn/album/(\d+)/"',
-            webpage, 'album id', fatal=False)
-
-        publish_time = None
-        if album_id is not None:
-            album_info_page = self._download_webpage(
-                'http://www.kuwo.cn/album/%s/' % album_id, song_id,
-                note='Download album detail info',
-                errnote='Unable to get album detail info')
-
-            publish_time = self._html_search_regex(
-                r'发行时间：(\d{4}-\d{2}-\d{2})', album_info_page,
-                'publish time', fatal=False)
-            if publish_time:
-                publish_time = publish_time.replace('-', '')
+        self._sort_formats(formats)
 
         return {
             'id': song_id,
-            'title': song_name,
-            'creator': singer_name,
-            'upload_date': publish_time,
-            'description': lrc_content,
+            'title': title,
+            'creator': creator,
+            'upload_date': upload_date,
+            'description': description,
             'formats': formats,
         }
 
 
-class KuwoAlbumIE(InfoExtractor):
-    IE_NAME = 'kuwo:album'
-    IE_DESC = '酷我音乐 - 专辑'
-    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/album/(?P<id>\d+?)/'
-    _TEST = {
-        'url': 'http://www.kuwo.cn/album/502294/',
+class KuwoPlaylistIE(KuwoBaseIE):
+    IE_NAME = 'kuwo:playlist'
+    IE_DESC = '酷我音乐-歌单'
+    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/playlist/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'http://www.kuwo.cn/playlist/2693096540',
         'info_dict': {
-            'id': '502294',
-            'title': 'Made\xa0Series\xa0《M》',
-            'description': 'md5:d463f0d8a0ff3c3ea3d6ed7452a9483f',
+            'id': '2693096540',
+            'title': '我的播放',
+            'description': 'md5:e6002f88337d21e4f4d92bfb6e80d20b',
         },
-        'playlist_count': 2,
-    }
+        'playlist_mincount': 91,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        playlist_info = self._download_json(
+            'http://www.kuwo.cn/api/www/playlist/playlistInfo',
+            playlist_id, 'Downloading playlist info JSON',
+            query={
+                'pid': playlist_id,
+                'httpsStatus': '1',
+                'reqId': 'd8dc5d10-4dc0-11eb-aae6-cfdb349a8527',
+            },
+        )['data']
+        title = playlist_info['name']
+        description = playlist_info.get('desc')
+
+        tracks = playlist_info['musicList']
+        entries = []
+        for track in tracks:
+            song_id = track['rid']
+            song_info = track['songInfo']
+            title = song_info['songName']
+            creator = song_info.get('artist')
+            upload_date = song_info.get('releaseDate')
+            description = song_info.get('remark')
+            formats = self._get_formats(song_id)
+            self._sort_formats(formats)
+
+            entries.append({
+                'id': song_id,
+                'title': title,
+                'creator': creator,
+                'upload_date': upload_date,
+                'description': description,
+                'formats': formats,
+            })
+
+        return {
+            '_type': 'playlist',
+            'id': playlist_id,
+            'title': title,
+            'description': description,
+            'entries': entries,
+        }
+
+
+class KuwoAlbumIE(KuwoBaseIE):
+    IE_NAME = 'kuwo:album'
+    IE_DESC = '酷我音乐-专辑'
+    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/album/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'http://www.kuwo.cn/album/237898/',
+        'info_dict': {
+            'id': '237898',
+            'title': '自传',
+            'description': 'md5:83c9675ee1223ae0914e14db20576d2f',
+        },
+        'playlist_mincount': 9,
+    }]
 
     def _real_extract(self, url):
         album_id = self._match_id(url)
+        album_info = self._download_json(
+            'http://www.kuwo.cn/api/www/album/albumInfo',
+            album_id, 'Downloading album info JSON',
+            query={
+                'albumId': album_id,
+                'httpsStatus': '1',
+                'reqId': 'd8dc5d10-4dc0-11eb-aae6-cfdb349a8527',
+            },
+        )['data']
+        title = album_info['name']
+        description = album_info.get('info')
 
-        webpage = self._download_webpage(
-            url, album_id, note='Download album info',
-            errnote='Unable to get album info')
+        tracks = album_info['musicList']
+        entries = []
+        for track in tracks:
+            song_id = track['rid']
+            song_info = track['songInfo']
+            title = song_info['songName']
+            creator = song_info.get('artist')
+            upload_date = song_info.get('releaseDate')
+            description = song_info.get('remark')
+            formats = self._get_formats(song_id)
+            self._sort_formats(formats)
 
-        album_name = self._html_search_regex(
-            r'<div[^>]+class="comm"[^<]+<h1[^>]+title="([^"]+)"', webpage,
-            'album name')
-        album_intro = remove_start(
-            clean_html(get_element_by_id('intro', webpage)),
-            '%s简介：' % album_name)
+            entries.append({
+                'id': song_id,
+                'title': title,
+                'creator': creator,
+                'upload_date': upload_date,
+                'description': description,
+                'formats': formats,
+            })
 
-        entries = [
-            self.url_result(song_url, 'Kuwo') for song_url in re.findall(
-                r'<p[^>]+class="listen"><a[^>]+href="(http://www\.kuwo\.cn/yinyue/\d+/)"',
-                webpage)
-        ]
-        return self.playlist_result(entries, album_id, album_name, album_intro)
-
-
-class KuwoChartIE(InfoExtractor):
-    IE_NAME = 'kuwo:chart'
-    IE_DESC = '酷我音乐 - 排行榜'
-    _VALID_URL = r'https?://yinyue\.kuwo\.cn/billboard_(?P<id>[^.]+).htm'
-    _TEST = {
-        'url': 'http://yinyue.kuwo.cn/billboard_香港中文龙虎榜.htm',
-        'info_dict': {
-            'id': '香港中文龙虎榜',
-        },
-        'playlist_mincount': 7,
-    }
-
-    def _real_extract(self, url):
-        chart_id = self._match_id(url)
-        webpage = self._download_webpage(
-            url, chart_id, note='Download chart info',
-            errnote='Unable to get chart info')
-
-        entries = [
-            self.url_result(song_url, 'Kuwo') for song_url in re.findall(
-                r'<a[^>]+href="(http://www\.kuwo\.cn/yinyue/\d+)', webpage)
-        ]
-        return self.playlist_result(entries, chart_id)
+        return {
+            '_type': 'playlist',
+            'id': album_id,
+            'title': title,
+            'description': description,
+            'entries': entries,
+        }
 
 
-class KuwoSingerIE(InfoExtractor):
-    IE_NAME = 'kuwo:singer'
-    IE_DESC = '酷我音乐 - 歌手'
-    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/mingxing/(?P<id>[^/]+)'
+class KuwoMvIE(InfoExtractor):
+    IE_NAME = 'kuwo:mv'
+    IE_DESC = '酷我音乐-MV'
+    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/mv/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.kuwo.cn/mingxing/bruno+mars/',
+        'url': 'http://www.kuwo.cn/mv/5551468',
         'info_dict': {
-            'id': 'bruno+mars',
-            'title': 'Bruno\xa0Mars',
+            'id': '5551468',
+            'ext': 'mp4',
+            'title': '雅俗共赏',
+            'creator': '许嵩',
+            'upload_date': '20160525',
+            'description': 'md5:4ea597e5594a8dbd88e6021d97c17f3c'
         },
-        'playlist_mincount': 329,
-    }, {
-        'url': 'http://www.kuwo.cn/mingxing/Ali/music.htm',
-        'info_dict': {
-            'id': 'Ali',
-            'title': 'Ali',
-        },
-        'playlist_mincount': 95,
-        'skip': 'Regularly stalls travis build',  # See https://travis-ci.org/ytdl-org/youtube-dl/jobs/78878540
     }]
 
-    PAGE_SIZE = 15
+    def _real_extract(self, url):
+        mv_id = self._match_id(url)
+        mv_info = self._download_json(
+            'http://www.kuwo.cn/api/www/mv/mvInfo',
+            mv_id, 'Downloading mv info JSON',
+            query={
+                'rid': mv_id,
+                'httpsStatus': '1',
+                'reqId': 'd8dc5d10-4dc0-11eb-aae6-cfdb349a8527',
+            },
+        )['data']
+        title = mv_info['name']
+        creator = mv_info.get('artist')
+        upload_date = mv_info.get('publishTime')
+        description = mv_info.get('remark')
+        formats = []
+        for file_info in mv_info['urlList']:
+            if file_info.get('isPlay', 0):
+                formats.append({
+                    'url': file_info['url'],
+                    'format_id': file_info['type'],
+                    'ext': file_info['type'],
+                    'quality': 1 if file_info.get('isHd') else 0,
+                })
+        self._sort_formats(formats)
+
+        return {
+            'id': mv_id,
+            'title': title,
+            'creator': creator,
+            'upload_date': upload_date,
+            'description': description,
+            'formats': formats,
+        }
+
+
+class KuwoUserIE(InfoExtractor):
+    IE_NAME = 'kuwo:user'
+    IE_DESC = '酷我音乐-用户'
+    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/user/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'http://www.kuwo.cn/user/368202605',
+        'info_dict': {
+            'id': '368202605',
+            'title': '「Miles」',
+            'description': 'md5:d01c8b9ee24ff64f7c7fd5f769f21e06',
+        },
+        'playlist_mincount': 43,
+    }]
 
     def _real_extract(self, url):
-        singer_id = self._match_id(url)
-        webpage = self._download_webpage(
-            url, singer_id, note='Download singer info',
-            errnote='Unable to get singer info')
+        user_id = self._match_id(url)
+        user_info = self._download_json(
+            'http://www.kuwo.cn/api/www/user/userInfo',
+            user_id, 'Downloading user info JSON',
+            query={
+                'uid': user_id,
+                'httpsStatus': '1',
+                'reqId': 'd8dc5d10-4dc0-11eb-aae6-cfdb349a8527',
+            },
+        )['data']
+        title = user_info['nick']
+        description = user_info.get('signature')
 
-        singer_name = self._html_search_regex(
-            r'<h1>([^<]+)</h1>', webpage, 'singer name')
+        playlist_id = user_info.get('pid')
+        if playlist_id:
+            playlist = self.url_result(
+                'http://www.kuwo.cn/playlist/%s' % playlist_id,
+                KuwoPlaylistIE.ie_key())
+            playlist.update({
+                'id': user_id,
+                'title': title,
+                'description': description,
+            })
+            return playlist
 
-        artist_id = self._html_search_regex(
-            r'data-artistid="(\d+)"', webpage, 'artist id')
+        entries = []
+        playlist_ids = user_info.get('ids', [])
+        for playlist_id in playlist_ids:
+            playlist = self.url_result(
+                'http://www.kuwo.cn/playlist/%s' % playlist_id,
+                KuwoPlaylistIE.ie_key())
+            entries.append(playlist)
 
-        page_count = int(self._html_search_regex(
-            r'data-page="(\d+)"', webpage, 'page count'))
-
-        def page_func(page_num):
-            webpage = self._download_webpage(
-                'http://www.kuwo.cn/artist/contentMusicsAjax',
-                singer_id, note='Download song list page #%d' % (page_num + 1),
-                errnote='Unable to get song list page #%d' % (page_num + 1),
-                query={'artistId': artist_id, 'pn': page_num, 'rn': self.PAGE_SIZE})
-
-            return [
-                self.url_result(compat_urlparse.urljoin(url, song_url), 'Kuwo')
-                for song_url in re.findall(
-                    r'<div[^>]+class="name"><a[^>]+href="(/yinyue/\d+)',
-                    webpage)
-            ]
-
-        entries = InAdvancePagedList(page_func, page_count, self.PAGE_SIZE)
-
-        return self.playlist_result(entries, singer_id, singer_name)
+        return self.playlist_result(entries, user_id, title, description)
 
 
-class KuwoCategoryIE(InfoExtractor):
+class KuwoCategoryIE(KuwoBaseIE):
     IE_NAME = 'kuwo:category'
-    IE_DESC = '酷我音乐 - 分类'
-    _VALID_URL = r'https?://yinyue\.kuwo\.cn/yy/cinfo_(?P<id>\d+?).htm'
-    _TEST = {
-        'url': 'http://yinyue.kuwo.cn/yy/cinfo_86375.htm',
+    IE_DESC = '酷我音乐-分类'
+    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/category/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'http://www.kuwo.cn/category/10000000',
+        'playlist_mincount': 180,
         'info_dict': {
-            'id': '86375',
-            'title': '八十年代精选',
-            'description': '这些都是属于八十年代的回忆！',
+            'id': '10000000',
+            'title': '热门歌曲',
+            'description': 'md5:2eb2962a1e4c6b3f29e1e2f48d4a9bb8',
         },
-        'playlist_mincount': 24,
-    }
+    }]
 
     def _real_extract(self, url):
         category_id = self._match_id(url)
-        webpage = self._download_webpage(
-            url, category_id, note='Download category info',
-            errnote='Unable to get category info')
+        category_info = self._download_json(
+            'http://www.kuwo.cn/api/www/category/playlistInfo',
+            category_id, 'Downloading category info JSON',
+            query={
+                'id': category_id,
+                'httpsStatus': '1',
+                'reqId': 'd8dc5d10-4dc0-11eb-aae6-cfdb349a8527',
+            },
+        )['data']
+        title = category_info['name']
+        description = category_info.get('intro')
 
-        category_name = self._html_search_regex(
-            r'<h1[^>]+title="([^<>]+?)">[^<>]+?</h1>', webpage, 'category name')
+        playlist_id = category_info.get('id')
+        if playlist_id:
+            playlist = self.url_result(
+                'http://www.kuwo.cn/playlist/%s' % playlist_id,
+                KuwoPlaylistIE.ie_key())
+            playlist.update({
+                'id': category_id,
+                'title': title,
+                'description': description,
+            })
+            return playlist
 
-        category_desc = remove_start(
-            get_element_by_id('intro', webpage).strip(),
-            '%s简介：' % category_name)
-        if category_desc == '暂无':
-            category_desc = None
+        entries = []
+        playlist_ids = category_info.get('list', [])
+        for playlist_id in playlist_ids:
+            playlist = self.url_result(
+                'http://www.kuwo.cn/playlist/%s' % playlist_id,
+                KuwoPlaylistIE.ie_key())
+            entries.append(playlist)
 
-        jsonm = self._parse_json(self._html_search_regex(
-            r'var\s+jsonm\s*=\s*([^;]+);', webpage, 'category songs'), category_id)
-
-        entries = [
-            self.url_result('http://www.kuwo.cn/yinyue/%s/' % song['musicrid'], 'Kuwo')
-            for song in jsonm['musiclist']
-        ]
-        return self.playlist_result(entries, category_id, category_name, category_desc)
-
-
-class KuwoMvIE(KuwoBaseIE):
-    IE_NAME = 'kuwo:mv'
-    IE_DESC = '酷我音乐 - MV'
-    _VALID_URL = r'https?://(?:www\.)?kuwo\.cn/mv/(?P<id>\d+?)/'
-    _TEST = {
-        'url': 'http://www.kuwo.cn/mv/6480076/',
-        'info_dict': {
-            'id': '6480076',
-            'ext': 'mp4',
-            'title': 'My HouseMV',
-            'creator': '2PM',
-        },
-        # In this video, music URLs (anti.s) are blocked outside China and
-        # USA, while the MV URL (mvurl) is available globally, so force the MV
-        # URL for consistent results in different countries
-        'params': {
-            'format': 'mv',
-        },
-    }
-    _FORMATS = KuwoBaseIE._FORMATS + [
-        {'format': 'mkv', 'ext': 'mkv', 'preference': 250},
-        {'format': 'mp4', 'ext': 'mp4', 'preference': 200},
-    ]
-
-    def _real_extract(self, url):
-        song_id = self._match_id(url)
-        webpage = self._download_webpage(
-            url, song_id, note='Download mv detail info: %s' % song_id,
-            errnote='Unable to get mv detail info: %s' % song_id)
-
-        mobj = re.search(
-            r'<h1[^>]+title="(?P<song>[^"]+)">[^<]+<span[^>]+title="(?P<singer>[^"]+)"',
-            webpage)
-        if mobj:
-            song_name = mobj.group('song')
-            singer_name = mobj.group('singer')
-        else:
-            raise ExtractorError('Unable to find song or singer names')
-
-        formats = self._get_formats(song_id, tolerate_ip_deny=True)
-
-        mv_url = self._download_webpage(
-            'http://www.kuwo.cn/yy/st/mvurl?rid=MUSIC_%s' % song_id,
-            song_id, note='Download %s MV URL' % song_id)
-        formats.append({
-            'url': mv_url,
-            'format_id': 'mv',
-        })
-
-        return {
-            'id': song_id,
-            'title': song_name,
-            'creator': singer_name,
-            'formats': formats,
-        }
+        return self.playlist_result(entries, category_id, title, description)
