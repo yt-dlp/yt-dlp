@@ -928,6 +928,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _parse_time_text(self, text):
         if not text:
             return
+
+        if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE):
+            self._downloader.deprecated_feature('[youtube] approximate_date extractor argument is deprecated. '
+                                                'Use approximate_metadata instead')
+
         dt = self.extract_relative_time(text)
         timestamp = None
         if isinstance(dt, datetime.datetime):
@@ -1086,6 +1091,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
                           if self._configuration_arg('approximate_metadata', ie_key=YoutubeTabIE)
+                          or self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
                           else None),
             'release_timestamp': scheduled_timestamp,
             'availability':
