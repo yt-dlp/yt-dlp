@@ -743,17 +743,17 @@ class VKPlayBaseIE(InfoExtractor):
 
     def _extract_common_meta(self, stream_info):
         return traverse_obj(stream_info, {
+            'id': ('id', {str_or_none}),
             'title': ('title', {str}),
             'release_timestamp': ('startTime', {int_or_none}),
             'thumbnail': ('previewUrl', {url_or_none}),
             'view_count': ('count', 'views', {int_or_none}),
             'like_count': ('count', 'likes', {int_or_none}),
             'categories': ('category', 'title', {str}, {lambda x: [x] if x else None}),
-                'id': ('id', {str_or_none}),
-                'uploader': (('user', ('blog', 'owner')), 'nick', {str_or_none}),
-                'uploader_id': (('user', ('blog', 'owner')), 'id', {str_or_none}),
-                'duration': ('duration', {int_or_none}),
-                'concurrent_view_count': ('count', 'viewers', {int_or_none}),
+            'uploader': (('user', ('blog', 'owner')), 'nick', {str}),
+            'uploader_id': (('user', ('blog', 'owner')), 'id', {str_or_none}),
+            'duration': ('duration', {int_or_none}),
+            'concurrent_view_count': ('count', 'viewers', {int_or_none}),
         }, get_all=False)
 
 
@@ -788,14 +788,8 @@ class VKPlayIE(VKPlayBaseIE):
                 f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id)
 
         return {
-            'id': video_id,
             'formats': self._extract_formats(record_info, video_id),
             **self._extract_common_meta(record_info),
-            **traverse_obj(record_info, {
-                'uploader': ('blog', 'owner', 'nick', {str_or_none}),
-                'uploader_id': ('blog', 'owner', 'id', {int_or_none}),
-                'duration': ('duration', {int_or_none}),
-            })
         }
 
 
@@ -838,10 +832,6 @@ class VKPlayLiveIE(VKPlayBaseIE):
             'formats': formats,
             **self._extract_common_meta(stream_info),
             **traverse_obj(stream_info, {
-                'id': ('id', {str}),
-                'uploader': ('user', 'nick', {str_or_none}),
-                'uploader_id': ('user', 'id', {int_or_none}),
-                'concurrent_view_count': ('count', 'viewers', {int_or_none}),
                 'is_live': ('isOnline', {bool}),
             })
         }
