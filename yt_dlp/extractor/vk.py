@@ -766,7 +766,7 @@ class VKPlayIE(VKPlayBaseIE):
             'ext': 'mp4',
             'title': 'Atomic Heart (пробуем!) спасибо подписчику EKZO!',
             'uploader': 'ZitsmanN',
-            'uploader_id': 13159830,
+            'uploader_id': '13159830',
             'release_timestamp': 1683461378,
             'release_date': '20230507',
             'thumbnail': r're:https://images.vkplay.live/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview\?change_time=\d+',
@@ -781,11 +781,14 @@ class VKPlayIE(VKPlayBaseIE):
     def _real_extract(self, url):
         username, video_id = self._match_valid_url(url).groups()
 
-        initial_state = self._extract_initial_state(url, video_id)
-        record_info = traverse_obj(initial_state, ('record', 'currentRecord', 'data', {dict}))
+        record_info = traverse_obj(self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id, fatal=False),
+            ('data', 'record'), expected_type=dict)
         if not record_info:
-            record_info = self._download_json(
-                f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id)
+            initial_state = self._extract_initial_state(url, video_id)
+            record_info = traverse_obj(initial_state, ('record', 'currentRecord', 'data', {dict}))
+        if not record_info:
+            raise ExtractorError("Failed to extract record info")
 
         return {
             'formats': self._extract_formats(record_info, video_id),
@@ -819,11 +822,14 @@ class VKPlayLiveIE(VKPlayBaseIE):
     def _real_extract(self, url):
         username = self._match_id(url)
 
-        initial_state = self._extract_initial_state(url, username)
-        stream_info = traverse_obj(initial_state, ('stream', 'stream', 'data', 'stream', {dict}))
+        stream_info = self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
         if not stream_info:
-            stream_info = self._download_json(
-                f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username)
+            initial_state = self._extract_initial_state(url, username)
+            stream_info = traverse_obj(initial_state, ('stream', 'stream', 'data', 'stream', {dict}))
+        if not stream_info:
+            raise ExtractorError("Failed to extract live stream info")
+
         formats = self._extract_formats(stream_info, username)
         if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
             raise UserNotLive(video_id=username)
