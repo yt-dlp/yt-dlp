@@ -1012,8 +1012,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         description = self._get_text(renderer, 'descriptionSnippet')
         if not description and self._configuration_arg(
                 'approximate_metadata', ie_key=YoutubeTabIE):
-            description = join_nonempty(*(self._get_text(x, 'snippetText') for x in traverse_obj(
-                renderer, ('detailedMetadataSnippets',))), delim='') or None
+            snippets = traverse_obj(renderer, ('detailedMetadataSnippets',)) or []
+            description = join_nonempty(*(self._get_text(x, 'snippetText') for x in snippets), delim='') or None
 
         duration = int_or_none(renderer.get('lengthSeconds'))
         if duration is None:
