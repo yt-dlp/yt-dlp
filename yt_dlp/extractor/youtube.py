@@ -6943,7 +6943,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 '_type': 'url',
                 'id': 'IaSGqQa5O-M',
                 'title': 'Convolutions and adding random variables, visually explained',
-                'description': 'Adding random variables, with connections to the central limit theorem. Help fund future projects:\xa0...',
+                'description': '0:00 - Intro quiz 2:24 - Discrete case, diagonal slices 6:49 - Discrete case, flip-and-slide 8:41 - The discrete formula 10:58\xa0...',
                 'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
                 'uploader_url': 'https://www.youtube.com/@3blue1brown',
                 'channel_is_verified': True,
