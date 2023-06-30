@@ -1164,7 +1164,7 @@ class TwitterIE(TwitterBaseIE):
                 # workaround for non-authenticated responses
                 media_id = traverse_obj(media, (
                     'video_info', 'variants', ..., 'url',
-                    {lambda x: re.search(r'/ext_tw_video/(\d+)/', x)[1]}), get_all=False)
+                    {lambda x: re.search(r'_video/(\d+)/', x)[1]}), get_all=False)
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
@@ -1189,7 +1189,7 @@ class TwitterIE(TwitterBaseIE):
                 add_thumbnail('orig', media.get('original_info') or {})
 
             return {
-                'id': media_id,
+                'id': media_id or twid,
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
