@@ -748,7 +748,7 @@ class VKPlayBaseIE(InfoExtractor):
             'thumbnail': ('previewUrl', {url_or_none}),
             'view_count': ('count', 'views', {int_or_none}),
             'like_count': ('count', 'likes', {int_or_none}),
-            'categories': ('category', 'title', {lambda i: [str_or_none(i)]}),
+            'categories': ('category', 'title', {str}, {lambda x: [x] if x else None}),
         })
 
 
