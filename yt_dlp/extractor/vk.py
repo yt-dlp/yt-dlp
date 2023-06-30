@@ -749,7 +749,12 @@ class VKPlayBaseIE(InfoExtractor):
             'view_count': ('count', 'views', {int_or_none}),
             'like_count': ('count', 'likes', {int_or_none}),
             'categories': ('category', 'title', {str}, {lambda x: [x] if x else None}),
-        })
+                'id': ('id', {str_or_none}),
+                'uploader': (('user', ('blog', 'owner')), 'nick', {str_or_none}),
+                'uploader_id': (('user', ('blog', 'owner')), 'id', {str_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'concurrent_view_count': ('count', 'viewers', {int_or_none}),
+        }, get_all=False)
 
 
 class VKPlayIE(VKPlayBaseIE):
