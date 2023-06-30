@@ -3525,7 +3525,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     else:
                         raise ExtractorError(
                             'Incomplete data received for comment reply thread. '
-                            'Pass --ignore-errors to ignore and allow rest of comments to download',
+                            'Pass --ignore-errors to ignore and allow rest of comments to download.',
                             expected=True)
                 else:
                     raise
