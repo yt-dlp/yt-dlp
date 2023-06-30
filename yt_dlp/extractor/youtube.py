@@ -3517,10 +3517,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4669
-                if 'incomplete data' in str(e).lower() and parent and self.get_param('ignoreerrors') is True:
-                    self.report_warning(
-                        'Received incomplete data for a comment reply thread and retrying did not help. '
-                        'Ignoring to let other comments be downloaded.')
+                if 'incomplete data' in str(e).lower() and parent:
+                    if self.get_param('ignoreerrors') in (True, 'only_download'):
+                        self.report_warning(
+                            'Received incomplete data for a comment reply thread and retrying did not help. '
+                            'Ignoring to let other comments be downloaded. Pass --no-ignore-errors to not ignore.')
+                    else:
+                        raise ExtractorError(
+                            'Incomplete data received for comment reply thread. '
+                            'Pass --ignore-errors to ignore and allow rest of comments to download',
+                            expected=True)
                 else:
                     raise
             is_forced_continuation = False
