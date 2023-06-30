@@ -1,5 +1,6 @@
 import json
 import re
+import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
@@ -285,37 +286,21 @@ class TwitterBaseIE(InfoExtractor):
         self.report_login()
 
     def _call_api(self, path, video_id, query={}, graphql=False):
-        headers = self._set_base_headers()
-        if self.is_logged_in:
-            headers.update({
+        result = self._download_json(
+            (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path, video_id,
+            f'Downloading {"GraphQL" if graphql else "legacy API"} JSON', headers={
+                **self._set_base_headers(),
                 'x-twitter-auth-type': 'OAuth2Session',
                 'x-twitter-client-language': 'en',
                 'x-twitter-active-user': 'yes',
-            })
+            }, query=query, expected_status={400, 401, 403, 404} if graphql else {403})
 
-        for first_attempt in (True, False):
-            if not self.is_logged_in:
-                if not self._guest_token:
-                    self._fetch_guest_token(headers, video_id)
-                headers['x-guest-token'] = self._guest_token
+        if result.get('errors'):
+            errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
+            raise ExtractorError(
+                f'Error(s) while querying API: {errors or "Unknown error"}', expected=True)
 
-            allowed_status = {400, 401, 403, 404} if graphql else {403}
-            result = self._download_json(
-                (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
-                video_id, headers=headers, query=query, expected_status=allowed_status,
-                note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
-
-            if result.get('errors'):
-                errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
-                if not self.is_logged_in and first_attempt and 'bad guest token' in errors.lower():
-                    self.to_screen('Guest token has expired. Refreshing guest token')
-                    self._guest_token = None
-                    continue
-
-                raise ExtractorError(
-                    f'Error(s) while querying API: {errors or "Unknown error"}', expected=True)
-
-            return result
+        return result
 
     def _build_graphql_query(self, media_id):
         raise NotImplementedError('Method must be implemented to support GraphQL')
@@ -1079,8 +1064,6 @@ class TwitterIE(TwitterBaseIE):
 
         if 'tombstone' in result:
             cause = remove_end(traverse_obj(result, ('tombstone', 'text', 'text', {str})), '. Learn more')
-            if cause and 'adult content' in cause:
-                self.raise_login_required(cause)
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
 
         status = result.get('legacy', {})
@@ -1136,19 +1119,22 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if self._configuration_arg('legacy_api') and not self.is_logged_in:
-            status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
-                'cards_platform': 'Web-12',
-                'include_cards': 1,
-                'include_reply_count': 1,
-                'include_user_entities': 0,
-                'tweet_mode': 'extended',
-            }), 'retweeted_status', None)
+        if not self.is_logged_in:
+            try:
+                status = self._download_json(
+                    'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+                    headers={'User-Agent': 'Googlebot'}, query={'id': twid})
+                self.report_warning('Not all metadata is available without authentication')
+            except ExtractorError as e:
+                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 404:
+                    self.raise_login_required('Requested tweet may only be available when logged in')
+                raise
         else:
-            result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
-            status = self._graphql_to_legacy(result, twid)
+            status = self._graphql_to_legacy(
+                self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
 
-        title = description = status['full_text'].replace('\n', ' ')
+        title = description = traverse_obj(
+            status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames
         title = re.sub(r'\s+(https?://[^ ]+)', '', title)
         user = status.get('user') or {}
@@ -1174,12 +1160,16 @@ class TwitterIE(TwitterBaseIE):
 
         def extract_from_video_info(media):
             media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
+            if not media_id:
+                # workaround for non-authenticated responses
+                media_id = traverse_obj(media, (
+                    'video_info', 'variants', ..., 'url',
+                    {lambda x: re.search(r'/ext_tw_video/(\d+)/', x)[1]}), get_all=False)
             self.write_debug(f'Extracting from video info: {media_id}')
-            video_info = media.get('video_info') or {}
 
             formats = []
             subtitles = {}
-            for variant in video_info.get('variants', []):
+            for variant in traverse_obj(media, ('video_info', 'variants', ...)):
                 fmts, subs = self._extract_variant_formats(variant, twid)
                 subtitles = self._merge_subtitles(subtitles, subs)
                 formats.extend(fmts)
@@ -1204,7 +1194,7 @@ class TwitterIE(TwitterBaseIE):
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
                 'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),
-                'duration': float_or_none(video_info.get('duration_millis'), 1000),
+                'duration': float_or_none(traverse_obj(media, ('video_info', 'duration_millis')), 1000),
                 # The codec of http formats are unknown
                 '_format_sort_fields': ('res', 'br', 'size', 'proto'),
             }
@@ -1284,12 +1274,15 @@ class TwitterIE(TwitterBaseIE):
                 }
 
         videos = traverse_obj(status, (
-            (None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo', {dict}))
+            ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
+            lambda _, m: m['type'] != 'photo', {dict}))
 
         if self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
             selected_entries = (*map(extract_from_video_info, videos), *extract_from_card_info(status.get('card')))
         else:
-            desired_obj = traverse_obj(status, ('extended_entities', 'media', int(selected_index) - 1, {dict}))
+            desired_obj = traverse_obj(status, (
+                ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
+                int(selected_index) - 1, {dict}), get_all=False)
             if not desired_obj:
                 raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
             elif desired_obj.get('type') != 'video':
@@ -1476,6 +1469,8 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
+        if not self.is_logged_in:
+            self.raise_login_required()
         space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)
