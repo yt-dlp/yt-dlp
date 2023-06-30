@@ -286,6 +286,9 @@ class TwitterBaseIE(InfoExtractor):
         self.report_login()
 
     def _call_api(self, path, video_id, query={}, graphql=False):
+        if not self.is_logged_in:
+            self.raise_login_required()
+
         result = self._download_json(
             (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path, video_id,
             f'Downloading {"GraphQL" if graphql else "legacy API"} JSON', headers={
@@ -1469,8 +1472,6 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
-        if not self.is_logged_in:
-            self.raise_login_required()
         space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)
