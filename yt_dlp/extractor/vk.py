@@ -730,8 +730,10 @@ class VKPlayBaseIE(InfoExtractor):
             format_id = str_or_none(stream['type'])
             if format_id in ('hls', 'live_hls', 'live_playback_hls') or '.m3u8' in url:
                 formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id=format_id, fatal=False))
-            elif format_id in ('dash', 'live_dash', 'live_playback_dash'):
+            elif format_id in ('dash'):
                 formats.extend(self._extract_mpd_formats(url, video_id, mpd_id=format_id, fatal=False))
+            elif format_id in ('live_dash', 'live_playback_dash'):
+                self.to_screen(f'Skipping unsupported format "{format_id}"')
             else:
                 formats.append({
                     'url': url,
