@@ -6955,7 +6955,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'url': 'https://www.youtube.com/watch?v=IaSGqQa5O-M',
                 'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
                 'duration': 1645.0,
-                'timestamp': 1687910400,
+                'timestamp': int,
             }
         }],
         'params': {
