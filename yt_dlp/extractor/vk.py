@@ -733,7 +733,7 @@ class VKPlayBaseIE(InfoExtractor):
             elif format_id == 'dash':
                 formats.extend(self._extract_mpd_formats(url, video_id, mpd_id=format_id, fatal=False))
             elif format_id in ('live_dash', 'live_playback_dash'):
-                self.to_screen(f'Skipping unsupported format "{format_id}"')
+                self.write_debug(f'Not extracting unsupported format "{format_id}"')
             else:
                 formats.append({
                     'url': url,
