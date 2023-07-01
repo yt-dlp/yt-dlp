@@ -791,10 +791,7 @@ class VKPlayIE(VKPlayBaseIE):
             f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id, fatal=False),
             ('data', 'record', {dict}))
         if not record_info:
-            initial_state = self._extract_initial_state(url, video_id)
-            record_info = traverse_obj(initial_state, ('record', 'currentRecord', 'data', {dict}))
-        if not record_info:
-            raise ExtractorError("Failed to extract record info")
+            initial_state = self._extract_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
 
         return {
             'formats': self._extract_formats(record_info, video_id),
