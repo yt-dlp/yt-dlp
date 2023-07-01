@@ -717,10 +717,14 @@ class VKPlayBaseIE(InfoExtractor):
         'quad_hd': '2560x1440',
     }
 
-    def _extract_initial_state(self, url, video_id):
+    def _extract_initial_state(self, url, video_id, path):
         webpage = self._download_webpage(url, video_id)
-        return self._search_json(
-            r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id, fatal=False)
+        initial_state = traverse_obj(self._search_json(
+            r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id),
+            path, expected_type=dict)
+        if not initial_state:
+            raise ExtractorError('Unable to extract initial state')
+        return initial_state
 
     def _extract_formats(self, stream_info, video_id):
         formats = []
