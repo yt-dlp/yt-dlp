@@ -313,7 +313,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         if res is not False:
             m3u8_doc, urlh = res
             m3u8_url = urlh.geturl()
-            if m3u8_url.split("?")[0][-4:].lower() == "m3u8":
+            if m3u8_url.split("?")[0][-4:].lower() == 'm3u8':
                 formats2, subtitles2 = self._parse_m3u8_formats_and_subtitles(
                     m3u8_doc, m3u8_url, entry_protocol='m3u8_native',
                     note=note, errnote=errnote, fatal=False,
