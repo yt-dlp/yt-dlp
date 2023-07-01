@@ -828,10 +828,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
         stream_info = self._download_json(
             f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
         if not stream_info:
-            initial_state = self._extract_initial_state(url, username)
-            stream_info = traverse_obj(initial_state, ('stream', 'stream', 'data', 'stream', {dict}))
-        if not stream_info:
-            raise ExtractorError("Failed to extract live stream info")
+            initial_state = self._extract_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
 
         formats = self._extract_formats(stream_info, username)
         if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
