@@ -785,7 +785,7 @@ class VKPlayIE(VKPlayBaseIE):
 
         record_info = traverse_obj(self._download_json(
             f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id, fatal=False),
-            ('data', 'record'), expected_type=dict)
+            ('data', 'record', {dict}))
         if not record_info:
             initial_state = self._extract_initial_state(url, video_id)
             record_info = traverse_obj(initial_state, ('record', 'currentRecord', 'data', {dict}))
