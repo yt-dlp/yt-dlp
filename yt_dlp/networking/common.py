@@ -21,7 +21,6 @@ from ..utils import (
     CaseInsensitiveDict,
     classproperty,
     escape_url,
-    sanitize_url,
     update_url_query,
 )
 
