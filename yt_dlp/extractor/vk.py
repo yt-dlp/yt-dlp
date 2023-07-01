@@ -717,14 +717,14 @@ class VKPlayBaseIE(InfoExtractor):
         'quad_hd': '2560x1440',
     }
 
-    def _extract_initial_state(self, url, video_id, path):
+    def _extract_from_initial_state(self, url, video_id, path):
         webpage = self._download_webpage(url, video_id)
-        initial_state = traverse_obj(self._search_json(
+        video_info = traverse_obj(self._search_json(
             r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id),
             path, expected_type=dict)
-        if not initial_state:
-            raise ExtractorError('Unable to extract initial state')
-        return initial_state
+        if not video_info:
+            raise ExtractorError('Unable to extract video info from html inline initial state')
+        return video_info
 
     def _extract_formats(self, stream_info, video_id):
         formats = []
@@ -791,7 +791,7 @@ class VKPlayIE(VKPlayBaseIE):
             f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id, fatal=False),
             ('data', 'record', {dict}))
         if not record_info:
-            initial_state = self._extract_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
+            record_info = self._extract_from_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
 
         return {
             'formats': self._extract_formats(record_info, video_id),
@@ -828,7 +828,7 @@ class VKPlayLiveIE(VKPlayBaseIE):
         stream_info = self._download_json(
             f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
         if not stream_info:
-            initial_state = self._extract_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
+            stream_info = self._extract_from_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
 
         formats = self._extract_formats(stream_info, username)
         if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
