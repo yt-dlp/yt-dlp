@@ -759,6 +759,7 @@ class VKPlayBaseIE(InfoExtractor):
             'uploader': (('user', ('blog', 'owner')), 'nick', {str}),
             'uploader_id': (('user', ('blog', 'owner')), 'id', {str_or_none}),
             'duration': ('duration', {int_or_none}),
+            'is_live': ('isOnline', {bool}),
             'concurrent_view_count': ('count', 'viewers', {int_or_none}),
         }, get_all=False)
 
@@ -794,8 +795,9 @@ class VKPlayIE(VKPlayBaseIE):
             record_info = self._extract_from_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
 
         return {
-            'formats': self._extract_formats(record_info, video_id),
             **self._extract_common_meta(record_info),
+            'id': video_id,
+            'formats': self._extract_formats(record_info, video_id),
         }
 
 
@@ -835,9 +837,6 @@ class VKPlayLiveIE(VKPlayBaseIE):
             raise UserNotLive(video_id=username)
 
         return {
-            'formats': formats,
             **self._extract_common_meta(stream_info),
-            **traverse_obj(stream_info, {
-                'is_live': ('isOnline', {bool}),
-            })
+            'formats': formats,
         }
