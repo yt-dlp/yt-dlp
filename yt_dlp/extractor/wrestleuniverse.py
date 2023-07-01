@@ -14,12 +14,14 @@ from ..utils import (
     try_call,
     url_or_none,
     urlencode_postdata,
+    variadic,
 )
 
 
 class WrestleUniverseBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'wrestleuniverse'
     _VALID_URL_TMPL = r'https?://(?:www\.)?wrestle-universe\.com/(?:(?P<lang>\w{2})/)?%s/(?P<id>\w+)'
+    _API_HOST = 'api.wrestle-universe.com'
     _API_PATH = None
     _REAL_TOKEN = None
     _TOKEN_EXPIRY = None
@@ -67,24 +69,28 @@ class WrestleUniverseBaseIE(InfoExtractor):
                 'returnSecureToken': True,
                 'email': username,
                 'password': password,
-            }, separators=(',', ':')).encode())
+            }, separators=(',', ':')).encode(), expected_status=400)
+        token = traverse_obj(login, ('idToken', {str}))
+        if not token:
+            raise ExtractorError(
+                f'Unable to log in: {traverse_obj(login, ("error", "message"))}', expected=True)
         self._REFRESH_TOKEN = traverse_obj(login, ('refreshToken', {str}))
         if not self._REFRESH_TOKEN:
             self.report_warning('No refresh token was granted')
-        self._TOKEN = traverse_obj(login, ('idToken', {str}))
+        self._TOKEN = token
 
     def _real_initialize(self):
-        if WrestleUniverseBaseIE._DEVICE_ID:
+        if self._DEVICE_ID:
             return
 
-        WrestleUniverseBaseIE._DEVICE_ID = self._configuration_arg('device_id', [None], ie_key='WrestleUniverse')[0]
-        if not WrestleUniverseBaseIE._DEVICE_ID:
-            WrestleUniverseBaseIE._DEVICE_ID = self.cache.load(self._NETRC_MACHINE, 'device_id')
-            if WrestleUniverseBaseIE._DEVICE_ID:
+        self._DEVICE_ID = self._configuration_arg('device_id', [None], ie_key=self._NETRC_MACHINE)[0]
+        if not self._DEVICE_ID:
+            self._DEVICE_ID = self.cache.load(self._NETRC_MACHINE, 'device_id')
+            if self._DEVICE_ID:
                 return
-            WrestleUniverseBaseIE._DEVICE_ID = str(uuid.uuid4())
+            self._DEVICE_ID = str(uuid.uuid4())
 
-        self.cache.store(self._NETRC_MACHINE, 'device_id', WrestleUniverseBaseIE._DEVICE_ID)
+        self.cache.store(self._NETRC_MACHINE, 'device_id', self._DEVICE_ID)
 
     def _refresh_token(self):
         refresh = self._download_json(
@@ -108,10 +114,10 @@ class WrestleUniverseBaseIE(InfoExtractor):
         if data:
             headers['Content-Type'] = 'application/json;charset=utf-8'
             data = json.dumps(data, separators=(',', ':')).encode()
-        if auth:
+        if auth and self._TOKEN:
             headers['Authorization'] = f'Bearer {self._TOKEN}'
         return self._download_json(
-            f'https://api.wrestle-universe.com/v1/{self._API_PATH}/{video_id}{param}', video_id,
+            f'https://{self._API_HOST}/v1/{self._API_PATH}/{video_id}{param}', video_id,
             note=f'Downloading {msg} JSON', errnote=f'Failed to download {msg} JSON',
             data=data, headers=headers, query=query, fatal=fatal)
 
@@ -137,12 +143,13 @@ class WrestleUniverseBaseIE(InfoExtractor):
         }, query=query, fatal=fatal)
         return api_json, decrypt
 
-    def _download_metadata(self, url, video_id, lang, props_key):
+    def _download_metadata(self, url, video_id, lang, props_keys):
         metadata = self._call_api(video_id, msg='metadata', query={'al': lang or 'ja'}, auth=False, fatal=False)
         if not metadata:
             webpage = self._download_webpage(url, video_id)
             nextjs_data = self._search_nextjs_data(webpage, video_id)
-            metadata = traverse_obj(nextjs_data, ('props', 'pageProps', props_key, {dict})) or {}
+            metadata = traverse_obj(nextjs_data, (
+                'props', 'pageProps', *variadic(props_keys, (str, bytes, dict, set)), {dict})) or {}
         return metadata
 
     def _get_formats(self, data, path, video_id=None):

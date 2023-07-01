@@ -1852,7 +1852,7 @@ The following extractors use this feature:
 #### rokfinchannel
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
-#### wrestleuniverse
+#### stacommu, wrestleuniverse
 * `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
 
 #### twitch
