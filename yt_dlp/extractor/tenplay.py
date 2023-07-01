@@ -91,7 +91,7 @@ class TenPlayIE(InfoExtractor):
             data.get('playbackApiEndpoint'), content_id, 'Downloading video JSON',
             headers=headers).get('source')
         m3u8_url = self._request_webpage(HEADRequest(
-            _video_url), content_id).geturl()
+            _video_url), content_id).url
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')

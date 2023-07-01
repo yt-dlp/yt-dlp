@@ -39,7 +39,7 @@ class YesJapanIE(InfoExtractor):
         req = self._request_webpage(
             redirect_req, video_id, note='Resolving final URL', errnote='Could not resolve final URL', fatal=False)
         if req:
-            video_url = req.geturl()
+            video_url = req.url
 
         formats = [{
             'format_id': 'sd',

@@ -226,7 +226,7 @@ class IGNVideoIE(IGNBaseIE):
             parsed_url._replace(path=parsed_url.path.rsplit('/', 1)[0] + '/embed'))
 
         webpage, urlh = self._download_webpage_handle(embed_url, video_id)
-        new_url = urlh.geturl()
+        new_url = urlh.url
         ign_url = compat_parse_qs(
             urllib.parse.urlparse(new_url).query).get('url', [None])[-1]
         if ign_url:

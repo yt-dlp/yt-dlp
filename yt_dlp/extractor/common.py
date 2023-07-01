@@ -977,11 +977,11 @@ class InfoExtractor:
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
         if self.get_param('dump_intermediate_pages', False):
-            self.to_screen('Dumping request to ' + urlh.geturl())
+            self.to_screen('Dumping request to ' + urlh.url)
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages'):
-            filename = self._request_dump_filename(urlh.geturl(), video_id)
+            filename = self._request_dump_filename(urlh.url, video_id)
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1810,7 +1810,7 @@ class InfoExtractor:
             return []
 
         manifest, urlh = res
-        manifest_url = urlh.geturl()
+        manifest_url = urlh.url
 
         return self._parse_f4m_formats(
             manifest, manifest_url, video_id, preference=preference, quality=quality, f4m_id=f4m_id,
@@ -1969,7 +1969,7 @@ class InfoExtractor:
             return [], {}
 
         m3u8_doc, urlh = res
-        m3u8_url = urlh.geturl()
+        m3u8_url = urlh.url
 
         return self._parse_m3u8_formats_and_subtitles(
             m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
@@ -2251,7 +2251,7 @@ class InfoExtractor:
             return [], {}
 
         smil, urlh = res
-        smil_url = urlh.geturl()
+        smil_url = urlh.url
 
         namespace = self._parse_smil_namespace(smil)
 
@@ -2274,7 +2274,7 @@ class InfoExtractor:
             return {}
 
         smil, urlh = res
-        smil_url = urlh.geturl()
+        smil_url = urlh.url
 
         return self._parse_smil(smil, smil_url, video_id, f4m_params=f4m_params)
 
@@ -2466,7 +2466,7 @@ class InfoExtractor:
             return []
 
         xspf, urlh = res
-        xspf_url = urlh.geturl()
+        xspf_url = urlh.url
 
         return self._parse_xspf(
             xspf, playlist_id, xspf_url=xspf_url,
@@ -2537,7 +2537,7 @@ class InfoExtractor:
             return [], {}
 
         # We could have been redirected to a new url when we retrieved our mpd file.
-        mpd_url = urlh.geturl()
+        mpd_url = urlh.url
         mpd_base_url = base_url(mpd_url)
 
         return self._parse_mpd_formats_and_subtitles(
@@ -2908,7 +2908,7 @@ class InfoExtractor:
         if ism_doc is None:
             return [], {}
 
-        return self._parse_ism_formats_and_subtitles(ism_doc, urlh.geturl(), ism_id)
+        return self._parse_ism_formats_and_subtitles(ism_doc, urlh.url, ism_id)
 
     def _parse_ism_formats_and_subtitles(self, ism_doc, ism_url, ism_id=None):
         """

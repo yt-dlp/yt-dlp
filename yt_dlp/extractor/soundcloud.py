@@ -211,7 +211,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 urlh = self._request_webpage(
                     HEADRequest(redirect_url), track_id, fatal=False)
                 if urlh:
-                    format_url = urlh.geturl()
+                    format_url = urlh.url
                     format_urls.add(format_url)
                     formats.append({
                         'format_id': 'download',

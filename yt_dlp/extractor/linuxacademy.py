@@ -107,7 +107,7 @@ class LinuxAcademyIE(InfoExtractor):
             'sso': 'true',
         })
 
-        login_state_url = urlh.geturl()
+        login_state_url = urlh.url
 
         try:
             login_page = self._download_webpage(
@@ -137,7 +137,7 @@ class LinuxAcademyIE(InfoExtractor):
             })
 
         access_token = self._search_regex(
-            r'access_token=([^=&]+)', urlh.geturl(),
+            r'access_token=([^=&]+)', urlh.url,
             'access token', default=None)
         if not access_token:
             access_token = self._parse_json(

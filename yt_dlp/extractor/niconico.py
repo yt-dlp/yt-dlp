@@ -396,7 +396,7 @@ class NiconicoIE(InfoExtractor):
             webpage, handle = self._download_webpage_handle(
                 'https://www.nicovideo.jp/watch/' + video_id, video_id)
             if video_id.startswith('so'):
-                video_id = self._match_id(handle.geturl())
+                video_id = self._match_id(handle.url)
 
             api_data = self._parse_json(self._html_search_regex(
                 'data-api-data="([^"]+)"', webpage,
@@ -951,8 +951,8 @@ class NiconicoLiveIE(InfoExtractor):
             'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
         })
 
-        hostname = remove_start(urlparse(urlh.geturl()).hostname, 'sp.')
-        cookies = try_get(urlh.geturl(), self._downloader._calc_cookies)
+        hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
+        cookies = try_get(urlh.url, self._downloader._calc_cookies)
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
             latency = 'high'

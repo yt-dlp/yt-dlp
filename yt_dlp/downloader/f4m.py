@@ -313,7 +313,7 @@ class F4mFD(FragmentFD):
         self.to_screen('[%s] Downloading f4m manifest' % self.FD_NAME)
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.geturl()
+        man_url = urlh.url
         # Some manifests may be malformed, e.g. prosiebensat1 generated manifests
         # (see https://github.com/ytdl-org/youtube-dl/issues/6215#issuecomment-121704244
         # and https://github.com/ytdl-org/youtube-dl/issues/7823)

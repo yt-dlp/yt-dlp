@@ -46,7 +46,7 @@ class HotNewHipHopIE(InfoExtractor):
         req = self._request_webpage(
             redirect_req, video_id,
             note='Resolving final URL', errnote='Could not resolve final URL')
-        video_url = req.geturl()
+        video_url = req.url
         if video_url.endswith('.html'):
             raise ExtractorError('Redirect failed')
 

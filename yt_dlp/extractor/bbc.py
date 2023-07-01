@@ -277,7 +277,7 @@ class BBCCoUkIE(InfoExtractor):
             post_url, None, 'Logging in', data=urlencode_postdata(login_form),
             headers={'Referer': self._LOGIN_URL})
 
-        if self._LOGIN_URL in urlh.geturl():
+        if self._LOGIN_URL in urlh.url:
             error = clean_html(get_element_by_class('form-message', response))
             if error:
                 raise ExtractorError(

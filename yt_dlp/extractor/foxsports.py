@@ -36,7 +36,7 @@ class FoxSportsIE(InfoExtractor):
                 'x-api-key': 'cf289e299efdfa39fb6316f259d1de93',
             })
         preplay_url = self._request_webpage(
-            HEADRequest(data['url']), video_id, 'Fetching preplay URL').geturl()
+            HEADRequest(data['url']), video_id, 'Fetching preplay URL').url
 
         return {
             '_type': 'url_transparent',

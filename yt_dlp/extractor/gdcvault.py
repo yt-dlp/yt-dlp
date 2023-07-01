@@ -158,7 +158,7 @@ class GDCVaultIE(InfoExtractor):
             video_url = 'http://www.gdcvault.com' + direct_url
             # resolve the url so that we can detect the correct extension
             video_url = self._request_webpage(
-                HEADRequest(video_url), video_id).geturl()
+                HEADRequest(video_url), video_id).url
 
             return {
                 'id': video_id,

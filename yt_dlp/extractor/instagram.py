@@ -442,7 +442,7 @@ class InstagramIE(InstagramBaseIE):
             shared_data = self._search_json(
                 r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False) or {}
 
-            if shared_data and self._LOGIN_URL not in urlh.geturl():
+            if shared_data and self._LOGIN_URL not in urlh.url:
                 media.update(traverse_obj(
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})

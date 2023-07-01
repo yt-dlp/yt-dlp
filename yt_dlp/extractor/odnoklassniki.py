@@ -448,7 +448,7 @@ class OdnoklassnikiIE(InfoExtractor):
         json_data = self._parse_json(unescapeHTML(json_data), video_id) or {}
 
         redirect_url = self._request_webpage(HEADRequest(
-            json_data['videoSrc']), video_id, 'Requesting download URL').geturl()
+            json_data['videoSrc']), video_id, 'Requesting download URL').url
         self._clear_cookies(redirect_url)
 
         return {

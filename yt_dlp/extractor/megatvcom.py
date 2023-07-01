@@ -160,5 +160,5 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
         canonical_url = self._request_webpage(
             HEADRequest(canonical_url), video_id,
             note='Resolve canonical URL',
-            errnote='Could not resolve canonical URL').geturl()
+            errnote='Could not resolve canonical URL').url
         return self.url_result(canonical_url, MegaTVComIE.ie_key(), video_id)

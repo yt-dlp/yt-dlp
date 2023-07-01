@@ -100,7 +100,7 @@ class CeskaTelevizeIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(url, playlist_id)
-        parsed_url = compat_urllib_parse_urlparse(urlh.geturl())
+        parsed_url = compat_urllib_parse_urlparse(urlh.url)
         site_name = self._og_search_property('site_name', webpage, fatal=False, default='Česká televize')
         playlist_title = self._og_search_title(webpage, default=None)
         if site_name and playlist_title:

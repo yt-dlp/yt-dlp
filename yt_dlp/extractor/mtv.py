@@ -58,7 +58,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         metrics_url = unescapeHTML(self._search_regex(r'<a href="(http://metrics.+?)"', webpage, 'url'))
         req = HEADRequest(metrics_url)
         response = self._request_webpage(req, mtvn_id, 'Resolving url')
-        url = response.geturl()
+        url = response.url
         # Transform the url to get the best quality:
         url = re.sub(r'.+pxE=mp4', 'http://mtvnmobile.vo.llnwd.net/kip0/_pxn=0+_pxK=18639+_pxE=mp4', url, 1)
         return [{'url': url, 'ext': 'mp4'}]

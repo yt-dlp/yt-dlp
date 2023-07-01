@@ -327,7 +327,7 @@ class TrillerShortIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        real_url = self._request_webpage(HEADRequest(url), self._match_id(url)).geturl()
+        real_url = self._request_webpage(HEADRequest(url), self._match_id(url)).url
         if self.suitable(real_url):  # Prevent infinite loop in case redirect fails
             raise UnsupportedError(real_url)
         return self.url_result(real_url)
