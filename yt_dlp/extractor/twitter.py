@@ -35,7 +35,6 @@ class TwitterBaseIE(InfoExtractor):
     _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _AUTH = {'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'}
-    _guest_token = None
     _flow_token = None
 
     _LOGIN_INIT_DATA = json.dumps({
@@ -146,14 +145,6 @@ class TwitterBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
-    def _fetch_guest_token(self, headers, display_id):
-        headers.pop('x-guest-token', None)
-        self._guest_token = traverse_obj(self._download_json(
-            f'{self._API_BASE}guest/activate.json', display_id,
-            'Downloading guest token', data=b'', headers=headers), 'guest_token')
-        if not self._guest_token:
-            raise ExtractorError('Could not retrieve guest token')
-
     def _set_base_headers(self):
         headers = self._AUTH.copy()
         csrf_token = try_call(lambda: self._get_cookies(self._API_BASE)['ct0'].value)
@@ -184,12 +175,15 @@ class TwitterBaseIE(InfoExtractor):
         if self.is_logged_in:
             return
 
-        self._request_webpage('https://twitter.com/', None, 'Requesting cookies')
+        webpage = self._download_webpage('https://twitter.com/', None, 'Downloading login page')
         headers = self._set_base_headers()
-        self._fetch_guest_token(headers, None)
+        guest_token = self._search_regex(
+            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._download_json(
+            f'{self._API_BASE}guest/activate.json', None, 'Downloading guest token',
+            data=b'', headers=headers)['guest_token']
         headers.update({
             'content-type': 'application/json',
-            'x-guest-token': self._guest_token,
+            'x-guest-token': guest_token,
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
             'Referer': 'https://twitter.com/',
