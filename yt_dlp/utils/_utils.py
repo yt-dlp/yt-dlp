@@ -5134,7 +5134,7 @@ def truncate_string(s, left, right=0):
     return f'{s[:left-3]}...{s[-right:] if right else ""}'
 
 
-class CaseInsensitiveDict(collections.UserDict):
+class CaseInsensitiveDict(collections.UserDict, dict):
     """
     Store and access keys case-insensitively.
     The constructor can take multiple dicts, in which keys in the latter are prioritised.
