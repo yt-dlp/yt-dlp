@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import urllib.error
 import warnings
-
+import platform
 from yt_dlp.networking import Response
 from yt_dlp.networking.exceptions import HTTPError, CompatHTTPError
 import unittest
@@ -143,10 +143,6 @@ class TestNetworkingExceptions:
         data = error.response.read()
         assert data == b'test'
 
-        res = self.create_response(404)
-        HTTPError(res)
-        assert res.raw.closed
-
     def test_compat_http(self):
         response = self.create_response(403)
         error = HTTPError(response)
@@ -169,10 +165,23 @@ class TestNetworkingExceptions:
             assert error_compat.hdrs is error_compat.info() is response.headers
             assert error_compat.filename == error_compat.geturl() == response.url
             assert isinstance(error_compat, urllib.error.HTTPError)
+            data = error_compat.read()
+            assert data == b'test'
 
-        data = error_compat.read()
-        assert data == b'test'
+    @pytest.mark.skipif(
+        platform.python_implementation() == 'PyPy', reason='garbage collector works differently in pypy')
+    def test_auto_close_http_error(self):
+        res = self.create_response(404)
+        HTTPError(res)
+        assert res.raw.closed
 
+        res = self.create_response(404)
+        err = HTTPError(res)
+        assert not res.raw.closed
+
+    @pytest.mark.skipif(
+        platform.python_implementation() == 'PyPy', reason='garbage collector works differently in pypy')
+    def test_auto_close_compat_http_error(self):
         # should not close HTTPError
         res = self.create_response(404)
         err = HTTPError(res)
