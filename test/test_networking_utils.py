@@ -143,12 +143,9 @@ class TestNetworkingExceptions:
         data = error.response.read()
         assert data == b'test'
 
-        def discard(response):
-            HTTPError(response)
         res = self.create_response(404)
-        discard(res)
-        with pytest.raises(ValueError, match='I/O operation on closed file'):
-            res.read()
+        HTTPError(res)
+        assert res.raw.closed
 
     def test_compat_http(self):
         response = self.create_response(403)
