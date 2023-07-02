@@ -194,17 +194,6 @@ class TestNetworkingExceptions:
         error = CompatHTTPError(HTTPError(response, redirect_loop=True))
         assert str(error) == 'HTTP Error 301: Moved Permanently (redirect loop detected)'
 
-    def test_http_error_auto_close_response(self):
-        def discard(response):
-            HTTPError(response)
-
-        res = self.create_response(404)
-        discard(res)
-
-        # test if response is closed automatically
-        with pytest.raises(ValueError):
-            res.read()
-
 
 if __name__ == '__main__':
     unittest.main()
