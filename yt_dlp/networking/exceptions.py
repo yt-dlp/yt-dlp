@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import http.client
 import typing
-import urllib.error
-import urllib.response
 
-from ..utils import YoutubeDLError, AutoCloseMixin
+from ..utils import YoutubeDLError
 
 if typing.TYPE_CHECKING:
     from .common import RequestHandler, Response
@@ -57,14 +55,12 @@ class TransportError(RequestError):
     """Network related errors"""
 
 
-class HTTPError(RequestError, AutoCloseMixin):
+class HTTPError(RequestError):
     def __init__(self, response: Response, redirect_loop=False):
         self.response = response
-        self.headers = response.headers
         self.status = response.status
-        self.url = response.url
         self.reason = response.reason
-
+        self.redirect_loop = redirect_loop
         msg = f'HTTP Error {response.status}: {response.reason}'
         if redirect_loop:
             msg += ' (redirect loop detected)'
@@ -74,29 +70,8 @@ class HTTPError(RequestError, AutoCloseMixin):
     def close(self):
         self.response.close()
 
-
-class CompatHTTPError(urllib.error.HTTPError, HTTPError):
-    def __init__(self, httperror: HTTPError):
-        super().__init__(url=httperror.url, code=httperror.status, msg=httperror.msg[len(f'HTTP Error {httperror.status}: '):], hdrs=httperror.headers, fp=httperror.response)
-        # Don't close the underlying HTTP Error when this adapter is closed.
-        # It can handle closing itself. This is for the case that the http error is used elsewhere.
-        self._closer.file = None
-        self._http_error = httperror  # keep ref
-
-    # def __getattribute__(self, item):
-    #     COMPAT_MAP = {
-    #         'code': 'status',
-    #         'hdrs': 'headers',
-    #         'info': 'headers',
-    #         'getcode': 'status',
-    #         'geturl': 'url',
-    #         'filename': 'url',
-    #         'read': 'response.read',
-    #         'fp': 'response',
-    #     }
-    #     if item in COMPAT_MAP:
-    #         warnings.warn(f'HTTPError.{item} is deprecated, use HTTPError.{COMPAT_MAP[item]} instead', DeprecationWarning)
-    #     return super().__getattribute__(item)
+    def __repr__(self):
+        return f'<HTTPError {self.status}: {self.reason}>'
 
 
 # Backwards compat with http.client.IncompleteRead

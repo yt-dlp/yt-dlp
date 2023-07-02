@@ -1,10 +1,13 @@
 """No longer used and new code should not use. Exists only for API compat."""
+from __future__ import annotations
+
 import platform
 import struct
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import warnings
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
@@ -240,3 +243,101 @@ def make_HTTPS_handler(params, **kwargs):
 
 def process_communicate_or_kill(p, *args, **kwargs):
     return Popen.communicate_or_kill(p, *args, **kwargs)
+
+
+class CompatHTTPError(urllib.error.HTTPError, HTTPError):
+    def __init__(self, http_error: HTTPError):
+        super().__init__(
+            url=http_error.response.url,
+            code=http_error.status,
+            msg=http_error.msg,
+            hdrs=http_error.response.headers,
+            fp=http_error.response
+        )
+        self._closer.file = None  # Disable auto close
+        self._http_error = http_error
+        HTTPError.__init__(self, http_error.response, redirect_loop=http_error.redirect_loop)
+
+    @property
+    def status(self):
+        return self._http_error.status
+
+    @status.setter
+    def status(self, value):
+        return
+
+    @property
+    def reason(self):
+        return self._http_error.reason
+
+    @reason.setter
+    def reason(self, value):
+        return
+
+    @property
+    def headers(self):
+        warnings.warn('HTTPError.headers is deprecated, use HTTPError.response.headers instead', DeprecationWarning)
+        return self._http_error.response.headers
+
+    @headers.setter
+    def headers(self, value):
+        return
+
+    def info(self):
+        warnings.warn('HTTPError.info() is deprecated, use HTTPError.response.headers instead', DeprecationWarning)
+        return self.response.headers
+
+    def getcode(self):
+        warnings.warn('HTTPError.getcode is deprecated, use HTTPError.status instead', DeprecationWarning)
+        return self.status
+
+    def geturl(self):
+        warnings.warn('HTTPError.geturl is deprecated, use HTTPError.response.url instead', DeprecationWarning)
+        return self.response.url
+
+    @property
+    def code(self):
+        warnings.warn('HTTPError.code is deprecated, use HTTPError.status instead', DeprecationWarning)
+        return self.status
+
+    @code.setter
+    def code(self, value):
+        return
+
+    @property
+    def url(self):
+        warnings.warn('HTTPError.url is deprecated, use HTTPError.response.url instead', DeprecationWarning)
+        return self.response.url
+
+    @url.setter
+    def url(self, value):
+        return
+
+    @property
+    def hdrs(self):
+        warnings.warn('HTTPError.hdrs is deprecated, use HTTPError.response.headers instead', DeprecationWarning)
+        return self.response.headers
+
+    @hdrs.setter
+    def hdrs(self, value):
+        return
+
+    @property
+    def filename(self):
+        warnings.warn('HTTPError.filename is deprecated, use HTTPError.response.url instead', DeprecationWarning)
+        return self.response.url
+
+    @filename.setter
+    def filename(self, value):
+        return
+
+    def __getattr__(self, name):
+        # For passthrough file operations
+        warnings.warn(f'HTTPError.{name} is deprecated, use HTTPError.response.{name} instead', DeprecationWarning)
+        return super().__getattr__(name)
+
+    def __str__(self):
+        return str(self._http_error)
+
+    def __repr__(self):
+        return repr(self._http_error)

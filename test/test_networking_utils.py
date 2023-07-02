@@ -7,11 +7,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import contextlib
 import urllib.error
 import warnings
 import platform
 from yt_dlp.networking import Response
-from yt_dlp.networking.exceptions import HTTPError, CompatHTTPError
+from yt_dlp.networking.exceptions import HTTPError
+from yt_dlp.utils import CompatHTTPError
 import unittest
 import io
 import pytest
@@ -128,80 +130,93 @@ class TestNetworkingExceptions:
     def create_response(status):
         return Response(raw=io.BytesIO(b'test'), url='http://example.com', headers={'tesT': 'test'}, status=status)
 
-    def test_http_error(self):
+    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda r: CompatHTTPError(HTTPError(r))])
+    def test_http_error(self, http_error_class):
 
         response = self.create_response(403)
-        error = HTTPError(response)
+        error = http_error_class(response)
 
         assert error.status == 403
         assert str(error) == error.msg == 'HTTP Error 403: Forbidden'
         assert error.reason == response.reason
         assert error.response is response
-        assert error.url == response.url
-        assert 'test' in error.headers
 
         data = error.response.read()
         assert data == b'test'
+        assert repr(error) == '<HTTPError 403: Forbidden>'
+
+    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda *args, **kwargs: CompatHTTPError(HTTPError(*args, **kwargs))])
+    def test_redirect_http_error(self, http_error_class):
+        response = self.create_response(301)
+        error = http_error_class(response, redirect_loop=True)
+        assert str(error) == error.msg == 'HTTP Error 301: Moved Permanently (redirect loop detected)'
+        assert error.reason == 'Moved Permanently'
 
     def test_compat_http(self):
         response = self.create_response(403)
-        error = HTTPError(response)
-        error_compat = CompatHTTPError(error)
-        assert not isinstance(error, urllib.error.HTTPError)
-        assert isinstance(error_compat, urllib.error.HTTPError)
+        error = CompatHTTPError(HTTPError(response))
+        assert isinstance(error, HTTPError)
+        assert isinstance(error, urllib.error.HTTPError)
 
-        # These should not vive warnings
-        assert error.status == 403
-        assert str(error) == error.msg == 'HTTP Error 403: Forbidden'
-        assert error.reason == response.reason
-        assert error.response is response
-        assert error.url == response.url
-        assert 'test' in error.headers
+        @contextlib.contextmanager
+        def raises_deprecation_warning():
+            with warnings.catch_warnings(record=True) as w:
+                yield
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            assert error_compat.code == error_compat.getcode() == 403
-            assert 'test' in error_compat.hdrs
-            assert error_compat.hdrs is error_compat.info() is response.headers
-            assert error_compat.filename == error_compat.geturl() == response.url
-            assert isinstance(error_compat, urllib.error.HTTPError)
-            data = error_compat.read()
-            assert data == b'test'
+                if len(w) == 0:
+                    pytest.fail('Did not raise DeprecationWarning')
+                if len(w) > 1:
+                    pytest.fail(f'Raised multiple warnings: {w}')
+
+                if not issubclass(w[-1].category, DeprecationWarning):
+                    pytest.fail(f'Expected DeprecationWarning, got {w[-1].category}')
+                w.clear()
+
+        with raises_deprecation_warning():
+            assert error.code == 403
+
+        with raises_deprecation_warning():
+            assert error.getcode() == 403
+
+        with raises_deprecation_warning():
+            assert error.hdrs is error.response.headers
+
+        with raises_deprecation_warning():
+            assert error.info() is error.response.headers
+
+        with raises_deprecation_warning():
+            assert error.headers is error.response.headers
+
+        with raises_deprecation_warning():
+            assert error.filename == error.response.url
+
+        with raises_deprecation_warning():
+            assert error.url == error.response.url
+
+        with raises_deprecation_warning():
+            assert error.geturl() == error.response.url
+
+        # Passthrough file operations
+        with raises_deprecation_warning():
+            assert error.read() == b'test'
+
+        with raises_deprecation_warning():
+            assert not error.closed
+
+        with raises_deprecation_warning():
+            # Technically Response operations are also passed through, which should not be used.
+            assert error.get_header('test') == 'test'
+
+        # Should not raise a warning
+        error.close()
 
     @pytest.mark.skipif(
         platform.python_implementation() == 'PyPy', reason='garbage collector works differently in pypy')
-    def test_auto_close_http_error(self):
-        res = self.create_response(404)
-        HTTPError(res)
-        assert res.raw.closed
-
-        res = self.create_response(404)
-        err = HTTPError(res)
-        assert not res.raw.closed
-
-    @pytest.mark.skipif(
-        platform.python_implementation() == 'PyPy', reason='garbage collector works differently in pypy')
-    def test_auto_close_compat_http_error(self):
-        # should not close HTTPError
-        res = self.create_response(404)
-        err = HTTPError(res)
-        CompatHTTPError(err)
-        assert not res.closed
-
-        # HTTPError should not close if compatHTTPError is in use
-        res = self.create_response(404)
-        err = CompatHTTPError(HTTPError(res))
-        assert not res.closed
-
-        # But it should close if compatHTTPError is not in use
-        res = self.create_response(302)
-        CompatHTTPError(HTTPError(res))
-        assert res.closed
-
-    def test_redirect_http_error(self):
-        response = self.create_response(301)
-        error = CompatHTTPError(HTTPError(response, redirect_loop=True))
-        assert str(error) == 'HTTP Error 301: Moved Permanently (redirect loop detected)'
+    def test_compat_httperror_autoclose(self):
+        # Compat HTTPError should not autoclose response
+        response = self.create_response(403)
+        CompatHTTPError(HTTPError(response))
+        assert not response.closed
 
 
 if __name__ == '__main__':

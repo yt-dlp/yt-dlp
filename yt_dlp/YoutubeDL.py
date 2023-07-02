@@ -36,7 +36,8 @@ from .networking import RequestDirector, list_request_handler_classes
 from .networking.exceptions import (
     NoSupportingHandlers,
     SSLError,
-    network_exceptions, HTTPError, CompatHTTPError
+    network_exceptions,
+    HTTPError
 )
 from .networking.common import Request, HEADRequest
 from .networking.utils import std_headers
@@ -71,6 +72,7 @@ from .utils import (
     STR_FORMAT_TYPES,
     CaseInsensitiveDict,
     ContentTooShortError,
+    CompatHTTPError,
     DateRange,
     DownloadCancelled,
     DownloadError,
