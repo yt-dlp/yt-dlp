@@ -173,6 +173,9 @@ class FragmentFD(FileDownloader):
             **self.params,
             'noprogress': True,
             'test': False,
+            'sleep_interval': 0,
+            'max_sleep_interval': 0,
+            'sleep_interval_subtitles': 0,
         })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
@@ -284,7 +287,7 @@ class FragmentFD(FileDownloader):
                 frag_downloaded_bytes = s['downloaded_bytes']
                 state['downloaded_bytes'] += frag_downloaded_bytes - ctx['prev_frag_downloaded_bytes']
                 ctx['speed'] = state['speed'] = self.calc_speed(
-                    ctx['fragment_started'], time_now, frag_downloaded_bytes - ctx['frag_resume_len'])
+                    ctx['fragment_started'], time_now, frag_downloaded_bytes - ctx.get('frag_resume_len', 0))
                 if not ctx['live']:
                     state['eta'] = self.calc_eta(state['speed'], estimated_size - state['downloaded_bytes'])
                 ctx['prev_frag_downloaded_bytes'] = frag_downloaded_bytes
@@ -304,7 +307,7 @@ class FragmentFD(FileDownloader):
 
         to_file = ctx['tmpfilename'] != '-'
         if to_file:
-            downloaded_bytes = self.filesize_or_none(ctx['filename'])
+            downloaded_bytes = self.filesize_or_none(ctx['tmpfilename'])
         else:
             downloaded_bytes = ctx['complete_frags_downloaded_bytes']
 

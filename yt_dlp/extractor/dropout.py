@@ -1,13 +1,17 @@
+import functools
+
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     clean_html,
+    extract_attributes,
     get_element_by_class,
     get_element_by_id,
-    get_elements_by_class,
+    get_elements_html_by_class,
     int_or_none,
-    join_nonempty,
+    traverse_obj,
     unified_strdate,
     urlencode_postdata,
 )
@@ -162,12 +166,13 @@ class DropoutIE(InfoExtractor):
 
 
 class DropoutSeasonIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:[0-9]+/?$)'
+    _PAGE_SIZE = 24
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:(?P<season>[0-9]+)/?$)'
     _TESTS = [
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
             'note': 'Multi-season series with the season in the url',
-            'playlist_count': 17,
+            'playlist_count': 24,
             'info_dict': {
                 'id': 'dimension-20-fantasy-high-season-1',
                 'title': 'Dimension 20 Fantasy High - Season 1'
@@ -176,7 +181,7 @@ class DropoutSeasonIE(InfoExtractor):
         {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
             'note': 'Multi-season series with the season not in the url',
-            'playlist_count': 17,
+            'playlist_count': 24,
             'info_dict': {
                 'id': 'dimension-20-fantasy-high-season-1',
                 'title': 'Dimension 20 Fantasy High - Season 1'
@@ -190,29 +195,30 @@ class DropoutSeasonIE(InfoExtractor):
                 'id': 'dimension-20-shriek-week-season-1',
                 'title': 'Dimension 20 Shriek Week - Season 1'
             }
+        },
+        {
+            'url': 'https://www.dropout.tv/breaking-news-no-laugh-newsroom/season:3',
+            'note': 'Multi-season series with season in the url that requires pagination',
+            'playlist_count': 25,
+            'info_dict': {
+                'id': 'breaking-news-no-laugh-newsroom-season-3',
+                'title': 'Breaking News No Laugh Newsroom - Season 3'
+            }
         }
     ]
 
+    def _fetch_page(self, url, season_id, page):
+        page += 1
+        webpage = self._download_webpage(
+            f'{url}?page={page}', season_id, note=f'Downloading page {page}', expected_status={400})
+        yield from [self.url_result(item_url, DropoutIE) for item_url in traverse_obj(
+            get_elements_html_by_class('browse-item-link', webpage), (..., {extract_attributes}, 'href'))]
+
     def _real_extract(self, url):
         season_id = self._match_id(url)
+        season_num = self._match_valid_url(url).group('season') or 1
         season_title = season_id.replace('-', ' ').title()
-        webpage = self._download_webpage(url, season_id)
 
-        entries = [
-            self.url_result(
-                url=self._search_regex(r'<a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
-                                       item, 'item_url'),
-                ie=DropoutIE.ie_key()
-            ) for item in get_elements_by_class('js-collection-item', webpage)
-        ]
-
-        seasons = (get_element_by_class('select-dropdown-wrapper', webpage) or '').strip().replace('\n', '')
-        current_season = self._search_regex(r'<option[^>]+selected>([^<]+)</option>',
-                                            seasons, 'current_season', default='').strip()
-
-        return {
-            '_type': 'playlist',
-            'id': join_nonempty(season_id, current_season.lower().replace(' ', '-')),
-            'title': join_nonempty(season_title, current_season, delim=' - '),
-            'entries': entries
-        }
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(self._fetch_page, url, season_id), self._PAGE_SIZE),
+            f'{season_id}-season-{season_num}', f'{season_title} - Season {season_num}')
