@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from ..compat import functools  # isort: split
+from ..compat import functools, urllib_req_to_req  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
@@ -89,7 +89,6 @@ from ..utils import (
     url_or_none,
     urlhandle_detect_ext,
     urljoin,
-    urllib_req_to_req,
     variadic,
     xpath_element,
     xpath_text,
