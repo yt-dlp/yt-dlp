@@ -140,7 +140,7 @@ class RequestHandler(abc.ABC):
         )
 
     def _merge_headers(self, request_headers):
-        return CaseInsensitiveDict(self.headers or {}, request_headers)
+        return CaseInsensitiveDict(self.headers, request_headers)
 
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
