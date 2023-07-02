@@ -401,7 +401,7 @@ class Response(io.IOBase):
 
         self.raw = raw
         self.headers: Message = Message()
-        for name, value in (headers or {}).items():
+        for name, value in headers.items():
             self.headers.add_header(name, value)
         self.status = status
         self.reason = reason
