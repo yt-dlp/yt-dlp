@@ -698,12 +698,7 @@ class TestRequestHandlerValidation:
         _SUPPORTED_PROXY_SCHEMES = None
         _SUPPORTED_URL_SCHEMES = None
 
-    class NoSupportedProxySchemesRH(ValidationRH):
-        _SUPPORTED_PROXY_SCHEMES = ()
-        _SUPPORTED_URL_SCHEMES = ('http',)
-
-    class NoSupportedFeaturesRH(ValidationRH):
-        _SUPPORTED_FEATURES = ()
+    class HTTPSupportedRH(ValidationRH):
         _SUPPORTED_URL_SCHEMES = ('http',)
 
     URL_SCHEME_TESTS = [
@@ -732,7 +727,7 @@ class TestRequestHandlerValidation:
             ('socks', True),
         ]),
         (NoCheckRH, [('http', False)]),
-        (NoSupportedProxySchemesRH, [('http', True)]),
+        (HTTPSupportedRH, [('http', True)]),
     ]
 
     PROXY_KEY_TESTS = [
@@ -742,8 +737,8 @@ class TestRequestHandlerValidation:
             ('unrelated', False),
         ]),
         (NoCheckRH, [('all', False)]),
-        (NoSupportedFeaturesRH, [('all', True)]),
-        (NoSupportedFeaturesRH, [('no', True)]),
+        (HTTPSupportedRH, [('all', True)]),
+        (HTTPSupportedRH, [('no', True)]),
     ]
 
     @pytest.mark.parametrize('handler,scheme,fail,handler_kwargs', [
@@ -778,7 +773,7 @@ class TestRequestHandlerValidation:
         run_validation(handler, fail, Request('http://', proxies={'http': f'{scheme}://example.com'}))
         run_validation(handler, fail, Request('http://'), proxies={'http': f'{scheme}://example.com'})
 
-    @pytest.mark.parametrize('handler', ['Urllib', NoSupportedProxySchemesRH], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', HTTPSupportedRH], indirect=True)
     def test_empty_proxy(self, handler):
         run_validation(handler, False, Request('http://', proxies={'http': None}))
         run_validation(handler, False, Request('http://'), proxies={'http': None})
