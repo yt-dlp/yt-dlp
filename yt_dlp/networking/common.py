@@ -52,13 +52,14 @@ class RequestHandler(abc.ABC):
     should be raised with a reason.
 
     By default, some checks are done on the request in _validate() based on the following class variables:
-    - `_SUPPORTED_URL_SCHEMES`: may contain a tuple of supported url schemes.
+    - `_SUPPORTED_URL_SCHEMES`: a tuple of supported url schemes.
         Any Request with an url scheme not in this list will raise an UnsupportedRequest.
 
-    - `_SUPPORTED_PROXY_SCHEMES`: may contain a tuple of support proxy url schemes. Any Request that contains
+    - `_SUPPORTED_PROXY_SCHEMES`: a tuple of support proxy url schemes. Any Request that contains
         a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
-    - `_SUPPORTED_FEATURES`: may contain a tuple of supported features, as defined in Features enum.
+    - `_SUPPORTED_FEATURES`: a tuple of supported features, as defined in Features enum.
+    The above may be set to None to disable the checks.
 
     Parameters:
     @param logger: logger instance
@@ -91,9 +92,9 @@ class RequestHandler(abc.ABC):
 
     """
 
-    _SUPPORTED_URL_SCHEMES: tuple = None
-    _SUPPORTED_PROXY_SCHEMES: tuple = None
-    _SUPPORTED_FEATURES: tuple = None
+    _SUPPORTED_URL_SCHEMES = ()
+    _SUPPORTED_PROXY_SCHEMES = ()
+    _SUPPORTED_FEATURES = ()
 
     def __init__(
         self,
