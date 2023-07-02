@@ -392,7 +392,8 @@ class Response(io.IOBase):
     """
 
     def __init__(
-            self, raw,
+            self,
+            raw,
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
