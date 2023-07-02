@@ -1120,7 +1120,7 @@ class TwitterIE(TwitterBaseIE):
                 status = self._download_json(
                     'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
                     headers={'User-Agent': 'Googlebot'}, query={'id': twid})
-                self.report_warning('Not all metadata is available without authentication')
+                self.to_screen(f'Some metadata is missing without authentication. {self._login_hint()}')
             except ExtractorError as e:
                 if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 404:
                     self.raise_login_required('Requested tweet may only be available when logged in')
