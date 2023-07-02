@@ -833,11 +833,18 @@ class TestRequestDirector:
         assert director.send(Request('any://'))
 
 
-class TestYoutubeDLHTTP:
+# XXX: do we want to move this to test_YoutubeDL.py?
+class TestYoutubeDLNetworking:
+
+    @staticmethod
+    def build_handler(ydl, handler: RequestHandler = FakeRH):
+        return ydl.build_request_director([handler]).get_handler(rh_key=handler.rh_key())
 
     def test_compat_opener(self):
         with FakeYDL() as ydl:
-            assert isinstance(ydl._opener, urllib.request.OpenerDirector)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                assert isinstance(ydl._opener, urllib.request.OpenerDirector)
 
     @pytest.mark.parametrize('proxy,expected', [
         ('http://127.0.0.1:8080', {'all': 'http://127.0.0.1:8080'}),
@@ -871,12 +878,6 @@ class TestYoutubeDLHTTP:
             with pytest.raises(AssertionError):
                 ydl.urlopen(None)
 
-    def test_compat_compression(self):
-        with FakeRHYDL() as ydl:
-            res = ydl.urlopen(Request('test://', headers={'Youtubedl-no-compression': True}))
-            assert 'Youtubedl-no-compression' not in res.request.headers
-            assert res.request.headers.get('Accept-Encoding') == 'identity'
-
     def test_extract_basic_auth(self):
         with FakeRHYDL() as ydl:
             res = ydl.urlopen(Request('http://user:pass@foo.bar'))
@@ -902,34 +903,55 @@ class TestYoutubeDLHTTP:
             with pytest.raises(SSLError, match='testerror'):
                 ydl.urlopen('ssl://testerror')
 
-    def test_clean_proxy(self):
-        # TODO: we have duplicate tests here with building request handler
+    @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
+        ('http', '__noproxy__', None),
+        ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
+        ('https', 'example.com', 'http://example.com'),
+        ('https', 'socks5://example.com', 'socks5h://example.com'),
+        ('http', 'socks://example.com', 'socks4://example.com'),
+        ('http', 'socks4://example.com', 'socks4://example.com'),
+    ])
+    def test_clean_proxy(self, proxy_key, proxy_url, expected):
+        # proxies should be cleaned in urlopen()
         with FakeRHYDL() as ydl:
-            get_req = lambda x: ydl.urlopen(x).request
-            req = get_req(Request('test://', headers={'ytdl-request-proxy': '//foo.bar'}))
+            req = ydl.urlopen(Request('test://', proxies={proxy_key: proxy_url})).request
+            assert req.proxies[proxy_key] == expected
+
+        # and should also be cleaned when building the handler
+        env_key = f'{proxy_key.upper()}_PROXY'
+        old_env_proxy = os.environ.get(env_key)
+        try:
+            os.environ[env_key] = proxy_url  # ensure that provided proxies override env
+            with FakeYDL() as ydl:
+                rh = self.build_handler(ydl)
+                assert rh.proxies[proxy_key] == expected
+        finally:
+            if old_env_proxy:
+                os.environ[env_key] = old_env_proxy
+
+    def test_clean_proxy_header(self):
+        with FakeRHYDL() as ydl:
+            req = ydl.urlopen(Request('test://', headers={'ytdl-request-proxy': '//foo.bar'})).request
             assert 'ytdl-request-proxy' not in req.headers
-            assert req.proxies['all'] == 'http://foo.bar'
+            assert req.proxies == {'all': 'http://foo.bar'}
 
-            req = get_req(Request('test://', proxies={'http': '__noproxy__', 'no': '127.0.0.1,foo.bar', 'https': 'example.com'}))
-            assert req.proxies['http'] is None
-            assert req.proxies['no'] == '127.0.0.1,foo.bar'
-            assert req.proxies['https'] == 'http://example.com'
+        with FakeYDL({'http_headers': {'ytdl-request-proxy': '//foo.bar'}}) as ydl:
+            rh = self.build_handler(ydl)
+            assert 'ytdl-request-proxy' not in rh.headers
+            assert rh.proxies == {'all': 'http://foo.bar'}
 
-            # Clean socks proxies
-            req = get_req(
-                Request('test://', proxies={'http': 'socks://127.0.0.1', 'https': 'socks5://127.0.0.1'}))
+    def test_clean_header(self):
+        with FakeRHYDL() as ydl:
+            res = ydl.urlopen(Request('test://', headers={'Youtubedl-no-compression': True}))
+            assert 'Youtubedl-no-compression' not in res.request.headers
+            assert res.request.headers.get('Accept-Encoding') == 'identity'
 
-            assert req.proxies['http'] == 'socks4://127.0.0.1'
-            assert req.proxies['https'] == 'socks5h://127.0.0.1'
+        with FakeYDL({'http_headers': {'Youtubedl-no-compression': True}}) as ydl:
+            rh = self.build_handler(ydl)
+            assert 'Youtubedl-no-compression' not in rh.headers
+            assert rh.headers.get('Accept-Encoding') == 'identity'
 
-
-class TestYDLRequestDirectorBuilder:
-
-    @staticmethod
-    def build_handler(ydl, handler=FakeRH):
-        return ydl.build_request_director([handler]).get_handler(rh_key=handler.rh_key())
-
-    def test_default_params(self):
+    def test_build_handler_default_params(self):
         with FakeYDL() as ydl:
             rh = self.build_handler(ydl)
             assert rh.headers.items() == std_headers.items()
@@ -942,7 +964,7 @@ class TestYDLRequestDirectorBuilder:
             assert rh.client_cert is None
             assert rh.cookiejar is ydl.cookiejar
 
-    def test_params(self):
+    def test_build_handler_params(self):
         with FakeYDL({
             'http_headers': {'test': 'testtest'},
             'socket_timeout': 2,
@@ -984,31 +1006,6 @@ class TestYDLRequestDirectorBuilder:
         with FakeYDL({'enable_file_urls': True}) as ydl:
             rh = self.build_handler(ydl, UrllibRH)
             assert rh.enable_file_urls is True
-
-    @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
-        ('http', '__noproxy__', None),
-        ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
-        ('https', 'example.com', 'http://example.com'),
-        ('https', 'socks5://example.com', 'socks5h://example.com'),
-        ('http', 'socks://example.com', 'socks4://example.com'),
-    ])
-    def test_clean_proxy(self, proxy_key, proxy_url, expected):
-        env_key = f'{proxy_key.upper()}_PROXY'
-        old_env_proxy = os.environ.get(env_key)
-        try:
-            os.environ[env_key] = proxy_url  # ensure that provided proxies override env
-            with FakeYDL() as ydl:
-                rh = self.build_handler(ydl)
-                assert rh.proxies[proxy_key] == expected
-        finally:
-            if old_env_proxy:
-                os.environ[env_key] = old_env_proxy
-
-    def test_clean_proxy_header(self):
-        with FakeYDL({'http_headers': {'ytdl-request-proxy': '//foo.bar'}}) as ydl:
-            rh = self.build_handler(ydl)
-            assert 'ytdl-request-proxy' not in rh.headers
-            assert rh.proxies == {'all': 'http://foo.bar'}  # TODO: test takes preference over everything
 
 
 class TestRequest:
