@@ -698,6 +698,14 @@ class TestRequestHandlerValidation:
         _SUPPORTED_PROXY_SCHEMES = None
         _SUPPORTED_URL_SCHEMES = None
 
+    class NoSupportedProxySchemesRH(ValidationRH):
+        _SUPPORTED_PROXY_SCHEMES = ()
+        _SUPPORTED_URL_SCHEMES = ('http',)
+
+    class NoSupportedFeaturesRH(ValidationRH):
+        _SUPPORTED_FEATURES = ()
+        _SUPPORTED_URL_SCHEMES = ('http',)
+
     URL_SCHEME_TESTS = [
         # scheme, expected to fail, handler kwargs
         ('Urllib', [
@@ -724,7 +732,7 @@ class TestRequestHandlerValidation:
             ('socks', True),
         ]),
         (NoCheckRH, [('http', False)]),
-        (ValidationRH, [('http', True)]),
+        (NoSupportedProxySchemesRH, [('http', True)]),
     ]
 
     PROXY_KEY_TESTS = [
@@ -734,8 +742,8 @@ class TestRequestHandlerValidation:
             ('unrelated', False),
         ]),
         (NoCheckRH, [('all', False)]),
-        (ValidationRH, [('all', True)]),
-        (ValidationRH, [('no', True)]),
+        (NoSupportedFeaturesRH, [('all', True)]),
+        (NoSupportedFeaturesRH, [('no', True)]),
     ]
 
     @pytest.mark.parametrize('handler,scheme,fail,handler_kwargs', [
@@ -770,6 +778,11 @@ class TestRequestHandlerValidation:
         run_validation(handler, fail, Request('http://', proxies={'http': f'{scheme}://example.com'}))
         run_validation(handler, fail, Request('http://'), proxies={'http': f'{scheme}://example.com'})
 
+    @pytest.mark.parametrize('handler', ['Urllib', NoSupportedProxySchemesRH], indirect=True)
+    def test_empty_proxy(self, handler):
+        run_validation(handler, False, Request('http://', proxies={'http': None}))
+        run_validation(handler, False, Request('http://'), proxies={'http': None})
+
     @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1'])
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_missing_proxy_scheme(self, handler, proxy_url):
@@ -782,6 +795,12 @@ class TestRequestHandlerValidation:
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_timeout_extension(self, handler):
         run_validation(handler, True, Request('http://', extensions={'timeout': 'notavalidtimeout'}))
+
+    def test_invalid_request_type(self):
+        rh = self.ValidationRH(logger=FakeLogger())
+        for method in (rh.validate, rh.send):
+            with pytest.raises(TypeError, match='Expected an instance of Request'):
+                method('not a request')
 
 
 class FakeResponse(Response):
