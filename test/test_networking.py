@@ -410,7 +410,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
             # These should not redirect and instead raise an HTTPError
             for code in (300, 304, 305, 306):
-                with pytest.raises(urllib.error.HTTPError):
+                with pytest.raises(HTTPError):
                     do_req(code, 'GET')
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)

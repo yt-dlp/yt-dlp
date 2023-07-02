@@ -7,8 +7,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import unittest
+import urllib.error
+import warnings
 
+from yt_dlp.networking import Response
+from yt_dlp.networking.exceptions import HTTPError, CompatHTTPError
+import unittest
+import io
 import pytest
 
 from yt_dlp.cookies import YoutubeDLCookieJar
@@ -115,6 +120,93 @@ class TestInstanceStoreMixin(unittest.TestCase):
         self.assertEqual(
             mixin._get_instance(
                 c=cookiejar, b=[1, 2]), mixin._get_instance(b=[1, 2], c=cookiejar))
+
+
+class TestNetworkingExceptions:
+
+    @staticmethod
+    def create_response(status):
+        return Response(raw=io.BytesIO(b'test'), url='http://example.com', headers={'tesT': 'test'}, status=status)
+
+    def test_http_error(self):
+
+        response = self.create_response(403)
+        error = HTTPError(response)
+
+        assert error.status == 403
+        assert str(error) == error.msg == 'HTTP Error 403: Forbidden'
+        assert error.reason == response.reason
+        assert error.response is response
+        assert error.url == response.url
+        assert 'test' in error.headers
+
+        data = error.response.read()
+        assert data == b'test'
+
+        def discard(response):
+            HTTPError(response)
+        res = self.create_response(404)
+        discard(res)
+        with pytest.raises(ValueError, match='I/O operation on closed file'):
+            res.read()
+
+    def test_compat_http(self):
+        response = self.create_response(403)
+        error = HTTPError(response)
+        error_compat = CompatHTTPError(error)
+        assert not isinstance(error, urllib.error.HTTPError)
+        assert isinstance(error_compat, urllib.error.HTTPError)
+
+        # These should not vive warnings
+        assert error.status == 403
+        assert str(error) == error.msg == 'HTTP Error 403: Forbidden'
+        assert error.reason == response.reason
+        assert error.response is response
+        assert error.url == response.url
+        assert 'test' in error.headers
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            assert error_compat.code == error_compat.getcode() == 403
+            assert 'test' in error_compat.hdrs
+            assert error_compat.hdrs is error_compat.info() is response.headers
+            assert error_compat.filename == error_compat.geturl() == response.url
+            assert isinstance(error_compat, urllib.error.HTTPError)
+
+        data = error_compat.read()
+        assert data == b'test'
+
+        # should not close HTTPError
+        res = self.create_response(404)
+        err = HTTPError(res)
+        CompatHTTPError(err)
+        assert not res.closed
+
+        # HTTPError should not close if compatHTTPError is in use
+        res = self.create_response(404)
+        err = CompatHTTPError(HTTPError(res))
+        assert not res.closed
+
+        # But it should close if compatHTTPError is not in use
+        res = self.create_response(302)
+        CompatHTTPError(HTTPError(res))
+        assert res.closed
+
+    def test_redirect_http_error(self):
+        response = self.create_response(301)
+        error = CompatHTTPError(HTTPError(response, redirect_loop=True))
+        assert str(error) == 'HTTP Error 301: Moved Permanently (redirect loop detected)'
+
+    def test_http_error_auto_close_response(self):
+        def discard(response):
+            HTTPError(response)
+
+        res = self.create_response(404)
+        discard(res)
+
+        # test if response is closed automatically
+        with pytest.raises(ValueError):
+            res.read()
 
 
 if __name__ == '__main__':

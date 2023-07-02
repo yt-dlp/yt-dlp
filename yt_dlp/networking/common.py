@@ -22,6 +22,7 @@ from ..utils import (
     classproperty,
     escape_url,
     update_url_query,
+    AutoCloseMixin,
 )
 
 
@@ -384,7 +385,7 @@ HEADRequest = functools.partial(Request, method='HEAD')
 PUTRequest = functools.partial(Request, method='PUT')
 
 
-class Response(io.IOBase):
+class Response(io.IOBase, AutoCloseMixin):
     """
     Abstract base class for HTTP response adapters.
 
