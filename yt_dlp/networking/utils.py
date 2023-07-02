@@ -189,7 +189,7 @@ def make_ssl_context(
     client_certificate_key=None,
     client_certificate_password=None,
     legacy_support=False,
-    use_certifi=True
+    use_certifi=True,
 ):
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = verify
