@@ -3978,7 +3978,7 @@ class YoutubeDL:
 
     def build_request_director(self, handlers):
         director = RequestDirector(logger=self)
-        headers = CaseInsensitiveDict(self.params.get('http_headers'))
+        headers = self.params.get('http_headers').copy()
         proxies = self.proxies.copy()
         clean_headers(headers)
         clean_proxies(proxies, headers)
