@@ -116,7 +116,6 @@ from .utils import (
     formatSeconds,
     get_compatible_ext,
     get_domain,
-    infojson_decoder_hook,
     int_or_none,
     iri_to_uri,
     is_path_like,
@@ -675,7 +674,7 @@ class YoutubeDL:
                     raise
 
         # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers', {}))
+        self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers'))
         self._request_director = self.build_request_director(list_request_handler_classes())
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
@@ -2417,7 +2416,7 @@ class YoutubeDL:
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = CaseInsensitiveDict(self.params['http_headers'], info_dict.get('http_headers') or {})
+        res = CaseInsensitiveDict(self.params['http_headers'], info_dict.get('http_headers'))
         clean_headers(res)
         cookies = self.cookiejar.get_cookie_header(info_dict['url'])
         if cookies:
@@ -3429,7 +3428,7 @@ class YoutubeDL:
                 openhook=fileinput.hook_encoded('utf-8'))) as f:
             # FileInput doesn't have a read method, we can't call json.load
             infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
-                     for info in variadic(json.loads('\n'.join(f), object_hook=infojson_decoder_hook))]
+                     for info in variadic(json.loads('\n'.join(f)))]
         for info in infos:
             try:
                 self.__download_wrapper(self.process_ie_result)(info, download=True)
@@ -3467,7 +3466,7 @@ class YoutubeDL:
             reject = lambda k, v: False
 
         def filter_fn(obj):
-            if isinstance(obj, (dict, CaseInsensitiveDict)):
+            if isinstance(obj, dict):
                 return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
             elif isinstance(obj, (list, tuple, set, LazyList)):
                 return list(map(filter_fn, obj))

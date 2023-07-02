@@ -6,6 +6,7 @@ from .common import FileDownloader
 from ..networking import Request
 from ..networking.exceptions import HTTPError, TransportError
 from ..utils import (
+    CaseInsensitiveDict,
     ContentTooShortError,
     RetryManager,
     ThrottledDownload,
@@ -35,7 +36,7 @@ class HttpFD(FileDownloader):
         ctx.stream = None
 
         # Disable compression
-        headers = {'Accept-Encoding': 'identity'}
+        headers = CaseInsensitiveDict({'Accept-Encoding': 'identity'})
         add_headers = info_dict.get('http_headers')
         if add_headers:
             headers.update(add_headers)

@@ -12,7 +12,7 @@ from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_os_name
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
-from ..utils import DownloadError, RetryManager, encodeFilename, traverse_obj
+from ..utils import DownloadError, RetryManager, encodeFilename, traverse_obj, CaseInsensitiveDict
 
 
 class HttpQuietDownloader(HttpFD):
@@ -453,7 +453,7 @@ class FragmentFD(FileDownloader):
 
             frag_index = ctx['fragment_index'] = fragment['frag_index']
             ctx['last_error'] = None
-            headers = info_dict.get('http_headers', {}).copy()
+            headers = CaseInsensitiveDict(info_dict.get('http_headers'))
             byte_range = fragment.get('byte_range')
             if byte_range:
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)

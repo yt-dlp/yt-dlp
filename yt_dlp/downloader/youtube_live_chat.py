@@ -4,6 +4,7 @@ import time
 from .fragment import FragmentFD
 from ..networking.exceptions import HTTPError
 from ..utils import (
+    CaseInsensitiveDict,
     RegexNotFoundError,
     RetryManager,
     dict_get,
@@ -37,9 +38,8 @@ class YoutubeLiveChatFD(FragmentFD):
         start_time = int(time.time() * 1000)
 
         def dl_fragment(url, data=None, headers=None):
-            http_headers = info_dict.get('http_headers', {})
+            http_headers = CaseInsensitiveDict(info_dict.get('http_headers'))
             if headers:
-                http_headers = http_headers.copy()
                 http_headers.update(headers)
             return self._download_fragment(ctx, url, info_dict, http_headers, data)
 

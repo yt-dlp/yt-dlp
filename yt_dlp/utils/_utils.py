@@ -5161,13 +5161,6 @@ class CaseInsensitiveDict(collections.UserDict, dict):
         return super().__contains__(key.title() if isinstance(key, str) else key)
 
 
-def infojson_decoder_hook(data):
-    # HTTP Headers. Assuming user-agent is in infojson headers.
-    if isinstance(data, dict) and 'user-agent' in [k.lower() for k in data.keys()]:
-        return CaseInsensitiveDict(data)
-    return data
-
-
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):
     assert 'all' in alias_dict, '"all" alias is required'
     requested = list(start or [])
