@@ -13,7 +13,7 @@ class RequestDirector:
     """
 
     def __init__(self, logger=None):
-        self._handlers: Dict[RequestHandler] = {}
+        self._handlers: Dict[str, RequestHandler] = {}
         self.logger = logger  # TODO: default logger
 
     def close(self):
