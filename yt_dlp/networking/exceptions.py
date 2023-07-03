@@ -98,24 +98,6 @@ class ProxyError(TransportError):
     pass
 
 
-class _CompatIncompleteRead(http.client.IncompleteRead, IncompleteRead):
-    """
-    Provides backwards compatibility with http.client.IncompleteRead.
-    Do not use this class directly, use IncompleteRead instead.
-    """
-    def __init__(self, err: IncompleteRead):
-        super().__init__(err.partial, err.expected)
-        IncompleteRead.__init__(
-            self, err.partial, err.expected, cause=err.cause, handler=err.handler)
-        self._err = err
-
-    def __repr__(self):
-        return IncompleteRead.__repr__(self)
-
-    def __str__(self):
-        return IncompleteRead.__str__(self)
-
-
 class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
     """
     Provides backwards compatibility with urllib.error.HTTPError.

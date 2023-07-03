@@ -12,7 +12,7 @@ import urllib.error
 import warnings
 import platform
 from yt_dlp.networking import Response
-from yt_dlp.networking.exceptions import HTTPError, _CompatHTTPError, IncompleteRead, _CompatIncompleteRead
+from yt_dlp.networking.exceptions import HTTPError, _CompatHTTPError, IncompleteRead
 import unittest
 import io
 import pytest
@@ -218,13 +218,8 @@ class TestNetworkingExceptions:
         _CompatHTTPError(HTTPError(response))
         assert not response.closed
 
-    @pytest.mark.parametrize(
-        'incomplete_read_class', [
-            IncompleteRead,
-            lambda *args, **kwargs: _CompatIncompleteRead(IncompleteRead(*args, **kwargs))
-        ])
-    def test_incomplete_read_error(self, incomplete_read_class):
-        error = incomplete_read_class(b'test', 3, cause='test')
+    def test_incomplete_read_error(self):
+        error = IncompleteRead(b'test', 3, cause='test')
         assert isinstance(error, IncompleteRead)
         assert repr(error) == '<IncompleteRead: 4 bytes read, 3 more expected>'
         assert str(error) == error.msg == '4 bytes read, 3 more expected'
@@ -232,7 +227,7 @@ class TestNetworkingExceptions:
         assert error.expected == 3
         assert error.cause == 'test'
 
-        error = incomplete_read_class(b'aaa')
+        error = IncompleteRead(b'aaa')
         assert repr(error) == '<IncompleteRead: 3 bytes read>'
         assert str(error) == '3 bytes read'
 
