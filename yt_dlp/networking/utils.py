@@ -6,7 +6,7 @@ import ssl
 import sys
 import urllib.parse
 import urllib.request
-from typing import Any
+from typing import Any, Iterable
 
 from ..dependencies import certifi
 from ..socks import ProxyType
@@ -254,7 +254,7 @@ class InstanceStoreMixin:
         self.__instances = None
 
 
-def add_accept_encoding_header(headers, supported_encodings):
+def add_accept_encoding_header(headers: CaseInsensitiveDict, supported_encodings: Iterable[str]):
     if supported_encodings and 'Accept-Encoding' not in headers:
         headers['Accept-Encoding'] = ', '.join(supported_encodings)
 

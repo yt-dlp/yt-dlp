@@ -3,7 +3,11 @@
 # Allow direct execution
 import os
 import random
+import ssl
 import sys
+
+from yt_dlp.dependencies import certifi
+from yt_dlp.utils import CaseInsensitiveDict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -18,7 +22,8 @@ import io
 import pytest
 
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.networking.utils import InstanceStoreMixin, select_proxy, make_socks_proxy_opts
+from yt_dlp.networking.utils import InstanceStoreMixin, select_proxy, make_socks_proxy_opts, ssl_load_certs, \
+    get_redirect_method, add_accept_encoding_header
 from yt_dlp.socks import ProxyType
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -78,6 +83,52 @@ class TestNetworkingUtils:
     def test_make_socks_proxy_unknown(self):
         with pytest.raises(ValueError, match='Unknown SOCKS proxy version: socks'):
             make_socks_proxy_opts('socks://127.0.0.1')
+
+    @pytest.mark.skipif(not certifi, reason='certifi is not installed')
+    def test_load_certifi(self):
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context2 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_load_certs(context, use_certifi=True)
+        context2.load_verify_locations(cafile=certifi.where())
+        assert context.get_ca_certs() == context2.get_ca_certs()
+
+        # Test load normal certs
+        # XXX: could there be a case where system certs are the same as certifi?
+        context3 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_load_certs(context3, use_certifi=False)
+        assert context3.get_ca_certs() != context.get_ca_certs()
+
+    def test_load_certs(self):
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_load_certs(context, use_certifi=False)
+        assert context.get_ca_certs()
+
+    @pytest.mark.parametrize('method,status,expected', [
+        ('GET', 303, 'GET'),
+        ('HEAD', 303, 'HEAD'),
+        ('PUT', 303, 'GET'),
+        ('POST', 301, 'GET'),
+        ('HEAD', 301, 'HEAD'),
+        ('POST', 302, 'GET'),
+        ('HEAD', 302, 'HEAD'),
+        ('PUT', 302, 'PUT'),
+        ('POST', 308, 'POST'),
+        ('POST', 307, 'POST'),
+        ('HEAD', 308, 'HEAD'),
+        ('HEAD', 307, 'HEAD'),
+    ])
+    def test_get_redirect_method(self, method, status, expected):
+        assert get_redirect_method(method, status) == expected
+
+    @pytest.mark.parametrize('headers,supported_encodings,expected', [
+        ({'Accept-Encoding': 'br'}, ['gzip', 'br'], {'Accept-Encoding': 'br'}),
+        ({}, ['gzip', 'br'], {'Accept-Encoding': 'gzip, br'}),
+        ({'Content-type': 'application/json'}, [], {'Content-type': 'application/json', 'Accept-Encoding': 'identity'}),
+    ])
+    def test_add_accept_encoding_header(self, headers, supported_encodings, expected):
+        headers = CaseInsensitiveDict(headers)
+        add_accept_encoding_header(headers, supported_encodings)
+        assert headers == CaseInsensitiveDict(expected)
 
 
 class TestInstanceStoreMixin:
