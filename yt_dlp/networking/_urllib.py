@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import errno
 import functools
 import gzip
 import http.client
