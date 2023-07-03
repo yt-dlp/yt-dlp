@@ -1,7 +1,7 @@
 import json
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -74,7 +74,7 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 f'https://odkmedia.io/odc/api/v2/playback/{video_info["id"]}/', display_id,
                 headers={'Authorization': '', 'service-name': 'odc'})
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError):
+            if isinstance(e.cause, HTTPError):
                 error_data = self._parse_json(e.cause.read(), display_id)['detail']
                 raise GeoRestrictedError(error_data)
 

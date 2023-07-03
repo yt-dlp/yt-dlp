@@ -2,7 +2,7 @@ import json
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -87,7 +87,7 @@ class DPlayBaseIE(InfoExtractor):
                     'include': 'images,primaryChannel,show,tags'
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 self._process_errors(e, geo_countries)
             raise
         video_id = video['data']['id']
@@ -99,7 +99,7 @@ class DPlayBaseIE(InfoExtractor):
             streaming = self._download_video_playback_info(
                 disco_base, video_id, headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self._process_errors(e, geo_countries)
             raise
         for format_dict in streaming:

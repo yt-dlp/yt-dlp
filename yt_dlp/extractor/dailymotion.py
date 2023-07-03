@@ -3,7 +3,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -68,7 +68,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
                         None, 'Downloading Access Token',
                         data=urlencode_postdata(data))['access_token']
                 except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                         raise ExtractorError(self._parse_json(
                             e.cause.read().decode(), xid)['error_description'], expected=True)
                     raise

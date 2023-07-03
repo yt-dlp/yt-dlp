@@ -146,7 +146,7 @@ class HttpFD(FileDownloader):
                     ctx.open_mode = 'wb'
                 ctx.data_len = ctx.content_len = int_or_none(ctx.data.headers.get('Content-length', None))
             except HTTPError as err:
-                if err.code == 416:
+                if err.status == 416:
                     # Unable to resume (requested range not satisfiable)
                     try:
                         # Open the connection again without the range header
@@ -154,7 +154,7 @@ class HttpFD(FileDownloader):
                             Request(url, request_data, headers))
                         content_length = ctx.data.headers['Content-Length']
                     except HTTPError as err:
-                        if err.code < 500 or err.code >= 600:
+                        if err.status < 500 or err.status >= 600:
                             raise
                     else:
                         # Examine the reported length
@@ -182,7 +182,7 @@ class HttpFD(FileDownloader):
                             ctx.resume_len = 0
                             ctx.open_mode = 'wb'
                             return
-                elif err.code < 500 or err.code >= 600:
+                elif err.status < 500 or err.status >= 600:
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)

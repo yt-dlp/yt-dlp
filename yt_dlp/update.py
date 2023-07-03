@@ -7,12 +7,11 @@ import platform
 import re
 import subprocess
 import sys
-import urllib.error
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath, compat_shlex_quote
-from .networking.exceptions import network_exceptions
+from .networking.exceptions import HTTPError, network_exceptions
 from .networking.common import Request
 from .utils import (
     Popen,
@@ -315,7 +314,7 @@ class Updater:
         try:
             newcontent = self._download(self.release_name, self._tag)
         except network_exceptions as e:
-            if isinstance(e, urllib.error.HTTPError) and e.code == 404:
+            if isinstance(e, HTTPError) and e.status == 404:
                 return self._report_error(
                     f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
             return self._report_network_error(f'fetch updates: {e}')

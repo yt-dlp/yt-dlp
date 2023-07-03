@@ -8,10 +8,8 @@ import time
 from urllib.parse import urlparse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_HTTPError,
-)
 from ..dependencies import websockets
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -407,7 +405,7 @@ class NiconicoIE(InfoExtractor):
                     'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, round(time.time() * 1000)), video_id,
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except ExtractorError:
-                if not isinstance(e.cause, compat_HTTPError):
+                if not isinstance(e.cause, HTTPError):
                     raise
                 webpage = e.cause.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
@@ -742,7 +740,7 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
         try:
             mylist = self._call_api(list_id, 'list', {'pageSize': 1})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 self.raise_login_required('You have to be logged in to get your history')
             raise
         return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))

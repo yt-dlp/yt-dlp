@@ -2,11 +2,8 @@ import json
 import random
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_b64decode, compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -119,7 +116,7 @@ class LinuxAcademyIE(InfoExtractor):
                     'Referer': login_state_url,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 error = self._parse_json(e.cause.read(), None)
                 message = error.get('description') or error['code']
                 raise ExtractorError(

@@ -1,7 +1,7 @@
 import base64
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -114,7 +114,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             result = self._call_base_api(
                 path, internal_id, lang, f'Downloading {note} JSON ({self._API_ENDPOINT})', query=query)
         except ExtractorError as error:
-            if isinstance(error.cause, urllib.error.HTTPError) and error.cause.code == 404:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 404:
                 return None
             raise
 

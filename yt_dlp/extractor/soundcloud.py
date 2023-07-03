@@ -7,11 +7,9 @@ from .common import (
     InfoExtractor,
     SearchInfoExtractor
 )
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_str
 from ..networking.common import Request, HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     error_to_compat_str,
     ExtractorError,
@@ -102,7 +100,7 @@ class SoundcloudBaseIE(InfoExtractor):
             try:
                 return super()._download_json(*args, **kwargs)
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
+                if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
                     self._store_client_id(None)
                     self._update_client_id()
                     continue
@@ -668,7 +666,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error
                     # See https://github.com/yt-dlp/yt-dlp/issues/872
-                    if not isinstance(e.cause, compat_HTTPError) or e.cause.code != 502:
+                    if not isinstance(e.cause, HTTPError) or e.cause.status != 502:
                         raise
                     retry.error = e
                     continue

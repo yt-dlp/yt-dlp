@@ -17,7 +17,6 @@ import subprocess
 import sys
 import time
 import types
-import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree

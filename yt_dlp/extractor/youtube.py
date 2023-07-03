@@ -15,14 +15,13 @@ import sys
 import threading
 import time
 import traceback
-import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
-from ..networking.exceptions import network_exceptions
+from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -959,7 +958,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ExtractorError as e:
                 if not isinstance(e.cause, network_exceptions):
                     return self._error_or_warning(e, fatal=fatal)
-                elif not isinstance(e.cause, urllib.error.HTTPError):
+                elif not isinstance(e.cause, HTTPError):
                     retry.error = e
                     continue
 
@@ -975,7 +974,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                 # We also want to catch all other network exceptions since errors in later pages can be troublesome
                 # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
-                if e.cause.code not in (403, 429):
+                if e.cause.status not in (403, 429):
                     retry.error = e
                     continue
                 return self._error_or_warning(e, fatal=fatal)
@@ -2860,7 +2859,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
-            expire_fast = immediate or last_error and isinstance(last_error, urllib.error.HTTPError) and last_error.code == 403
+            expire_fast = immediate or last_error and isinstance(last_error, HTTPError) and last_error.status == 403
             mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
@@ -5263,7 +5262,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
-                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
+                    if not isinstance(e.cause, HTTPError) or e.cause.status not in (403, 429):
                         retry.error = e
                         continue
                 self._error_or_warning(e, fatal=fatal)

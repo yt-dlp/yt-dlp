@@ -2,11 +2,11 @@ import getpass
 import json
 import re
 import time
-import urllib.error
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
+from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -1724,7 +1724,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             'requestor_id': requestor_id,
                         }), headers=mvpd_headers)
                 except ExtractorError as e:
-                    if not mso_id and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
                         raise_mvpd_required()
                     raise
                 if '<pendingLogout' in session:

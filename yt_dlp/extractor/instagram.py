@@ -3,9 +3,9 @@ import itertools
 import json
 import re
 import time
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     decode_base_n,
@@ -589,7 +589,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 except ExtractorError as e:
                     # if it's an error caused by a bad query, and there are
                     # more GIS templates to try, ignore it and keep trying
-                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                         if gis_tmpl != gis_tmpls[-1]:
                             continue
                     raise

@@ -4176,7 +4176,7 @@ class YoutubeDL:
                     ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
-                    if isinstance(err, urllib.error.HTTPError) and err.code == 404:
+                    if isinstance(err, HTTPError) and err.status == 404:
                         self.to_screen(f'[info] {thumb_display_id.title()} does not exist')
                     else:
                         self.report_warning(f'Unable to download {thumb_display_id}: {err}')

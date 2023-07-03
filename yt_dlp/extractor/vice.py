@@ -7,10 +7,8 @@ import time
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -140,7 +138,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
                 'https://vms.vice.com/%s/video/preplay/%s' % (locale, video_id),
                 video_id, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (400, 401):
+            if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401):
                 error = json.loads(e.cause.read().decode())
                 error_message = error.get('error_description') or error['details']
                 raise ExtractorError('%s said: %s' % (

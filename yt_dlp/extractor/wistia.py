@@ -1,10 +1,10 @@
 import re
-import urllib.error
 import urllib.parse
 from base64 import b64decode
 
 from .common import InfoExtractor
 from ..networking.common import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -365,7 +365,7 @@ class WistiaChannelIE(WistiaBaseIE):
 
         try:
             data = self._download_embed_config('channel', channel_id, url)
-        except (ExtractorError, urllib.error.HTTPError):
+        except (ExtractorError, HTTPError):
             # Some channels give a 403 from the JSON API
             self.report_warning('Failed to download channel data from API, falling back to webpage.')
             webpage = self._download_webpage(f'https://fast.wistia.net/embed/channel/{channel_id}', channel_id)

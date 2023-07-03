@@ -204,7 +204,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             try:
                 rsp = self._downloader.urlopen(Request(url))
             except network_exceptions as e:
-                if isinstance(e, HTTPError) and e.code in expected_http_errors:
+                if isinstance(e, HTTPError) and e.status in expected_http_errors:
                     return None
                 retry.error = PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
                 continue

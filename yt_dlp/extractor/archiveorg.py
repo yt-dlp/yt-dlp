@@ -1,13 +1,13 @@
 import json
 import re
-import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor
 from .naver import NaverBaseIE
 from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
-from ..compat import compat_HTTPError, compat_urllib_parse_unquote
+from ..compat import compat_urllib_parse_unquote
 from ..networking.common import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
@@ -899,7 +899,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     video_id, note='Fetching archived video file url', expected_status=True)
             except ExtractorError as e:
                 # HTTP Error 404 is expected if the video is not saved.
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     self.raise_no_formats(
                         'The requested video is not archived, indexed, or there is an issue with web.archive.org (try again later)', expected=True)
                 else:
@@ -1052,7 +1052,7 @@ class VLiveWebArchiveIE(InfoExtractor):
             try:
                 return self._download_webpage(f'https://web.archive.org/web/{timestamp}id_/{url}', video_id, **kwargs)
             except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 404:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     raise ExtractorError('Page was not archived', expected=True)
                 retry.error = e
                 continue

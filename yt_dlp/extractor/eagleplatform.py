@@ -2,7 +2,7 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -111,7 +111,7 @@ class EaglePlatformIE(InfoExtractor):
             response = super(EaglePlatformIE, self)._download_json(
                 url_or_request, video_id, *args, **kwargs)
         except ExtractorError as ee:
-            if isinstance(ee.cause, compat_HTTPError):
+            if isinstance(ee.cause, HTTPError):
                 response = self._parse_json(ee.cause.read().decode('utf-8'), video_id)
                 self._handle_error(response)
             raise
