@@ -14,7 +14,7 @@ class RequestDirector:
 
     def __init__(self, logger=None):
         self._handlers: Dict[str, RequestHandler] = {}
-        self.logger = logger  # TODO: default logger
+        self.logger = logger  # TODO(Grub4k): default logger
 
     def close(self):
         for handler in self._handlers.values():

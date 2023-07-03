@@ -112,7 +112,7 @@ class RequestHandler(abc.ABC):
     def __init__(
         self,
         *,
-        logger=None,  # TODO
+        logger=None,  # TODO(Grub4k)
         headers: CaseInsensitiveDict = None,
         cookiejar: CookieJar = None,
         timeout: float | int | None = None,
@@ -125,7 +125,7 @@ class RequestHandler(abc.ABC):
         legacy_ssl_support: bool = False,
     ):
 
-        self._logger = logger  # TODO: default logger
+        self._logger = logger  # TODO(Grub4k): default logger
         self.headers = headers or {}
         self.cookiejar = cookiejar if cookiejar is not None else CookieJar()
         self.timeout = float(timeout or 20)
