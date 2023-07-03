@@ -407,7 +407,7 @@ class NiconicoIE(InfoExtractor):
             except ExtractorError:
                 if not isinstance(e.cause, HTTPError):
                     raise
-                webpage = e.cause.read().decode('utf-8', 'replace')
+                webpage = e.cause.response.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
                     r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
                     webpage, 'error reason', default=None)

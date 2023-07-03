@@ -916,7 +916,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 break
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
-                    json_data = self._parse_json(e.cause.read().decode(), video_id)[0]
+                    json_data = self._parse_json(e.cause.response.read().decode(), video_id)[0]
                     message = json_data.get('message') or json_data['error_code']
                     if json_data.get('error_subcode') == 'CLIENT_GEO':
                         self.raise_geo_restricted(msg=message)

@@ -139,7 +139,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
                 video_id, query=query)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401):
-                error = json.loads(e.cause.read().decode())
+                error = json.loads(e.cause.response.read().decode())
                 error_message = error.get('error_description') or error['details']
                 raise ExtractorError('%s said: %s' % (
                     self.IE_NAME, error_message), expected=True)

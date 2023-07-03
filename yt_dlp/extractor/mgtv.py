@@ -87,7 +87,7 @@ class MGTVIE(InfoExtractor):
                 }, headers=self.geo_verification_headers())['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                error = self._parse_json(e.cause.read().decode(), None)
+                error = self._parse_json(e.cause.response.read().decode(), None)
                 if error.get('code') == 40005:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
                 raise ExtractorError(error['msg'], expected=True)

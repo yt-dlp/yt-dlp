@@ -52,7 +52,7 @@ class PacktPubIE(PacktPubBaseIE):
                 }).encode())['data']['access']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401, 404):
-                message = self._parse_json(e.cause.read().decode(), None)['message']
+                message = self._parse_json(e.cause.response.read().decode(), None)['message']
                 raise ExtractorError(message, expected=True)
             raise
 

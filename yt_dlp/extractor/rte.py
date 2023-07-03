@@ -32,7 +32,7 @@ class RteBaseIE(InfoExtractor):
                 if num < len(ENDPOINTS) or formats:
                     continue
                 if isinstance(ee.cause, HTTPError) and ee.cause.status == 404:
-                    error_info = self._parse_json(ee.cause.read().decode(), item_id, fatal=False)
+                    error_info = self._parse_json(ee.cause.response.read().decode(), item_id, fatal=False)
                     if error_info:
                         raise ExtractorError(
                             '%s said: %s' % (self.IE_NAME, error_info['message']),

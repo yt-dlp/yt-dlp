@@ -64,7 +64,7 @@ class TVPlayerIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
                 response = self._parse_json(
-                    e.cause.read().decode(), resource_id)['tvplayer']['response']
+                    e.cause.response.read().decode(), resource_id)['tvplayer']['response']
                 raise ExtractorError(
                     '%s said: %s' % (self.IE_NAME, response['error']), expected=True)
             raise

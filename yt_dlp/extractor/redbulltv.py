@@ -70,7 +70,7 @@ class RedBullTVIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                 error_message = self._parse_json(
-                    e.cause.read().decode(), video_id)['error']
+                    e.cause.response.read().decode(), video_id)['error']
                 raise ExtractorError('%s said: %s' % (
                     self.IE_NAME, error_message), expected=True)
             raise

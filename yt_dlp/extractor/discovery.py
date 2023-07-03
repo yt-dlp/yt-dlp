@@ -102,7 +102,7 @@ class DiscoveryIE(DiscoveryGoBaseIE):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
                 e_description = self._parse_json(
-                    e.cause.read().decode(), display_id)['description']
+                    e.cause.response.read().decode(), display_id)['description']
                 if 'resource not available for country' in e_description:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
                 if 'Authorized Networks' in e_description:

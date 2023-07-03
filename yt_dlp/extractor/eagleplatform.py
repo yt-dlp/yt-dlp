@@ -112,7 +112,7 @@ class EaglePlatformIE(InfoExtractor):
                 url_or_request, video_id, *args, **kwargs)
         except ExtractorError as ee:
             if isinstance(ee.cause, HTTPError):
-                response = self._parse_json(ee.cause.read().decode('utf-8'), video_id)
+                response = self._parse_json(ee.cause.response.read().decode('utf-8'), video_id)
                 self._handle_error(response)
             raise
         return response

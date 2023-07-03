@@ -142,7 +142,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             message = None
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 resp = self._parse_json(
-                    e.cause.read().decode(), None, fatal=False) or {}
+                    e.cause.response.read().decode(), None, fatal=False) or {}
                 message = resp.get('message') or resp.get('code')
             self.report_warning(message or self._LOGIN_ERR_MESSAGE)
 
@@ -200,7 +200,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     # This usually goes away with a different random pkcs1pad, so retry
                     continue
 
-                error = self._parse_json(e.cause.read(), video_id)
+                error = self._parse_json(e.cause.response.read(), video_id)
                 message = error.get('message')
                 if e.cause.code == 403 and error.get('code') == 'player-bad-geolocation-country':
                     self.raise_geo_restricted(msg=message)

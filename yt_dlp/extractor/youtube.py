@@ -966,7 +966,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if not is_html(first_bytes):
                     yt_error = try_get(
                         self._parse_json(
-                            self._webpage_read_content(e.cause, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
+                            self._webpage_read_content(e.cause.response, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
                         lambda x: x['error']['message'], str)
                     if yt_error:
                         self._report_alerts([('ERROR', yt_error)], fatal=False)

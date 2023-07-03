@@ -45,7 +45,7 @@ class PlayPlusTVIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 raise ExtractorError(self._parse_json(
-                    e.cause.read(), None)['errorMessage'], expected=True)
+                    e.cause.response.read(), None)['errorMessage'], expected=True)
             raise
 
         self._profile = self._call_api('Profiles')['list'][0]['_id']

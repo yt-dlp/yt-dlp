@@ -54,7 +54,7 @@ class ImgGamingBaseIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 raise ExtractorError(
-                    self._parse_json(e.cause.read().decode(), media_id)['messages'][0],
+                    self._parse_json(e.cause.response.read().decode(), media_id)['messages'][0],
                     expected=True)
             raise
 

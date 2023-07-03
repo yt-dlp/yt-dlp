@@ -58,7 +58,7 @@ class TV2IE(InfoExtractor):
                                            data='{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}'.encode())['playback']
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                    error = self._parse_json(e.cause.read().decode(), video_id)['error']
+                    error = self._parse_json(e.cause.response.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':
                         self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
@@ -212,7 +212,7 @@ class KatsomoIE(InfoExtractor):
                     video_id, 'Downloading play JSON')['playback']
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                    error = self._parse_json(e.cause.read().decode(), video_id)['error']
+                    error = self._parse_json(e.cause.response.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':
                         self.raise_geo_restricted(countries=self._GEO_COUNTRIES)

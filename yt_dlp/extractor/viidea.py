@@ -135,7 +135,7 @@ class ViideaIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 msg = self._parse_json(
-                    e.cause.read().decode('utf-8'), lecture_id)
+                    e.cause.response.read().decode('utf-8'), lecture_id)
                 raise ExtractorError(msg['detail'], expected=True)
             raise
 

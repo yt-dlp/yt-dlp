@@ -70,7 +70,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
                 except ExtractorError as e:
                     if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                         raise ExtractorError(self._parse_json(
-                            e.cause.read().decode(), xid)['error_description'], expected=True)
+                            e.cause.response.read().decode(), xid)['error_description'], expected=True)
                     raise
                 self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
             self._HEADERS['Authorization'] = 'Bearer ' + token
