@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import functools
 import random
 import ssl
 import sys
@@ -9,7 +8,6 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-from .exceptions import UnsupportedRequest
 from ..dependencies import certifi
 from ..socks import ProxyType
 from ..utils import CaseInsensitiveDict, YoutubeDLError, traverse_obj
@@ -169,18 +167,6 @@ def get_redirect_method(method, status):
     if status in (301, 302) and method == 'POST':
         method = 'GET'
     return method
-
-
-def wrap_request_errors(func):
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except UnsupportedRequest as e:
-            if e.handler is None:
-                e.handler = self
-            raise
-    return wrapper
 
 
 def make_ssl_context(

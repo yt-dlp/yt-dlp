@@ -16,7 +16,7 @@ from http.cookiejar import CookieJar
 from typing import Iterable, Mapping, Union
 
 from .exceptions import UnsupportedRequest
-from .utils import make_ssl_context, wrap_request_errors
+from .utils import make_ssl_context
 from ..utils import (
     CaseInsensitiveDict,
     classproperty,
@@ -29,6 +29,18 @@ from ..utils import (
 class Features(enum.Enum):
     ALL_PROXY = enum.auto()
     NO_PROXY = enum.auto()
+
+
+def _wrap_request_errors(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except UnsupportedRequest as e:
+            if e.handler is None:
+                e.handler = self
+            raise
+    return wrapper
 
 
 class RequestHandler(abc.ABC):
@@ -203,13 +215,13 @@ class RequestHandler(abc.ABC):
         self._check_proxies(request.proxies or self.proxies)
         self._check_extensions(request.extensions)
 
-    @wrap_request_errors
+    @_wrap_request_errors
     def validate(self, request: Request):
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
         self._validate(request)
 
-    @wrap_request_errors
+    @_wrap_request_errors
     def send(self, request: Request) -> Response:
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
