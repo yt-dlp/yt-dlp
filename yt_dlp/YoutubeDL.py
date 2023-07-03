@@ -1055,10 +1055,6 @@ class YoutubeDL:
         else:
             self.to_stderr(message, only_once)
 
-    def to_debugtraffic(self, msg):
-        if self.params.get('debug_printtraffic'):
-            self.to_stdout(msg)
-
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
         try:
@@ -3983,7 +3979,7 @@ class YoutubeDL:
             raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers):
-        director = RequestDirector(logger=self)
+        director = RequestDirector(logger=self, verbose=bool(self.params.get('debug_printtraffic')))
         headers = self.params.get('http_headers').copy()
         proxies = self.proxies.copy()
         clean_headers(headers)

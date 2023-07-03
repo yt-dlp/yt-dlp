@@ -81,7 +81,7 @@ class RequestHandler(abc.ABC):
     @param timeout: Socket timeout to use when sending requests.
     @param proxies: Proxies to use for sending requests.
     @param source_address: Client-side IP address to bind to for requests.
-    @param verbose: Print debug traffic
+    @param verbose: Print debug request and traffic information to stdout.
     @param prefer_system_certs: Whether to prefer system certificates over other means (e.g. certifi).
     @param client_cert: SSL client certificate configuration.
             Tuple of (client_certificate, client_certificate_key, client_certificate_password).

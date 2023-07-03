@@ -10,11 +10,15 @@ class RequestDirector:
     """RequestDirector class
 
     Helper class that, when given a request, finds a RequestHandler that supports it.
+
+    @param logger: Logger instance.
+    @param verbose: Print debug request information to stdout.
     """
 
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, verbose=False):
         self._handlers: Dict[str, RequestHandler] = {}
         self.logger = logger  # TODO(Grub4k): default logger
+        self.verbose = verbose
 
     def close(self):
         for handler in self._handlers.values():
@@ -38,6 +42,10 @@ class RequestDirector:
     def remove_handlers(self):
         self._handlers.clear()
 
+    def print_verbose(self, msg):
+        if self.verbose:
+            self.logger.to_stdout(f'director: {msg}')
+
     def send(self, request: Request) -> Response:
         """
         Passes a request onto a suitable RequestHandler
@@ -51,16 +59,16 @@ class RequestDirector:
         unsupported_errors = []
         # TODO (future): add a per-request preference system
         for handler in reversed(list(self._handlers.values())):
-            self.logger.to_debugtraffic(
-                f'director: checking if "{handler.RH_NAME}" request handler supports this request.')
+            self.print_verbose(f'checking if "{handler.RH_NAME}" request handler supports this request.')
             try:
                 handler.validate(request)
             except UnsupportedRequest as e:
-                self.logger.to_debugtraffic(
-                    f'director: "{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}:{e})')
+                self.print_verbose(
+                    f'"{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}:{e})')
                 unsupported_errors.append(e)
                 continue
-            self.logger.to_debugtraffic(f'director: sending request via "{handler.RH_NAME}" request handler.')
+
+            self.print_verbose(f'sending request via "{handler.RH_NAME}" request handler.')
             try:
                 response = handler.send(request)
             except RequestError:
@@ -79,7 +87,7 @@ class RequestDirector:
         raise NoSupportingHandlers(unsupported_errors, unexpected_errors)
 
 
-# TODO(pukkandan): Request Handler register system for importing
+# TODO(pukkandan): RequestHandler register system for importing
 def _get_request_handler(key):
     """Get a RequestHandler by its rh_key"""
     return globals()[key + 'RH']
