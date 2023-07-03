@@ -706,7 +706,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
         with handler() as rh:
             with pytest.raises(
                 CertificateVerifyError,
-                match=r'\[SSL: CERTIFICATE_VERIFY_FAILED\] certificate verify failed: self-signed certificate'
+                match=r'\[SSL: CERTIFICATE_VERIFY_FAILED\] certificate verify failed: self.signed certificate'
             ):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
