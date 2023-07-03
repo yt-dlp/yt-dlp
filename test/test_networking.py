@@ -34,7 +34,7 @@ from yt_dlp.networking import (
     RequestDirector,
     RequestHandler,
     UrllibRH,
-    get_request_handler,
+    _get_request_handler,
 )
 from yt_dlp.networking.common import HEADRequest, PUTRequest, Request, Response
 from yt_dlp.networking.exceptions import (
@@ -315,7 +315,7 @@ def handler(request):
         handler = rh_key
     else:
         try:
-            handler = get_request_handler(rh_key)
+            handler = _get_request_handler(rh_key)
         except KeyError:
             handler = None
         if handler is None:

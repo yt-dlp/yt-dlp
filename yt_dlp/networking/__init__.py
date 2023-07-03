@@ -79,17 +79,18 @@ class RequestDirector:
         raise NoSupportingHandlers(unsupported_errors, unexpected_errors)
 
 
-def get_request_handler(key):
+# TODO(pukkandan): Request Handler register system for importing
+def _get_request_handler(key):
     """Get a RequestHandler by its rh_key"""
     return globals()[key + 'RH']
 
 
-def list_request_handler_classes() -> List[RequestHandler]:
+def _list_request_handler_classes() -> List[RequestHandler]:
     """List all RequestHandler classes, sorted by name."""
     return sorted(
         (rh for name, rh in globals().items() if name.endswith('RH')),
         key=lambda x: x.RH_NAME.lower())
 
 
-__all__ = list_request_handler_classes()
-__all__.extend(['RequestDirector', 'list_request_handler_classes', 'get_request_handler'])
+__all__ = _list_request_handler_classes()
+__all__.extend(['RequestDirector'])

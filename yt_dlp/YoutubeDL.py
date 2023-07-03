@@ -32,7 +32,7 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
-from .networking import RequestDirector, list_request_handler_classes
+from .networking import RequestDirector, _list_request_handler_classes
 from .networking.exceptions import (
     NoSupportingHandlers,
     SSLError,
@@ -678,7 +678,7 @@ class YoutubeDL:
 
         # Set http_headers defaults according to std_headers
         self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers'))
-        self._request_director = self.build_request_director(list_request_handler_classes())
+        self._request_director = self.build_request_director(_list_request_handler_classes())
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         if auto_init and auto_init != 'no_verbose_header':
