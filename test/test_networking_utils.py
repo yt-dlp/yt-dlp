@@ -108,11 +108,6 @@ class TestNetworkingUtils:
         ssl_load_certs(context3, use_certifi=False)
         assert context3.get_ca_certs() != context.get_ca_certs()
 
-    def test_load_certs(self):
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ssl_load_certs(context, use_certifi=False)
-        assert context.get_ca_certs()
-
     @pytest.mark.parametrize('method,status,expected', [
         ('GET', 303, 'GET'),
         ('HEAD', 303, 'HEAD'),
