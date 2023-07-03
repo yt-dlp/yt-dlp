@@ -47,7 +47,7 @@ class FunimationBaseIE(InfoExtractor):
             FunimationBaseIE._TOKEN = data['token']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                error = self._parse_json(e.cause.read().decode(), None)['error']
+                error = self._parse_json(e.cause.response.read().decode(), None)['error']
                 raise ExtractorError(error, expected=True)
             raise
 

@@ -117,7 +117,7 @@ class LinuxAcademyIE(InfoExtractor):
                 })
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                error = self._parse_json(e.cause.read(), None)
+                error = self._parse_json(e.cause.response.read(), None)
                 message = error.get('description') or error['code']
                 raise ExtractorError(
                     '%s said: %s' % (self.IE_NAME, message), expected=True)

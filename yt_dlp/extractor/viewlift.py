@@ -47,7 +47,7 @@ class ViewLiftBaseIE(InfoExtractor):
                 self._API_BASE + path, video_id, headers={'Authorization': self._TOKENS.get(site)}, query=query)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                webpage = e.cause.read().decode()
+                webpage = e.cause.response.read().decode()
                 try:
                     error_message = traverse_obj(json.loads(webpage), 'errorMessage', 'message')
                 except json.JSONDecodeError:

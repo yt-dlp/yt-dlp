@@ -183,7 +183,7 @@ class VevoIE(VevoBaseIE):
             data = self._download_json(self._api_url_template % path, *args, **kwargs)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
-                errors = self._parse_json(e.cause.read().decode(), None)['errors']
+                errors = self._parse_json(e.cause.response.read().decode(), None)['errors']
                 error_message = ', '.join([error['message'] for error in errors])
                 raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message), expected=True)
             raise

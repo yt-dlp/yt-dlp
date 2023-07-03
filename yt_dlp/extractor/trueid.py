@@ -90,7 +90,7 @@ class TrueIDIE(InfoExtractor):
         except ExtractorError as e:
             if not isinstance(e.cause, HTTPError):
                 raise e
-            errmsg = self._parse_json(e.cause.read().decode(), video_id)['meta']['message']
+            errmsg = self._parse_json(e.cause.response.read().decode(), video_id)['meta']['message']
             if 'country' in errmsg:
                 self.raise_geo_restricted(
                     errmsg, [initial_data['display_country']] if initial_data.get('display_country') else None, True)

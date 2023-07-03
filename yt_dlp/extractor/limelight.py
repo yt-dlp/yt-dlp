@@ -70,7 +70,7 @@ class LimelightBaseIE(InfoExtractor):
                 fatal=fatal, headers=headers)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                error = self._parse_json(e.cause.read().decode(), item_id)['detail']['contentAccessPermission']
+                error = self._parse_json(e.cause.response.read().decode(), item_id)['detail']['contentAccessPermission']
                 if error == 'CountryDisabled':
                     self.raise_geo_restricted()
                 raise ExtractorError(error, expected=True)

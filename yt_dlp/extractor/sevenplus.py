@@ -97,7 +97,7 @@ class SevenPlusIE(BrightcoveNewBaseIE):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 raise ExtractorError(self._parse_json(
-                    e.cause.read().decode(), episode_id)[0]['error_code'], expected=True)
+                    e.cause.response.read().decode(), episode_id)[0]['error_code'], expected=True)
             raise
 
         for source in media.get('sources', {}):

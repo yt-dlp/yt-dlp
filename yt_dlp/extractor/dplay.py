@@ -39,7 +39,7 @@ class DPlayBaseIE(InfoExtractor):
         return f'Bearer {token}'
 
     def _process_errors(self, e, geo_countries):
-        info = self._parse_json(e.cause.read().decode('utf-8'), None)
+        info = self._parse_json(e.cause.response.read().decode('utf-8'), None)
         error = info['errors'][0]
         error_code = error.get('code')
         if error_code == 'access.denied.geoblocked':

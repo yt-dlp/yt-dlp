@@ -84,7 +84,7 @@ class PelotonIE(InfoExtractor):
                 headers={'Content-Type': 'application/json', 'User-Agent': 'web'})
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                json_string = self._webpage_read_content(e.cause, None, video_id)
+                json_string = self._webpage_read_content(e.cause.response, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Login failed')
             else:
@@ -97,7 +97,7 @@ class PelotonIE(InfoExtractor):
                 data=json.dumps({}).encode(), headers={'Content-Type': 'application/json'})
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                json_string = self._webpage_read_content(e.cause, None, video_id)
+                json_string = self._webpage_read_content(e.cause.response, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Stream limit reached')
             else:

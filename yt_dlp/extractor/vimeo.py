@@ -833,7 +833,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             redirect_url = urlh.url
         except ExtractorError as ee:
             if isinstance(ee.cause, HTTPError) and ee.cause.status == 403:
-                errmsg = ee.cause.read()
+                errmsg = ee.cause.response.read()
                 if b'Because of its privacy settings, this video cannot be played here' in errmsg:
                     raise ExtractorError(
                         'Cannot download embed-only video without embedding '

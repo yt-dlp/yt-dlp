@@ -22,7 +22,7 @@ class ShahidBaseIE(AWSIE):
 
     def _handle_error(self, e):
         fail_data = self._parse_json(
-            e.cause.read().decode('utf-8'), None, fatal=False)
+            e.cause.response.read().decode('utf-8'), None, fatal=False)
         if fail_data:
             faults = fail_data.get('faults', [])
             faults_message = ', '.join([clean_html(fault['userMessage']) for fault in faults if fault.get('userMessage')])

@@ -39,7 +39,7 @@ class ZypeIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401, 403):
                 raise ExtractorError(self._parse_json(
-                    e.cause.read().decode(), video_id)['message'], expected=True)
+                    e.cause.response.read().decode(), video_id)['message'], expected=True)
             raise
 
         body = response['body']

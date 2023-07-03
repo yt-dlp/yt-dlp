@@ -56,7 +56,7 @@ class VRVBaseIE(InfoExtractor):
                 note='Downloading %s JSON metadata' % note, headers=headers, data=data)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                raise ExtractorError(json.loads(e.cause.read().decode())['message'], expected=True)
+                raise ExtractorError(json.loads(e.cause.response.read().decode())['message'], expected=True)
             raise
 
     def _call_cms(self, path, video_id, note):

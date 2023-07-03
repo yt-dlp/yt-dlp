@@ -39,7 +39,7 @@ class FilmOnIE(InfoExtractor):
                 video_id)['response']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
-                errmsg = self._parse_json(e.cause.read().decode(), video_id)['reason']
+                errmsg = self._parse_json(e.cause.response.read().decode(), video_id)['reason']
                 raise ExtractorError('%s said: %s' % (self.IE_NAME, errmsg), expected=True)
             raise
 
@@ -123,7 +123,7 @@ class FilmOnChannelIE(InfoExtractor):
                 'http://www.filmon.com/api-v2/channel/' + channel_id, channel_id)['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
-                errmsg = self._parse_json(e.cause.read().decode(), channel_id)['message']
+                errmsg = self._parse_json(e.cause.response.read().decode(), channel_id)['message']
                 raise ExtractorError('%s said: %s' % (self.IE_NAME, errmsg), expected=True)
             raise
 

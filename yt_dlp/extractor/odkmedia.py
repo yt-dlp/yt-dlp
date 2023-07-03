@@ -75,7 +75,7 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 headers={'Authorization': '', 'service-name': 'odc'})
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
-                error_data = self._parse_json(e.cause.read(), display_id)['detail']
+                error_data = self._parse_json(e.cause.response.read(), display_id)['detail']
                 raise GeoRestrictedError(error_data)
 
         formats, subtitles = [], {}

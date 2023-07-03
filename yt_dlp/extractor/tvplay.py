@@ -128,7 +128,7 @@ class TVPlayIE(InfoExtractor):
                 video_id, 'Downloading streams JSON')
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                msg = self._parse_json(e.cause.read().decode('utf-8'), video_id)
+                msg = self._parse_json(e.cause.response.read().decode('utf-8'), video_id)
                 raise ExtractorError(msg['msg'], expected=True)
             raise
 
