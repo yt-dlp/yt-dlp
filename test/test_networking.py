@@ -534,6 +534,15 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.headers.get('Content-Encoding') == 'unsupported'
             assert res.read() == b'raw'
 
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_read(self, handler):
+        with handler() as rh:
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers'))
+            assert res.readable()
+            assert res.read(1) == b'H'
+            assert res.read(3) == b'ost'
+
 
 class TestHTTPProxy(TestRequestHandlerBase):
     @classmethod

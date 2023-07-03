@@ -431,14 +431,11 @@ class Response(io.IOBase, AutoCloseMixin):
             except ValueError:
                 pass
 
-    def readable(self):
-        return True
+    def readable(self) -> bool:
+        return self.raw.readable()
 
     def read(self, amt: int = None) -> bytes:
         return self.raw.read(amt)
-
-    def tell(self) -> int:
-        return self.raw.tell()
 
     def close(self):
         self.raw.close()
