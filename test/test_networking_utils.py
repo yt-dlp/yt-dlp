@@ -160,6 +160,7 @@ class TestNetworkingExceptions:
         @contextlib.contextmanager
         def raises_deprecation_warning():
             with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
                 yield
 
                 if len(w) == 0:
