@@ -45,6 +45,7 @@ from yt_dlp.networking.exceptions import (
     SSLError,
     TransportError,
     UnsupportedRequest,
+    CertificateVerifyError,
 )
 from yt_dlp.networking.utils import std_headers
 from yt_dlp.utils import CaseInsensitiveDict, YoutubeDLError
@@ -328,7 +329,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_verify_cert(self, handler):
         with handler() as rh:
-            with pytest.raises(SSLError):
+            with pytest.raises(CertificateVerifyError):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
         with handler(verify=False) as rh:
@@ -698,6 +699,16 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
                     return e.response
 
         assert get_response().read() == b'<html></html>'
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_verify_cert_error_text(self, handler):
+        # Check the output of the error message
+        with handler() as rh:
+            with pytest.raises(
+                CertificateVerifyError,
+                match='\[SSL: CERTIFICATE_VERIFY_FAILED\] certificate verify failed: self-signed certificate'
+            ):
+                validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
 
 def run_validation(handler, fail, req, **handler_kwargs):

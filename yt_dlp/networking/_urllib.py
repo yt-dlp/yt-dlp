@@ -28,7 +28,7 @@ from .exceptions import (
     IncompleteRead,
     ProxyError,
     SSLError,
-    TransportError,
+    TransportError, CertificateVerifyError,
 )
 from .utils import (
     InstanceStoreMixin,
@@ -361,7 +361,9 @@ def handle_sslerror(e: ssl.SSLError):
         return
     if e.errno == errno.ETIMEDOUT:
         raise TransportError(cause=e) from e
-    raise SSLError(msg=str(e.reason or e), cause=e) from e
+    if isinstance(e, ssl.SSLCertVerificationError):
+        raise CertificateVerifyError(msg=str(e), cause=e)
+    raise SSLError(msg=str(e), cause=e) from e
 
 
 def handle_response_read_exceptions(e):

@@ -4,7 +4,7 @@ import time
 
 from .common import FileDownloader
 from ..networking import Request
-from ..networking.exceptions import HTTPError, TransportError
+from ..networking.exceptions import HTTPError, TransportError, CertificateVerifyError
 from ..utils import (
     CaseInsensitiveDict,
     ContentTooShortError,
@@ -186,6 +186,8 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
+            except CertificateVerifyError:
+                raise
             except TransportError as err:
                 raise RetryDownload(err)
 

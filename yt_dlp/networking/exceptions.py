@@ -94,6 +94,11 @@ class SSLError(TransportError):
     pass
 
 
+class CertificateVerifyError(SSLError):
+    """Raised when certificate validated has failed"""
+    pass
+
+
 class ProxyError(TransportError):
     pass
 
