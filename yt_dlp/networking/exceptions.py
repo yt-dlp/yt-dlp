@@ -184,8 +184,18 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
         return
 
     def __getattr__(self, name):
-        # For passthrough file operations
-        warnings.warn(f'HTTPError.{name} is deprecated, use HTTPError.response.{name} instead', DeprecationWarning)
+        # File operations are passed through the response.
+        # Warn for some commonly used ones
+        passthrough_warnings = {
+            'read': 'response.read()',
+            # technically possibly due to passthrough, but we should discourage this
+            'get_header': 'response.get_header()',
+            'readable': 'response.readable()',
+            'closed': 'response.closed',
+            'tell': 'response.tell()',
+        }
+        if name in passthrough_warnings:
+            warnings.warn(f'HTTPError.{name} is deprecated, use HTTPError.{passthrough_warnings[name]} instead', DeprecationWarning)
         return super().__getattr__(name)
 
     def __str__(self):
