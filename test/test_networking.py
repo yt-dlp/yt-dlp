@@ -415,6 +415,12 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     do_req(code, 'GET')
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_redirect_loop(self, handler):
+        with handler() as rh:
+            with pytest.raises(HTTPError, match='redirect loop'):
+                validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_loop'))
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_incompleteread(self, handler):
         with handler(timeout=2) as rh:  # TODO: add timeout test
             with pytest.raises(IncompleteRead):
