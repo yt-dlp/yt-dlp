@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import http.client
 import typing
 import urllib.error
 import warnings
