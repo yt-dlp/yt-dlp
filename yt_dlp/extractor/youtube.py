@@ -962,7 +962,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     retry.error = e
                     continue
 
-                first_bytes = e.cause.read(512)
+                first_bytes = e.cause.response.read(512)
                 if not is_html(first_bytes):
                     yt_error = try_get(
                         self._parse_json(
