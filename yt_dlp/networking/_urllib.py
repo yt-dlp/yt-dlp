@@ -359,11 +359,9 @@ class UrllibResponseAdapter(Response):
 def handle_sslerror(e: ssl.SSLError):
     if not isinstance(e, ssl.SSLError):
         return
-    if e.errno == errno.ETIMEDOUT:
-        raise TransportError(cause=e) from e
     if isinstance(e, ssl.SSLCertVerificationError):
-        raise CertificateVerifyError(msg=str(e), cause=e) from e
-    raise SSLError(msg=str(e), cause=e) from e
+        raise CertificateVerifyError(cause=e) from e
+    raise SSLError(cause=e) from e
 
 
 def handle_response_read_exceptions(e):
