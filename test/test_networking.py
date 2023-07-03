@@ -38,6 +38,7 @@ from yt_dlp.networking import (
 )
 from yt_dlp.networking.common import HEADRequest, PUTRequest, Request, Response
 from yt_dlp.networking.exceptions import (
+    CertificateVerifyError,
     HTTPError,
     IncompleteRead,
     NoSupportingHandlers,
@@ -45,7 +46,6 @@ from yt_dlp.networking.exceptions import (
     SSLError,
     TransportError,
     UnsupportedRequest,
-    CertificateVerifyError,
 )
 from yt_dlp.networking.utils import std_headers
 from yt_dlp.utils import CaseInsensitiveDict, YoutubeDLError
