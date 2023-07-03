@@ -686,6 +686,19 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
         os.unlink(tf.name)
 
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_http_error_returns_content(self, handler):
+        # urllib HTTPError will try close the underlying response if reference to the HTTPError object is lost
+        def get_response():
+            with handler() as rh:
+                # headers url
+                try:
+                    validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/gen_404'))
+                except HTTPError as e:
+                    return e.response
+
+        assert get_response().read() == b'<html></html>'
+
 
 def run_validation(handler, fail, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
