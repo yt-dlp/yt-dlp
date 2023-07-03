@@ -356,8 +356,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
-        https_httpd.shutdown()
-
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_percent_encode(self, handler):
         with handler() as rh:
