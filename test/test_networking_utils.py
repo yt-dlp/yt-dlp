@@ -12,8 +12,7 @@ import urllib.error
 import warnings
 import platform
 from yt_dlp.networking import Response
-from yt_dlp.networking.exceptions import HTTPError
-from yt_dlp.utils import CompatHTTPError
+from yt_dlp.networking.exceptions import HTTPError, _CompatHTTPError
 import unittest
 import io
 import pytest
@@ -130,7 +129,7 @@ class TestNetworkingExceptions:
     def create_response(status):
         return Response(raw=io.BytesIO(b'test'), url='http://example.com', headers={'tesT': 'test'}, status=status)
 
-    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda r: CompatHTTPError(HTTPError(r))])
+    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda r: _CompatHTTPError(HTTPError(r))])
     def test_http_error(self, http_error_class):
 
         response = self.create_response(403)
@@ -145,7 +144,7 @@ class TestNetworkingExceptions:
         assert data == b'test'
         assert repr(error) == '<HTTPError 403: Forbidden>'
 
-    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda *args, **kwargs: CompatHTTPError(HTTPError(*args, **kwargs))])
+    @pytest.mark.parametrize('http_error_class', [HTTPError, lambda *args, **kwargs: _CompatHTTPError(HTTPError(*args, **kwargs))])
     def test_redirect_http_error(self, http_error_class):
         response = self.create_response(301)
         error = http_error_class(response, redirect_loop=True)
@@ -154,7 +153,7 @@ class TestNetworkingExceptions:
 
     def test_compat_http(self):
         response = self.create_response(403)
-        error = CompatHTTPError(HTTPError(response))
+        error = _CompatHTTPError(HTTPError(response))
         assert isinstance(error, HTTPError)
         assert isinstance(error, urllib.error.HTTPError)
 
@@ -215,7 +214,7 @@ class TestNetworkingExceptions:
     def test_compat_httperror_autoclose(self):
         # Compat HTTPError should not autoclose response
         response = self.create_response(403)
-        CompatHTTPError(HTTPError(response))
+        _CompatHTTPError(HTTPError(response))
         assert not response.closed
 
 

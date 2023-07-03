@@ -37,7 +37,8 @@ from .networking.exceptions import (
     NoSupportingHandlers,
     SSLError,
     network_exceptions,
-    HTTPError
+    HTTPError,
+    _CompatHTTPError,
 )
 from .networking.common import Request, HEADRequest
 from .networking.utils import std_headers
@@ -72,7 +73,6 @@ from .utils import (
     STR_FORMAT_TYPES,
     CaseInsensitiveDict,
     ContentTooShortError,
-    CompatHTTPError,
     DateRange,
     DownloadCancelled,
     DownloadError,
@@ -3978,7 +3978,7 @@ class YoutubeDL:
                     'Try using --legacy-server-connect') from e
             raise
         except HTTPError as e:
-            raise CompatHTTPError(e)
+            raise _CompatHTTPError(e)
 
     def build_request_director(self, handlers):
         director = RequestDirector(logger=self)
