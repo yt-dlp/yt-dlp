@@ -3426,7 +3426,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Pinned comments may appear a second time in newest first sort
                         # See: https://github.com/yt-dlp/yt-dlp/issues/6712
                         continue
-                    self.report_warning('Detected YouTube comments looping. Stopping comment extraction as we probably cannot get any more.')
+                    self.report_warning(
+                        'Detected YouTube comments looping. Stopping comment extraction '
+                        f'{"for this thread" if parent else ""} as we probably cannot get any more.')
                     yield
                 else:
                     tracker['seen_comment_ids'].add(comment['id'])
@@ -3517,12 +3519,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4669
-                if 'incomplete data' in str(e).lower() and parent and self.get_param('ignoreerrors') is True:
-                    self.report_warning(
-                        'Received incomplete data for a comment reply thread and retrying did not help. '
-                        'Ignoring to let other comments be downloaded.')
-                else:
-                    raise
+                if 'incomplete data' in str(e).lower() and parent:
+                    if self.get_param('ignoreerrors') in (True, 'only_download'):
+                        self.report_warning(
+                            'Received incomplete data for a comment reply thread and retrying did not help. '
+                            'Ignoring to let other comments be downloaded. Pass --no-ignore-errors to not ignore.')
+                        return
+                    else:
+                        raise ExtractorError(
+                            'Incomplete data received for comment reply thread. '
+                            'Pass --ignore-errors to ignore and allow rest of comments to download.',
+                            expected=True)
+                raise
             is_forced_continuation = False
             continuation = None
             for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
