@@ -23,11 +23,13 @@ from urllib.request import (
 
 from .common import Features, RequestHandler, Response
 from .exceptions import (
+    CertificateVerifyError,
     HTTPError,
     IncompleteRead,
     ProxyError,
+    RequestError,
     SSLError,
-    TransportError, CertificateVerifyError, RequestError,
+    TransportError,
 )
 from .utils import (
     InstanceStoreMixin,

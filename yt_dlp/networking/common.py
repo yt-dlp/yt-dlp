@@ -18,11 +18,11 @@ from typing import Iterable, Mapping, Union
 from .exceptions import UnsupportedRequest
 from .utils import make_ssl_context
 from ..utils import (
+    AutoCloseMixin,
     CaseInsensitiveDict,
     classproperty,
     escape_url,
     update_url_query,
-    AutoCloseMixin,
 )
 
 

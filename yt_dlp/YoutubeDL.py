@@ -33,14 +33,14 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import RequestDirector, _list_request_handler_classes
+from .networking.common import HEADRequest, Request
 from .networking.exceptions import (
+    HTTPError,
     NoSupportingHandlers,
     SSLError,
-    network_exceptions,
-    HTTPError,
     _CompatHTTPError,
+    network_exceptions,
 )
-from .networking.common import Request, HEADRequest
 from .networking.utils import std_headers
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
@@ -3795,10 +3795,9 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
+        from .extractor.extractors import \
             _PLUGIN_OVERRIDES as plugin_ie_overrides
-        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))

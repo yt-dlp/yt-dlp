@@ -8,10 +8,11 @@ import urllib.parse
 import urllib.request
 from typing import Any, Iterable
 
+from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, YoutubeDLError, traverse_obj
-from .exceptions import RequestError
+from ..utils import CaseInsensitiveDict, traverse_obj
+
 
 def random_user_agent():
     _USER_AGENT_TPL = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36'

@@ -1,7 +1,7 @@
 from typing import Dict, List
 
 from ._urllib import UrllibRH  # noqa: F401
-from .common import RequestHandler, Request, Response
+from .common import Request, RequestHandler, Response
 from .exceptions import NoSupportingHandlers, RequestError, UnsupportedRequest
 from ..utils import bug_reports_message
 
