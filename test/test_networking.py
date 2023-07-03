@@ -344,7 +344,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         https_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        sslctx.options |= ssl.OP_NO_TLSv1_1 | ssl.OP_NO_TLSv1_2 | ssl.OP_NO_TLSv1_3
         https_httpd.socket = sslctx.wrap_socket(https_httpd.socket, server_side=True)
         https_port = http_server_port(https_httpd)
         https_server_thread = threading.Thread(target=https_httpd.serve_forever)
@@ -352,7 +351,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         https_server_thread.start()
 
         with handler(verify=False) as rh:
-            with pytest.raises(SSLError) as exc_info:
+            with pytest.raises(SSLError, match='sslv3 alert handshake failure') as exc_info:
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
