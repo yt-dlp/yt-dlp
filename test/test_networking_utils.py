@@ -80,47 +80,39 @@ class TestNetworkingUtils:
             make_socks_proxy_opts('socks://127.0.0.1')
 
 
-class TestInstanceStoreMixin(unittest.TestCase):
+class TestInstanceStoreMixin:
 
     class FakeInstanceStoreMixin(InstanceStoreMixin):
         def _create_instance(self, **kwargs):
             return random.randint(0, 1000000)
 
-    def test_repo(self):
+        def _close_instance(self, instance):
+            pass
+
+    def test_mixin(self):
         mixin = self.FakeInstanceStoreMixin()
-        self.assertEqual(
-            mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}),
-            mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}))
+        assert mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}) == mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}})
 
-        self.assertNotEqual(
-            mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'e', 4}}),
-            mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}))
+        assert mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'e', 4}}) != mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}})
 
-        self.assertNotEqual(
-            mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}}),
-            mixin._get_instance(d={'a': 1, 'b': 2, 'g': {'d', 4}}))
+        assert mixin._get_instance(d={'a': 1, 'b': 2, 'c': {'d', 4}} != mixin._get_instance(d={'a': 1, 'b': 2, 'g': {'d', 4}}))
 
-        self.assertEqual(
-            mixin._get_instance(d={'a': 1}, e=[1, 2, 3]),
-            mixin._get_instance(d={'a': 1}, e=[1, 2, 3]))
+        assert mixin._get_instance(d={'a': 1}, e=[1, 2, 3]) == mixin._get_instance(d={'a': 1}, e=[1, 2, 3])
 
-        self.assertNotEqual(
-            mixin._get_instance(d={'a': 1}, e=[1, 2, 3]),
-            mixin._get_instance(d={'a': 1}, e=[1, 2, 3, 4]))
+        assert mixin._get_instance(d={'a': 1}, e=[1, 2, 3]) != mixin._get_instance(d={'a': 1}, e=[1, 2, 3, 4])
 
         cookiejar = YoutubeDLCookieJar()
-        self.assertEqual(
-            mixin._get_instance(b=[1, 2], c=cookiejar),
-            mixin._get_instance(b=[1, 2], c=cookiejar))
+        assert mixin._get_instance(b=[1, 2], c=cookiejar) == mixin._get_instance(b=[1, 2], c=cookiejar)
 
-        self.assertNotEqual(
-            mixin._get_instance(b=[1, 2], c=cookiejar),
-            mixin._get_instance(b=[1, 2], c=YoutubeDLCookieJar()))
+        assert mixin._get_instance(b=[1, 2], c=cookiejar) != mixin._get_instance(b=[1, 2], c=YoutubeDLCookieJar())
 
         # Different order
-        self.assertEqual(
-            mixin._get_instance(
-                c=cookiejar, b=[1, 2]), mixin._get_instance(b=[1, 2], c=cookiejar))
+        assert mixin._get_instance(c=cookiejar, b=[1, 2]) == mixin._get_instance(b=[1, 2], c=cookiejar)
+
+        m = mixin._get_instance(t=1234)
+        assert mixin._get_instance(t=1234) == m
+        mixin._clear_instances()
+        assert mixin._get_instance(t=1234) != m
 
 
 class TestNetworkingExceptions:
