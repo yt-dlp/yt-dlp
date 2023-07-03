@@ -27,7 +27,7 @@ from .exceptions import (
     IncompleteRead,
     ProxyError,
     SSLError,
-    TransportError, CertificateVerifyError,
+    TransportError, CertificateVerifyError, RequestError,
 )
 from .utils import (
     InstanceStoreMixin,
@@ -444,9 +444,14 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
 
             handle_response_read_exceptions(cause)
             raise TransportError(cause=e) from e
-
+        except (http.client.InvalidURL, ValueError) as e:
+            # Validation errors
+            # http.client.HTTPConnection raises ValueError in some validation cases
+            # such as if request method contains illegal control characters [1]
+            # 1. https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1256
+            raise RequestError(cause=e) from e
         except Exception as e:
             handle_response_read_exceptions(e)
-            raise
+            raise  # unexpected
 
         return UrllibResponseAdapter(res)
