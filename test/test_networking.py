@@ -126,7 +126,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             return self.rfile.read(int(self.headers['Content-Length']))
 
     def do_POST(self):
-        data = self._read_data()
+        data = self._read_data() + str(self.headers).encode('utf-8')
         if self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -145,7 +145,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._status(404)
 
     def do_PUT(self):
-        data = self._read_data()
+        data = self._read_data() + str(self.headers).encode('utf-8')
         if self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -190,7 +190,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         elif self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
-            self._method('GET')
+            self._method('GET', str(self.headers).encode('utf-8'))
         elif self.path.startswith('/headers'):
             self._headers()
         elif self.path == '/trailing_garbage':
@@ -398,22 +398,40 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_redirect(self, handler):
         with handler() as rh:
-            def do_req(redirect_status, method):
+            def do_req(redirect_status, method, assert_no_content=False):
                 data = b'testdata' if method in ('POST', 'PUT') else None
                 res = validate_and_send(
                     rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data))
-                return res.read().decode('utf-8'), res.headers.get('method', '')
+
+                headers = b''
+                data_sent = b''
+                if data is not None:
+                    data_sent += res.read(len(data))
+                    if data_sent != data:
+                        headers += data_sent
+                        data_sent = b''
+
+                headers += res.read()
+
+                if assert_no_content or data is None:
+                    assert b'Content-Type' not in headers
+                    assert b'Content-Length' not in headers
+                else:
+                    assert b'Content-Type' in headers
+                    assert b'Content-Length' in headers
+
+                return data_sent.decode('utf-8'), res.headers.get('method', '')
 
             # A 303 must either use GET or HEAD for subsequent request
-            assert do_req(303, 'POST') == ('', 'GET')
+            assert do_req(303, 'POST', True) == ('', 'GET')
             assert do_req(303, 'HEAD') == ('', 'HEAD')
 
-            assert do_req(303, 'PUT') == ('', 'GET')
+            assert do_req(303, 'PUT', True) == ('', 'GET')
 
             # 301 and 302 turn POST only into a GET
-            assert do_req(301, 'POST') == ('', 'GET')
+            assert do_req(301, 'POST', True) == ('', 'GET')
             assert do_req(301, 'HEAD') == ('', 'HEAD')
-            assert do_req(302, 'POST') == ('', 'GET')
+            assert do_req(302, 'POST', True) == ('', 'GET')
             assert do_req(302, 'HEAD') == ('', 'HEAD')
 
             assert do_req(301, 'PUT') == ('testdata', 'PUT')
