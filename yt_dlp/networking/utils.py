@@ -11,7 +11,7 @@ from typing import Any, Iterable
 from ..dependencies import certifi
 from ..socks import ProxyType
 from ..utils import CaseInsensitiveDict, YoutubeDLError, traverse_obj
-
+from .exceptions import RequestError
 
 def random_user_agent():
     _USER_AGENT_TPL = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36'
@@ -216,7 +216,7 @@ def make_ssl_context(
                 client_certificate, keyfile=client_certificate_key,
                 password=client_certificate_password)
         except ssl.SSLError:
-            raise YoutubeDLError('Unable to load client certificate')
+            raise RequestError('Unable to load client certificate')
 
         if getattr(context, 'post_handshake_auth', None) is not None:
             context.post_handshake_auth = True
