@@ -431,7 +431,7 @@ class Response(io.IOBase, AutoCloseMixin):
             except ValueError:
                 pass
 
-    def readable(self) -> bool:
+    def readable(self):
         return self.raw.readable()
 
     def read(self, amt: int = None) -> bytes:
