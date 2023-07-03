@@ -39,6 +39,8 @@ from .networking.exceptions import (
     network_exceptions,
     HTTPError,
     _CompatHTTPError,
+    _CompatIncompleteRead,
+    IncompleteRead,
 )
 from .networking.common import Request, HEADRequest
 from .networking.utils import std_headers
@@ -3977,8 +3979,12 @@ class YoutubeDL:
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
                     'Try using --legacy-server-connect') from e
             raise
+
+        # TODO: Remove these in a future release
         except HTTPError as e:
-            raise _CompatHTTPError(e)
+            raise _CompatHTTPError(e) from e
+        except IncompleteRead as e:
+            raise _CompatIncompleteRead(e) from e
 
     def build_request_director(self, handlers):
         director = RequestDirector(logger=self)

@@ -12,7 +12,7 @@ import urllib.error
 import warnings
 import platform
 from yt_dlp.networking import Response
-from yt_dlp.networking.exceptions import HTTPError, _CompatHTTPError
+from yt_dlp.networking.exceptions import HTTPError, _CompatHTTPError, IncompleteRead, _CompatIncompleteRead
 import unittest
 import io
 import pytest
@@ -151,7 +151,7 @@ class TestNetworkingExceptions:
         assert str(error) == error.msg == 'HTTP Error 301: Moved Permanently (redirect loop detected)'
         assert error.reason == 'Moved Permanently'
 
-    def test_compat_http(self):
+    def test_compat_http_error(self):
         response = self.create_response(403)
         error = _CompatHTTPError(HTTPError(response))
         assert isinstance(error, HTTPError)
@@ -212,11 +212,29 @@ class TestNetworkingExceptions:
 
     @pytest.mark.skipif(
         platform.python_implementation() == 'PyPy', reason='garbage collector works differently in pypy')
-    def test_compat_httperror_autoclose(self):
+    def test_compat_http_error_autoclose(self):
         # Compat HTTPError should not autoclose response
         response = self.create_response(403)
         _CompatHTTPError(HTTPError(response))
         assert not response.closed
+
+    @pytest.mark.parametrize(
+        'incomplete_read_class', [
+            IncompleteRead,
+            lambda *args, **kwargs: _CompatIncompleteRead(IncompleteRead(*args, **kwargs))
+        ])
+    def test_incomplete_read_error(self, incomplete_read_class):
+        error = incomplete_read_class(b'test', 3, cause='test')
+        assert isinstance(error, IncompleteRead)
+        assert repr(error) == '<IncompleteRead: 4 bytes read, 3 more expected>'
+        assert str(error) == error.msg == '4 bytes read, 3 more expected'
+        assert error.partial == b'test'
+        assert error.expected == 3
+        assert error.cause == 'test'
+
+        error = incomplete_read_class(b'aaa')
+        assert repr(error) == '<IncompleteRead: 3 bytes read>'
+        assert str(error) == '3 bytes read'
 
 
 if __name__ == '__main__':
