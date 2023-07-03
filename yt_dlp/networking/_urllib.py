@@ -238,11 +238,7 @@ def make_socks_conn_class(base_class, socks_proxy):
             self.sock.connect((self.host, self.port))
 
             if isinstance(self, http.client.HTTPSConnection):
-                if hasattr(self, '_context'):  # Python > 2.6
-                    self.sock = self._context.wrap_socket(
-                        self.sock, server_hostname=self.host)
-                else:
-                    self.sock = ssl.wrap_socket(self.sock)
+                self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
 
     return SocksConnection
 
