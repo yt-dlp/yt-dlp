@@ -64,7 +64,7 @@ class RequestDirector:
                 handler.validate(request)
             except UnsupportedRequest as e:
                 self.print_verbose(
-                    f'"{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}:{e})')
+                    f'"{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}: {e})')
                 unsupported_errors.append(e)
                 continue
 

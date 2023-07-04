@@ -48,7 +48,7 @@ from yt_dlp.networking.exceptions import (
     UnsupportedRequest,
 )
 from yt_dlp.networking.utils import std_headers
-from yt_dlp.utils import CaseInsensitiveDict, YoutubeDLError
+from yt_dlp.utils import CaseInsensitiveDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -1049,13 +1049,13 @@ class TestYoutubeDLNetworking:
     def test_file_urls_error(self):
         # use urllib handler
         with FakeYDL() as ydl:
-            with pytest.raises(YoutubeDLError, match=r'file:// URLs are disabled by default'):
+            with pytest.raises(RequestError, match=r'file:// URLs are disabled by default'):
                 ydl.urlopen('file://')
 
     def test_legacy_server_connect_error(self):
         with FakeRHYDL() as ydl:
             for error in ('UNSAFE_LEGACY_RENEGOTIATION_DISABLED', 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
-                with pytest.raises(YoutubeDLError, match=r'Try using --legacy-server-connect'):
+                with pytest.raises(RequestError, match=r'Try using --legacy-server-connect'):
                     ydl.urlopen(f'ssl://{error}')
 
             with pytest.raises(SSLError, match='testerror'):

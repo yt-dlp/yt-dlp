@@ -37,6 +37,7 @@ from .networking.common import HEADRequest, Request
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
+    RequestError,
     SSLError,
     _CompatHTTPError,
     network_exceptions,
@@ -94,7 +95,6 @@ from .utils import (
     SameFileError,
     UnavailableVideoError,
     UserNotLive,
-    YoutubeDLError,
     age_restricted,
     args_to_str,
     bug_reports_message,
@@ -3952,7 +3952,6 @@ class YoutubeDL:
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)
 
-        # TODO: do we want to use YoutubeDLError here or something else?
         try:
             return self._request_director.send(req)
         except NoSupportingHandlers as e:
@@ -3960,17 +3959,17 @@ class YoutubeDL:
                 if not (ue.handler and ue.msg):
                     continue
                 if ue.handler.rh_key() == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
-                    raise YoutubeDLError(
+                    raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
-                        'Use --enable-file-urls to enable at your own risk.')
+                        'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
-                raise YoutubeDLError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect') from e
+                raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
             elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
-                raise YoutubeDLError(
+                raise RequestError(
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
-                    'Try using --legacy-server-connect') from e
+                    'Try using --legacy-server-connect', cause=e) from e
             raise
 
         # TODO: Remove in a future release
