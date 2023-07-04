@@ -14,6 +14,7 @@ from ..utils import (
     GeoRestrictedError,
     InAdvancePagedList,
     OnDemandPagedList,
+    bool_or_none,
     filter_dict,
     float_or_none,
     format_field,
@@ -633,8 +634,8 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
         return self.playlist_result(paged_list, playlist_id)
 
 
-class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail\?sid=(?P<sid>\d+)'
+class BilibiliCollectionListIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'info_dict': {
@@ -670,6 +671,174 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
+
+class BilibiliSeriesListIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/1958703906/channel/seriesdetail?sid=547718&ctype=0',
+        'info_dict': {
+            'id': '1958703906_547718',
+            'title': '直播回放'
+        },
+        'playlist_mincount': 513,
+    }]
+
+    def _real_extract(self, url):
+        mid, sid = self._match_valid_url(url).group('mid', 'sid')
+        playlist_id = f'{mid}_{sid}'
+        title, description = traverse_obj(self._download_json(
+            f'https://api.bilibili.com/x/series/series?series_id={sid}', playlist_id, fatal=False
+        ), ('data', 'meta', ('name', 'description'), {str_or_none}))
+
+        def fetch_page(page_idx):
+            return self._download_json(
+                'https://api.bilibili.com/x/series/archives',
+                playlist_id, note=f'Downloading page {page_idx}',
+                query={'mid': mid, 'series_id': sid, 'pn': page_idx + 1, 'ps': 30})['data']
+
+        def get_metadata(page_data):
+            page_size = page_data['page']['size']
+            entry_count = page_data['page']['total']
+            return {
+                'page_count': math.ceil(entry_count / page_size),
+                'page_size': page_size,
+                'title': title,
+                'description': description,
+            }
+
+        def get_entries(page_data):
+            for entry in page_data.get('archives', []):
+                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
+                                      BiliBiliIE, entry['bvid'])
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, playlist_id, metadata['title'])
+
+class BilibiliFavlistIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/favlist/?\?.*\bfid=(?P<fid>\d+)'
+    _TESTS = []
+
+    def _real_extract(self, url):
+        mid, fid = self._match_valid_url(url).group('mid', 'fid')
+        playlist_id = fid
+
+        def fetch_page(page_idx):
+            fav_info = self._download_json(
+                'https://api.bilibili.com/x/v3/fav/resource/list',
+                playlist_id, note=f'Downloading page {page_idx}',
+                query={'media_id': fid, 'pn': page_idx + 1, 'ps': 20})
+            if fav_info['code'] == -403:
+                self.raise_login_required(msg='This favorites list is private and requires logging in as owner')
+            return fav_info['data']
+
+        def get_metadata(page_data):
+            page_size = 20
+            entry_count = page_data['info']['media_count']
+            return {
+                'page_count': math.ceil(entry_count / page_size),
+                'page_size': page_size,
+                'title': page_data['info']['title'],
+            }
+
+        def get_entries(page_data):
+            for entry in page_data.get('medias', []):
+                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
+                                      BiliBiliIE, entry['bvid'])
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, playlist_id, metadata['title'])
+
+
+class BilibiliWatchlaterIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://www\.bilibili\.com/watchlater'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/watchlater/#/list',
+        'match_only': True,
+    }]
+
+    def _real_extract(self, url):
+
+        def fetch_page(page_idx):
+            watch_later = self._download_json(
+                'https://api.bilibili.com/x/v2/history/toview/web?jsonp=jsonp', 'watchlater')
+            if watch_later['code'] == -101:
+                self.raise_login_required(msg='This is a private favorites list, you need to login as owner')
+            return watch_later['data']
+
+        def get_metadata(page_data):
+            return {
+                'page_count': 1,
+                'page_size': 100,
+                'title': '稍后再看',
+            }
+
+        def get_entries(page_data):
+            for entry in page_data.get('list', []):
+                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
+                                      BiliBiliIE, entry['bvid'])
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, 'watch-later', metadata['title'])
+
+
+class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://www.bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
+    _TESTS = []
+
+    def get_entries(self, page_data):
+        for bvid in traverse_obj(page_data, ('media_list', ..., 'bv_id')):
+            yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
+
+    def _extract_medialist(self, query, list_id):
+        page_data = self._download_json('https://api.bilibili.com/x/v2/medialist/resource/list',
+            list_id, query=query, note=f'getting playlist {query["biz_id"]} items')['data']
+        entries = list(self.get_entries(page_data))
+        total_count = page_data.get('total_count', None)
+        while page_data.get('has_more', False):
+            query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id', {int_or_none}))
+            page_data = self._download_json('https://api.bilibili.com/x/v2/medialist/resource/list',
+                list_id, query=query, note=f'getting {query["biz_id"]} items after av{query["oid"]}')['data']
+            entries.extend(list(self.get_entries(page_data)))
+        if len(entries) != total_count:
+            self.report_warning(f'extracted items {len(entries)} does not match total count {total_count}')
+        return entries
+
+    def _real_extract(self, url):
+        list_id = self._match_id(url)
+        webpage = self._download_webpage(url, list_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', list_id)
+        if traverse_obj(initial_state, ('error', 'code', {int_or_none})) != 200:
+            error_code = traverse_obj(initial_state, ('error', 'trueCode', {int_or_none}))
+            error_message = traverse_obj(initial_state, ('error', 'message', {str_or_none}))
+            if error_code == -400 and list_id == 'watchlater':
+                self.raise_login_required('You need to log in to access your watchlater playlist')
+            elif error_code == -403:
+                self.raise_login_required('This is a private playlist, you need to login as playlist owner')
+            elif error_code == 11010:
+                raise ExtractorError('Playlist is no longer available', expected=True)
+            raise ExtractorError(f'Could not access playlist: {error_code} {error_message}')
+        query = {
+            'ps': 99,
+            'with_current': False,
+            **traverse_obj(initial_state, {
+                'type': ('playlist', 'type', {int}),
+                'biz_id': ('playlist', 'id', {lambda i: int(i)}),
+                'tid': ('tid', {int_or_none}),
+                'sort_field': ('sortFiled', {int_or_none}),
+                'desc': ('desc', {bool_or_none}),
+            })
+        }
+        meta = {
+            'id': f'{query["type"]}_{query["biz_id"]}',
+            **traverse_obj(initial_state, ('mediaListInfo', {
+                'title': ('title', {str_or_none}),
+                'uploder': ('upper', 'name', {str_or_none}),
+                'uploder_id': ('upper', 'mid', {str_or_none}),
+                'timestamp': ('ctime', {int_or_none}),
+                'thumbnail': ('cover', {url_or_none}),
+            })),
+        }
+        return self.playlist_result(self._extract_medialist(query, list_id), **meta)
 
 
 class BilibiliCategoryIE(InfoExtractor):
