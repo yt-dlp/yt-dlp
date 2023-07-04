@@ -12,28 +12,64 @@ import math
 from yt_dlp.jsinterp import JS_Undefined, JSInterpreter
 
 
+class NaN:
+    pass
+
+
 class TestJSInterpreter(unittest.TestCase):
-    def _test(self, code, ret, func='f', args=()):
-        self.assertEqual(JSInterpreter(code).call_function(func, *args), ret)
+    def _test(self, jsi_or_code, expected, func='f', args=()):
+        if isinstance(jsi_or_code, str):
+            jsi_or_code = JSInterpreter(jsi_or_code)
+        got = jsi_or_code.call_function(func, *args)
+        if expected is NaN:
+            self.assertTrue(math.isnan(got), f'{got} is not NaN')
+        else:
+            self.assertEqual(got, expected)
 
     def test_basic(self):
         jsi = JSInterpreter('function f(){;}')
         self.assertEqual(repr(jsi.extract_function('f')), 'F<f>')
-        self.assertEqual(jsi.call_function('f'), None)
+        self._test(jsi, None)
 
         self._test('function f(){return 42;}', 42)
         self._test('function f(){42}', None)
         self._test('var f = function(){return 42;}', 42)
 
-    def test_calc(self):
-        self._test('function f(a){return 2*a+1;}', 7, args=[3])
+    def test_add(self):
+        self._test('function f(){return 42 + 7;}', 49)
+        self._test('function f(){return 42 + undefined;}', NaN)
+        self._test('function f(){return 42 + null;}', 42)
+
+    def test_sub(self):
+        self._test('function f(){return 42 - 7;}', 35)
+        self._test('function f(){return 42 - undefined;}', NaN)
+        self._test('function f(){return 42 - null;}', 42)
+
+    def test_mul(self):
+        self._test('function f(){return 42 * 7;}', 294)
+        self._test('function f(){return 42 * undefined;}', NaN)
+        self._test('function f(){return 42 * null;}', 0)
 
     def test_div(self):
         jsi = JSInterpreter('function f(a, b){return a / b;}')
-        self.assertTrue(math.isnan(jsi.call_function('f', 0, 0)))
-        self.assertTrue(math.isnan(jsi.call_function('f', JS_Undefined, 1)))
-        self.assertTrue(math.isinf(jsi.call_function('f', 2, 0)))
-        self.assertEqual(jsi.call_function('f', 0, 3), 0)
+        self._test(jsi, NaN, args=(0, 0))
+        self._test(jsi, NaN, args=(JS_Undefined, 1))
+        self._test(jsi, float('inf'), args=(2, 0))
+        self._test(jsi, 0, args=(0, 3))
+
+    def test_mod(self):
+        self._test('function f(){return 42 % 7;}', 0)
+        self._test('function f(){return 42 % 0;}', NaN)
+        self._test('function f(){return 42 % undefined;}', NaN)
+
+    def test_exp(self):
+        self._test('function f(){return 42 ** 2;}', 1764)
+        self._test('function f(){return 42 ** undefined;}', NaN)
+        self._test('function f(){return 42 ** null;}', 1)
+        self._test('function f(){return undefined ** 42;}', NaN)
+
+    def test_calc(self):
+        self._test('function f(a){return 2*a+1;}', 7, args=[3])
 
     def test_empty_return(self):
         self._test('function f(){return; y()}', None)
@@ -102,16 +138,15 @@ class TestJSInterpreter(unittest.TestCase):
         ''', [20, 20, 30, 40, 50])
 
     def test_builtins(self):
-        jsi = JSInterpreter('function f() { return NaN }')
-        self.assertTrue(math.isnan(jsi.call_function('f')))
+        self._test('function f() { return NaN }', NaN)
 
     def test_date(self):
         self._test('function f() { return new Date("Wednesday 31 December 1969 18:01:26 MDT") - 0; }', 86000)
 
         jsi = JSInterpreter('function f(dt) { return new Date(dt) - 0; }')
-        self.assertEqual(jsi.call_function('f', 'Wednesday 31 December 1969 18:01:26 MDT'), 86000)
-        self.assertEqual(jsi.call_function('f', '12/31/1969 18:01:26 MDT'), 86000)  # m/d/y
-        self.assertEqual(jsi.call_function('f', '1 January 1970 00:00:00 UTC'), 0)
+        self._test(jsi, 86000, args=['Wednesday 31 December 1969 18:01:26 MDT'])
+        self._test(jsi, 86000, args=['12/31/1969 18:01:26 MDT'])  # m/d/y
+        self._test(jsi, 0, args=['1 January 1970 00:00:00 UTC'])
 
     def test_call(self):
         jsi = JSInterpreter('''
@@ -119,8 +154,8 @@ class TestJSInterpreter(unittest.TestCase):
             function y(a) { return x() + (a?a:0); }
             function z() { return y(3); }
         ''')
-        self.assertEqual(jsi.call_function('z'), 5)
-        self.assertEqual(jsi.call_function('y'), 2)
+        self._test(jsi, 5, func='z')
+        self._test(jsi, 2, func='y')
 
     def test_if(self):
         self._test('''
@@ -167,9 +202,9 @@ class TestJSInterpreter(unittest.TestCase):
                 default:x=0;
             } return x }
         ''')
-        self.assertEqual(jsi.call_function('f', 1), 7)
-        self.assertEqual(jsi.call_function('f', 3), 6)
-        self.assertEqual(jsi.call_function('f', 5), 0)
+        self._test(jsi, 7, args=[1])
+        self._test(jsi, 6, args=[3])
+        self._test(jsi, 0, args=[5])
 
     def test_switch_default(self):
         jsi = JSInterpreter('''
@@ -182,9 +217,9 @@ class TestJSInterpreter(unittest.TestCase):
                 case 1: x+=1;
             } return x }
         ''')
-        self.assertEqual(jsi.call_function('f', 1), 2)
-        self.assertEqual(jsi.call_function('f', 5), 11)
-        self.assertEqual(jsi.call_function('f', 9), 14)
+        self._test(jsi, 2, args=[1])
+        self._test(jsi, 11, args=[5])
+        self._test(jsi, 14, args=[9])
 
     def test_try(self):
         self._test('function f() { try{return 10} catch(e){return 5} }', 10)
@@ -312,12 +347,12 @@ class TestJSInterpreter(unittest.TestCase):
 
     def test_char_code_at(self):
         jsi = JSInterpreter('function f(i){return "test".charCodeAt(i)}')
-        self.assertEqual(jsi.call_function('f', 0), 116)
-        self.assertEqual(jsi.call_function('f', 1), 101)
-        self.assertEqual(jsi.call_function('f', 2), 115)
-        self.assertEqual(jsi.call_function('f', 3), 116)
-        self.assertEqual(jsi.call_function('f', 4), None)
-        self.assertEqual(jsi.call_function('f', 'not_a_number'), 116)
+        self._test(jsi, 116, args=[0])
+        self._test(jsi, 101, args=[1])
+        self._test(jsi, 115, args=[2])
+        self._test(jsi, 116, args=[3])
+        self._test(jsi, None, args=[4])
+        self._test(jsi, 116, args=['not_a_number'])
 
     def test_bitwise_operators_overflow(self):
         self._test('function f(){return -524999584 << 5}', 379882496)

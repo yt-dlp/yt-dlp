@@ -190,6 +190,7 @@ class YoutubeDL:
     ap_password:       Multiple-system operator account password.
     usenetrc:          Use netrc for authentication instead.
     netrc_location:    Location of the netrc file. Defaults to ~/.netrc.
+    netrc_cmd:         Use a shell command to get credentials
     verbose:           Print additional info to stdout.
     quiet:             Do not print messages to stdout.
     no_warnings:       Do not print out anything for warnings.
@@ -258,7 +259,7 @@ class YoutubeDL:
     consoletitle:      Display progress in console window's titlebar.
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
-    clean_infojson:    Remove private fields from the infojson
+    clean_infojson:    Remove internal metadata from the infojson
     getcomments:       Extract video comments. This will not be written to disk
                        unless writeinfojson is also given
     writeannotations:  Write the video annotations to a .annotations.xml file
@@ -1286,17 +1287,17 @@ class YoutubeDL:
             if fmt == 's' and value is not None and key in field_size_compat_map.keys():
                 fmt = f'0{field_size_compat_map[key]:d}d'
 
-            if value is None:
-                value = default
-            elif replacement is not None:
+            if None not in (value, replacement):
                 try:
                     value = replacement_formatter.format(replacement, value)
                 except ValueError:
-                    value = na
+                    value, default = None, na
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
-            if fmt[-1] == 'l':  # list
+            if value is None:
+                value, fmt = default, 's'
+            elif fmt[-1] == 'l':  # list
                 delim = '\n' if '#' in flags else ', '
                 value, fmt = delim.join(map(str, variadic(value, allowed_types=(str, bytes)))), str_fmt
             elif fmt[-1] == 'j':  # json
@@ -1327,17 +1328,19 @@ class YoutubeDL:
                     value = str(value)[0]
                 else:
                     fmt = str_fmt
-            elif fmt[-1] not in 'rs':  # numeric
+            elif fmt[-1] not in 'rsa':  # numeric
                 value = float_or_none(value)
                 if value is None:
                     value, fmt = default, 's'
 
             if sanitize:
+                # If value is an object, sanitize might convert it to a string
+                # So we convert it to repr first
                 if fmt[-1] == 'r':
-                    # If value is an object, sanitize might convert it to a string
-                    # So we convert it to repr first
                     value, fmt = repr(value), str_fmt
-                if fmt[-1] in 'csr':
+                elif fmt[-1] == 'a':
+                    value, fmt = ascii(value), str_fmt
+                if fmt[-1] in 'csra':
                     value = sanitizer(initial_field, value)
 
             key = '%s\0%s' % (key.replace('%', '%\0'), outer_mobj.group('format'))
@@ -1403,7 +1406,7 @@ class YoutubeDL:
 
     def _match_entry(self, info_dict, incomplete=False, silent=False):
         """Returns None if the file should be downloaded"""
-        _type = info_dict.get('_type', 'video')
+        _type = 'video' if 'playlist-match-filter' in self.params['compat_opts'] else info_dict.get('_type', 'video')
         assert incomplete or _type == 'video', 'Only video result can be considered complete'
 
         video_title = info_dict.get('title', info_dict.get('id', 'entry'))
@@ -1901,7 +1904,7 @@ class YoutubeDL:
                 continue
 
             entry['__x_forwarded_for_ip'] = ie_result.get('__x_forwarded_for_ip')
-            if not lazy and 'playlist-index' in self.params.get('compat_opts', []):
+            if not lazy and 'playlist-index' in self.params['compat_opts']:
                 playlist_index = ie_result['requested_entries'][i]
 
             entry_copy = collections.ChainMap(entry, {
@@ -2663,7 +2666,8 @@ class YoutubeDL:
                 format['dynamic_range'] = 'SDR'
             if format.get('aspect_ratio') is None:
                 format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
-            if (info_dict.get('duration') and format.get('tbr')
+            if (not format.get('manifest_url')  # For fragmented formats, "tbr" is often max bitrate and not average
+                    and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
@@ -2802,11 +2806,13 @@ class YoutubeDL:
                 new_info.update(fmt)
                 offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
                 end_time = offset + min(chapter.get('end_time', duration), duration)
+                # duration may not be accurate. So allow deviations <1sec
+                if end_time == float('inf') or end_time > offset + duration + 1:
+                    end_time = None
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        # duration may not be accurate. So allow deviations <1sec
-                        'section_end': end_time if end_time <= offset + duration + 1 else None,
+                        'section_end': end_time,
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
@@ -2958,8 +2964,7 @@ class YoutubeDL:
         print_field('url', 'urls')
         print_field('thumbnail', optional=True)
         print_field('description', optional=True)
-        if filename:
-            print_field('filename')
+        print_field('filename')
         if self.params.get('forceduration') and info_copy.get('duration') is not None:
             self.to_stdout(formatSeconds(info_copy['duration']))
         print_field('format')
@@ -3184,7 +3189,6 @@ class YoutubeDL:
                         return
 
                 if info_dict.get('requested_formats') is not None:
-                    requested_formats = info_dict['requested_formats']
                     old_ext = info_dict['ext']
                     if self.params.get('merge_output_format') is None:
                         if (info_dict['ext'] == 'webm'
@@ -3211,19 +3215,22 @@ class YoutubeDL:
                     full_filename = correct_ext(full_filename)
                     temp_filename = correct_ext(temp_filename)
                     dl_filename = existing_video_file(full_filename, temp_filename)
+
                     info_dict['__real_download'] = False
+                    # NOTE: Copy so that original format dicts are not modified
+                    info_dict['requested_formats'] = list(map(dict, info_dict['requested_formats']))
 
                     merger = FFmpegMergerPP(self)
                     downloaded = []
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif fd:
-                        for f in requested_formats if fd != FFmpegFD else []:
+                        for f in info_dict['requested_formats'] if fd != FFmpegFD else []:
                             f['filepath'] = fname = prepend_extension(
                                 correct_ext(temp_filename, info_dict['ext']),
                                 'f%s' % f['format_id'], info_dict['ext'])
                             downloaded.append(fname)
-                        info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
+                        info_dict['url'] = '\n'.join(f['url'] for f in info_dict['requested_formats'])
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
                     else:
@@ -3247,7 +3254,7 @@ class YoutubeDL:
                                 f'You have requested downloading multiple formats to stdout {reason}. '
                                 'The formats will be streamed one after the other')
                             fname = temp_filename
-                        for f in requested_formats:
+                        for f in info_dict['requested_formats']:
                             new_info = dict(info_dict)
                             del new_info['requested_formats']
                             new_info.update(f)
@@ -3703,8 +3710,11 @@ class YoutubeDL:
                 format_field(f, 'fps', '\t%d', func=round),
                 format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                 format_field(f, 'audio_channels', '\t%s'),
-                delim,
-                format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
+                delim, (
+                    format_field(f, 'filesize', ' \t%s', func=format_bytes)
+                    or format_field(f, 'filesize_approx', '≈\t%s', func=format_bytes)
+                    or format_field(try_call(lambda: format_bytes(int(info_dict['duration'] * f['tbr'] * (1024 / 8)))),
+                                    None, self._format_out('~\t%s', self.Styles.SUPPRESS))),
                 format_field(f, 'tbr', '\t%dk', func=round),
                 shorten_protocol_name(f.get('protocol', '')),
                 delim,
@@ -4108,8 +4118,11 @@ class YoutubeDL:
                     ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
+                    if isinstance(err, urllib.error.HTTPError) and err.code == 404:
+                        self.to_screen(f'[info] {thumb_display_id.title()} does not exist')
+                    else:
+                        self.report_warning(f'Unable to download {thumb_display_id}: {err}')
                     thumbnails.pop(idx)
-                    self.report_warning(f'Unable to download {thumb_display_id}: {err}')
             if ret and not write_all:
                 break
         return ret

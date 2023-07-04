@@ -11,11 +11,13 @@ from .vimeo import VimeoIE
 from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     clean_html,
     get_element_by_class,
     get_element_html_by_id,
     int_or_none,
     join_nonempty,
+    parse_resolution,
     str_or_none,
     str_to_int,
     try_call,
@@ -25,6 +27,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
+    traverse_obj,
 )
 
 
@@ -701,3 +704,139 @@ class VKWallPostIE(VKBaseIE):
         return self.playlist_result(
             entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
             clean_html(get_element_by_class('wall_post_text', webpage)))
+
+
+class VKPlayBaseIE(InfoExtractor):
+    _RESOLUTIONS = {
+        'tiny': '256x144',
+        'lowest': '426x240',
+        'low': '640x360',
+        'medium': '852x480',
+        'high': '1280x720',
+        'full_hd': '1920x1080',
+        'quad_hd': '2560x1440',
+    }
+
+    def _extract_from_initial_state(self, url, video_id, path):
+        webpage = self._download_webpage(url, video_id)
+        video_info = traverse_obj(self._search_json(
+            r'<script[^>]+\bid="initial-state"[^>]*>', webpage, 'initial state', video_id),
+            path, expected_type=dict)
+        if not video_info:
+            raise ExtractorError('Unable to extract video info from html inline initial state')
+        return video_info
+
+    def _extract_formats(self, stream_info, video_id):
+        formats = []
+        for stream in traverse_obj(stream_info, (
+                'data', 0, 'playerUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
+            url = stream['url']
+            format_id = str_or_none(stream['type'])
+            if format_id in ('hls', 'live_hls', 'live_playback_hls') or '.m3u8' in url:
+                formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id=format_id, fatal=False))
+            elif format_id == 'dash':
+                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id=format_id, fatal=False))
+            elif format_id in ('live_dash', 'live_playback_dash'):
+                self.write_debug(f'Not extracting unsupported format "{format_id}"')
+            else:
+                formats.append({
+                    'url': url,
+                    'ext': 'mp4',
+                    'format_id': format_id,
+                    **parse_resolution(self._RESOLUTIONS.get(format_id)),
+                })
+        return formats
+
+    def _extract_common_meta(self, stream_info):
+        return traverse_obj(stream_info, {
+            'id': ('id', {str_or_none}),
+            'title': ('title', {str}),
+            'release_timestamp': ('startTime', {int_or_none}),
+            'thumbnail': ('previewUrl', {url_or_none}),
+            'view_count': ('count', 'views', {int_or_none}),
+            'like_count': ('count', 'likes', {int_or_none}),
+            'categories': ('category', 'title', {str}, {lambda x: [x] if x else None}),
+            'uploader': (('user', ('blog', 'owner')), 'nick', {str}),
+            'uploader_id': (('user', ('blog', 'owner')), 'id', {str_or_none}),
+            'duration': ('duration', {int_or_none}),
+            'is_live': ('isOnline', {bool}),
+            'concurrent_view_count': ('count', 'viewers', {int_or_none}),
+        }, get_all=False)
+
+
+class VKPlayIE(VKPlayBaseIE):
+    _VALID_URL = r'https?://vkplay\.live/(?P<username>[^/]+)/record/(?P<id>[a-f0-9\-]+)'
+    _TESTS = [{
+        'url': 'https://vkplay.live/zitsmann/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da',
+        'info_dict': {
+            'id': 'f5e6e3b5-dc52-4d14-965d-0680dd2882da',
+            'ext': 'mp4',
+            'title': 'Atomic Heart (пробуем!) спасибо подписчику EKZO!',
+            'uploader': 'ZitsmanN',
+            'uploader_id': '13159830',
+            'release_timestamp': 1683461378,
+            'release_date': '20230507',
+            'thumbnail': r're:https://images.vkplay.live/public_video_stream/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da/preview\?change_time=\d+',
+            'duration': 10608,
+            'view_count': int,
+            'like_count': int,
+            'categories': ['Atomic Heart'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    def _real_extract(self, url):
+        username, video_id = self._match_valid_url(url).groups()
+
+        record_info = traverse_obj(self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream/record/{video_id}', video_id, fatal=False),
+            ('data', 'record', {dict}))
+        if not record_info:
+            record_info = self._extract_from_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
+
+        return {
+            **self._extract_common_meta(record_info),
+            'id': video_id,
+            'formats': self._extract_formats(record_info, video_id),
+        }
+
+
+class VKPlayLiveIE(VKPlayBaseIE):
+    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/]+)/?(?:[#?]|$)'
+    _TESTS = [{
+        'url': 'https://vkplay.live/bayda',
+        'info_dict': {
+            'id': 'f02c321e-427b-408d-b12f-ae34e53e0ea2',
+            'ext': 'mp4',
+            'title': r're:эскапизм крута .*',
+            'uploader': 'Bayda',
+            'uploader_id': 12279401,
+            'release_timestamp': 1687209962,
+            'release_date': '20230619',
+            'thumbnail': r're:https://images.vkplay.live/public_video_stream/12279401/preview\?change_time=\d+',
+            'view_count': int,
+            'concurrent_view_count': int,
+            'like_count': int,
+            'categories': ['EVE Online'],
+            'live_status': 'is_live',
+        },
+        'skip': 'livestream',
+        'params': {'skip_download': True},
+    }]
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        stream_info = self._download_json(
+            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
+        if not stream_info:
+            stream_info = self._extract_from_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
+
+        formats = self._extract_formats(stream_info, username)
+        if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
+            raise UserNotLive(video_id=username)
+
+        return {
+            **self._extract_common_meta(stream_info),
+            'formats': formats,
+        }

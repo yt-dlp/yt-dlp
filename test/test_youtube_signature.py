@@ -67,7 +67,7 @@ _SIG_TESTS = [
         'https://www.youtube.com/s/player/6ed0d907/player_ias.vflset/en_US/base.js',
         '2aq0aqSyOoJXtK73m-uME_jv7-pT15gOFC02RFkGMqWpzEICs69VdbwQ0LDp1v7j8xx92efCJlYFYb1sUkkBSPOlPmXgIARw8JQ0qOAOAA',
         'AOq0QJ8wRAIgXmPlOPSBkkUs1bYFYlJCfe29xx8j7v1pDL2QwbdV96sCIEzpWqMGkFR20CFOg51Tp-7vj_EMu-m37KtXJoOySqa0',
-    )
+    ),
 ]
 
 _NSIG_TESTS = [
@@ -158,6 +158,10 @@ _NSIG_TESTS = [
     (
         'https://www.youtube.com/s/player/8c7583ff/player_ias.vflset/en_US/base.js',
         '1wWCVpRR96eAmMI87L', 'KSkWAVv1ZQxC3A',
+    ),
+    (
+        'https://www.youtube.com/s/player/b7910ca8/player_ias.vflset/en_US/base.js',
+        '_hXMCwMt9qE310D', 'LoZMgkkofRMCZQ',
     ),
 ]
 

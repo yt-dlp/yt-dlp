@@ -497,6 +497,7 @@ from .dplay import (
     DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
     DiscoveryPlusIndiaShowIE,
+    GlobalCyclingNetworkPlusIE,
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
@@ -1119,7 +1120,8 @@ from .mojvideo import MojvideoIE
 from .morningstar import MorningstarIE
 from .motherless import (
     MotherlessIE,
-    MotherlessGroupIE
+    MotherlessGroupIE,
+    MotherlessGalleryIE,
 )
 from .motorsport import MotorsportIE
 from .movieclips import MovieClipsIE
@@ -1529,6 +1531,7 @@ from .prx import (
 )
 from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE
+from .qdance import QDanceIE
 from .qingting import QingTingIE
 from .qqmusic import (
     QQMusicIE,
@@ -1615,6 +1618,7 @@ from .rentv import (
 from .restudy import RestudyIE
 from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
+from .rheinmaintv import RheinMainTVIE
 from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
 from .rockstargames import RockstarGamesIE
@@ -1851,6 +1855,10 @@ from .srgssr import (
     SRGSSRPlayIE,
 )
 from .srmediathek import SRMediathekIE
+from .stacommu import (
+    StacommuLiveIE,
+    StacommuVODIE,
+)
 from .stanfordoc import StanfordOpenClassroomIE
 from .startv import StarTVIE
 from .steam import (
@@ -2264,6 +2272,8 @@ from .vk import (
     VKIE,
     VKUserVideosIE,
     VKWallPostIE,
+    VKPlayIE,
+    VKPlayLiveIE,
 )
 from .vocaroo import VocarooIE
 from .vodlocker import VodlockerIE
@@ -2448,7 +2458,10 @@ from .younow import (
 from .youporn import YouPornIE
 from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
-from .zaiko import ZaikoIE
+from .zaiko import (
+    ZaikoIE,
+    ZaikoETicketIE,
+)
 from .zapiks import ZapiksIE
 from .zattoo import (
     BBVTVIE,
