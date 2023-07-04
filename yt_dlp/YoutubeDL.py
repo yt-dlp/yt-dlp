@@ -3939,7 +3939,9 @@ class YoutubeDL:
         if isinstance(req, str):
             req = Request(req)
         elif isinstance(req, urllib.request.Request):
-            # compat
+            self.deprecation_warning(
+                'Passing a urllib.request.Request object to urlopen() is deprecated. '
+                'Use yt_dlp.networking.common.Request instead.')
             req = urllib_req_to_req(req)
         assert isinstance(req, Request)
 

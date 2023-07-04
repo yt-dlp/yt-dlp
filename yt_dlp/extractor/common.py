@@ -795,6 +795,9 @@ class InfoExtractor:
 
     def _create_request(self, url_or_request, data=None, headers=None, query=None):
         if isinstance(url_or_request, urllib.request.Request):
+            self._downloader.deprecation_warning(
+                'Passing a urllib.request.Request to _create_request() is deprecated. '
+                'Use yt_dlp.networking.common.Request instead.')
             url_or_request = urllib_req_to_req(url_or_request)
         elif not isinstance(url_or_request, Request):
             url_or_request = Request(url_or_request)
