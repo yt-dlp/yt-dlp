@@ -458,7 +458,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_incompleteread(self, handler):
-        with handler(timeout=2) as rh:  # TODO: add timeout test
+        with handler(timeout=2) as rh:
             with pytest.raises(IncompleteRead):
                 validate_and_send(rh, Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
 
