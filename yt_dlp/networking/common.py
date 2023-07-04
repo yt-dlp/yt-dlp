@@ -456,21 +456,21 @@ class Response(io.IOBase, AutoCloseMixin):
     # The following methods are for compatability reasons and are deprecated
     @property
     def code(self):
-        warnings.warn("code is deprecated, use status", DeprecationWarning, stacklevel=2)
+        warnings.warn('code is deprecated, use status', DeprecationWarning, stacklevel=2)
         return self.status
 
     def getcode(self):
-        warnings.warn("getcode() is deprecated, use status", DeprecationWarning, stacklevel=2)
+        warnings.warn('getcode() is deprecated, use status', DeprecationWarning, stacklevel=2)
         return self.status
 
     def geturl(self):
-        warnings.warn("geturl() is deprecated, use url", DeprecationWarning, stacklevel=2)
+        warnings.warn('geturl() is deprecated, use url', DeprecationWarning, stacklevel=2)
         return self.url
 
     def info(self):
-        warnings.warn("info() is deprecated, use headers", DeprecationWarning, stacklevel=2)
+        warnings.warn('info() is deprecated, use headers', DeprecationWarning, stacklevel=2)
         return self.headers
 
     def getheader(self, name, default=None):
-        warnings.warn("getheader() is deprecated, use headers", DeprecationWarning, stacklevel=2)
+        warnings.warn('getheader() is deprecated, use headers', DeprecationWarning, stacklevel=2)
         return self.get_header(name, default)
