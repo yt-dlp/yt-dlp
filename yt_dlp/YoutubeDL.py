@@ -3904,7 +3904,7 @@ class YoutubeDL:
                     latest_version)
 
     @functools.cached_property
-    def proxies(self) -> dict:
+    def proxies(self):
         """Global proxy configuration"""
         opts_proxy = self.params.get('proxy')
         if opts_proxy is not None:

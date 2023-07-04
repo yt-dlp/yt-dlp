@@ -420,7 +420,7 @@ class Response(io.IOBase):
             reason: str = None):
 
         self.raw = fp
-        self.headers: Message = Message()
+        self.headers = Message()
         for name, value in headers.items():
             self.headers.add_header(name, value)
         self.status = status
