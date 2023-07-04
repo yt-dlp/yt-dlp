@@ -338,8 +338,7 @@ class Aria2cFD(ExternalFD):
             data=d, headers={
                 'Content-Type': 'application/json',
                 'Content-Length': f'{len(d)}',
-                'Ytdl-request-proxy': '__noproxy__',
-            })
+            }, proxies={'all': None})
         with self.ydl.urlopen(request) as r:
             resp = json.load(r)
         assert resp.get('id') == sanitycheck, 'Something went wrong with RPC server'
