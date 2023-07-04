@@ -3928,7 +3928,7 @@ class YoutubeDL:
     @property
     def _opener(self):
         """
-        Get an urllib OpenerDirector from the Urllib handler.
+        Get a urllib OpenerDirector from the Urllib handler (deprecated).
         """
         self.deprecation_warning('_opener() is deprecated, use YoutubeDL.urlopen()')
         handler = self._request_director.get_handler(rh_key='Urllib')
