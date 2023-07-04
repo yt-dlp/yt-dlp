@@ -4,7 +4,11 @@ import time
 
 from .common import FileDownloader
 from ..networking import Request
-from ..networking.exceptions import HTTPError, TransportError, CertificateVerifyError
+from ..networking.exceptions import (
+    CertificateVerifyError,
+    HTTPError,
+    TransportError,
+)
 from ..utils import (
     CaseInsensitiveDict,
     ContentTooShortError,
