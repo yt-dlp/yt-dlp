@@ -342,7 +342,7 @@ class UrllibResponseAdapter(Response):
         # 1. https://docs.python.org/3/library/urllib.request.html#urllib.response.addinfourl.getcode
         # 2. https://docs.python.org/3.10/library/http.client.html#http.client.HTTPResponse.status
         super().__init__(
-            raw=res, headers=res.headers, url=res.url,
+            fp=res, headers=res.headers, url=res.url,
             status=getattr(res, 'status', None) or res.getcode(), reason=getattr(res, 'reason', None))
 
     def read(self, amt=None):

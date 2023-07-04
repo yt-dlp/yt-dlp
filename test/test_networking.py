@@ -896,7 +896,7 @@ class FakeResponse(Response):
     def __init__(self, request):
         # XXX: we could make request part of standard response interface
         self.request = request
-        super().__init__(raw=io.BytesIO(b''), headers={}, url=request.url)
+        super().__init__(fp=io.BytesIO(b''), headers={}, url=request.url)
 
 
 class FakeRH(RequestHandler):
@@ -960,7 +960,7 @@ class TestRequestDirector:
             _SUPPORTED_URL_SCHEMES = ['http']
 
             def _send(self, request: Request):
-                return Response(raw=io.BytesIO(b'supported'), headers={}, url=request.url)
+                return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
 
         # This handler should by default take preference over FakeRH
         director.add_handler(SupportedRH(logger=FakeLogger()))

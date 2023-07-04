@@ -175,7 +175,7 @@ class TestNetworkingExceptions:
 
     @staticmethod
     def create_response(status):
-        return Response(raw=io.BytesIO(b'test'), url='http://example.com', headers={'tesT': 'test'}, status=status)
+        return Response(fp=io.BytesIO(b'test'), url='http://example.com', headers={'tesT': 'test'}, status=status)
 
     @pytest.mark.parametrize('http_error_class', [HTTPError, lambda r: _CompatHTTPError(HTTPError(r))])
     def test_http_error(self, http_error_class):
