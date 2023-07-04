@@ -18,7 +18,6 @@ from typing import Iterable, Mapping, Union
 from .exceptions import UnsupportedRequest
 from .utils import make_ssl_context
 from ..utils import (
-    AutoCloseMixin,
     CaseInsensitiveDict,
     classproperty,
     escape_url,
@@ -397,7 +396,7 @@ HEADRequest = functools.partial(Request, method='HEAD')
 PUTRequest = functools.partial(Request, method='PUT')
 
 
-class Response(io.IOBase, AutoCloseMixin):
+class Response(io.IOBase):
     """
     Abstract base class for HTTP response adapters.
 

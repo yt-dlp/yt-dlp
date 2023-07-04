@@ -5519,25 +5519,3 @@ def clean_headers(headers: CaseInsensitiveDict):
     if 'Youtubedl-No-Compression' in headers:  # compat
         del headers['Youtubedl-No-Compression']
         headers['Accept-Encoding'] = 'identity'
-
-
-class AutoCloseMixin:
-    def close(self):
-        raise NotImplementedError
-
-    def __enter__(self):
-        if callable(getattr(super(), "__enter__")):
-            super().__enter__()
-        return self
-
-    def __exit__(self, *_):
-        try:
-            self.close()
-        except Exception:
-            pass
-
-    def __del__(self):
-        try:
-            self.close()
-        except Exception:
-            pass
