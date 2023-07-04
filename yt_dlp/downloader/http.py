@@ -339,15 +339,15 @@ class HttpFD(FileDownloader):
                 elif speed:
                     ctx.throttle_start = None
 
-            if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
-                ctx.resume_len = byte_counter
-                # ctx.block_size = block_size
-                raise NextFragment()
-
             if ctx.stream is None:
                 self.to_stderr('\n')
                 self.report_error('Did not get any data blocks')
                 return False
+
+            if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
+                ctx.resume_len = byte_counter
+                raise NextFragment()
+
             if ctx.tmpfilename != '-':
                 ctx.stream.close()
 
