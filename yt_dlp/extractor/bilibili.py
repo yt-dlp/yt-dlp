@@ -920,7 +920,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
             raise ExtractorError(f'Could not access playlist: {error_code} {error_message}')
 
         query = {
-            'ps': 99,
+            'ps': 20,
             'with_current': False,
             **traverse_obj(initial_state, {
                 'type': ('playlist', 'type', {int}),
