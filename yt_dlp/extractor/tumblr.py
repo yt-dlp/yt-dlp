@@ -414,7 +414,9 @@ class TumblrIE(InfoExtractor):
         blog = blog_2 or blog_1
 
         url = f'http://{blog}.tumblr.com/post/{video_id}'
-        webpage, urlh = self._download_webpage_handle(url, video_id)
+        # whatsapp ua makes iab tcf shut the fuck up
+        webpage, urlh = self._download_webpage_handle(url, video_id, headers={
+            'User-Agent': 'WhatsApp/2.0'})
 
         redirect_url = urlh.geturl()
 
