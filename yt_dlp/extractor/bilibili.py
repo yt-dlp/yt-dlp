@@ -804,7 +804,9 @@ class BilibiliWatchlaterIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://www\.bilibili\.com/watchlater'
     _TESTS = [{
         'url': 'https://www.bilibili.com/watchlater/#/list',
-        'match_only': True,
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
     }]
 
     def get_entries(self, page_data):
@@ -823,7 +825,54 @@ class BilibiliWatchlaterIE(BilibiliSpaceBaseIE):
 
 class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://www.bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
-    _TESTS = []
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/list/1958703906?sid=547718',
+        'info_dict': {
+            'id': '5_547718',
+            'title': '直播回放',
+            'uploader': '靡烟miya',
+            'uploader_id': '1958703906',
+            'timestamp': 1637985853,
+            'upload_date': '20211127',
+        },
+        'playlist_mincount': 513,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/1958703906?business=space_series&business_id=547718&desc=1',
+        'info_dict': {
+            'id': '5_547718',
+        },
+        'playlist_mincount': 513,
+        'skip': 'redirect url',
+    }, {
+        'url': 'https://www.bilibili.com/list/ml1103407912',
+        'info_dict': {
+            'id': '3_1103407912',
+            'title': '【V2】（旧）',
+            'uploader': '晓月春日',
+            'uploader_id': '84912',
+            'timestamp': 1604905176,
+            'upload_date': '20201109',
+            'thumbnail': r"re:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg",
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/ml1103407912',
+        'info_dict': {
+            'id': '3_1103407912',
+        },
+        'playlist_mincount': 22,
+        'skip': 'redirect url',
+    }, {
+        'url': 'https://www.bilibili.com/list/watchlater',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/watchlater',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }]
 
     def get_entries(self, page_data):
         for bvid in traverse_obj(page_data, ('media_list', ..., 'bv_id')):
@@ -876,8 +925,8 @@ class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
             'id': f'{query["type"]}_{query["biz_id"]}',
             **traverse_obj(initial_state, ('mediaListInfo', {
                 'title': ('title', {str_or_none}),
-                'uploder': ('upper', 'name', {str_or_none}),
-                'uploder_id': ('upper', 'mid', {str_or_none}),
+                'uploader': ('upper', 'name', {str_or_none}),
+                'uploader_id': ('upper', 'mid', {str_or_none}),
                 'timestamp': ('ctime', {int_or_none}),
                 'thumbnail': ('cover', {url_or_none}),
             })),
