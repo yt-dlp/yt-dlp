@@ -382,17 +382,32 @@ class TumblrIE(InfoExtractor):
         if not self._ACCESS_TOKEN:
             return
 
-        self._download_json(
-            self._OAUTH_URL, None, 'Logging in',
-            data=urlencode_postdata({
-                'password': password,
-                'grant_type': 'password',
-                'username': username,
-            }), headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': f'Bearer {self._ACCESS_TOKEN}',
-            },
-            errnote='Login failed', fatal=False)
+        data = {
+            'password': password,
+            'grant_type': 'password',
+            'username': username,
+        }
+        if self.get_param('twofactor'):
+            data['tfa_token'] = self.get_param('twofactor')
+
+        def _call_login():
+            return self._download_json(
+                self._OAUTH_URL, None, 'Logging in',
+                data=urlencode_postdata(data),
+                headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+                },
+                errnote='Login failed', fatal=False,
+                expected_status=lambda s: s == 200 or 400 <= s < 500)
+
+        response = _call_login()
+        if response.get('error') == 'tfa_required':
+            data['tfa_token'] = self._get_tfa_info()
+            response = _call_login()
+        if response.get('error'):
+            self.report_warning('API returned error {}: {}'.format(
+                response.get('error'), response.get('error_description')))
 
     def _real_extract(self, url):
         blog_1, blog_2, video_id = self._match_valid_url(url).groups()
