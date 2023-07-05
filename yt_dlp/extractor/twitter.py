@@ -1494,7 +1494,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             self.raise_no_formats('Twitter Space not started yet', expected=True)
         elif not is_live and not metadata.get('is_space_available_for_replay'):
             self.raise_no_formats('Twitter Space ended and replay is disabled', expected=True)
-        elif metadata.get('media_key') and (is_live or metadata.get('is_space_available_for_replay')):
+        elif metadata.get('media_key'):
             source = traverse_obj(
                 self._call_api(f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key']),
                 ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
