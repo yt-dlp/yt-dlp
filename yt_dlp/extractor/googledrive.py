@@ -243,7 +243,7 @@ class GoogleDriveIE(InfoExtractor):
                     confirmed_source_url = extract_attributes(
                         get_element_html_by_id('download-form', confirmation_webpage) or '').get('action')
                     if confirmed_source_url:
-                        urlh = request_source_file(confirmed_source_url, 'confirmed source', b'')
+                        urlh = request_source_file(confirmed_source_url, 'confirmed source', data=b'')
                         if urlh and urlh.headers.get('Content-Disposition'):
                             add_source_format(urlh)
                     else:
