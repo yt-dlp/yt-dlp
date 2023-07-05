@@ -22,7 +22,7 @@ from ..utils import (
 
 class CrunchyrollBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.crunchyroll.com'
-    _API_BASE = 'https://api.crunchyroll.com'
+    _API_BASE = 'https://beta-api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
     _AUTH_HEADERS = None
     _API_ENDPOINT = None
