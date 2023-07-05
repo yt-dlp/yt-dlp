@@ -449,7 +449,7 @@ class TumblrIE(InfoExtractor):
         info_dict = {
             'id': video_id,
             'title': post_json.get('summary') or (blog if api_only else self._html_search_regex(
-                r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>', webpage, 'title')),
+                r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>', webpage, 'title', default=blog)),
             'description': description,
             'uploader_id': uploader_id,
             'uploader_url': f'https://{uploader_id}.tumblr.com/' if uploader_id else None,
