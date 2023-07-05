@@ -1487,12 +1487,14 @@ class TwitterSpacesIE(TwitterBaseIE):
         formats = []
         if live_status == 'is_upcoming':
             self.raise_no_formats('Twitter Space not started yet', expected=True)
+        elif not is_live and not metadata.get('is_space_available_for_replay'):
+            self.raise_no_formats('Twitter Space ended and replay is disabled', expected=True)
         elif metadata.get('media_key') and (is_live or metadata.get('is_space_available_for_replay')):
             source = traverse_obj(
                 self._call_api(f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key']),
                 ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
             formats = self._extract_m3u8_formats(
-                source, metadata['media_key'], 'm4a', live=is_live,
+                source, metadata['media_key'], 'm4a', live=is_live, fatal=False,
                 headers={'Referer': 'https://twitter.com/'}) if source else []
             for fmt in formats:
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
@@ -1504,8 +1506,6 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         if not formats and live_status == 'post_live':
             self.raise_no_formats('Twitter Space ended but not downloadable yet', expected=True)
-        elif not formats and not metadata.get('is_space_available_for_replay'):
-            self.raise_no_formats('Twitter Space ended and replay is disabled', expected=True)
 
         return {
             'id': space_id,
