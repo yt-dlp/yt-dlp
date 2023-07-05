@@ -634,16 +634,39 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
         return self.playlist_result(paged_list, playlist_id)
 
 
-class BilibiliCollectionListIE(BilibiliSpaceBaseIE):
+class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
+    BVID_PATH = ()
+
+    def _get_entries(self, page_data):
+        for bvid in traverse_obj(page_data, self.BVID_PATH):
+            yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
+    def _get_uploader(self, uid, playlist_id):
+        webpage = self._download_webpage(f'https://space.bilibili.com/{uid}', playlist_id, fatal=False)
+        return self._search_regex(r'<title>(?P<uname>[^<]+)的个人空间-', webpage, 'uploader', group='uname', fatal=False)
+    def _extract_playlist(self, fetch_page, get_metadata, get_entries):
+        metadata, page_list = super()._extract_playlist(fetch_page, get_metadata, get_entries)
+        metadata.pop('page_count', None)
+        metadata.pop('page_size', None)
+        return metadata, page_list
+
+
+class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
     _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'info_dict': {
             'id': '2142762_57445',
-            'title': '《底特律 变人》'
+            'title': '合集·【完结】《底特律 变人》全结局流程解说',
+            'description': '',
+            'uploader_id': '2142762',
+            'timestamp': int,
+            'upload_date': str,
+            'thumbnail': "https://archive.biliimg.com/bfs/archive/e0e543ae35ad3df863ea7dea526bc32e70f4c091.jpg",
         },
         'playlist_mincount': 31,
     }]
+
+    BVID_PATH = ('archives', ..., 'bvid')
 
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
@@ -661,32 +684,17 @@ class BilibiliCollectionListIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'title': traverse_obj(page_data, ('meta', 'name'))
+                **traverse_obj(page_data, {
+                    'title': ('meta', 'name', {str_or_none}),
+                    'description': ('meta', 'description', {str_or_none}),
+                    'uploader_id': ('meta', 'mid', {str_or_none}),
+                    'timestamp': ('meta', 'ptime', {int_or_none}),
+                    'thumbnail': ('meta', 'cover', {url_or_none}),
+                })
             }
 
-        def get_entries(page_data):
-            for entry in page_data.get('archives', []):
-                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
-                                      BiliBiliIE, entry['bvid'])
-
-        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, self._get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
-
-
-class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
-    BVID_PATH = ()
-
-    def _get_entries(self, page_data):
-        for bvid in traverse_obj(page_data, self.BVID_PATH):
-            yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
-    def _get_uploader(self, uid, playlist_id):
-        webpage = self._download_webpage(f'https://space.bilibili.com/{uid}', playlist_id, fatal=False)
-        return self._search_regex(r'<title>(?P<uname>[^<]+)的个人空间-', webpage, 'uploader', group='uname', fatal=False)
-    def _extract_playlist(self, fetch_page, get_metadata, get_entries):
-        metadata, page_list = super()._extract_playlist(fetch_page, get_metadata, get_entries)
-        metadata.pop('page_count', None)
-        metadata.pop('page_size', None)
-        return metadata, page_list
 
 
 class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
