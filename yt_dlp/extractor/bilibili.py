@@ -754,7 +754,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
         return self.playlist_result(paged_list, playlist_id, **metadata)
 
 
-class BilibiliFavlistIE(BilibiliSpaceListBaseIE):
+class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
     _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/favlist/?\?.*\bfid=(?P<fid>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/84912/favlist?fid=1103407912&ftype=create',
@@ -787,7 +787,7 @@ class BilibiliFavlistIE(BilibiliSpaceListBaseIE):
                 playlist_id, note=f'Downloading page {page_idx}',
                 query={'media_id': fid, 'pn': page_idx + 1, 'ps': 20})
             if fav_info['code'] == -403:
-                self.raise_login_required(msg='This favorites list is private and requires logging in as owner')
+                self.raise_login_required(msg='This is a private favorites list. You need to log in as its owner')
             return fav_info['data']
 
         def get_metadata(page_data):
@@ -813,7 +813,7 @@ class BilibiliFavlistIE(BilibiliSpaceListBaseIE):
         return self.playlist_result(paged_list, playlist_id, **metadata)
 
 
-class BilibiliWatchlaterIE(BilibiliSpaceBaseIE):
+class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
     _VALID_URL = r'https?://www\.bilibili\.com/watchlater'
     _TESTS = [{
         'url': 'https://www.bilibili.com/watchlater/#/list',
@@ -822,21 +822,18 @@ class BilibiliWatchlaterIE(BilibiliSpaceBaseIE):
         'skip': 'login required',
     }]
 
-    def get_entries(self, page_data):
-        for entry in page_data.get('list', []):
-            yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
-                                  BiliBiliIE, entry['bvid'])
+    BVID_PATH = ('list', ..., 'bvid')
 
     def _real_extract(self, url):
         watchlater_info = self._download_json(
             'https://api.bilibili.com/x/v2/history/toview/web?jsonp=jsonp', 'watchlater')
         if watchlater_info['code'] == -101:
-            self.raise_login_required(msg='You need to login to access your watchlater')
-        entries = (list(self.get_entries(watchlater_info['data'])))
+            self.raise_login_required(msg='You need to login to access your watchlater list')
+        entries = list(self._get_entries(watchlater_info['data']))
         return self.playlist_result(entries, title='稍后再看')
 
 
-class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
+class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
     _VALID_URL = r'https?://www.bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/list/1958703906?sid=547718',
@@ -887,24 +884,22 @@ class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
         'skip': 'login required',
     }]
 
-    def get_entries(self, page_data):
-        for bvid in traverse_obj(page_data, ('media_list', ..., 'bv_id')):
-            yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
+    BVID_PATH = ('media_list', ..., 'bv_id')
 
     def _extract_medialist(self, query, list_id):
         page_data = self._download_json(
             'https://api.bilibili.com/x/v2/medialist/resource/list',
             list_id, query=query, note=f'getting playlist {query["biz_id"]} items'
         )['data']
-        entries = list(self.get_entries(page_data))
+        entries = list(self._get_entries(page_data))
         total_count = page_data.get('total_count', None)
         while page_data.get('has_more', False):
-            query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id', {int_or_none}))
+            query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
             page_data = self._download_json(
                 'https://api.bilibili.com/x/v2/medialist/resource/list',
                 list_id, query=query, note=f'getting {query["biz_id"]} items after av{query["oid"]}'
             )['data']
-            entries.extend(list(self.get_entries(page_data)))
+            entries.extend(list(self._get_entries(page_data)))
         if len(entries) != total_count:
             self.report_warning(f'extracted items {len(entries)} does not match total count {total_count}')
         return entries
@@ -917,12 +912,13 @@ class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
             error_code = traverse_obj(initial_state, ('error', 'trueCode', {int_or_none}))
             error_message = traverse_obj(initial_state, ('error', 'message', {str_or_none}))
             if error_code == -400 and list_id == 'watchlater':
-                self.raise_login_required('You need to log in to access your watchlater playlist')
+                self.raise_login_required('You need to login to access your watchlater playlist')
             elif error_code == -403:
-                self.raise_login_required('This is a private playlist, you need to login as playlist owner')
+                self.raise_login_required('This is a private playlist. You need to login as its owner')
             elif error_code == 11010:
                 raise ExtractorError('Playlist is no longer available', expected=True)
             raise ExtractorError(f'Could not access playlist: {error_code} {error_message}')
+
         query = {
             'ps': 99,
             'with_current': False,
@@ -934,7 +930,7 @@ class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
                 'desc': ('desc', {bool_or_none}),
             })
         }
-        meta = {
+        metadata = {
             'id': f'{query["type"]}_{query["biz_id"]}',
             **traverse_obj(initial_state, ('mediaListInfo', {
                 'title': ('title', {str_or_none}),
@@ -944,7 +940,7 @@ class BilibiliPlaylistIE(BilibiliSpaceBaseIE):
                 'thumbnail': ('cover', {url_or_none}),
             })),
         }
-        return self.playlist_result(self._extract_medialist(query, list_id), **meta)
+        return self.playlist_result(self._extract_medialist(query, list_id), **metadata)
 
 
 class BilibiliCategoryIE(InfoExtractor):

@@ -225,7 +225,7 @@ from .bilibili import (
     BilibiliSpaceAudioIE,
     BilibiliCollectionListIE,
     BilibiliSeriesListIE,
-    BilibiliFavlistIE,
+    BilibiliFavoritesListIE,
     BilibiliWatchlaterIE,
     BilibiliPlaylistIE,
     BiliIntlIE,
