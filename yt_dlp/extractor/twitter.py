@@ -889,8 +889,10 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
             'release_timestamp': 1658417414,
-            'description': 'md5:acce559345fd49f129c20dbcda3f1201',
-            'timestamp': 1658407771464,
+            'description': 'md5:4dc8e972f1d8b3c6580376fabb02a3ad',
+            'timestamp': 1658407771,
+            'release_date': '20220721',
+            'upload_date': '20220721',
         },
         'add_ie': ['TwitterSpaces'],
         'params': {'skip_download': 'm3u8'},
@@ -1436,7 +1438,10 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': r're:Lucio Di Gaetano.*?',
             'uploader_id': 'luciodigaetano',
             'live_status': 'was_live',
-            'timestamp': 1659877956397,
+            'timestamp': 1659877956,
+            'upload_date': '20220807',
+            'release_timestamp': 1659904215,
+            'release_date': '20220807',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -1482,26 +1487,31 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         metadata = space_data['metadata']
         live_status = try_call(lambda: self.SPACE_STATUS[metadata['state'].lower()])
+        is_live = live_status == 'is_live'
 
         formats = []
         if live_status == 'is_upcoming':
             self.raise_no_formats('Twitter Space not started yet', expected=True)
-        elif live_status == 'post_live':
-            self.raise_no_formats('Twitter Space ended but not downloadable yet', expected=True)
-        else:
-            source = self._call_api(
-                f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key'])['source']
-
-            # XXX: Native downloader does not work
+        elif not is_live and not metadata.get('is_space_available_for_replay'):
+            self.raise_no_formats('Twitter Space ended and replay is disabled', expected=True)
+        elif metadata.get('media_key'):
+            source = traverse_obj(
+                self._call_api(f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key']),
+                ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
             formats = self._extract_m3u8_formats(
-                traverse_obj(source, 'noRedirectPlaybackUrl', 'location'),
-                metadata['media_key'], 'm4a', 'm3u8', live=live_status == 'is_live',
-                headers={'Referer': 'https://twitter.com/'})
+                source, metadata['media_key'], 'm4a', live=is_live, fatal=False,
+                headers={'Referer': 'https://twitter.com/'}) if source else []
             for fmt in formats:
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
+                if not is_live:
+                    fmt['container'] = 'm4a_dash'
 
         participants = ', '.join(traverse_obj(
             space_data, ('participants', 'speakers', ..., 'display_name'))) or 'nobody yet'
+
+        if not formats and live_status == 'post_live':
+            self.raise_no_formats('Twitter Space ended but not downloadable yet', expected=True)
+
         return {
             'id': space_id,
             'title': metadata.get('title'),
@@ -1513,7 +1523,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             'live_status': live_status,
             'release_timestamp': try_call(
                 lambda: int_or_none(metadata['scheduled_start'], scale=1000)),
-            'timestamp': metadata.get('created_at'),
+            'timestamp': int_or_none(metadata.get('created_at'), scale=1000),
             'formats': formats,
         }
 
