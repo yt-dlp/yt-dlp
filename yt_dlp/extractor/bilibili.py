@@ -640,9 +640,11 @@ class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
     def _get_entries(self, page_data):
         for bvid in traverse_obj(page_data, self.BVID_PATH):
             yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
+
     def _get_uploader(self, uid, playlist_id):
         webpage = self._download_webpage(f'https://space.bilibili.com/{uid}', playlist_id, fatal=False)
         return self._search_regex(r'<title>(?P<uname>[^<]+)的个人空间-', webpage, 'uploader', group='uname', fatal=False)
+
     def _extract_playlist(self, fetch_page, get_metadata, get_entries):
         metadata, page_list = super()._extract_playlist(fetch_page, get_metadata, get_entries)
         metadata.pop('page_count', None)
@@ -658,6 +660,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
             'id': '2142762_57445',
             'title': '合集·【完结】《底特律 变人》全结局流程解说',
             'description': '',
+            'uploader': '老戴在此',
             'uploader_id': '2142762',
             'timestamp': int,
             'upload_date': str,
@@ -684,6 +687,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
+                'uploader': self._get_uploader(mid),
                 **traverse_obj(page_data, {
                     'title': ('meta', 'name', {str_or_none}),
                     'description': ('meta', 'description', {str_or_none}),
@@ -729,7 +733,6 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
             'timestamp': ('data', 'meta', 'ctime', {int_or_none}),
             'modified_timestamp': ('data', 'meta', 'mtime', {int_or_none}),
         })
-        playlist_meta['uploader'] = self._get_uploader(mid, playlist_id)
 
         def fetch_page(page_idx):
             return self._download_json(
@@ -743,10 +746,12 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
+                'uploader': self._get_uploader(mid),
+                **playlist_meta
             }
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, self._get_entries)
-        return self.playlist_result(paged_list, playlist_id, **playlist_meta)
+        return self.playlist_result(paged_list, playlist_id, **metadata)
 
 
 class BilibiliFavlistIE(BilibiliSpaceListBaseIE):
