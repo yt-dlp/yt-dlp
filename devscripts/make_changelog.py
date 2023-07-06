@@ -53,6 +53,7 @@ class CommitGroup(enum.Enum):
                     'cookies',
                     'core',
                     'dependencies',
+                    'globals',
                     'jsinterp',
                     'outtmpl',
                     'plugins',

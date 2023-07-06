@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from inspect import getsource
 
 from devscripts.utils import get_filename_args, read_file, write_file
+from yt_dlp.globals import ALL_IES
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = [
@@ -65,11 +66,11 @@ def get_all_ies():
         # os.rename cannot be used, e.g. in Docker. See https://github.com/yt-dlp/yt-dlp/pull/4958
         shutil.move(PLUGINS_DIRNAME, BLOCKED_DIRNAME)
     try:
-        from yt_dlp.extractor.extractors import _ALL_CLASSES
+        from yt_dlp.extractor import extractors  # noqa: F401
     finally:
         if os.path.exists(BLOCKED_DIRNAME):
             shutil.move(BLOCKED_DIRNAME, PLUGINS_DIRNAME)
-    return _ALL_CLASSES
+    return list(ALL_IES.get().values())
 
 
 def extra_ie_code(ie, base=None):
