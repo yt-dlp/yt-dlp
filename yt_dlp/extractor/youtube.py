@@ -2500,29 +2500,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'params': {'skip_download': True}
         }, {
-            # Story. Requires specific player params to work.
-            'url': 'https://www.youtube.com/watch?v=vv8qTUWmulI',
-            'info_dict': {
-                'id': 'vv8qTUWmulI',
-                'ext': 'mp4',
-                'availability': 'unlisted',
-                'view_count': int,
-                'channel_id': 'UCzIZ8HrzDgc-pNQDUG6avBA',
-                'upload_date': '20220526',
-                'categories': ['Education'],
-                'title': 'Story',
-                'channel': 'IT\'S HISTORY',
-                'description': '',
-                'duration': 12,
-                'playable_in_embed': True,
-                'age_limit': 0,
-                'live_status': 'not_live',
-                'tags': [],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/vv8qTUWmulI/maxresdefault.webp',
-                'channel_url': 'https://www.youtube.com/channel/UCzIZ8HrzDgc-pNQDUG6avBA',
-            },
-            'skip': 'stories get removed after some period of time',
-        }, {
             'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
             'info_dict': {
                 'id': 'tjjjtzRLHvA',
@@ -3426,7 +3403,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Pinned comments may appear a second time in newest first sort
                         # See: https://github.com/yt-dlp/yt-dlp/issues/6712
                         continue
-                    self.report_warning('Detected YouTube comments looping. Stopping comment extraction as we probably cannot get any more.')
+                    self.report_warning(
+                        'Detected YouTube comments looping. Stopping comment extraction '
+                        f'{"for this thread" if parent else ""} as we probably cannot get any more.')
                     yield
                 else:
                     tracker['seen_comment_ids'].add(comment['id'])
@@ -3517,12 +3496,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4669
-                if 'incomplete data' in str(e).lower() and parent and self.get_param('ignoreerrors') is True:
-                    self.report_warning(
-                        'Received incomplete data for a comment reply thread and retrying did not help. '
-                        'Ignoring to let other comments be downloaded.')
-                else:
-                    raise
+                if 'incomplete data' in str(e).lower() and parent:
+                    if self.get_param('ignoreerrors') in (True, 'only_download'):
+                        self.report_warning(
+                            'Received incomplete data for a comment reply thread and retrying did not help. '
+                            'Ignoring to let other comments be downloaded. Pass --no-ignore-errors to not ignore.')
+                        return
+                    else:
+                        raise ExtractorError(
+                            'Incomplete data received for comment reply thread. '
+                            'Pass --ignore-errors to ignore and allow rest of comments to download.',
+                            expected=True)
+                raise
             is_forced_continuation = False
             continuation = None
             for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
@@ -3612,7 +3597,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
-        if smuggled_data.get('is_story') or _split_innertube_client(client)[0] == 'android':
+        if _split_innertube_client(client)[0] == 'android':
             yt_query['params'] = self._PLAYER_PARAMS
 
         yt_query.update(self._generate_player_context(sts))
@@ -4025,8 +4010,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            if smuggled_data.get('is_story'):  # XXX: Deprecated
-                query['pp'] = self._PLAYER_PARAMS
             webpage = self._download_webpage(
                 webpage_url, video_id, fatal=False, query=query)
 
@@ -4898,7 +4881,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'videoRenderer': lambda x: [self._video_entry(x)],
                     'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
                     'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
-                    'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)]
+                    'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)],
+                    'richGridRenderer': lambda x: self._extract_entries(x, continuation_list),
                 }
                 for key, renderer in isr_content.items():
                     if key not in known_renderers:
@@ -6390,6 +6374,28 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_is_verified': True,
         },
         'playlist_mincount': 10,
+    }, {
+        # Playlist with only shorts, shown as reel renderers
+        # FIXME: future: YouTube currently doesn't give continuation for this,
+        # may do in future.
+        'url': 'https://www.youtube.com/playlist?list=UUxqPAgubo4coVn9Lx1FuKcg',
+        'info_dict': {
+            'id': 'UUxqPAgubo4coVn9Lx1FuKcg',
+            'channel_url': 'https://www.youtube.com/channel/UCxqPAgubo4coVn9Lx1FuKcg',
+            'view_count': int,
+            'uploader_id': '@BangyShorts',
+            'description': '',
+            'uploader_url': 'https://www.youtube.com/@BangyShorts',
+            'channel_id': 'UCxqPAgubo4coVn9Lx1FuKcg',
+            'channel': 'Bangy Shorts',
+            'uploader': 'Bangy Shorts',
+            'tags': [],
+            'availability': 'public',
+            'modified_date': '20230626',
+            'title': 'Uploads from Bangy Shorts',
+        },
+        'playlist_mincount': 100,
+        'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }]
 
     @classmethod
@@ -7112,22 +7118,6 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
         'url': ':ythistory',
         'only_matching': True,
     }]
-
-
-class YoutubeStoriesIE(InfoExtractor):
-    IE_DESC = 'YouTube channel stories; "ytstories:" prefix'
-    IE_NAME = 'youtube:stories'
-    _VALID_URL = r'ytstories:UC(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
-    _TESTS = [{
-        'url': 'ytstories:UCwFCb4jeqaKWnciAYM-ZVHg',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        playlist_id = f'RLTD{self._match_id(url)}'
-        return self.url_result(
-            smuggle_url(f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1', {'is_story': True}),
-            ie=YoutubeTabIE, video_id=playlist_id)
 
 
 class YoutubeShortsAudioPivotIE(InfoExtractor):

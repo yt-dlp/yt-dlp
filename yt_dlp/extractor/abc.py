@@ -12,6 +12,7 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     str_or_none,
+    traverse_obj,
     try_get,
     unescapeHTML,
     update_url_query,
@@ -85,6 +86,15 @@ class ABCIE(InfoExtractor):
             'uploader': 'Behind the News',
             'uploader_id': 'behindthenews',
         }
+    }, {
+        'url': 'https://www.abc.net.au/news/2023-06-25/wagner-boss-orders-troops-back-to-bases-to-avoid-bloodshed/102520540',
+        'info_dict': {
+            'id': '102520540',
+            'title': 'Wagner Group retreating from Russia, leader Prigozhin to move to Belarus',
+            'ext': 'mp4',
+            'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
+            'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_crop_resize&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485',
+        }
     }]
 
     def _real_extract(self, url):
@@ -107,7 +117,7 @@ class ABCIE(InfoExtractor):
                 video = True
 
         if mobj is None:
-            mobj = re.search(r'(?P<type>)"sources": (?P<json_data>\[[^\]]+\]),', webpage)
+            mobj = re.search(r'(?P<type>)"(?:sources|files|renditions)":\s*(?P<json_data>\[[^\]]+\])', webpage)
             if mobj is None:
                 mobj = re.search(
                     r'inline(?P<type>Video|Audio|YouTube)Data\.push\((?P<json_data>[^)]+)\);',
@@ -121,7 +131,8 @@ class ABCIE(InfoExtractor):
             urls_info = self._parse_json(
                 mobj.group('json_data'), video_id, transform_source=js_to_json)
             youtube = mobj.group('type') == 'YouTube'
-            video = mobj.group('type') == 'Video' or urls_info[0]['contentType'] == 'video/mp4'
+            video = mobj.group('type') == 'Video' or traverse_obj(
+                urls_info, (0, ('contentType', 'MIMEType')), get_all=False) == 'video/mp4'
 
         if not isinstance(urls_info, list):
             urls_info = [urls_info]
