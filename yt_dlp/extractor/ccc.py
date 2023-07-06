@@ -16,6 +16,7 @@ class CCCIE(InfoExtractor):
         'md5': '3a1eda8f3a29515d27f5adb967d7e740',
         'info_dict': {
             'id': '1839',
+            'display_id': '30C3_-_5443_-_en_-_saal_g_-_201312281830_-_introduction_to_processor_design_-_byterazor',
             'ext': 'mp4',
             'title': 'Introduction to Processor Design',
             'creator': 'byterazor',
@@ -24,6 +25,7 @@ class CCCIE(InfoExtractor):
             'upload_date': '20131228',
             'timestamp': 1388188800,
             'duration': 3710,
+            'view_count': int,
             'tags': list,
         }
     }, {
