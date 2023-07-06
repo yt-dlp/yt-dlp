@@ -1630,18 +1630,19 @@ class YoutubeDL:
                 self.to_screen('')
             raise
 
-    def _load_cookies(self, data, *, from_headers=True):
+    def _load_cookies(self, data, *, unscoped=True):
         """Loads cookies from a `Cookie` header
 
         This tries to work around the security vulnerability of passing cookies to every domain.
         See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
-        The unscoped cookies are saved for later to be stored in the jar with a limited scope.
 
         @param data         The Cookie header as string to load the cookies from
-        @param from_headers If `False`, allows Set-Cookie syntax in the cookie string (at least a domain will be required)
+        @param unscoped     If `False`, scope cookies using Set-Cookie syntax and error for cookie without domains
+                            If `True`, save cookies for later to be stored in the jar with a limited scope
+                            If a URL, save cookies in the jar with the domain of the URL
         """
         for cookie in LenientSimpleCookie(data).values():
-            if from_headers and any(cookie.values()):
+            if not unscoped and any(cookie.values()):
                 raise ValueError('Invalid syntax in Cookie Header')
 
             domain = cookie.get('domain') or ''
@@ -1655,17 +1656,20 @@ class YoutubeDL:
 
             if domain:
                 self.cookiejar.set_cookie(prepared_cookie)
-            elif from_headers:
+            elif unscoped:
                 self.deprecated_feature(
                     'Passing cookies as a header is a potential security risk; '
                     'they will be scoped to the domain of the downloaded urls. '
                     'Please consider loading cookies from a file or browser instead.')
-                self.__header_cookies.append(prepared_cookie)
+                if unscoped is True:
+                    self.__header_cookies.append(prepared_cookie)
+                else:
+                    self._apply_header_cookies(unscoped, [prepared_cookie])
             else:
                 self.report_error('Unscoped cookies are not allowed; please specify some sort of scoping',
                                   tb=False, is_error=False)
 
-    def _apply_header_cookies(self, url):
+    def _apply_header_cookies(self, url, cookies=None):
         """Applies stray header cookies to the provided url
 
         This loads header cookies and scopes them to the domain provided in `url`.
@@ -1676,7 +1680,7 @@ class YoutubeDL:
         if not parsed.hostname:
             return
 
-        for cookie in map(copy.copy, self.__header_cookies):
+        for cookie in map(copy.copy, cookies or self.__header_cookies):
             cookie.domain = f'.{parsed.hostname}'
             self.cookiejar.set_cookie(cookie)
 
@@ -2750,6 +2754,8 @@ class YoutubeDL:
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
+            self._load_cookies(traverse_obj(format['http_headers'], 'Cookie', casesense=False),
+                               unscoped=format['url'])  # compat
 
         # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
@@ -3495,8 +3501,7 @@ class YoutubeDL:
             infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
                      for info in variadic(json.loads('\n'.join(f)))]
         for info in infos:
-            self._load_cookies(info.get('cookies'), from_headers=False)
-            self._load_cookies(traverse_obj(info.get('http_headers'), 'Cookie', casesense=False))  # compat
+            self._load_cookies(info.get('cookies'), unscoped=False)
             try:
                 self.__download_wrapper(self.process_ie_result)(info, download=True)
             except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:

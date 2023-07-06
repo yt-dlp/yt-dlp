@@ -1230,7 +1230,7 @@ class TestYoutubeDL(unittest.TestCase):
         def test(encoded_cookies, cookies, headers=False, round_trip=None, error=None):
             def _test():
                 ydl.cookiejar.clear()
-                ydl._load_cookies(encoded_cookies, from_headers=headers)
+                ydl._load_cookies(encoded_cookies, unscoped=not headers)
                 if headers:
                     ydl._apply_header_cookies(_test_url)
                 data = {'url': _test_url}
