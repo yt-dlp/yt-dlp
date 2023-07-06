@@ -19,6 +19,8 @@ from ..utils import (
     xpath_with_ns,
     mimetype2ext,
     find_xpath_attr,
+    urlhandle_detect_ext,
+    HEADRequest,
 )
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
@@ -305,15 +307,18 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         # on at least one site reading just the SMIL data misses some formats as well as subtitles.
         # Therefore also read the m3u8 file and add those formats and subtitles
         m3u8_url = url.split("&")[0]
-        res = self._download_webpage_handle(
-            m3u8_url, video_id,
-            note=note,
-            errnote=errnote,
-            fatal=False)
-        if res is not False:
-            m3u8_doc, urlh = res
-            m3u8_url = urlh.geturl()
-            if m3u8_url.split("?")[0][-4:].lower() == 'm3u8':
+        ext = urlhandle_detect_ext(self._request_webpage(
+            HEADRequest(m3u8_url),
+            video_id,
+            fatal=False))
+        if ext == 'm3u8':
+            res = self._download_webpage_handle(
+                m3u8_url, video_id,
+                note=note,
+                errnote=errnote,
+                fatal=False)
+            if res is not False:
+                m3u8_doc, urlh = res
                 formats2, subtitles2 = self._parse_m3u8_formats_and_subtitles(
                     m3u8_doc, m3u8_url, entry_protocol='m3u8_native',
                     note=note, errnote=errnote, fatal=False,
