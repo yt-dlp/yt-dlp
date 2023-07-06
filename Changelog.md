@@ -9,6 +9,8 @@
 #### Core changes
 - [Fix bug in db3ad8a67661d7b234a6954d9c6a4a9b1749f5eb](https://github.com/yt-dlp/yt-dlp/commit/d7cd97e8d8d42b500fea9abb2aa4ac9b0f98b2ad) by [pukkandan](https://github.com/pukkandan)
 - [Improve `--download-sections`](https://github.com/yt-dlp/yt-dlp/commit/b4e0d75848e9447cee2cd3646ce54d4744a7ff56) by [pukkandan](https://github.com/pukkandan)
+    - Support negative time-ranges
+    - Add `*from-url` to obey time-ranges in URL
 - [Indicate `filesize` approximated from `tbr` better](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) by [pukkandan](https://github.com/pukkandan)
 
 #### Extractor changes
@@ -19,7 +21,7 @@
 - **nebula**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/3f756c8c4095b942cf49788eb0862ceaf57847f2) ([#7156](https://github.com/yt-dlp/yt-dlp/issues/7156)) by [Lamieur](https://github.com/Lamieur), [rohieb](https://github.com/rohieb)
 - **rheinmaintv**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/98cb1eda7a4cf67c96078980dbd63e6c06ad7f7c) ([#7311](https://github.com/yt-dlp/yt-dlp/issues/7311)) by [barthelmannk](https://github.com/barthelmannk)
 - **youtube**
-    - [Add `ios` to default clients used](https://github.com/yt-dlp/yt-dlp/commit/1e75d97db21152acc764b30a688e516f04b8a142)
+    - [Add `ios` to default clients used](https://github.com/yt-dlp/yt-dlp/commit/1e75d97db21152acc764b30a688e516f04b8a142) by [pukkandan](https://github.com/pukkandan)
         - IOS is affected neither by 403 nor by nsig so helps mitigate them preemptively
         - IOS also has higher bit-rate 'premium' formats though they are not labeled as such
     - [Improve description parsing performance](https://github.com/yt-dlp/yt-dlp/commit/71dc18fa29263a1ff0472c23d81bfc8dd4422d48) ([#7315](https://github.com/yt-dlp/yt-dlp/issues/7315)) by [berkanteber](https://github.com/berkanteber), [pukkandan](https://github.com/pukkandan)
@@ -27,7 +29,7 @@
     - [Workaround 403 for android formats](https://github.com/yt-dlp/yt-dlp/commit/81ca451480051d7ce1a31c017e005358345a9149) by [pukkandan](https://github.com/pukkandan)
 
 #### Misc. changes
-- [Revert "Add automatic duplicate issue detection"](https://github.com/yt-dlp/yt-dlp/commit/a4486bfc1dc7057efca9dd3fe70d7fa25c56f700)
+- [Revert "Add automatic duplicate issue detection"](https://github.com/yt-dlp/yt-dlp/commit/a4486bfc1dc7057efca9dd3fe70d7fa25c56f700) by [pukkandan](https://github.com/pukkandan)
 - **cleanup**
     - Miscellaneous
         - [7f9c6a6](https://github.com/yt-dlp/yt-dlp/commit/7f9c6a63b16e145495479e9f666f5b9e2ee69e2f) by [bashonly](https://github.com/bashonly)
