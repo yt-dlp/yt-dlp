@@ -3589,7 +3589,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
-        if smuggled_data.get('is_story') or _split_innertube_client(client)[0] == 'android':
+        if _split_innertube_client(client)[0] == 'android':
             yt_query['params'] = self._PLAYER_PARAMS
 
         yt_query.update(self._generate_player_context(sts))
@@ -4002,8 +4002,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            if smuggled_data.get('is_story'):  # XXX: Deprecated
-                query['pp'] = self._PLAYER_PARAMS
             webpage = self._download_webpage(
                 webpage_url, video_id, fatal=False, query=query)
 
