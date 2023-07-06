@@ -39,6 +39,8 @@ class CCCIE(InfoExtractor):
         event_id = self._search_regex(r"data-id='(\d+)'", webpage, 'event id')
         event_data = self._download_json('https://media.ccc.de/public/events/%s' % event_id, event_id)
 
+        automatic_captions = {}
+        subtitles = {}
         formats = []
         for recording in event_data.get('recordings', []):
             recording_url = recording.get('recording_url')
@@ -66,6 +68,11 @@ class CCCIE(InfoExtractor):
                 'language': language,
                 'vcodec': vcodec,
             })
+            if recording.get('mime_type') == 'application/x-subrip':
+                # state == 'complete' means subs were created or reviewed by a human.
+                is_complete = recording.get('state') == 'complete'
+                sub_dict = subtitles if is_complete else automatic_captions
+                sub_dict.setdefault(language, []).append({'url': recording_url})
 
         return {
             'id': event_id,
@@ -79,6 +86,8 @@ class CCCIE(InfoExtractor):
             'view_count': int_or_none(event_data.get('view_count')),
             'tags': event_data.get('tags'),
             'formats': formats,
+            'subtitles': subtitles,
+            'automatic_captions': automatic_captions,
         }
 
 
