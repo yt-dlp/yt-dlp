@@ -300,9 +300,7 @@ class FragmentFD(FileDownloader):
     def _finish_frag_download(self, ctx, info_dict):
         ctx['dest_stream'].close()
         if self.__do_ytdl_file(ctx):
-            ytdl_filename = encodeFilename(self.ytdl_filename(ctx['filename']))
-            if os.path.isfile(ytdl_filename):
-                self.try_remove(ytdl_filename)
+            self.try_remove(self.ytdl_filename(ctx['filename']))
         elapsed = time.time() - ctx['started']
 
         to_file = ctx['tmpfilename'] != '-'

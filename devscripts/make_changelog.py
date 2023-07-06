@@ -55,6 +55,7 @@ class CommitGroup(enum.Enum):
                     'dependencies',
                     'jsinterp',
                     'outtmpl',
+                    'formats',
                     'plugins',
                     'update',
                     'upstream',
@@ -68,9 +69,9 @@ class CommitGroup(enum.Enum):
                     'misc',
                     'test',
                 },
-                cls.EXTRACTOR: {'extractor'},
-                cls.DOWNLOADER: {'downloader'},
-                cls.POSTPROCESSOR: {'postprocessor'},
+                cls.EXTRACTOR: {'extractor', 'ie'},
+                cls.DOWNLOADER: {'downloader', 'fd'},
+                cls.POSTPROCESSOR: {'postprocessor', 'pp'},
             }.items()
             for name in names
         }

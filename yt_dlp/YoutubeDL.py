@@ -3687,7 +3687,7 @@ class YoutubeDL:
 
         def simplified_codec(f, field):
             assert field in ('acodec', 'vcodec')
-            codec = f.get(field, 'unknown')
+            codec = f.get(field)
             if not codec:
                 return 'unknown'
             elif codec != 'none':

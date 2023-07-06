@@ -3117,7 +3117,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return funcname
 
         return json.loads(js_to_json(self._search_regex(
-            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])[,;]', jscode,
+            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
     def _extract_n_function_code(self, video_id, player_url):
