@@ -4,11 +4,65 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.07.06
+
+#### Important changes
+- Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)
+    - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains
+    - Cookies are scoped when passed to external downloaders
+    - Add `cookie` field to info.json and deprecate `http_headers.Cookie`
+
+#### Core changes
+- [Allow extractors to mark formats as potentially DRM](https://github.com/yt-dlp/yt-dlp/commit/bc344cd456380999c1ee74554dfd432a38f32ec7) ([#7396](https://github.com/yt-dlp/yt-dlp/issues/7396)) by [pukkandan](https://github.com/pukkandan)
+- [Bugfix for b4e0d75848e9447cee2cd3646ce54d4744a7ff56](https://github.com/yt-dlp/yt-dlp/commit/e59e20744eb32ce4b6ea0dece7c673be8376a710) by [pukkandan](https://github.com/pukkandan)
+- [Change how `Cookie` headers are handled](https://github.com/yt-dlp/yt-dlp/commit/3121512228487c9c690d3d39bfd2579addf96e07) by [Grub4K](https://github.com/Grub4K)
+- [Prevent `Cookie` leaks on HTTP redirect](https://github.com/yt-dlp/yt-dlp/commit/f8b4bcc0a791274223723488bfbfc23ea3276641) by [coletdjnz](https://github.com/coletdjnz)
+- **formats**: [Fix best fallback for storyboards](https://github.com/yt-dlp/yt-dlp/commit/906c0bdcd8974340d619e99ccd613c163eb0d0c2) by [pukkandan](https://github.com/pukkandan)
+- **outtmpl**: [Pad `playlist_index` etc even when with internal formatting](https://github.com/yt-dlp/yt-dlp/commit/47bcd437247152e0af5b3ebc5592db7bb66855c2) by [pukkandan](https://github.com/pukkandan)
+- **utils**: clean_podcast_url: [Handle protocol in redirect URL](https://github.com/yt-dlp/yt-dlp/commit/91302ed349f34dc26cc1d661bb45a4b71f4417f7) by [pukkandan](https://github.com/pukkandan)
+
+#### Extractor changes
+- **abc**: [Fix extraction](https://github.com/yt-dlp/yt-dlp/commit/8f05fbae2a79ce0713077ccc68b354e63216bf20) ([#7434](https://github.com/yt-dlp/yt-dlp/issues/7434)) by [meliber](https://github.com/meliber)
+- **AdultSwim**: [Extract subtitles from m3u8](https://github.com/yt-dlp/yt-dlp/commit/5e16cf92eb496b7c1541a6b1d727cb87542984db) ([#7421](https://github.com/yt-dlp/yt-dlp/issues/7421)) by [nnoboa](https://github.com/nnoboa)
+- **crunchyroll**: music: [Fix `_VALID_URL`](https://github.com/yt-dlp/yt-dlp/commit/5b4b92769afcc398475e481bfa839f1158902fe9) ([#7439](https://github.com/yt-dlp/yt-dlp/issues/7439)) by [AmanSal1](https://github.com/AmanSal1), [rdamas](https://github.com/rdamas)
+- **Douyin**: [Fix extraction from webpage](https://github.com/yt-dlp/yt-dlp/commit/a2be9781fbf4d7e4db245c277ca2ecc41cf3a7b2) by [bashonly](https://github.com/bashonly)
+- **googledrive**: [Fix source format extraction](https://github.com/yt-dlp/yt-dlp/commit/3b7f5300c577fef40464d46d4e4037a69d51fe82) ([#7395](https://github.com/yt-dlp/yt-dlp/issues/7395)) by [RfadnjdExt](https://github.com/RfadnjdExt)
+- **kick**: [Fix `_VALID_URL`](https://github.com/yt-dlp/yt-dlp/commit/ef8509c300ea50da86aea447eb214d3d6f6db6bb) by [bashonly](https://github.com/bashonly)
+- **qdance**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/f0a1ff118145b6449982ba401f9a9f656ecd8062) ([#7420](https://github.com/yt-dlp/yt-dlp/issues/7420)) by [bashonly](https://github.com/bashonly)
+- **sbs**: [Python 3.7 compat](https://github.com/yt-dlp/yt-dlp/commit/f393bbe724b1fc6c7f754a5da507e807b2b40ad2) by [pukkandan](https://github.com/pukkandan)
+- **stacommu**: [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/af1fd12f675220df6793fc019dff320bc76e8080) ([#7432](https://github.com/yt-dlp/yt-dlp/issues/7432)) by [urectanc](https://github.com/urectanc)
+- **twitter**
+    - [Fix unauthenticated extraction](https://github.com/yt-dlp/yt-dlp/commit/49296437a8e5fa91dacb5446e51ab588474c85d3) ([#7476](https://github.com/yt-dlp/yt-dlp/issues/7476)) by [bashonly](https://github.com/bashonly)
+    - spaces: [Fix extraction](https://github.com/yt-dlp/yt-dlp/commit/1cffd621cb371f1563563cfb2fe37d137e8a7bee) ([#7512](https://github.com/yt-dlp/yt-dlp/issues/7512)) by [bashonly](https://github.com/bashonly)
+- **vidlii**: [Handle relative URLs](https://github.com/yt-dlp/yt-dlp/commit/ad8902f616ad2541f9b9626738f1393fad89a64c) by [pukkandan](https://github.com/pukkandan)
+- **vk**: VKPlay, VKPlayLive: [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/8776349ef6b1f644584a92dfa00a05208a48edc4) ([#7358](https://github.com/yt-dlp/yt-dlp/issues/7358)) by [c-basalt](https://github.com/c-basalt)
+- **youtube**
+    - [Add extractor-arg `formats`](https://github.com/yt-dlp/yt-dlp/commit/58786a10f212bd63f9ad1d0b4d9e4d31c3b385e2) by [pukkandan](https://github.com/pukkandan)
+    - [Avoid false DRM detection](https://github.com/yt-dlp/yt-dlp/commit/94ed638a437fc766699d440e978982e24ce6a30a) ([#7396](https://github.com/yt-dlp/yt-dlp/issues/7396)) by [pukkandan](https://github.com/pukkandan)
+    - [Fix comments' `is_favorited`](https://github.com/yt-dlp/yt-dlp/commit/89bed013741a776506f60380b7fd89d27d0710b4) ([#7390](https://github.com/yt-dlp/yt-dlp/issues/7390)) by [bbilly1](https://github.com/bbilly1)
+    - [Ignore incomplete data for comment threads by default](https://github.com/yt-dlp/yt-dlp/commit/4dc4d8473c085900edc841c87c20041233d25b1f) ([#7475](https://github.com/yt-dlp/yt-dlp/issues/7475)) by [coletdjnz](https://github.com/coletdjnz)
+    - [Process `post_live` over 2 hours](https://github.com/yt-dlp/yt-dlp/commit/d949c10c45bfc359bdacd52e6a180169b8128958) by [pukkandan](https://github.com/pukkandan)
+    - stories: [Remove](https://github.com/yt-dlp/yt-dlp/commit/90db9a3c00ca80492c6a58c542e4cbf4c2710866) ([#7459](https://github.com/yt-dlp/yt-dlp/issues/7459)) by [pukkandan](https://github.com/pukkandan)
+    - tab: [Support shorts-only playlists](https://github.com/yt-dlp/yt-dlp/commit/fcbc9ed760be6e3455bbadfaf277b4504b06f068) ([#7425](https://github.com/yt-dlp/yt-dlp/issues/7425)) by [coletdjnz](https://github.com/coletdjnz)
+
+#### Downloader changes
+- **aria2c**: [Add `--no-conf`](https://github.com/yt-dlp/yt-dlp/commit/8a8af356e3bba98a7f7d333aff0777d5d92130c8) by [pukkandan](https://github.com/pukkandan)
+- **external**: [Scope cookies](https://github.com/yt-dlp/yt-dlp/commit/1ceb657bdd254ad961489e5060f2ccc7d556b729) by [bashonly](https://github.com/bashonly), [coletdjnz](https://github.com/coletdjnz)
+- **http**: [Avoid infinite loop when no data is received](https://github.com/yt-dlp/yt-dlp/commit/662ef1e910b72e57957f06589925b2332ba52821) by [pukkandan](https://github.com/pukkandan)
+
+#### Misc. changes
+- [Add CodeQL workflow](https://github.com/yt-dlp/yt-dlp/commit/6355b5f1e1e8e7f4ef866d71d51e03baf0e82f17) ([#7497](https://github.com/yt-dlp/yt-dlp/issues/7497)) by [pukkandan](https://github.com/pukkandan)
+- **cleanup**: Miscellaneous: [337734d](https://github.com/yt-dlp/yt-dlp/commit/337734d4a8a6500bc65434843db346b5cbd05e81) by [pukkandan](https://github.com/pukkandan)
+- **docs**: [Minor fixes](https://github.com/yt-dlp/yt-dlp/commit/b532a3481046e1eabb6232ee8196fb696c356ff6) by [pukkandan](https://github.com/pukkandan)
+- **make_changelog**: [Skip reverted commits](https://github.com/yt-dlp/yt-dlp/commit/fa44802809d189fca0f4782263d48d6533384503) by [pukkandan](https://github.com/pukkandan)
+
 ### 2023.06.22
 
 #### Core changes
 - [Fix bug in db3ad8a67661d7b234a6954d9c6a4a9b1749f5eb](https://github.com/yt-dlp/yt-dlp/commit/d7cd97e8d8d42b500fea9abb2aa4ac9b0f98b2ad) by [pukkandan](https://github.com/pukkandan)
 - [Improve `--download-sections`](https://github.com/yt-dlp/yt-dlp/commit/b4e0d75848e9447cee2cd3646ce54d4744a7ff56) by [pukkandan](https://github.com/pukkandan)
+    - Support negative time-ranges
+    - Add `*from-url` to obey time-ranges in URL
 - [Indicate `filesize` approximated from `tbr` better](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) by [pukkandan](https://github.com/pukkandan)
 
 #### Extractor changes
@@ -19,7 +73,7 @@
 - **nebula**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/3f756c8c4095b942cf49788eb0862ceaf57847f2) ([#7156](https://github.com/yt-dlp/yt-dlp/issues/7156)) by [Lamieur](https://github.com/Lamieur), [rohieb](https://github.com/rohieb)
 - **rheinmaintv**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/98cb1eda7a4cf67c96078980dbd63e6c06ad7f7c) ([#7311](https://github.com/yt-dlp/yt-dlp/issues/7311)) by [barthelmannk](https://github.com/barthelmannk)
 - **youtube**
-    - [Add `ios` to default clients used](https://github.com/yt-dlp/yt-dlp/commit/1e75d97db21152acc764b30a688e516f04b8a142)
+    - [Add `ios` to default clients used](https://github.com/yt-dlp/yt-dlp/commit/1e75d97db21152acc764b30a688e516f04b8a142) by [pukkandan](https://github.com/pukkandan)
         - IOS is affected neither by 403 nor by nsig so helps mitigate them preemptively
         - IOS also has higher bit-rate 'premium' formats though they are not labeled as such
     - [Improve description parsing performance](https://github.com/yt-dlp/yt-dlp/commit/71dc18fa29263a1ff0472c23d81bfc8dd4422d48) ([#7315](https://github.com/yt-dlp/yt-dlp/issues/7315)) by [berkanteber](https://github.com/berkanteber), [pukkandan](https://github.com/pukkandan)
@@ -27,7 +81,7 @@
     - [Workaround 403 for android formats](https://github.com/yt-dlp/yt-dlp/commit/81ca451480051d7ce1a31c017e005358345a9149) by [pukkandan](https://github.com/pukkandan)
 
 #### Misc. changes
-- [Revert "Add automatic duplicate issue detection"](https://github.com/yt-dlp/yt-dlp/commit/a4486bfc1dc7057efca9dd3fe70d7fa25c56f700)
+- [Revert "Add automatic duplicate issue detection"](https://github.com/yt-dlp/yt-dlp/commit/a4486bfc1dc7057efca9dd3fe70d7fa25c56f700) by [pukkandan](https://github.com/pukkandan)
 - **cleanup**
     - Miscellaneous
         - [7f9c6a6](https://github.com/yt-dlp/yt-dlp/commit/7f9c6a63b16e145495479e9f666f5b9e2ee69e2f) by [bashonly](https://github.com/bashonly)

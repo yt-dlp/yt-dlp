@@ -684,7 +684,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s.%(ext)s', '1234.mp4')
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
-        test('%(playlist_index)s', '001')
+        test('%(playlist_index|)s', '001')
         test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
@@ -1212,6 +1212,62 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(downloaded['id'], '2')
         self.assertEqual(downloaded['extractor'], 'Video')
         self.assertEqual(downloaded['extractor_key'], 'Video')
+
+    def test_header_cookies(self):
+        from http.cookiejar import Cookie
+
+        ydl = FakeYDL()
+        ydl.report_warning = lambda *_, **__: None
+
+        def cookie(name, value, version=None, domain='', path='', secure=False, expires=None):
+            return Cookie(
+                version or 0, name, value, None, False,
+                domain, bool(domain), bool(domain), path, bool(path),
+                secure, expires, False, None, None, rest={})
+
+        _test_url = 'https://yt.dlp/test'
+
+        def test(encoded_cookies, cookies, headers=False, round_trip=None, error=None):
+            def _test():
+                ydl.cookiejar.clear()
+                ydl._load_cookies(encoded_cookies, from_headers=headers)
+                if headers:
+                    ydl._apply_header_cookies(_test_url)
+                data = {'url': _test_url}
+                ydl._calc_headers(data)
+                self.assertCountEqual(
+                    map(vars, ydl.cookiejar), map(vars, cookies),
+                    'Extracted cookiejar.Cookie is not the same')
+                if not headers:
+                    self.assertEqual(
+                        data.get('cookies'), round_trip or encoded_cookies,
+                        'Cookie is not the same as round trip')
+                ydl.__dict__['_YoutubeDL__header_cookies'] = []
+
+            with self.subTest(msg=encoded_cookies):
+                if not error:
+                    _test()
+                    return
+                with self.assertRaisesRegex(Exception, error):
+                    _test()
+
+        test('test=value; Domain=.yt.dlp', [cookie('test', 'value', domain='.yt.dlp')])
+        test('test=value', [cookie('test', 'value')], error='Unscoped cookies are not allowed')
+        test('cookie1=value1; Domain=.yt.dlp; Path=/test; cookie2=value2; Domain=.yt.dlp; Path=/', [
+            cookie('cookie1', 'value1', domain='.yt.dlp', path='/test'),
+            cookie('cookie2', 'value2', domain='.yt.dlp', path='/')])
+        test('test=value; Domain=.yt.dlp; Path=/test; Secure; Expires=9999999999', [
+            cookie('test', 'value', domain='.yt.dlp', path='/test', secure=True, expires=9999999999)])
+        test('test="value; "; path=/test; domain=.yt.dlp', [
+            cookie('test', 'value; ', domain='.yt.dlp', path='/test')],
+            round_trip='test="value\\073 "; Domain=.yt.dlp; Path=/test')
+        test('name=; Domain=.yt.dlp', [cookie('name', '', domain='.yt.dlp')],
+             round_trip='name=""; Domain=.yt.dlp')
+
+        test('test=value', [cookie('test', 'value', domain='.yt.dlp')], headers=True)
+        test('cookie1=value; Domain=.yt.dlp; cookie2=value', [], headers=True, error='Invalid syntax')
+        ydl.deprecated_feature = ydl.report_error
+        test('test=value', [], headers=True, error='Passing cookies as a header is a potential security risk')
 
 
 if __name__ == '__main__':
