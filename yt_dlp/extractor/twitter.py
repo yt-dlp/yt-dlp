@@ -1,6 +1,5 @@
 import json
 import re
-import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
@@ -12,6 +11,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     dict_get,
+    filter_dict,
     float_or_none,
     format_field,
     int_or_none,
@@ -34,7 +34,8 @@ class TwitterBaseIE(InfoExtractor):
     _API_BASE = 'https://api.twitter.com/1.1/'
     _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
-    _AUTH = {'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'}
+    _AUTH = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
+    _LEGACY_AUTH = 'AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE'
     _flow_token = None
 
     _LOGIN_INIT_DATA = json.dumps({
@@ -145,12 +146,21 @@ class TwitterBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
-    def _set_base_headers(self):
-        headers = self._AUTH.copy()
-        csrf_token = try_call(lambda: self._get_cookies(self._API_BASE)['ct0'].value)
-        if csrf_token:
-            headers['x-csrf-token'] = csrf_token
-        return headers
+    def _fetch_guest_token(self, display_id):
+        guest_token = traverse_obj(self._download_json(
+            f'{self._API_BASE}guest/activate.json', display_id, 'Downloading guest token', data=b'',
+            headers=self._set_base_headers(legacy=display_id and self._configuration_arg('legacy_api'))),
+            ('guest_token', {str}))
+        if not guest_token:
+            raise ExtractorError('Could not retrieve guest token')
+        return guest_token
+
+    def _set_base_headers(self, legacy=False):
+        bearer_token = self._LEGACY_AUTH if legacy and not self.is_logged_in else self._AUTH
+        return filter_dict({
+            'Authorization': f'Bearer {bearer_token}',
+            'x-csrf-token': try_call(lambda: self._get_cookies(self._API_BASE)['ct0'].value),
+        })
 
     def _call_login_api(self, note, headers, query={}, data=None):
         response = self._download_json(
@@ -176,19 +186,17 @@ class TwitterBaseIE(InfoExtractor):
             return
 
         webpage = self._download_webpage('https://twitter.com/', None, 'Downloading login page')
-        headers = self._set_base_headers()
         guest_token = self._search_regex(
-            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._download_json(
-            f'{self._API_BASE}guest/activate.json', None, 'Downloading guest token',
-            data=b'', headers=headers)['guest_token']
-        headers.update({
+            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._fetch_guest_token(None)
+        headers = {
+            **self._set_base_headers(),
             'content-type': 'application/json',
             'x-guest-token': guest_token,
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
             'Referer': 'https://twitter.com/',
             'Origin': 'https://twitter.com',
-        })
+        }
 
         def build_login_json(*subtask_inputs):
             return json.dumps({
@@ -280,17 +288,19 @@ class TwitterBaseIE(InfoExtractor):
         self.report_login()
 
     def _call_api(self, path, video_id, query={}, graphql=False):
-        if not self.is_logged_in:
-            self.raise_login_required()
-
+        headers = self._set_base_headers(legacy=not graphql and self._configuration_arg('legacy_api'))
+        headers.update({
+            'x-twitter-auth-type': 'OAuth2Session',
+            'x-twitter-client-language': 'en',
+            'x-twitter-active-user': 'yes',
+        } if self.is_logged_in else {
+            'x-guest-token': self._fetch_guest_token(video_id)
+        })
+        allowed_status = {400, 401, 403, 404} if graphql else {403}
         result = self._download_json(
-            (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path, video_id,
-            f'Downloading {"GraphQL" if graphql else "legacy API"} JSON', headers={
-                **self._set_base_headers(),
-                'x-twitter-auth-type': 'OAuth2Session',
-                'x-twitter-client-language': 'en',
-                'x-twitter-active-user': 'yes',
-            }, query=query, expected_status={400, 401, 403, 404} if graphql else {403})
+            (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
+            video_id, headers=headers, query=query, expected_status=allowed_status,
+            note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
 
         if result.get('errors'):
             errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
@@ -439,7 +449,6 @@ class TwitterIE(TwitterBaseIE):
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'(?:(?:i/web|[^/]+)/status|statuses)/(?P<id>\d+)(?:/(?:video|photo)/(?P<index>\d+))?'
 
     _TESTS = [{
-        # comment_count, repost_count, view_count are only available with auth (applies to all tests)
         'url': 'https://twitter.com/freethenipple/status/643211948184596480',
         'info_dict': {
             'id': '643211870443208704',
@@ -454,7 +463,10 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1442188653,
             'upload_date': '20150913',
             'uploader_url': 'https://twitter.com/freethenipple',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 18,
         },
@@ -485,6 +497,8 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1447395772,
             'upload_date': '20151113',
             'uploader_url': 'https://twitter.com/starwars',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
             'tags': ['TV', 'StarWars', 'TheForceAwakens'],
             'age_limit': 0,
@@ -528,7 +542,10 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1455777459,
             'upload_date': '20160218',
             'uploader_url': 'https://twitter.com/jaydingeer',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['Damndaniel'],
             'age_limit': 0,
         },
@@ -566,7 +583,10 @@ class TwitterIE(TwitterBaseIE):
             'upload_date': '20160412',
             'uploader_url': 'https://twitter.com/CaptainAmerica',
             'thumbnail': r're:^https?://.*\.jpg',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -613,7 +633,10 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1505803395,
             'upload_date': '20170919',
             'uploader_url': 'https://twitter.com/Prefet971',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['Maria'],
             'age_limit': 0,
         },
@@ -636,7 +659,10 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1527623489,
             'upload_date': '20180529',
             'uploader_url': 'https://twitter.com/LisPower1',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -658,7 +684,10 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1548184644,
             'upload_date': '20190122',
             'uploader_url': 'https://twitter.com/Twitter',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -676,7 +705,6 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
-        'skip': 'Requires authentication',
     }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
@@ -693,6 +721,8 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1610651040,
             'upload_date': '20210114',
             'uploader_url': 'https://twitter.com/BrooklynNets',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
             'tags': [],
             'age_limit': 0,
@@ -715,7 +745,10 @@ class TwitterIE(TwitterBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 30.03,
             'timestamp': 1665025050,
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': [],
             'age_limit': 0,
         },
@@ -731,6 +764,8 @@ class TwitterIE(TwitterBaseIE):
             'uploader_url': 'https://twitter.com/UltimaShadowX',
             'upload_date': '20221005',
             'timestamp': 1664992565,
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
             'tags': [],
             'age_limit': 0,
@@ -752,7 +787,10 @@ class TwitterIE(TwitterBaseIE):
             'duration': 21.321,
             'timestamp': 1664477766,
             'upload_date': '20220929',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'tags': ['HurricaneIan'],
             'age_limit': 0,
         },
@@ -779,19 +817,6 @@ class TwitterIE(TwitterBaseIE):
         },
         'skip': 'Requires authentication',
     }, {
-        # Single Vimeo video result without auth
-        'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
-        'info_dict': {
-            'id': '551578322',
-            'ext': 'mp4',
-            'title': 'Dusty & The Mayor',
-            'uploader': 'Michael Chau',
-            'uploader_id': 'user29061007',
-            'uploader_url': 'https://vimeo.com/user29061007',
-            'duration': 478,
-            'thumbnail': 'https://i.vimeocdn.com/video/1139658575-0dfdce6e9a2401fe09feb24bf0d14e6f24a53c12f447ff688ace61009ad4c1ba-d_1280',
-        },
-    }, {
         # Playlist result only with auth
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
@@ -810,7 +835,6 @@ class TwitterIE(TwitterBaseIE):
             'uploader_url': 'https://twitter.com/Srirachachau',
             'timestamp': 1621447860,
         },
-        'skip': 'Requires authentication',
     }, {
         'url': 'https://twitter.com/DavidToons_/status/1578353380363501568',
         'playlist_mincount': 2,
@@ -829,7 +853,6 @@ class TwitterIE(TwitterBaseIE):
             'upload_date': '20221007',
             'age_limit': 0,
         },
-        'skip': 'Requires authentication',
     }, {
         'url': 'https://twitter.com/primevideouk/status/1578401165338976258',
         'playlist_count': 2,
@@ -843,6 +866,8 @@ class TwitterIE(TwitterBaseIE):
             'upload_date': '20221007',
             'age_limit': 0,
             'uploader_url': 'https://twitter.com/primevideouk',
+            'comment_count': int,
+            'repost_count': int,
             'like_count': int,
             'tags': ['TheRingsOfPower'],
         },
@@ -874,7 +899,9 @@ class TwitterIE(TwitterBaseIE):
             'title': 'md5:be05989b0722e114103ed3851a0ffae2',
             'timestamp': 1670459604.0,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
+            'comment_count': int,
             'uploader_id': 'CTVJLaidlaw',
+            'repost_count': int,
             'tags': ['colorectalcancer', 'cancerjourney', 'imnotaquitter'],
             'upload_date': '20221208',
             'age_limit': 0,
@@ -893,11 +920,14 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1670459604.0,
             'uploader_id': 'CTVJLaidlaw',
             'uploader': 'Jocelyn Laidlaw',
+            'repost_count': int,
+            'comment_count': int,
             'tags': ['colorectalcancer', 'cancerjourney', 'imnotaquitter'],
             'duration': 102.226,
             'uploader_url': 'https://twitter.com/CTVJLaidlaw',
             'display_id': '1600649710662213632',
             'like_count': int,
+            'view_count': int,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
             'upload_date': '20221208',
             'age_limit': 0,
@@ -923,6 +953,9 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 18,
             'tags': [],
             'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'view_count': int,
         },
     }, {
         'url': 'https://twitter.com/hlo_again/status/1599108751385972737/video/2',
@@ -935,7 +968,10 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'uploader_id': 'hlo_again',
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1599108643743473680/pu/img/UG3xjov4rgg5sbYM.jpg?name=orig',
+            'repost_count': int,
             'duration': 9.531,
+            'comment_count': int,
+            'view_count': int,
             'upload_date': '20221203',
             'age_limit': 0,
             'timestamp': 1670092210.0,
@@ -952,11 +988,14 @@ class TwitterIE(TwitterBaseIE):
             'ext': 'mp4',
             'uploader_url': 'https://twitter.com/MunTheShinobi',
             'description': 'This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525 https://t.co/cNsA0MoOml',
+            'view_count': int,
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
             'uploader': 'Mün The Shinobi',
+            'repost_count': int,
             'upload_date': '20221206',
             'title': 'Mün The Shinobi - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'comment_count': int,
             'like_count': int,
             'tags': [],
             'uploader_id': 'MunTheShinobi',
@@ -964,14 +1003,14 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1670306984.0,
         },
     }, {
-        # url to retweet id
+        # url to retweet id w/ legacy api
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
         'info_dict': {
             'id': '1623274794488659969',
             'display_id': '1623739803874349067',
             'ext': 'mp4',
             'title': 'Johnny Bullets - Me after going viral to over 30million people:    Whoopsie-daisy',
-            'description': 'md5:224d62f54b0cdef8e33d4c56c41ac503',
+            'description': 'md5:b06864cd3dc2554821cc327f5348485a',
             'uploader': 'Johnny Bullets',
             'uploader_id': 'Johnnybull3ts',
             'uploader_url': 'https://twitter.com/Johnnybull3ts',
@@ -982,6 +1021,31 @@ class TwitterIE(TwitterBaseIE):
             'upload_date': '20230208',
             'thumbnail': r're:https://pbs\.twimg\.com/ext_tw_video_thumb/.+',
             'like_count': int,
+            'repost_count': int,
+        },
+        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
+    }, {
+        # orig tweet w/ graphql
+        'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
+        'info_dict': {
+            'id': '1623274794488659969',
+            'display_id': '1623739803874349067',
+            'ext': 'mp4',
+            'title': '@selfisekai@hackerspace.pl 🐀 - RT @Johnnybull3ts: Me after going viral to over 30million people:    Whoopsie-daisy',
+            'description': 'md5:9258bdbb54793bdc124fe1cd47e96c6a',
+            'uploader': '@selfisekai@hackerspace.pl 🐀',
+            'uploader_id': 'liberdalau',
+            'uploader_url': 'https://twitter.com/liberdalau',
+            'age_limit': 0,
+            'tags': [],
+            'duration': 8.033,
+            'timestamp': 1675964711.0,
+            'upload_date': '20230209',
+            'thumbnail': r're:https://pbs\.twimg\.com/ext_tw_video_thumb/.+',
+            'like_count': int,
+            'view_count': int,
+            'repost_count': int,
+            'comment_count': int,
         },
     }, {
         # onion route
@@ -1025,15 +1089,21 @@ class TwitterIE(TwitterBaseIE):
         result = traverse_obj(data, (
             'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
             lambda _, v: v['entryId'] == f'tweet-{twid}', 'content', 'itemContent',
-            'tweet_results', 'result', ('tweet', None),
-        ), expected_type=dict, default={}, get_all=False)
+            'tweet_results', 'result', ('tweet', None), {dict},
+        ), default={}, get_all=False) if self.is_logged_in else traverse_obj(
+            data, ('tweetResult', 'result', {dict}), default={})
 
-        if result.get('__typename') not in ('Tweet', 'TweetTombstone', None):
+        if result.get('__typename') not in ('Tweet', 'TweetTombstone', 'TweetUnavailable', None):
             self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
 
         if 'tombstone' in result:
             cause = remove_end(traverse_obj(result, ('tombstone', 'text', 'text', {str})), '. Learn more')
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
+        elif result.get('__typename') == 'TweetUnavailable':
+            reason = result.get('reason')
+            if reason == 'NsfwLoggedOut':
+                self.raise_login_required('NSFW tweet requires authentication')
+            raise ExtractorError(reason or 'Requested tweet is unavailable', expected=True)
 
         status = result.get('legacy', {})
         status.update(traverse_obj(result, {
@@ -1084,20 +1154,52 @@ class TwitterIE(TwitterBaseIE):
                 'verified_phone_label_enabled': False,
                 'vibe_api_enabled': True,
             },
+        } if self.is_logged_in else {
+            'variables': {
+                'tweetId': media_id,
+                'withCommunity': False,
+                'includePromotedContent': False,
+                'withVoice': False,
+            },
+            'features': {
+                'creator_subscriptions_tweet_preview_api_enabled': True,
+                'tweetypie_unmention_optimization_enabled': True,
+                'responsive_web_edit_tweet_api_enabled': True,
+                'graphql_is_translatable_rweb_tweet_is_translatable_enabled': True,
+                'view_counts_everywhere_api_enabled': True,
+                'longform_notetweets_consumption_enabled': True,
+                'responsive_web_twitter_article_tweet_consumption_enabled': False,
+                'tweet_awards_web_tipping_enabled': False,
+                'freedom_of_speech_not_reach_fetch_enabled': True,
+                'standardized_nudges_misinfo': True,
+                'tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled': True,
+                'longform_notetweets_rich_text_read_enabled': True,
+                'longform_notetweets_inline_media_enabled': True,
+                'responsive_web_graphql_exclude_directive_enabled': True,
+                'verified_phone_label_enabled': False,
+                'responsive_web_media_download_video_enabled': False,
+                'responsive_web_graphql_skip_user_profile_image_extensions_enabled': False,
+                'responsive_web_graphql_timeline_navigation_enabled': True,
+                'responsive_web_enhance_cards_enabled': False
+            },
+            'fieldToggles': {
+                'withArticleRichContentState': False
+            }
         }
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if not self.is_logged_in:
-            try:
-                status = self._download_json(
-                    'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
-                    headers={'User-Agent': 'Googlebot'}, query={'id': twid})
-                self.to_screen(f'Some metadata is missing without authentication. {self._login_hint()}')
-            except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 404:
-                    self.raise_login_required('Requested tweet may only be available when logged in')
-                raise
+        if not self.is_logged_in and self._configuration_arg('legacy_api'):
+            status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
+                'cards_platform': 'Web-12',
+                'include_cards': 1,
+                'include_reply_count': 1,
+                'include_user_entities': 0,
+                'tweet_mode': 'extended',
+            }), 'retweeted_status', None)
+        elif not self.is_logged_in:
+            status = self._graphql_to_legacy(
+                self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
         else:
             status = self._graphql_to_legacy(
                 self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
@@ -1129,11 +1231,6 @@ class TwitterIE(TwitterBaseIE):
 
         def extract_from_video_info(media):
             media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
-            if not media_id:
-                # workaround for non-authenticated responses
-                media_id = traverse_obj(media, (
-                    'video_info', 'variants', ..., 'url',
-                    {lambda x: re.search(r'_video/(\d+)/', x)[1]}), get_all=False)
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
@@ -1158,7 +1255,7 @@ class TwitterIE(TwitterBaseIE):
                 add_thumbnail('orig', media.get('original_info') or {})
 
             return {
-                'id': media_id or twid,
+                'id': media_id,
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
@@ -1243,15 +1340,13 @@ class TwitterIE(TwitterBaseIE):
                 }
 
         videos = traverse_obj(status, (
-            ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
-            lambda _, m: m['type'] != 'photo', {dict}))
+            (None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo', {dict}))
 
         if self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
             selected_entries = (*map(extract_from_video_info, videos), *extract_from_card_info(status.get('card')))
         else:
             desired_obj = traverse_obj(status, (
-                ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
-                int(selected_index) - 1, {dict}), get_all=False)
+                (None, 'quoted_status'), 'extended_entities', 'media', int(selected_index) - 1, {dict}), get_all=False)
             if not desired_obj:
                 raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
             elif desired_obj.get('type') != 'video':
@@ -1441,6 +1536,8 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
+        if not self.is_logged_in:
+            self.raise_login_required('Twitter Spaces require authentication')
         space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)

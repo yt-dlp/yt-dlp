@@ -22,7 +22,7 @@ class VShareIE(InfoExtractor):
         packed = self._search_regex(
             r'(eval\(function.+)', webpage, 'packed code')
         unpacked = decode_packed_codes(packed)
-        digits = self._search_regex(r'\[((?:\d+,?)+)\]', unpacked, 'digits')
+        digits = self._search_regex(r'\[([\d,]+)\]', unpacked, 'digits')
         digits = [int(digit) for digit in digits.split(',')]
         key_digit = self._search_regex(
             r'fromCharCode\(.+?(\d+)\)}', unpacked, 'key digit')
