@@ -345,6 +345,10 @@ class TumblrIE(InfoExtractor):
             'repost_count': int,
         },
         'playlist_count': 2,
+    }, {
+        # twitch_live provider - error when linked account is not live
+        'url': 'https://www.tumblr.com/anarcho-skamunist/722224493650722816/hollow-knight-stream-right-now-going-to-fight',
+        'only_matching': True,
     }]
 
     _providers = {
@@ -354,6 +358,7 @@ class TumblrIE(InfoExtractor):
         'youtube': 'Youtube',
         'dailymotion': 'Dailymotion',
         'tiktok': 'TikTok',
+        'twitch_live': 'TwitchStream',
     }
     # these are known providers, but we don't know which entity type
     # we are supposed to extract, so we use matching by url
