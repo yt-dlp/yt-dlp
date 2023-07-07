@@ -193,6 +193,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._method('GET', str(self.headers).encode('utf-8'))
         elif self.path.startswith('/headers'):
             self._headers()
+        elif self.path.startswith('/308-to-headers'):
+            self.send_response(308)
+            self.send_header('Location', '/headers')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         elif self.path == '/trailing_garbage':
             payload = b'<html><video src="/vid.mp4" /></html>'
             self.send_response(200)
@@ -449,6 +454,38 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             for code in (300, 304, 305, 306):
                 with pytest.raises(HTTPError):
                     do_req(code, 'GET')
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_request_cookie_header(self, handler):
+        # We should accept a Cookie header being passed as in normal headers and handle it appropriately.
+        with handler() as rh:
+            # Specified Cookie header should be used
+            res = validate_and_send(
+                rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/headers',
+                    headers={'Cookie': 'test=test'})).read().decode('utf-8')
+            assert 'Cookie: test=test' in res
+
+            # Specified Cookie header should be removed on any redirect
+            res = validate_and_send(
+                rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/308-to-headers',
+                    headers={'Cookie': 'test=test'})).read().decode('utf-8')
+            assert 'Cookie: test=test' not in res
+
+        # Specified Cookie header should override global cookiejar for that request
+        cookiejar = http.cookiejar.CookieJar()
+        cookiejar.set_cookie(http.cookiejar.Cookie(
+            version=0, name='test', value='ytdlp', port=None, port_specified=False,
+            domain='127.0.0.1', domain_specified=True, domain_initial_dot=False, path='/',
+            path_specified=True, secure=False, expires=None, discard=False, comment=None,
+            comment_url=None, rest={}))
+
+        with handler(cookiejar=cookiejar) as rh:
+            data = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'cookie': 'test=test'})).read()
+            assert b'Cookie: test=ytdlp' not in data
+            assert b'Cookie: test=test' in data
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_redirect_loop(self, handler):
