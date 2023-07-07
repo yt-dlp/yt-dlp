@@ -1642,7 +1642,7 @@ class YoutubeDL:
                             If a URL, save cookies in the jar with the domain of the URL
         """
         for cookie in LenientSimpleCookie(data).values():
-            if not unscoped and any(cookie.values()):
+            if unscoped and any(cookie.values()):
                 raise ValueError('Invalid syntax in Cookie Header')
 
             domain = cookie.get('domain') or ''
