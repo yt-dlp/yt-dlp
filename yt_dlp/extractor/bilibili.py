@@ -453,7 +453,10 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         play_info = self._download_json(
             'https://api.bilibili.com/pgc/player/web/v2/playurl', video_id,
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
-            headers=headers)['result']['video_info']
+            headers=headers)
+        if play_info['code'] == -10403:
+            self.raise_login_required('This video is for premium members only')
+        play_info = play_info['result']['video_info']
 
         formats = self.extract_formats(play_info)
         if not formats and ('成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
