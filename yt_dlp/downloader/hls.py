@@ -28,7 +28,16 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False):
+    def _has_drm(manifest):  # TODO: https://github.com/yt-dlp/yt-dlp/pull/5039
+        return bool(re.search('|'.join((
+            r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
+            r'#EXT-X-(?:SESSION-)?KEY:.*?KEYFORMAT="com\.apple\.streamingkeydelivery"',  # Apple FairPlay
+            r'#EXT-X-(?:SESSION-)?KEY:.*?KEYFORMAT="com\.microsoft\.playready"',  # Microsoft PlayReady
+            r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
+        )), manifest))
+
+    @classmethod
+    def can_download(cls, manifest, info_dict, allow_unplayable_formats=False):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -50,13 +59,15 @@ class HlsFD(FragmentFD):
         ]
         if not allow_unplayable_formats:
             UNSUPPORTED_FEATURES += [
-                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1]
+                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1], but not necessarily DRM
             ]
 
         def check_results():
             yield not info_dict.get('is_live')
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
+            if not allow_unplayable_formats:
+                yield not cls._has_drm(manifest)
         return all(check_results())
 
     def real_download(self, filename, info_dict):
@@ -81,14 +92,13 @@ class HlsFD(FragmentFD):
                 message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
                            f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
-            has_drm = re.search('|'.join([
-                r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
-                r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
-            ]), s)
-            if has_drm and not self.params.get('allow_unplayable_formats'):
-                self.report_error(
-                    'This video is DRM protected; Try selecting another format with --format or '
-                    'add --check-formats to automatically fallback to the next best format')
+            if self._has_drm(s) and not self.params.get('allow_unplayable_formats'):
+                if info_dict.get('has_drm') and self.params.get('test'):
+                    self.to_screen(f'[{self.FD_NAME}] This format is DRM protected', skip_eol=True)
+                else:
+                    self.report_error(
+                        'This format is DRM protected; Try selecting another format with --format or '
+                        'add --check-formats to automatically fallback to the next best format', tb=False)
                 return False
             message = message or 'Unsupported features have been detected'
             fd = FFmpegFD(self.ydl, self.params)
