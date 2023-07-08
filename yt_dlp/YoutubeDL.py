@@ -2770,6 +2770,9 @@ class YoutubeDL:
                                autoscope=format['url'])  # compat for --load-info-json
             format['http_headers'] = self._remove_cookie_header(format.get('http_headers')) or None
 
+        # Safeguard against old/insecure infojson when using --load-info-json
+        info_dict['http_headers'] = self._remove_cookie_header(info_dict.get('http_headers')) or None
+
         # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
             del info_dict['__x_forwarded_for_ip']
@@ -3514,8 +3517,6 @@ class YoutubeDL:
             infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
                      for info in variadic(json.loads('\n'.join(f)))]
         for info in infos:
-            if info.get('http_headers'):  # Clean old/insecure infojson files
-                info['http_headers'] = self._remove_cookie_header(info['http_headers']) or None
             try:
                 self.__download_wrapper(self.process_ie_result)(info, download=True)
             except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
