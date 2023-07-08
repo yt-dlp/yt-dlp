@@ -415,7 +415,7 @@ class BiliBiliIE(BilibiliBaseIE):
 
 
 class BiliBiliBangumiIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/play/(?P<id>ep\d+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/play/(?P<id>ep\d+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/play/ep267851',
@@ -454,12 +454,11 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'https://api.bilibili.com/pgc/player/web/v2/playurl', video_id,
             'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
             headers=headers)
-        if play_info['code'] == -10403:
-            self.raise_login_required('This video is for premium members only')
-        play_info = play_info['result']['video_info']
+        premium_only = play_info.get('code') == -10403
+        play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
 
         formats = self.extract_formats(play_info)
-        if not formats and ('成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
+        if not formats and (premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
             self.raise_login_required('This video is for premium members only')
 
         bangumi_info = self._download_json(
@@ -503,7 +502,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
 
 class BiliBiliBangumiMediaIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/bangumi/media/md(?P<id>\d+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://www\.bilibili\.com/bangumi/media/md(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/media/md24097891',
         'info_dict': {
@@ -522,7 +521,7 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
 
 
 class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
-    _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/ss(?P<id>\d+)/?(?:$|[#?])'
+    _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/ss(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/play/ss26801',
         'info_dict': {
