@@ -22,7 +22,7 @@ from ..utils import (
 
 class CrunchyrollBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.crunchyroll.com'
-    _API_BASE = 'https://beta-api.crunchyroll.com'
+    _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
     _AUTH_HEADERS = None
     _API_ENDPOINT = None
@@ -38,14 +38,18 @@ class CrunchyrollBaseIE(InfoExtractor):
             return
 
         upsell_response = self._download_json(
-            f'{self._API_BASE}/get_upsell_data.0.json', None, 'Getting session id',
-            query={
-                'sess_id': 1,
-                'device_id': 'whatvalueshouldbeforweb',
-                'device_type': 'com.crunchyroll.static',
-                'access_token': 'giKq5eY27ny3cqz',
-                'referer': f'{self._BASE_URL}/welcome/login'
-            })
+                    f'{self._API_BASE}/get_upsell_data.0.json',
+                    None,
+                    'Getting session id',
+                    query={
+                        'sess_id': 1,
+                        'device_id': 'whatvalueshouldbeforweb',
+                        'device_type': 'com.crunchyroll.static',
+                        'access_token': 'giKq5eY27ny3cqz',
+                        'referer': f'{self._BASE_URL}/welcome/login'
+                    },
+                    impersonate="chrome110"
+                )
         if upsell_response['code'] != 'ok':
             raise ExtractorError('Could not get session id')
         session_id = upsell_response['data']['session_id']
