@@ -2764,7 +2764,11 @@ class YoutubeDL:
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
+            self._load_cookies(format.get('cookies'), autoscope=False)  # For --load-info-json
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
+            self._load_cookies(traverse_obj(format.get('http_headers'), 'Cookie', casesense=False),
+                               autoscope=format['url'])  # compat for --load-info-json
+            format['http_headers'] = self._remove_cookie_header(format.get('http_headers')) or None
 
         # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
@@ -3509,22 +3513,9 @@ class YoutubeDL:
             # FileInput doesn't have a read method, we can't call json.load
             infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
                      for info in variadic(json.loads('\n'.join(f)))]
-
         for info in infos:
-            if info.get('cookies'):
-                self._load_cookies(info['cookies'], autoscope=False)
-            else:  # compat: Auto-scope header cookies, add to cookiejar & purge from http_headers
-                self._load_cookies(traverse_obj(
-                    info.get('http_headers'), 'Cookie', casesense=False), autoscope=info['url'])
-            info['http_headers'] = self._remove_cookie_header(info.get('http_headers')) or None
-            for fmt in info.get('formats') or []:
-                if fmt.get('cookies'):
-                    self._load_cookies(fmt['cookies'], autoscope=False)
-                else:  # compat
-                    self._load_cookies(traverse_obj(
-                        fmt.get('http_headers'), 'Cookie', casesense=False), autoscope=fmt['url'])
-                fmt['http_headers'] = self._remove_cookie_header(fmt.get('http_headers')) or None
-
+            if info.get('http_headers'):  # Clean old/insecure infojson files
+                info['http_headers'] = self._remove_cookie_header(info['http_headers']) or None
             try:
                 self.__download_wrapper(self.process_ie_result)(info, download=True)
             except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
@@ -3535,7 +3526,6 @@ class YoutubeDL:
                     raise
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
                 self.download([webpage_url])
-
         return self._download_retcode
 
     @staticmethod
