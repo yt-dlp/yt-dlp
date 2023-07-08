@@ -55,6 +55,7 @@ class CommitGroup(enum.Enum):
                     'dependencies',
                     'jsinterp',
                     'outtmpl',
+                    'formats',
                     'plugins',
                     'update',
                     'upstream',
@@ -68,9 +69,9 @@ class CommitGroup(enum.Enum):
                     'misc',
                     'test',
                 },
-                cls.EXTRACTOR: {'extractor'},
-                cls.DOWNLOADER: {'downloader'},
-                cls.POSTPROCESSOR: {'postprocessor'},
+                cls.EXTRACTOR: {'extractor', 'ie'},
+                cls.DOWNLOADER: {'downloader', 'fd'},
+                cls.POSTPROCESSOR: {'postprocessor', 'pp'},
             }.items()
             for name in names
         }
@@ -252,6 +253,7 @@ class CommitRange:
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
+    REVERT_RE = re.compile(r'(?i:Revert)\s+([\da-f]{40})')
     FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
@@ -279,7 +281,7 @@ class CommitRange:
             self.COMMAND, 'log', f'--format=%H%n%s%n%b%n{self.COMMIT_SEPARATOR}',
             f'{self._start}..{self._end}' if self._start else self._end).stdout
 
-        commits = {}
+        commits, reverts = {}, {}
         fixes = defaultdict(list)
         lines = iter(result.splitlines(False))
         for i, commit_hash in enumerate(lines):
@@ -300,12 +302,24 @@ class CommitRange:
                 logger.debug(f'Reached Release commit, breaking: {commit}')
                 break
 
+            revert_match = self.REVERT_RE.fullmatch(commit.short)
+            if revert_match:
+                reverts[revert_match.group(1)] = commit
+                continue
+
             fix_match = self.FIXES_RE.search(commit.short)
             if fix_match:
                 commitish = fix_match.group(1)
                 fixes[commitish].append(commit)
 
             commits[commit.hash] = commit
+
+        for commitish, revert_commit in reverts.items():
+            reverted = commits.pop(commitish, None)
+            if reverted:
+                logger.debug(f'{commit} fully reverted {reverted}')
+            else:
+                commits[revert_commit.hash] = revert_commit
 
         for commitish, fix_commits in fixes.items():
             if commitish in commits:
