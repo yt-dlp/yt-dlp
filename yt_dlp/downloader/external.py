@@ -199,8 +199,9 @@ class CurlFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += ['--cookie-jar', self._write_cookies()]
+        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
+        if cookie_header:
+            cmd += ['--cookie', cookie_header]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
