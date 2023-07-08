@@ -68,7 +68,7 @@ class TestAxelFD(unittest.TestCase):
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
             self.assertEqual(
                 downloader._make_cmd('test', TEST_INFO),
-                ['axel', '-o', 'test', 'Cookie: test=ytdlp', '--max-redirect=0', '--', 'http://www.example.com/'])
+                ['axel', '-o', 'test', '-H', 'Cookie: test=ytdlp', '--max-redirect=0', '--', 'http://www.example.com/'])
 
 
 class TestWgetFD(unittest.TestCase):

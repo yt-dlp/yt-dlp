@@ -233,7 +233,7 @@ class AxelFD(ExternalFD):
                 cmd += ['-H', f'{key}: {val}']
         cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
         if cookie_header:
-            cmd += [f'Cookie: {cookie_header}', '--max-redirect=0']
+            cmd += ['-H', f'Cookie: {cookie_header}', '--max-redirect=0']
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
