@@ -677,6 +677,7 @@ class YoutubeDL:
 
         self.__header_cookies = []
         self._load_cookies(traverse_obj(self.params.get('http_headers'), 'cookie', casesense=False))  # compat
+        self.params['http_headers'] = self._remove_cookie_header(self.params.get('http_headers'))
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
@@ -1630,19 +1631,29 @@ class YoutubeDL:
                 self.to_screen('')
             raise
 
-    def _load_cookies(self, data, *, unscoped=True):
+    def _remove_cookie_header(self, http_headers):
+        """Filters out `Cookie` header from an `http_headers` dict
+
+        The `Cookie` header is removed to prevent leaks and supercookies.
+        See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
+
+        @param http_headers     An `http_headers` dict with a `Cookie` header to be removed
+        """
+        return dict(traverse_obj(http_headers, ({dict.items}, lambda _, pair: pair[0].lower() != 'cookie')))
+
+    def _load_cookies(self, data, *, autoscope=True):
         """Loads cookies from a `Cookie` header
 
         This tries to work around the security vulnerability of passing cookies to every domain.
         See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
 
         @param data         The Cookie header as string to load the cookies from
-        @param unscoped     If `False`, scope cookies using Set-Cookie syntax and error for cookie without domains
+        @param autoscope    If `False`, scope cookies using Set-Cookie syntax and error for cookie without domains
                             If `True`, save cookies for later to be stored in the jar with a limited scope
                             If a URL, save cookies in the jar with the domain of the URL
         """
         for cookie in LenientSimpleCookie(data).values():
-            if unscoped and any(cookie.values()):
+            if autoscope and any(cookie.values()):
                 raise ValueError('Invalid syntax in Cookie Header')
 
             domain = cookie.get('domain') or ''
@@ -1656,15 +1667,15 @@ class YoutubeDL:
 
             if domain:
                 self.cookiejar.set_cookie(prepared_cookie)
-            elif unscoped:
+            elif autoscope:
                 self.deprecated_feature(
                     'Passing cookies as a header is a potential security risk; '
                     'they will be scoped to the domain of the downloaded urls. '
                     'Please consider loading cookies from a file or browser instead.')
-                if unscoped is True:
+                if autoscope is True:
                     self.__header_cookies.append(prepared_cookie)
                 else:
-                    self._apply_header_cookies(unscoped, [prepared_cookie])
+                    self._apply_header_cookies(autoscope, [prepared_cookie])
             else:
                 self.report_error('Unscoped cookies are not allowed; please specify some sort of scoping',
                                   tb=False, is_error=False)
@@ -2754,8 +2765,6 @@ class YoutubeDL:
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
-            self._load_cookies(traverse_obj(format['http_headers'], 'Cookie', casesense=False),
-                               unscoped=format['url'])  # compat
 
         # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
@@ -3500,8 +3509,22 @@ class YoutubeDL:
             # FileInput doesn't have a read method, we can't call json.load
             infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
                      for info in variadic(json.loads('\n'.join(f)))]
+
         for info in infos:
-            self._load_cookies(info.get('cookies'), unscoped=False)
+            if info.get('cookies'):
+                self._load_cookies(info['cookies'], autoscope=False)
+            else:  # compat: Auto-scope header cookies, add to cookiejar & purge from http_headers
+                self._load_cookies(traverse_obj(
+                    info.get('http_headers'), 'Cookie', casesense=False), autoscope=info['url'])
+            info['http_headers'] = self._remove_cookie_header(info.get('http_headers')) or None
+            for fmt in info.get('formats') or []:
+                if fmt.get('cookies'):
+                    self._load_cookies(fmt['cookies'], autoscope=False)
+                else:  # compat
+                    self._load_cookies(traverse_obj(
+                        fmt.get('http_headers'), 'Cookie', casesense=False), autoscope=fmt['url'])
+                fmt['http_headers'] = self._remove_cookie_header(fmt.get('http_headers')) or None
+
             try:
                 self.__download_wrapper(self.process_ie_result)(info, download=True)
             except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
@@ -3512,6 +3535,7 @@ class YoutubeDL:
                     raise
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
                 self.download([webpage_url])
+
         return self._download_retcode
 
     @staticmethod
