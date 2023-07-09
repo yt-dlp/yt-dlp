@@ -3,7 +3,7 @@ import random
 import time
 
 from .common import FileDownloader
-from ..networking import Request
+from ..networking.common import Request
 from ..networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -40,10 +40,7 @@ class HttpFD(FileDownloader):
         ctx.stream = None
 
         # Disable compression
-        headers = CaseInsensitiveDict({'Accept-Encoding': 'identity'})
-        add_headers = info_dict.get('http_headers')
-        if add_headers:
-            headers.update(add_headers)
+        headers = CaseInsensitiveDict({'Accept-Encoding': 'identity'}, info_dict.get('http_headers'))
 
         is_test = self.params.get('test', False)
         chunk_size = self._TEST_FILE_SIZE if is_test else (

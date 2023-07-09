@@ -43,11 +43,8 @@ from ..socks import ProxyError as SocksProxyError
 from ..socks import sockssocket
 from ..utils import escape_url, update_url_query
 
+SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
-
-SUPPORTED_ENCODINGS = [
-    'gzip', 'deflate'
-]
 
 if brotli:
     SUPPORTED_ENCODINGS.append('br')
@@ -131,7 +128,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
     def http_open(self, req):
         conn_class = self._make_conn_class(http.client.HTTPConnection, req)
         return self.do_open(functools.partial(
-            _create_http_connection, conn_class, self._source_address,), req)
+            _create_http_connection, conn_class, self._source_address), req)
 
     def https_open(self, req):
         conn_class = self._make_conn_class(http.client.HTTPSConnection, req)
@@ -235,7 +232,7 @@ def make_socks_conn_class(base_class, socks_proxy):
         def connect(self):
             self.sock = sockssocket()
             self.sock.setproxy(**proxy_args)
-            if type(self.timeout) in (int, float):
+            if type(self.timeout) in (int, float):  # noqa: E721
                 self.sock.settimeout(self.timeout)
             self.sock.connect((self.host, self.port))
 
@@ -265,6 +262,7 @@ class RedirectHandler(urllib.request.HTTPRedirectHandler):
             raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
 
         new_data = req.data
+
         # Technically the Cookie header should be in unredirected_hdrs,
         # however in practice some may set it in normal headers anyway.
         # We will remove it here to prevent any leaks.
@@ -400,7 +398,8 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             HTTPDefaultErrorHandler(),
             FTPHandler(),
             HTTPErrorProcessor(),
-            RedirectHandler()]
+            RedirectHandler(),
+        ]
 
         if self.enable_file_urls:
             handlers.append(FileHandler())

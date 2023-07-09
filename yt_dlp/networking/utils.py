@@ -6,12 +6,12 @@ import ssl
 import sys
 import urllib.parse
 import urllib.request
-from typing import Any, Iterable
+from collections.abc import Iterable
 
 from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, traverse_obj
+from ..utils import CaseInsensitiveDict, traverse_obj, format_field
 
 
 def random_user_agent():
@@ -128,30 +128,17 @@ def make_socks_proxy_opts(socks_proxy):
     }
 
 
-def bypass_proxies(url, no_proxy):
-    # Should we bypass the proxies for this url going by no proxy or system settings?
-    # This is a default configuration making use of urllib handling
-    url_components = urllib.parse.urlparse(url)
-    hostport = str(url_components.hostname) + (f':{url_components.port}' if url_components.port is not None else '')
-
-    if no_proxy is not None:
-        return urllib.request.proxy_bypass_environment(hostport, {'no': no_proxy})
-
-    return urllib.request.proxy_bypass(hostport)  # check system settings
-
-
 def select_proxy(url, proxies):
     """Unified proxy selector for all backends"""
     url_components = urllib.parse.urlparse(url)
+    if 'no' in proxies:
+        hostport = url_components.hostname + format_field(url_components.port, None, ':%s')
+        if urllib.request.proxy_bypass_environment(hostport, {'no': proxies['no']}):
+            return
+        elif urllib.request.proxy_bypass(hostport):  # check system settings
+            return
 
-    if bypass_proxies(url, proxies.get('no')):
-        return
-
-    priority = [
-        url_components.scheme or 'http',  # prioritise more specific mappings
-        'all'
-    ]
-    return traverse_obj(proxies, *priority)
+    return traverse_obj(proxies, url_components.scheme or 'http', 'all')
 
 
 def get_redirect_method(method, status):
@@ -225,16 +212,15 @@ def make_ssl_context(
 
 
 class InstanceStoreMixin:
+    def __init__(self, **kwargs):
+        self.__instances = []
+        super().__init__(**kwargs)  # So that both MRO works
 
-    __instances = None
-
-    def _create_instance(self, **kwargs) -> Any:
+    @staticmethod
+    def _create_instance(**kwargs):
         raise NotImplementedError
 
     def _get_instance(self, **kwargs):
-        if self.__instances is None:
-            self.__instances = []
-
         for key, instance in self.__instances:
             if key == kwargs:
                 return instance
@@ -248,16 +234,11 @@ class InstanceStoreMixin:
             instance.close()
 
     def _clear_instances(self):
-        if self.__instances is None:
-            return
         for _, instance in self.__instances:
             self._close_instance(instance)
-        self.__instances = None
+        self.__instances.clear()
 
 
 def add_accept_encoding_header(headers: CaseInsensitiveDict, supported_encodings: Iterable[str]):
-    if supported_encodings and 'Accept-Encoding' not in headers:
-        headers['Accept-Encoding'] = ', '.join(supported_encodings)
-
-    elif 'Accept-Encoding' not in headers:
-        headers['Accept-Encoding'] = 'identity'
+    if 'Accept-Encoding' not in headers:
+        headers['Accept-Encoding'] = ', '.join(supported_encodings) or 'identity'

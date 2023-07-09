@@ -675,11 +675,9 @@ class YoutubeDL:
                 else:
                     raise
 
-        # Set http_headers defaults according to std_headers
+        self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers'))
         self._request_director = self.build_request_director(_list_request_handler_classes())
-
-        self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
@@ -1059,6 +1057,11 @@ class YoutubeDL:
             self.params['logger'].debug(message)
         else:
             self.to_stderr(message, only_once)
+
+    def to_debugtraffic(self, msg):
+        self.deprecation_warning('YoutubeDL.to_debugtraffic is deprecated')
+        if self.params.get('debug_printtraffic'):
+            self.to_stdout(msg)
 
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
@@ -3952,7 +3955,7 @@ class YoutubeDL:
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
-        write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.get_handlers())}')
+        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.get_handlers())}')
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
@@ -4007,7 +4010,7 @@ class YoutubeDL:
         """
         Get a urllib OpenerDirector from the Urllib handler (deprecated).
         """
-        self.deprecation_warning('_opener() is deprecated, use YoutubeDL.urlopen()')
+        self.deprecation_warning('YoutubeDL._opener() is deprecated, use YoutubeDL.urlopen()')
         handler = self._request_director.get_handler(rh_key='Urllib')
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
@@ -4017,7 +4020,7 @@ class YoutubeDL:
             req = Request(req)
         elif isinstance(req, urllib.request.Request):
             self.deprecation_warning(
-                'Passing a urllib.request.Request object to urlopen() is deprecated. '
+                'Passing a urllib.request.Request object to YoutubeDL.urlopen() is deprecated. '
                 'Use yt_dlp.networking.common.Request instead.')
             req = urllib_req_to_req(req)
         assert isinstance(req, Request)
@@ -4050,41 +4053,36 @@ class YoutubeDL:
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
                     'Try using --legacy-server-connect', cause=e) from e
             raise
-
-        # TODO: Remove in a future release
-        except HTTPError as e:
+        except HTTPError as e:  # TODO: Remove in a future release
             raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers):
-        director = RequestDirector(logger=self, verbose=bool(self.params.get('debug_printtraffic')))
+        print_traffic = bool(self.params.get('debug_printtraffic'))
         headers = self.params.get('http_headers').copy()
         proxies = self.proxies.copy()
         clean_headers(headers)
         clean_proxies(proxies, headers)
 
+        director = RequestDirector(logger=self, verbose=print_traffic)
         for handler in handlers:
-            params = {
-                'logger': self,
-                'headers': headers,
-                'cookiejar': self.cookiejar,
-                'timeout': self.params.get('socket_timeout'),
-                'proxies': proxies,
-                'source_address': self.params.get('source_address'),
-                'verbose': bool(self.params.get('debug_printtraffic')),
-                'prefer_system_certs': 'no-certifi' in self.params.get('compat_opts', []),
-                'verify': not self.params.get('nocheckcertificate'),
-                'legacy_ssl_support': bool(self.params.get('legacy_server_connect'))
-            }
-            if self.params.get('client_certificate'):
-                params['client_cert'] = (
+            director.add_handler(handler(
+                logger=self,
+                headers=headers,
+                cookiejar=self.cookiejar,
+                timeout=self.params.get('socket_timeout'),
+                proxies=proxies,
+                source_address=self.params.get('source_address'),
+                verbose=print_traffic,
+                prefer_system_certs='no-certifi' in self.params['compat_opts'],
+                verify=not self.params.get('nocheckcertificate'),
+                legacy_ssl_support=bool(self.params.get('legacy_server_connect')),
+                enable_file_urls=bool(self.params.get('enable_file_urls')),
+                client_cert=(
                     self.params['client_certificate'],
                     self.params.get('client_certificate_key'),
                     self.params.get('client_certificate_password')
-                )
-            if handler.rh_key() == 'Urllib':
-                params['enable_file_urls'] = bool(self.params.get('enable_file_urls'))
-            director.add_handler(handler(**params))
-
+                ) if self.params.get('client_certificate') else None,
+            ))
         return director
 
     def encode(self, s):

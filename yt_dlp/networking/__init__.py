@@ -1,9 +1,10 @@
-from typing import Dict, List
-
-from ._urllib import UrllibRH  # noqa: F401
 from .common import Request, RequestHandler, Response
 from .exceptions import NoSupportingHandlers, RequestError, UnsupportedRequest
 from ..utils import bug_reports_message
+
+# isort: split
+# TODO: all request handlers should be safely imported
+from ._urllib import UrllibRH  # noqa: F401
 
 
 class RequestDirector:
@@ -15,8 +16,8 @@ class RequestDirector:
     @param verbose: Print debug request information to stdout.
     """
 
-    def __init__(self, logger=None, verbose=False):
-        self._handlers: Dict[str, RequestHandler] = {}
+    def __init__(self, logger, verbose=False):
+        self._handlers: dict[str, RequestHandler] = {}
         self.logger = logger  # TODO(Grub4k): default logger
         self.verbose = verbose
 
@@ -42,9 +43,9 @@ class RequestDirector:
     def remove_handlers(self):
         self._handlers.clear()
 
-    def print_verbose(self, msg):
+    def _print_verbose(self, msg):
         if self.verbose:
-            self.logger.to_stdout(f'director: {msg}')
+            self.logger.to_stdout(f'[Director] {msg}')
 
     def send(self, request: Request) -> Response:
         """
@@ -59,16 +60,16 @@ class RequestDirector:
         unsupported_errors = []
         # TODO (future): add a per-request preference system
         for handler in reversed(list(self._handlers.values())):
-            self.print_verbose(f'checking if "{handler.RH_NAME}" request handler supports this request.')
+            self._print_verbose(f'checking if "{handler.RH_NAME}" request handler supports this request.')
             try:
                 handler.validate(request)
             except UnsupportedRequest as e:
-                self.print_verbose(
+                self._print_verbose(
                     f'"{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}: {e})')
                 unsupported_errors.append(e)
                 continue
 
-            self.print_verbose(f'sending request via "{handler.RH_NAME}" request handler.')
+            self._print_verbose(f'sending request via "{handler.RH_NAME}" request handler.')
             try:
                 response = handler.send(request)
             except RequestError:
@@ -93,7 +94,7 @@ def _get_request_handler(key):
     return globals()[key + 'RH']
 
 
-def _list_request_handler_classes() -> List[RequestHandler]:
+def _list_request_handler_classes() -> list[RequestHandler]:
     """List all RequestHandler classes, sorted by name."""
     return sorted(
         (rh for name, rh in globals().items() if name.endswith('RH')),

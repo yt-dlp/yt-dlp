@@ -135,6 +135,7 @@ class RequestHandler(abc.ABC):
         self.client_cert = client_cert
         self.verify = verify
         self.legacy_ssl_support = legacy_ssl_support
+        super().__init__()
 
     def _make_sslcontext(self):
         client_cert_opts = {}
@@ -424,13 +425,11 @@ class Response(io.IOBase):
         for name, value in headers.items():
             self.headers.add_header(name, value)
         self.status = status
-        self.reason = reason
         self.url = url
-        if not reason:
-            try:
-                self.reason = HTTPStatus(status).phrase
-            except ValueError:
-                pass
+        try:
+            self.reason = reason or HTTPStatus(status).phrase
+        except ValueError:
+            pass
 
     def readable(self):
         return self.raw.readable()
@@ -478,5 +477,5 @@ class Response(io.IOBase):
         return self.headers
 
     def getheader(self, name, default=None):
-        deprecation_warning('Response.getheader() is deprecated, use Response.headers', stacklevel=2)
+        deprecation_warning('Response.getheader() is deprecated, use Response.get_header', stacklevel=2)
         return self.get_header(name, default)

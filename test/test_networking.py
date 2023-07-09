@@ -78,9 +78,6 @@ class FakeLogger:
     def error(self, msg):
         pass
 
-    def to_debugtraffic(self, msg):
-        pass
-
     def report_error(self, *args, **kwargs):
         pass
 

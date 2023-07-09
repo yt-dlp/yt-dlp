@@ -5145,13 +5145,12 @@ class CaseInsensitiveDict(collections.UserDict, dict):
     def __init__(self, *args, **kwargs):
         super().__init__()
         for dct in args:
-            if dct is None:
-                continue
-            self.update(dct)
+            if dct is not None:
+                self.update(dct)
         self.update(kwargs)
 
     def __setitem__(self, key, value):
-        super().__setitem__(key.title(), str(value))
+        super().__setitem__(key.title(), value)
 
     def __getitem__(self, key):
         return super().__getitem__(key.title())

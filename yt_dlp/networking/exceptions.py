@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
 class RequestError(YoutubeDLError):
     def __init__(
         self,
-        msg: str = None,
+        msg: str | None = None,
         cause: Exception | str | None = None,
         handler: RequestHandler = None
     ):
@@ -106,6 +106,7 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
     Provides backwards compatibility with urllib.error.HTTPError.
     Do not use this class directly, use HTTPError instead.
     """
+
     def __init__(self, http_error: HTTPError):
         super().__init__(
             url=http_error.response.url,

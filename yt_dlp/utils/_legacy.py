@@ -1,6 +1,4 @@
 """No longer used and new code should not use. Exists only for API compat."""
-from __future__ import annotations
-
 import platform
 import struct
 import sys

@@ -38,9 +38,7 @@ class YoutubeLiveChatFD(FragmentFD):
         start_time = int(time.time() * 1000)
 
         def dl_fragment(url, data=None, headers=None):
-            http_headers = CaseInsensitiveDict(info_dict.get('http_headers'))
-            if headers:
-                http_headers.update(headers)
+            http_headers = CaseInsensitiveDict(info_dict.get('http_headers'), headers)
             return self._download_fragment(ctx, url, info_dict, http_headers, data)
 
         def parse_actions_replay(live_chat_continuation):

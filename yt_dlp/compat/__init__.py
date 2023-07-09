@@ -73,7 +73,7 @@ else:
 
 
 def urllib_req_to_req(urllib_request):
-    # Convert urllib Request to a networking Request
+    """Convert urllib Request to a networking Request"""
     from ..networking.common import Request
     from ..utils import CaseInsensitiveDict
     return Request(
