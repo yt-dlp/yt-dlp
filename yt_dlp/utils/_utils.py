@@ -5519,3 +5519,25 @@ def clean_headers(headers: CaseInsensitiveDict):
     if 'Youtubedl-No-Compression' in headers:  # compat
         del headers['Youtubedl-No-Compression']
         headers['Accept-Encoding'] = 'identity'
+
+
+# XXX: Temporary
+class _YDLLogger:
+    def __init__(self, ydl=None):
+        self._ydl = ydl
+
+    def debug(self, message):
+        if self._ydl:
+            self._ydl.write_debug(message)
+
+    def info(self, message):
+        if self._ydl:
+            self._ydl.to_screen(message)
+
+    def warning(self, message, only_once=False):
+        if self._ydl:
+            self._ydl.report_warning(message, only_once)
+
+    def error(self, message):
+        if self._ydl:
+            self._ydl.report_error(message)

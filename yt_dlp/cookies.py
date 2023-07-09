@@ -30,6 +30,7 @@ from .dependencies import (
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
+from .utils._utils import _YDLLogger
 from .utils import (
     Popen,
     error_to_str,
@@ -46,26 +47,7 @@ CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'viva
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
-class YDLLogger:
-    def __init__(self, ydl=None):
-        self._ydl = ydl
-
-    def debug(self, message):
-        if self._ydl:
-            self._ydl.write_debug(message)
-
-    def info(self, message):
-        if self._ydl:
-            self._ydl.to_screen(f'[Cookies] {message}')
-
-    def warning(self, message, only_once=False):
-        if self._ydl:
-            self._ydl.report_warning(message, only_once)
-
-    def error(self, message):
-        if self._ydl:
-            self._ydl.report_error(message)
-
+class YDLLogger(_YDLLogger):
     class ProgressBar(MultilinePrinter):
         _DELAY, _timer = 0.1, 0
 
