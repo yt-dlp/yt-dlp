@@ -2765,9 +2765,9 @@ class YoutubeDL:
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
             self._load_cookies(format.get('cookies'), autoscope=False)  # For --load-info-json
-            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
-            self._load_cookies(traverse_obj(format.get('http_headers'), 'Cookie', casesense=False),
+            self._load_cookies(traverse_obj(format, ('http_headers', 'Cookie'), casesense=False),
                                autoscope=format['url'])  # compat for --load-info-json
+            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
             format['http_headers'] = self._remove_cookie_header(format.get('http_headers')) or None
 
         # Safeguard against old/insecure infojson when using --load-info-json
