@@ -214,6 +214,7 @@ from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
     BiliBiliBangumiIE,
+    BiliBiliBangumiSeasonIE,
     BiliBiliBangumiMediaIE,
     BiliBiliSearchIE,
     BilibiliCategoryIE,
