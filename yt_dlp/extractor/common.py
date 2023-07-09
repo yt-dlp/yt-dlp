@@ -26,6 +26,7 @@ from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
+from ..downloader.hls import HlsFD
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -224,7 +225,8 @@ class InfoExtractor:
                                  width : height ratio as float.
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
-                    * has_drm    The format has DRM and cannot be downloaded. Boolean
+                    * has_drm    True if the format has DRM and cannot be downloaded.
+                                 'maybe' if the format may have DRM and has to be tested before download.
                     * extra_param_to_segment_url  A query string to append to each
                                  fragment's URL, or to update each existing query string
                                  with. Only applied by the native HLS/DASH downloaders.
@@ -1979,11 +1981,7 @@ class InfoExtractor:
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
         formats, subtitles = [], {}
-
-        has_drm = re.search('|'.join([
-            r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
-            r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
-        ]), m3u8_doc)
+        has_drm = HlsFD._has_drm(m3u8_doc)
 
         def format_url(url):
             return url if re.match(r'^https?://', url) else urllib.parse.urljoin(m3u8_url, url)

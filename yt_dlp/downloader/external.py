@@ -1,9 +1,10 @@
 import enum
 import json
-import os.path
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 
@@ -42,6 +43,7 @@ class ExternalFD(FragmentFD):
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
         tmpfilename = self.temp_name(filename)
+        self._cookies_tempfile = None
 
         try:
             started = time.time()
@@ -54,6 +56,9 @@ class ExternalFD(FragmentFD):
             # should take place
             retval = 0
             self.to_screen('[%s] Interrupted by user' % self.get_basename())
+        finally:
+            if self._cookies_tempfile:
+                self.try_remove(self._cookies_tempfile)
 
         if retval == 0:
             status = {
@@ -125,6 +130,16 @@ class ExternalFD(FragmentFD):
             self.get_basename(), self.params.get('external_downloader_args'), self.EXE_NAME,
             keys, *args, **kwargs)
 
+    def _write_cookies(self):
+        if not self.ydl.cookiejar.filename:
+            tmp_cookies = tempfile.NamedTemporaryFile(suffix='.cookies', delete=False)
+            tmp_cookies.close()
+            self._cookies_tempfile = tmp_cookies.name
+            self.to_screen(f'[download] Writing temporary cookies file to "{self._cookies_tempfile}"')
+        # real_download resets _cookies_tempfile; if it's None then save() will write to cookiejar.filename
+        self.ydl.cookiejar.save(self._cookies_tempfile)
+        return self.ydl.cookiejar.filename or self._cookies_tempfile
+
     def _call_downloader(self, tmpfilename, info_dict):
         """ Either overwrite this or implement _make_cmd """
         cmd = [encodeArgument(a) for a in self._make_cmd(tmpfilename, info_dict)]
@@ -184,6 +199,8 @@ class CurlFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
+        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
+            cmd += ['--cookie-jar', self._write_cookies()]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -214,6 +231,9 @@ class AxelFD(ExternalFD):
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['-H', f'{key}: {val}']
+        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
+        if cookie_header:
+            cmd += [f'Cookie: {cookie_header}', '--max-redirect=0']
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
@@ -223,7 +243,9 @@ class WgetFD(ExternalFD):
     AVAILABLE_OPT = '--version'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies', '--compression=auto']
+        cmd = [self.exe, '-O', tmpfilename, '-nv', '--compression=auto']
+        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
+            cmd += ['--load-cookies', self._write_cookies()]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -279,6 +301,8 @@ class Aria2cFD(ExternalFD):
         else:
             cmd += ['--min-split-size', '1M']
 
+        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
+            cmd += [f'--load-cookies={self._write_cookies()}']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -417,6 +441,14 @@ class HttpieFD(ExternalFD):
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += [f'{key}:{val}']
+
+        # httpie 3.1.0+ removes the Cookie header on redirect, so this should be safe for now. [1]
+        # If we ever need cookie handling for redirects, we can export the cookiejar into a session. [2]
+        # 1: https://github.com/httpie/httpie/security/advisories/GHSA-9w4w-cpc8-h2fq
+        # 2: https://httpie.io/docs/cli/sessions
+        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
+        if cookie_header:
+            cmd += [f'Cookie:{cookie_header}']
         return cmd
 
 
@@ -527,6 +559,11 @@ class FFmpegFD(ExternalFD):
 
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
+            cookies = self.ydl.cookiejar.get_cookies_for_url(fmt['url'])
+            if cookies:
+                args.extend(['-cookies', ''.join(
+                    f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
+                    for cookie in cookies)])
             if fmt.get('http_headers') and re.match(r'^https?://', fmt['url']):
                 # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
