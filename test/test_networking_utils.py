@@ -3,7 +3,7 @@
 # Allow direct execution
 import os
 import sys
-import unittest
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -14,8 +14,6 @@ import random
 import ssl
 import urllib.error
 import warnings
-
-import pytest
 
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import certifi
@@ -278,7 +276,3 @@ class TestNetworkingExceptions:
         error = IncompleteRead(b'aaa')
         assert repr(error) == '<IncompleteRead: 3 bytes read>'
         assert str(error) == '3 bytes read'
-
-
-if __name__ == '__main__':
-    unittest.main()

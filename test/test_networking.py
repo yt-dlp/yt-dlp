@@ -3,7 +3,7 @@
 # Allow direct execution
 import os
 import sys
-import unittest
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -26,8 +26,6 @@ import warnings
 import zlib
 from email.message import Message
 from http.cookiejar import CookieJar
-
-import pytest
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.dependencies import brotli
@@ -1359,6 +1357,3 @@ class TestResponse:
             assert res.geturl() == res.url
             assert res.info() is res.headers
             assert res.getheader('test') == res.get_header('test')
-
-if __name__ == '__main__':
-    unittest.main()
