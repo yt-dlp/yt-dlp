@@ -98,7 +98,7 @@ jobs:
         run: |
           sudo apt-get -y install zip pandoc man sed
           python -m pip install -U pip setuptools wheel twine
-          python -m pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.12.0-py3-none-any.whl" -r requirements.txt
+          python -m pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.13.0-py3-none-any.whl" -r requirements.txt
           reqs=$(mktemp)
           cat > $reqs << EOF
           python=3.10.*
@@ -307,7 +307,7 @@ jobs:
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python -m pip install -U pip setuptools wheel py2exe
-          pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.12.0-py3-none-any.whl" -r requirements.txt
+          pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.13.0-py3-none-any.whl" -r requirements.txt
 
       - name: Prepare
         run: |
@@ -355,7 +355,7 @@ jobs:
       - name: Install Requirements
         run: |
           python -m pip install -U pip setuptools wheel
-          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/i686/pyinstaller-5.12.0-py3-none-any.whl" -r requirements.txt
+          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/i686/pyinstaller-5.13.0-py3-none-any.whl" -r requirements.txt
 
       - name: Prepare
         run: |
