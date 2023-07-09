@@ -355,7 +355,7 @@ jobs:
       - name: Install Requirements
         run: |
           python -m pip install -U pip setuptools wheel
-          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/i686/pyinstaller-5.13.0-py3-none-any.whl" -r requirements.txt
+          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/i686/pyinstaller-5.12.0-py3-none-any.whl" -r requirements.txt
 
       - name: Prepare
         run: |
