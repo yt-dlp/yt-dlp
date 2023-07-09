@@ -21,17 +21,22 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from ..compat import functools, urllib_req_to_req  # isort: split
-from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
+from ..compat import functools  # isort: split
+from ..compat import (
+    compat_etree_fromstring,
+    compat_expanduser,
+    compat_os_name,
+    urllib_req_to_req,
+)
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..networking.common import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
     IncompleteRead,
     network_exceptions,
 )
-from ..networking.common import Request, HEADRequest
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,

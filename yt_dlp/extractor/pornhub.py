@@ -747,7 +747,7 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
     def suitable(cls, url):
         return (False
                 if PornHubIE.suitable(url) or PornHubUserIE.suitable(url) or PornHubUserVideosUploadIE.suitable(url)
-                else super(PornHubPagedVideoListIE, cls).suitable(url))
+                else super().suitable(url))
 
 
 class PornHubUserVideosUploadIE(PornHubPagedPlaylistBaseIE):
@@ -796,8 +796,8 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
         page_entries = self._extract_entries(webpage, host)
 
         def download_page(page_num):
-            note = 'Downloading page {}'.format(page_num)
-            page_url = 'https://www.{}/playlist/viewChunked'.format(host)
+            note = f'Downloading page {page_num}'
+            page_url = f'https://www.{host}/playlist/viewChunked'
             return self._download_webpage(page_url, item_id, note, query={
                 'id': playlist_id,
                 'page': page_num,
@@ -810,8 +810,7 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
                 page_entries = self._extract_entries(webpage, host)
             if not page_entries:
                 break
-            for e in page_entries:
-                yield e
+            yield from page_entries
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

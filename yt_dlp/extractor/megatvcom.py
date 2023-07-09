@@ -3,9 +3,9 @@ import re
 from .common import InfoExtractor
 from ..networking.common import HEADRequest
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_id,

@@ -1,24 +1,23 @@
-import re
-import time
-import hmac
 import binascii
 import hashlib
+import hmac
+import re
+import time
 
-
-from .once import OnceIE
 from .adobepass import AdobePassIE
+from .once import OnceIE
 from ..networking.common import Request
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
+    find_xpath_attr,
     float_or_none,
     int_or_none,
+    mimetype2ext,
     parse_qs,
     unsmuggle_url,
     update_url_query,
     xpath_with_ns,
-    mimetype2ext,
-    find_xpath_attr,
 )
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'

@@ -13,9 +13,9 @@ import warnings
 from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
-from typing import Iterable, Mapping, Union, IO
+from typing import IO, Iterable, Mapping, Union
 
-from .exceptions import UnsupportedRequest, TransportError
+from .exceptions import TransportError, UnsupportedRequest
 from .utils import make_ssl_context
 from ..utils import (
     CaseInsensitiveDict,

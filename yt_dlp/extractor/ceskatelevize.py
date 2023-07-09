@@ -1,10 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
-)
+from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
 from ..networking.common import Request
 from ..utils import (
     ExtractorError,
@@ -285,7 +282,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 if m:
                     yield m.group(1)
                     start, stop = (_msectotimecode(int(t)) for t in m.groups()[1:])
-                    yield '{0} --> {1}'.format(start, stop)
+                    yield f'{start} --> {stop}'
                 else:
                     yield line
 

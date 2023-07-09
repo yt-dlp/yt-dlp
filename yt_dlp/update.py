@@ -11,8 +11,8 @@ from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath, compat_shlex_quote
-from .networking.exceptions import HTTPError, network_exceptions
 from .networking.common import Request
+from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
     Popen,
     cached_method,

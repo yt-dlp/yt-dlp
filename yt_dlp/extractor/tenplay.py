@@ -1,5 +1,5 @@
-from datetime import datetime
 import base64
+from datetime import datetime
 
 from .common import InfoExtractor
 from ..networking.common import HEADRequest

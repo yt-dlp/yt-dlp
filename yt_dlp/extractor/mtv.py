@@ -2,15 +2,15 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..networking.common import Request, HEADRequest
+from ..networking.common import HEADRequest, Request
 from ..utils import (
     ExtractorError,
+    RegexNotFoundError,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
     int_or_none,
     join_nonempty,
-    RegexNotFoundError,
     strip_or_none,
     timeconvert,
     try_get,

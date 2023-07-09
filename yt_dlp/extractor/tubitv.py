@@ -6,8 +6,8 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
-    urlencode_postdata,
     traverse_obj,
+    urlencode_postdata,
 )
 
 

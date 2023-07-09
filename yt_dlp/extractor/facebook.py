@@ -8,8 +8,8 @@ from ..compat import (
     compat_str,
     compat_urllib_parse_unquote,
 )
-from ..networking.exceptions import network_exceptions
 from ..networking.common import Request
+from ..networking.exceptions import network_exceptions
 from ..utils import (
     ExtractorError,
     clean_html,

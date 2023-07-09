@@ -2,9 +2,9 @@ import base64
 import json
 import re
 
+from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
-from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
 from ..networking.common import HEADRequest
 from ..utils import (

@@ -58,7 +58,7 @@ class MioMioIE(InfoExtractor):
             video_id)
 
         vid_config_request = Request(
-            'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/sina.php?{0}'.format(xml_config),
+            f'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/sina.php?{xml_config}',
             headers=http_headers)
 
         # the following xml contains the actual configuration information on the video file(s)
