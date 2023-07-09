@@ -1,12 +1,12 @@
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     ExtractorError,
-    int_or_none,
-    update_url_query,
-    qualities,
-    get_element_by_attribute,
     clean_html,
+    get_element_by_attribute,
+    int_or_none,
+    qualities,
+    update_url_query,
 )
 
 
@@ -60,7 +60,7 @@ class SinaIE(InfoExtractor):
                 self.to_screen('Getting video id')
                 request = HEADRequest(url)
                 _, urlh = self._download_webpage_handle(request, 'NA', False)
-                return self._real_extract(urlh.geturl())
+                return self._real_extract(urlh.url)
             else:
                 pseudo_id = mobj.group('pseudo_id')
                 webpage = self._download_webpage(url, pseudo_id)

@@ -62,11 +62,6 @@ __name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
 compiled_regex_type = type(re.compile(''))
 
 
-USER_AGENTS = {
-    'Safari': 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27',
-}
-
-
 class NO_DEFAULT:
     pass
 
@@ -727,14 +722,6 @@ def extract_basic_auth(url):
     return url, f'Basic {auth_payload.decode()}'
 
 
-def sanitized_Request(url, *args, **kwargs):
-    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
-    if auth_header is not None:
-        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
-        headers['Authorization'] = auth_header
-    return urllib.request.Request(url, *args, **kwargs)
-
-
 def expand_path(s):
     """Expand shell variables and ~"""
     return os.path.expandvars(compat_expanduser(s))
@@ -892,19 +879,6 @@ def formatSeconds(secs, delim=':', msec=False):
     else:
         ret = '%d' % time.seconds
     return '%s.%03d' % (ret, time.milliseconds) if msec else ret
-
-
-def make_HTTPS_handler(params, **kwargs):
-    from ._deprecated import YoutubeDLHTTPSHandler
-    from ..networking._helper import make_ssl_context
-    return YoutubeDLHTTPSHandler(params, context=make_ssl_context(
-        verify=not params.get('nocheckcertificate'),
-        client_certificate=params.get('client_certificate'),
-        client_certificate_key=params.get('client_certificate_key'),
-        client_certificate_password=params.get('client_certificate_password'),
-        legacy_support=params.get('legacyserverconnect'),
-        use_certifi='no-certifi' not in params.get('compat_opts', []),
-    ), **kwargs)
 
 
 def bug_reports_message(before=';'):
@@ -1141,17 +1115,6 @@ class XAttrUnavailableError(YoutubeDLError):
 
 def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
-
-
-class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
-    def __init__(self, cookiejar=None):
-        urllib.request.HTTPCookieProcessor.__init__(self, cookiejar)
-
-    def http_response(self, request, response):
-        return urllib.request.HTTPCookieProcessor.http_response(self, request, response)
-
-    https_request = urllib.request.HTTPCookieProcessor.http_request
-    https_response = http_response
 
 
 def extract_timezone(date_str):
@@ -1455,6 +1418,7 @@ def write_string(s, out=None, encoding=None):
     out.flush()
 
 
+# TODO: Use global logger
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
     from .. import _IN_CLI
     if _IN_CLI:
@@ -2003,13 +1967,6 @@ def url_or_none(url):
         return None
     url = url.strip()
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
-
-
-def request_to_url(req):
-    if isinstance(req, urllib.request.Request):
-        return req.get_full_url()
-    else:
-        return req
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
@@ -5525,7 +5482,7 @@ class _YDLLogger:
 
     def warning(self, message, *, once=False):
         if self._ydl:
-            self._ydl.report_warning(message, only_once=once)
+            self._ydl.report_warning(message, once)
 
     def error(self, message, *, is_error=True):
         if self._ydl:

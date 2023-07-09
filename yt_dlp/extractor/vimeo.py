@@ -2,20 +2,16 @@ import base64
 import functools
 import re
 import itertools
-import urllib.error
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_str, compat_urlparse
+from ..networking import HEADRequest, Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     determine_ext,
     ExtractorError,
     get_element_by_class,
-    HEADRequest,
     js_to_json,
     int_or_none,
     merge_dicts,
@@ -23,7 +19,6 @@ from ..utils import (
     parse_filesize,
     parse_iso8601,
     parse_qs,
-    sanitized_Request,
     smuggle_url,
     str_or_none,
     try_get,
@@ -72,7 +67,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Referer': self._LOGIN_URL,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 418:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 418:
                 raise ExtractorError(
                     'Unable to log in: bad username or password',
                     expected=True)
@@ -809,7 +804,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         'X-Requested-With': 'XMLHttpRequest',
                     })
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     raise ExtractorError('Wrong password', expected=True)
                 raise
 
@@ -832,10 +827,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
             # Retrieve video webpage to extract further information
             webpage, urlh = self._download_webpage_handle(
                 url, video_id, headers=headers)
-            redirect_url = urlh.geturl()
+            redirect_url = urlh.url
         except ExtractorError as ee:
-            if isinstance(ee.cause, compat_HTTPError) and ee.cause.code == 403:
-                errmsg = ee.cause.read()
+            if isinstance(ee.cause, HTTPError) and ee.cause.status == 403:
+                errmsg = ee.cause.response.read()
                 if b'Because of its privacy settings, this video cannot be played here' in errmsg:
                     raise ExtractorError(
                         'Cannot download embed-only video without embedding '
@@ -1154,7 +1149,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
                     'Authorization': 'jwt ' + authorization,
                 })['data']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 return
         for video in videos:
             link = video.get('link')
@@ -1196,7 +1191,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
                         'X-Requested-With': 'XMLHttpRequest',
                     })['hashed_pass']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     raise ExtractorError('Wrong password', expected=True)
                 raise
         entries = OnDemandPagedList(functools.partial(
@@ -1309,10 +1304,10 @@ class VimeoWatchLaterIE(VimeoChannelIE):  # XXX: Do not subclass from concrete I
 
     def _page_url(self, base_url, pagenum):
         url = '%s/page:%d/' % (base_url, pagenum)
-        request = sanitized_Request(url)
+        request = Request(url)
         # Set the header to get a partial html page with the ids,
         # the normal page doesn't contain them.
-        request.add_header('X-Requested-With', 'XMLHttpRequest')
+        request.headers['X-Requested-With'] = 'XMLHttpRequest'
         return request
 
     def _real_extract(self, url):
@@ -1432,7 +1427,7 @@ class VimeoProIE(VimeoBaseInfoExtractor):
                     **self._hidden_inputs(password_form),
                 }), note='Logging in with video password')
             except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 418:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 418:
                     raise ExtractorError('Wrong video password', expected=True)
                 raise
 

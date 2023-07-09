@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 import urllib.error
 
-from ..utils import YoutubeDLError
+from ..utils import YoutubeDLError, deprecation_warning
 
 if typing.TYPE_CHECKING:
     from .common import RequestHandler, Response
@@ -137,6 +137,7 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
 
     @property
     def headers(self):
+        deprecation_warning('HTTPError.headers is deprecated, use HTTPError.response.headers instead')
         return self._http_error.response.headers
 
     @headers.setter
@@ -144,16 +145,20 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
         return
 
     def info(self):
+        deprecation_warning('HTTPError.info() is deprecated, use HTTPError.response.headers instead')
         return self.response.headers
 
     def getcode(self):
+        deprecation_warning('HTTPError.getcode is deprecated, use HTTPError.status instead')
         return self.status
 
     def geturl(self):
+        deprecation_warning('HTTPError.geturl is deprecated, use HTTPError.response.url instead')
         return self.response.url
 
     @property
     def code(self):
+        deprecation_warning('HTTPError.code is deprecated, use HTTPError.status instead')
         return self.status
 
     @code.setter
@@ -162,6 +167,7 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
 
     @property
     def url(self):
+        deprecation_warning('HTTPError.url is deprecated, use HTTPError.response.url instead')
         return self.response.url
 
     @url.setter
@@ -170,6 +176,7 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
 
     @property
     def hdrs(self):
+        deprecation_warning('HTTPError.hdrs is deprecated, use HTTPError.response.headers instead')
         return self.response.headers
 
     @hdrs.setter
@@ -178,6 +185,7 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
 
     @property
     def filename(self):
+        deprecation_warning('HTTPError.filename is deprecated, use HTTPError.response.url instead')
         return self.response.url
 
     @filename.setter
@@ -185,6 +193,18 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
         return
 
     def __getattr__(self, name):
+        # File operations are passed through the response.
+        # Warn for some commonly used ones
+        passthrough_warnings = {
+            'read': 'response.read()',
+            # technically possibly due to passthrough, but we should discourage this
+            'get_header': 'response.get_header()',
+            'readable': 'response.readable()',
+            'closed': 'response.closed',
+            'tell': 'response.tell()',
+        }
+        if name in passthrough_warnings:
+            deprecation_warning(f'HTTPError.{name} is deprecated, use HTTPError.{passthrough_warnings[name]} instead')
         return super().__getattr__(name)
 
     def __str__(self):

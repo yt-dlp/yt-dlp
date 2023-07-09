@@ -8,11 +8,13 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import contextlib
 import io
 import platform
 import random
 import ssl
 import urllib.error
+import warnings
 
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import certifi
@@ -202,20 +204,58 @@ class TestNetworkingExceptions:
         assert isinstance(error, HTTPError)
         assert isinstance(error, urllib.error.HTTPError)
 
-        assert error.code == 403
-        assert error.getcode() == 403
-        assert error.hdrs is error.response.headers
-        assert error.info() is error.response.headers
-        assert error.headers is error.response.headers
-        assert error.filename == error.response.url
-        assert error.url == error.response.url
-        assert error.geturl() == error.response.url
+        @contextlib.contextmanager
+        def raises_deprecation_warning():
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
+                yield
+
+                if len(w) == 0:
+                    pytest.fail('Did not raise DeprecationWarning')
+                if len(w) > 1:
+                    pytest.fail(f'Raised multiple warnings: {w}')
+
+                if not issubclass(w[-1].category, DeprecationWarning):
+                    pytest.fail(f'Expected DeprecationWarning, got {w[-1].category}')
+                w.clear()
+
+        with raises_deprecation_warning():
+            assert error.code == 403
+
+        with raises_deprecation_warning():
+            assert error.getcode() == 403
+
+        with raises_deprecation_warning():
+            assert error.hdrs is error.response.headers
+
+        with raises_deprecation_warning():
+            assert error.info() is error.response.headers
+
+        with raises_deprecation_warning():
+            assert error.headers is error.response.headers
+
+        with raises_deprecation_warning():
+            assert error.filename == error.response.url
+
+        with raises_deprecation_warning():
+            assert error.url == error.response.url
+
+        with raises_deprecation_warning():
+            assert error.geturl() == error.response.url
 
         # Passthrough file operations
-        assert error.read() == b'test'
-        assert not error.closed
-        # Technically Response operations are also passed through, which should not be used.
-        assert error.get_header('test') == 'test'
+        with raises_deprecation_warning():
+            assert error.read() == b'test'
+
+        with raises_deprecation_warning():
+            assert not error.closed
+
+        with raises_deprecation_warning():
+            # Technically Response operations are also passed through, which should not be used.
+            assert error.get_header('test') == 'test'
+
+        # Should not raise a warning
+        error.close()
 
     @pytest.mark.skipif(
         platform.python_implementation() == 'PyPy', reason='garbage collector works differently in pypy')

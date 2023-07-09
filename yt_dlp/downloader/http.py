@@ -1,10 +1,14 @@
 import os
 import random
 import time
-import urllib.error
 
 from .common import FileDownloader
-from ..networking.exceptions import CertificateVerifyError, TransportError
+from ..networking import Request
+from ..networking.exceptions import (
+    CertificateVerifyError,
+    HTTPError,
+    TransportError,
+)
 from ..utils import (
     ContentTooShortError,
     RetryManager,
@@ -14,10 +18,10 @@ from ..utils import (
     encodeFilename,
     int_or_none,
     parse_http_range,
-    sanitized_Request,
     try_call,
     write_xattr,
 )
+from ..utils.networking import HTTPHeaderDict
 
 
 class HttpFD(FileDownloader):
@@ -36,10 +40,7 @@ class HttpFD(FileDownloader):
         ctx.stream = None
 
         # Disable compression
-        headers = {'Accept-Encoding': 'identity'}
-        add_headers = info_dict.get('http_headers')
-        if add_headers:
-            headers.update(add_headers)
+        headers = HTTPHeaderDict({'Accept-Encoding': 'identity'}, info_dict.get('http_headers'))
 
         is_test = self.params.get('test', False)
         chunk_size = self._TEST_FILE_SIZE if is_test else (
@@ -110,10 +111,10 @@ class HttpFD(FileDownloader):
             if try_call(lambda: range_end >= ctx.content_len):
                 range_end = ctx.content_len - 1
 
-            request = sanitized_Request(url, request_data, headers)
+            request = Request(url, request_data, headers)
             has_range = range_start is not None
             if has_range:
-                request.add_header('Range', f'bytes={int(range_start)}-{int_or_none(range_end) or ""}')
+                request.headers['Range'] = f'bytes={int(range_start)}-{int_or_none(range_end) or ""}'
             # Establish connection
             try:
                 ctx.data = self.ydl.urlopen(request)
@@ -144,17 +145,17 @@ class HttpFD(FileDownloader):
                         self.report_unable_to_resume()
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
-                ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
-            except urllib.error.HTTPError as err:
-                if err.code == 416:
+                ctx.data_len = ctx.content_len = int_or_none(ctx.data.headers.get('Content-length', None))
+            except HTTPError as err:
+                if err.status == 416:
                     # Unable to resume (requested range not satisfiable)
                     try:
                         # Open the connection again without the range header
                         ctx.data = self.ydl.urlopen(
-                            sanitized_Request(url, request_data, headers))
-                        content_length = ctx.data.info()['Content-Length']
-                    except urllib.error.HTTPError as err:
-                        if err.code < 500 or err.code >= 600:
+                            Request(url, request_data, headers))
+                        content_length = ctx.data.headers['Content-Length']
+                    except HTTPError as err:
+                        if err.status < 500 or err.status >= 600:
                             raise
                     else:
                         # Examine the reported length
@@ -182,7 +183,7 @@ class HttpFD(FileDownloader):
                             ctx.resume_len = 0
                             ctx.open_mode = 'wb'
                             return
-                elif err.code < 500 or err.code >= 600:
+                elif err.status < 500 or err.status >= 600:
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
@@ -198,9 +199,9 @@ class HttpFD(FileDownloader):
                 ctx.stream = None
 
         def download():
-            data_len = ctx.data.info().get('Content-length')
+            data_len = ctx.data.headers.get('Content-length')
 
-            if ctx.data.info().get('Content-encoding'):
+            if ctx.data.headers.get('Content-encoding'):
                 # Content-encoding is present, Content-length is not reliable anymore as we are
                 # doing auto decompression. (See: https://github.com/yt-dlp/yt-dlp/pull/6176)
                 data_len = None
@@ -345,7 +346,7 @@ class HttpFD(FileDownloader):
 
             # Update file modification time
             if self.params.get('updatetime', True):
-                info_dict['filetime'] = self.try_utime(ctx.filename, ctx.data.info().get('last-modified', None))
+                info_dict['filetime'] = self.try_utime(ctx.filename, ctx.data.headers.get('last-modified', None))
 
             self._hook_progress({
                 'downloaded_bytes': byte_counter,

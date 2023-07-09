@@ -24,6 +24,7 @@ from .exceptions import (
 from ..utils import (
     bug_reports_message,
     classproperty,
+    deprecation_warning,
     error_to_str,
     escape_url,
     update_url_query,
@@ -507,16 +508,21 @@ class Response(io.IOBase):
     # The following methods are for compatability reasons and are deprecated
     @property
     def code(self):
+        deprecation_warning('Response.code is deprecated, use Response.status', stacklevel=2)
         return self.status
 
     def getcode(self):
+        deprecation_warning('Response.getcode() is deprecated, use Response.status', stacklevel=2)
         return self.status
 
     def geturl(self):
+        deprecation_warning('Response.geturl() is deprecated, use Response.url', stacklevel=2)
         return self.url
 
     def info(self):
+        deprecation_warning('Response.info() is deprecated, use Response.headers', stacklevel=2)
         return self.headers
 
     def getheader(self, name, default=None):
+        deprecation_warning('Response.getheader() is deprecated, use Response.get_header', stacklevel=2)
         return self.get_header(name, default)

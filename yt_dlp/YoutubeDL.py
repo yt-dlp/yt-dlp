@@ -33,7 +33,7 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
-from .networking import Request, RequestDirector
+from .networking import HEADRequest, Request, RequestDirector
 from .networking.common import _REQUEST_HANDLERS
 from .networking.exceptions import (
     HTTPError,
@@ -41,6 +41,7 @@ from .networking.exceptions import (
     RequestError,
     SSLError,
     _CompatHTTPError,
+    network_exceptions,
 )
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
@@ -80,7 +81,6 @@ from .utils import (
     ExtractorError,
     FormatSorter,
     GeoRestrictedError,
-    HEADRequest,
     ISO3166Utils,
     LazyList,
     MaxDownloadsReached,
@@ -122,7 +122,6 @@ from .utils import (
     locked_file,
     make_archive_id,
     make_dir,
-    network_exceptions,
     number_of_digits,
     orderedSet,
     orderedSet_from_options,
@@ -135,7 +134,6 @@ from .utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
-    std_headers,
     str_or_none,
     strftime_or_none,
     subtitles_filename,
@@ -158,6 +156,7 @@ from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
     clean_proxies,
+    std_headers,
 )
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 
@@ -4019,6 +4018,9 @@ class YoutubeDL:
         if isinstance(req, str):
             req = Request(req)
         elif isinstance(req, urllib.request.Request):
+            self.deprecation_warning(
+                'Passing a urllib.request.Request object to YoutubeDL.urlopen() is deprecated. '
+                'Use yt_dlp.networking.common.Request instead.')
             req = urllib_req_to_req(req)
         assert isinstance(req, Request)
 
@@ -4242,7 +4244,7 @@ class YoutubeDL:
                     ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
-                    if isinstance(err, urllib.error.HTTPError) and err.code == 404:
+                    if isinstance(err, HTTPError) and err.status == 404:
                         self.to_screen(f'[info] {thumb_display_id.title()} does not exist')
                     else:
                         self.report_warning(f'Unable to download {thumb_display_id}: {err}')

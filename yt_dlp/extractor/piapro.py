@@ -69,7 +69,7 @@ class PiaproIE(InfoExtractor):
         if urlh is False:
             login_ok = False
         else:
-            parts = compat_urlparse.urlparse(urlh.geturl())
+            parts = compat_urlparse.urlparse(urlh.url)
             if parts.path != '/':
                 login_ok = False
         if not login_ok:
