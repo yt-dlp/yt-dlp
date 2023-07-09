@@ -45,7 +45,7 @@ class RequestDirector:
 
     def _print_verbose(self, msg):
         if self.verbose:
-            self.logger.to_stdout(f'[Director] {msg}')
+            self.logger.stdout(f'[Director] {msg}')
 
     def send(self, request: Request) -> Response:
         """
@@ -76,7 +76,7 @@ class RequestDirector:
                 raise
             except Exception as e:
                 # something went very wrong, try fallback to next handler
-                self.logger.report_error(
+                self.logger.error(
                     f'Unexpected error from "{handler.RH_NAME}" request handler: {type(e).__name__}: {e}' + bug_reports_message(),
                     is_error=False)
                 unexpected_errors.append(e)

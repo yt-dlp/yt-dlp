@@ -49,6 +49,7 @@ from yt_dlp.networking.exceptions import (
 )
 from yt_dlp.networking.utils import std_headers
 from yt_dlp.utils import CaseInsensitiveDict
+from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -66,20 +67,6 @@ def _build_proxy_handler(name):
             self.end_headers()
             self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode('utf-8'))
     return HTTPTestRequestHandler
-
-
-class FakeLogger:
-    def debug(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        pass
-
-    def report_error(self, *args, **kwargs):
-        pass
 
 
 class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):

@@ -62,6 +62,7 @@ from .postprocessor import (
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
 from .update import REPOSITORY, current_git_head, detect_variant
+from .utils._utils import _YDLLogger
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -4057,16 +4058,17 @@ class YoutubeDL:
             raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers):
+        logger = _YDLLogger(self)
         print_traffic = bool(self.params.get('debug_printtraffic'))
         headers = self.params.get('http_headers').copy()
         proxies = self.proxies.copy()
         clean_headers(headers)
         clean_proxies(proxies, headers)
 
-        director = RequestDirector(logger=self, verbose=print_traffic)
+        director = RequestDirector(logger=logger, verbose=print_traffic)
         for handler in handlers:
             director.add_handler(handler(
-                logger=self,
+                logger=logger,
                 headers=headers,
                 cookiejar=self.cookiejar,
                 timeout=self.params.get('socket_timeout'),
