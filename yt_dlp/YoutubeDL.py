@@ -1667,15 +1667,18 @@ class YoutubeDL:
 
             if domain:
                 self.cookiejar.set_cookie(prepared_cookie)
-            elif autoscope:
+            elif autoscope is True:
                 self.deprecated_feature(
                     'Passing cookies as a header is a potential security risk; '
                     'they will be scoped to the domain of the downloaded urls. '
                     'Please consider loading cookies from a file or browser instead.')
-                if autoscope is True:
-                    self.__header_cookies.append(prepared_cookie)
-                else:
-                    self._apply_header_cookies(autoscope, [prepared_cookie])
+                self.__header_cookies.append(prepared_cookie)
+            elif autoscope:
+                self.report_warning(
+                    'The extractor result contains an unscoped cookie as an HTTP header. '
+                    f'If you are using yt-dlp with an input URL{bug_reports_message(before=",")}',
+                    only_once=True)
+                self._apply_header_cookies(autoscope, [prepared_cookie])
             else:
                 self.report_error('Unscoped cookies are not allowed; please specify some sort of scoping',
                                   tb=False, is_error=False)
