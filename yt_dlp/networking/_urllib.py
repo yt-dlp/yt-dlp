@@ -21,7 +21,7 @@ from urllib.request import (
     UnknownHandler,
 )
 
-from .common import Features, RequestHandler, Response
+from .common import Features, RequestHandler, Response, register
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -372,6 +372,7 @@ def handle_response_read_exceptions(e):
         raise TransportError(cause=e) from e
 
 
+@register
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
     _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')

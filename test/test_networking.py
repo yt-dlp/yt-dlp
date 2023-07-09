@@ -34,9 +34,8 @@ from yt_dlp.networking import (
     RequestDirector,
     RequestHandler,
     UrllibRH,
-    _get_request_handler,
 )
-from yt_dlp.networking.common import HEADRequest, PUTRequest, Request, Response
+from yt_dlp.networking.common import HEADRequest, PUTRequest, Request, Response, _REQUEST_HANDLERS
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -303,13 +302,8 @@ def handler(request):
     rh_key = request.param
     if inspect.isclass(rh_key) and issubclass(rh_key, RequestHandler):
         handler = rh_key
-    else:
-        try:
-            handler = _get_request_handler(rh_key)
-        except KeyError:
-            handler = None
-        if handler is None:
-            pytest.skip(f'{rh_key} request handler is not available')
+    elif rh_key not in _REQUEST_HANDLERS:
+        pytest.skip(f'{rh_key} request handler is not available')
 
     return functools.partial(handler, logger=FakeLogger)
 

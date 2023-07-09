@@ -25,6 +25,16 @@ from ..utils import (
 )
 
 
+_REQUEST_HANDLERS = {}
+
+def register(handler):
+    """Register a RequestHandler class"""
+    assert issubclass(handler, RequestHandler), f'{handler} must be a subclass of RequestHandler'
+    assert handler.rh_key not in _REQUEST_HANDLERS, f'RequestHandler {handler.rh_key} already registered'
+    _REQUEST_HANDLERS[handler.rh_key] = handler
+    return handler
+
+
 class Features(enum.Enum):
     ALL_PROXY = enum.auto()
     NO_PROXY = enum.auto()

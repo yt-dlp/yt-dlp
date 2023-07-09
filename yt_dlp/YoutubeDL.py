@@ -33,8 +33,8 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
-from .networking import RequestDirector, _list_request_handler_classes
-from .networking.common import HEADRequest, Request
+from .networking import RequestDirector
+from .networking.common import HEADRequest, Request, _REQUEST_HANDLERS
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
@@ -678,7 +678,8 @@ class YoutubeDL:
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers'))
-        self._request_director = self.build_request_director(_list_request_handler_classes())
+        self._request_director = self.build_request_director(
+            sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
