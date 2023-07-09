@@ -687,7 +687,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'uploader': self._get_uploader(mid),
+                'uploader': self._get_uploader(mid, playlist_id),
                 **traverse_obj(page_data, {
                     'title': ('meta', 'name', {str_or_none}),
                     'description': ('meta', 'description', {str_or_none}),
@@ -746,7 +746,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'uploader': self._get_uploader(mid),
+                'uploader': self._get_uploader(mid, playlist_id),
                 **playlist_meta
             }
 
