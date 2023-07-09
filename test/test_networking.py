@@ -299,11 +299,13 @@ class TestRequestHandlerBase:
 
 @pytest.fixture
 def handler(request):
-    rh_key = request.param
-    if inspect.isclass(rh_key) and issubclass(rh_key, RequestHandler):
-        handler = rh_key
-    elif rh_key not in _REQUEST_HANDLERS:
-        pytest.skip(f'{rh_key} request handler is not available')
+    RH_KEY = request.param
+    if inspect.isclass(RH_KEY) and issubclass(RH_KEY, RequestHandler):
+        handler = RH_KEY
+    elif RH_KEY in _REQUEST_HANDLERS:
+        handler = _REQUEST_HANDLERS[RH_KEY]
+    else:
+        pytest.skip(f'{RH_KEY} request handler is not available')
 
     return functools.partial(handler, logger=FakeLogger)
 
@@ -706,19 +708,31 @@ class TestClientCertificate:
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_certificate_combined_nopass(self, handler):
-        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'clientwithkey.crt'), None, None))
+        self._run_test(handler, client_cert={
+            'client_certificate': os.path.join(self.certdir, 'clientwithkey.crt'),
+        })
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_certificate_nocombined_nopass(self, handler):
-        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'client.crt'), os.path.join(self.certdir, 'client.key'), None))
+        self._run_test(handler, client_cert={
+            'client_certificate': os.path.join(self.certdir, 'client.crt'),
+            'client_certificate_key': os.path.join(self.certdir, 'client.key'),
+        })
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_certificate_combined_pass(self, handler):
-        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'clientwithencryptedkey.crt'), None, 'foobar'))
+        self._run_test(handler, client_cert={
+            'client_certificate': os.path.join(self.certdir, 'clientwithencryptedkey.crt'),
+            'client_certificate_password': 'foobar',
+        })
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_certificate_nocombined_pass(self, handler):
-        self._run_test(handler, client_cert=(os.path.join(self.certdir, 'client.crt'), os.path.join(self.certdir, 'clientencrypted.key'), 'foobar'))
+        self._run_test(handler, client_cert={
+            'client_certificate': os.path.join(self.certdir, 'client.crt'),
+            'client_certificate_key': os.path.join(self.certdir, 'clientencrypted.key'),
+            'client_certificate_password': 'foobar',
+        })
 
 
 class TestUrllibRequestHandler(TestRequestHandlerBase):
@@ -937,24 +951,24 @@ class TestRequestDirector:
         director = RequestDirector(logger=FakeLogger())
         handler = FakeRH(logger=FakeLogger())
         director.add_handler(handler)
-        assert director.get_handler(FakeRH.rh_key()) is handler
+        assert director.handlers.get(FakeRH.RH_KEY) is handler
 
         # Handler should overwrite
         handler2 = FakeRH(logger=FakeLogger())
         director.add_handler(handler2)
-        assert director.get_handler(FakeRH.rh_key()) is not handler
-        assert director.get_handler(FakeRH.rh_key()) is handler2
-        assert len(director.get_handlers()) == 1
+        assert director.handlers.get(FakeRH.RH_KEY) is not handler
+        assert director.handlers.get(FakeRH.RH_KEY) is handler2
+        assert len(director.handlers) == 1
 
         class AnotherFakeRH(FakeRH):
             pass
         director.add_handler(AnotherFakeRH(logger=FakeLogger()))
-        assert len(director.get_handlers()) == 2
-        assert director.get_handler(AnotherFakeRH.rh_key()).rh_key() == AnotherFakeRH.rh_key()
+        assert len(director.handlers) == 2
+        assert director.handlers.get(AnotherFakeRH.RH_KEY).RH_KEY == AnotherFakeRH.RH_KEY
 
-        director.remove_handler(FakeRH.rh_key())
-        assert director.get_handler(FakeRH.rh_key()) is None
-        assert len(director.get_handlers()) == 1
+        director.handlers.pop(FakeRH.RH_KEY, None)
+        assert director.handlers.get(FakeRH.RH_KEY) is None
+        assert len(director.handlers) == 1
 
         # RequestErrors should passthrough
         with pytest.raises(SSLError):
@@ -982,7 +996,7 @@ class TestRequestDirector:
         assert director.send(Request('http://')).read() == b'supported'
         assert director.send(Request('any://')).read() == b''
 
-        director.remove_handler(FakeRH.rh_key())
+        director.handlers.pop(FakeRH.RH_KEY)
         with pytest.raises(NoSupportingHandlers):
             director.send(Request('any://'))
 
@@ -997,8 +1011,8 @@ class TestRequestDirector:
         with pytest.raises(NoSupportingHandlers, match=r'1 unexpected error'):
             director.send(Request('any://'))
 
-        director.remove_handlers()
-        assert len(director.get_handlers()) == 0
+        director.handlers.clear()
+        assert len(director.handlers) == 0
 
         # Should not be fatal
         director.add_handler(FakeRH(logger=FakeLogger()))
@@ -1011,7 +1025,7 @@ class TestYoutubeDLNetworking:
 
     @staticmethod
     def build_handler(ydl, handler: RequestHandler = FakeRH):
-        return ydl.build_request_director([handler]).get_handler(rh_key=handler.rh_key())
+        return ydl.build_request_director([handler]).handlers.get(handler.RH_KEY)
 
     def test_compat_opener(self):
         with FakeYDL() as ydl:
@@ -1126,19 +1140,6 @@ class TestYoutubeDLNetworking:
             assert 'Youtubedl-no-compression' not in rh.headers
             assert rh.headers.get('Accept-Encoding') == 'identity'
 
-    def test_build_handler_default_params(self):
-        with FakeYDL() as ydl:
-            rh = self.build_handler(ydl)
-            assert rh.headers.items() == std_headers.items()
-            assert rh.timeout == 20.0
-            assert rh.source_address is None
-            assert rh.verbose is False
-            assert rh.prefer_system_certs is False
-            assert rh.verify is True
-            assert rh.legacy_ssl_support is False
-            assert rh.client_cert is None
-            assert rh.cookiejar is ydl.cookiejar
-
     def test_build_handler_params(self):
         with FakeYDL({
             'http_headers': {'test': 'testtest'},
@@ -1160,18 +1161,6 @@ class TestYoutubeDLNetworking:
             assert rh.prefer_system_certs is True
             assert rh.verify is False
             assert rh.legacy_ssl_support is True
-
-    @pytest.mark.parametrize('ydl_params,expected', [
-        ({'client_certificate': 'fakecert.crt'}, ('fakecert.crt', None, None)),
-        ({'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key'}, ('fakecert.crt', 'fakekey.key', None)),
-        ({'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key',
-          'client_certificate_password': 'foobar'}, ('fakecert.crt', 'fakekey.key', 'foobar')),
-        ({'client_certificate_key': 'fakekey.key', 'client_certificate_password': 'foobar'}, None),
-    ])
-    def test_client_certificate(self, ydl_params, expected):
-        with FakeYDL(ydl_params) as ydl:
-            rh = self.build_handler(ydl)
-            assert rh.client_cert == expected
 
     def test_urllib_file_urls(self):
         with FakeYDL({'enable_file_urls': False}) as ydl:
@@ -1280,23 +1269,10 @@ class TestRequest:
     def test_proxies(self):
         req = Request(url='http://example.com', proxies={'http': 'http://127.0.0.1:8080'})
         assert req.proxies == {'http': 'http://127.0.0.1:8080'}
-        with pytest.raises(TypeError):
-            req.proxies = None
-
-        req.proxies = {}
-        assert req.proxies == {}
 
     def test_extensions(self):
         req = Request(url='http://example.com', extensions={'timeout': 2})
         assert req.extensions == {'timeout': 2}
-        with pytest.raises(TypeError):
-            req.extensions = None
-
-        req.extensions = {}
-        assert req.extensions == {}
-
-        req.extensions['something'] = 'something'
-        assert req.extensions == {'something': 'something'}
 
     def test_copy(self):
         req = Request(

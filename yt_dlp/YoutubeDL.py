@@ -3957,7 +3957,7 @@ class YoutubeDL:
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
-        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.get_handlers())}')
+        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers)}')
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
@@ -4013,7 +4013,7 @@ class YoutubeDL:
         Get a urllib OpenerDirector from the Urllib handler (deprecated).
         """
         self.deprecation_warning('YoutubeDL._opener() is deprecated, use YoutubeDL.urlopen()')
-        handler = self._request_director.get_handler(rh_key='Urllib')
+        handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
     def urlopen(self, req):
@@ -4042,7 +4042,7 @@ class YoutubeDL:
             for ue in e.unsupported_errors:
                 if not (ue.handler and ue.msg):
                     continue
-                if ue.handler.rh_key() == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
+                if ue.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
@@ -4060,31 +4060,32 @@ class YoutubeDL:
 
     def build_request_director(self, handlers):
         logger = _YDLLogger(self)
-        print_traffic = bool(self.params.get('debug_printtraffic'))
         headers = self.params.get('http_headers').copy()
         proxies = self.proxies.copy()
         clean_headers(headers)
         clean_proxies(proxies, headers)
 
-        director = RequestDirector(logger=logger, verbose=print_traffic)
+        director = RequestDirector(logger=logger, verbose=self.params.get('debug_printtraffic'))
         for handler in handlers:
             director.add_handler(handler(
                 logger=logger,
                 headers=headers,
                 cookiejar=self.cookiejar,
-                timeout=self.params.get('socket_timeout'),
                 proxies=proxies,
-                source_address=self.params.get('source_address'),
-                verbose=print_traffic,
                 prefer_system_certs='no-certifi' in self.params['compat_opts'],
                 verify=not self.params.get('nocheckcertificate'),
-                legacy_ssl_support=bool(self.params.get('legacy_server_connect')),
-                enable_file_urls=bool(self.params.get('enable_file_urls')),
-                client_cert=(
-                    self.params['client_certificate'],
-                    self.params.get('client_certificate_key'),
-                    self.params.get('client_certificate_password')
-                ) if self.params.get('client_certificate') else None,
+                **traverse_obj(self.params, {
+                    'verbose': 'debug_printtraffic',
+                    'source_address': 'source_address',
+                    'timeout': 'socket_timeout',
+                    'legacy_ssl_support': 'legacy_server_connect',
+                    'enable_file_urls': 'enable_file_urls',
+                    'client_cert': {
+                        'client_certificate': 'client_certificate',
+                        'client_certificate_key': 'client_certificate_key',
+                        'client_certificate_password': 'client_certificate_password',
+                    },
+                }),
             ))
         return director
 

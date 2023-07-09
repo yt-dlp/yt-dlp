@@ -17,31 +17,18 @@ class RequestDirector:
     """
 
     def __init__(self, logger, verbose=False):
-        self._handlers: dict[str, RequestHandler] = {}
+        self.handlers: dict[str, RequestHandler] = {}
         self.logger = logger  # TODO(Grub4k): default logger
         self.verbose = verbose
 
     def close(self):
-        for handler in self._handlers.values():
+        for handler in self.handlers.values():
             handler.close()
 
     def add_handler(self, handler: RequestHandler):
-        """Add a handler. If a handler of the same rh_key exists, it will overwrite it"""
-        assert isinstance(handler, RequestHandler)
-        self._handlers[handler.rh_key()] = handler
-
-    def remove_handler(self, rh_key):
-        self._handlers.pop(rh_key, None)
-
-    def get_handler(self, rh_key):
-        """Get a handler instance by rh_key"""
-        return self._handlers.get(rh_key)
-
-    def get_handlers(self):
-        return list(self._handlers.values())
-
-    def remove_handlers(self):
-        self._handlers.clear()
+        """Add a handler. If a handler of the same RH_KEY exists, it will overwrite it"""
+        assert isinstance(handler, RequestHandler), 'handler must be a RequestHandler'
+        self.handlers[handler.RH_KEY] = handler
 
     def _print_verbose(self, msg):
         if self.verbose:
@@ -51,7 +38,7 @@ class RequestDirector:
         """
         Passes a request onto a suitable RequestHandler
         """
-        if len(self._handlers) == 0:
+        if not self.handlers:
             raise RequestError('No request handlers configured')
 
         assert isinstance(request, Request)
@@ -59,7 +46,7 @@ class RequestDirector:
         unexpected_errors = []
         unsupported_errors = []
         # TODO (future): add a per-request preference system
-        for handler in reversed(list(self._handlers.values())):
+        for handler in reversed(list(self.handlers.values())):
             self._print_verbose(f'checking if "{handler.RH_NAME}" request handler supports this request.')
             try:
                 handler.validate(request)

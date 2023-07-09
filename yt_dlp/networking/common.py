@@ -30,8 +30,8 @@ _REQUEST_HANDLERS = {}
 def register(handler):
     """Register a RequestHandler class"""
     assert issubclass(handler, RequestHandler), f'{handler} must be a subclass of RequestHandler'
-    assert handler.rh_key not in _REQUEST_HANDLERS, f'RequestHandler {handler.rh_key} already registered'
-    _REQUEST_HANDLERS[handler.rh_key] = handler
+    assert handler.RH_KEY not in _REQUEST_HANDLERS, f'RequestHandler {handler.RH_KEY} already registered'
+    _REQUEST_HANDLERS[handler.RH_KEY] = handler
     return handler
 
 
@@ -93,7 +93,7 @@ class RequestHandler(abc.ABC):
     @param verbose: Print debug request and traffic information to stdout.
     @param prefer_system_certs: Whether to prefer system certificates over other means (e.g. certifi).
     @param client_cert: SSL client certificate configuration.
-            Tuple of (client_certificate, client_certificate_key, client_certificate_password).
+            dict with {client_certificate, client_certificate_key, client_certificate_password}
     @param verify: Verify SSL certificates
     @param legacy_ssl_support: Enable legacy SSL options such as legacy server connect and older cipher support.
 
@@ -119,9 +119,8 @@ class RequestHandler(abc.ABC):
     _SUPPORTED_FEATURES = ()
 
     def __init__(
-        self,
-        *,
-        logger=None,  # TODO(Grub4k)
+        self, *,
+        logger,  # TODO(Grub4k)
         headers: CaseInsensitiveDict = None,
         cookiejar: CookieJar = None,
         timeout: float | int | None = None,
@@ -129,7 +128,7 @@ class RequestHandler(abc.ABC):
         source_address: str = None,
         verbose: bool = False,
         prefer_system_certs: bool = False,
-        client_cert: tuple[str, str | None, str | None] = None,
+        client_cert: dict[str, str | None] = None,
         verify: bool = True,
         legacy_ssl_support: bool = False,
     ):
@@ -142,24 +141,17 @@ class RequestHandler(abc.ABC):
         self.source_address = source_address
         self.verbose = verbose
         self.prefer_system_certs = prefer_system_certs
-        self.client_cert = client_cert
+        self._client_cert = client_cert or {}
         self.verify = verify
         self.legacy_ssl_support = legacy_ssl_support
         super().__init__()
 
     def _make_sslcontext(self):
-        client_cert_opts = {}
-        if self.client_cert:
-            client_cert_opts = {
-                'client_certificate': self.client_cert[0],
-                'client_certificate_key': self.client_cert[1],
-                'client_certificate_password': self.client_cert[2]
-            }
         return make_ssl_context(
             verify=self.verify,
             legacy_support=self.legacy_ssl_support,
             use_certifi=not self.prefer_system_certs,
-            **client_cert_opts
+            **self._client_cert,
         )
 
     def _merge_headers(self, request_headers):
@@ -248,8 +240,9 @@ class RequestHandler(abc.ABC):
     def RH_NAME(cls):
         return cls.__name__[:-2]
 
-    @classmethod
-    def rh_key(cls):
+    @classproperty
+    def RH_KEY(cls):
+        assert cls.__name__.endswith('RH'), 'RequestHandler class names must end with "RH"'
         return cls.__name__[:-2]
 
     def __enter__(self):
@@ -329,26 +322,6 @@ class Request:
     @property
     def data(self):
         return self._data
-
-    @property
-    def proxies(self):
-        return self._proxies
-
-    @proxies.setter
-    def proxies(self, proxies):
-        if not isinstance(proxies, dict):
-            raise TypeError('proxies must be of type dict')
-        self._proxies = proxies
-
-    @property
-    def extensions(self):
-        return self._extensions
-
-    @extensions.setter
-    def extensions(self, extensions):
-        if not isinstance(extensions, dict):
-            raise TypeError('extensions must be of type dict')
-        self._extensions = extensions
 
     @data.setter
     def data(self, data: _TYPE_REQ_DATA):
