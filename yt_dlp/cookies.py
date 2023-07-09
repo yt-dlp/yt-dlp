@@ -30,7 +30,6 @@ from .dependencies import (
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils._utils import _YDLLogger
 from .utils import (
     Popen,
     error_to_str,
@@ -42,6 +41,7 @@ from .utils import (
     try_call,
     write_string,
 )
+from .utils._utils import _YDLLogger
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}

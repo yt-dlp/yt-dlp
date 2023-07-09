@@ -2,8 +2,8 @@
 
 # Allow direct execution
 import os
-import random
 import sys
+import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -15,6 +15,7 @@ import http.server
 import inspect
 import io
 import pathlib
+import random
 import ssl
 import tempfile
 import threading
@@ -30,12 +31,16 @@ import pytest
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.dependencies import brotli
-from yt_dlp.networking import (
-    RequestDirector,
+from yt_dlp.networking import RequestDirector
+from yt_dlp.networking._urllib import UrllibRH
+from yt_dlp.networking.common import (
+    _REQUEST_HANDLERS,
+    HEADRequest,
+    PUTRequest,
+    Request,
     RequestHandler,
-    UrllibRH,
+    Response,
 )
-from yt_dlp.networking.common import HEADRequest, PUTRequest, Request, Response, _REQUEST_HANDLERS
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -46,7 +51,6 @@ from yt_dlp.networking.exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from yt_dlp.networking.utils import std_headers
 from yt_dlp.utils import CaseInsensitiveDict
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 
@@ -64,7 +68,7 @@ def _build_proxy_handler(name):
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain; charset=utf-8')
             self.end_headers()
-            self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode('utf-8'))
+            self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode())
     return HTTPTestRequestHandler
 
 
@@ -75,7 +79,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         pass
 
     def _headers(self):
-        payload = str(self.headers).encode('utf-8')
+        payload = str(self.headers).encode()
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(payload)))
@@ -109,7 +113,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             return self.rfile.read(int(self.headers['Content-Length']))
 
     def do_POST(self):
-        data = self._read_data() + str(self.headers).encode('utf-8')
+        data = self._read_data() + str(self.headers).encode()
         if self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -128,7 +132,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._status(404)
 
     def do_PUT(self):
-        data = self._read_data() + str(self.headers).encode('utf-8')
+        data = self._read_data() + str(self.headers).encode()
         if self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -173,7 +177,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         elif self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
-            self._method('GET', str(self.headers).encode('utf-8'))
+            self._method('GET', str(self.headers).encode())
         elif self.path.startswith('/headers'):
             self._headers()
         elif self.path.startswith('/308-to-headers'):
@@ -242,7 +246,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             time.sleep(int(self.path[len('/timeout_'):]))
             self._headers()
         elif self.path == '/source_address':
-            payload = str(self.client_address[0]).encode('utf-8')
+            payload = str(self.client_address[0]).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Content-Length', str(len(payload)))
@@ -405,7 +409,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     assert b'Content-Type' in headers
                     assert b'Content-Length' in headers
 
-                return data_sent.decode('utf-8'), res.headers.get('method', '')
+                return data_sent.decode(), res.headers.get('method', '')
 
             # A 303 must either use GET or HEAD for subsequent request
             assert do_req(303, 'POST', True) == ('', 'GET')
@@ -443,14 +447,14 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             res = validate_and_send(
                 rh, Request(
                     f'http://127.0.0.1:{self.http_port}/headers',
-                    headers={'Cookie': 'test=test'})).read().decode('utf-8')
+                    headers={'Cookie': 'test=test'})).read().decode()
             assert 'Cookie: test=test' in res
 
             # Specified Cookie header should be removed on any redirect
             res = validate_and_send(
                 rh, Request(
                     f'http://127.0.0.1:{self.http_port}/308-to-headers',
-                    headers={'Cookie': 'test=test'})).read().decode('utf-8')
+                    headers={'Cookie': 'test=test'})).read().decode()
             assert 'Cookie: test=test' not in res
 
         # Specified Cookie header should override global cookiejar for that request
@@ -533,13 +537,13 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         source_address = f'127.0.0.{random.randint(5, 255)}'
         with handler(source_address=source_address) as rh:
             data = validate_and_send(
-                rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode('utf-8')
+                rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode()
             assert source_address == data
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_gzip_trailing_garbage(self, handler):
         with handler() as rh:
-            data = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode('utf-8')
+            data = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode()
             assert data == '<html><video src="/vid.mp4" /></html>'
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
@@ -636,17 +640,17 @@ class TestHTTPProxy(TestRequestHandlerBase):
 
         # Global HTTP proxy
         with handler(proxies={'http': http_proxy}) as rh:
-            res = validate_and_send(rh, Request(url)).read().decode('utf-8')
+            res = validate_and_send(rh, Request(url)).read().decode()
             assert res == f'normal: {url}'
 
             # Per request proxy overrides global
-            res = validate_and_send(rh, Request(url, proxies={'http': geo_proxy})).read().decode('utf-8')
+            res = validate_and_send(rh, Request(url, proxies={'http': geo_proxy})).read().decode()
             assert res == f'geo: {url}'
 
             # and setting to None disables all proxies for that request
             real_url = f'http://127.0.0.1:{self.http_port}/headers'
             res = validate_and_send(
-                rh, Request(real_url, proxies={'http': None})).read().decode('utf-8')
+                rh, Request(real_url, proxies={'http': None})).read().decode()
             assert res != f'normal: {real_url}'
             assert 'Accept' in res
 
@@ -674,7 +678,7 @@ class TestHTTPProxy(TestRequestHandlerBase):
             'http': f'http://127.0.0.1:{self.proxy_port}',
         }) as rh:
             url = 'http://中文.tw/'
-            response = rh.send(Request(url)).read().decode('utf-8')
+            response = rh.send(Request(url)).read().decode()
             # b'xn--fiq228c' is '中文'.encode('idna')
             assert response == 'normal: http://xn--fiq228c.tw/'
 
@@ -704,7 +708,7 @@ class TestClientCertificate:
             verify=False,
             **handler_kwargs,
         ) as rh:
-            validate_and_send(rh, Request(f'https://127.0.0.1:{self.port}/video.html')).read().decode('utf-8')
+            validate_and_send(rh, Request(f'https://127.0.0.1:{self.port}/video.html')).read().decode()
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_certificate_combined_nopass(self, handler):
@@ -1355,3 +1359,6 @@ class TestResponse:
             assert res.geturl() == res.url
             assert res.info() is res.headers
             assert res.getheader('test') == res.get_header('test')
+
+if __name__ == '__main__':
+    unittest.main()

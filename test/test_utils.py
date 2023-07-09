@@ -2317,7 +2317,7 @@ Line 1
     def test_case_insensitive_dict(self):
         headers = CaseInsensitiveDict()
         headers['ytdl-test'] = 1
-        self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', 1)])
         headers['Ytdl-test'] = '2'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
         self.assertTrue('ytDl-Test' in headers)
@@ -2337,7 +2337,7 @@ Line 1
 
         # ensure we prefer latter headers
         headers3 = CaseInsensitiveDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
-        self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        self.assertEqual(set(headers3.items()), {('Ytdl-Test', 2)})
         del headers3['ytdl-tesT']
         self.assertEqual(dict(headers3), {})
 

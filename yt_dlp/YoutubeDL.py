@@ -34,7 +34,7 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import RequestDirector
-from .networking.common import HEADRequest, Request, _REQUEST_HANDLERS
+from .networking.common import _REQUEST_HANDLERS, HEADRequest, Request
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
@@ -62,7 +62,6 @@ from .postprocessor import (
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
 from .update import REPOSITORY, current_git_head, detect_variant
-from .utils._utils import _YDLLogger
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -156,6 +155,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
+from .utils._utils import _YDLLogger
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':

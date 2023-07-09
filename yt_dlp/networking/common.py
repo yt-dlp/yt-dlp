@@ -24,8 +24,8 @@ from ..utils import (
     update_url_query,
 )
 
-
 _REQUEST_HANDLERS = {}
+
 
 def register(handler):
     """Register a RequestHandler class"""
@@ -169,14 +169,14 @@ class RequestHandler(abc.ABC):
                 continue
             if proxy_key == 'no':
                 if self._SUPPORTED_FEATURES is not None and Features.NO_PROXY not in self._SUPPORTED_FEATURES:
-                    raise UnsupportedRequest('\'no\' proxy is not supported')
+                    raise UnsupportedRequest('"no" proxy is not supported')
                 continue
             if (
                 proxy_key == 'all'
                 and self._SUPPORTED_FEATURES is not None
                 and Features.ALL_PROXY not in self._SUPPORTED_FEATURES
             ):
-                raise UnsupportedRequest('\'all\' proxy is not supported')
+                raise UnsupportedRequest('"all" proxy is not supported')
 
             # Unlikely this handler will use this proxy, so ignore.
             # This is to allow a case where a proxy may be set for a protocol
@@ -412,7 +412,7 @@ class Response(io.IOBase):
         try:
             self.reason = reason or HTTPStatus(status).phrase
         except ValueError:
-            pass
+            self.reason = None
 
     def readable(self):
         return self.raw.readable()

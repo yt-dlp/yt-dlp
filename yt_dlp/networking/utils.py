@@ -11,7 +11,7 @@ from collections.abc import Iterable
 from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, traverse_obj, format_field
+from ..utils import CaseInsensitiveDict, format_field, traverse_obj
 
 
 def random_user_agent():

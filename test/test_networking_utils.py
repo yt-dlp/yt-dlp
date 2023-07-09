@@ -2,16 +2,16 @@
 
 # Allow direct execution
 import os
-import random
-import ssl
 import sys
+import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import io
 import platform
-import unittest
+import random
+import ssl
 import urllib.error
 import warnings
 

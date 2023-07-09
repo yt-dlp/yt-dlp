@@ -1,6 +1,6 @@
 from .common import Request, RequestHandler, Response
 from .exceptions import NoSupportingHandlers, RequestError, UnsupportedRequest
-from ..utils import bug_reports_message
+from ..utils import bug_reports_message, error_to_str
 
 # isort: split
 # TODO: all request handlers should be safely imported
@@ -47,24 +47,23 @@ class RequestDirector:
         unsupported_errors = []
         # TODO (future): add a per-request preference system
         for handler in reversed(list(self.handlers.values())):
-            self._print_verbose(f'checking if "{handler.RH_NAME}" request handler supports this request.')
+            self._print_verbose(f'Checking if "{handler.RH_NAME}" supports this request.')
             try:
                 handler.validate(request)
             except UnsupportedRequest as e:
                 self._print_verbose(
-                    f'"{handler.RH_NAME}" request handler cannot handle this request (reason: {type(e).__name__}: {e})')
+                    f'"{handler.RH_NAME}" cannot handle this request (reason: {error_to_str(e)})')
                 unsupported_errors.append(e)
                 continue
 
-            self._print_verbose(f'sending request via "{handler.RH_NAME}" request handler.')
+            self._print_verbose(f'Sending request via "{handler.RH_NAME}"')
             try:
                 response = handler.send(request)
             except RequestError:
                 raise
             except Exception as e:
-                # something went very wrong, try fallback to next handler
                 self.logger.error(
-                    f'Unexpected error from "{handler.RH_NAME}" request handler: {type(e).__name__}: {e}' + bug_reports_message(),
+                    f'[{handler.RH_NAME}] Unexpected error: {error_to_str(e)}{bug_reports_message()}',
                     is_error=False)
                 unexpected_errors.append(e)
                 continue
