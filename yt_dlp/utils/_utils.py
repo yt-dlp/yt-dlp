@@ -5121,13 +5121,12 @@ def clean_podcast_url(url):
     url = re.sub(r'''(?x)
         (?:
             (?:
+                chtbl\.com/track/|
                 media\.blubrry\.com| # https://create.blubrry.com/resources/podcast-media-download-statistics/getting-started/
                 play\.podtrac\.com|
                 chrt\.fm/track|
-                mgln.ai/e
-            )/[^/]+|
-            (?:chtbl\.com/track)/[^\./]+|
-            (?:chtbl\.com/track)|
+                mgln\.ai/e
+            )(?:/[^/.]+)?|
             (?:dts|www)\.podtrac\.com/(?:pts/)?redirect\.[0-9a-z]{3,4}| # http://analytics.podtrac.com/how-to-measure
             flex\.acast\.com|
             pd(?:
@@ -5135,7 +5134,7 @@ def clean_podcast_url(url):
                 st\.fm # https://podsights.com/docs/
             )/e|
             [0-9]\.gum\.fm|
-            pscrb.fm/rss/p
+            pscrb\.fm/rss/p
         )/''', '', url)
     return re.sub(r'^\w+://(\w+://)', r'\1', url)
 
