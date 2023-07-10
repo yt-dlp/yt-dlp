@@ -1556,7 +1556,12 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
 
         new_method = req.get_method()
         new_data = req.data
-        remove_headers = []
+
+        # Technically the Cookie header should be in unredirected_hdrs,
+        # however in practice some may set it in normal headers anyway.
+        # We will remove it here to prevent any leaks.
+        remove_headers = ['Cookie']
+
         # A 303 must either use GET or HEAD for subsequent request
         # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.4
         if code == 303 and req.get_method() != 'HEAD':
@@ -1573,7 +1578,7 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
             new_data = None
             remove_headers.extend(['Content-Length', 'Content-Type'])
 
-        new_headers = {k: v for k, v in req.headers.items() if k.lower() not in remove_headers}
+        new_headers = {k: v for k, v in req.headers.items() if k.title() not in remove_headers}
 
         return urllib.request.Request(
             newurl, headers=new_headers, origin_req_host=req.origin_req_host,
