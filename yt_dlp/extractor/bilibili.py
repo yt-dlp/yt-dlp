@@ -658,7 +658,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'info_dict': {
             'id': '2142762_57445',
-            'title': '合集·【完结】《底特律 变人》全结局流程解说',
+            'title': '【完结】《底特律 变人》全结局流程解说',
             'description': '',
             'uploader': '老戴在此',
             'uploader_id': '2142762',
@@ -698,7 +698,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
             }
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, self._get_entries)
-        return self.playlist_result(paged_list, playlist_id, metadata['title'])
+        return self.playlist_result(paged_list, playlist_id, **metadata)
 
 
 class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
