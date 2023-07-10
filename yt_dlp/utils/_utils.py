@@ -5121,7 +5121,7 @@ def clean_podcast_url(url):
     url = re.sub(r'''(?x)
         (?:
             (?:
-                chtbl\.com/track/|
+                chtbl\.com/track|
                 media\.blubrry\.com| # https://create.blubrry.com/resources/podcast-media-download-statistics/getting-started/
                 play\.podtrac\.com|
                 chrt\.fm/track|
