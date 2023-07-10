@@ -2,10 +2,12 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    js_to_json,
+    UnsupportedError,
     extract_attributes,
-    try_get,
     int_or_none,
+    js_to_json,
+    parse_iso8601,
+    try_get,
 )
 
 
@@ -14,36 +16,38 @@ class TagesschauIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.tagesschau.de/multimedia/video/video-102143.html',
-        'md5': '7a7287612fa881a1ae1d087df45c2fd6',
+        'md5': 'ccb9359bf8c4795836e43759f3408a93',
         'info_dict': {
             'id': 'video-102143-1',
             'ext': 'mp4',
             'title': 'Regierungsumbildung in Athen: Neue Minister in Griechenland vereidigt',
+            'duration': 138,
         },
     }, {
         'url': 'http://www.tagesschau.de/multimedia/sendung/ts-5727.html',
-        'md5': '3c54c1f6243d279b706bde660ceec633',
+        'md5': '5c15e8f3da049e48829ec9786d835536',
         'info_dict': {
             'id': 'ts-5727-1',
             'ext': 'mp4',
             'title': 'Ganze Sendung',
+            'duration': 932,
         },
     }, {
         # exclusive audio
         'url': 'http://www.tagesschau.de/multimedia/audio/audio-29417.html',
-        'md5': '4cf22023c285f35e99c24d290ba58cc9',
+        'md5': '4bff8f23504df56a0d86ed312d654182',
         'info_dict': {
             'id': 'audio-29417-1',
             'ext': 'mp3',
-            'title': 'Brasilianischer Präsident Bolsonaro unter Druck: Corona-Bericht wird vorgestellt',
+            'title': 'EU-Gipfel: Im Verbrennerstreit hat Deutschland maximalen Schaden angerichtet',
         },
     }, {
         'url': 'http://www.tagesschau.de/inland/bnd-303.html',
-        'md5': '12cfb212d9325b5ba0d52b625f1aa61c',
+        'md5': 'f049fa1698d7564e9ca4c3325108f034',
         'info_dict': {
             'id': 'bnd-303-1',
-            'ext': 'mp4',
-            'title': 'SPD-Gruppenbild mit Bärbel Bas nach der Fraktionssitzung | dpa',
+            'ext': 'mp3',
+            'title': 'Das Siegel des Bundesnachrichtendienstes | dpa',
         },
     }, {
         'url': 'http://www.tagesschau.de/inland/afd-parteitag-135.html',
@@ -51,13 +55,24 @@ class TagesschauIE(InfoExtractor):
             'id': 'afd-parteitag-135',
             'title': 'AfD',
         },
-        'playlist_count': 20,
+        'playlist_mincount': 15,
     }, {
         'url': 'https://www.tagesschau.de/multimedia/audio/audio-29417~player.html',
         'info_dict': {
             'id': 'audio-29417-1',
             'ext': 'mp3',
-            'title': 'Brasilianischer Präsident Bolsonaro unter Druck: Corona-Bericht wird vorgestellt',
+            'title': 'EU-Gipfel: Im Verbrennerstreit hat Deutschland maximalen Schaden angerichtet',
+        },
+    }, {
+        'url': 'https://www.tagesschau.de/multimedia/audio/podcast-11km-327.html',
+        'info_dict': {
+            'id': 'podcast-11km-327',
+            'ext': 'mp3',
+            'title': 'Gewalt in der Kita – Wenn Erzieher:innen schweigen',
+            'upload_date': '20230322',
+            'timestamp': 1679482808,
+            'thumbnail': 'https://www.tagesschau.de/multimedia/audio/podcast-11km-329~_v-original.jpg',
+            'description': 'md5:dad059931fe4b3693e3656e93a249848',
         },
     }, {
         'url': 'http://www.tagesschau.de/multimedia/sendung/tsg-3771.html',
@@ -117,7 +132,7 @@ class TagesschauIE(InfoExtractor):
                 formats = []
                 if media_url.endswith('master.m3u8'):
                     formats = self._extract_m3u8_formats(media_url, video_id, 'mp4', m3u8_id='hls')
-                elif media_url.endswith('.hi.mp3') and media_url.startswith('https://download'):
+                elif media_url.endswith('.mp3'):
                     formats = [{
                         'url': media_url,
                         'vcodec': 'none',
@@ -130,20 +145,19 @@ class TagesschauIE(InfoExtractor):
                     'duration': int_or_none(try_get(video, lambda x: x['mc']['_duration'])),
                     'formats': formats
                 })
+
+        if not entries:
+            raise UnsupportedError(url)
+
         if len(entries) > 1:
             return self.playlist_result(entries, display_id, title)
-        formats = entries[0]['formats']
-        video_info = self._search_json_ld(webpage, video_id)
-        description = video_info.get('description')
-        thumbnail = self._og_search_thumbnail(webpage) or video_info.get('thumbnail')
-        timestamp = video_info.get('timestamp')
-        title = title or video_info.get('description')
 
         return {
             'id': display_id,
             'title': title,
-            'thumbnail': thumbnail,
-            'formats': formats,
-            'timestamp': timestamp,
-            'description': description,
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'formats': entries[0]['formats'],
+            'timestamp': parse_iso8601(self._html_search_meta('date', webpage)),
+            'description': self._og_search_description(webpage),
+            'duration': entries[0]['duration'],
         }

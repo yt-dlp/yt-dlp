@@ -44,7 +44,7 @@ class CommitGroup(enum.Enum):
         return {
             name: group
             for group, names in {
-                cls.PRIORITY: {''},
+                cls.PRIORITY: {'priority'},
                 cls.CORE: {
                     'aes',
                     'cache',
@@ -55,6 +55,7 @@ class CommitGroup(enum.Enum):
                     'dependencies',
                     'jsinterp',
                     'outtmpl',
+                    'formats',
                     'plugins',
                     'update',
                     'upstream',
@@ -68,9 +69,9 @@ class CommitGroup(enum.Enum):
                     'misc',
                     'test',
                 },
-                cls.EXTRACTOR: {'extractor', 'extractors'},
-                cls.DOWNLOADER: {'downloader'},
-                cls.POSTPROCESSOR: {'postprocessor'},
+                cls.EXTRACTOR: {'extractor', 'ie'},
+                cls.DOWNLOADER: {'downloader', 'fd'},
+                cls.POSTPROCESSOR: {'postprocessor', 'pp'},
             }.items()
             for name in names
         }
@@ -196,7 +197,7 @@ class Changelog:
         for commit_infos in cleanup_misc_items.values():
             sorted_items.append(CommitInfo(
                 'cleanup', ('Miscellaneous',), ', '.join(
-                    self._format_message_link(None, info.commit.hash)
+                    self._format_message_link(None, info.commit.hash).strip()
                     for info in sorted(commit_infos, key=lambda item: item.commit.hash or '')),
                 [], Commit(None, '', commit_infos[0].commit.authors), []))
 
@@ -205,10 +206,10 @@ class Changelog:
     def format_single_change(self, info):
         message = self._format_message_link(info.message, info.commit.hash)
         if info.issues:
-            message = f'{message} ({self._format_issues(info.issues)})'
+            message = message.replace('\n', f' ({self._format_issues(info.issues)})\n', 1)
 
         if info.commit.authors:
-            message = f'{message} by {self._format_authors(info.commit.authors)}'
+            message = message.replace('\n', f' by {self._format_authors(info.commit.authors)}\n', 1)
 
         if info.fixes:
             fix_message = ', '.join(f'{self._format_message_link(None, fix.hash)}' for fix in info.fixes)
@@ -217,14 +218,16 @@ class Changelog:
             if authors != info.commit.authors:
                 fix_message = f'{fix_message} by {self._format_authors(authors)}'
 
-            message = f'{message} (With fixes in {fix_message})'
+            message = message.replace('\n', f' (With fixes in {fix_message})\n', 1)
 
-        return message
+        return message[:-1]
 
     def _format_message_link(self, message, hash):
         assert message or hash, 'Improperly defined commit message or override'
         message = message if message else hash[:HASH_LENGTH]
-        return f'[{message}]({self.repo_url}/commit/{hash})' if hash else message
+        if not hash:
+            return f'{message}\n'
+        return f'[{message}\n'.replace('\n', f']({self.repo_url}/commit/{hash})\n', 1)
 
     def _format_issues(self, issues):
         return ', '.join(f'[#{issue}]({self.repo_url}/issues/{issue})' for issue in issues)
@@ -250,6 +253,7 @@ class CommitRange:
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
+    REVERT_RE = re.compile(r'(?i:Revert)\s+([\da-f]{40})')
     FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
@@ -277,7 +281,7 @@ class CommitRange:
             self.COMMAND, 'log', f'--format=%H%n%s%n%b%n{self.COMMIT_SEPARATOR}',
             f'{self._start}..{self._end}' if self._start else self._end).stdout
 
-        commits = {}
+        commits, reverts = {}, {}
         fixes = defaultdict(list)
         lines = iter(result.splitlines(False))
         for i, commit_hash in enumerate(lines):
@@ -298,12 +302,24 @@ class CommitRange:
                 logger.debug(f'Reached Release commit, breaking: {commit}')
                 break
 
+            revert_match = self.REVERT_RE.fullmatch(commit.short)
+            if revert_match:
+                reverts[revert_match.group(1)] = commit
+                continue
+
             fix_match = self.FIXES_RE.search(commit.short)
             if fix_match:
                 commitish = fix_match.group(1)
                 fixes[commitish].append(commit)
 
             commits[commit.hash] = commit
+
+        for commitish, revert_commit in reverts.items():
+            reverted = commits.pop(commitish, None)
+            if reverted:
+                logger.debug(f'{commit} fully reverted {reverted}')
+            else:
+                commits[revert_commit.hash] = revert_commit
 
         for commitish, fix_commits in fixes.items():
             if commitish in commits:
@@ -323,7 +339,7 @@ class CommitRange:
                 logger.debug(f'Ignored {when!r}, not in commits {self._start!r}')
                 continue
 
-            override_hash = override.get('hash')
+            override_hash = override.get('hash') or when
             if override['action'] == 'add':
                 commit = Commit(override.get('hash'), override['short'], override.get('authors') or [])
                 logger.info(f'ADD    {commit}')
@@ -337,7 +353,7 @@ class CommitRange:
             elif override['action'] == 'change':
                 if override_hash not in self._commits:
                     continue
-                commit = Commit(override_hash, override['short'], override['authors'])
+                commit = Commit(override_hash, override['short'], override.get('authors') or [])
                 logger.info(f'CHANGE {self._commits[commit.hash]} -> {commit}')
                 self._commits[commit.hash] = commit
 
@@ -348,7 +364,7 @@ class CommitRange:
         for commit in self:
             upstream_re = self.UPSTREAM_MERGE_RE.search(commit.short)
             if upstream_re:
-                commit.short = f'[upstream] Merged with youtube-dl {upstream_re.group(1)}'
+                commit.short = f'[core/upstream] Merged with youtube-dl {upstream_re.group(1)}'
 
             match = self.MESSAGE_RE.fullmatch(commit.short)
             if not match:
@@ -394,10 +410,10 @@ class CommitRange:
             return CommitGroup.CORE, None, ()
 
         prefix, _, details = prefix.partition('/')
-        prefix = prefix.strip().lower()
+        prefix = prefix.strip()
         details = details.strip()
 
-        group = CommitGroup.get(prefix)
+        group = CommitGroup.get(prefix.lower())
         if group is CommitGroup.PRIORITY:
             prefix, _, details = details.partition('/')
 

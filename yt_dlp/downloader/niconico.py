@@ -7,9 +7,9 @@ from .common import FileDownloader
 from .external import FFmpegFD
 from ..utils import (
     DownloadError,
-    str_or_none,
-    sanitized_Request,
     WebSocketsWrapper,
+    sanitized_Request,
+    str_or_none,
     try_get,
 )
 

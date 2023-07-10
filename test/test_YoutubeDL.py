@@ -631,6 +631,7 @@ class TestYoutubeDL(unittest.TestCase):
 
     outtmpl_info = {
         'id': '1234',
+        'id': '1234',
         'ext': 'mp4',
         'width': None,
         'height': 1080,
@@ -668,7 +669,7 @@ class TestYoutubeDL(unittest.TestCase):
             for (name, got), expect in zip((('outtmpl', out), ('filename', fname)), expected):
                 if callable(expect):
                     self.assertTrue(expect(got), f'Wrong {name} from {tmpl}')
-                else:
+                elif expect is not None:
                     self.assertEqual(got, expect, f'Wrong {name} from {tmpl}')
 
         # Side-effects
@@ -683,7 +684,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s.%(ext)s', '1234.mp4')
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
-        test('%(playlist_index)s', '001')
+        test('%(playlist_index|)s', '001')
         test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
@@ -754,20 +755,23 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(ext)c', 'm')
         test('%(id)d %(id)r', "1234 '1234'")
         test('%(id)r %(height)r', "'1234' 1080")
+        test('%(title5)a %(height)a', (R"'\xe1\xe9\xed \U0001d400' 1080", None))
         test('%(ext)s-%(ext|def)d', 'mp4-def')
-        test('%(width|0)04d', '0000')
+        test('%(width|0)04d', '0')
         test('a%(width|b)d', 'ab', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
-        sanitize = lambda x: x.replace(':', '：').replace('"', "＂").replace('\n', ' ')
 
         # Custom type casting
         test('%(formats.:.id)l', 'id 1, id 2, id 3')
         test('%(formats.:.id)#l', ('id 1\nid 2\nid 3', 'id 1 id 2 id 3'))
         test('%(ext)l', 'mp4')
         test('%(formats.:.id) 18l', '  id 1, id 2, id 3')
-        test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
-        test('%(formats)#j', (json.dumps(FORMATS, indent=4), sanitize(json.dumps(FORMATS, indent=4))))
+        test('%(formats)j', (json.dumps(FORMATS), None))
+        test('%(formats)#j', (
+            json.dumps(FORMATS, indent=4),
+            json.dumps(FORMATS, indent=4).replace(':', '：').replace('"', "＂").replace('\n', ' ')
+        ))
         test('%(title5).3B', 'á')
         test('%(title5)U', 'áéí 𝐀')
         test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
@@ -792,8 +796,8 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title|%)s %(title|%%)s', '% %%')
         test('%(id+1-height+3)05d', '00158')
         test('%(width+100)05d', 'NA')
-        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % sanitize(str(FORMATS[0]))))
-        test('%(formats.0)r', (repr(FORMATS[0]), sanitize(repr(FORMATS[0]))))
+        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], None))
+        test('%(formats.0)r', (repr(FORMATS[0]), None))
         test('%(height.0)03d', '001')
         test('%(-height.0)04d', '-001')
         test('%(formats.-1.id)s', FORMATS[-1]['id'])
@@ -805,7 +809,7 @@ class TestYoutubeDL(unittest.TestCase):
         out = json.dumps([{'id': f['id'], 'height.:2': str(f['height'])[:2]}
                           if 'height' in f else {'id': f['id']}
                           for f in FORMATS])
-        test('%(formats.:.{id,height.:2})j', (out, sanitize(out)))
+        test('%(formats.:.{id,height.:2})j', (out, None))
         test('%(formats.:.{id,height}.id)l', ', '.join(f['id'] for f in FORMATS))
         test('%(.{id,title})j', ('{"id": "1234"}', '{＂id＂： ＂1234＂}'))
 
@@ -1208,6 +1212,62 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(downloaded['id'], '2')
         self.assertEqual(downloaded['extractor'], 'Video')
         self.assertEqual(downloaded['extractor_key'], 'Video')
+
+    def test_header_cookies(self):
+        from http.cookiejar import Cookie
+
+        ydl = FakeYDL()
+        ydl.report_warning = lambda *_, **__: None
+
+        def cookie(name, value, version=None, domain='', path='', secure=False, expires=None):
+            return Cookie(
+                version or 0, name, value, None, False,
+                domain, bool(domain), bool(domain), path, bool(path),
+                secure, expires, False, None, None, rest={})
+
+        _test_url = 'https://yt.dlp/test'
+
+        def test(encoded_cookies, cookies, headers=False, round_trip=None, error=None):
+            def _test():
+                ydl.cookiejar.clear()
+                ydl._load_cookies(encoded_cookies, from_headers=headers)
+                if headers:
+                    ydl._apply_header_cookies(_test_url)
+                data = {'url': _test_url}
+                ydl._calc_headers(data)
+                self.assertCountEqual(
+                    map(vars, ydl.cookiejar), map(vars, cookies),
+                    'Extracted cookiejar.Cookie is not the same')
+                if not headers:
+                    self.assertEqual(
+                        data.get('cookies'), round_trip or encoded_cookies,
+                        'Cookie is not the same as round trip')
+                ydl.__dict__['_YoutubeDL__header_cookies'] = []
+
+            with self.subTest(msg=encoded_cookies):
+                if not error:
+                    _test()
+                    return
+                with self.assertRaisesRegex(Exception, error):
+                    _test()
+
+        test('test=value; Domain=.yt.dlp', [cookie('test', 'value', domain='.yt.dlp')])
+        test('test=value', [cookie('test', 'value')], error='Unscoped cookies are not allowed')
+        test('cookie1=value1; Domain=.yt.dlp; Path=/test; cookie2=value2; Domain=.yt.dlp; Path=/', [
+            cookie('cookie1', 'value1', domain='.yt.dlp', path='/test'),
+            cookie('cookie2', 'value2', domain='.yt.dlp', path='/')])
+        test('test=value; Domain=.yt.dlp; Path=/test; Secure; Expires=9999999999', [
+            cookie('test', 'value', domain='.yt.dlp', path='/test', secure=True, expires=9999999999)])
+        test('test="value; "; path=/test; domain=.yt.dlp', [
+            cookie('test', 'value; ', domain='.yt.dlp', path='/test')],
+            round_trip='test="value\\073 "; Domain=.yt.dlp; Path=/test')
+        test('name=; Domain=.yt.dlp', [cookie('name', '', domain='.yt.dlp')],
+             round_trip='name=""; Domain=.yt.dlp')
+
+        test('test=value', [cookie('test', 'value', domain='.yt.dlp')], headers=True)
+        test('cookie1=value; Domain=.yt.dlp; cookie2=value', [], headers=True, error='Invalid syntax')
+        ydl.deprecated_feature = ydl.report_error
+        test('test=value', [], headers=True, error='Passing cookies as a header is a potential security risk')
 
 
 if __name__ == '__main__':

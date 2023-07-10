@@ -5,7 +5,9 @@ from ..compat import compat_parse_qs
 from ..utils import (
     ExtractorError,
     determine_ext,
+    extract_attributes,
     get_element_by_class,
+    get_element_html_by_id,
     int_or_none,
     lowercase_escape,
     try_get,
@@ -34,6 +36,7 @@ class GoogleDriveIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Big Buck Bunny.mp4',
             'duration': 45,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         }
     }, {
         # video can't be watched anonymously due to view count limit reached,
@@ -207,10 +210,10 @@ class GoogleDriveIE(InfoExtractor):
                 'export': 'download',
             })
 
-        def request_source_file(source_url, kind):
+        def request_source_file(source_url, kind, data=None):
             return self._request_webpage(
                 source_url, video_id, note='Requesting %s file' % kind,
-                errnote='Unable to request %s file' % kind, fatal=False)
+                errnote='Unable to request %s file' % kind, fatal=False, data=data)
         urlh = request_source_file(source_url, 'source')
         if urlh:
             def add_source_format(urlh):
@@ -237,14 +240,10 @@ class GoogleDriveIE(InfoExtractor):
                     urlh, url, video_id, note='Downloading confirmation page',
                     errnote='Unable to confirm download', fatal=False)
                 if confirmation_webpage:
-                    confirm = self._search_regex(
-                        r'confirm=([^&"\']+)', confirmation_webpage,
-                        'confirmation code', default=None)
-                    if confirm:
-                        confirmed_source_url = update_url_query(source_url, {
-                            'confirm': confirm,
-                        })
-                        urlh = request_source_file(confirmed_source_url, 'confirmed source')
+                    confirmed_source_url = extract_attributes(
+                        get_element_html_by_id('download-form', confirmation_webpage) or '').get('action')
+                    if confirmed_source_url:
+                        urlh = request_source_file(confirmed_source_url, 'confirmed source', data=b'')
                         if urlh and urlh.headers.get('Content-Disposition'):
                             add_source_format(urlh)
                     else:
