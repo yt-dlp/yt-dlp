@@ -14,7 +14,7 @@ class WimbledonIE(InfoExtractor):
             'ext': 'mp4',
             'timestamp': 1687972186,
             'description': '',
-            'thumbnail': r're:^https://[\.\w-]+\.prod\.boltdns\.net/[^?#]+/image\.jpg',
+            'thumbnail': r're:^https://[\w.-]+\.prod\.boltdns\.net/[^?#]+/image\.jpg',
             'upload_date': '20230628',
             'title': 'Coco Gauff | My Wimbledon Inspiration',
             'tags': ['features', 'trending', 'homepage'],
@@ -26,7 +26,7 @@ class WimbledonIE(InfoExtractor):
         'info_dict': {
             'id': '6308703111112',
             'ext': 'mp4',
-            'thumbnail': r're:^https://[\.\w-]+\.prod\.boltdns\.net/[^?#]+/image\.jpg',
+            'thumbnail': r're:^https://[\w.-]+\.prod\.boltdns\.net/[^?#]+/image\.jpg',
             'description': 'null',
             'upload_date': '20220629',
             'uploader_id': '3506358525001',
@@ -45,11 +45,8 @@ class WimbledonIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         metadata = self._download_json(
-            f'https://www.wimbledon.com/relatedcontent/rest/v2/wim_v1/en/content/wim_v1_{video_id}_en',
-            video_id,
-        )
+            f'https://www.wimbledon.com/relatedcontent/rest/v2/wim_v1/en/content/wim_v1_{video_id}_en', video_id)
 
         return {
             '_type': 'url_transparent',
