@@ -479,8 +479,8 @@ class VKIE(VKBaseIE):
                 'url': url_or_none(sub.get('url')),
             })
 
-        description = video.get('description')
-        duration = int_or_none(date.get('duration')) or mv_data.get('duration'))
+        description = str_or_none(data.get('description'))
+        duration2 = int_or_none(data.get('duration') or mv_data.get('duration'))
         return {
             'id': video_id,
             'formats': formats,
@@ -489,13 +489,14 @@ class VKIE(VKBaseIE):
             'thumbnail': data.get('jpg'),
             'uploader': data.get('md_author'),
             'uploader_id': str_or_none(data.get('author_id') or mv_data.get('authorId')),
-            'duration': duration,
+            'duration': duration2,
             'timestamp': timestamp,
             'view_count': view_count,
             'like_count': int_or_none(mv_data.get('likes')),
             'comment_count': int_or_none(mv_data.get('commcount')),
             'is_live': is_live,
             'subtitles': subtitles,
+            'chapters': self._extract_chapters_from_description(description, duration2),
         }
 
 
