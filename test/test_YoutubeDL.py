@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import copy
 import json
 
-from test.helper import FakeYDL, assertRegexpMatches
+from test.helper import FakeYDL, assertRegexpMatches, try_rm
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_os_name
 from yt_dlp.extractor import YoutubeIE
@@ -24,6 +24,8 @@ from yt_dlp.utils import (
     int_or_none,
     match_filter_func,
 )
+from yt_dlp.utils.traversal import traverse_obj
+
 
 TEST_URL = 'http://localhost/sample.mp4'
 
@@ -1268,6 +1270,54 @@ class TestYoutubeDL(unittest.TestCase):
         test('cookie1=value; Domain=.yt.dlp; cookie2=value', [], headers=True, error=r'Invalid syntax')
         ydl.deprecated_feature = ydl.report_error
         test('test=value', [], headers=True, error=r'Passing cookies as a header is a potential security risk')
+
+    def test_infojson_cookies(self):
+        TEST_FILE = 'test_infojson_cookies.info.json'
+        TEST_URL = 'https://example.com/example.mp4'
+        COOKIES = 'a=b; Domain=.example.com; c=d; Domain=.example.com'
+        COOKIE_HEADER = {'Cookie': 'a=b; c=d'}
+
+        ydl = FakeYDL()
+        ydl.process_info = lambda x: ydl._write_info_json('test', x, TEST_FILE)
+
+        def make_info(info_header_cookies=False, fmts_header_cookies=False, cookies_field=False):
+            fmt = {'url': TEST_URL}
+            if fmts_header_cookies:
+                fmt['http_headers'] = COOKIE_HEADER
+            if cookies_field:
+                fmt['cookies'] = COOKIES
+            return _make_result([fmt], http_headers=COOKIE_HEADER if info_header_cookies else None)
+
+        def test(initial_info, note):
+            result = {}
+            result['processed'] = ydl.process_ie_result(initial_info)
+            self.assertTrue(ydl.cookiejar.get_cookies_for_url(TEST_URL),
+                            msg=f'No cookies set in cookiejar after initial process when {note}')
+            ydl.cookiejar.clear()
+            with open(TEST_FILE) as infojson:
+                result['loaded'] = ydl.sanitize_info(json.load(infojson), True)
+            result['final'] = ydl.process_ie_result(result['loaded'].copy(), download=False)
+            self.assertTrue(ydl.cookiejar.get_cookies_for_url(TEST_URL),
+                            msg=f'No cookies set in cookiejar after final process when {note}')
+            ydl.cookiejar.clear()
+            for key in ('processed', 'loaded', 'final'):
+                info = result[key]
+                self.assertIsNone(
+                    traverse_obj(info, ((None, ('formats', 0)), 'http_headers', 'Cookie'), casesense=False, get_all=False),
+                    msg=f'Cookie header not removed in {key} result when {note}')
+                self.assertEqual(
+                    traverse_obj(info, ((None, ('formats', 0)), 'cookies'), get_all=False), COOKIES,
+                    msg=f'No cookies field found in {key} result when {note}')
+
+        test({'url': TEST_URL, 'http_headers': COOKIE_HEADER, 'id': '1', 'title': 'x'}, 'no formats field')
+        test(make_info(info_header_cookies=True), 'info_dict header cokies')
+        test(make_info(fmts_header_cookies=True), 'format header cookies')
+        test(make_info(info_header_cookies=True, fmts_header_cookies=True), 'info_dict and format header cookies')
+        test(make_info(info_header_cookies=True, fmts_header_cookies=True, cookies_field=True), 'all cookies fields')
+        test(make_info(cookies_field=True), 'cookies format field')
+        test({'url': TEST_URL, 'cookies': COOKIES, 'id': '1', 'title': 'x'}, 'info_dict cookies field only')
+
+        try_rm(TEST_FILE)
 
 
 if __name__ == '__main__':
