@@ -1634,10 +1634,10 @@ class YoutubeDL:
     def _remove_cookie_header(self, http_headers):
         """Filters out `Cookie` header from an `http_headers` dict
 
-        The `Cookie` header is removed to prevent leaks and supercookies.
+        The `Cookie` header is removed to prevent leaks and unscoped cookies.
         See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
 
-        @param http_headers     An `http_headers` dict with a `Cookie` header to be removed
+        @param http_headers     An `http_headers` dict from which any `Cookie` header should be removed
         """
         return dict(traverse_obj(http_headers, ({dict.items}, lambda _, pair: pair[0].lower() != 'cookie')))
 
