@@ -1319,6 +1319,25 @@ class TestYoutubeDL(unittest.TestCase):
 
         try_rm(TEST_FILE)
 
+    def test_add_headers_cookie(self):
+        def check_for_cookie_header(result):
+            return traverse_obj(result, ((None, ('formats', 0)), 'http_headers', 'Cookie'), casesense=False, get_all=False)
+
+        ydl = FakeYDL({'http_headers': {'Cookie': 'a=b'}})
+        ydl._apply_header_cookies(_make_result([])['webpage_url'])  # Scope to input webpage URL: .example.com
+
+        fmt = {'url': 'https://example.com/video.mp4'}
+        result = ydl.process_ie_result(_make_result([fmt]), download=False)
+        self.assertIsNone(check_for_cookie_header(result), msg='http_headers cookies in result info_dict')
+        self.assertEqual(result.get('cookies'), 'a=b; Domain=.example.com', msg='No cookies were set in cookies field')
+        self.assertIn('a=b', ydl.cookiejar.get_cookie_header(fmt['url']), msg='No cookies were set in cookiejar')
+
+        fmt = {'url': 'https://wrong.com/video.mp4'}
+        result = ydl.process_ie_result(_make_result([fmt]), download=False)
+        self.assertIsNone(check_for_cookie_header(result), msg='http_headers cookies for wrong domain')
+        self.assertFalse(result.get('cookies'), msg='Cookies set in cookies field for wrong domain')
+        self.assertFalse(ydl.cookiejar.get_cookie_header(fmt['url']), msg='Cookies set in cookiejar for wrong domain')
+
 
 if __name__ == '__main__':
     unittest.main()
