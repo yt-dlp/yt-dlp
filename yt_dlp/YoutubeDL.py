@@ -2484,11 +2484,11 @@ class YoutubeDL:
         parsed_selector = _parse_format_selection(iter(TokenIterator(tokens)))
         return _build_selector_function(parsed_selector)
 
-    def _calc_headers(self, info_dict):
-        res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
-        if 'Youtubedl-No-Compression' in res:  # deprecated
-            res.pop('Youtubedl-No-Compression', None)
-            res['Accept-Encoding'] = 'identity'
+    def _calc_headers(self, info_dict, load_cookies=True):
+        if load_cookies:  # For --load-info-json
+            self._load_cookies(traverse_obj(info_dict.get('http_headers'), 'Cookie', casesense=False),
+                               autoscope=info_dict['url'])  # compat
+            self._load_cookies(info_dict.get('cookies'), autoscope=False)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
         if cookies:
             encoder = LenientSimpleCookie()
@@ -2508,12 +2508,16 @@ class YoutubeDL:
                     values.append(f'Version={cookie.version}')
             info_dict['cookies'] = '; '.join(values)
 
+        res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
+        if 'Youtubedl-No-Compression' in res:  # deprecated
+            res.pop('Youtubedl-No-Compression', None)
+            res['Accept-Encoding'] = 'identity'
         if 'X-Forwarded-For' not in res:
             x_forwarded_for_ip = info_dict.get('__x_forwarded_for_ip')
             if x_forwarded_for_ip:
                 res['X-Forwarded-For'] = x_forwarded_for_ip
 
-        return res
+        return self._remove_cookie_header(res)
 
     def _calc_cookies(self, url):
         self.deprecation_warning('"YoutubeDL._calc_cookies" is deprecated and may be removed in a future version')
@@ -2767,11 +2771,7 @@ class YoutubeDL:
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
-            self._load_cookies(format.get('cookies'), autoscope=False)  # For --load-info-json
-            self._load_cookies(traverse_obj(format, ('http_headers', 'Cookie'), casesense=False),
-                               autoscope=format['url'])  # compat for --load-info-json
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
-            format['http_headers'] = self._remove_cookie_header(format.get('http_headers')) or None
 
         # Safeguard against old/insecure infojson when using --load-info-json
         info_dict['http_headers'] = self._remove_cookie_header(info_dict.get('http_headers')) or None
@@ -3105,7 +3105,7 @@ class YoutubeDL:
         # But it may contain objects that are not deep-copyable
         new_info = self._copy_infodict(info)
         if new_info.get('http_headers') is None:
-            new_info['http_headers'] = self._calc_headers(new_info)
+            new_info['http_headers'] = self._calc_headers(new_info, load_cookies=False)
         return fd.download(name, new_info, subtitle)
 
     def existing_file(self, filepaths, *, default_overwrite=True):
