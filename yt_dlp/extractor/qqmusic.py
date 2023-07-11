@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     ExtractorError,
+    UserNotLive,
     strip_jsonp,
     unescapeHTML,
     traverse_obj,
@@ -440,14 +441,17 @@ class QQMusicVideoLiveIE(InfoExtractor):
         stream_info = self._download_json('https://vc.y.qq.com/cgi-bin/musicu.fcg', stream_id, data=payload.encode())
         # print(payload)
         # print(json.dumps(stream_info, ensure_ascii=False))
-        meta = traverse_obj(stream_info, ('req_0', 'data', 'showInfo', {
-            'title': ('title', {str_or_none}),
-            'thumbnail': ('cover_pic', {url_or_none}),
-            'uploader_id': ('uin', {str_or_none}),
-        }))
+
+        formats = self._parse_url_foramts(stream_info, stream_id)
+        if not formats and traverse_obj(stream_info, ('req_0', 'data', 'showInfo', 'liveType')) == 0:
+            raise UserNotLive(video_id=stream_id)
         return {
             'id': stream_id,
             'formats': self._parse_url_foramts(stream_info, stream_id),
             'is_live': True,
-            **meta,
+            **traverse_obj(stream_info, ('req_0', 'data', 'showInfo', {
+                'title': ('title', {str_or_none}),
+                'thumbnail': ('cover_pic', {url_or_none}),
+                'uploader_id': ('uin', {str_or_none}),
+            })),
         }
