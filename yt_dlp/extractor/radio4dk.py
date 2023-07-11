@@ -1,9 +1,9 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     get_element_html_by_attribute,
+    get_element_html_by_class,
+    get_elements_html_by_class,
     unescapeHTML,
     unified_strdate,
 )
@@ -29,9 +29,15 @@ class Radio4DkIE(InfoExtractor):
         details_attibutes = extract_attributes(get_element_html_by_attribute('data-gid', video_id, webpage))
         url = details_attibutes['href']
         title = details_attibutes['data-title']
-        episode_date = self._search_regex(
-            r'<div\s+class="date_title">.*<span\s+class="programDate\s+ep_date_js">([^<]+)</span>.*<span\s+class="gid".*>%s</span>' % video_id,
-            webpage, 'episode date', fatal=False, flags=re.DOTALL)
+        date_episode_span_html = ""
+        for date_episode_html in get_elements_html_by_class('date_title', webpage):
+            # check each span for the correct gid
+            gid_html = get_element_html_by_class('gid', date_episode_html)
+            gid = self._search_regex('<span[^>]+>(\d+)</span>', gid_html, 'gid')
+            if gid == video_id:
+                date_episode_span_html = get_element_html_by_class('programDate ep_date_js', date_episode_html)
+                break
+        episode_date = self._search_regex('<span[^>]+>(.*)</span>', date_episode_span_html, 'episode date')
         return {
             'url': url,
             'id': video_id,
