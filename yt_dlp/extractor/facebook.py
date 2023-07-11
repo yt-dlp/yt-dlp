@@ -501,7 +501,7 @@ class FacebookIE(InfoExtractor):
                     q = qualities(['sd', 'hd'])
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
                                            ('playable_url_dash', '')):
-                        playable_url = video.get(key)
+                        playable_url = video.get(key) or video.get('creation_story', {}).get('short_form_video_context', {}).get('playback_video', {}).get(key)
                         if not playable_url:
                             continue
                         if determine_ext(playable_url) == 'mpd':
