@@ -65,6 +65,10 @@ else:
     if hasattr(xattr, 'set'):  # pyxattr
         xattr._yt_dlp__identifier = 'pyxattr'
 
+try:
+    import curl_cffi
+except ImportError:
+    curl_cffi = None
 
 from . import Cryptodome
 
