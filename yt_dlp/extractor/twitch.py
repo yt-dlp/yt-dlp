@@ -21,6 +21,7 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
+    RetryManager,
     str_or_none,
     try_get,
     unified_timestamp,
@@ -545,44 +546,34 @@ class TwitchVodIE(TwitchBaseIE):
                 } for path in images],
             }
 
-    def _extract_chat(self, vod_id):
+    def _get_subtitles(self, vod_id):
         chat_history = []
         has_more_pages = True
-        retry_sleep = 5
-        max_retries = 3
-        retries = 0
         pagenum = 1
-        gql_ops = [
-            {
-                'operationName': 'VideoCommentsByOffsetOrCursor',
-                'variables': {
-                    'videoID': vod_id,
-                    # 'cursor': <filled in in subsequent requests>
-                }
-            }
-        ]
-
-        self.to_screen('Downloading chat fragment pages')
+        gql_ops = [{
+            'operationName': 'VideoCommentsByOffsetOrCursor',
+            'variables': { 'videoID': vod_id }
+            # 'variables.cursor': <filled in in subsequent requests>
+        }]
 
         while has_more_pages:
-            response = self._download_gql(vod_id, gql_ops, 'Downloading chat fragment page %d' % pagenum, fatal=False)
+            response = None
 
-            if response is False:
-                self.report_warning(f'Unable to fetch next chat history fragment. {retries + 1}. try of {max_retries}')
+            for retry in self.RetryManager():
+                response = self._download_gql(vod_id, gql_ops, 'Downloading chat fragment page %d' % pagenum, fatal=False)
+                # response = False
+                # TODO: delete the direct False, uncomment _download_gql
 
-                if retries < max_retries:
-                    retries += 1
-                    time.sleep(retry_sleep)
-                    continue
-                else:
-                    self.report_warning('Chat history download failed: retry limit reached')
+                if response is False:
+                    retry.error = ExtractorError("f'Unable to fetch next chat history fragment.'", video_id=vod_id, ie=self)
+
                     # TODO: when this happens, should I forget a partial chat history, or is it better to keep it?
                     #       I think if I keep it, it might be better to persist a warning that it is incomplete
-                    # chat_history.clear()
-                    break
+
+                    # time.sleep(5)
 
             response_errors = traverse_obj(response, (..., 'errors'))
-            if response_errors is not None and len(response_errors) > 0:
+            if response_errors:
                 self.report_warning(f"Error response recevied for fetching next chat history fragment: {response_errors}")
 
             comments_obj = traverse_obj(response, (0, 'data', 'video', 'comments'))
@@ -607,19 +598,15 @@ class TwitchVodIE(TwitchBaseIE):
                 else:  # In this case maintenance might be needed. Purpose is to prevent silent errors.
                     self.report_warning("Next page indication is missing, and cursor not found.")
 
-        chat_history_length = len(chat_history)
-        self.to_screen('Extracted %d chat messages' % chat_history_length)
-        if chat_history_length == 0:
-            return None
+        if not chat_history:
+            return
 
-        return {
-            'live_chat': [  # subtitle tag
-                {
-                    'data': json.dumps(chat_history),
-                    'ext': 'twitch-gql-20221228.json'
-                }
-            ]
-        }
+        self.to_screen('Extracted %d chat messages' % len(chat_history))
+
+        return { 'rechat': [{
+            'data': json.dumps(chat_history),
+            'ext': 'twitch-gql-20221228.json'
+        }]}
 
     def _real_extract(self, url):
         vod_id = self._match_id(url)
@@ -640,9 +627,8 @@ class TwitchVodIE(TwitchBaseIE):
         if 't' in query:
             info['start_time'] = parse_duration(query['t'][0])
 
-        if ('live_chat' in self.get_param('subtitleslangs', [])) \
-                and info.get('timestamp') is not None:
-            info['subtitles'] = self._extract_chat(vod_id)
+        if info.get('timestamp'):
+            info['subtitles'] = self.extract_subtitles(vod_id)
 
         return info
 
