@@ -5136,7 +5136,7 @@ def truncate_string(s, left, right=0):
     return f'{s[:left-3]}...{s[-right:] if right else ""}'
 
 
-class CaseInsensitiveDict(collections.UserDict, dict):
+class HTTPHeaderDict(collections.UserDict, dict):
     """
     Store and access keys case-insensitively.
     The constructor can take multiple dicts, in which keys in the latter are prioritised.
@@ -5489,7 +5489,7 @@ class FormatSorter:
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
 
 
-def clean_proxies(proxies: dict, headers: CaseInsensitiveDict):
+def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
     req_proxy = headers.pop('Ytdl-Request-Proxy', None)
     if req_proxy:
         proxies.clear()  # XXX: compat: Ytdl-Request-Proxy takes preference over everything, including NO_PROXY
@@ -5515,7 +5515,7 @@ def clean_proxies(proxies: dict, headers: CaseInsensitiveDict):
                     urllib.parse.urlparse(proxy_url)._replace(scheme=replace_scheme[proxy_scheme]))
 
 
-def clean_headers(headers: CaseInsensitiveDict):
+def clean_headers(headers: HTTPHeaderDict):
     if 'Youtubedl-No-Compression' in headers:  # compat
         del headers['Youtubedl-No-Compression']
         headers['Accept-Encoding'] = 'identity'

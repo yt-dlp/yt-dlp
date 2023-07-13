@@ -17,7 +17,7 @@ from typing import IO, Iterable, Mapping, Union
 from .exceptions import TransportError, UnsupportedRequest
 from .utils import make_ssl_context
 from ..utils import (
-    CaseInsensitiveDict,
+    HTTPHeaderDict,
     classproperty,
     deprecation_warning,
     escape_url,
@@ -121,7 +121,7 @@ class RequestHandler(abc.ABC):
     def __init__(
         self, *,
         logger,  # TODO(Grub4k)
-        headers: CaseInsensitiveDict = None,
+        headers: HTTPHeaderDict = None,
         cookiejar: CookieJar = None,
         timeout: float | int | None = None,
         proxies: dict = None,
@@ -155,7 +155,7 @@ class RequestHandler(abc.ABC):
         )
 
     def _merge_headers(self, request_headers):
-        return CaseInsensitiveDict(self.headers, request_headers)
+        return HTTPHeaderDict(self.headers, request_headers)
 
     def _check_url_scheme(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
@@ -280,7 +280,7 @@ class Request:
             extensions: dict = None
     ):
 
-        self._headers = CaseInsensitiveDict()
+        self._headers = HTTPHeaderDict()
         self._data = None
 
         if query:
@@ -347,16 +347,16 @@ class Request:
             self.headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
     @property
-    def headers(self) -> CaseInsensitiveDict:
+    def headers(self) -> HTTPHeaderDict:
         return self._headers
 
     @headers.setter
     def headers(self, new_headers: Mapping):
         """Replaces headers of the request. If not a CaseInsensitiveDict, it will be converted to one."""
-        if isinstance(new_headers, CaseInsensitiveDict):
+        if isinstance(new_headers, HTTPHeaderDict):
             self._headers = new_headers
         elif isinstance(new_headers, Mapping):
-            self._headers = CaseInsensitiveDict(new_headers)
+            self._headers = HTTPHeaderDict(new_headers)
         else:
             raise TypeError('headers must be a mapping')
 
