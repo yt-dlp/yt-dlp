@@ -32,7 +32,7 @@ class RequestDirector:
 
     def _print_verbose(self, msg):
         if self.verbose:
-            self.logger.stdout(f'[Director] {msg}')
+            self.logger.stdout(f'director: {msg}')
 
     def send(self, request: Request) -> Response:
         """
