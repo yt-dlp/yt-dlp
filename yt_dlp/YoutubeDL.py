@@ -682,7 +682,7 @@ class YoutubeDL:
             sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
 
         for preference in _RH_PREFERENCES:
-            self._request_director.add_preference(preference)
+            self._request_director.add_preference(preference())
 
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
