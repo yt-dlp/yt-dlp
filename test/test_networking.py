@@ -29,7 +29,7 @@ from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.dependencies import brotli
-from yt_dlp.networking import RequestDirector
+from yt_dlp.networking.director import RequestDirector, Preference
 from yt_dlp.networking._urllib import UrllibRH
 from yt_dlp.networking.common import (
     _REQUEST_HANDLERS,
@@ -993,8 +993,13 @@ class TestRequestDirector:
             def _send(self, request: Request):
                 return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
 
+        class SupportedRHPReference(Preference):
+            _RH_KEY = 'Supported'
+            _PREFERENCE = 100
+
         # This handler should by default take preference over FakeRH
         director.add_handler(SupportedRH(logger=FakeLogger()))
+        director.add_preference(SupportedRHPReference())
         assert director.send(Request('http://')).read() == b'supported'
         assert director.send(Request('any://')).read() == b''
 

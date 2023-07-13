@@ -33,7 +33,7 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
-from .networking import RequestDirector
+from .networking.director import RequestDirector
 from .networking.common import _REQUEST_HANDLERS, HEADRequest, Request
 from .networking.exceptions import (
     HTTPError,
