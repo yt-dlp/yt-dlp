@@ -35,6 +35,7 @@ from yt_dlp.networking import (
     PUTRequest,
     Request,
     RequestDirector,
+    Preference,
     RequestHandler,
     Response,
 )
@@ -994,8 +995,13 @@ class TestRequestDirector:
             def _send(self, request: Request):
                 return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
 
+        class SupportedRHPReference(Preference):
+            _RH_KEY = 'Supported'
+            _PREFERENCE = 100
+
         # This handler should by default take preference over FakeRH
         director.add_handler(SupportedRH(logger=FakeLogger()))
+        director.add_preference(SupportedRHPReference())
         assert director.send(Request('http://')).read() == b'supported'
         assert director.send(Request('any://')).read() == b''
 
