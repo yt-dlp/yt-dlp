@@ -11,7 +11,7 @@ from collections.abc import Iterable
 from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, format_field, traverse_obj
+from ..utils import HTTPHeaderDict, format_field, traverse_obj
 
 
 def random_user_agent():
@@ -59,7 +59,7 @@ def random_user_agent():
     return _USER_AGENT_TPL % random.choice(_CHROME_VERSIONS)
 
 
-std_headers = CaseInsensitiveDict({
+std_headers = HTTPHeaderDict({
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-us,en;q=0.5',
@@ -239,6 +239,6 @@ class InstanceStoreMixin:
         self.__instances.clear()
 
 
-def add_accept_encoding_header(headers: CaseInsensitiveDict, supported_encodings: Iterable[str]):
+def add_accept_encoding_header(headers: HTTPHeaderDict, supported_encodings: Iterable[str]):
     if 'Accept-Encoding' not in headers:
         headers['Accept-Encoding'] = ', '.join(supported_encodings) or 'identity'

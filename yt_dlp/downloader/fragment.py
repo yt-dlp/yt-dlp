@@ -13,7 +13,7 @@ from ..compat import compat_os_name
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
 from ..utils import (
-    CaseInsensitiveDict,
+    HTTPHeaderDict,
     DownloadError,
     RetryManager,
     encodeFilename,
@@ -457,7 +457,7 @@ class FragmentFD(FileDownloader):
 
             frag_index = ctx['fragment_index'] = fragment['frag_index']
             ctx['last_error'] = None
-            headers = CaseInsensitiveDict(info_dict.get('http_headers'))
+            headers = HTTPHeaderDict(info_dict.get('http_headers'))
             byte_range = fragment.get('byte_range')
             if byte_range:
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)

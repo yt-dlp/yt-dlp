@@ -49,7 +49,7 @@ from yt_dlp.networking.exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from yt_dlp.utils import CaseInsensitiveDict
+from yt_dlp.utils import HTTPHeaderDict
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -501,7 +501,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_headers(self, handler):
 
-        with handler(headers=CaseInsensitiveDict({'test1': 'test', 'test2': 'test2'})) as rh:
+        with handler(headers=HTTPHeaderDict({'test1': 'test', 'test2': 'test2'})) as rh:
             # Global Headers
             data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
             assert b'Test1: test' in data
@@ -1211,17 +1211,17 @@ class TestRequest:
 
     def test_headers(self):
         req = Request('http://example.com', headers={'tesT': 'test'})
-        assert req.headers == CaseInsensitiveDict({'test': 'test'})
+        assert req.headers == HTTPHeaderDict({'test': 'test'})
         req.update(headers={'teSt2': 'test2'})
-        assert req.headers == CaseInsensitiveDict({'test': 'test', 'test2': 'test2'})
+        assert req.headers == HTTPHeaderDict({'test': 'test', 'test2': 'test2'})
 
-        req.headers = new_headers = CaseInsensitiveDict({'test': 'test'})
-        assert req.headers == CaseInsensitiveDict({'test': 'test'})
+        req.headers = new_headers = HTTPHeaderDict({'test': 'test'})
+        assert req.headers == HTTPHeaderDict({'test': 'test'})
         assert req.headers is new_headers
 
         # test converts dict to case insensitive dict
         req.headers = new_headers = {'test2': 'test2'}
-        assert isinstance(req.headers, CaseInsensitiveDict)
+        assert isinstance(req.headers, HTTPHeaderDict)
         assert req.headers is not new_headers
 
         with pytest.raises(TypeError):

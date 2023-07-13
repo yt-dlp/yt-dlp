@@ -73,7 +73,7 @@ from .utils import (
     POSTPROCESS_WHEN,
     STR_FORMAT_RE_TMPL,
     STR_FORMAT_TYPES,
-    CaseInsensitiveDict,
+    HTTPHeaderDict,
     ContentTooShortError,
     DateRange,
     DownloadCancelled,
@@ -677,7 +677,7 @@ class YoutubeDL:
                     raise
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
-        self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers'))
+        self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
         self._request_director = self.build_request_director(
             sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
         if auto_init and auto_init != 'no_verbose_header':
@@ -2481,7 +2481,7 @@ class YoutubeDL:
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = CaseInsensitiveDict(self.params['http_headers'], info_dict.get('http_headers'))
+        res = HTTPHeaderDict(self.params['http_headers'], info_dict.get('http_headers'))
         clean_headers(res)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
         if cookies:

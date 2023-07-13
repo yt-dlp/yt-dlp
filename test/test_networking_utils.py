@@ -32,7 +32,7 @@ from yt_dlp.networking.utils import (
     ssl_load_certs,
 )
 from yt_dlp.socks import ProxyType
-from yt_dlp.utils import CaseInsensitiveDict
+from yt_dlp.utils import HTTPHeaderDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -129,9 +129,9 @@ class TestNetworkingUtils:
         ({'Content-type': 'application/json'}, [], {'Content-type': 'application/json', 'Accept-Encoding': 'identity'}),
     ])
     def test_add_accept_encoding_header(self, headers, supported_encodings, expected):
-        headers = CaseInsensitiveDict(headers)
+        headers = HTTPHeaderDict(headers)
         add_accept_encoding_header(headers, supported_encodings)
-        assert headers == CaseInsensitiveDict(expected)
+        assert headers == HTTPHeaderDict(expected)
 
 
 class TestInstanceStoreMixin:

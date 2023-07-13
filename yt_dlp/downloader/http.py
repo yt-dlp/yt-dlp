@@ -10,7 +10,7 @@ from ..networking.exceptions import (
     TransportError,
 )
 from ..utils import (
-    CaseInsensitiveDict,
+    HTTPHeaderDict,
     ContentTooShortError,
     RetryManager,
     ThrottledDownload,
@@ -40,7 +40,7 @@ class HttpFD(FileDownloader):
         ctx.stream = None
 
         # Disable compression
-        headers = CaseInsensitiveDict({'Accept-Encoding': 'identity'}, info_dict.get('http_headers'))
+        headers = HTTPHeaderDict({'Accept-Encoding': 'identity'}, info_dict.get('http_headers'))
 
         is_test = self.params.get('test', False)
         chunk_size = self._TEST_FILE_SIZE if is_test else (
