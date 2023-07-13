@@ -131,6 +131,7 @@ class RequestHandler(abc.ABC):
         client_cert: dict[str, str | None] = None,
         verify: bool = True,
         legacy_ssl_support: bool = False,
+        **kwargs,
     ):
 
         self._logger = logger  # TODO(Grub4k): default logger
