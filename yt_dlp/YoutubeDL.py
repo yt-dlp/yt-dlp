@@ -33,7 +33,7 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
-from .networking.director import RequestDirector
+from .networking.director import RequestDirector, _PREFERENCES as _RH_PREFERENCES
 from .networking.common import _REQUEST_HANDLERS, HEADRequest, Request
 from .networking.exceptions import (
     HTTPError,
@@ -680,6 +680,10 @@ class YoutubeDL:
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
         self._request_director = self.build_request_director(
             sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
+
+        for preference in _RH_PREFERENCES:
+            self._request_director.add_preference(preference)
+
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
