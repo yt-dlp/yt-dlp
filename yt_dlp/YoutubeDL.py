@@ -34,7 +34,7 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
-from .networking.common import _REQUEST_HANDLERS
+from .networking.common import _REQUEST_HANDLERS, _PREFERENCES as RH_PREFERENCES
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
@@ -686,6 +686,10 @@ class YoutubeDL:
 
         self._request_director = self.build_request_director(
             sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
+
+        for preference in _RH_PREFERENCES:
+            self._request_director.add_preference(preference)
+
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
