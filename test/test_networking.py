@@ -459,14 +459,14 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(
                     f'http://127.0.0.1:{self.http_port}/headers',
                     headers={'Cookie': 'test=test'})).read().decode()
-            assert 'Cookie: test=test' in res
+            assert 'cookie: test=test' in res.lower()
 
             # Specified Cookie header should be removed on any redirect
             res = validate_and_send(
                 rh, Request(
                     f'http://127.0.0.1:{self.http_port}/308-to-headers',
-                    headers={'Cookie': 'test=test'})).read().decode()
-            assert 'Cookie: test=test' not in res
+                    headers={'Cookie': 'test=test2'})).read().decode()
+            assert 'cookie: test=test2' not in res.lower()
 
         # Specified Cookie header should override global cookiejar for that request
         cookiejar = http.cookiejar.CookieJar()
@@ -478,9 +478,9 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
         with handler(cookiejar=cookiejar) as rh:
             data = validate_and_send(
-                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'cookie': 'test=test'})).read()
-            assert b'Cookie: test=ytdlp' not in data
-            assert b'Cookie: test=test' in data
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'cookie': 'test=test3'})).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
+            assert b'cookie: test=test3' in data.lower()
 
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_redirect_loop(self, handler):
@@ -503,13 +503,13 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
         with handler(cookiejar=cookiejar) as rh:
             data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
-            assert b'Cookie: test=ytdlp' in data
+            assert b'cookie: test=ytdlp' in data.lower()
 
         # Per request
         with handler() as rh:
             data = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': cookiejar})).read()
-            assert b'Cookie: test=ytdlp' in data
+            assert b'cookie: test=ytdlp' in data.lower()
 
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_headers(self, handler):
