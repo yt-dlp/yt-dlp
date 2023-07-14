@@ -4,16 +4,16 @@ from enum import IntEnum
 
 from .common import RequestHandler, Request, Response, register
 from .director import Preference, register_preference
-from .exceptions import CertificateVerifyError, RequestError, SSLError, HTTPError, IncompleteRead
+from .exceptions import CertificateVerifyError, RequestError, SSLError, HTTPError, IncompleteRead, TransportError
 from .utils import InstanceStoreMixin
-from ..utils import int_or_none
+from ..utils import int_or_none, traverse_obj
 
 from ..dependencies import curl_cffi
 
 if curl_cffi is None:
     raise ImportError('curl_cffi is not installed')
 
-from curl_cffi import requests as crequests
+from curl_cffi import requests as crequests, ffi
 
 
 class CurlCFFISession(crequests.Session):
@@ -27,11 +27,25 @@ class CurlCFFISession(crequests.Session):
         # due to how curl_cffi handles threading
         curl = super().curl
         if self.verbose:
-            curl._debug = True
+            curl.setopt(curl_cffi.curl.CurlOpt.VERBOSE, 1)
         return curl
 
-    def _set_curl_options(self, curl, *args, **kwargs):
-        return super()._set_curl_options(curl, *args, **kwargs)
+    def _set_curl_options(self, curl, method: str, url: str, *args, **kwargs):
+
+        res = super()._set_curl_options(curl, method, url, *args, **kwargs)
+        data = traverse_obj(kwargs, 'data') or traverse_obj(args, 1)
+
+        # Attempt to align curl redirect handling with ours
+        curl.setopt(curl_cffi.curl.CurlOpt.CUSTOMREQUEST, ffi.NULL)
+
+        if data and method != 'POST':
+            # Don't strip data on 301,302,303 redirects for PUT etc.
+            curl.setopt(curl_cffi.curl.CurlOpt.POSTREDIR, 1 | 2 | 4)  # CURL_REDIR_POST_ALL
+
+        if method not in ('GET', 'POST'):
+            curl.setopt(curl_cffi.curl.CurlOpt.CUSTOMREQUEST, method.encode())
+
+        return res
 
 
 def get_error_code(error: curl_cffi.curl.CurlError):
@@ -58,15 +72,16 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
         # TODO: curl_cffi only sets cookie header for initial request
         # TODO: see if we can avoid reading the whole response into memory
         max_redirects_exceeded = False
-        session = self._get_instance(cookiejar=request.extensions.get('cookiejar'))
+        session: CurlCFFISession = self._get_instance(cookiejar=request.extensions.get('cookiejar'))
         try:
             curl_response = session.request(
                 method=request.method,
                 url=request.url,
-                headers=request.headers,
+                headers=self._merge_headers(request.headers),
                 data=request.data,
                 verify=self.verify,
                 max_redirects=5,
+                timeout=request.extensions.get('timeout') or self.timeout
             )
         except crequests.errors.RequestsError as e:
             error_code = get_error_code(e)
@@ -88,7 +103,8 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
                     request=crequests.cookies.Request(
                         url=request.url,
                         headers=crequests.headers.Headers(request.headers),
-                        method=request.method))
+                        method=request.method,
+                    ))
 
                 # We can try extract *some* data from curl
                 curl_response.url = session.curl.getinfo(curl_cffi.curl.CurlInfo.EFFECTIVE_URL).decode()
@@ -100,7 +116,7 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
                     expected=session.curl.getinfo(curl_cffi.curl.CurlInfo.CONTENT_LENGTH_DOWNLOAD),
                     cause=e) from e
             else:
-                raise RequestError(cause=e) from e
+                raise TransportError(cause=e) from e
 
         response = CurlCFFIResponseAdapter(
             io.BytesIO(curl_response.content),
