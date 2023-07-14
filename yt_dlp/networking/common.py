@@ -117,6 +117,7 @@ class RequestHandler(abc.ABC):
     _SUPPORTED_URL_SCHEMES = ()
     _SUPPORTED_PROXY_SCHEMES = ()
     _SUPPORTED_FEATURES = ()
+    _SUPPORTED_EXTENSIONS = ()
 
     def __init__(
         self, *,
@@ -210,6 +211,11 @@ class RequestHandler(abc.ABC):
             raise UnsupportedRequest('timeout is not a float or int')
 
     def _check_extensions(self, extensions):
+        if self._SUPPORTED_EXTENSIONS is None:
+            return
+        for extension in extensions:
+            if extension not in self._SUPPORTED_EXTENSIONS and not extension.startswith('_'):
+                raise UnsupportedRequest(f'Unsupported request extension: "{extension}"')
         self._check_cookiejar_extension(extensions)
         self._check_timeout_extension(extensions)
 

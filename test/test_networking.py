@@ -49,6 +49,7 @@ from yt_dlp.networking.exceptions import (
     TransportError,
     UnsupportedRequest,
 )
+from yt_dlp.networking.utils import std_headers
 from yt_dlp.utils import HTTPHeaderDict
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 
@@ -815,6 +816,30 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             with pytest.raises(RequestError, match='Invalid header name') as exc_info:
                 validate_and_send(rh, Request('http://127.0.0.1', headers={'foo\n': 'bar'}))
             assert not isinstance(exc_info.value, TransportError)
+
+
+class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
+
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+    def test_impersonate(self, handler):
+        with handler(headers=std_headers) as rh:
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'impersonate': 'chrome110'})).read().decode()
+            assert 'sec-ch-ua: "Chromium";v="110"' in res
+            # Check that user agent is added over ours
+            assert 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36' in res
+
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+    def test_headers(self, handler):
+        with handler() as rh:
+            # Ensure curl-impersonate overrides our standard headers (usually added
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'impersonate': 'safari15_3'}, headers={'x-custom': 'test', **std_headers})).read().decode().lower()
+
+            assert std_headers['user-agent'].lower() not in res
+            assert std_headers['accept-language'].lower() not in res
+            assert std_headers['sec-fetch-mode'].lower() not in res  # safari15_3 doesn't support sec-fetch-mode
+            assert 'x-custom: test' in res
 
 
 def run_validation(handler, fail, req, **handler_kwargs):
