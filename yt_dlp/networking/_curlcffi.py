@@ -18,9 +18,10 @@ from curl_cffi import requests as crequests, ffi
 
 class CurlCFFISession(crequests.Session):
 
-    def __init__(self, verbose=False, **kwargs):
+    def __init__(self, verbose=False, source_address=None, **kwargs):
         super().__init__(**kwargs)
         self.verbose = verbose
+        self.source_address = source_address
 
     @property
     def curl(self):
@@ -45,6 +46,8 @@ class CurlCFFISession(crequests.Session):
         if method not in ('GET', 'POST'):
             curl.setopt(curl_cffi.curl.CurlOpt.CUSTOMREQUEST, method.encode())
 
+        if self.source_address is not None:
+            curl.setopt(curl_cffi.curl.CurlOpt.INTERFACE, self.source_address.encode())
         return res
 
 
@@ -58,7 +61,9 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
 
     def _create_instance(self, cookiejar=None):
-        session_opts = {}
+        session_opts = {
+            'source_address': self.source_address,
+        }
 
         if self.verbose:
             session_opts['verbose'] = True
