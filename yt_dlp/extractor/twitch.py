@@ -60,6 +60,14 @@ class TwitchBaseIE(InfoExtractor):
         return self._configuration_arg(
             'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key='Twitch', casesense=True)[0]
 
+    @property
+    def _DEVICE_ID(self):
+        return self._configuration_arg('device_id', [None], ie_key='Twitch')[0]
+
+    @property
+    def _CLIENT_INTEGRITY(self):
+        return self._configuration_arg('client_integrity', [None], ie_key='Twitch', casesense=True)[0]
+
     def _perform_login(self, username, password):
         def fail(message):
             raise ExtractorError(
@@ -144,6 +152,14 @@ class TwitchBaseIE(InfoExtractor):
         gql_auth = self._get_cookies('https://gql.twitch.tv').get('auth-token')
         if gql_auth:
             headers['Authorization'] = 'OAuth ' + gql_auth.value
+
+        # TODO: remove existence checks when the values will be generated
+        if self._DEVICE_ID:
+            headers["X-Device-Id"] = self._DEVICE_ID
+
+        if self._CLIENT_INTEGRITY:
+            headers["Client-Integrity"] = self._CLIENT_INTEGRITY
+
         return self._download_json(
             'https://gql.twitch.tv/gql', video_id, note,
             data=json.dumps(ops).encode(),
