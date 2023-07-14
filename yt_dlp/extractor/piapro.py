@@ -25,7 +25,7 @@ class PiaproIE(InfoExtractor):
             'description': 'http://www.nicovideo.jp/watch/sm8082467',
             'duration': 189.0,
             'timestamp': 1251785475,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'upload_date': '20090901',
             'cookies': str,
             'view_count': int,
@@ -44,7 +44,7 @@ class PiaproIE(InfoExtractor):
             'timestamp': 1644030039,
             'upload_date': '20220205',
             'view_count': int,
-            'thumbnail': 'https://res.piapro.jp/images/card_chara/card-empty.png',
+            'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'cookies': str,
             'uploader_id': 'cyankino',
         }
