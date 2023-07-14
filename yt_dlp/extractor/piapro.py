@@ -27,7 +27,6 @@ class PiaproIE(InfoExtractor):
             'timestamp': 1251785475,
             'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'upload_date': '20090901',
-            'cookies': str,
             'view_count': int,
         }
     }, {
@@ -45,7 +44,6 @@ class PiaproIE(InfoExtractor):
             'upload_date': '20220205',
             'view_count': int,
             'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
-            'cookies': str,
             'uploader_id': 'cyankino',
         }
     }, {
