@@ -12,17 +12,22 @@ from ..utils import (
 
 class PiaproIE(InfoExtractor):
     _NETRC_MACHINE = 'piapro'
-    _VALID_URL = r'https?://piapro\.jp/t/(?P<id>\w+)/?'
+    _VALID_URL = r'https?://piapro\.jp/(?:t|content)/(?P<id>\w+)/?'
     _TESTS = [{
         'url': 'https://piapro.jp/t/NXYR',
-        'md5': 'a9d52f27d13bafab7ee34116a7dcfa77',
+        'md5': 'f7c0f760913fb1d44a1c45a4af793909',
         'info_dict': {
             'id': 'NXYR',
             'ext': 'mp3',
             'uploader': 'wowaka',
             'uploader_id': 'wowaka',
             'title': '裏表ラバーズ',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'http://www.nicovideo.jp/watch/sm8082467',
+            'duration': 189.0,
+            'timestamp': 1251785475,
+            'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
+            'upload_date': '20090901',
+            'view_count': int,
         }
     }, {
         'note': 'There are break lines in description, mandating (?s) flag',
@@ -34,8 +39,16 @@ class PiaproIE(InfoExtractor):
             'title': '青に溶けた風船 / 初音ミク',
             'description': 'md5:d395a9bd151447631a5a1460bc7f9132',
             'uploader': 'シアン・キノ',
+            'duration': 229.0,
+            'timestamp': 1644030039,
+            'upload_date': '20220205',
+            'view_count': int,
+            'thumbnail': r're:^https?://.*\.(?:png|jpg)$',
             'uploader_id': 'cyankino',
         }
+    }, {
+        'url': 'https://piapro.jp/content/hcw0z3a169wtemz6',
+        'only_matching': True
     }]
 
     _login_status = False
