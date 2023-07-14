@@ -78,22 +78,22 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
         return session
 
     def _generate_set_cookie(self, cookiejar):
-        encoder = LenientSimpleCookie()
-        values = []
         for cookie in cookiejar:
+            encoder = LenientSimpleCookie()
+            values = []
             _, value = encoder.value_encode(cookie.value)
             values.append(f'{cookie.name}={value}')
             if cookie.domain:
-                values.append(f'domain={cookie.domain}')
+                values.append(f'Domain={cookie.domain}')
             if cookie.path:
-                values.append(f'path={cookie.path}')
+                values.append(f'Path={cookie.path}')
             if cookie.secure:
-                values.append('secure')
+                values.append('Secure')
             if cookie.expires:
-                values.append(f'expires={cookie.expires}')
+                values.append(f'Expires={cookie.expires}')
             if cookie.version:
-                values.append(f'version={cookie.version}')
-        return '; '.join(values)
+                values.append(f'Version={cookie.version}')
+            yield '; '.join(values)
 
     def _send(self, request: Request):
 
@@ -101,28 +101,18 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
         # TODO: see if we can avoid reading the whole response into memory
         max_redirects_exceeded = False
         session: CurlCFFISession = self._get_instance()
-       # session.curl.setopt(curl_cffi.curl.CurlOpt.COOKIELIST, b'ALL')
-      #  session.curl.reset()
-
         cookiejar = request.extensions.get('cookiejar') or self.cookiejar
-        set_cookie = self._generate_set_cookie(cookiejar)
 
-        tmp_cookies = tempfile.NamedTemporaryFile(suffix='.cookies', delete=False)
-        tmp_cookies.close()
-
-        load_cookies = tempfile.NamedTemporaryFile(suffix='.cookies', delete=False)
-        load_cookies.close()
-        cj = YoutubeDLCookieJar(tmp_cookies.name)
-        for cookie in cookiejar:
-            cj.set_cookie(cookie)
-
-        cj.save()
         # Reset the internal curl cookie store to ensure consistency with our cookiejar
         # See: https://curl.se/libcurl/c/CURLOPT_COOKIELIST.html
+        # XXX: does this actually work?
+        session.curl.setopt(curl_cffi.curl.CurlOpt.COOKIELIST, b'ALL')
+        session.cookies.clear()
+        for cookie_str in self._generate_set_cookie(cookiejar):
+            session.curl.setopt(curl_cffi.curl.CurlOpt.COOKIELIST, ('set-cookie: ' + cookie_str).encode())
 
-        session.curl.setopt(curl_cffi.curl.CurlOpt.COOKIEFILE, tmp_cookies.name.encode())
-        session.curl.setopt(curl_cffi.curl.CurlOpt.COOKIEJAR, load_cookies.name.encode())
-
+        # XXX: if we need to change http version
+        # session.curl.setopt(curl_cffi.curl.CurlOpt.HTTP_VERSION, 2)
         if self.source_address is not None:
             session.curl.setopt(curl_cffi.curl.CurlOpt.INTERFACE, self.source_address.encode())
 
@@ -191,9 +181,8 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
         # XXX: this won't apply cookies from intermediate responses in a redirect chain
         # curl_cffi doesn't support CurlInfo.COOKIELIST yet which we need to reliably read cookies
         # See: https://github.com/yifeikong/curl_cffi/issues/4
-        cookiejar.extract_cookies(
-            addinfourl(io.BytesIO(b''), headers=response.headers, url=response.url),
-            urllib.request.Request(request.url))
+        for cookie in session.cookies.jar:
+            cookiejar.set_cookie(cookie)
 
         if not 200 <= response.status < 300:
             raise HTTPError(response, redirect_loop=max_redirects_exceeded)
