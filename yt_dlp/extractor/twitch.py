@@ -21,7 +21,6 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
-    RetryManager,
     str_or_none,
     try_get,
     unified_timestamp,
@@ -552,7 +551,7 @@ class TwitchVodIE(TwitchBaseIE):
         pagenum = 1
         gql_ops = [{
             'operationName': 'VideoCommentsByOffsetOrCursor',
-            'variables': { 'videoID': vod_id }
+            'variables': {'videoID': vod_id}
             # 'variables.cursor': <filled in in subsequent requests>
         }]
 
@@ -561,16 +560,12 @@ class TwitchVodIE(TwitchBaseIE):
 
             for retry in self.RetryManager():
                 response = self._download_gql(vod_id, gql_ops, 'Downloading chat fragment page %d' % pagenum, fatal=False)
-                # response = False
-                # TODO: delete the direct False, uncomment _download_gql
 
                 if response is False:
                     retry.error = ExtractorError("f'Unable to fetch next chat history fragment.'", video_id=vod_id, ie=self)
 
                     # TODO: when this happens, should I forget a partial chat history, or is it better to keep it?
                     #       I think if I keep it, it might be better to persist a warning that it is incomplete
-
-                    # time.sleep(5)
 
             response_errors = traverse_obj(response, (..., 'errors'))
             if response_errors:
@@ -600,10 +595,10 @@ class TwitchVodIE(TwitchBaseIE):
 
         if not chat_history:
             return
+        else:
+            self.write_debug(f'Extracted {len(chat_history)} chat messages')
 
-        self.to_screen('Extracted %d chat messages' % len(chat_history))
-
-        return { 'rechat': [{
+        return {'rechat': [{
             'data': json.dumps(chat_history),
             'ext': 'twitch-gql-20221228.json'
         }]}
@@ -628,7 +623,12 @@ class TwitchVodIE(TwitchBaseIE):
             info['start_time'] = parse_duration(query['t'][0])
 
         if info.get('timestamp'):
-            info['subtitles'] = self.extract_subtitles(vod_id)
+            info['subtitles'] = {'rechat': [{
+                'url': update_url_query(f'https://api.twitch.tv/v5/videos/{vod_id}/comments',
+                                        {'client_id': self._CLIENT_ID}),
+                'ext': 'json',
+            }]},
+            info['__post_extractor'] = lambda: {'subtitles': self.extract_subtitles(vod_id)}
 
         return info
 
