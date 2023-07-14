@@ -1,4 +1,5 @@
 import re
+import json
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -695,4 +696,75 @@ class PBSIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'chapters': chapters,
+        }
+
+
+class PBSKidsIE(InfoExtractor):
+    # https://pbskids.org/video/molly-of-denali/3030407927
+    _VALID_URL = r'https?://(?:www\.)?pbskids\.org/video/(?P<channel>[a-zA-Z\-]+)/(?P<id>[0-9]+)'
+    _TESTS = [
+        {
+            'url': 'https://pbskids.org/video/molly-of-denali/3030407927',
+            'md5': '1ded20a017cc6b53446238f1804ce4c7',
+            'info_dict': {
+                'id': '3030407927',
+                'title': 'Bird in the Hand/Bye-Bye Birdie',
+                'channel': 'molly-of-denali',
+                'duration': 1540,
+                'ext': 'mp4',
+                'series': 'Molly of Denali',
+                'description': 'md5:d006b2211633685d8ebc8d03b6d5611e',
+                'categories': ['Episode'],
+                'upload_date': '20190718',
+            }
+        },
+        {
+            'url': 'https://pbskids.org/video/plum-landing/2365205059',
+            'md5': '92e5d189851a64ae1d0237a965be71f5',
+            'info_dict': {
+                'id': '2365205059',
+                'title': 'Cooper\'s Favorite Place in Nature',
+                'channel': 'plum-landing',
+                'duration': 67,
+                'ext': 'mp4',
+                'series': 'Plum Landing',
+                'description': 'md5:657e5fc4356a84ead1c061eb280ff05d',
+                'categories': ['Episode'],
+                'upload_date': '20140302',
+            }
+        }
+    ]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        # Grabbing JSON block linked to window._PBS_KIDS_DEEPLINK
+        # window._PBS_KIDS_DEEPLINK = {"show_slug":"molly-of-denali","video_id":"3030407927","video_obj":{"air_date":"2019-07-18T04:00:00-04:00","duration":1540,"expire_date":"2023-09-01T00:00:59-04:00","id":"3030407927","mezzanine":"https:\/\/image.pbs.org\/video-assets\/uTvFfmP-asset-kids-mezzanine1-16x9-zmxvNsR.jpg","mp4":"https:\/\/kids.video.cdn.pbs.org\/videos\/molly-of-denali\/edf8af19-c5f6-4d0a-b509-e6186ba7bf87\/2000236214\/hd-16x9-mezzanine-1080p\/mden105-ep-mp4-720p-3000k.mp4","title":"Bird in the Hand\/Bye-Bye Birdie","URI":"https:\/\/kids.video.cdn.pbs.org\/videos\/molly-of-denali\/edf8af19-c5f6-4d0a-b509-e6186ba7bf87\/2000236214\/hd-16x9-mezzanine-1080p\/mden105-ep-hls-16x9-720p_063.m3u8","drm":{"hls_uri":null,"hls_mm_profile":null,"fairplay_certificate":null,"fairplay_license":null,"dash_uri":null,"dash_mm_profile":null,"widevine_license":null,"playready_license":null},"video_type":"Episode","description":"Molly and Tooey think they\u2019ve discovered a ghost after a strange noise follows them from Spooky Hose all the way to the Trading Post\u2019s Bunkhouse. \/ Molly and Trini tag along with Nina on trip to Kenai National Park to see real, live puffins!","program_slug":"molly-of-denali","program_nola":"MDEN","program_title":"Molly of Denali"}};</script></body>
+        video_info = json.loads(self._search_regex(r'window\._PBS_KIDS_DEEPLINK = (?P<video_info>\{.*\})', webpage, 'video_info'))
+
+        title = video_info["video_obj"]["title"]
+        m3u8_playlist = video_info["video_obj"]["URI"]
+
+        description = (video_info["video_obj"]["description"])
+        duration = video_info["video_obj"]["duration"]
+        series = video_info["video_obj"]["program_title"]
+        # Differentiate between clips and episodes
+        video_type = video_info["video_obj"]["video_type"]
+        # expire_date = parse_iso8601(video_info["video_obj"]["expire_date"])
+        air_date = unified_strdate(video_info["video_obj"]["air_date"])
+        channel = video_info["show_slug"]
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_playlist, video_id, ext='mp4')
+
+        return {
+            'id': video_id,
+            'title': title,
+            'description': description,
+            # TODO more properties (see yt_dlp/extractor/common.py)
+            'formats': formats,
+            'subtitles': subtitles,
+            'duration': duration,
+            'series': series,
+            'channel': channel,
+            'upload_date': air_date,
+            'categories': [video_type],
         }
