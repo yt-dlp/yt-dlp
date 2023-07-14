@@ -1392,15 +1392,3 @@ class TestResponse:
             assert res.geturl() == res.url
             assert res.info() is res.headers
             assert res.getheader('test') == res.get_header('test')
-
-if __name__ == '__main__':
-    http_httpd = http.server.ThreadingHTTPServer(
-        ('127.0.0.1', 0), HTTPTestRequestHandler)
-    http_port = http_server_port(http_httpd)
-    http_server_thread = threading.Thread(target=http_httpd.serve_forever)
-    # FIXME: we should probably stop the http server thread after each test
-    # See: https://github.com/yt-dlp/yt-dlp/pull/7094#discussion_r1199746041
-    http_server_thread.daemon = True
-    http_server_thread.start()
-    print(http_port)
-    http_server_thread.join()

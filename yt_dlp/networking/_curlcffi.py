@@ -2,10 +2,10 @@ import io
 import re
 from enum import IntEnum
 
-from .common import RequestHandler, Request, Response, register
+from .common import RequestHandler, Request, Response, register, Features
 from .director import Preference, register_preference
 from .exceptions import CertificateVerifyError, RequestError, SSLError, HTTPError, IncompleteRead, TransportError
-from .utils import InstanceStoreMixin
+from .utils import InstanceStoreMixin, select_proxy
 from ..utils import int_or_none, traverse_obj
 
 from ..dependencies import curl_cffi
@@ -18,10 +18,13 @@ from curl_cffi import requests as crequests, ffi
 
 class CurlCFFISession(crequests.Session):
 
-    def __init__(self, verbose=False, source_address=None, **kwargs):
+    def __init__(
+        self,
+        verbose=False,
+        **kwargs
+    ):
         super().__init__(**kwargs)
         self.verbose = verbose
-        self.source_address = source_address
 
     @property
     def curl(self):
@@ -46,8 +49,6 @@ class CurlCFFISession(crequests.Session):
         if method not in ('GET', 'POST'):
             curl.setopt(curl_cffi.curl.CurlOpt.CUSTOMREQUEST, method.encode())
 
-        if self.source_address is not None:
-            curl.setopt(curl_cffi.curl.CurlOpt.INTERFACE, self.source_address.encode())
         return res
 
 
@@ -57,13 +58,13 @@ def get_error_code(error: curl_cffi.curl.CurlError):
 
 @register
 class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
-    RH_NAME = 'curl-impersonate (curl_cffi)'
+    RH_NAME = 'curl_cffi'
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
+    _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
+    _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
 
     def _create_instance(self, cookiejar=None):
-        session_opts = {
-            'source_address': self.source_address,
-        }
+        session_opts = {}
 
         if self.verbose:
             session_opts['verbose'] = True
@@ -78,6 +79,21 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
         # TODO: see if we can avoid reading the whole response into memory
         max_redirects_exceeded = False
         session: CurlCFFISession = self._get_instance(cookiejar=request.extensions.get('cookiejar'))
+
+        if self.source_address is not None:
+            session.curl.setopt(curl_cffi.curl.CurlOpt.INTERFACE, self.source_address.encode())
+
+        proxies = (request.proxies or self.proxies).copy()
+        if 'no' in proxies:
+            session.curl.setopt(curl_cffi.curl.CurlOpt.NOPROXY, proxies['no'].encode())
+            proxies.pop('no', None)
+        if 'all' in proxies:
+            session.curl.setopt(curl_cffi.curl.CurlOpt.PROXY, proxies['all'].encode())
+        else:
+            # curl doesn't support per protocol proxies, so we select the one that matches the request protocol
+            proxy = select_proxy(request.url, proxies=proxies)
+            if proxy:
+                session.curl.setopt(curl_cffi.curl.CurlOpt.PROXY, proxy.encode())
         try:
             curl_response = session.request(
                 method=request.method,
@@ -86,7 +102,7 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin):
                 data=request.data,
                 verify=self.verify,
                 max_redirects=5,
-                timeout=request.extensions.get('timeout') or self.timeout
+                timeout=request.extensions.get('timeout') or self.timeout,
             )
         except crequests.errors.RequestsError as e:
             error_code = get_error_code(e)
