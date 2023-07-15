@@ -52,7 +52,7 @@ class Preference:
     The higher the preference, the higher the priority of the handler.
 
     _RH_KEY: optional, to restrict the preference to a specific RequestHandler
-    _PREFERENCE: optional, to add a fixed relative preference for a handler. Takes precedence over _get_preference.
+    _PREFERENCE: optional, to add a fixed preference for a handler. Takes precedence over _get_preference.
 
     If subclasses do not set _PREFERENCE, they should implement _get_preference
      to dynamically generate a preference based off the request and handler.
@@ -98,7 +98,7 @@ class RequestDirector:
         assert isinstance(handler, RequestHandler), 'handler must be a RequestHandler'
         self.handlers[handler.RH_KEY] = handler
 
-    def add_preference(self, preference: "Preference"):
+    def add_preference(self, preference: Preference):
         assert isinstance(preference, Preference), 'preference must be a Preference'
         self.preferences.add(preference)
 
