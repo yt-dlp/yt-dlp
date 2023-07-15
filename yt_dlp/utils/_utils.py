@@ -15,8 +15,6 @@ import hashlib
 import hmac
 import html.entities
 import html.parser
-import http.client
-import http.cookiejar
 import inspect
 import io
 import itertools
@@ -897,6 +895,7 @@ def formatSeconds(secs, delim=':', msec=False):
 
 
 def make_HTTPS_handler(params, **kwargs):
+    from ._deprecated import YoutubeDLHTTPSHandler
     from ..networking._helper import make_ssl_context
     return YoutubeDLHTTPSHandler(params, context=make_ssl_context(
         verify=not params.get('nocheckcertificate'),
@@ -1138,38 +1137,6 @@ class XAttrMetadataError(YoutubeDLError):
 
 class XAttrUnavailableError(YoutubeDLError):
     pass
-
-
-class YoutubeDLHTTPSHandler(urllib.request.HTTPSHandler):
-    def __init__(self, params, https_conn_class=None, *args, **kwargs):
-        urllib.request.HTTPSHandler.__init__(self, *args, **kwargs)
-        self._https_conn_class = https_conn_class or http.client.HTTPSConnection
-        self._params = params
-
-    def https_open(self, req):
-        kwargs = {}
-        conn_class = self._https_conn_class
-
-        if hasattr(self, '_context'):  # python > 2.6
-            kwargs['context'] = self._context
-        if hasattr(self, '_check_hostname'):  # python 3.x
-            kwargs['check_hostname'] = self._check_hostname
-
-        socks_proxy = req.headers.get('Ytdl-socks-proxy')
-        if socks_proxy:
-            from ..networking._urllib import make_socks_conn_class
-            conn_class = make_socks_conn_class(conn_class, socks_proxy)
-            del req.headers['Ytdl-socks-proxy']
-
-        from ..networking._urllib import _create_http_connection
-        try:
-            return self.do_open(
-                functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
-        except urllib.error.URLError as e:
-            if (isinstance(e.reason, ssl.SSLError)
-                    and getattr(e.reason, 'reason', None) == 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
-                raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect')
-            raise
 
 
 def is_path_like(f):

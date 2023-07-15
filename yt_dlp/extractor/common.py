@@ -17,16 +17,22 @@ import subprocess
 import sys
 import time
 import types
-import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
 from ..compat import functools  # isort: split
-from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
+from ..compat import (
+    compat_etree_fromstring,
+    compat_expanduser,
+    compat_os_name,
+    urllib_req_to_req,
+)
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..networking.common import HEADRequest, Request
+from ..networking.exceptions import network_exceptions
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -35,7 +41,6 @@ from ..utils import (
     FormatSorter,
     GeoRestrictedError,
     GeoUtils,
-    HEADRequest,
     LenientJSONDecoder,
     Popen,
     RegexNotFoundError,
@@ -61,7 +66,6 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     netrc_from_content,
-    network_exceptions,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -71,7 +75,6 @@ from ..utils import (
     parse_resolution,
     sanitize_filename,
     sanitize_url,
-    sanitized_Request,
     smuggle_url,
     str_or_none,
     str_to_int,
@@ -83,8 +86,6 @@ from ..utils import (
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
-    update_Request,
-    update_url_query,
     url_basename,
     url_or_none,
     urlhandle_detect_ext,
@@ -797,10 +798,12 @@ class InfoExtractor:
 
     def _create_request(self, url_or_request, data=None, headers=None, query=None):
         if isinstance(url_or_request, urllib.request.Request):
-            return update_Request(url_or_request, data=data, headers=headers, query=query)
-        if query:
-            url_or_request = update_url_query(url_or_request, query)
-        return sanitized_Request(url_or_request, data, headers or {})
+            url_or_request = urllib_req_to_req(url_or_request)
+        elif not isinstance(url_or_request, Request):
+            url_or_request = Request(url_or_request)
+
+        url_or_request.update(data=data, headers=headers, query=query)
+        return url_or_request
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers=None, query=None, expected_status=None):
         """
@@ -838,12 +841,7 @@ class InfoExtractor:
         except network_exceptions as err:
             if isinstance(err, urllib.error.HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
-                    # Retain reference to error to prevent file object from
-                    # being closed before it can be read. Works around the
-                    # effects of <https://bugs.python.org/issue15002>
-                    # introduced in Python 3.4.1.
-                    err.fp._error = err
-                    return err.fp
+                    return err.response
 
             if errnote is False:
                 return False

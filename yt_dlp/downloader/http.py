@@ -1,12 +1,10 @@
-import http.client
 import os
 import random
-import socket
-import ssl
 import time
 import urllib.error
 
 from .common import FileDownloader
+from ..networking.exceptions import CertificateVerifyError, TransportError
 from ..utils import (
     ContentTooShortError,
     RetryManager,
@@ -19,14 +17,6 @@ from ..utils import (
     sanitized_Request,
     try_call,
     write_xattr,
-)
-
-RESPONSE_READ_EXCEPTIONS = (
-    TimeoutError,
-    socket.timeout,  # compat: py < 3.10
-    ConnectionError,
-    ssl.SSLError,
-    http.client.HTTPException
 )
 
 
@@ -196,13 +186,9 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except urllib.error.URLError as err:
-                if isinstance(err.reason, ssl.CertificateError):
-                    raise
-                raise RetryDownload(err)
-            # In urllib.request.AbstractHTTPHandler, the response is partially read on request.
-            # Any errors that occur during this will not be wrapped by URLError
-            except RESPONSE_READ_EXCEPTIONS as err:
+            except CertificateVerifyError:
+                raise
+            except TransportError as err:
                 raise RetryDownload(err)
 
         def close_stream():
@@ -258,7 +244,7 @@ class HttpFD(FileDownloader):
                 try:
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
-                except RESPONSE_READ_EXCEPTIONS as err:
+                except TransportError as err:
                     retry(err)
 
                 byte_counter += len(data_block)

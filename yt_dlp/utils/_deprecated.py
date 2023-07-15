@@ -10,16 +10,16 @@ del passthrough_module
 
 
 from ._utils import preferredencoding
+from ..networking._urllib import HTTPHandler
 
 # isort: split
+from .networking import random_user_agent, std_headers  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
 from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
-from ..networking._urllib import HTTPHandler as YoutubeDLHandler  # noqa: F401
 from ..networking._urllib import ProxyHandler as PerRequestProxyHandler  # noqa: F401
 from ..networking._urllib import RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
 from ..networking._urllib import make_socks_conn_class, update_Request  # noqa: F401
 from ..networking.exceptions import network_exceptions  # noqa: F401
-from .networking import random_user_agent, std_headers  # noqa: F401
 
 
 def encodeFilename(s, for_subprocess=False):
@@ -47,3 +47,12 @@ def decodeOption(optval):
 
 def error_to_compat_str(err):
     return str(err)
+
+
+class YoutubeDLHandler(HTTPHandler):
+    def __init__(self, params, *args, **kwargs):
+        self._params = params
+        super().__init__(*args, **kwargs)
+
+
+YoutubeDLHTTPSHandler = YoutubeDLHandler
