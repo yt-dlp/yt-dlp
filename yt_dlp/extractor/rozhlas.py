@@ -1,7 +1,7 @@
 import itertools
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     extract_attributes,
@@ -81,7 +81,7 @@ class RozhlasBaseIE(InfoExtractor):
                             'vcodec': 'none',
                         })
                 except ExtractorError as e:
-                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 429:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 429:
                         retry.error = e.cause
                     else:
                         self.report_warning(e.msg)

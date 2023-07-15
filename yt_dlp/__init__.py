@@ -57,11 +57,11 @@ from .utils import (
     read_stdin,
     render_table,
     setproctitle,
-    std_headers,
     traverse_obj,
     variadic,
     write_string,
 )
+from .utils.networking import std_headers
 from .YoutubeDL import YoutubeDL
 
 _IN_CLI = False

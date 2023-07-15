@@ -1,24 +1,19 @@
 import concurrent.futures
 import contextlib
-import http.client
 import json
 import math
 import os
 import struct
 import time
-import urllib.error
 
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_os_name
-from ..utils import (
-    DownloadError,
-    RetryManager,
-    encodeFilename,
-    sanitized_Request,
-    traverse_obj,
-)
+from ..networking import Request
+from ..networking.exceptions import HTTPError, IncompleteRead
+from ..utils import DownloadError, RetryManager, encodeFilename, traverse_obj
+from ..utils.networking import HTTPHeaderDict
 
 
 class HttpQuietDownloader(HttpFD):
@@ -75,7 +70,7 @@ class FragmentFD(FileDownloader):
 
     def _prepare_url(self, info_dict, url):
         headers = info_dict.get('http_headers')
-        return sanitized_Request(url, None, headers) if headers else url
+        return Request(url, None, headers) if headers else url
 
     def _prepare_and_start_frag_download(self, ctx, info_dict):
         self._prepare_frag_download(ctx)
@@ -457,7 +452,7 @@ class FragmentFD(FileDownloader):
 
             frag_index = ctx['fragment_index'] = fragment['frag_index']
             ctx['last_error'] = None
-            headers = info_dict.get('http_headers', {}).copy()
+            headers = HTTPHeaderDict(info_dict.get('http_headers'))
             byte_range = fragment.get('byte_range')
             if byte_range:
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
@@ -477,7 +472,7 @@ class FragmentFD(FileDownloader):
                     if not self._download_fragment(
                             ctx, fragment['url'], info_dict, headers, info_dict.get('request_data')):
                         return
-                except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
+                except (HTTPError, IncompleteRead) as err:
                     retry.error = err
                     continue
                 except DownloadError:  # has own retry settings

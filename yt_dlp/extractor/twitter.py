@@ -1596,7 +1596,7 @@ class TwitterShortenerIE(TwitterBaseIE):
         if eid:
             id = eid
             url = self._BASE_URL + id
-        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).geturl()
+        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).url
         __UNSAFE_LINK = "https://twitter.com/safety/unsafe_link_warning?unsafe_link="
         if new_url.startswith(__UNSAFE_LINK):
             new_url = new_url.replace(__UNSAFE_LINK, "")

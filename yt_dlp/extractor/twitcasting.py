@@ -107,9 +107,9 @@ class TwitCastingIE(InfoExtractor):
                 url, video_id, data=request_data,
                 headers={'Origin': 'https://twitcasting.tv'},
                 note='Trying video password')
-        if urlh.geturl() != url and request_data:
+        if urlh.url != url and request_data:
             webpage = self._download_webpage(
-                urlh.geturl(), video_id, data=request_data,
+                urlh.url, video_id, data=request_data,
                 headers={'Origin': 'https://twitcasting.tv'},
                 note='Retrying authentication')
         # has to check here as the first request can contain password input form even if the password is correct

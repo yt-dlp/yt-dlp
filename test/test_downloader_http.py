@@ -16,6 +16,7 @@ from test.helper import http_server_port, try_rm
 from yt_dlp import YoutubeDL
 from yt_dlp.downloader.http import HttpFD
 from yt_dlp.utils import encodeFilename
+from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -65,17 +66,6 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.serve(range=False, content_length=False)
         else:
             assert False
-
-
-class FakeLogger:
-    def debug(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        pass
 
 
 class TestHttpFD(unittest.TestCase):

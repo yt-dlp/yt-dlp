@@ -3,9 +3,9 @@ import itertools
 import json
 import re
 import time
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     decode_base_n,
@@ -442,7 +442,7 @@ class InstagramIE(InstagramBaseIE):
             shared_data = self._search_json(
                 r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False) or {}
 
-            if shared_data and self._LOGIN_URL not in urlh.geturl():
+            if shared_data and self._LOGIN_URL not in urlh.url:
                 media.update(traverse_obj(
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
@@ -589,7 +589,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 except ExtractorError as e:
                     # if it's an error caused by a bad query, and there are
                     # more GIS templates to try, ignore it and keep trying
-                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                         if gis_tmpl != gis_tmpls[-1]:
                             continue
                     raise

@@ -22,7 +22,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
             return
 
         content, urlh = self._download_webpage_handle(
-            urlh.geturl(), None, fatal=False, headers={'referer': urlh.geturl()},
+            urlh.url, None, fatal=False, headers={'referer': urlh.url},
             note='logging in', errnote='unable to log in',
             data=urlencode_postdata({
                 'lang': 'de',
@@ -30,7 +30,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
                 'j_username': username,
                 'j_password': password
             }))
-        if not urlh or urlh.geturl() == 'https://tube.tugraz.at/paella/ui/index.html':
+        if not urlh or urlh.url == 'https://tube.tugraz.at/paella/ui/index.html':
             return
 
         if not self._html_search_regex(
@@ -40,14 +40,14 @@ class TubeTuGrazBaseIE(InfoExtractor):
             return
 
         content, urlh = self._download_webpage_handle(
-            urlh.geturl(), None, fatal=False, headers={'referer': urlh.geturl()},
+            urlh.url, None, fatal=False, headers={'referer': urlh.url},
             note='logging in with TFA', errnote='unable to log in with TFA',
             data=urlencode_postdata({
                 'lang': 'de',
                 '_eventId_proceed': '',
                 'j_tokenNumber': self._get_tfa_info(),
             }))
-        if not urlh or urlh.geturl() == 'https://tube.tugraz.at/paella/ui/index.html':
+        if not urlh or urlh.url == 'https://tube.tugraz.at/paella/ui/index.html':
             return
 
         self.report_warning('unable to login: incorrect TFA code')

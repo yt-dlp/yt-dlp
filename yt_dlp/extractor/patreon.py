@@ -1,10 +1,10 @@
 import itertools
-from urllib.error import HTTPError
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 
 from ..compat import compat_urllib_parse_unquote
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     determine_ext,
@@ -37,9 +37,9 @@ class PatreonBaseIE(InfoExtractor):
                 item_id, note='Downloading API JSON' if not note else note,
                 query=query, fatal=fatal, headers=headers)
         except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.headers.get('Content-Type')) != 'json':
+            if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.response.headers.get('Content-Type')) != 'json':
                 raise
-            err_json = self._parse_json(self._webpage_read_content(e.cause, None, item_id), item_id, fatal=False)
+            err_json = self._parse_json(self._webpage_read_content(e.cause.response, None, item_id), item_id, fatal=False)
             err_message = traverse_obj(err_json, ('errors', ..., 'detail'), get_all=False)
             if err_message:
                 raise ExtractorError(f'Patreon said: {err_message}', expected=True)
