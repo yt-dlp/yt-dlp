@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import gzip
 import http.client
