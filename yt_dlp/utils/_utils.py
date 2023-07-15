@@ -5994,3 +5994,33 @@ class FormatSorter:
             format['tbr'] = try_call(lambda: format['vbr'] + format['abr']) or None
 
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
+
+
+# XXX: Temporary
+class _YDLLogger:
+    def __init__(self, ydl=None):
+        self._ydl = ydl
+
+    def debug(self, message):
+        if self._ydl:
+            self._ydl.write_debug(message)
+
+    def info(self, message):
+        if self._ydl:
+            self._ydl.to_screen(message)
+
+    def warning(self, message, *, once=False):
+        if self._ydl:
+            self._ydl.report_warning(message, only_once=once)
+
+    def error(self, message, *, is_error=True):
+        if self._ydl:
+            self._ydl.report_error(message, is_error=is_error)
+
+    def stdout(self, message):
+        if self._ydl:
+            self._ydl.to_stdout(message)
+
+    def stderr(self, message):
+        if self._ydl:
+            self._ydl.to_stderr(message)
