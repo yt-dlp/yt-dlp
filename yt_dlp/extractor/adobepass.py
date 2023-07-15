@@ -2,11 +2,11 @@ import getpass
 import json
 import re
 import time
-import urllib.error
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
+from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -1394,7 +1394,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
             form_page, urlh = form_page_res
             post_url = self._html_search_regex(r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_page, 'post url', group='url')
             if not re.match(r'https?://', post_url):
-                post_url = compat_urlparse.urljoin(urlh.geturl(), post_url)
+                post_url = compat_urlparse.urljoin(urlh.url, post_url)
             form_data = self._hidden_inputs(form_page)
             form_data.update(data)
             return self._download_webpage_handle(
@@ -1619,7 +1619,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     hidden_data['history'] = 1
 
                     provider_login_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending first bookend',
+                        urlh.url, video_id, 'Sending first bookend',
                         query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
@@ -1629,7 +1629,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         })
 
                     provider_refresh_redirect_url = extract_redirect_url(
-                        provider_association_redirect, url=urlh.geturl())
+                        provider_association_redirect, url=urlh.url)
 
                     last_bookend_page, urlh = self._download_webpage_handle(
                         provider_refresh_redirect_url, video_id,
@@ -1638,7 +1638,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     hidden_data['history'] = 3
 
                     mvpd_confirm_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending final bookend',
+                        urlh.url, video_id, 'Sending final bookend',
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
@@ -1652,7 +1652,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     hidden_data['history_val'] = 1
 
                     provider_login_redirect_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending First Bookend',
+                        urlh.url, video_id, 'Sending First Bookend',
                         query=hidden_data)
 
                     provider_login_redirect_page, urlh = provider_login_redirect_page_res
@@ -1680,7 +1680,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                         })
 
                     provider_refresh_redirect_url = extract_redirect_url(
-                        provider_association_redirect, url=urlh.geturl())
+                        provider_association_redirect, url=urlh.url)
 
                     last_bookend_page, urlh = self._download_webpage_handle(
                         provider_refresh_redirect_url, video_id,
@@ -1690,7 +1690,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     hidden_data['history_val'] = 3
 
                     mvpd_confirm_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending Final Bookend',
+                        urlh.url, video_id, 'Sending Final Bookend',
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
@@ -1699,7 +1699,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                     # based redirect that should be followed.
                     provider_redirect_page, urlh = provider_redirect_page_res
                     provider_refresh_redirect_url = extract_redirect_url(
-                        provider_redirect_page, url=urlh.geturl())
+                        provider_redirect_page, url=urlh.url)
                     if provider_refresh_redirect_url:
                         provider_redirect_page_res = self._download_webpage_handle(
                             provider_refresh_redirect_url, video_id,
@@ -1724,7 +1724,7 @@ class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should en
                             'requestor_id': requestor_id,
                         }), headers=mvpd_headers)
                 except ExtractorError as e:
-                    if not mso_id and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
                         raise_mvpd_required()
                     raise
                 if '<pendingLogout' in session:

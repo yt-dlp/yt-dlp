@@ -54,6 +54,7 @@ class CommitGroup(enum.Enum):
                     'core',
                     'dependencies',
                     'jsinterp',
+                    'networking',
                     'outtmpl',
                     'formats',
                     'plugins',

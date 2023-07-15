@@ -70,3 +70,13 @@ if compat_os_name in ('nt', 'ce'):
         return userhome + path[i:]
 else:
     compat_expanduser = os.path.expanduser
+
+
+def urllib_req_to_req(urllib_request):
+    """Convert urllib Request to a networking Request"""
+    from ..networking import Request
+    from ..utils.networking import HTTPHeaderDict
+    return Request(
+        urllib_request.get_full_url(), data=urllib_request.data, method=urllib_request.get_method(),
+        headers=HTTPHeaderDict(urllib_request.headers, urllib_request.unredirected_hdrs),
+        extensions={'timeout': urllib_request.timeout} if hasattr(urllib_request, 'timeout') else None)

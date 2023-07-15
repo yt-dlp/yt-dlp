@@ -15,13 +15,13 @@ import sys
 import threading
 import time
 import traceback
-import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
+from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -41,7 +41,6 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
-    network_exceptions,
     orderedSet,
     parse_codecs,
     parse_count,
@@ -959,15 +958,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ExtractorError as e:
                 if not isinstance(e.cause, network_exceptions):
                     return self._error_or_warning(e, fatal=fatal)
-                elif not isinstance(e.cause, urllib.error.HTTPError):
+                elif not isinstance(e.cause, HTTPError):
                     retry.error = e
                     continue
 
-                first_bytes = e.cause.read(512)
+                first_bytes = e.cause.response.read(512)
                 if not is_html(first_bytes):
                     yt_error = try_get(
                         self._parse_json(
-                            self._webpage_read_content(e.cause, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
+                            self._webpage_read_content(e.cause.response, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
                         lambda x: x['error']['message'], str)
                     if yt_error:
                         self._report_alerts([('ERROR', yt_error)], fatal=False)
@@ -975,7 +974,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                 # We also want to catch all other network exceptions since errors in later pages can be troublesome
                 # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
-                if e.cause.code not in (403, 429):
+                if e.cause.status not in (403, 429):
                     retry.error = e
                     continue
                 return self._error_or_warning(e, fatal=fatal)
@@ -2837,7 +2836,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
-            expire_fast = immediate or last_error and isinstance(last_error, urllib.error.HTTPError) and last_error.code == 403
+            expire_fast = immediate or last_error and isinstance(last_error, HTTPError) and last_error.status == 403
             mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
@@ -4921,10 +4920,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             or try_get(tab_content, lambda x: x['richGridRenderer'], dict) or {})
         yield from extract_entries(parent_renderer)
         continuation = continuation_list[0]
-
+        seen_continuations = set()
         for page_num in itertools.count(1):
             if not continuation:
                 break
+            continuation_token = continuation.get('continuation')
+            if continuation_token is not None and continuation_token in seen_continuations:
+                self.write_debug('Detected YouTube feed looping - assuming end of feed.')
+                break
+            seen_continuations.add(continuation_token)
             headers = self.generate_api_headers(
                 ytcfg=ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
             response = self._extract_response(
@@ -5258,7 +5262,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
-                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
+                    if not isinstance(e.cause, HTTPError) or e.cause.status not in (403, 429):
                         retry.error = e
                         continue
                 self._error_or_warning(e, fatal=fatal)

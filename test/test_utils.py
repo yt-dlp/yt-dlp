@@ -51,6 +51,7 @@ from yt_dlp.utils import (
     escape_url,
     expand_path,
     extract_attributes,
+    extract_basic_auth,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
@@ -103,7 +104,6 @@ from yt_dlp.utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
-    sanitized_Request,
     shell_quote,
     smuggle_url,
     str_or_none,
@@ -132,6 +132,7 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
+from yt_dlp.utils.networking import HTTPHeaderDict
 
 
 class TestUtil(unittest.TestCase):
@@ -257,15 +258,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_url('rmtps://foo.bar'), 'rtmps://foo.bar')
         self.assertEqual(sanitize_url('https://foo.bar'), 'https://foo.bar')
         self.assertEqual(sanitize_url('foo bar'), 'foo bar')
-
-    def test_extract_basic_auth(self):
-        auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
-        self.assertFalse(auth_header('http://foo.bar'))
-        self.assertFalse(auth_header('http://:foo.bar'))
-        self.assertEqual(auth_header('http://@foo.bar'), 'Basic Og==')
-        self.assertEqual(auth_header('http://:pass@foo.bar'), 'Basic OnBhc3M=')
-        self.assertEqual(auth_header('http://user:@foo.bar'), 'Basic dXNlcjo=')
-        self.assertEqual(auth_header('http://user:pass@foo.bar'), 'Basic dXNlcjpwYXNz')
 
     def test_expand_path(self):
         def env(var):
@@ -2323,6 +2315,44 @@ Line 1
                          msg='failing int key on a `re.Match` should return `default`')
         self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
                          msg='function on a `re.Match` should give group name as well')
+
+    def test_http_header_dict(self):
+        headers = HTTPHeaderDict()
+        headers['ytdl-test'] = 1
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        headers['Ytdl-test'] = '2'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
+        self.assertTrue('ytDl-Test' in headers)
+        self.assertEqual(str(headers), str(dict(headers)))
+        self.assertEqual(repr(headers), str(dict(headers)))
+
+        headers.update({'X-dlp': 'data'})
+        self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
+        self.assertEqual(len(headers), 2)
+        self.assertEqual(headers.copy(), headers)
+        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
+        self.assertEqual(len(headers2), 2)
+        headers2.clear()
+        self.assertEqual(len(headers2), 0)
+
+        # ensure we prefer latter headers
+        headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
+        self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        del headers3['ytdl-tesT']
+        self.assertEqual(dict(headers3), {})
+
+        headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
+        self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+
+    def test_extract_basic_auth(self):
+        assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
+        assert extract_basic_auth('http://foo.bar') == ('http://foo.bar', None)
+        assert extract_basic_auth('http://@foo.bar') == ('http://foo.bar', 'Basic Og==')
+        assert extract_basic_auth('http://:pass@foo.bar') == ('http://foo.bar', 'Basic OnBhc3M=')
+        assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
+        assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
 
 
 if __name__ == '__main__':

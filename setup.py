@@ -65,7 +65,8 @@ def py2exe_params():
             'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
             'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
             # Modules that are only imported dynamically must be added here
-            'includes': ['yt_dlp.compat._legacy'],
+            'includes': ['yt_dlp.compat._legacy', 'yt_dlp.compat._deprecated',
+                         'yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated'],
         },
         'zipfile': None,
     }
