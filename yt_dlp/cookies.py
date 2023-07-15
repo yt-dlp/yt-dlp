@@ -97,7 +97,7 @@ def load_cookies(cookie_file, browser_specification, ydl):
 
         jar = YoutubeDLCookieJar(cookie_file)
         if not is_filename or os.access(cookie_file, os.R_OK):
-            jar.load()
+            jar.load(ignore_discard=True, ignore_expires=True)
         cookie_jars.append(jar)
 
     return _merge_cookie_jars(cookie_jars)
@@ -1213,7 +1213,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 file.truncate(0)
             yield file
 
-    def _really_save(self, f, ignore_discard, ignore_expires):
+    def _really_save(self, f, ignore_discard=False, ignore_expires=False):
         now = time.time()
         for cookie in self:
             if (not ignore_discard and cookie.discard
@@ -1234,7 +1234,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 name, value
             )))
 
-    def save(self, filename=None, ignore_discard=True, ignore_expires=True):
+    def save(self, filename=None, *args, **kwargs):
         """
         Save cookies to a file.
         Code is taken from CPython 3.6
@@ -1253,9 +1253,9 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
 
         with self.open(filename, write=True) as f:
             f.write(self._HEADER)
-            self._really_save(f, ignore_discard, ignore_expires)
+            self._really_save(f, *args, **kwargs)
 
-    def load(self, filename=None, ignore_discard=True, ignore_expires=True):
+    def load(self, filename=None, ignore_discard=False, ignore_expires=False):
         """Load cookies from a file."""
         if filename is None:
             if self.filename is not None:
