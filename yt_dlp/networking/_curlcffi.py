@@ -1,4 +1,5 @@
 import io
+import os
 import re
 from enum import IntEnum
 
@@ -187,7 +188,7 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
             else:
                 raise TransportError(cause=e) from e
 
-        response = CurlCFFIResponseAdapter(
+        response = Response(
             io.BytesIO(curl_response.content),
             headers=curl_response.headers,
             url=curl_response.url,
@@ -205,19 +206,14 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
         return response
 
 
-class CurlCFFIResponseAdapter(Response):
-    pass
-
-
 @register_preference
 class CurlCFFIPrefernce(Preference):
     _RH_KEY = CurlCFFIRH.RH_KEY
 
     def _get_preference(self, request: Request, handler: RequestHandler) -> int:
-        if not request.extensions.get('impersonate'):
+        if request.extensions.get('impersonate') or os.environ.get('YT_DLP_PREFER_CCI'):
             return 1000
-        else:
-            return 1000
+        return -1000
 
 
 # https://curl.se/libcurl/c/libcurl-errors.html
