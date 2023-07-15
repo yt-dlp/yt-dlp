@@ -1492,7 +1492,10 @@ class YoutubeDL:
             return ret
 
         if self.in_download_archive(info_dict):
-            reason = '%s has already been recorded in the archive' % video_title
+            reason = ''.join((
+                format_field(info_dict, 'id', f'{self._format_screen("%s", self.Styles.ID)}: '),
+                format_field(info_dict, 'title', f'{self._format_screen("%s", self.Styles.EMPHASIS)} '),
+                'has already been recorded in the archive'))
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
             try:
@@ -1553,7 +1556,8 @@ class YoutubeDL:
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):
-                self.to_screen(f'[{key}] {temp_id}: has already been recorded in the archive')
+                self.to_screen(f'[download] {self._format_screen(temp_id, self.Styles.ID)}: '
+                               'has already been recorded in the archive')
                 if self.params.get('break_on_existing', False):
                     raise ExistingVideoReached()
                 break
