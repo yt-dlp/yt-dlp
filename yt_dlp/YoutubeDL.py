@@ -680,14 +680,14 @@ class YoutubeDL:
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
+        self.__header_cookies = []
+        self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
+        self.params['http_headers'].pop('Cookie', None)
+
         self._request_director = self.build_request_director(
             sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
-
-        self.__header_cookies = []
-        self._load_cookies(traverse_obj(self.params.get('http_headers'), 'cookie', casesense=False))  # compat
-        self.params['http_headers'] = self._remove_cookie_header(self.params.get('http_headers'))
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
@@ -1642,16 +1642,6 @@ class YoutubeDL:
                 self.to_screen('')
             raise
 
-    def _remove_cookie_header(self, http_headers):
-        """Filters out `Cookie` header from an `http_headers` dict
-
-        The `Cookie` header is removed to prevent leaks and unscoped cookies.
-        See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
-
-        @param http_headers     An `http_headers` dict from which any `Cookie` header should be removed
-        """
-        return dict(traverse_obj(http_headers, ({dict.items}, lambda _, pair: pair[0].lower() != 'cookie')))
-
     def _load_cookies(self, data, *, autoscope=True):
         """Loads cookies from a `Cookie` header
 
@@ -2496,10 +2486,13 @@ class YoutubeDL:
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict, load_cookies=False):
+        res = HTTPHeaderDict(self.params['http_headers'], info_dict.get('http_headers'))
+        clean_headers(res)
+
         if load_cookies:  # For --load-info-json
-            self._load_cookies(traverse_obj(info_dict.get('http_headers'), 'Cookie', casesense=False),
-                               autoscope=info_dict['url'])  # compat
+            self._load_cookies(res.get('Cookie'), autoscope=info_dict['url'])  # compat
             self._load_cookies(info_dict.get('cookies'), autoscope=False)
+        res.pop('Cookie', None)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
         if cookies:
             encoder = LenientSimpleCookie()
@@ -2519,8 +2512,6 @@ class YoutubeDL:
                     values.append(f'Version={cookie.version}')
             info_dict['cookies'] = '; '.join(values)
 
-        res = HTTPHeaderDict(self.params['http_headers'], info_dict.get('http_headers'))
-        clean_headers(res)
         if 'X-Forwarded-For' not in res:
             x_forwarded_for_ip = info_dict.get('__x_forwarded_for_ip')
             if x_forwarded_for_ip:
@@ -2783,7 +2774,9 @@ class YoutubeDL:
             format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
 
         # Safeguard against old/insecure infojson when using --load-info-json
-        info_dict['http_headers'] = self._remove_cookie_header(info_dict.get('http_headers')) or None
+        if info_dict.get('http_headers'):
+            info_dict['http_headers'] = HTTPHeaderDict(info_dict['http_headers'])
+            info_dict['http_headers'].pop('Cookie', None)
 
         # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
