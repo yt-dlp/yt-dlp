@@ -1,6 +1,25 @@
 """Deprecated - New code should avoid these"""
+import warnings
+
+from ..compat.compat_utils import passthrough_module
+
+# XXX: Implement this the same way as other DeprecationWarnings without circular import
+passthrough_module(__name__, '.._legacy', callback=lambda attr: warnings.warn(
+    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=6))
+del passthrough_module
+
 
 from ._utils import preferredencoding
+
+# isort: split
+from ..networking._urllib import PUTRequest  # noqa: F401
+from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
+from ..networking._urllib import HTTPHandler as YoutubeDLHandler  # noqa: F401
+from ..networking._urllib import ProxyHandler as PerRequestProxyHandler  # noqa: F401
+from ..networking._urllib import RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
+from ..networking._urllib import make_socks_conn_class, update_Request  # noqa: F401
+from ..networking.exceptions import network_exceptions  # noqa: F401
+from .networking import random_user_agent, std_headers  # noqa: F401
 
 
 def encodeFilename(s, for_subprocess=False):

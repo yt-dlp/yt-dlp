@@ -151,6 +151,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
+from .utils.networking import clean_headers
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
@@ -672,6 +673,7 @@ class YoutubeDL:
                     raise
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
+        self.params['http_headers'] = merge_headers(std_headers, self.params.get('http_headers', {}))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
@@ -744,9 +746,6 @@ class YoutubeDL:
             self.params.get('format') if self.params.get('format') in (None, '-')
             else self.params['format'] if callable(self.params['format'])
             else self.build_format_selector(self.params['format']))
-
-        # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = merge_headers(std_headers, self.params.get('http_headers', {}))
 
         hooks = {
             'post_hooks': self.add_post_hook,
@@ -941,11 +940,13 @@ class YoutubeDL:
         self.save_console_title()
         return self
 
-    def __exit__(self, *args):
-        self.restore_console_title()
-
+    def save_cookies(self):
         if self.params.get('cookiefile') is not None:
             self.cookiejar.save(ignore_discard=True, ignore_expires=True)
+
+    def __exit__(self, *args):
+        self.restore_console_title()
+        self.save_cookies()
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
@@ -2468,9 +2469,7 @@ class YoutubeDL:
 
     def _calc_headers(self, info_dict):
         res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
-        if 'Youtubedl-No-Compression' in res:  # deprecated
-            res.pop('Youtubedl-No-Compression', None)
-            res['Accept-Encoding'] = 'identity'
+        clean_headers(res)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
         if cookies:
             encoder = LenientSimpleCookie()
@@ -3856,12 +3855,6 @@ class YoutubeDL:
     def list_subtitles(self, video_id, subtitles, name='subtitles'):
         self.__list_table(video_id, name, self.render_subtitles_table, video_id, subtitles)
 
-    def urlopen(self, req):
-        """ Start an HTTP download """
-        if isinstance(req, str):
-            req = sanitized_Request(req)
-        return self._opener.open(req, timeout=self._socket_timeout)
-
     def print_debug_header(self):
         if not self.params.get('verbose'):
             return
@@ -3989,12 +3982,7 @@ class YoutubeDL:
             return
         timeout_val = self.params.get('socket_timeout')
         self._socket_timeout = 20 if timeout_val is None else float(timeout_val)
-
-        opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
-        opts_cookiefile = self.params.get('cookiefile')
         opts_proxy = self.params.get('proxy')
-
-        self.cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self)
 
         cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
         if opts_proxy is not None:
@@ -4036,6 +4024,18 @@ class YoutubeDL:
         # (See https://github.com/ytdl-org/youtube-dl/issues/1309 for details)
         opener.addheaders = []
         self._opener = opener
+
+    @functools.cached_property
+    def cookiejar(self):
+        """Global cookiejar instance"""
+        return load_cookies(
+            self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
+
+    def urlopen(self, req):
+        """ Start an HTTP download """
+        if isinstance(req, str):
+            req = sanitized_Request(req)
+        return self._opener.open(req, timeout=self._socket_timeout)
 
     def encode(self, s):
         if isinstance(s, bytes):

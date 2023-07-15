@@ -258,15 +258,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_url('https://foo.bar'), 'https://foo.bar')
         self.assertEqual(sanitize_url('foo bar'), 'foo bar')
 
-    def test_extract_basic_auth(self):
-        auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
-        self.assertFalse(auth_header('http://foo.bar'))
-        self.assertFalse(auth_header('http://:foo.bar'))
-        self.assertEqual(auth_header('http://@foo.bar'), 'Basic Og==')
-        self.assertEqual(auth_header('http://:pass@foo.bar'), 'Basic OnBhc3M=')
-        self.assertEqual(auth_header('http://user:@foo.bar'), 'Basic dXNlcjo=')
-        self.assertEqual(auth_header('http://user:pass@foo.bar'), 'Basic dXNlcjpwYXNz')
-
     def test_expand_path(self):
         def env(var):
             return f'%{var}%' if sys.platform == 'win32' else f'${var}'
@@ -2323,6 +2314,15 @@ Line 1
                          msg='failing int key on a `re.Match` should return `default`')
         self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
                          msg='function on a `re.Match` should give group name as well')
+
+    def test_extract_basic_auth(self):
+        auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
+        self.assertFalse(auth_header('http://foo.bar'))
+        self.assertFalse(auth_header('http://:foo.bar'))
+        self.assertEqual(auth_header('http://@foo.bar'), 'Basic Og==')
+        self.assertEqual(auth_header('http://:pass@foo.bar'), 'Basic OnBhc3M=')
+        self.assertEqual(auth_header('http://user:@foo.bar'), 'Basic dXNlcjo=')
+        self.assertEqual(auth_header('http://user:pass@foo.bar'), 'Basic dXNlcjpwYXNz')
 
 
 if __name__ == '__main__':
