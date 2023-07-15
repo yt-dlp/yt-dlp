@@ -227,6 +227,7 @@ class AENetworksCollectionIE(AENetworksListBaseIE):
             'title': 'America The Story of Us',
         },
         'playlist_mincount': 12,
+        'skip': 'probably geo-restricted, redirects to aenetworks.tv for me',
     }, {
         'url': 'https://watch.historyvault.com/shows/america-the-story-of-us-2/season-1/list/america-the-story-of-us',
         'only_matching': True
@@ -264,6 +265,7 @@ class AENetworksShowIE(AENetworksListBaseIE):
             'description': 'md5:3f6d74daf2672ff3ae29ed732e37ea7f',
         },
         'playlist_mincount': 150,
+        'skip': 'possibly geo-restricted, redirects to history.de here',
     }]
     _RESOURCE = 'series'
     _ITEMS_KEY = 'episodes'
@@ -301,6 +303,7 @@ class HistoryTopicIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'Test says geo-restricted. Loading the page gives an error message that an error 403 was encountered while trying to download the hls document.'
     }]
 
     def _real_extract(self, url):
@@ -338,6 +341,7 @@ class BiographyIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'page returns 404. I haven"t been able to find the video anywhere else on the site. Possibly also geo-restricted for all I can tell, AE network seems to be odd here.'
     }]
 
     def _real_extract(self, url):
