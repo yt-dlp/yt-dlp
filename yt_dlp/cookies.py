@@ -48,6 +48,9 @@ SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
 class YDLLogger(_YDLLogger):
+    def warning(self, message, only_once=False):  # compat
+        return super().warning(message, once=only_once)
+
     class ProgressBar(MultilinePrinter):
         _DELAY, _timer = 0.1, 0
 

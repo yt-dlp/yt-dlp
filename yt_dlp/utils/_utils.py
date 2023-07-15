@@ -5476,9 +5476,9 @@ class _YDLLogger:
         if self._ydl:
             self._ydl.to_screen(message)
 
-    def warning(self, message, only_once=False):
+    def warning(self, message, *, once=False):
         if self._ydl:
-            self._ydl.report_warning(message, only_once)
+            self._ydl.report_warning(message, once)
 
     def error(self, message, *, is_error=True):
         if self._ydl:
