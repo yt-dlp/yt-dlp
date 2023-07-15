@@ -83,6 +83,10 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
         session = CurlCFFISession(**session_opts)
         return session
 
+    def _check_extensions(self, extensions):
+        super()._check_extensions(extensions)
+        self._check_impersonate_extension(extensions)
+
     def _generate_set_cookie(self, cookiejar):
         for cookie in cookiejar:
             encoder = LenientSimpleCookie()
