@@ -4,8 +4,8 @@ from .common import InfoExtractor
 from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    ExtractorError,
     clean_html,
+    ExtractorError,
     int_or_none,
     parse_age_limit,
     try_get,

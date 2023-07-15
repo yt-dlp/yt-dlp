@@ -134,13 +134,13 @@ class TestNetworkingUtils:
         add_accept_encoding_header(headers, supported_encodings)
         assert headers == HTTPHeaderDict(expected)
 
-    def test_case_insensitive_dict(self):
+    def test_http_header_dict(self):
         headers = HTTPHeaderDict()
         headers['ytdl-test'] = 1
         assert list(headers.items()) == [('Ytdl-Test', '1')]
         headers['Ytdl-test'] = '2'
         assert list(headers.items()) == [('Ytdl-Test', '2')]
-        self.assertTrue('ytDl-Test' in headers)
+        assert 'ytDl-Test' in headers
         assert str(headers) == str(dict(headers))
         assert repr(headers) == str(dict(headers))
 

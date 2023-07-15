@@ -5487,3 +5487,7 @@ class _YDLLogger:
     def stdout(self, message):
         if self._ydl:
             self._ydl.to_stdout(message)
+
+    def stderr(self, message):
+        if self._ydl:
+            self._ydl.to_stderr(message)

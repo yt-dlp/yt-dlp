@@ -20,8 +20,7 @@ from .exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from .networking.utils import HTTPHeaderDict
-from .utils import make_ssl_context
+from .utils import HTTPHeaderDict, make_ssl_context
 from ..utils import (
     bug_reports_message,
     classproperty,
