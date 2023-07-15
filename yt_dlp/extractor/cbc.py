@@ -65,6 +65,7 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
             'timestamp': 255977160,
         },
+        'skip': 'test returns 404, and visiting the site redirects to the cbc archives page. The video can still be found here: https://www.cbc.ca/player/play/2487345465 , but that would be extracted by the CBCPlayerIE.',
     }, {
         # multiple iframes
         'url': 'http://www.cbc.ca/natureofthings/blog/birds-eye-view-from-vancouvers-burrard-street-bridge-how-we-got-the-shot',
@@ -94,9 +95,10 @@ class CBCIE(InfoExtractor):
         'skip': 'Geo-restricted to Canada',
     }, {
         # multiple CBC.APP.Caffeine.initInstance(...)
+        # currently doesn't work, needs a fix.
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks | CBC News',
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -423,6 +425,10 @@ class CBCGemPlaylistIE(InfoExtractor):
             'id': 'schitts-creek/s06',
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+            'series': 'Schitt\'s Creek',
+            'season_number': 6,
+            'season': 'Season 6',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/season/perso/cbc_schitts_creek_season_06_carousel_v03.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
         },
     }, {
         'url': 'https://gem.cbc.ca/schitts-creek/s06',
