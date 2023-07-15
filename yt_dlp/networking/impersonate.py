@@ -21,6 +21,8 @@ class ImpersonateHandlerMixin:
         if self._SUPPORTED_IMPERSONATE_TARGETS is None:
             return
         target = extensions.get('impersonate')
+        if target is None:
+            return
         if not isinstance(target, str):
             raise UnsupportedRequest(f'Impersonate extension must be of type str, got {type(target)}')
         if target not in self._SUPPORTED_IMPERSONATE_TARGETS:

@@ -1,3 +1,5 @@
+from .common import Request  # noqa: F401
+
 # isort: split
 # TODO: all request handlers should be safely imported
 from . import _urllib  # noqa: F401

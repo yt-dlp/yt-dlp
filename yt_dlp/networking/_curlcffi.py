@@ -106,9 +106,9 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
             yield '; '.join(values)
 
     def _send(self, request: Request):
-
-        # TODO: curl_cffi only sets cookie header for initial request
-        # TODO: see if we can avoid reading the whole response into memory
+        # XXX: curl_cffi reads the whole response at once into memory
+        # Streaming is not yet supported.
+        # See: https://github.com/yifeikong/curl_cffi/issues/26
         max_redirects_exceeded = False
         session: CurlCFFISession = self._get_instance()
         cookiejar = request.extensions.get('cookiejar') or self.cookiejar
@@ -162,8 +162,8 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
                 raise SSLError(cause=e) from e
 
             elif error_code == CurlECode.TOO_MANY_REDIRECTS:
-                # TODO: curl_cffi doesn't expose a response on too many redirects
-                # We are creating a dummy response here but it's
+                # The response isn't exposed on too many redirects.
+                # We are creating a dummy response here, but it's
                 # not ideal since it only contains initial request data
                 max_redirects_exceeded = True
                 curl_response = curl_cffi.requests.cookies.Response(
@@ -177,9 +177,10 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
                 # We can try extract *some* data from curl
                 curl_response.url = session.curl.getinfo(CurlInfo.EFFECTIVE_URL).decode()
                 curl_response.status_code = session.curl.getinfo(CurlInfo.RESPONSE_CODE)
+
             elif error_code == CurlECode.PARTIAL_FILE:
                 raise IncompleteRead(
-                    # TODO: do we need partial to have the content?
+                    # XXX: do we need partial to have the content?
                     partial=[''] * int(session.curl.getinfo(CurlInfo.SIZE_DOWNLOAD)),
                     expected=session.curl.getinfo(CurlInfo.CONTENT_LENGTH_DOWNLOAD),
                     cause=e) from e
