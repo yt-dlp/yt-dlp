@@ -1425,8 +1425,7 @@ class YoutubeDL:
         _type = 'video' if 'playlist-match-filter' in self.params['compat_opts'] else info_dict.get('_type', 'video')
         assert incomplete or _type == 'video', 'Only video result can be considered complete'
 
-        video_id = info_dict.get('id', 'entry')
-        video_title = format_field(info_dict, 'title', ' (%s)', func=lambda x: self._format_screen(x, self.Styles.FILENAME))
+        video_title = info_dict.get('title', info_dict.get('id', 'entry'))
 
         def check_filter():
             if _type in ('playlist', 'multi_video'):
@@ -1493,8 +1492,10 @@ class YoutubeDL:
             return ret
 
         if self.in_download_archive(info_dict):
-            reason = (f'{self._format_screen(video_id, self.Styles.ID)}{video_title}:'
-                      ' has already been recorded in the archive')
+            reason = ''.join((
+                format_field(info_dict, 'id', f'{self._format_screen("%s", self.Styles.ID)}: '),
+                format_field(info_dict, 'title', f'{self._format_screen("%s", self.Styles.EMPHASIS)} '),
+                'has already been recorded in the archive'))
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
             try:
@@ -1555,7 +1556,7 @@ class YoutubeDL:
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):
-                self.to_screen(f'[{key}] {self._format_screen(temp_id, self.Styles.ID)}: '
+                self.to_screen(f'[download] {self._format_screen(temp_id, self.Styles.ID)}: '
                                'has already been recorded in the archive')
                 if self.params.get('break_on_existing', False):
                     raise ExistingVideoReached()
