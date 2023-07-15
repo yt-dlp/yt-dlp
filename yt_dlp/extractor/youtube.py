@@ -4921,10 +4921,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             or try_get(tab_content, lambda x: x['richGridRenderer'], dict) or {})
         yield from extract_entries(parent_renderer)
         continuation = continuation_list[0]
-
+        seen_continuations = set()
         for page_num in itertools.count(1):
             if not continuation:
                 break
+            continuation_token = continuation.get('continuation')
+            if continuation_token is not None and continuation_token in seen_continuations:
+                self.write_debug('Detected YouTube feed looping - assuming end of feed.')
+                break
+            seen_continuations.add(continuation_token)
             headers = self.generate_api_headers(
                 ytcfg=ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
             response = self._extract_response(
