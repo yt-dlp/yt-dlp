@@ -1499,6 +1499,38 @@ class TwitterSpacesIE(TwitterBaseIE):
             'release_date': '20220807',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        # post_live/TimedOut but downloadable
+        'url': 'https://twitter.com/i/spaces/1vAxRAVQWONJl',
+        'info_dict': {
+            'id': '1vAxRAVQWONJl',
+            'ext': 'm4a',
+            'title': 'Framing Up FinOps: Billing Tools',
+            'description': 'Twitter Space participated by rupa, Alfonso Hernandez',
+            'uploader': 'Google Cloud',
+            'uploader_id': 'googlecloud',
+            'live_status': 'post_live',
+            'timestamp': 1681409554,
+            'upload_date': '20230413',
+            'release_timestamp': 1681839000,
+            'release_date': '20230418',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Needs ffmpeg as downloader, see: https://github.com/yt-dlp/yt-dlp/issues/7536
+        'url': 'https://twitter.com/i/spaces/1eaKbrQbjoRKX',
+        'info_dict': {
+            'id': '1eaKbrQbjoRKX',
+            'ext': 'm4a',
+            'title': 'あ',
+            'description': 'Twitter Space participated by nobody yet',
+            'uploader': '息根とめる🔪Twitchで復活',
+            'uploader_id': 'tomeru_ikinone',
+            'live_status': 'was_live',
+            'timestamp': 1685617198,
+            'upload_date': '20230601',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     SPACE_STATUS = {
@@ -1555,9 +1587,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             source = traverse_obj(
                 self._call_api(f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key']),
                 ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
-            formats = self._extract_m3u8_formats(
-                source, metadata['media_key'], 'm4a', live=is_live, fatal=False,
-                headers={'Referer': 'https://twitter.com/'}) if source else []
+            formats = self._extract_m3u8_formats(  # XXX: Some Spaces need ffmpeg as downloader
+                source, metadata['media_key'], 'm4a', entry_protocol='m3u8', live=is_live,
+                headers={'Referer': 'https://twitter.com/'}, fatal=False) if source else []
             for fmt in formats:
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
                 if not is_live:
@@ -1596,7 +1628,7 @@ class TwitterShortenerIE(TwitterBaseIE):
         if eid:
             id = eid
             url = self._BASE_URL + id
-        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).geturl()
+        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).url
         __UNSAFE_LINK = "https://twitter.com/safety/unsafe_link_warning?unsafe_link="
         if new_url.startswith(__UNSAFE_LINK):
             new_url = new_url.replace(__UNSAFE_LINK, "")
