@@ -497,12 +497,18 @@ class FacebookIE(InfoExtractor):
                 entries = []
 
                 def parse_graphql_video(video):
+                    v_id = video.get('videoId') or video.get('id') or video_id
+                    reel_info = traverse_obj(
+                        video, ('creation_story', 'short_form_video_context', 'playback_video', {dict}))
+                    if reel_info:
+                        video = video['creation_story']
+                        video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
+                        video.update(reel_info)
                     formats = []
                     q = qualities(['sd', 'hd'])
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
                                            ('playable_url_dash', '')):
-                        playable_url = traverse_obj(
-                            video, key, ('creation_story', 'short_form_video_context', 'playback_video', key))
+                        playable_url = video.get(key)
                         if not playable_url:
                             continue
                         if determine_ext(playable_url) == 'mpd':
@@ -514,15 +520,15 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
-                    v_id = video.get('videoId') or video.get('id') or video_id
                     info = {
                         'id': v_id,
                         'formats': formats,
                         'thumbnail': traverse_obj(
                             video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
-                        'uploader_id': try_get(video, lambda x: x['owner']['id']),
-                        'timestamp': int_or_none(video.get('publish_time')),
-                        'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),
+                        'uploader_id': traverse_obj(video, ('owner', 'id', {str_or_none})),
+                        'timestamp': traverse_obj(video, 'publish_time', 'creation_time', expected_type=int_or_none),
+                        'duration': (float_or_none(video.get('playable_duration_in_ms'), 1000)
+                                     or float_or_none(video.get('length_in_second'))),
                     }
                     process_formats(info)
                     description = try_get(video, lambda x: x['savable_description']['text'])
