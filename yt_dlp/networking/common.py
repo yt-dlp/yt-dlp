@@ -12,7 +12,7 @@ import urllib.response
 from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
-from typing import IO, Iterable, Mapping, Union
+from collections.abc import Iterable, Mapping
 
 from .exceptions import (
     NoSupportingHandlers,
@@ -30,6 +30,9 @@ from ..utils import (
     update_url_query,
 )
 from ..utils.networking import HTTPHeaderDict
+
+if typing.TYPE_CHECKING:
+    RequestData = bytes | Iterable[bytes] | typing.IO | None
 
 
 class RequestDirector:
@@ -316,9 +319,6 @@ class RequestHandler(abc.ABC):
         self.close()
 
 
-_TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
-
-
 class Request:
     """
     Represents a request to be made.
@@ -336,7 +336,7 @@ class Request:
     def __init__(
             self,
             url: str,
-            data: _TYPE_REQ_DATA = None,
+            data: RequestData = None,
             headers: typing.Mapping = None,
             proxies: dict = None,
             query: dict = None,
@@ -388,7 +388,7 @@ class Request:
         return self._data
 
     @data.setter
-    def data(self, data: _TYPE_REQ_DATA):
+    def data(self, data: RequestData):
         # Try catch some common mistakes
         if data is not None and (
             not isinstance(data, (bytes, io.IOBase, Iterable)) or isinstance(data, (str, Mapping))
@@ -461,7 +461,7 @@ class Response(io.IOBase):
 
     def __init__(
             self,
-            fp: IO,
+            fp: typing.IO,
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
