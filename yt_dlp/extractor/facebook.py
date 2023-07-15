@@ -91,16 +91,16 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '274175099429670',
             'ext': 'mp4',
-            'title': 'Asif Nawab Butt',
-            'description': 'Asif Nawab Butt',
+            'title': 'Asif',
+            'description': '',
             'uploader': 'Asif Nawab Butt',
             'upload_date': '20140506',
             'timestamp': 1399398998,
             'thumbnail': r're:^https?://.*',
+            'uploader_id': 'pfbid04scW44U4P9iTyLZAGy8y8W3pR3i2VugvHCimiRudUAVbN3MPp9eXBaYFcgVworZwl',
+            'duration': 131.03,
+            'concurrent_view_count': int,
         },
-        'expected_warnings': [
-            'title'
-        ]
     }, {
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
@@ -152,7 +152,7 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
-        'md5': '3f3798adb2b73423263e59376f1f5eb7',
+        'md5': 'ca63897a90c9452efee5f8c40d080e25',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
@@ -163,6 +163,9 @@ class FacebookIE(InfoExtractor):
             'uploader': 'CNN',
             'thumbnail': r're:^https?://.*',
             'view_count': int,
+            'uploader_id': '100059479812265',
+            'concurrent_view_count': int,
+            'duration': 44.478,
         },
     }, {
         # bigPipe.onPageletArrive ... onPageletArrive pagelet_group_mall
@@ -171,12 +174,16 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1417995061575415',
             'ext': 'mp4',
-            'title': 'Ukrainian Scientists Worldwide | Довгоочікуване відео',
+            'title': 'Довгоочікуване відео | By Yaroslav - Facebook',
             'description': 'Довгоочікуване відео',
-            'timestamp': 1486648771,
+            'timestamp': 1486648217,
             'upload_date': '20170209',
             'uploader': 'Yaroslav Korpan',
-            'uploader_id': '100000948048708',
+            'uploader_id': 'pfbid029y8j22EwH3ikeqgH3SEP9G3CAi9kmWKgXJJG9s5geV7mo3J2bvURqHCdgucRgAyhl',
+            'concurrent_view_count': int,
+            'thumbnail': r're:^https?://.*',
+            'view_count': int,
+            'duration': 11736.446,
         },
         'params': {
             'skip_download': True,
@@ -193,9 +200,7 @@ class FacebookIE(InfoExtractor):
             'uploader': 'La Guía Del Varón',
             'thumbnail': r're:^https?://.*',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Requires logging in',
     }, {
         # data.node.comet_sections.content.story.attachments[].style_type_renderer.attachment.media
         'url': 'https://www.facebook.com/groups/1024490957622648/permalink/1396382447100162/',
@@ -209,9 +214,7 @@ class FacebookIE(InfoExtractor):
             'uploader': 'Elisabeth Ahtn',
             'uploader_id': '100013949973717',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Requires logging in',
     }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,
@@ -253,7 +256,11 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1527084179,
             'upload_date': '20180523',
             'uploader': 'ESL One Dota 2',
-            'uploader_id': '234218833769558',
+            'uploader_id': '100066514874195',
+            'duration': 4524.212,
+            'view_count': int,
+            'thumbnail': r're:^https?://.*',
+            'concurrent_view_count': int,
         },
         'params': {
             'skip_download': True,
@@ -263,8 +270,17 @@ class FacebookIE(InfoExtractor):
         'url': 'https://www.facebook.com/100033620354545/videos/106560053808006/',
         'info_dict': {
             'id': '106560053808006',
+            'ext': 'mp4',
+            'title': 'Josef',
+            'thumbnail': r're:^https?://.*',
+            'concurrent_view_count': int,
+            'uploader_id': 'pfbid02gXHbDwxumkaKJQaTGUf3znYfYzTuidGEWawiramNx4YamSj2afwYSRkpcjtHtMRJl',
+            'timestamp': 1549275572,
+            'duration': 3.413,
+            'uploader': 'Josef Novak',
+            'description': '',
+            'upload_date': '20190204',
         },
-        'playlist_count': 2,
     }, {
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/watch/?v=647537299265662',
@@ -277,6 +293,7 @@ class FacebookIE(InfoExtractor):
             'id': '10157667649866271',
         },
         'playlist_count': 3,
+        'skip': 'Requires logging in',
     }, {
         # data.nodes[].comet_sections.content.story.attachments[].style_type_renderer.attachment.media
         'url': 'https://m.facebook.com/Alliance.Police.Department/posts/4048563708499330',
