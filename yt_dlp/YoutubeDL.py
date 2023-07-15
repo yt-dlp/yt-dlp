@@ -680,13 +680,14 @@ class YoutubeDL:
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
+        self.__header_cookies = []
+        self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
+        self.params['http_headers'].pop('Cookie', None)
+
         self._request_director = self.build_request_director(
             sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
-
-        self.__header_cookies = []
-        self._load_cookies(traverse_obj(self.params.get('http_headers'), 'cookie', casesense=False))  # compat
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
@@ -1645,18 +1646,19 @@ class YoutubeDL:
                 self.to_screen('')
             raise
 
-    def _load_cookies(self, data, *, from_headers=True):
+    def _load_cookies(self, data, *, autoscope=True):
         """Loads cookies from a `Cookie` header
 
         This tries to work around the security vulnerability of passing cookies to every domain.
         See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
-        The unscoped cookies are saved for later to be stored in the jar with a limited scope.
 
         @param data         The Cookie header as string to load the cookies from
-        @param from_headers If `False`, allows Set-Cookie syntax in the cookie string (at least a domain will be required)
+        @param autoscope    If `False`, scope cookies using Set-Cookie syntax and error for cookie without domains
+                            If `True`, save cookies for later to be stored in the jar with a limited scope
+                            If a URL, save cookies in the jar with the domain of the URL
         """
         for cookie in LenientSimpleCookie(data).values():
-            if from_headers and any(cookie.values()):
+            if autoscope and any(cookie.values()):
                 raise ValueError('Invalid syntax in Cookie Header')
 
             domain = cookie.get('domain') or ''
@@ -1670,17 +1672,23 @@ class YoutubeDL:
 
             if domain:
                 self.cookiejar.set_cookie(prepared_cookie)
-            elif from_headers:
+            elif autoscope is True:
                 self.deprecated_feature(
                     'Passing cookies as a header is a potential security risk; '
                     'they will be scoped to the domain of the downloaded urls. '
                     'Please consider loading cookies from a file or browser instead.')
                 self.__header_cookies.append(prepared_cookie)
+            elif autoscope:
+                self.report_warning(
+                    'The extractor result contains an unscoped cookie as an HTTP header. '
+                    f'If you are using yt-dlp with an input URL{bug_reports_message(before=",")}',
+                    only_once=True)
+                self._apply_header_cookies(autoscope, [prepared_cookie])
             else:
                 self.report_error('Unscoped cookies are not allowed; please specify some sort of scoping',
                                   tb=False, is_error=False)
 
-    def _apply_header_cookies(self, url):
+    def _apply_header_cookies(self, url, cookies=None):
         """Applies stray header cookies to the provided url
 
         This loads header cookies and scopes them to the domain provided in `url`.
@@ -1691,7 +1699,7 @@ class YoutubeDL:
         if not parsed.hostname:
             return
 
-        for cookie in map(copy.copy, self.__header_cookies):
+        for cookie in map(copy.copy, cookies or self.__header_cookies):
             cookie.domain = f'.{parsed.hostname}'
             self.cookiejar.set_cookie(cookie)
 
@@ -2481,9 +2489,16 @@ class YoutubeDL:
         parsed_selector = _parse_format_selection(iter(TokenIterator(tokens)))
         return _build_selector_function(parsed_selector)
 
-    def _calc_headers(self, info_dict):
+    def _calc_headers(self, info_dict, load_cookies=False):
         res = HTTPHeaderDict(self.params['http_headers'], info_dict.get('http_headers'))
         clean_headers(res)
+
+        if load_cookies:  # For --load-info-json
+            self._load_cookies(res.get('Cookie'), autoscope=info_dict['url'])  # compat
+            self._load_cookies(info_dict.get('cookies'), autoscope=False)
+        # The `Cookie` header is removed to prevent leaks and unscoped cookies.
+        # See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
+        res.pop('Cookie', None)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
         if cookies:
             encoder = LenientSimpleCookie()
@@ -2762,7 +2777,12 @@ class YoutubeDL:
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
-            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
+            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
+
+        # Safeguard against old/insecure infojson when using --load-info-json
+        if info_dict.get('http_headers'):
+            info_dict['http_headers'] = HTTPHeaderDict(info_dict['http_headers'])
+            info_dict['http_headers'].pop('Cookie', None)
 
         # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
@@ -3508,8 +3528,6 @@ class YoutubeDL:
             infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
                      for info in variadic(json.loads('\n'.join(f)))]
         for info in infos:
-            self._load_cookies(info.get('cookies'), from_headers=False)
-            self._load_cookies(traverse_obj(info.get('http_headers'), 'Cookie', casesense=False))  # compat
             try:
                 self.__download_wrapper(self.process_ie_result)(info, download=True)
             except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
