@@ -1229,7 +1229,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         _test_url = 'https://yt.dlp/test'
 
-        def test(encoded_cookies, cookies, headers=False, round_trip=None, error=None):
+        def test(encoded_cookies, cookies, headers=False, round_trip=None, error_re=None):
             def _test():
                 ydl.cookiejar.clear()
                 ydl._load_cookies(encoded_cookies, autoscope=headers)
@@ -1247,14 +1247,14 @@ class TestYoutubeDL(unittest.TestCase):
                 ydl.__dict__['_YoutubeDL__header_cookies'] = []
 
             with self.subTest(msg=encoded_cookies):
-                if not error:
+                if not error_re:
                     _test()
                     return
-                with self.assertRaisesRegex(Exception, error):
+                with self.assertRaisesRegex(Exception, error_re):
                     _test()
 
         test('test=value; Domain=.yt.dlp', [cookie('test', 'value', domain='.yt.dlp')])
-        test('test=value', [cookie('test', 'value')], error=r'Unscoped cookies are not allowed')
+        test('test=value', [cookie('test', 'value')], error_re='Unscoped cookies are not allowed')
         test('cookie1=value1; Domain=.yt.dlp; Path=/test; cookie2=value2; Domain=.yt.dlp; Path=/', [
             cookie('cookie1', 'value1', domain='.yt.dlp', path='/test'),
             cookie('cookie2', 'value2', domain='.yt.dlp', path='/')])
@@ -1267,9 +1267,9 @@ class TestYoutubeDL(unittest.TestCase):
              round_trip='name=""; Domain=.yt.dlp')
 
         test('test=value', [cookie('test', 'value', domain='.yt.dlp')], headers=True)
-        test('cookie1=value; Domain=.yt.dlp; cookie2=value', [], headers=True, error=r'Invalid syntax')
+        test('cookie1=value; Domain=.yt.dlp; cookie2=value', [], headers=True, error_re='Invalid syntax')
         ydl.deprecated_feature = ydl.report_error
-        test('test=value', [], headers=True, error=r'Passing cookies as a header is a potential security risk')
+        test('test=value', [], headers=True, error_re='Passing cookies as a header is a potential security risk')
 
     def test_infojson_cookies(self):
         TEST_FILE = 'test_infojson_cookies.info.json'
