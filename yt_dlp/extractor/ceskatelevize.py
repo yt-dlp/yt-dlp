@@ -282,7 +282,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 if m:
                     yield m.group(1)
                     start, stop = (_msectotimecode(int(t)) for t in m.groups()[1:])
-                    yield f'{start} --> {stop}'
+                    yield '{0} --> {1}'.format(start, stop)
                 else:
                     yield line
 
