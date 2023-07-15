@@ -807,7 +807,7 @@ class FacebookReelIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://www.facebook.com/reel/1195289147628387',
-        'md5': 'c985db1a57555494eb81f22b75783020',
+        'md5': 'f13dd37f2633595982db5ed8765474d3',
         'info_dict': {
             'id': '1195289147628387',
             'ext': 'mp4',
