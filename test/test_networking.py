@@ -1165,6 +1165,17 @@ class TestYoutubeDLNetworking:
             assert rh.verify is False
             assert rh.legacy_ssl_support is True
 
+    @pytest.mark.parametrize('ydl_params', [
+        {'client_certificate': 'fakecert.crt'},
+        {'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key'},
+        {'client_certificate': 'fakecert.crt', 'client_certificate_key': 'fakekey.key', 'client_certificate_password': 'foobar'},
+        {'client_certificate_key': 'fakekey.key', 'client_certificate_password': 'foobar'},
+    ])
+    def test_client_certificate(self, ydl_params):
+        with FakeYDL(ydl_params) as ydl:
+            rh = self.build_handler(ydl)
+            assert rh._client_cert == ydl_params  # XXX: Too bound to implementation
+
     def test_urllib_file_urls(self):
         with FakeYDL({'enable_file_urls': False}) as ydl:
             rh = self.build_handler(ydl, UrllibRH)
