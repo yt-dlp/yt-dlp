@@ -34,7 +34,7 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
-from .networking.common import _REQUEST_HANDLERS, _PREFERENCES as RH_PREFERENCES
+from .networking.common import _REQUEST_HANDLERS, _PREFERENCES as _RH_PREFERENCES
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,

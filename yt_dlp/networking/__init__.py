@@ -2,6 +2,7 @@
 from .common import (
     HEADRequest,
     PUTRequest,
+    Preference,
     Request,
     RequestDirector,
     RequestHandler,
