@@ -1078,7 +1078,9 @@ def create_parser():
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={'multiple_keys': False},
-        help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
+        help=('Specify a custom HTTP header and its value, separated by a colon \':\'. You can use this option multiple times. '
+              'NOTE: Use --cookies rather than adding a Cookie header if its contents may be sensitive; '
+              'data specified with a Cookie header will be sent to the domain(s) of the input URL(s)')
     )
     workarounds.add_option(
         '--bidi-workaround',
