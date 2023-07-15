@@ -170,8 +170,10 @@ class AdultSwimIE(TurnerBaseIE):
                         continue
                     ext = determine_ext(asset_url, mimetype2ext(asset.get('mime_type')))
                     if ext == 'm3u8':
-                        info['formats'].extend(self._extract_m3u8_formats(
-                            asset_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                            asset_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+                        info['formats'].extend(fmts)
+                        self._merge_subtitles(subs, target=info['subtitles'])
                     elif ext == 'f4m':
                         continue
                         # info['formats'].extend(self._extract_f4m_formats(
@@ -180,7 +182,6 @@ class AdultSwimIE(TurnerBaseIE):
                         info['subtitles'].setdefault('en', []).append({
                             'url': asset_url,
                         })
-            self._sort_formats(info['formats'])
 
             return info
         else:

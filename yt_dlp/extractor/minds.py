@@ -92,7 +92,6 @@ class MindsIE(MindsBaseIE):
                 'height': int_or_none(source.get('size')),
                 'url': src,
             })
-        self._sort_formats(formats)
 
         entity = video.get('entity') or entity
         owner = entity.get('ownerObj') or {}
@@ -107,7 +106,7 @@ class MindsIE(MindsBaseIE):
         if poster:
             urlh = self._request_webpage(poster, video_id, fatal=False)
             if urlh:
-                thumbnail = urlh.geturl()
+                thumbnail = urlh.url
 
         return {
             'id': video_id,

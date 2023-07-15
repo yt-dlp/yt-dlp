@@ -160,7 +160,6 @@ class FrontendMastersIE(FrontendMastersBaseIE):
                     'format_id': format_id,
                 })
                 formats.append(f)
-        self._sort_formats(formats)
 
         subtitles = {
             'en': [{

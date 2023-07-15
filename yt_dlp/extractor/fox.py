@@ -3,17 +3,19 @@ import uuid
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str,
     compat_urllib_parse_unquote,
 )
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
     parse_age_limit,
     parse_duration,
+    traverse_obj,
     try_get,
     unified_timestamp,
+    url_or_none,
 )
 
 
@@ -34,7 +36,8 @@ class FOXIE(InfoExtractor):
             'creator': 'FOX',
             'series': 'Gotham',
             'age_limit': 14,
-            'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight'
+            'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight',
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': True,
@@ -65,9 +68,9 @@ class FOXIE(InfoExtractor):
                 'https://api3.fox.com/v2.0/' + path,
                 video_id, data=data, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 entitlement_issues = self._parse_json(
-                    e.cause.read().decode(), video_id)['entitlementIssues']
+                    e.cause.response.read().decode(), video_id)['entitlementIssues']
                 for e in entitlement_issues:
                     if e.get('errorCode') == 1005:
                         raise ExtractorError(
@@ -120,8 +123,8 @@ class FOXIE(InfoExtractor):
         try:
             m3u8_url = self._download_json(release_url, video_id)['playURL']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                error = self._parse_json(e.cause.read().decode(), video_id)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                error = self._parse_json(e.cause.response.read().decode(), video_id)
                 if error.get('exception') == 'GeoLocationBlocked':
                     self.raise_geo_restricted(countries=['US'])
                 raise ExtractorError(error['description'], expected=True)
@@ -129,7 +132,6 @@ class FOXIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         data = try_get(
             video, lambda x: x['trackingData']['properties'], dict) or {}
@@ -165,6 +167,7 @@ class FOXIE(InfoExtractor):
             'season_number': int_or_none(video.get('seasonNumber')),
             'episode': video.get('name'),
             'episode_number': int_or_none(video.get('episodeNumber')),
+            'thumbnail': traverse_obj(video, ('images', 'still', 'raw'), expected_type=url_or_none),
             'release_year': int_or_none(video.get('releaseYear')),
             'subtitles': subtitles,
         }

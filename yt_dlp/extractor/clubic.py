@@ -42,7 +42,6 @@ class ClubicIE(InfoExtractor):
             'url': src['src'],
             'quality': quality_order(src['streamQuality']),
         } for src in sources]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

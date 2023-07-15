@@ -48,7 +48,6 @@ class InternetVideoArchiveIE(InfoExtractor):
                 replace_url('.mpd'), video_id, mpd_id='dash', fatal=False))
             formats.extend(self._extract_ism_formats(
                 replace_url('Manifest'), video_id, ism_id='mss', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

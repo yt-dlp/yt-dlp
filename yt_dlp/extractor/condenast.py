@@ -197,7 +197,6 @@ class CondeNastIE(InfoExtractor):
                 'ext': ext,
                 'quality': 1 if quality == 'high' else 0,
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         for t, caption in video_info.get('captions', {}).items():

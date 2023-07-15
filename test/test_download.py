@@ -10,10 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import collections
 import hashlib
-import http.client
 import json
-import socket
-import urllib.error
 
 from test.helper import (
     assertGreaterEqual,
@@ -29,6 +26,7 @@ from test.helper import (
 
 import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
+from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
@@ -106,7 +104,7 @@ def generator(test_case, tname):
             params = tc.get('params', {})
             if not info_dict.get('id'):
                 raise Exception(f'Test {tname} definition incorrect - "id" key is not present')
-            elif not info_dict.get('ext'):
+            elif not info_dict.get('ext') and info_dict.get('_type', 'video') == 'video':
                 if params.get('skip_download') and params.get('ignore_no_formats_error'):
                     continue
                 raise Exception(f'Test {tname} definition incorrect - "ext" key must be present to define the output file')
@@ -122,7 +120,8 @@ def generator(test_case, tname):
         params['outtmpl'] = tname + '_' + params['outtmpl']
         if is_playlist and 'playlist' not in test_case:
             params.setdefault('extract_flat', 'in_playlist')
-            params.setdefault('playlistend', test_case.get('playlist_mincount'))
+            params.setdefault('playlistend', test_case.get(
+                'playlist_mincount', test_case.get('playlist_count', -2) + 1))
             params.setdefault('skip_download', True)
 
         ydl = YoutubeDL(params, auto_init=False)
@@ -161,8 +160,7 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if (err.exc_info[0] not in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine)
-                            or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503)):
+                    if not isinstance(err.exc_info[1], (TransportError, UnavailableVideoError)) or (isinstance(err.exc_info[1], HTTPError) and err.exc_info[1].status == 503):
                         err.msg = f'{getattr(err, "msg", err)} ({tname})'
                         raise
 
@@ -212,6 +210,8 @@ def generator(test_case, tname):
                 tc_res_dict = res_dict['entries'][tc_num]
                 # First, check test cases' data against extracted data alone
                 expect_info_dict(self, tc_res_dict, tc.get('info_dict', {}))
+                if tc_res_dict.get('_type', 'video') != 'video':
+                    continue
                 # Now, check downloaded file consistency
                 tc_filename = get_tc_filename(tc)
                 if not test_case.get('params', {}).get('skip_download', False):
@@ -246,7 +246,7 @@ def generator(test_case, tname):
                 # extractor returns full results even with extract_flat
                 res_tcs = [{'info_dict': e} for e in res_dict['entries']]
                 try_rm_tcs_files(res_tcs)
-
+            ydl.close()
     return test_template
 
 

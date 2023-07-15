@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -74,8 +74,8 @@ class RadioCanadaIE(InfoExtractor):
             return self._download_json(
                 'https://services.radio-canada.ca/media/' + path, video_id, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 422):
-                data = self._parse_json(e.cause.read().decode(), None)
+            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 422):
+                data = self._parse_json(e.cause.response.read().decode(), None)
                 error = data.get('error_description') or data['errorMessage']['text']
                 raise ExtractorError(error, expected=True)
             raise
@@ -113,7 +113,6 @@ class RadioCanadaIE(InfoExtractor):
             raise ExtractorError(
                 '%s said: %s' % (self.IE_NAME, error), expected=True)
         formats = self._extract_m3u8_formats(v_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         subtitles = {}
         closed_caption_url = get_meta('closedCaption') or get_meta('closedCaptionHTML5')

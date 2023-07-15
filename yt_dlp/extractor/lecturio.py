@@ -25,7 +25,7 @@ class LecturioBaseIE(InfoExtractor):
             self._LOGIN_URL, None, 'Downloading login popup')
 
         def is_logged(url_handle):
-            return self._LOGIN_URL not in url_handle.geturl()
+            return self._LOGIN_URL not in url_handle.url
 
         # Already logged in
         if is_logged(urlh):
@@ -137,7 +137,6 @@ class LecturioIE(LecturioBaseIE):
                         'height': int(mobj.group(1)),
                     })
             formats.append(f)
-        self._sort_formats(formats)
 
         subtitles = {}
         automatic_captions = {}

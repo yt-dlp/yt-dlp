@@ -75,7 +75,6 @@ class PhilharmonieDeParisIE(InfoExtractor):
                     m3u8_id='hls', fatal=False))
             if not formats and not self.get_param('ignore_no_formats'):
                 return
-            self._sort_formats(formats)
             return {
                 'title': title,
                 'formats': formats,

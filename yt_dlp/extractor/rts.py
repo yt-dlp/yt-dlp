@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-class RTSIE(SRGSSRIE):
+class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'RTS.ch'
     _VALID_URL = r'rts:(?P<rts_id>\d+)|https?://(?:.+?\.)?rts\.ch/(?:[^/]+/){2,}(?P<id>[0-9]+)-(?P<display_id>.+?)\.html'
 
@@ -136,8 +136,8 @@ class RTSIE(SRGSSRIE):
 
             if not entries:
                 page, urlh = self._download_webpage_handle(url, display_id)
-                if re.match(self._VALID_URL, urlh.geturl()).group('id') != media_id:
-                    return self.url_result(urlh.geturl(), 'RTS')
+                if re.match(self._VALID_URL, urlh.url).group('id') != media_id:
+                    return self.url_result(urlh.url, 'RTS')
 
                 # article with videos on rhs
                 videos = re.findall(
@@ -212,7 +212,6 @@ class RTSIE(SRGSSRIE):
             })
 
         self._check_formats(formats, media_id)
-        self._sort_formats(formats)
 
         duration = info.get('duration') or info.get('cutout') or info.get('cutduration')
         if isinstance(duration, compat_str):

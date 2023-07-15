@@ -2,7 +2,8 @@ import re
 from uuid import uuid4
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str
+from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -36,7 +37,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 raise ExtractorError(
                     'Unable to login: incorrect username and/or password',
                     expected=True)
@@ -202,7 +203,6 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 for this_format in this_formats:
                     this_format['quality'] = preference
                 formats.extend(this_formats)
-        self._sort_formats(formats)
         return formats, subtitles
 
     def _extract_video(self, video_id, record_id=None):

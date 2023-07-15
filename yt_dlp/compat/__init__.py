@@ -8,13 +8,13 @@ from .compat_utils import passthrough_module
 
 # XXX: Implement this the same way as other DeprecationWarnings without circular import
 passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
-    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=3))
+    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=5))
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
 # Python 3.5. Introducing dummy exception for Python >3.5 for compatible
 # and uniform cross-version exception handling
-class compat_HTMLParseError(Exception):
+class compat_HTMLParseError(ValueError):
     pass
 
 
@@ -72,7 +72,11 @@ else:
     compat_expanduser = os.path.expanduser
 
 
-# NB: Add modules that are imported dynamically here so that PyInstaller can find them
-# See https://github.com/pyinstaller/pyinstaller-hooks-contrib/issues/438
-if False:
-    from . import _legacy  # noqa: F401
+def urllib_req_to_req(urllib_request):
+    """Convert urllib Request to a networking Request"""
+    from ..networking import Request
+    from ..utils.networking import HTTPHeaderDict
+    return Request(
+        urllib_request.get_full_url(), data=urllib_request.data, method=urllib_request.get_method(),
+        headers=HTTPHeaderDict(urllib_request.headers, urllib_request.unredirected_hdrs),
+        extensions={'timeout': urllib_request.timeout} if hasattr(urllib_request, 'timeout') else None)

@@ -24,7 +24,6 @@ class TheHoleTvIE(InfoExtractor):
             r'(<div[^>]*\bdata-controller="player"[^>]*>)', webpage, 'video player'))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             player_attrs['data-player-source-value'], video_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

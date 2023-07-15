@@ -38,8 +38,6 @@ class CharlieRoseIE(InfoExtractor):
         info_dict = self._parse_html5_media_entries(
             self._PLAYER_BASE % video_id, webpage, video_id,
             m3u8_entry_protocol='m3u8_native')[0]
-
-        self._sort_formats(info_dict['formats'])
         self._remove_duplicate_formats(info_dict['formats'])
 
         info_dict.update({

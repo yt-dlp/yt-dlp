@@ -18,8 +18,25 @@ class PrankCastIE(InfoExtractor):
             'cast': ['Devonanustart', 'Phonelosers'],
             'description': '',
             'categories': ['prank'],
-            'tags': ['prank call', 'prank'],
+            'tags': ['prank call', 'prank', 'live show'],
             'upload_date': '20220825'
+        }
+    }, {
+        'url': 'https://prankcast.com/phonelosers/showreel/2048-NOT-COOL',
+        'info_dict': {
+            'id': '2048',
+            'ext': 'mp3',
+            'title': 'NOT COOL',
+            'display_id': 'NOT-COOL',
+            'timestamp': 1665028364,
+            'uploader': 'phonelosers',
+            'channel_id': 6,
+            'duration': 4044,
+            'cast': ['phonelosers'],
+            'description': '',
+            'categories': ['prank'],
+            'tags': ['prank call', 'prank', 'live show'],
+            'upload_date': '20221006'
         }
     }]
 
@@ -45,5 +62,5 @@ class PrankCastIE(InfoExtractor):
             'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
-            'tags': self._parse_json(json_info.get('broadcast_tags') or '{}', video_id)
+            'tags': try_call(lambda: json_info['broadcast_tags'].split(','))
         }

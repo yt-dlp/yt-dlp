@@ -1,8 +1,8 @@
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     ExtractorError,
     determine_ext,
     scale_thumbnails_to_max_format_width,
@@ -19,7 +19,6 @@ class Ant1NewsGrBaseIE(InfoExtractor):
             raise ExtractorError('no source found for %s' % video_id)
         formats, subs = (self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
                          if determine_ext(source) == 'm3u8' else ([{'url': source}], {}))
-        self._sort_formats(formats)
         thumbnails = scale_thumbnails_to_max_format_width(
             formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
         return {
@@ -122,7 +121,7 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
         canonical_url = self._request_webpage(
             HEADRequest(url), video_id,
             note='Resolve canonical player URL',
-            errnote='Could not resolve canonical player URL').geturl()
+            errnote='Could not resolve canonical player URL').url
         _, netloc, _, _, query, _ = urllib.parse.urlparse(canonical_url)
         cid = urllib.parse.parse_qs(query)['cid'][0]
 

@@ -139,7 +139,6 @@ class WimTVIE(InfoExtractor):
                 })
         json = json.get('resource')
         thumb = self._generate_thumbnail(json.get('thumbnailId'))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

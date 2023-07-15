@@ -91,7 +91,7 @@ class KuwoIE(KuwoBaseIE):
         webpage, urlh = self._download_webpage_handle(
             url, song_id, note='Download song detail info',
             errnote='Unable to get song detail info')
-        if song_id not in urlh.geturl() or '对不起，该歌曲由于版权问题已被下线，将返回网站首页' in webpage:
+        if song_id not in urlh.url or '对不起，该歌曲由于版权问题已被下线，将返回网站首页' in webpage:
             raise ExtractorError('this song has been offline because of copyright issues', expected=True)
 
         song_name = self._html_search_regex(
@@ -104,7 +104,6 @@ class KuwoIE(KuwoBaseIE):
             lrc_content = None
 
         formats = self._get_formats(song_id)
-        self._sort_formats(formats)
 
         album_id = self._html_search_regex(
             r'<a[^>]+href="http://www\.kuwo\.cn/album/(\d+)/"',
@@ -338,8 +337,6 @@ class KuwoMvIE(KuwoBaseIE):
             'url': mv_url,
             'format_id': 'mv',
         })
-
-        self._sort_formats(formats)
 
         return {
             'id': song_id,

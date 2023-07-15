@@ -7,8 +7,15 @@ from . import get_suitable_downloader
 from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
-from ..dependencies import Cryptodome_AES
-from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
+from ..dependencies import Cryptodome
+from ..utils import (
+    bug_reports_message,
+    parse_m3u8_attributes,
+    remove_start,
+    traverse_obj,
+    update_url_query,
+    urljoin,
+)
 
 
 class HlsFD(FragmentFD):
@@ -21,7 +28,16 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False):
+    def _has_drm(manifest):  # TODO: https://github.com/yt-dlp/yt-dlp/pull/5039
+        return bool(re.search('|'.join((
+            r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
+            r'#EXT-X-(?:SESSION-)?KEY:.*?KEYFORMAT="com\.apple\.streamingkeydelivery"',  # Apple FairPlay
+            r'#EXT-X-(?:SESSION-)?KEY:.*?KEYFORMAT="com\.microsoft\.playready"',  # Microsoft PlayReady
+            r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
+        )), manifest))
+
+    @classmethod
+    def can_download(cls, manifest, info_dict, allow_unplayable_formats=False):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -43,13 +59,15 @@ class HlsFD(FragmentFD):
         ]
         if not allow_unplayable_formats:
             UNSUPPORTED_FEATURES += [
-                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1]
+                r'#EXT-X-KEY:METHOD=(?!NONE|AES-128)',  # encrypted streams [1], but not necessarily DRM
             ]
 
         def check_results():
             yield not info_dict.get('is_live')
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
+            if not allow_unplayable_formats:
+                yield not cls._has_drm(manifest)
         return all(check_results())
 
     def real_download(self, filename, info_dict):
@@ -57,13 +75,13 @@ class HlsFD(FragmentFD):
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.geturl()
+        man_url = urlh.url
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
         if can_download:
             has_ffmpeg = FFmpegFD.available()
-            no_crypto = not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s
+            no_crypto = not Cryptodome.AES and '#EXT-X-KEY:METHOD=AES-128' in s
             if no_crypto and has_ffmpeg:
                 can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
             elif no_crypto:
@@ -74,14 +92,13 @@ class HlsFD(FragmentFD):
                 message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
                            f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
-            has_drm = re.search('|'.join([
-                r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
-                r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
-            ]), s)
-            if has_drm and not self.params.get('allow_unplayable_formats'):
-                self.report_error(
-                    'This video is DRM protected; Try selecting another format with --format or '
-                    'add --check-formats to automatically fallback to the next best format')
+            if self._has_drm(s) and not self.params.get('allow_unplayable_formats'):
+                if info_dict.get('has_drm') and self.params.get('test'):
+                    self.to_screen(f'[{self.FD_NAME}] This format is DRM protected', skip_eol=True)
+                else:
+                    self.report_error(
+                        'This format is DRM protected; Try selecting another format with --format or '
+                        'add --check-formats to automatically fallback to the next best format', tb=False)
                 return False
             message = message or 'Unsupported features have been detected'
             fd = FFmpegFD(self.ydl, self.params)
@@ -150,6 +167,13 @@ class HlsFD(FragmentFD):
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
+        external_aes_key = traverse_obj(info_dict, ('hls_aes', 'key'))
+        if external_aes_key:
+            external_aes_key = binascii.unhexlify(remove_start(external_aes_key, '0x'))
+            assert len(external_aes_key) in (16, 24, 32), 'Invalid length for HLS AES-128 key'
+        external_aes_iv = traverse_obj(info_dict, ('hls_aes', 'iv'))
+        if external_aes_iv:
+            external_aes_iv = binascii.unhexlify(remove_start(external_aes_iv, '0x').zfill(32))
         byte_range = {}
         discontinuity_count = 0
         frag_index = 0
@@ -165,10 +189,7 @@ class HlsFD(FragmentFD):
                     frag_index += 1
                     if frag_index <= ctx['fragment_index']:
                         continue
-                    frag_url = (
-                        line
-                        if re.match(r'^https?://', line)
-                        else urllib.parse.urljoin(man_url, line))
+                    frag_url = urljoin(man_url, line)
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -190,10 +211,7 @@ class HlsFD(FragmentFD):
                         return False
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
-                    frag_url = (
-                        map_info.get('URI')
-                        if re.match(r'^https?://', map_info.get('URI'))
-                        else urllib.parse.urljoin(man_url, map_info.get('URI')))
+                    frag_url = urljoin(man_url, map_info.get('URI'))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -218,15 +236,18 @@ class HlsFD(FragmentFD):
                     decrypt_url = decrypt_info.get('URI')
                     decrypt_info = parse_m3u8_attributes(line[11:])
                     if decrypt_info['METHOD'] == 'AES-128':
-                        if 'IV' in decrypt_info:
+                        if external_aes_iv:
+                            decrypt_info['IV'] = external_aes_iv
+                        elif 'IV' in decrypt_info:
                             decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
-                        if not re.match(r'^https?://', decrypt_info['URI']):
-                            decrypt_info['URI'] = urllib.parse.urljoin(
-                                man_url, decrypt_info['URI'])
-                        if extra_query:
-                            decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
-                        if decrypt_url != decrypt_info['URI']:
-                            decrypt_info['KEY'] = None
+                        if external_aes_key:
+                            decrypt_info['KEY'] = external_aes_key
+                        else:
+                            decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
+                            if extra_query:
+                                decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                            if decrypt_url != decrypt_info['URI']:
+                                decrypt_info['KEY'] = None
 
                 elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
                     media_sequence = int(line[22:])

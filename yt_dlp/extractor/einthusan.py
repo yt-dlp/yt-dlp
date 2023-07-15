@@ -89,8 +89,6 @@ class EinthusanIE(InfoExtractor):
                 'url': mp4_url,
             })
 
-        self._sort_formats(formats)
-
         description = get_elements_by_class('synopsis', webpage)[0]
         thumbnail = self._html_search_regex(
             r'''<img[^>]+src=(["'])(?P<url>(?!\1).+?/moviecovers/(?!\1).+?)\1''',

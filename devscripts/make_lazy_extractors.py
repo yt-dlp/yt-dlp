@@ -14,10 +14,17 @@ from devscripts.utils import get_filename_args, read_file, write_file
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = [
-    'IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_VALID_URL', '_WORKING', '_ENABLED', '_NETRC_MACHINE', 'age_limit'
+    'IE_NAME', '_ENABLED', '_VALID_URL',  # Used for URL matching
+    '_WORKING', 'IE_DESC', '_NETRC_MACHINE', 'SEARCH_KEY',  # Used for --extractor-descriptions
+    'age_limit',  # Used for --age-limit (evaluated)
+    '_RETURN_TYPE',  # Accessed in CLI only with instance (evaluated)
 ]
 CLASS_METHODS = [
-    'ie_key', 'working', 'description', 'suitable', '_match_valid_url', '_match_id', 'get_temp_id', 'is_suitable'
+    'ie_key', 'suitable', '_match_valid_url',  # Used for URL matching
+    'working', 'get_temp_id', '_match_id',  # Accessed just before instance creation
+    'description',  # Used for --extractor-descriptions
+    'is_suitable',  # Used for --age-limit
+    'supports_login', 'is_single_video',  # Accessed in CLI only with instance
 ]
 IE_TEMPLATE = '''
 class {name}({bases}):
@@ -33,7 +40,11 @@ def main():
 
     _ALL_CLASSES = get_all_ies()  # Must be before import
 
+    import yt_dlp.plugins
     from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
+
+    # Filter out plugins
+    _ALL_CLASSES = [cls for cls in _ALL_CLASSES if not cls.__module__.startswith(f'{yt_dlp.plugins.PACKAGE_NAME}.')]
 
     DummyInfoExtractor = type('InfoExtractor', (InfoExtractor,), {'IE_NAME': NO_ATTR})
     module_src = '\n'.join((

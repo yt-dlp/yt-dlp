@@ -72,7 +72,6 @@ class NetzkinoIE(InfoExtractor):
             'ext': 'mp4',
             'url': tpl.replace('{}', film_fn) + suffix[key],
         } for key, tpl in templates.items()]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
