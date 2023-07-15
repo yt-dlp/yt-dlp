@@ -43,7 +43,12 @@ from .networking.exceptions import (
     _CompatHTTPError,
     network_exceptions,
 )
-from .networking.utils import std_headers
+from .networking.utils import (
+    HTTPHeaderDict,
+    clean_headers,
+    clean_proxies,
+    std_headers,
+)
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -82,7 +87,6 @@ from .utils import (
     ExtractorError,
     FormatSorter,
     GeoRestrictedError,
-    HTTPHeaderDict,
     ISO3166Utils,
     LazyList,
     MaxDownloadsReached,
@@ -99,8 +103,6 @@ from .utils import (
     age_restricted,
     args_to_str,
     bug_reports_message,
-    clean_headers,
-    clean_proxies,
     date_from_str,
     deprecation_warning,
     determine_ext,

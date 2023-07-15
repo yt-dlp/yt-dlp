@@ -9,9 +9,9 @@ from ..networking.exceptions import (
     HTTPError,
     TransportError,
 )
+from ..networking.utils import HTTPHeaderDict
 from ..utils import (
     ContentTooShortError,
-    HTTPHeaderDict,
     RetryManager,
     ThrottledDownload,
     XAttrMetadataError,

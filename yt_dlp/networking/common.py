@@ -15,9 +15,9 @@ from http.cookiejar import CookieJar
 from typing import IO, Iterable, Mapping, Union
 
 from .exceptions import TransportError, UnsupportedRequest
+from .networking.utils import HTTPHeaderDict
 from .utils import make_ssl_context
 from ..utils import (
-    HTTPHeaderDict,
     classproperty,
     deprecation_warning,
     escape_url,

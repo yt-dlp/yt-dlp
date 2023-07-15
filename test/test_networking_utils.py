@@ -25,6 +25,7 @@ from yt_dlp.networking.exceptions import (
     _CompatHTTPError,
 )
 from yt_dlp.networking.utils import (
+    HTTPHeaderDict,
     InstanceStoreMixin,
     add_accept_encoding_header,
     get_redirect_method,
@@ -33,7 +34,6 @@ from yt_dlp.networking.utils import (
     ssl_load_certs,
 )
 from yt_dlp.socks import ProxyType
-from yt_dlp.utils import HTTPHeaderDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -133,6 +133,36 @@ class TestNetworkingUtils:
         headers = HTTPHeaderDict(headers)
         add_accept_encoding_header(headers, supported_encodings)
         assert headers == HTTPHeaderDict(expected)
+
+    def test_case_insensitive_dict(self):
+        headers = HTTPHeaderDict()
+        headers['ytdl-test'] = 1
+        assert list(headers.items()) == [('Ytdl-Test', '1')]
+        headers['Ytdl-test'] = '2'
+        assert list(headers.items()) == [('Ytdl-Test', '2')]
+        self.assertTrue('ytDl-Test' in headers)
+        assert str(headers) == str(dict(headers))
+        assert repr(headers) == str(dict(headers))
+
+        headers.update({'X-dlp': 'data'})
+        assert set(headers.items()) == {('Ytdl-Test', '2'), ('X-Dlp', 'data')}
+        assert dict(headers) == {'Ytdl-Test': '2', 'X-Dlp': 'data'}
+        assert len(headers) == 2
+        assert headers.copy() == headers
+        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        assert set(headers2.items()) == {('Ytdl-Test', '2'), ('X-Dlp', 'data2')}
+        assert len(headers2) == 2
+        headers2.clear()
+        assert len(headers2) == 0
+
+        # ensure we prefer latter headers
+        headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
+        assert set(headers3.items()) == {('Ytdl-Test', '2')}
+        del headers3['ytdl-tesT']
+        assert dict(headers3) == {}
+
+        headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
+        assert set(headers4.items()) == {('Ytdl-Test', 'data;')}
 
 
 class TestInstanceStoreMixin:

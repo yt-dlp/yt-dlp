@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import contextlib
 import random
 import ssl
@@ -11,7 +12,7 @@ from collections.abc import Iterable
 from .exceptions import RequestError
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import HTTPHeaderDict, format_field, traverse_obj
+from ..utils import format_field, remove_start, traverse_obj
 
 
 def random_user_agent():
@@ -59,12 +60,70 @@ def random_user_agent():
     return _USER_AGENT_TPL % random.choice(_CHROME_VERSIONS)
 
 
+class HTTPHeaderDict(collections.UserDict, dict):
+    """
+    Store and access keys case-insensitively.
+    The constructor can take multiple dicts, in which keys in the latter are prioritised.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        for dct in args:
+            if dct is not None:
+                self.update(dct)
+        self.update(kwargs)
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key.title(), str(value))
+
+    def __getitem__(self, key):
+        return super().__getitem__(key.title())
+
+    def __delitem__(self, key):
+        super().__delitem__(key.title())
+
+    def __contains__(self, key):
+        return super().__contains__(key.title() if isinstance(key, str) else key)
+
+
 std_headers = HTTPHeaderDict({
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-us,en;q=0.5',
     'Sec-Fetch-Mode': 'navigate',
 })
+
+
+def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
+    req_proxy = headers.pop('Ytdl-Request-Proxy', None)
+    if req_proxy:
+        proxies.clear()  # XXX: compat: Ytdl-Request-Proxy takes preference over everything, including NO_PROXY
+        proxies['all'] = req_proxy
+    for proxy_key, proxy_url in proxies.items():
+        if proxy_url == '__noproxy__':
+            proxies[proxy_key] = None
+            continue
+        if proxy_key == 'no':  # special case
+            continue
+        if proxy_url is not None:
+            # Ensure proxies without a scheme are http.
+            proxy_scheme = urllib.request._parse_proxy(proxy_url)[0]
+            if proxy_scheme is None:
+                proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
+
+            replace_scheme = {
+                'socks5': 'socks5h',  # compat: socks5 was treated as socks5h
+                'socks': 'socks4'  # compat: non-standard
+            }
+            if proxy_scheme in replace_scheme:
+                proxies[proxy_key] = urllib.parse.urlunparse(
+                    urllib.parse.urlparse(proxy_url)._replace(scheme=replace_scheme[proxy_scheme]))
+
+
+def clean_headers(headers: HTTPHeaderDict):
+    if 'Youtubedl-No-Compression' in headers:  # compat
+        del headers['Youtubedl-No-Compression']
+        headers['Accept-Encoding'] = 'identity'
 
 
 def ssl_load_certs(context: ssl.SSLContext, use_certifi=True):
