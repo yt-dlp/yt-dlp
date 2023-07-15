@@ -790,18 +790,18 @@ class FacebookReelIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://www.facebook.com/reel/1195289147628387',
-        'md5': 'c4ff9a7182ff9ff7d6f7a83603bae831',
+        'md5': 'c985db1a57555494eb81f22b75783020',
         'info_dict': {
             'id': '1195289147628387',
             'ext': 'mp4',
-            'title': 'md5:9f5b142921b2dc57004fa13f76005f87',
-            'description': 'md5:24ea7ef062215d295bdde64e778f5474',
-            'uploader': 'Beast Camp Training',
-            'uploader_id': '1738535909799870',
-            'duration': 9.536,
-            'thumbnail': r're:^https?://.*',
+            'title': 'md5:b05800b5b1ad56c0ca78bd3807b6a61e',
+            'description': 'md5:22f03309b216ac84720183961441d8db',
+            'uploader': 'md5:723e6cb3091241160f20b3c5dc282af1',
+            'uploader_id': '100040874179269',
+            'duration': 9.579,
+            'timestamp': 1637502609,
             'upload_date': '20211121',
-            'timestamp': 1637502604,
+            'thumbnail': r're:^https?://.*',
         }
     }]
 
