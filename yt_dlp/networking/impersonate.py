@@ -1,5 +1,5 @@
-from .common import Request
 from .exceptions import UnsupportedRequest
+from .utils import std_headers
 
 
 class ImpersonateHandlerMixin:
@@ -25,3 +25,14 @@ class ImpersonateHandlerMixin:
             raise UnsupportedRequest(f'Impersonate extension must be of type str, got {type(target)}')
         if target not in self._SUPPORTED_IMPERSONATE_TARGETS:
             raise UnsupportedRequest(f'Unsupported impersonate target: {target}')
+
+    def _get_impersonate_headers(self, request):
+        headers = self._merge_headers(request.headers)
+        impersonate = request.extensions.get('impersonate')
+        if impersonate:
+            # remove all headers present in std_headers
+            headers.pop('User-Agent', None)
+            for header in std_headers:
+                if header in headers and std_headers[header] == headers[header]:
+                    headers.pop(header, None)
+        return headers

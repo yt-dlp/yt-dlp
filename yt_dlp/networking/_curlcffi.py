@@ -10,7 +10,7 @@ from .common import RequestHandler, Request, Response, register, Features
 from .director import Preference, register_preference
 from .exceptions import CertificateVerifyError, RequestError, SSLError, HTTPError, IncompleteRead, TransportError
 from .impersonate import ImpersonateHandlerMixin
-from .utils import InstanceStoreMixin, select_proxy
+from .utils import InstanceStoreMixin, select_proxy, std_headers
 from ..cookies import YoutubeDLCookieJar, LenientSimpleCookie
 from ..utils import int_or_none, traverse_obj
 
@@ -132,11 +132,14 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
             proxy = select_proxy(request.url, proxies=proxies)
             if proxy:
                 session.curl.setopt(CurlOpt.PROXY, proxy.encode())
+
+        headers = self._get_impersonate_headers(request)
+
         try:
             curl_response = session.request(
                 method=request.method,
                 url=request.url,
-                headers=self._merge_headers(request.headers),
+                headers=headers,
                 data=request.data,
                 verify=self.verify,
                 max_redirects=5,
