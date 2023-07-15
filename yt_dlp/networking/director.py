@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-import abc
-import typing
-
-from .exceptions import RequestError, UnsupportedRequest, NoSupportingHandlers
-from ..utils import error_to_str, bug_reports_message
-
-from .common import RequestHandler, Request, Response
-
+from .common import Request, RequestHandler, Response
+from .exceptions import NoSupportingHandlers, RequestError, UnsupportedRequest
+from ..utils import bug_reports_message, error_to_str
 
 _PREFERENCES = []
 

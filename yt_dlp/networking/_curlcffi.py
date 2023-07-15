@@ -1,27 +1,28 @@
 import io
-import os
 import re
-import tempfile
-import urllib.request
 from enum import IntEnum
-from urllib.response import addinfourl
 
-from .common import RequestHandler, Request, Response, register, Features
+from .common import Features, Request, RequestHandler, Response, register
 from .director import Preference, register_preference
-from .exceptions import CertificateVerifyError, RequestError, SSLError, HTTPError, IncompleteRead, TransportError
+from .exceptions import (
+    CertificateVerifyError,
+    HTTPError,
+    IncompleteRead,
+    SSLError,
+    TransportError,
+)
 from .impersonate import ImpersonateHandlerMixin
-from .utils import InstanceStoreMixin, select_proxy, std_headers
-from ..cookies import YoutubeDLCookieJar, LenientSimpleCookie
-from ..utils import int_or_none, traverse_obj
-
+from .utils import InstanceStoreMixin, select_proxy
+from ..cookies import LenientSimpleCookie
 from ..dependencies import curl_cffi
+from ..utils import int_or_none, traverse_obj
 
 if curl_cffi is None:
     raise ImportError('curl_cffi is not installed')
 
-from curl_cffi import ffi
 import curl_cffi.requests
-from curl_cffi.const import CurlOpt, CurlInfo
+from curl_cffi import ffi
+from curl_cffi.const import CurlInfo, CurlOpt
 
 
 class CurlCFFISession(curl_cffi.requests.Session):

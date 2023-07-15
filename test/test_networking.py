@@ -74,6 +74,7 @@ def _build_proxy_handler(name):
 class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
+
     def log_message(self, format, *args):
         pass
 
@@ -341,7 +342,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         https_server_thread.start()
 
         with handler(verify=False) as rh:
-            with pytest.raises(SSLError, match=f'(?i)sslv3.alert.handshake.failure') as exc_info:
+            with pytest.raises(SSLError, match='(?i)sslv3.alert.handshake.failure') as exc_info:
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
@@ -411,10 +412,10 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 # See: https://datatracker.ietf.org/doc/html/rfc9110#section-15.4-6.5.1
                 # Some user-agents such as curl do not remove the header on redirect.
                 if assert_no_content or data is None:
-                   # assert 'content-type' not in headers
+                    # assert 'content-type' not in headers
                     assert 'content-length' not in headers
                 elif assert_no_content is not None:
-                   # assert 'content-type' in headers
+                    # assert 'content-type' in headers
                     assert 'content-length' in headers
 
                 return data_sent.decode(), res.headers.get('method', '')

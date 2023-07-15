@@ -5521,8 +5521,9 @@ def clean_headers(headers: HTTPHeaderDict):
         headers['Accept-Encoding'] = 'identity'
 
     # Ensure headers are strings
-    for k,v in headers.items():
+    for k, v in headers.items():
         headers[k] = str(v)
+
 
 # XXX: Temporary
 class _YDLLogger:
