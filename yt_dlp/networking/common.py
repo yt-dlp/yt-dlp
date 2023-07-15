@@ -147,6 +147,11 @@ class RequestHandler(abc.ABC):
         a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
     - `_SUPPORTED_FEATURES`: a tuple of supported features, as defined in Features enum.
+
+    - `_SUPPORTED_EXTENSIONS`: a tuple of supported request extensions keys. Any Request that contains
+        an extension not in this list will raise an UnsupportedRequest. Extensions that start
+        with an underscore (_) are excluded from this check.
+
     The above may be set to None to disable the checks.
 
     Parameters:
@@ -183,6 +188,7 @@ class RequestHandler(abc.ABC):
     _SUPPORTED_URL_SCHEMES = ()
     _SUPPORTED_PROXY_SCHEMES = ()
     _SUPPORTED_FEATURES = ()
+    _SUPPORTED_EXTENSIONS = ()
 
     def __init__(
         self, *,
@@ -276,6 +282,10 @@ class RequestHandler(abc.ABC):
             raise UnsupportedRequest('timeout is not a float or int')
 
     def _check_extensions(self, extensions):
+        if self._SUPPORTED_EXTENSIONS is not None:
+            for extension in extensions:
+                if extension not in self._SUPPORTED_EXTENSIONS and not extension.startswith('_'):
+                    raise UnsupportedRequest(f'Unsupported request extension: "{extension}"')
         self._check_cookiejar_extension(extensions)
         self._check_timeout_extension(extensions)
 

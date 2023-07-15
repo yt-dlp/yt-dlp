@@ -823,6 +823,7 @@ class TestRequestHandlerValidation:
         _SUPPORTED_FEATURES = None
         _SUPPORTED_PROXY_SCHEMES = None
         _SUPPORTED_URL_SCHEMES = None
+        _SUPPORTED_EXTENSIONS = None
 
     class HTTPSupportedRH(ValidationRH):
         _SUPPORTED_URL_SCHEMES = ('http',)
@@ -867,6 +868,21 @@ class TestRequestHandlerValidation:
         (HTTPSupportedRH, [('no', True)]),
     ]
 
+    EXTENSION_TESTS = [
+        ('Urllib', [
+            ({'cookiejar': 'notacookiejar'}, True),
+            ({'cookiejar': CookieJar()}, False),
+            ({'timeout': 1}, False),
+            ({'timeout': 'notatimeout'}, True),
+            ({'unsupported': 'value'}, True),
+            ({'_unsupported_optional': 'value'}, False),
+        ]),
+        (NoCheckRH, [
+            ({'cookiejar': 'notacookiejar'}, True),  # core extension check still happens on the type passed
+            ({'somerandom': 'test'}, False),  # but any extension is allowed through
+        ]),
+    ]
+
     @pytest.mark.parametrize('handler,scheme,fail,handler_kwargs', [
         (handler_tests[0], scheme, fail, handler_kwargs)
         for handler_tests in URL_SCHEME_TESTS
@@ -909,13 +925,13 @@ class TestRequestHandlerValidation:
     def test_missing_proxy_scheme(self, handler, proxy_url):
         run_validation(handler, True, Request('http://', proxies={'http': 'example.com'}))
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_cookiejar_extension(self, handler):
-        run_validation(handler, True, Request('http://', extensions={'cookiejar': 'notacookiejar'}))
-
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_timeout_extension(self, handler):
-        run_validation(handler, True, Request('http://', extensions={'timeout': 'notavalidtimeout'}))
+    @pytest.mark.parametrize('handler,extensions,fail', [
+        (handler_tests[0], extensions, fail)
+        for handler_tests in EXTENSION_TESTS
+        for extensions, fail in handler_tests[1]
+    ], indirect=['handler'])
+    def test_extension(self, handler, extensions, fail):
+        run_validation(handler, fail, Request('http://', extensions=extensions))
 
     def test_invalid_request_type(self):
         rh = self.ValidationRH(logger=FakeLogger())
