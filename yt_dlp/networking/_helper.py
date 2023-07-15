@@ -8,13 +8,14 @@ import typing
 import urllib.parse
 import urllib.request
 
-from ..dependencies import certifi
 from .exceptions import RequestError, UnsupportedRequest
+from ..dependencies import certifi
 from ..socks import ProxyType
 from ..utils import format_field, traverse_obj
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
+
     from ..utils.networking import HTTPHeaderDict
 
 

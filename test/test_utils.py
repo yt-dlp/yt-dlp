@@ -21,7 +21,6 @@ from yt_dlp.compat import (
     compat_HTMLParseError,
     compat_os_name,
 )
-from yt_dlp.utils.networking import HTTPHeaderDict
 from yt_dlp.utils import (
     Config,
     DateRange,
@@ -133,6 +132,7 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
+from yt_dlp.utils.networking import HTTPHeaderDict
 
 
 class TestUtil(unittest.TestCase):

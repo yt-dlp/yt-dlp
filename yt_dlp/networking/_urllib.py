@@ -19,6 +19,13 @@ from urllib.request import (
     UnknownHandler,
 )
 
+from ._helper import (
+    InstanceStoreMixin,
+    add_accept_encoding_header,
+    get_redirect_method,
+    make_socks_proxy_opts,
+    select_proxy,
+)
 from .common import Features, RequestHandler, Response, register
 from .exceptions import (
     CertificateVerifyError,
@@ -30,13 +37,6 @@ from .exceptions import (
     TransportError,
 )
 from ..dependencies import brotli
-from ._helper import (
-    InstanceStoreMixin,
-    add_accept_encoding_header,
-    get_redirect_method,
-    make_socks_proxy_opts,
-    select_proxy,
-)
 from ..socks import ProxyError as SocksProxyError
 from ..socks import sockssocket
 from ..utils import escape_url, update_url_query

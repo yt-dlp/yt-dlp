@@ -19,11 +19,6 @@ import warnings
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import certifi
 from yt_dlp.networking import Response
-from yt_dlp.networking.exceptions import (
-    HTTPError,
-    IncompleteRead,
-    _CompatHTTPError,
-)
 from yt_dlp.networking._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
@@ -31,6 +26,11 @@ from yt_dlp.networking._helper import (
     make_socks_proxy_opts,
     select_proxy,
     ssl_load_certs,
+)
+from yt_dlp.networking.exceptions import (
+    HTTPError,
+    IncompleteRead,
+    _CompatHTTPError,
 )
 from yt_dlp.socks import ProxyType
 from yt_dlp.utils.networking import HTTPHeaderDict

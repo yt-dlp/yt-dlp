@@ -8,9 +8,9 @@ import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
-from ..networking._helper import make_ssl_context
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
+from ..networking._helper import make_ssl_context
 from ..networking._urllib import HTTPHandler
 
 # isort: split

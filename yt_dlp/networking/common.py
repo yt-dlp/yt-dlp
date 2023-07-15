@@ -9,18 +9,18 @@ import typing
 import urllib.parse
 import urllib.request
 import urllib.response
+from collections.abc import Iterable, Mapping
 from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
-from collections.abc import Iterable, Mapping
 
+from ._helper import make_ssl_context, wrap_request_errors
 from .exceptions import (
     NoSupportingHandlers,
     RequestError,
     TransportError,
     UnsupportedRequest,
 )
-from ._helper import make_ssl_context, wrap_request_errors
 from ..utils import (
     bug_reports_message,
     classproperty,
