@@ -43,12 +43,6 @@ from .networking.exceptions import (
     _CompatHTTPError,
     network_exceptions,
 )
-from .networking.utils import (
-    HTTPHeaderDict,
-    clean_headers,
-    clean_proxies,
-    std_headers,
-)
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -158,6 +152,12 @@ from .utils import (
     write_string,
 )
 from .utils._utils import _YDLLogger
+from .utils.networking import (
+    HTTPHeaderDict,
+    clean_headers,
+    clean_proxies,
+    std_headers,
+)
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':

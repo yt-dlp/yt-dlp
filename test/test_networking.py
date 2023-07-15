@@ -50,8 +50,8 @@ from yt_dlp.networking.exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from yt_dlp.networking.utils import HTTPHeaderDict
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
+from yt_dlp.utils.networking import HTTPHeaderDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

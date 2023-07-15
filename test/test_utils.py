@@ -21,6 +21,7 @@ from yt_dlp.compat import (
     compat_HTMLParseError,
     compat_os_name,
 )
+from yt_dlp.utils.networking import HTTPHeaderDict
 from yt_dlp.utils import (
     Config,
     DateRange,
@@ -2314,6 +2315,36 @@ Line 1
                          msg='failing int key on a `re.Match` should return `default`')
         self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
                          msg='function on a `re.Match` should give group name as well')
+
+    def test_http_header_dict(self):
+        headers = HTTPHeaderDict()
+        headers['ytdl-test'] = 1
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        headers['Ytdl-test'] = '2'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
+        self.assertTrue('ytDl-Test' in headers)
+        self.assertEqual(str(headers), str(dict(headers)))
+        self.assertEqual(repr(headers), str(dict(headers)))
+
+        headers.update({'X-dlp': 'data'})
+        self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
+        self.assertEqual(len(headers), 2)
+        self.assertEqual(headers.copy(), headers)
+        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
+        self.assertEqual(len(headers2), 2)
+        headers2.clear()
+        self.assertEqual(len(headers2), 0)
+
+        # ensure we prefer latter headers
+        headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
+        self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        del headers3['ytdl-tesT']
+        self.assertEqual(dict(headers3), {})
+
+        headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
+        self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)

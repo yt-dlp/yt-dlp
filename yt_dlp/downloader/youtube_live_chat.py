@@ -3,7 +3,6 @@ import time
 
 from .fragment import FragmentFD
 from ..networking.exceptions import HTTPError
-from ..networking.utils import HTTPHeaderDict
 from ..utils import (
     RegexNotFoundError,
     RetryManager,
@@ -11,6 +10,7 @@ from ..utils import (
     int_or_none,
     try_get,
 )
+from ..utils.networking import HTTPHeaderDict
 
 
 class YoutubeLiveChatFD(FragmentFD):

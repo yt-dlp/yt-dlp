@@ -8,12 +8,13 @@ import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
+from ..networking._helper import make_ssl_context
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 from ..networking._urllib import HTTPHandler
-from ..networking.utils import make_ssl_context
 
 # isort: split
+from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
 from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
@@ -24,7 +25,6 @@ from ..networking._urllib import (  # noqa: F401
     update_Request,
 )
 from ..networking.exceptions import HTTPError, network_exceptions  # noqa: F401
-from ..networking.utils import random_user_agent, std_headers  # noqa: F401
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)

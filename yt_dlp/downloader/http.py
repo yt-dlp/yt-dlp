@@ -9,7 +9,6 @@ from ..networking.exceptions import (
     HTTPError,
     TransportError,
 )
-from ..networking.utils import HTTPHeaderDict
 from ..utils import (
     ContentTooShortError,
     RetryManager,
@@ -22,6 +21,7 @@ from ..utils import (
     try_call,
     write_xattr,
 )
+from ..utils.networking import HTTPHeaderDict
 
 
 class HttpFD(FileDownloader):

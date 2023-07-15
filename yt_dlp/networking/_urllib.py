@@ -31,14 +31,14 @@ from .exceptions import (
     SSLError,
     TransportError,
 )
-from .utils import (
+from ..dependencies import brotli
+from ._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
     get_redirect_method,
     make_socks_proxy_opts,
     select_proxy,
 )
-from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
 from ..socks import sockssocket
 from ..utils import escape_url, update_url_query

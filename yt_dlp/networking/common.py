@@ -20,7 +20,7 @@ from .exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from .utils import HTTPHeaderDict, make_ssl_context
+from ._helper import make_ssl_context, wrap_request_errors
 from ..utils import (
     bug_reports_message,
     classproperty,
@@ -29,6 +29,7 @@ from ..utils import (
     escape_url,
     update_url_query,
 )
+from ..utils.networking import HTTPHeaderDict
 
 
 class RequestDirector:
@@ -112,18 +113,6 @@ def register(handler):
 class Features(enum.Enum):
     ALL_PROXY = enum.auto()
     NO_PROXY = enum.auto()
-
-
-def _wrap_request_errors(func):
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except UnsupportedRequest as e:
-            if e.handler is None:
-                e.handler = self
-            raise
-    return wrapper
 
 
 class RequestHandler(abc.ABC):
@@ -292,13 +281,13 @@ class RequestHandler(abc.ABC):
         self._check_proxies(request.proxies or self.proxies)
         self._check_extensions(request.extensions)
 
-    @_wrap_request_errors
+    @wrap_request_errors
     def validate(self, request: Request):
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
         self._validate(request)
 
-    @_wrap_request_errors
+    @wrap_request_errors
     def send(self, request: Request) -> Response:
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
