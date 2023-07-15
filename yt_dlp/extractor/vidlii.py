@@ -1,8 +1,8 @@
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     format_field,
     float_or_none,
     get_element_by_id,

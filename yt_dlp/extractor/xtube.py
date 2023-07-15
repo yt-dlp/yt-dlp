@@ -2,12 +2,12 @@ import itertools
 import re
 
 from .common import InfoExtractor
+from ..networking import Request
 from ..utils import (
     int_or_none,
     js_to_json,
     orderedSet,
     parse_duration,
-    sanitized_Request,
     str_to_int,
     url_or_none,
 )
@@ -186,7 +186,7 @@ class XTubeUserIE(InfoExtractor):
 
         entries = []
         for pagenum in itertools.count(1):
-            request = sanitized_Request(
+            request = Request(
                 'http://www.xtube.com/profile/%s/videos/%d' % (user_id, pagenum),
                 headers={
                     'Cookie': 'popunder=4',

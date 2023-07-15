@@ -86,7 +86,7 @@ class TennisTVIE(InfoExtractor):
             })
 
         self.get_token(None, {
-            'code': urllib.parse.parse_qs(handle.geturl())['code'][-1],
+            'code': urllib.parse.parse_qs(handle.url)['code'][-1],
             'grant_type': 'authorization_code',
             'client_id': 'tennis-tv-web',
             'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html'

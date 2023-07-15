@@ -1,10 +1,10 @@
 import functools
 import json
 import time
-import urllib.error
 import urllib.parse
 
 from .gigya import GigyaBaseIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -263,7 +263,7 @@ class VrtNUIE(VRTBaseIE):
                         '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
                     }))
             except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     retry.error = e
                     continue
                 raise

@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -74,8 +74,8 @@ class RadioCanadaIE(InfoExtractor):
             return self._download_json(
                 'https://services.radio-canada.ca/media/' + path, video_id, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 422):
-                data = self._parse_json(e.cause.read().decode(), None)
+            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 422):
+                data = self._parse_json(e.cause.response.read().decode(), None)
                 error = data.get('error_description') or data['errorMessage']['text']
                 raise ExtractorError(error, expected=True)
             raise
