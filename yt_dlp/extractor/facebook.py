@@ -8,7 +8,7 @@ from ..compat import (
     compat_str,
     compat_urllib_parse_unquote,
 )
-from ..networking.common import Request
+from ..networking import Request
 from ..networking.exceptions import network_exceptions
 from ..utils import (
     ExtractorError,

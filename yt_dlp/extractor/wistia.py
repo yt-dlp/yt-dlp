@@ -3,7 +3,7 @@ import urllib.parse
 from base64 import b64decode
 
 from .common import InfoExtractor
-from ..networking.common import HEADRequest
+from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,

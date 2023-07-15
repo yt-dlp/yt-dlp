@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..networking.common import HEADRequest
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     clean_html,

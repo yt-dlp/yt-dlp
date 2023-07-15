@@ -1,7 +1,7 @@
 from .brightcove import BrightcoveLegacyIE, BrightcoveNewIE
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import ExtractorError
 
 

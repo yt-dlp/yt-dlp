@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import xpath_text, xpath_with_ns
 
 

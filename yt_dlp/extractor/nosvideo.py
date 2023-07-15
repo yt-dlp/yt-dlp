@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     urlencode_postdata,

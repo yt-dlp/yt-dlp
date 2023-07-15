@@ -30,16 +30,16 @@ from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.dependencies import brotli
-from yt_dlp.networking import RequestDirector
-from yt_dlp.networking._urllib import UrllibRH
-from yt_dlp.networking.common import (
-    _REQUEST_HANDLERS,
+from yt_dlp.networking import (
     HEADRequest,
     PUTRequest,
     Request,
+    RequestDirector,
     RequestHandler,
     Response,
 )
+from yt_dlp.networking._urllib import UrllibRH
+from yt_dlp.networking.common import _REQUEST_HANDLERS
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,

@@ -3,7 +3,7 @@ import random
 import time
 
 from .common import FileDownloader
-from ..networking.common import Request
+from ..networking import Request
 from ..networking.exceptions import (
     CertificateVerifyError,
     HTTPError,

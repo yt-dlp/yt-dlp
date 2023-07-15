@@ -6,7 +6,7 @@ from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
 from ..compat import compat_urllib_parse_unquote
-from ..networking.common import HEADRequest
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     RegexNotFoundError,

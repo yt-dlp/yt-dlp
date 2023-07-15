@@ -5,7 +5,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str, compat_urlparse
-from ..networking.common import HEADRequest, Request
+from ..networking import HEADRequest, Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,

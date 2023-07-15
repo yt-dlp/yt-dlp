@@ -6,7 +6,7 @@ import time
 
 from .adobepass import AdobePassIE
 from .once import OnceIE
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     determine_ext,

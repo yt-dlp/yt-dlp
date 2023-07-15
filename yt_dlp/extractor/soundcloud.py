@@ -4,7 +4,7 @@ import re
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import compat_str
-from ..networking.common import HEADRequest, Request
+from ..networking import HEADRequest, Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,

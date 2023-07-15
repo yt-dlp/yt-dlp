@@ -31,7 +31,7 @@ from ..compat import (
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
-from ..networking.common import HEADRequest, Request
+from ..networking import HEADRequest, Request
 from ..networking.exceptions import (
     HTTPError,
     IncompleteRead,

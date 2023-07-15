@@ -1,5 +1,12 @@
 # flake8: noqa: 401
-from .common import RequestDirector
+from .common import (
+    HEADRequest,
+    PUTRequest,
+    Request,
+    RequestDirector,
+    RequestHandler,
+    Response,
+)
 
 # isort: split
 # TODO: all request handlers should be safely imported

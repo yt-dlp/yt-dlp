@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..networking.common import HEADRequest, Request
+from ..networking import HEADRequest, Request
 from ..utils import (
     ExtractorError,
     RegexNotFoundError,

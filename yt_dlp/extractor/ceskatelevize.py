@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     float_or_none,

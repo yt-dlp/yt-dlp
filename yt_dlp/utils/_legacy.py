@@ -17,10 +17,8 @@ from ..networking.utils import make_ssl_context
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
 from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
-from ..networking._urllib import \
-    ProxyHandler as PerRequestProxyHandler  # noqa: F401
-from ..networking._urllib import \
-    RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
+from ..networking._urllib import ProxyHandler as PerRequestProxyHandler  # noqa: F401
+from ..networking._urllib import RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
 from ..networking._urllib import (  # noqa: F401
     make_socks_conn_class,
     update_Request,

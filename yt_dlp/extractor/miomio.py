@@ -2,7 +2,7 @@ import random
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import ExtractorError, int_or_none, xpath_text
 
 

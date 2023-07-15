@@ -6,7 +6,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..networking.common import HEADRequest
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     float_or_none,
