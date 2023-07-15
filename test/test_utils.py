@@ -22,10 +22,10 @@ from yt_dlp.compat import (
     compat_os_name,
 )
 from yt_dlp.utils import (
-    HTTPHeaderDict,
     Config,
     DateRange,
     ExtractorError,
+    HTTPHeaderDict,
     InAdvancePagedList,
     LazyList,
     OnDemandPagedList,

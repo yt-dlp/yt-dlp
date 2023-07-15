@@ -13,8 +13,8 @@ from ..compat import compat_os_name
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
 from ..utils import (
-    HTTPHeaderDict,
     DownloadError,
+    HTTPHeaderDict,
     RetryManager,
     encodeFilename,
     traverse_obj,
