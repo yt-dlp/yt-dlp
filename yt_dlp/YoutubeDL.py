@@ -2492,6 +2492,8 @@ class YoutubeDL:
         if load_cookies:  # For --load-info-json
             self._load_cookies(res.get('Cookie'), autoscope=info_dict['url'])  # compat
             self._load_cookies(info_dict.get('cookies'), autoscope=False)
+        # The `Cookie` header is removed to prevent leaks and unscoped cookies.
+        # See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
         res.pop('Cookie', None)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
         if cookies:
