@@ -280,7 +280,7 @@ class RequestHandler(abc.ABC):
         extensions = request.extensions.copy()
         self._check_extensions(extensions)
         if extensions:
-            # XXX: add support for optional extensions
+            # TODO(future): add support for optional extensions
             raise UnsupportedRequest(f'Unsupported extensions: {", ".join(extensions.keys())}')
 
     @wrap_request_errors
