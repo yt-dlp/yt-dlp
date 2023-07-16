@@ -68,7 +68,7 @@ class TestAxelFD(unittest.TestCase):
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
             self.assertEqual(
                 downloader._make_cmd('test', TEST_INFO),
-                ['axel', '-o', 'test', 'Cookie: test=ytdlp', '--max-redirect=0', '--', 'http://www.example.com/'])
+                ['axel', '-o', 'test', '-H', 'Cookie: test=ytdlp', '--max-redirect=0', '--', 'http://www.example.com/'])
 
 
 class TestWgetFD(unittest.TestCase):
@@ -85,10 +85,11 @@ class TestCurlFD(unittest.TestCase):
     def test_make_cmd(self):
         with FakeYDL() as ydl:
             downloader = CurlFD(ydl, {})
-            self.assertNotIn('--cookie-jar', downloader._make_cmd('test', TEST_INFO))
-            # Test cookiejar tempfile arg is added
+            self.assertNotIn('--cookie', downloader._make_cmd('test', TEST_INFO))
+            # Test cookie header is added
             ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
-            self.assertIn('--cookie-jar', downloader._make_cmd('test', TEST_INFO))
+            self.assertIn('--cookie', downloader._make_cmd('test', TEST_INFO))
+            self.assertIn('test=ytdlp', downloader._make_cmd('test', TEST_INFO))
 
 
 class TestAria2cFD(unittest.TestCase):
