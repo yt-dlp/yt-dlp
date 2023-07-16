@@ -386,8 +386,9 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
             self._SUPPORTED_URL_SCHEMES = (*self._SUPPORTED_URL_SCHEMES, 'file')
 
     def _check_extensions(self, extensions):
-        self._check_timeout_extension(extensions)
-        self._check_cookiejar_extension(extensions)
+        super()._check_extensions(extensions)
+        extensions.pop('cookiejar', None)
+        extensions.pop('timeout', None)
 
     def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()

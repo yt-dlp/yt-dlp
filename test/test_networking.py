@@ -872,10 +872,10 @@ class TestRequestHandlerValidation:
 
     EXTENSION_TESTS = [
         ('Urllib', [
-            ({'cookiejar': 'notacookiejar'}, TypeError),
+            ({'cookiejar': 'notacookiejar'}, AssertionError),
             ({'cookiejar': CookieJar()}, False),
             ({'timeout': 1}, False),
-            ({'timeout': 'notatimeout'}, TypeError),
+            ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
         ]),
         (NoCheckRH, [

@@ -173,11 +173,11 @@ class RequestHandler(abc.ABC):
     If an extension is supported, subclasses should override _check_extensions(extensions)
     to pop and validate the extension.
     - Extensions left in `extensions` are treated as unsupported and UnsupportedRequest will be raised.
-    - If an extension validation fails due to wrong type passed, TypeError should be raised.
 
     The following extensions are defined for RequestHandler:
-    - `cookiejar`: Cookiejar to use for this request. To enable, use self._check_cookiejar_extension.
-    - `timeout`: socket timeout to use for this request. To enable, use self._check_timeout_extension.
+    - `cookiejar`: Cookiejar to use for this request.
+    - `timeout`: socket timeout to use for this request.
+    To enable these, add extensions.pop('<extension>', None) to _check_extensions
 
     Apart from the url protocol, proxies dict may contain the following keys:
     - `all`: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
@@ -269,16 +269,10 @@ class RequestHandler(abc.ABC):
             if scheme not in self._SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
-    def _check_timeout_extension(self, extensions):
-        if not isinstance(extensions.pop('timeout', None), (float, int, type(None))):
-            raise TypeError('timeout extension is not a float or int')
-
-    def _check_cookiejar_extension(self, extensions):
-        if not isinstance(extensions.pop('cookiejar', None), (CookieJar, type(None))):
-            raise TypeError('cookiejar extension is not a CookieJar')
-
     def _check_extensions(self, extensions):
-        """Check extensions for unsupported extensions. To be implemented by subclasses."""
+        """Check extensions for unsupported extensions. Subclasses should override this."""
+        assert isinstance(extensions.get('cookiejar'), (CookieJar, type(None)))
+        assert isinstance(extensions.get('timeout'), (float, int, type(None)))
 
     def _validate(self, request):
         self._check_url_scheme(request)
