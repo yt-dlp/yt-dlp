@@ -701,7 +701,6 @@ class PBSIE(InfoExtractor):
 
 
 class PBSKidsIE(InfoExtractor):
-    # https://pbskids.org/video/molly-of-denali/3030407927
     _VALID_URL = r'https?://(?:www\.)?pbskids\.org/video/(?P<channel>[a-zA-Z\-]+)/(?P<id>[0-9]+)'
     _TESTS = [
         {
