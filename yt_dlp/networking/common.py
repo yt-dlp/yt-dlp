@@ -13,7 +13,6 @@ from collections.abc import Iterable, Mapping
 from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
-from types import NoneType
 
 from ._helper import make_ssl_context, wrap_request_errors
 from .exceptions import (
@@ -271,11 +270,11 @@ class RequestHandler(abc.ABC):
                 raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
     def _check_timeout_extension(self, extensions):
-        if not isinstance(extensions.pop('timeout', None), (float, int, NoneType)):
+        if not isinstance(extensions.pop('timeout', None), (float, int, type(None))):
             raise TypeError('timeout extension is not a float or int')
 
     def _check_cookiejar_extension(self, extensions):
-        if not isinstance(extensions.pop('cookiejar', None), (CookieJar, NoneType)):
+        if not isinstance(extensions.pop('cookiejar', None), (CookieJar, type(None))):
             raise TypeError('cookiejar extension is not a CookieJar')
 
     def _check_extensions(self, extensions):
