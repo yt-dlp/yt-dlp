@@ -747,7 +747,7 @@ class PBSKidsIE(InfoExtractor):
             'subtitles': subtitles,
             **traverse_obj(meta, {
                 'categories': ('video_obj', 'video_type', {str}, {lambda x: [x] if x else None}),
-                'channel': 'show_slug',
+                'channel': ('show_slug', {str}),
                 'description': ('video_obj', 'description', {str}),
                 'duration': ('video_obj', 'duration', {int_or_none}),
                 'series': ('video_obj', 'program_title', {str}),
