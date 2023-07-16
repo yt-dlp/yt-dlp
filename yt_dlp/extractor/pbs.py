@@ -739,32 +739,21 @@ class PBSKidsIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        # Grabbing JSON block linked to window._PBS_KIDS_DEEPLINK
-        meta = json.loads(self._search_regex(r'window\._PBS_KIDS_DEEPLINK = (?P<video_info>\{.*\})', webpage, 'video_info'))
-
-        # Extract relevant bits
-        air_date = traverse_obj(meta, ('video_obj', 'air_date'), expected_type=str)
-        channel = meta.get('show_slug')
-        description = traverse_obj(meta, ('video_obj', 'description'), expected_type=str)
-        duration = traverse_obj(meta, ('video_obj', 'duration'), expected_type=int_or_none)
-        m3u8_playlist = traverse_obj(meta, ('video_obj', 'URI'), expected_type=url_or_none)
-        series = traverse_obj(meta, ('video_obj', 'program_title'), expected_type=str)
-        title = traverse_obj(meta, ('video_obj', 'title'), expected_type=str)
-        # Differentiate between clips and episodes
-        video_type = traverse_obj(meta, ('video_obj', 'video_type'), expected_type=str)
-        # expire_date = parse_iso8601(video_info["video_obj"]["expire_date"])
-        # Parse out formats
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_playlist, video_id, ext='mp4')
+        meta = self._search_json(r'window\._PBS_KIDS_DEEPLINK\s*=', webpage, 'video info')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            traverse_obj(meta, ('video_obj', 'URI', {url_or_none})), video_id, ext='mp4')
 
         return {
-            'categories': [video_type],
-            'channel': channel,
-            'description': description,
-            'duration': duration,
-            'formats': formats,
             'id': video_id,
-            'series': series,
+            'formats': formats,
             'subtitles': subtitles,
-            'title': title,
-            'upload_date': unified_strdate(air_date),
+            **traverse_obj(meta, {
+                'categories': ('video_obj', 'video_type', {str}, {lambda x: [x]}),
+                'channel': 'show_slug',
+                'description': ('video_obj', 'description', {str}),
+                'duration': ('video_obj', 'duration', {int_or_none}),
+                'series': ('video_obj', 'program_title', {str}),
+                'title': ('video_obj', 'title', {str}),
+                'upload_date': ('video_obj', 'air_date', {unified_strdate}),
+            })
         }
