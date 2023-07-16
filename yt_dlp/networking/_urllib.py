@@ -377,7 +377,6 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
     _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
-    _SUPPORTED_EXTENSIONS = ('cookiejar', 'timeout')
     RH_NAME = 'urllib'
 
     def __init__(self, *, enable_file_urls: bool = False, **kwargs):
@@ -385,6 +384,10 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         self.enable_file_urls = enable_file_urls
         if self.enable_file_urls:
             self._SUPPORTED_URL_SCHEMES = (*self._SUPPORTED_URL_SCHEMES, 'file')
+
+    def _check_extensions(self, extensions):
+        self._check_timeout_extension(extensions)
+        self._check_cookiejar_extension(extensions)
 
     def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()

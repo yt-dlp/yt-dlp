@@ -13,6 +13,7 @@ from collections.abc import Iterable, Mapping
 from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
+from types import NoneType
 
 from ._helper import make_ssl_context, wrap_request_errors
 from .exceptions import (
@@ -148,10 +149,6 @@ class RequestHandler(abc.ABC):
 
     - `_SUPPORTED_FEATURES`: a tuple of supported features, as defined in Features enum.
 
-    - `_SUPPORTED_EXTENSIONS`: a tuple of supported request extensions keys. Any Request that contains
-        an extension not in this list will raise an UnsupportedRequest. Extensions that start
-        with an underscore (_) are excluded from this check.
-
     The above may be set to None to disable the checks.
 
     Parameters:
@@ -174,9 +171,14 @@ class RequestHandler(abc.ABC):
     Requests may have additional optional parameters defined as extensions.
      RequestHandler subclasses may choose to support custom extensions.
 
+    If an extension is supported, subclasses should override _check_extensions(extensions)
+    to pop and validate the extension.
+    - Extensions left in `extensions` are treated as unsupported and UnsupportedRequest will be raised.
+    - If an extension validation fails due to wrong type passed, TypeError should be raised.
+
     The following extensions are defined for RequestHandler:
-    - `cookiejar`: Cookiejar to use for this request
-    - `timeout`: socket timeout to use for this request
+    - `cookiejar`: Cookiejar to use for this request. To enable, use self._check_cookiejar_extension.
+    - `timeout`: socket timeout to use for this request. To enable, use self._check_timeout_extension.
 
     Apart from the url protocol, proxies dict may contain the following keys:
     - `all`: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
@@ -188,7 +190,6 @@ class RequestHandler(abc.ABC):
     _SUPPORTED_URL_SCHEMES = ()
     _SUPPORTED_PROXY_SCHEMES = ()
     _SUPPORTED_FEATURES = ()
-    _SUPPORTED_EXTENSIONS = ()
 
     def __init__(
         self, *,
@@ -269,30 +270,25 @@ class RequestHandler(abc.ABC):
             if scheme not in self._SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
-    def _check_cookiejar_extension(self, extensions):
-        if not extensions.get('cookiejar'):
-            return
-        if not isinstance(extensions['cookiejar'], CookieJar):
-            raise UnsupportedRequest('cookiejar is not a CookieJar')
-
     def _check_timeout_extension(self, extensions):
-        if extensions.get('timeout') is None:
-            return
-        if not isinstance(extensions['timeout'], (float, int)):
-            raise UnsupportedRequest('timeout is not a float or int')
+        if not isinstance(extensions.pop('timeout', None), (float, int, NoneType)):
+            raise TypeError('timeout extension is not a float or int')
+
+    def _check_cookiejar_extension(self, extensions):
+        if not isinstance(extensions.pop('cookiejar', None), (CookieJar, NoneType)):
+            raise TypeError('cookiejar extension is not a CookieJar')
 
     def _check_extensions(self, extensions):
-        if self._SUPPORTED_EXTENSIONS is not None:
-            for extension in extensions:
-                if extension not in self._SUPPORTED_EXTENSIONS and not extension.startswith('_'):
-                    raise UnsupportedRequest(f'Unsupported request extension: "{extension}"')
-        self._check_cookiejar_extension(extensions)
-        self._check_timeout_extension(extensions)
+        """Check extensions for unsupported extensions. To be implemented by subclasses."""
 
     def _validate(self, request):
         self._check_url_scheme(request)
         self._check_proxies(request.proxies or self.proxies)
-        self._check_extensions(request.extensions)
+        extensions = request.extensions.copy()
+        self._check_extensions(extensions)
+        if extensions:
+            # XXX: add support for optional extensions
+            raise UnsupportedRequest(f'Unsupported extensions: {", ".join(extensions.keys())}')
 
     @wrap_request_errors
     def validate(self, request: Request):

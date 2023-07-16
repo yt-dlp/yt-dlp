@@ -807,7 +807,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 def run_validation(handler, fail, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
         if fail:
-            with pytest.raises(UnsupportedRequest):
+            with pytest.raises(UnsupportedRequest if type(fail) == bool else fail):
                 rh.validate(req)
         else:
             rh.validate(req)
@@ -823,7 +823,9 @@ class TestRequestHandlerValidation:
         _SUPPORTED_FEATURES = None
         _SUPPORTED_PROXY_SCHEMES = None
         _SUPPORTED_URL_SCHEMES = None
-        _SUPPORTED_EXTENSIONS = None
+
+        def _check_extensions(self, extensions):
+            extensions.clear()
 
     class HTTPSupportedRH(ValidationRH):
         _SUPPORTED_URL_SCHEMES = ('http',)
@@ -870,15 +872,14 @@ class TestRequestHandlerValidation:
 
     EXTENSION_TESTS = [
         ('Urllib', [
-            ({'cookiejar': 'notacookiejar'}, True),
+            ({'cookiejar': 'notacookiejar'}, TypeError),
             ({'cookiejar': CookieJar()}, False),
             ({'timeout': 1}, False),
-            ({'timeout': 'notatimeout'}, True),
-            ({'unsupported': 'value'}, True),
-            ({'_unsupported_optional': 'value'}, False),
+            ({'timeout': 'notatimeout'}, TypeError),
+            ({'unsupported': 'value'}, UnsupportedRequest),
         ]),
         (NoCheckRH, [
-            ({'cookiejar': 'notacookiejar'}, True),  # core extension check still happens on the type passed
+            ({'cookiejar': 'notacookiejar'}, False),
             ({'somerandom': 'test'}, False),  # but any extension is allowed through
         ]),
     ]
@@ -931,7 +932,8 @@ class TestRequestHandlerValidation:
         for extensions, fail in handler_tests[1]
     ], indirect=['handler'])
     def test_extension(self, handler, extensions, fail):
-        run_validation(handler, fail, Request('http://', extensions=extensions))
+        run_validation(
+            handler, fail, Request('http://', extensions=extensions))
 
     def test_invalid_request_type(self):
         rh = self.ValidationRH(logger=FakeLogger())
