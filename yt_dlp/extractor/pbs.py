@@ -737,7 +737,7 @@ class PBSKidsIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        meta = self._search_json(r'window\._PBS_KIDS_DEEPLINK\s*=', webpage, video_id, 'video info')
+        meta = self._search_json(r'window\._PBS_KIDS_DEEPLINK\s*=', webpage, 'video info', video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             traverse_obj(meta, ('video_obj', 'URI', {url_or_none})), video_id, ext='mp4')
 
