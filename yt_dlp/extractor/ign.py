@@ -1,8 +1,9 @@
 import re
-import urllib.error
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -27,9 +28,9 @@ class IGNBaseIE(InfoExtractor):
         try:
             return self._call_api(slug)
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 404:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                 e.cause.args = e.cause.args or [
-                    e.cause.geturl(), e.cause.getcode(), e.cause.reason]
+                    e.cause.response.url, e.cause.status, e.cause.reason]
                 raise ExtractorError(
                     'Content not found: expired?', cause=e.cause,
                     expected=True)
@@ -226,7 +227,7 @@ class IGNVideoIE(IGNBaseIE):
             parsed_url._replace(path=parsed_url.path.rsplit('/', 1)[0] + '/embed'))
 
         webpage, urlh = self._download_webpage_handle(embed_url, video_id)
-        new_url = urlh.geturl()
+        new_url = urlh.url
         ign_url = compat_parse_qs(
             urllib.parse.urlparse(new_url).query).get('url', [None])[-1]
         if ign_url:
@@ -323,14 +324,14 @@ class IGNArticleIE(IGNBaseIE):
         try:
             return self._call_api(slug)
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError):
+            if isinstance(e.cause, HTTPError):
                 e.cause.args = e.cause.args or [
-                    e.cause.geturl(), e.cause.getcode(), e.cause.reason]
-                if e.cause.code == 404:
+                    e.cause.response.url, e.cause.status, e.cause.reason]
+                if e.cause.status == 404:
                     raise ExtractorError(
                         'Content not found: expired?', cause=e.cause,
                         expected=True)
-                elif e.cause.code == 503:
+                elif e.cause.status == 503:
                     self.report_warning(error_to_compat_str(e.cause))
                     return
             raise
