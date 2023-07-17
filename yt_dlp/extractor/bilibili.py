@@ -78,6 +78,12 @@ class BilibiliBaseIE(InfoExtractor):
 
         return formats
 
+    def _download_playinfo(self, video_id, cid):
+        return self._download_json(
+            'https://api.bilibili.com/x/player/playurl', video_id,
+            query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
+            note='Downloading video formats')['data']
+
     def json2srt(self, json_data):
         srt_data = ''
         for idx, line in enumerate(json_data.get('body') or []):
@@ -86,7 +92,7 @@ class BilibiliBaseIE(InfoExtractor):
                          f'{line["content"]}\n\n')
         return srt_data
 
-    def _get_subtitles(self, video_id, aid, cid):
+    def _get_subtitles(self, video_id, cid):
         subtitles = {
             'danmaku': [{
                 'ext': 'xml',
@@ -94,7 +100,7 @@ class BilibiliBaseIE(InfoExtractor):
             }]
         }
 
-        video_info_json = self._download_json(f'https://api.bilibili.com/x/player/v2?aid={aid}&cid={cid}', video_id)
+        video_info_json = self._download_json(f'https://api.bilibili.com/x/player/v2?bvid={video_id}&cid={cid}', video_id)
         for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
@@ -146,6 +152,54 @@ class BilibiliBaseIE(InfoExtractor):
                 'result', 'main_section', 'episodes',
                 lambda _, v: url_or_none(v['share_url']) and v['id'])):
             yield self.url_result(entry['share_url'], BiliBiliBangumiIE, f'ep{entry["id"]}')
+
+    def _get_divisions(self, video_id, graph_version, edges={}, edge_id=""):
+        division_data = self._download_json(
+            f'https://api.bilibili.com/x/stein/edgeinfo_v2?graph_version={graph_version}&edge_id={edge_id}&bvid={video_id}',
+            video_id, note=f'Extracting divisions from edge {edge_id}')
+        for node in traverse_obj(division_data, ('data', 'story_list', {list}), default=[]):
+            edges[node['edge_id']] = {
+                **edges.get(node['edge_id'], {}),
+                **traverse_obj(node, {
+                    'title': ('title', {str_or_none}),
+                    'cid': ('cid', {int}),
+                })
+            }
+        edges[edge_id] = {
+            **edges.get(edge_id, {}),
+            'title': traverse_obj(division_data, ("data", "title", {str_or_none})),
+            'choices': traverse_obj(division_data, ("data", "edges", "questions", ..., "choices", ..., {
+                'edge_id': ('id', {int}),
+                'cid': ('cid', {int}),
+                'text': ('option', {str_or_none}),
+            })) or [],
+        }
+        for choice in edges[edge_id]['choices']:
+            if choice['edge_id'] not in edges:
+                edges[choice['edge_id']] = {'cid': choice['cid']}
+                self._get_divisions(video_id, graph_version, edges=edges, edge_id=choice['edge_id'])
+        return edges
+
+    def _get_interactive_videos(self, video_id, cid, metainfo):
+        graph_version = traverse_obj(
+            self._download_json(
+                f'https://api.bilibili.com/x/player/wbi/v2?bvid={video_id}&cid={cid}',
+                video_id, note=f'Extracting graph version for {video_id}'),
+            ('data', 'interaction', 'graph_version', {int_or_none}))
+        edges = self._get_divisions(video_id, graph_version, {1: {"cid": cid}}, 1)
+        entries = []
+        for edge_id, edge in edges.items():
+            play_info = self._download_playinfo(video_id, edge['cid'])
+            entries.append({
+                **metainfo,
+                'id': f'{video_id}_{edge_id}',
+                'title': f'{metainfo.get("title")} - {edge.get("title")}',
+                'formats': self.extract_formats(play_info),
+                'description': f'{edge["choices"]}\n{metainfo.get("description")}',
+                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'subtitles': self.extract_subtitles(video_id, edge['cid']),
+            })
+        return entries
 
 
 class BiliBiliIE(BilibiliBaseIE):
@@ -375,10 +429,7 @@ class BiliBiliIE(BilibiliBaseIE):
 
         festival_info = {}
         if is_festival:
-            play_info = self._download_json(
-                'https://api.bilibili.com/x/player/playurl', video_id,
-                query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
-                note='Extracting festival video formats')['data']
+            play_info = self._download_playinfo(video_id, cid)
 
             festival_info = traverse_obj(initial_state, {
                 'uploader': ('videoInfo', 'upName'),
@@ -387,7 +438,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
             }, get_all=False)
 
-        return {
+        metainfo = {
             **traverse_obj(initial_state, {
                 'uploader': ('upData', 'name'),
                 'uploader_id': ('upData', 'mid', {str_or_none}),
@@ -403,15 +454,28 @@ class BiliBiliIE(BilibiliBaseIE):
                 'comment_count': ('stat', 'reply', {int_or_none}),
             }, get_all=False),
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
-            'formats': self.extract_formats(play_info),
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
-            'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'chapters': self._get_chapters(aid, cid),
-            'subtitles': self.extract_subtitles(video_id, aid, cid),
-            '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
         }
+
+        is_interactive = traverse_obj(video_data, ("rights", "is_stein_gate"))
+        if is_interactive:
+            entries = self._get_interactive_videos(video_id, cid, metainfo)
+            metainfo.update({
+                'duration': traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
+                '__post_extractor': self.extract_comments(aid),
+            })
+            return self.playlist_result(entries, **metainfo)
+        else:
+            return {
+                **metainfo,
+                'duration': float_or_none(play_info.get('timelength'), scale=1000),
+                'chapters': self._get_chapters(aid, cid),
+                'subtitles': self.extract_subtitles(video_id, cid),
+                'formats': self.extract_formats(play_info),
+                '__post_extractor': self.extract_comments(aid),
+            }
 
 
 class BiliBiliBangumiIE(BilibiliBaseIE):
