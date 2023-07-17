@@ -82,7 +82,7 @@ class BilibiliBaseIE(InfoExtractor):
         return self._download_json(
             'https://api.bilibili.com/x/player/playurl', video_id,
             query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
-            note='Downloading video formats')['data']
+            note=f'Downloading video formats {cid}')['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -100,7 +100,9 @@ class BilibiliBaseIE(InfoExtractor):
             }]
         }
 
-        video_info_json = self._download_json(f'https://api.bilibili.com/x/player/v2?bvid={video_id}&cid={cid}', video_id)
+        video_info_json = self._download_json(
+            f'https://api.bilibili.com/x/player/v2?bvid={video_id}&cid={cid}',
+            video_id, note=f"Extracting subtitle info {cid}")
         for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
