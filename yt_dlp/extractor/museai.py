@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -72,26 +73,27 @@ class MuseAIIE(InfoExtractor):
         data = self._search_json(
             r'player\.setData\(', webpage, 'player data', video_id, transform_source=js_to_json)
 
-        formats = []
         source_url = data['url']
-        if url_or_none(source_url):
-            formats = [{
-                'url': source_url,
-                'format_id': 'source',
-                'quality': 1,
-                **traverse_obj(data, {
-                    'ext': ('filename', {determine_ext}),
-                    'width': ('width', {int_or_none}),
-                    'height': ('height', {int_or_none}),
-                    'filesize': ('size', {int_or_none}),
-                }),
-            }]
-            if source_url.endswith('/data'):
-                base_url = f'{source_url[:-5]}/videos'
-                formats.extend(self._extract_m3u8_formats(
-                    f'{base_url}/hls.m3u8', video_id, m3u8_id='hls', fatal=False))
-                formats.extend(self._extract_mpd_formats(
-                    f'{base_url}/dash.mpd', video_id, mpd_id='dash', fatal=False))
+        if not url_or_none(source_url):
+            raise ExtractorError('Unable to extract video URL')
+
+        formats = [{
+            'url': source_url,
+            'format_id': 'source',
+            'quality': 1,
+            **traverse_obj(data, {
+                'ext': ('filename', {determine_ext}),
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+                'filesize': ('size', {int_or_none}),
+            }),
+        }]
+        if source_url.endswith('/data'):
+            base_url = f'{source_url[:-5]}/videos'
+            formats.extend(self._extract_m3u8_formats(
+                f'{base_url}/hls.m3u8', video_id, m3u8_id='hls', fatal=False))
+            formats.extend(self._extract_mpd_formats(
+                f'{base_url}/dash.mpd', video_id, mpd_id='dash', fatal=False))
 
         return {
             'id': video_id,
