@@ -35,7 +35,6 @@ class TwitterBaseIE(InfoExtractor):
     _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _AUTH = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
-    _LEGACY_AUTH = 'AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE'
     _flow_token = None
 
     _LOGIN_INIT_DATA = json.dumps({
@@ -150,10 +149,9 @@ class TwitterBaseIE(InfoExtractor):
         webpage = self._download_webpage('https://twitter.com/', display_id, 'Downloading guest token')
         return self._search_regex(r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'guest token')
 
-    def _set_base_headers(self, legacy=False):
-        bearer_token = self._LEGACY_AUTH if legacy and not self.is_logged_in else self._AUTH
+    def _set_base_headers(self):
         return filter_dict({
-            'Authorization': f'Bearer {bearer_token}',
+            'Authorization': f'Bearer {self._AUTH}',
             'x-csrf-token': try_call(lambda: self._get_cookies(self._API_BASE)['ct0'].value),
         })
 
@@ -280,7 +278,7 @@ class TwitterBaseIE(InfoExtractor):
         self.report_login()
 
     def _call_api(self, path, video_id, query={}, graphql=False):
-        headers = self._set_base_headers(legacy=not graphql and self._configuration_arg('legacy_api'))
+        headers = self._set_base_headers()
         headers.update({
             'x-twitter-auth-type': 'OAuth2Session',
             'x-twitter-client-language': 'en',
@@ -1015,7 +1013,7 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
         },
-        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
+        'skip': 'Legacy API tweet extraction is broken',
     }, {
         # orig tweet w/ graphql
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
@@ -1181,15 +1179,7 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if not self.is_logged_in and self._configuration_arg('legacy_api'):
-            status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
-                'cards_platform': 'Web-12',
-                'include_cards': 1,
-                'include_reply_count': 1,
-                'include_user_entities': 0,
-                'tweet_mode': 'extended',
-            }), 'retweeted_status', None)
-        elif not self.is_logged_in:
+        if not self.is_logged_in:
             status = self._graphql_to_legacy(
                 self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
         else:
