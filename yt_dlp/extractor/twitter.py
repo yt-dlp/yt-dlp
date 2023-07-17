@@ -147,13 +147,8 @@ class TwitterBaseIE(InfoExtractor):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
     def _fetch_guest_token(self, display_id):
-        guest_token = traverse_obj(self._download_json(
-            f'{self._API_BASE}guest/activate.json', display_id, 'Downloading guest token', data=b'',
-            headers=self._set_base_headers(legacy=display_id and self._configuration_arg('legacy_api'))),
-            ('guest_token', {str}))
-        if not guest_token:
-            raise ExtractorError('Could not retrieve guest token')
-        return guest_token
+        webpage = self._download_webpage('https://twitter.com/', display_id, 'Downloading guest token')
+        return self._search_regex(r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'guest token')
 
     def _set_base_headers(self, legacy=False):
         bearer_token = self._LEGACY_AUTH if legacy and not self.is_logged_in else self._AUTH
@@ -185,13 +180,10 @@ class TwitterBaseIE(InfoExtractor):
         if self.is_logged_in:
             return
 
-        webpage = self._download_webpage('https://twitter.com/', None, 'Downloading login page')
-        guest_token = self._search_regex(
-            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._fetch_guest_token(None)
         headers = {
             **self._set_base_headers(),
             'content-type': 'application/json',
-            'x-guest-token': guest_token,
+            'x-guest-token': self._fetch_guest_token(None),
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
             'Referer': 'https://twitter.com/',
