@@ -9,8 +9,10 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     int_or_none,
+    url_or_none,
     try_get,
     urljoin,
+    traverse_obj,
 )
 
 
@@ -136,7 +138,7 @@ class SohuIE(InfoExtractor):
                 allot = format_data['allot']
 
                 data = format_data['data']
-                clips_url = data['clipsURL']
+                clip_url = traverse_obj(data, (('clipsURL', 'mp4PlayUrl'), i, {url_or_none}), get_all=False)
                 su = data['su']
 
                 video_url = 'newflv.sohu.ccgslb.net'
@@ -146,7 +148,7 @@ class SohuIE(InfoExtractor):
                 while 'newflv.sohu.ccgslb.net' in video_url:
                     params = {
                         'prot': 9,
-                        'file': clips_url[i],
+                        'file': clip_url,
                         'new': su[i],
                         'prod': 'flash',
                         'rb': 1,
