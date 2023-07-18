@@ -155,7 +155,7 @@ class DouyuTVIE(InfoExtractor):
             rate_info = traverse_obj(stream_info, ('data', 'multirates', {lambda i, v: v.get('rate') == rate_id}, 0))
             formats.append({
                 'url': stream_url,
-                'format_id': rate_id,
+                'format_id': str(rate_id),
                 **traverse_obj(rate_info, {
                     'format': ('name', {str_or_none}),
                     'tbr': ('bit', {int_or_none}),
