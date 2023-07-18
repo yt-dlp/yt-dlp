@@ -1,3 +1,4 @@
+import base64
 import re
 
 from .common import InfoExtractor
@@ -9,6 +10,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     try_get,
+    urljoin,
 )
 
 
@@ -31,13 +33,15 @@ class SohuIE(InfoExtractor):
             'id': '409385080',
             'ext': 'mp4',
             'title': '《2015湖南卫视羊年元宵晚会》唐嫣《花好月圆》',
-        }
+        },
+        'skip': 'no longer available',
     }, {
         'url': 'http://my.tv.sohu.com/us/232799889/78693464.shtml',
         'info_dict': {
             'id': '78693464',
             'ext': 'mp4',
             'title': '【爱范品】第31期：MWC见不到的奇葩手机',
+            'duration': 213,
         }
     }, {
         'note': 'Multipart video',
@@ -196,3 +200,25 @@ class SohuIE(InfoExtractor):
             }
 
         return info
+
+
+class SohuVIE(InfoExtractor):
+    _VALID_URL = r'https?://tv\.sohu\.com/v/(?P<id>[\w=-]+)\.html(?:$|[#?])'
+
+    _TESTS = [{
+        'url': 'https://tv.sohu.com/v/dXMvMjMyNzk5ODg5Lzc4NjkzNDY0LnNodG1s.html',
+        'info_dict': {
+            'id': '78693464',
+            'ext': 'mp4',
+            'title': '【爱范品】第31期：MWC见不到的奇葩手机',
+            'duration': 213,
+        }
+    }]
+
+    def _real_extract(self, url):
+        encoded_id = self._match_id(url)
+        path = base64.urlsafe_b64decode(encoded_id).decode()
+        if re.match(r'\d+/n\d+\.shtml', path):
+            return self.url_result(urljoin('http://tv.sohu.com/', path), SohuIE)
+        else:
+            return self.url_result(urljoin('http://my.tv.sohu.com/', path), SohuIE)
