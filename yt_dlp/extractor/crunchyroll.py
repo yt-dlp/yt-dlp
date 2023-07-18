@@ -46,6 +46,15 @@ class CrunchyrollBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies(self._BASE_URL).get('etp_rt'))
 
+    def _initialize_pre_login(self):
+        if self._configuration_arg('ua_workaround', ie_key=CrunchyrollBetaIE):
+            return
+
+        self.cookiejar.clear(domain='.crunchyroll.com', path='/', name='__cf_bm')
+        self.cookiejar.clear(domain='.crunchyroll.com', path='/', name='cf_clearance')
+        self._request_webpage(
+            f'{self._BASE_URL}/robots.txt', None, 'Setting up session', expected_status=403, fatal=False)
+
     def _perform_login(self, username, password):
         if self.is_logged_in:
             return
@@ -90,11 +99,13 @@ class CrunchyrollBaseIE(InfoExtractor):
                 f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
                 headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
         except ExtractorError as error:
-            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
+            if (isinstance(error.cause, HTTPError) and error.cause.status == 403
+                    and not self._configuration_arg('ua_workaround', ie_key=CrunchyrollBetaIE)):
                 raise ExtractorError(
                     'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
-                    'and pass fresh cookies (with --cookies-from-browser or --cookies) '
-                    'as well as your browser\'s User-Agent with --user-agent', expected=True)
+                    'enable the legacy 403 workaround using  --extractor-arg crunchyrollbeta:ua_workaround , '
+                    'passing your browser\'s User-Agent (with --user-agent) '
+                    'and fresh cookies (with --cookies-from-browser or --cookies)', expected=True)
             raise
 
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
