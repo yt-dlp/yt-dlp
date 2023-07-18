@@ -208,6 +208,15 @@ class SohuVIE(InfoExtractor):
     _VALID_URL = r'https?://tv\.sohu\.com/v/(?P<id>[\w=-]+)\.html(?:$|[#?])'
 
     _TESTS = [{
+        'note': 'Multipart video',
+        'url': 'https://tv.sohu.com/v/MjAyMzA2MTQvbjYwMTMxNTE5Mi5zaHRtbA==.html',
+        'info_dict': {
+            'id': '601315192',
+            'title': '《淬火丹心》第1集 - 高清正版在线观看',
+        },
+        'playlist_mincount': 9,
+        'skip': 'Only available in China',
+    }, {
         'url': 'https://tv.sohu.com/v/dXMvMjMyNzk5ODg5Lzc4NjkzNDY0LnNodG1s.html',
         'info_dict': {
             'id': '78693464',
@@ -215,6 +224,14 @@ class SohuVIE(InfoExtractor):
             'title': '【爱范品】第31期：MWC见不到的奇葩手机',
             'duration': 213,
         }
+    }, {
+        'note': 'Multipart video',
+        'url': 'https://tv.sohu.com/v/dXMvMjQyNTYyMTYzLzc4OTEwMzM5LnNodG1s.html?src=pl',
+        'info_dict': {
+            'id': '78910339',
+            'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
+        },
+        'playlist_mincount': 3,
     }]
 
     def _real_extract(self, url):
