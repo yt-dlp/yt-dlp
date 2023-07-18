@@ -2,10 +2,16 @@ import time
 import hashlib
 import re
 import urllib
+import uuid
 
 from .common import InfoExtractor
+from .openload import PhantomJSwrapper
 from ..utils import (
     ExtractorError,
+    int_or_none,
+    str_or_none,
+    traverse_obj,
+    urlencode_postdata,
     unescapeHTML,
     unified_strdate,
     urljoin,
@@ -85,15 +91,37 @@ class DouyuTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _sign(self, room_id, params={}):
+        params = {
+            'tt': round(time.time()),
+            'did': uuid.uuid4().hex,
+        }
+        params.update(self._get_sign(room_id, params['did'], params['tt']))
+        return params
+
+    def _get_cryptojs_md5(self, video_id):
+        return self._download_webpage(
+            'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js', video_id,
+            note='Downloading signing dependency')
+
+    def _get_sign_func(self, room_id):
+        sign_data = self._download_json(
+            f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', room_id,
+            note='Getting signing script')
+        return self._get_cryptojs_md5(room_id) + ';' + sign_data['data'][f'room{room_id}']
+
+    def _get_sign(self, room_id, nonce, ts):
+        js_script = self._get_sign_func(room_id) + f';console.log(ub98484234({room_id}, "{nonce}", {ts}))'
+        phantom = PhantomJSwrapper(self)
+        result = phantom.execute(js_script).strip()
+        return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        if video_id.isdigit():
-            room_id = video_id
-        else:
-            page = self._download_webpage(url, video_id)
-            room_id = self._html_search_regex(
-                r'"room_id\\?"\s*:\s*(\d+),', page, 'room id')
+        page = self._download_webpage(url, video_id)
+        room_id = self._html_search_regex(
+            r'(?:\$ROOM\.room_id\s*=|room_id\\?"\s*:)\s*(\d+)[,;]', page, 'room id')
 
         # Grab metadata from API
         params = {
@@ -102,7 +130,7 @@ class DouyuTVIE(InfoExtractor):
             'time': int(time.time()),
         }
         params['auth'] = hashlib.md5(
-            f'room/{video_id}?{urllib.parse.urlencode(params)}zNzMV1y4EMxOHS6I5WKm'.encode()).hexdigest()
+            f'room/{room_id}?{urllib.parse.urlencode(params)}zNzMV1y4EMxOHS6I5WKm'.encode()).hexdigest()
         room = self._download_json(
             f'http://www.douyutv.com/api/v1/room/{room_id}', video_id,
             note='Downloading room info', query=params)['data']
@@ -111,8 +139,28 @@ class DouyuTVIE(InfoExtractor):
         if room.get('show_status') == '2':
             raise ExtractorError('Live stream is offline', expected=True)
 
-        video_url = urljoin('https://hls3-akm.douyucdn.cn/', self._search_regex(r'(live/.*)', room['hls_url'], 'URL'))
-        formats, subs = self._extract_m3u8_formats_and_subtitles(video_url, room_id)
+        m3u8_url = urljoin('https://hls3-akm.douyucdn.cn/', self._search_regex(r'(live/.*)', room['hls_url'], 'URL'))
+        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, room_id, fatal=False)
+
+        stream_info = self._download_json(
+            f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
+            video_id, note="Downloading stream info",
+            data=urlencode_postdata(self._sign(room_id, {'rate': 0})))
+
+        rtmp_url = traverse_obj(stream_info, ('data', 'rtmp_url'))
+        rtmp_live = traverse_obj(stream_info, ('data', 'rtmp_live'))
+        if rtmp_url and rtmp_live:
+            stream_url = urljoin(rtmp_url, rtmp_live)
+            rate_id = traverse_obj(stream_info, ('data', 'rate'))
+            rate_info = traverse_obj(stream_info, ('data', 'multirates', {lambda i, v: v.get('rate') == rate_id}, 0))
+            formats.append({
+                'url': stream_url,
+                'format_id': rate_id,
+                **traverse_obj(rate_info, {
+                    'format': ('name', {str_or_none}),
+                    'tbr': ('bit', {int_or_none}),
+                })
+            })
 
         title = unescapeHTML(room['room_name'])
         description = room.get('show_details')
