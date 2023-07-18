@@ -85,9 +85,16 @@ class CrunchyrollBaseIE(InfoExtractor):
             CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
 
         grant_type = 'etp_rt_cookie' if self.is_logged_in else 'client_id'
-        auth_response = self._download_json(
-            f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
-            headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
+        try:
+            auth_response = self._download_json(
+                f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
+                headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
+                raise ExtractorError(
+                    'Please open a crunchyroll page in the browser and pass cookies as well as '
+                    'the browsers User-Agent to work around cloudflare blocking', expected=True)
+            raise
 
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
         CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
