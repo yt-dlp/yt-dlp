@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from .openload import PhantomJSwrapper
 from ..utils import (
     ExtractorError,
+    UserNotLive,
     int_or_none,
     str_or_none,
     traverse_obj,
@@ -123,6 +124,9 @@ class DouyuTVIE(InfoExtractor):
         room_id = self._html_search_regex(
             r'(?:\$ROOM\.room_id\s*=|room_id\\?"\s*:)\s*(\d+)[,;]', page, 'room id')
 
+        if '"videoLoop":1,' in page:
+            raise UserNotLive(video_id=video_id)
+
         # Grab metadata from API
         params = {
             'aid': 'wp',
@@ -137,7 +141,7 @@ class DouyuTVIE(InfoExtractor):
 
         # 1 = live, 2 = offline
         if room.get('show_status') == '2':
-            raise ExtractorError('Live stream is offline', expected=True)
+            raise UserNotLive(video_id=video_id)
 
         m3u8_url = urljoin('https://hls3-akm.douyucdn.cn/', self._search_regex(r'(live/.*)', room['hls_url'], 'URL'))
         formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, room_id, fatal=False)
