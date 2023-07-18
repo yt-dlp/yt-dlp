@@ -21,7 +21,7 @@ from ..utils import (
 
 
 class XHamsterIE(InfoExtractor):
-    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com|xhday\.com|xhvid\.com)'
+    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.(com|desi)|xhday\.com|xhvid\.com)'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:.+?\.)?%s/
@@ -268,7 +268,7 @@ class XHamsterIE(InfoExtractor):
                     video, lambda x: x['rating']['likes'], int)),
                 'dislike_count': int_or_none(try_get(
                     video, lambda x: x['rating']['dislikes'], int)),
-                'comment_count': int_or_none(video.get('views')),
+                'comment_count': int_or_none(video.get('comments')),
                 'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
                 'formats': formats,
