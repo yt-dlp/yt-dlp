@@ -92,8 +92,9 @@ class CrunchyrollBaseIE(InfoExtractor):
         except ExtractorError as error:
             if isinstance(error.cause, HTTPError) and error.cause.status == 403:
                 raise ExtractorError(
-                    'Please open a crunchyroll page in the browser and pass cookies as well as '
-                    'the browsers User-Agent to work around cloudflare blocking', expected=True)
+                    'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                    'and pass fresh cookies (with --cookies-from-browser or --cookies) '
+                    'as well as your browser\'s User-Agent with --user-agent', expected=True)
             raise
 
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
