@@ -242,6 +242,8 @@ In any case, thank you very much for your contributions!
 }
 ```
 
+If your extractor supports cookies, use the `cookiefile` or `cookiesfrombrowser` keys in the same way as the `--cookies` or `--cookies-from-browser` options.
+
 ## yt-dlp coding conventions
 
 This section introduces a guide lines for writing idiomatic, robust and future-proof extractor code.
