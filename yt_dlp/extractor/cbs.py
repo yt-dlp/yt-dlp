@@ -187,6 +187,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'thumbnail': r're:^https://.+\.jpg',
             'tags': [],
         },
+        'skip': 'geo-restricted',
     }, {
         'url': 'https://www.paramountpressexpress.com/cbs-entertainment/video/?watch=2s5eh8kppc',
         'md5': 'edcb03e3210b88a3e56c05aa863e0e5b',
@@ -202,6 +203,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'thumbnail': r're:^https://.+\.jpg',
             'tags': [],
         },
+        'skip': 'geo-restricted',
     }, {
         'url': 'https://www.paramountpressexpress.com/paramount-plus/yt-video/?watch=OX9wJWOcqck',
         'info_dict': {
@@ -228,6 +230,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'categories': ['Entertainment'],
             'tags': ['Rugrats'],
         },
+        'skip': 'geo-restricted',
     }, {
         'url': 'https://www.paramountpressexpress.com/showtime/yt-video/?watch=_ljssSoDLkw',
         'info_dict': {
@@ -255,6 +258,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'categories': ['People & Blogs'],
             'tags': 'count:27',
         },
+        'skip': 'geo-restricted',
     }]
 
     def _real_extract(self, url):
