@@ -11,6 +11,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     dict_get,
     filter_dict,
     float_or_none,
@@ -296,7 +297,7 @@ class TwitterBaseIE(InfoExtractor):
         if result.get('errors'):
             errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
             raise ExtractorError(
-                f'Error(s) while querying API: {errors or "Unknown error"}', expected=True)
+                f'Error(s) while querying API: {errors or "Unknown error"}')
 
         return result
 
@@ -1191,15 +1192,13 @@ class TwitterIE(TwitterBaseIE):
                 status = self._graphql_to_legacy(
                     self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
             except ExtractorError as e:
-                if self._login_hint() in e.msg:
-                    raise  # Fallback does not work for NSFW or protected tweets
+                if self._login_hint() in e.msg or bug_reports_message() not in e.msg:
+                    raise  # Do not try fallback when tweet is expected to be unavailable
+                self.report_warning(e.msg, video_id=twid)
                 self.report_warning('Falling back to syndication endpoint; some metadata may be missing')
-                try:
-                    status = self._download_json(
-                        'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
-                        headers={'User-Agent': 'Googlebot'}, query={'id': twid})
-                except ExtractorError:
-                    raise e  # Syndication errors are empty 404s or 500s; better to use GraphQL message
+                status = self._download_json(
+                    'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+                    headers={'User-Agent': 'Googlebot'}, query={'id': twid})
 
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
