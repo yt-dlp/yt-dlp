@@ -296,8 +296,7 @@ class TwitterBaseIE(InfoExtractor):
 
         if result.get('errors'):
             errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
-            raise ExtractorError(
-                f'Error(s) while querying API: {errors or "Unknown error"}')
+            raise ExtractorError(f'Error(s) while querying API: {errors or "Unknown error"}')
 
         return result
 
@@ -599,7 +598,7 @@ class TwitterIE(TwitterBaseIE):
         # has mp4 formats via mobile API
         'url': 'https://twitter.com/news_al3alm/status/852138619213144067',
         'info_dict': {
-            'id': '852138619213144067',
+            'id': '852077943283097602',
             'ext': 'mp4',
             'title': 'عالم الأخبار - كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعارضين : اتقوا الله .. الظلم ظلمات يوم القيامة',
             'description': 'كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعارضين : اتقوا الله .. الظلم ظلمات يوم القيامة   https://t.co/xg6OhpyKfN',
@@ -608,8 +607,16 @@ class TwitterIE(TwitterBaseIE):
             'duration': 277.4,
             'timestamp': 1492000653,
             'upload_date': '20170412',
+            'display_id': '852138619213144067',
+            'age_limit': 0,
+            'uploader_url': 'https://twitter.com/news_al3alm',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'tags': [],
+            'repost_count': int,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
         },
-        'skip': 'Account suspended',
     }, {
         'url': 'https://twitter.com/i/web/status/910031516746514432',
         'info_dict': {
