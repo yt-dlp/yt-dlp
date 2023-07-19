@@ -36,7 +36,7 @@ class VKBaseIE(InfoExtractor):
 
     def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
         response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
-        challenge_url, cookie = response[1].geturl() if response else '', None
+        challenge_url, cookie = response[1].url if response else '', None
         if challenge_url.startswith('https://vk.com/429.html?'):
             cookie = self._get_cookies(challenge_url).get('hash429')
         if not cookie:

@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     float_or_none,
     ExtractorError,
@@ -68,9 +68,9 @@ class RedBullTVIE(InfoExtractor):
                 headers={'Authorization': token}
             )
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                 error_message = self._parse_json(
-                    e.cause.read().decode(), video_id)['error']
+                    e.cause.response.read().decode(), video_id)['error']
                 raise ExtractorError('%s said: %s' % (
                     self.IE_NAME, error_message), expected=True)
             raise
