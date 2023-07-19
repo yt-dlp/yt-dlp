@@ -150,7 +150,7 @@ class SohuIE(InfoExtractor):
                         'prot': 9,
                         'file': clip_url,
                         'new': su[i],
-                        'prod': 'flash',
+                        'prod': 'h5n',
                         'rb': 1,
                     }
 
