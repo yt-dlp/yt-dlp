@@ -1093,6 +1093,8 @@ class TwitterIE(TwitterBaseIE):
             reason = result.get('reason')
             if reason == 'NsfwLoggedOut':
                 self.raise_login_required('NSFW tweet requires authentication')
+            elif reason == 'Protected':
+                self.raise_login_required('You are not authorized to view this protected tweet')
             raise ExtractorError(reason or 'Requested tweet is unavailable', expected=True)
 
         status = result.get('legacy', {})
