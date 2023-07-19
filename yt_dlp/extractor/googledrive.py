@@ -228,7 +228,7 @@ class GoogleDriveIE(InfoExtractor):
                     # Using original URLs may result in redirect loop due to
                     # google.com's cookies mistakenly used for googleusercontent.com
                     # redirect URLs (see #23919).
-                    'url': urlh.geturl(),
+                    'url': urlh.url,
                     'ext': determine_ext(title, 'mp4').lower(),
                     'format_id': 'source',
                     'quality': 1,

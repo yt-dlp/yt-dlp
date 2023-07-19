@@ -1,8 +1,9 @@
 import re
-import urllib.request
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str, compat_urlparse
+from ..compat import compat_str, compat_urlparse
+from ..networking import Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -10,7 +11,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     js_to_json,
-    sanitized_Request,
     smuggle_url,
     try_get,
     unescapeHTML,
@@ -153,11 +153,10 @@ class UdemyIE(InfoExtractor):
                 headers['X-Udemy-Bearer-Token'] = cookie.value
                 headers['X-Udemy-Authorization'] = 'Bearer %s' % cookie.value
 
-        if isinstance(url_or_request, urllib.request.Request):
-            for header, value in headers.items():
-                url_or_request.add_header(header, value)
+        if isinstance(url_or_request, Request):
+            url_or_request.headers.update(headers)
         else:
-            url_or_request = sanitized_Request(url_or_request, headers=headers)
+            url_or_request = Request(url_or_request, headers=headers)
 
         response = super(UdemyIE, self)._download_json(url_or_request, *args, **kwargs)
         self._handle_error(response)
@@ -212,7 +211,7 @@ class UdemyIE(InfoExtractor):
             lecture = self._download_lecture(course_id, lecture_id)
         except ExtractorError as e:
             # Error could possibly mean we are not enrolled in the course
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 webpage = webpage or self._download_webpage(url, lecture_id)
                 self._enroll_course(url, webpage, course_id)
                 lecture = self._download_lecture(course_id, lecture_id)

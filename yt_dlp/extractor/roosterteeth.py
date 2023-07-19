@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -35,8 +35,8 @@ class RoosterTeethBaseIE(InfoExtractor):
                 }))
         except ExtractorError as e:
             msg = 'Unable to login'
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                resp = self._parse_json(e.cause.read().decode(), None, fatal=False)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                resp = self._parse_json(e.cause.response.read().decode(), None, fatal=False)
                 if resp:
                     error = resp.get('extra_info') or resp.get('error_description') or resp.get('error')
                     if error:
@@ -138,8 +138,8 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             m3u8_url = video_data['attributes']['url']
             # XXX: additional URL at video_data['links']['download']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                if self._parse_json(e.cause.read().decode(), display_id).get('access') is False:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                if self._parse_json(e.cause.response.read().decode(), display_id).get('access') is False:
                     self.raise_login_required(
                         '%s is only available for FIRST members' % display_id)
             raise

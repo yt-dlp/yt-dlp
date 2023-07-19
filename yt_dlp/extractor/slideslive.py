@@ -426,7 +426,7 @@ class SlidesLiveIE(InfoExtractor):
             video_id, headers=traverse_obj(parse_qs(url), {
                 'Referer': ('embed_parent_url', -1),
                 'Origin': ('embed_container_origin', -1)}))
-        redirect_url = urlh.geturl()
+        redirect_url = urlh.url
         if 'domain_not_allowed' in redirect_url:
             domain = traverse_obj(parse_qs(redirect_url), ('allowed_domains[]', ...), get_all=False)
             if not domain:
