@@ -22,7 +22,6 @@ from ..utils import (
     int_or_none,
     intlist_to_bytes,
     OnDemandPagedList,
-    request_to_url,
     time_seconds,
     traverse_obj,
     update_url_query,
@@ -137,7 +136,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
         return intlist_to_bytes(aes_ecb_decrypt(encvideokey, enckey))
 
     def abematv_license_open(self, url):
-        url = request_to_url(url)
+        url = url.get_full_url() if isinstance(url, urllib.request.Request) else url
         ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={

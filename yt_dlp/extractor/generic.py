@@ -2431,7 +2431,7 @@ class GenericIE(InfoExtractor):
             'Accept-Encoding': 'identity',
             **smuggled_data.get('http_headers', {})
         })
-        new_url = full_response.geturl()
+        new_url = full_response.url
         url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
@@ -2529,12 +2529,12 @@ class GenericIE(InfoExtractor):
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
-                        xspf_base_url=full_response.geturl()),
+                        xspf_base_url=full_response.url),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
-                    mpd_base_url=full_response.geturl().rpartition('/')[0],
+                    mpd_base_url=full_response.url.rpartition('/')[0],
                     mpd_url=url)
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
@@ -2572,7 +2572,7 @@ class GenericIE(InfoExtractor):
         info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
         video_id = traverse_obj(info_dict, 'display_id', 'id') or self._generic_id(url)
         url, smuggled_data = unsmuggle_url(url, {})
-        actual_url = urlh.geturl() if urlh else url
+        actual_url = urlh.url if urlh else url
 
         # Sometimes embedded video player is hidden behind percent encoding
         # (e.g. https://github.com/ytdl-org/youtube-dl/issues/2448)

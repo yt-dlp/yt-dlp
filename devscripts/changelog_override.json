@@ -1,12 +1,12 @@
 [
     {
         "action": "add",
-        "when": "776d1c3f0c9b00399896dd2e40e78e9a43218109",
+        "when": "29cb20bd563c02671b31dd840139e93dd37150a1",
         "short": "[priority] **A new release type has been added!**\n    * [`nightly`](https://github.com/yt-dlp/yt-dlp/releases/tag/nightly) builds will be made after each push, containing the latest fixes (but also possibly bugs).\n    * When using `--update`/`-U`, a release binary will only update to its current channel (either `stable` or `nightly`).\n    * The `--update-to` option has been added allowing the user more control over program upgrades (or downgrades).\n    * `--update-to` can change the release channel (`stable`, `nightly`) and also upgrade or downgrade to specific tags.\n    * **Usage**: `--update-to CHANNEL`, `--update-to TAG`, `--update-to CHANNEL@TAG`"
     },
     {
         "action": "add",
-        "when": "776d1c3f0c9b00399896dd2e40e78e9a43218109",
+        "when": "5038f6d713303e0967d002216e7a88652401c22a",
         "short": "[priority] **YouTube throttling fixes!**"
     },
     {
@@ -38,13 +38,15 @@
     },
     {
         "action": "change",
-        "when": "7b37e8b23691613f331bd4ebc9d639dd6f93c972",
-        "short": "Improve `--download-sections`\n    - Support negative time-ranges\n    - Add `*from-url` to obey time-ranges in URL"
+        "when": "b4e0d75848e9447cee2cd3646ce54d4744a7ff56",
+        "short": "Improve `--download-sections`\n    - Support negative time-ranges\n    - Add `*from-url` to obey time-ranges in URL",
+        "authors": ["pukkandan"]
     },
     {
         "action": "change",
         "when": "1e75d97db21152acc764b30a688e516f04b8a142",
-        "short": "[extractor/youtube] Add `ios` to default clients used\n        - IOS is affected neither by 403 nor by nsig so helps mitigate them preemptively\n        - IOS also has higher bit-rate 'premium' formats though they are not labeled as such"
+        "short": "[extractor/youtube] Add `ios` to default clients used\n        - IOS is affected neither by 403 nor by nsig so helps mitigate them preemptively\n        - IOS also has higher bit-rate 'premium' formats though they are not labeled as such",
+        "authors": ["pukkandan"]
     },
     {
         "action": "change",
@@ -55,6 +57,12 @@
     {
         "action": "change",
         "when": "a4486bfc1dc7057efca9dd3fe70d7fa25c56f700",
-        "short": "[misc] Revert \"Add automatic duplicate issue detection\""
+        "short": "[misc] Revert \"Add automatic duplicate issue detection\"",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "when": "1ceb657bdd254ad961489e5060f2ccc7d556b729",
+        "short": "[priority] Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)\n    - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains\n    - Cookies are scoped when passed to external downloaders\n    - Add `cookie` field to info.json and deprecate `http_headers.Cookie`"
     }
 ]

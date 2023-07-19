@@ -1,17 +1,30 @@
 """No longer used and new code should not use. Exists only for API compat."""
-
 import platform
 import struct
 import sys
+import urllib.error
 import urllib.parse
+import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
+from ..networking._helper import make_ssl_context
+from ..networking._urllib import HTTPHandler
 
 # isort: split
+from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
+from ..networking._urllib import PUTRequest  # noqa: F401
+from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
+from ..networking._urllib import ProxyHandler as PerRequestProxyHandler  # noqa: F401
+from ..networking._urllib import RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
+from ..networking._urllib import (  # noqa: F401
+    make_socks_conn_class,
+    update_Request,
+)
+from ..networking.exceptions import HTTPError, network_exceptions  # noqa: F401
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
@@ -174,6 +187,53 @@ def handle_youtubedl_headers(headers):
         del filtered_headers['Youtubedl-no-compression']
 
     return filtered_headers
+
+
+def request_to_url(req):
+    if isinstance(req, urllib.request.Request):
+        return req.get_full_url()
+    else:
+        return req
+
+
+def sanitized_Request(url, *args, **kwargs):
+    from ..utils import escape_url, extract_basic_auth, sanitize_url
+    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
+    if auth_header is not None:
+        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
+        headers['Authorization'] = auth_header
+    return urllib.request.Request(url, *args, **kwargs)
+
+
+class YoutubeDLHandler(HTTPHandler):
+    def __init__(self, params, *args, **kwargs):
+        self._params = params
+        super().__init__(*args, **kwargs)
+
+
+YoutubeDLHTTPSHandler = YoutubeDLHandler
+
+
+class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
+    def __init__(self, cookiejar=None):
+        urllib.request.HTTPCookieProcessor.__init__(self, cookiejar)
+
+    def http_response(self, request, response):
+        return urllib.request.HTTPCookieProcessor.http_response(self, request, response)
+
+    https_request = urllib.request.HTTPCookieProcessor.http_request
+    https_response = http_response
+
+
+def make_HTTPS_handler(params, **kwargs):
+    return YoutubeDLHTTPSHandler(params, context=make_ssl_context(
+        verify=not params.get('nocheckcertificate'),
+        client_certificate=params.get('client_certificate'),
+        client_certificate_key=params.get('client_certificate_key'),
+        client_certificate_password=params.get('client_certificate_password'),
+        legacy_support=params.get('legacyserverconnect'),
+        use_certifi='no-certifi' not in params.get('compat_opts', []),
+    ), **kwargs)
 
 
 def process_communicate_or_kill(p, *args, **kwargs):

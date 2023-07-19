@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import HEADRequest
+from ..networking import HEADRequest
 
 
 class ThisOldHouseIE(InfoExtractor):
@@ -50,6 +50,6 @@ class ThisOldHouseIE(InfoExtractor):
             r'<iframe[^>]+src=[\'"]((?:https?:)?//(?:www\.)?thisoldhouse\.(?:chorus\.build|com)/videos/zype/([0-9a-f]{24})[^\'"]*)[\'"]',
             webpage, 'video url')
         if 'subscription_required=true' in video_url or 'c-entry-group-labels__image' in webpage:
-            return self.url_result(self._request_webpage(HEADRequest(video_url), display_id).geturl(), 'Zype', display_id)
+            return self.url_result(self._request_webpage(HEADRequest(video_url), display_id).url, 'Zype', display_id)
         video_id = self._search_regex(r'(?:https?:)?//(?:www\.)?thisoldhouse\.(?:chorus\.build|com)/videos/zype/([0-9a-f]{24})', video_url, 'video id')
         return self.url_result(self._ZYPE_TMPL % video_id, 'Zype', video_id)

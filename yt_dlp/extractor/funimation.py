@@ -3,7 +3,7 @@ import re
 import string
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -46,8 +46,8 @@ class FunimationBaseIE(InfoExtractor):
                 }))
             FunimationBaseIE._TOKEN = data['token']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                error = self._parse_json(e.cause.read().decode(), None)['error']
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                error = self._parse_json(e.cause.response.read().decode(), None)['error']
                 raise ExtractorError(error, expected=True)
             raise
 
