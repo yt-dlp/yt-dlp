@@ -92,12 +92,12 @@ class DouyuTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _sign(self, room_id, params={}):
+    def _sign(self, room_id, video_id, params={}):
         params = {
             'tt': round(time.time()),
             'did': uuid.uuid4().hex,
         }
-        params.update(self._get_sign(room_id, params['did'], params['tt']))
+        params.update(self._get_sign(room_id, params['did'], params['tt'], video_id))
         return params
 
     def _get_cryptojs_md5(self, video_id):
@@ -105,16 +105,16 @@ class DouyuTVIE(InfoExtractor):
             'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js', video_id,
             note='Downloading signing dependency')
 
-    def _get_sign_func(self, room_id):
+    def _get_sign_func(self, room_id, video_id):
         sign_data = self._download_json(
-            f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', room_id,
+            f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', video_id,
             note='Getting signing script')
-        return self._get_cryptojs_md5(room_id) + ';' + sign_data['data'][f'room{room_id}']
+        return self._get_cryptojs_md5(video_id) + ';' + sign_data['data'][f'room{room_id}']
 
-    def _get_sign(self, room_id, nonce, ts):
-        js_script = self._get_sign_func(room_id) + f';console.log(ub98484234({room_id}, "{nonce}", {ts}))'
+    def _get_sign(self, room_id, nonce, ts, video_id):
+        js_script = self._get_sign_func(room_id, video_id) + f';console.log(ub98484234({room_id}, "{nonce}", {ts}))'
         phantom = PhantomJSwrapper(self)
-        result = phantom.execute(js_script).strip()
+        result = phantom.execute(js_script, video_id).strip()
         return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
 
     def _extract_stream_format(self, stream_info):
@@ -144,6 +144,8 @@ class DouyuTVIE(InfoExtractor):
             r'(?:\$ROOM\.room_id\s*=|room_id\\?"\s*:)\s*(\d+)[,;]', page, 'room id')
 
         if '"videoLoop":1,' in page:
+            raise UserNotLive('room is auto-playing VODs', video_id=video_id)
+        if '$ROOM.show_status =2;' in page:
             raise UserNotLive(video_id=video_id)
 
         # Grab metadata from API
@@ -162,10 +164,12 @@ class DouyuTVIE(InfoExtractor):
         if room.get('show_status') == '2':
             raise UserNotLive(video_id=video_id)
 
-        m3u8_url = urljoin('https://hls3-akm.douyucdn.cn/', self._search_regex(r'(live/.*)', room['hls_url'], 'URL'))
-        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, room_id, fatal=False)
+        video_url = urljoin('https://openhls-tct.douyucdn2.cn/', self._search_regex(r'(live/.*)', room['hls_url'], 'URL'))
+        video_url = video_url.replace('/playlist.m3u8', '.m3u8')
+        print(video_url)
+        formats, subs = self._extract_m3u8_formats_and_subtitles(video_url, video_id, fatal=False)
 
-        form_data = self._sign(room_id, {'rate': 0})
+        form_data = self._sign(room_id, video_id, {'rate': 0})
         stream_info = self._download_json(
             f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
             video_id, note="Downloading stream info",
