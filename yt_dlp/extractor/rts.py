@@ -136,8 +136,8 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
 
             if not entries:
                 page, urlh = self._download_webpage_handle(url, display_id)
-                if re.match(self._VALID_URL, urlh.geturl()).group('id') != media_id:
-                    return self.url_result(urlh.geturl(), 'RTS')
+                if re.match(self._VALID_URL, urlh.url).group('id') != media_id:
+                    return self.url_result(urlh.url, 'RTS')
 
                 # article with videos on rhs
                 videos = re.findall(

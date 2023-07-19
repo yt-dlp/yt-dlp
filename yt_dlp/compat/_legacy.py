@@ -70,6 +70,7 @@ compat_html_parser_HTMLParseError = compat_HTMLParseError
 compat_HTMLParser = compat_html_parser_HTMLParser = html.parser.HTMLParser
 compat_http_client = http.client
 compat_http_server = http.server
+compat_HTTPError = urllib.error.HTTPError
 compat_input = input
 compat_integer_types = (int, )
 compat_itertools_count = itertools.count

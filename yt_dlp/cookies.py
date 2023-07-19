@@ -41,30 +41,15 @@ from .utils import (
     try_call,
     write_string,
 )
+from .utils._utils import _YDLLogger
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
-class YDLLogger:
-    def __init__(self, ydl=None):
-        self._ydl = ydl
-
-    def debug(self, message):
-        if self._ydl:
-            self._ydl.write_debug(message)
-
-    def info(self, message):
-        if self._ydl:
-            self._ydl.to_screen(f'[Cookies] {message}')
-
-    def warning(self, message, only_once=False):
-        if self._ydl:
-            self._ydl.report_warning(message, only_once)
-
-    def error(self, message):
-        if self._ydl:
-            self._ydl.report_error(message)
+class YDLLogger(_YDLLogger):
+    def warning(self, message, only_once=False):  # compat
+        return super().warning(message, once=only_once)
 
     class ProgressBar(MultilinePrinter):
         _DELAY, _timer = 0.1, 0
@@ -1326,6 +1311,13 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
         cookie_req = urllib.request.Request(escape_url(sanitize_url(url)))
         self.add_cookie_header(cookie_req)
         return cookie_req.get_header('Cookie')
+
+    def get_cookies_for_url(self, url):
+        """Generate a list of Cookie objects for a given url"""
+        # Policy `_now` attribute must be set before calling `_cookies_for_request`
+        # Ref: https://github.com/python/cpython/blob/3.7/Lib/http/cookiejar.py#L1360
+        self._policy._now = self._now = int(time.time())
+        return self._cookies_for_request(urllib.request.Request(escape_url(sanitize_url(url))))
 
     def clear(self, *args, **kwargs):
         with contextlib.suppress(KeyError):

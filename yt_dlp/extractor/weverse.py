@@ -5,13 +5,13 @@ import itertools
 import json
 import re
 import time
-import urllib.error
 import urllib.parse
 import uuid
 
 from .common import InfoExtractor
 from .naver import NaverBaseIE
 from .youtube import YoutubeIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -59,7 +59,7 @@ class WeverseBaseIE(InfoExtractor):
                     'password': password,
                 }, separators=(',', ':')).encode(), headers=headers, note='Logging in')
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 raise ExtractorError('Invalid password provided', expected=True)
             raise
 
@@ -97,10 +97,10 @@ class WeverseBaseIE(InfoExtractor):
                     'wmd': wmd,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 self.raise_login_required(
                     'Session token has expired. Log in again or refresh cookies in browser')
-            elif isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+            elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 raise ExtractorError('Your account does not have access to this content', expected=True)
             raise
 

@@ -3,11 +3,12 @@ import itertools
 import math
 import operator
 import re
-import urllib.request
 
 from .common import InfoExtractor
 from .openload import PhantomJSwrapper
-from ..compat import compat_HTTPError, compat_str
+from ..compat import compat_str
+from ..networking import Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -46,8 +47,8 @@ class PornHubBaseIE(InfoExtractor):
                 r'document\.cookie\s*=\s*["\']RNKEY=',
                 r'document\.location\.reload\(true\)')):
             url_or_request = args[0]
-            url = (url_or_request.get_full_url()
-                   if isinstance(url_or_request, urllib.request.Request)
+            url = (url_or_request.url
+                   if isinstance(url_or_request, Request)
                    else url_or_request)
             phantom = PhantomJSwrapper(self, required_version='2.0')
             phantom.get(url, html=webpage)
@@ -61,6 +62,7 @@ class PornHubBaseIE(InfoExtractor):
     def _set_age_cookies(self, host):
         self._set_cookie(host, 'age_verified', '1')
         self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
+        self._set_cookie(host, 'accessAgeDisclaimerUK', '1')
         self._set_cookie(host, 'accessPH', '1')
 
     def _login(self, host):
@@ -602,7 +604,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
                 base_url, item_id, note, query={'page': num})
 
         def is_404(e):
-            return isinstance(e.cause, compat_HTTPError) and e.cause.code == 404
+            return isinstance(e.cause, HTTPError) and e.cause.status == 404
 
         base_url = url
         has_page = page is not None

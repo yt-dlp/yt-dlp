@@ -3,9 +3,9 @@ import json
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     OnDemandPagedList,
     UnsupportedError,
     determine_ext,
@@ -266,7 +266,7 @@ class LBRYIE(LBRYBaseIE):
             # HEAD request returns redirect response to m3u8 URL if available
             final_url = self._request_webpage(
                 HEADRequest(streaming_url), display_id, headers=headers,
-                note='Downloading streaming redirect url info').geturl()
+                note='Downloading streaming redirect url info').url
 
         elif result.get('value_type') == 'stream':
             claim_id, is_live = result['signing_channel']['claim_id'], True
