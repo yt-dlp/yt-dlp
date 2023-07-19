@@ -7,9 +7,9 @@ import time
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     LazyList,
     UnsupportedError,
     UserNotLive,
@@ -1015,18 +1015,16 @@ class DouyinIE(TikTokBaseIE):
             self.to_screen(f'{e}; trying with webpage')
 
         webpage = self._download_webpage(url, video_id)
-        render_data_json = self._search_regex(
-            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>(%7B.+%7D)</script>',
-            webpage, 'render data', default=None)
-        if not render_data_json:
+        render_data = self._search_json(
+            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>', webpage, 'render data', video_id,
+            contains_pattern=r'%7B(?s:.+)%7D', fatal=False, transform_source=compat_urllib_parse_unquote)
+        if not render_data:
             # TODO: Run verification challenge code to generate signature cookies
             cookies = self._get_cookies(self._WEBPAGE_HOST)
             expected = not cookies.get('s_v_web_id') or not cookies.get('ttwid')
             raise ExtractorError(
                 'Fresh cookies (not necessarily logged in) are needed', expected=expected)
 
-        render_data = self._parse_json(
-            render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
         return self._parse_aweme_video_web(get_first(render_data, ('aweme', 'detail')), url, video_id)
 
 
@@ -1086,7 +1084,7 @@ class TikTokVMIE(InfoExtractor):
 
     def _real_extract(self, url):
         new_url = self._request_webpage(
-            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).geturl()
+            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).url
         if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
             raise UnsupportedError(new_url)
         return self.url_result(new_url)

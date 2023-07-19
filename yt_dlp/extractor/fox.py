@@ -3,10 +3,10 @@ import uuid
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str,
     compat_urllib_parse_unquote,
 )
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -68,9 +68,9 @@ class FOXIE(InfoExtractor):
                 'https://api3.fox.com/v2.0/' + path,
                 video_id, data=data, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 entitlement_issues = self._parse_json(
-                    e.cause.read().decode(), video_id)['entitlementIssues']
+                    e.cause.response.read().decode(), video_id)['entitlementIssues']
                 for e in entitlement_issues:
                     if e.get('errorCode') == 1005:
                         raise ExtractorError(
@@ -123,8 +123,8 @@ class FOXIE(InfoExtractor):
         try:
             m3u8_url = self._download_json(release_url, video_id)['playURL']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                error = self._parse_json(e.cause.read().decode(), video_id)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                error = self._parse_json(e.cause.response.read().decode(), video_id)
                 if error.get('exception') == 'GeoLocationBlocked':
                     self.raise_geo_restricted(countries=['US'])
                 raise ExtractorError(error['description'], expected=True)
