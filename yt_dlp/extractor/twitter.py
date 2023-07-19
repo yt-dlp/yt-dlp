@@ -1,3 +1,4 @@
+import functools
 import json
 import re
 
@@ -1181,12 +1182,23 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if not self.is_logged_in:
-            status = self._graphql_to_legacy(
-                self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
-        else:
+        if self.is_logged_in:
             status = self._graphql_to_legacy(
                 self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
+        else:
+            try:
+                status = self._graphql_to_legacy(
+                    self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
+            except ExtractorError as e:
+                if self._login_hint() in e.msg:
+                    raise  # Fallback does not work for NSFW or protected tweets
+                self.report_warning('Falling back to syndication endpoint; some metadata may be missing')
+                try:
+                    status = self._download_json(
+                        'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+                        headers={'User-Agent': 'Googlebot'}, query={'id': twid})
+                except ExtractorError:
+                    raise e  # Syndication errors are empty 404s or 500s; better to use GraphQL message
 
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
@@ -1215,6 +1227,11 @@ class TwitterIE(TwitterBaseIE):
 
         def extract_from_video_info(media):
             media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
+            if not media_id:
+                # Workaround for syndication fallback
+                media_id = traverse_obj(media, (
+                    'video_info', 'variants', ..., 'url',
+                    {functools.partial(re.search, r'_video/(\d+)/')}, 1), get_all=False)
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
@@ -1239,7 +1256,7 @@ class TwitterIE(TwitterBaseIE):
                 add_thumbnail('orig', media.get('original_info') or {})
 
             return {
-                'id': media_id,
+                'id': media_id or twid,
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
@@ -1324,13 +1341,15 @@ class TwitterIE(TwitterBaseIE):
                 }
 
         videos = traverse_obj(status, (
-            (None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo', {dict}))
+            ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
+            lambda _, m: m['type'] != 'photo', {dict}))
 
         if self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
             selected_entries = (*map(extract_from_video_info, videos), *extract_from_card_info(status.get('card')))
         else:
             desired_obj = traverse_obj(status, (
-                (None, 'quoted_status'), 'extended_entities', 'media', int(selected_index) - 1, {dict}), get_all=False)
+                ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
+                int(selected_index) - 1, {dict}), get_all=False)
             if not desired_obj:
                 raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
             elif desired_obj.get('type') != 'video':
