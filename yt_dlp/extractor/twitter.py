@@ -1038,6 +1038,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+        'skip': 'Protected tweet',
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
