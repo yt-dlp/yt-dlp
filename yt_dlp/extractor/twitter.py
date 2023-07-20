@@ -1,3 +1,4 @@
+import functools
 import json
 import re
 
@@ -310,6 +311,8 @@ class TwitterBaseIE(InfoExtractor):
 
         if result.get('errors'):
             errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
+            if errors and 'not authorized' in errors:
+                self.raise_login_required(remove_end(errors, '.'))
             raise ExtractorError(f'Error(s) while querying API: {errors or "Unknown error"}')
 
         return result
@@ -1206,20 +1209,31 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if not self.is_logged_in and self._configuration_arg('legacy_api'):
-            status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
-                'cards_platform': 'Web-12',
-                'include_cards': 1,
-                'include_reply_count': 1,
-                'include_user_entities': 0,
-                'tweet_mode': 'extended',
-            }), 'retweeted_status', None)
-        elif not self.is_logged_in:
-            status = self._graphql_to_legacy(
-                self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
-        else:
+        if self.is_logged_in:
             status = self._graphql_to_legacy(
                 self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
+        else:
+            try:
+                if self._configuration_arg('legacy_api'):
+                    status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
+                        'cards_platform': 'Web-12',
+                        'include_cards': 1,
+                        'include_reply_count': 1,
+                        'include_user_entities': 0,
+                        'tweet_mode': 'extended',
+                    }), 'retweeted_status', None)
+                else:
+                    status = self._graphql_to_legacy(
+                        self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
+            except ExtractorError as e:
+                if e.expected:
+                    raise
+                self.report_warning(
+                    f'{e.orig_msg}. Falling back to syndication endpoint; some metadata may be missing', twid)
+                status = self._download_json(
+                    'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+                    headers={'User-Agent': 'Googlebot'}, query={'id': twid})
+                status['extended_entities'] = {'media': status.get('mediaDetails')}
 
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
@@ -1247,7 +1261,10 @@ class TwitterIE(TwitterBaseIE):
         }
 
         def extract_from_video_info(media):
-            media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
+            media_id = traverse_obj(media, 'id_str', 'id', (
+                'video_info', 'variants', ..., 'url',
+                {functools.partial(re.search, r'_video/(\d+)/')}, 1
+            ), get_all=False, expected_type=str_or_none) or twid
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
