@@ -6,7 +6,7 @@ class HotmartIE(InfoExtractor):
     _VALID_URL = r"https?://player\.hotmart\.com/embed/(?P<id>[a-zA-Z0-9]+)"
     _TESTS = [
         {
-            "url": "https://yourextractor.com/watch/42",
+            "url": "https://player.hotmart.com/embed/Nq7rJ2mARA?signature=SjylayL7eOhQwSYJNxKWY1g2gqJ5WMz4l1VSuOGVv6qAJnDXFsK6fSXziJ_u12YHSfrT0SfHTYxqgGqZ4UBLLmo7ScIzDQR9JUs_sJbLVtp0g6ferIbEIJxjyXk2MO1suyhYtdIz8N5CaZ9mJ-kE2wBK3SlR1eYQVZ9EEmf4Y254wsB71JGJW8_blsKV31VWKWKaFqQ5XmaHuS9d5N5cVG2ZDetxgqEea2ULLUwD6U2i2jBpnOobbEiXga5KRO6r1zA0xOOzx_K3BxbrS1UpmTfKpk1Z3Pt35aoKtvG9wjhJpR-4n-0KKKr6fUq8vn-t6W9bqSnULAJb-biBsNhx2w==&token=aa2d356b-e2f0-45e8-9725-e0efc7b5d29c&autoplay=autoplay",
             "md5": "TODO: md5 sum of the first 10241 bytes of the video file (use --test)",
             "info_dict": {
                 "id": "42",
