@@ -46,7 +46,12 @@ class SohuIE(InfoExtractor):
             'id': '78693464',
             'ext': 'mp4',
             'title': '【爱范品】第31期：MWC见不到的奇葩手机',
+            'uploader': '爱范儿视频',
             'duration': 213,
+            'timestamp': 1425519600,
+            'upload_date': '20150305',
+            'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M10/83/FA/MTAuMTAuODguODA=/6_14cbccdde5eg104SysCutcloud_78693464_7_0b.jpg',
+            'tags': ['爱范儿', '爱范品', 'MWC', '手机'],
         }
     }, {
         'note': 'Multipart video',
@@ -54,6 +59,12 @@ class SohuIE(InfoExtractor):
         'info_dict': {
             'id': '78910339',
             'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
+            'uploader': '小苍cany',
+            'duration': 744.0,
+            'timestamp': 1426269360,
+            'upload_date': '20150313',
+            'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M11/89/57/MTAuMTAuODguODA=/6_14cea022a1dg102SysCutcloud_78910339_8_0b.jpg',
+            'tags': ['小苍MM', '英雄联盟', '实战秘籍'],
         },
         'playlist': [{
             'info_dict': {
@@ -84,6 +95,11 @@ class SohuIE(InfoExtractor):
             'id': '78932792',
             'ext': 'mp4',
             'title': 'youtube-dl testing video',
+            'duration': 360,
+            'timestamp': 1426348620,
+            'upload_date': '20150314',
+            'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M02/8A/00/MTAuMTAuODguNzk=/6_14cee1be192g102SysCutcloud_78932792_7_7b.jpg',
+            'tags': [],
         },
         'params': {
             'skip_download': True
@@ -206,17 +222,17 @@ class SohuIE(InfoExtractor):
             }
 
         if mytv:
-            release_time = unified_timestamp(self._search_regex(
-                r"publishTime: '(\d+-\d+-\d+ \d+:\d+)'", webpage, 'upload time', fatal=False))
+            publish_time = unified_timestamp(self._search_regex(
+                r"publishTime: '(\d+-\d+-\d+ \d+:\d+)'", webpage, 'publish time', fatal=False))
         else:
-            release_time = unified_timestamp(traverse_obj(vid_data, ('tv_application_time', {str_or_none})))
+            publish_time = unified_timestamp(traverse_obj(vid_data, ('tv_application_time', {str_or_none})))
 
         return {
-            'timestamp': release_time - 8 * 3600 if release_time else None,
+            'timestamp': publish_time - 8 * 3600 if publish_time else None,
             **traverse_obj(vid_data, {
+                'alt_title': ('data', 'subName', {str_or_none}),
                 'uploader': ('wm_data', 'wm_username', {str_or_none}),
                 'thumbnail': ('data', 'coverImg', {url_or_none}),
-                'alt_title': ('data', 'subName', {str_or_none}),
                 'tags': ('data', 'tag', {str_or_none}, {lambda i: i.split() if i else None}),
             }),
             **info,
@@ -232,6 +248,11 @@ class SohuVIE(InfoExtractor):
         'info_dict': {
             'id': '601315192',
             'title': '《淬火丹心》第1集',
+            'alt_title': '“点天灯”发生事故',
+            'duration': 2701.692,
+            'timestamp': 1686758040,
+            'upload_date': '20230614',
+            'thumbnail': 'http://photocdn.tv.sohu.com/img/20230614/vrsa_hor_1686738763256_454010551.jpg',
         },
         'playlist_mincount': 9,
         'skip': 'Only available in China',
@@ -241,7 +262,12 @@ class SohuVIE(InfoExtractor):
             'id': '78693464',
             'ext': 'mp4',
             'title': '【爱范品】第31期：MWC见不到的奇葩手机',
+            'uploader': '爱范儿视频',
             'duration': 213,
+            'timestamp': 1425519600,
+            'upload_date': '20150305',
+            'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M10/83/FA/MTAuMTAuODguODA=/6_14cbccdde5eg104SysCutcloud_78693464_7_0b.jpg',
+            'tags': ['爱范儿', '爱范品', 'MWC', '手机'],
         }
     }, {
         'note': 'Multipart video',
@@ -249,6 +275,12 @@ class SohuVIE(InfoExtractor):
         'info_dict': {
             'id': '78910339',
             'title': '【神探苍实战秘籍】第13期 战争之影 赫卡里姆',
+            'uploader': '小苍cany',
+            'duration': 744.0,
+            'timestamp': 1426269360,
+            'upload_date': '20150313',
+            'thumbnail': 'http://e3f49eaa46b57.cdn.sohucs.com//group1/M11/89/57/MTAuMTAuODguODA=/6_14cea022a1dg102SysCutcloud_78910339_8_0b.jpg',
+            'tags': ['小苍MM', '英雄联盟', '实战秘籍'],
         },
         'playlist_mincount': 3,
     }]
