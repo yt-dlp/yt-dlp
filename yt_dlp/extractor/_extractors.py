@@ -758,6 +758,7 @@ from .hollywoodreporter import (
 )
 from .holodex import HolodexIE
 from .hotnewhiphop import HotNewHipHopIE
+from .hotmart import HotmartIE
 from .hotstar import (
     HotStarIE,
     HotStarPrefixIE,
