@@ -58,7 +58,7 @@ class LecturioIE(LecturioBaseIE):
                     https://
                         (?:
                             app\.lecturio\.com/([^/]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
-                            (?:www\.)?lecturio\.de/(?:[^/]+/){1,2}(?P<nt_de>[^/?#&]+)\.vortrag
+                            (?:www\.)?lecturio\.de/(?:[^/]+/)+(?P<nt_de>[^/?#&]+)\.vortrag
                         )
                     '''
     _TESTS = [{
