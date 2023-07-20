@@ -9,6 +9,8 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     int_or_none,
+    float_or_none,
+    str_or_none,
     url_or_none,
     try_get,
     urljoin,
@@ -106,7 +108,7 @@ class SohuIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        title = re.sub(r' - 搜狐视频$', '', self._og_search_title(webpage))
+        title = re.sub(r'( - 高清正版在线观看)? - 搜狐视频$', '', self._og_search_title(webpage))
 
         vid = self._html_search_regex(
             r'var vid ?= ?["\'](\d+)["\']',
@@ -199,9 +201,18 @@ class SohuIE(InfoExtractor):
                 'entries': playlist,
                 'id': video_id,
                 'title': title,
+                'duration': traverse_obj(vid_data, ('data', 'totalDuration', {float_or_none})),
             }
 
-        return info
+        return {
+            **traverse_obj(vid_data, {
+                'uploader': ('wm_data', 'wm_username', {str_or_none}),
+                'thumbnail': ('data', 'coverImg', {url_or_none}),
+                'alt_title': ('data', 'subName', {str_or_none}),
+                'tags': ('data', 'tag', {str_or_none}, {lambda i: i.split() if i else None}),
+            }),
+            **info,
+        }
 
 
 class SohuVIE(InfoExtractor):
@@ -212,7 +223,7 @@ class SohuVIE(InfoExtractor):
         'url': 'https://tv.sohu.com/v/MjAyMzA2MTQvbjYwMTMxNTE5Mi5zaHRtbA==.html',
         'info_dict': {
             'id': '601315192',
-            'title': '《淬火丹心》第1集 - 高清正版在线观看',
+            'title': '《淬火丹心》第1集',
         },
         'playlist_mincount': 9,
         'skip': 'Only available in China',
