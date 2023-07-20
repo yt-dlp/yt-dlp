@@ -279,6 +279,12 @@ class TwitterBaseIE(InfoExtractor):
                     'Submitting confirmation code', headers, data=build_login_json(input_dict(
                         next_subtask, self._get_tfa_info('confirmation code sent to your email or phone'))))
 
+            elif next_subtask == 'ArkoseLogin':
+                self.raise_login_required('Twitter is requiring captcha for this login attempt', method='cookies')
+
+            elif next_subtask == 'DenyLoginSubtask':
+                self.raise_login_required('Twitter rejected this login attempt as suspicious', method='cookies')
+
             elif next_subtask == 'LoginSuccessSubtask':
                 raise ExtractorError('Twitter API did not grant auth token cookie')
 
