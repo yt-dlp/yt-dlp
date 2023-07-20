@@ -4,9 +4,9 @@ from .common import InfoExtractor
 from .hotmart import HotmartIE
 from .wistia import WistiaIE
 from ..utils import (
-    ExtractorError,
     clean_html,
     extract_attributes,
+    ExtractorError,
     get_element_by_class,
     get_element_html_by_class,
     int_or_none,
@@ -51,7 +51,9 @@ class TeachableBaseIE(InfoExtractor):
             return
 
         login_page, urlh = self._download_webpage_handle(
-            "https://%s/sign_in" % site, None, "Downloading %s login page" % site
+            "https://%s/sign_in" % site,
+            None,
+            "Downloading %s login page" % site,
         )
 
         def is_logged(webpage):
@@ -123,45 +125,60 @@ class TeachableBaseIE(InfoExtractor):
 
 
 class TeachableIE(TeachableBaseIE):
-    _VALID_URL = (
-        r"""(?x)
+    _VALID_URL = r"""(?x)
                     (?:
                         %shttps?://(?P<site_t>[^/]+)|
                         https?://(?:www\.)?(?P<site>%s)
                     )
                     /courses/[^/]+/lectures/(?P<id>\d+)
-                    """
-        % TeachableBaseIE._VALID_URL_SUB_TUPLE
-    )
+                    """ % TeachableBaseIE._VALID_URL_SUB_TUPLE
 
     _TESTS = [
         {
-            "url": "https://gns3.teachable.com/courses/gns3-certified-associate/lectures/6842364",
+            "url": (
+                "https://gns3.teachable.com/courses/gns3-certified"
+                "-associate/lectures/6842364"
+            ),
             "info_dict": {
-                "id": "untlgzk1v7",
-                "ext": "bin",
+                "id": "Nq7vkXmXRA",
+                "video_id": "Nq7vkXmXRA",
+                "ext": "mp4",
                 "title": "Overview",
-                "description": "md5:071463ff08b86c208811130ea1c2464c",
-                "duration": 736.4,
-                "timestamp": 1542315762,
-                "upload_date": "20181115",
                 "chapter": "Welcome",
                 "chapter_number": 1,
+                "webpage_url": (
+                    r"re:https://player.hotmart.com/embed/Nq7vkXmXRA"
+                    r"\?signature=.+&token=.+"
+                ),
+                "width": 1920,
+                "height": 1080,
+                "thumbnail": (
+                    r"re:https?://.*\.("
+                    r"?:jpg|jpeg|webp)\?token=exp=\d+~acl=.*~hm"
+                    r"ac=[a-f0-9]+$"
+                ),
             },
             "params": {
                 "skip_download": True,
             },
         },
         {
-            "url": "http://v1.upskillcourses.com/courses/119763/lectures/1747100",
+            "url": (
+                "http://v1.upskillcourses.com/courses/119763/lectures/1747100"
+            ),
             "only_matching": True,
         },
         {
-            "url": "https://gns3.teachable.com/courses/423415/lectures/6885939",
+            "url": (
+                "https://gns3.teachable.com/courses/423415/lectures/6885939"
+            ),
             "only_matching": True,
         },
         {
-            "url": "teachable:https://v1.upskillcourses.com/courses/essential-web-developer-course/lectures/1747100",
+            "url": (
+                "teachable:https://v1.upskillcourses.com/courses/essential"
+                "-web-developer-course/lectures/1747100"
+            ),
             "only_matching": True,
         },
     ]
@@ -169,7 +186,8 @@ class TeachableIE(TeachableBaseIE):
     @staticmethod
     def _is_teachable(webpage):
         return "teachableTracker.linker:autoLink" in webpage and re.search(
-            r'<link[^>]+href=["\']https?://(?:process\.fs|assets)\.teachablecdn\.com',
+            r'<link[^>]+href=["\']https?://('
+            r"?:process\.fs|assets)\.teachablecdn\.com",
             webpage,
         )
 
@@ -189,7 +207,7 @@ class TeachableIE(TeachableBaseIE):
 
         prefixed = url.startswith(self._URL_PREFIX)
         if prefixed:
-            url = url[len(self._URL_PREFIX):]
+            url = url[len(self._URL_PREFIX) :]
 
         webpage = self._download_webpage(url, video_id)
 
@@ -197,7 +215,9 @@ class TeachableIE(TeachableBaseIE):
             "hotmart_video_player", webpage
         )
         if hotmart_container_element is not None:
-            hotmart_container_attributes = extract_attributes(hotmart_container_element)
+            hotmart_container_attributes = extract_attributes(
+                hotmart_container_element
+            )
             attachment_id = hotmart_container_attributes["data-attachment-id"]
 
             hotmart_video_url_data = self._download_json(
@@ -207,9 +227,11 @@ class TeachableIE(TeachableBaseIE):
             )
 
             hotmart_url = (
-                f'https://player.hotmart.com/embed/{hotmart_video_url_data["video_id"]}?'
-                f'signature={hotmart_video_url_data["signature"]}&'
-                f'token={hotmart_video_url_data["teachable_application_key"]}'
+                "https://player.hotmart.com/embed/"
+                f"{hotmart_video_url_data [ 'video_id' ]}?"
+                f"signature={hotmart_video_url_data [ 'signature' ]}&"
+                "token="
+                f"{hotmart_video_url_data [ 'teachable_application_key' ]}"
             )
 
             hotmart_urls = [hotmart_url]
@@ -225,7 +247,6 @@ class TeachableIE(TeachableBaseIE):
                     r'class=["\']lecture-contents-locked',
                     r">\s*Lecture contents locked",
                     r'id=["\']lecture-locked',
-                    # https://academy.tailoredtutors.co.uk/courses/108779/lectures/1955313
                     r'class=["\'](?:inner-)?lesson-locked',
                     r">LESSON LOCKED<",
                 )
@@ -238,7 +259,8 @@ class TeachableIE(TeachableBaseIE):
         chapter = None
         chapter_number = None
         section_item = self._search_regex(
-            r'(?s)(?P<li><li[^>]+\bdata-lecture-id=["\']%s[^>]+>.+?</li>)' % video_id,
+            r'(?s)(?P<li><li[^>]+\bdata-lecture-id=["\']%s[^>]+>.+?</li>)'
+            % video_id,
             webpage,
             "section item",
             default=None,
@@ -256,7 +278,9 @@ class TeachableIE(TeachableBaseIE):
             if chapter_number is not None:
                 sections = []
                 for s in re.findall(
-                    r'(?s)<div[^>]+\bclass=["\']section-title[^>]+>(.+?)</div>', webpage
+                    r'(?s)<div[^>]+\bclass=["\']section-title[^>]+>(.+?)'
+                    r'</div>',
+                    webpage,
                 ):
                     section = strip_or_none(clean_html(s))
                     if not section:
@@ -295,19 +319,19 @@ class TeachableIE(TeachableBaseIE):
 
 
 class TeachableCourseIE(TeachableBaseIE):
-    _VALID_URL = (
-        r"""(?x)
+    _VALID_URL = r"""(?x)
                         (?:
                             %shttps?://(?P<site_t>[^/]+)|
                             https?://(?:www\.)?(?P<site>%s)
                         )
                         /(?:courses|p)/(?:enrolled/)?(?P<id>[^/?#&]+)
-                    """
-        % TeachableBaseIE._VALID_URL_SUB_TUPLE
-    )
+                    """ % TeachableBaseIE._VALID_URL_SUB_TUPLE
     _TESTS = [
         {
-            "url": "http://v1.upskillcourses.com/courses/essential-web-developer-course/",
+            "url": (
+                "http://v1.upskillcourses.com/courses/essential-web-developer-"
+                "course/"
+            ),
             "info_dict": {
                 "id": "essential-web-developer-course",
                 "title": "The Essential Web Developer Course (Free)",
@@ -327,11 +351,16 @@ class TeachableCourseIE(TeachableBaseIE):
             "only_matching": True,
         },
         {
-            "url": "teachable:https://learn.vrdev.school/p/gear-vr-developer-mini",
+            "url": (
+                "teachable:https://learn.vrdev.school/p/gear-vr-developer-mini"
+            ),
             "only_matching": True,
         },
         {
-            "url": "teachable:https://filmsimplified.com/p/davinci-resolve-15-crash-course",
+            "url": (
+                "teachable:https://filmsimplified.com/p/davinci-resolve-15-cra"
+                "sh-course"
+            ),
             "only_matching": True,
         },
     ]
@@ -354,7 +383,7 @@ class TeachableCourseIE(TeachableBaseIE):
         prefixed = url.startswith(self._URL_PREFIX)
         if prefixed:
             prefix = self._URL_PREFIX
-            url = url[len(prefix):]
+            url = url[len(prefix) :]
 
         webpage = self._download_webpage(url, course_id)
 
@@ -367,7 +396,9 @@ class TeachableCourseIE(TeachableBaseIE):
             webpage,
         ):
             li = mobj.group("li")
-            if "fa-youtube-play" not in li and not re.search(r"\d{1,2}:\d{2}", li):
+            if "fa-youtube-play" not in li and not re.search(
+                r"\d{1,2}:\d{2}", li
+            ):
                 continue
             lecture_url = self._search_regex(
                 r'<a[^>]+href=(["\'])(?P<url>(?:(?!\1).)+)\1',

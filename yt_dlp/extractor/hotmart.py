@@ -1,23 +1,34 @@
 from .common import InfoExtractor
-from ..utils import get_element_by_id, traverse_obj
+from ..utils import (
+    get_element_by_id,
+    traverse_obj,
+)
 
 
 class HotmartIE(InfoExtractor):
     _VALID_URL = r"https?://player\.hotmart\.com/embed/(?P<id>[a-zA-Z0-9]+)"
     _TESTS = [
         {
-            "url": "https://player.hotmart.com/embed/Nq7rJ2mARA?signature=SjylayL7eOhQwSYJNxKWY1g2gqJ5WMz4l1VSuOGVv6qAJnDXFsK6fSXziJ_u12YHSfrT0SfHTYxqgGqZ4UBLLmo7ScIzDQR9JUs_sJbLVtp0g6ferIbEIJxjyXk2MO1suyhYtdIz8N5CaZ9mJ-kE2wBK3SlR1eYQVZ9EEmf4Y254wsB71JGJW8_blsKV31VWKWKaFqQ5XmaHuS9d5N5cVG2ZDetxgqEea2ULLUwD6U2i2jBpnOobbEiXga5KRO6r1zA0xOOzx_K3BxbrS1UpmTfKpk1Z3Pt35aoKtvG9wjhJpR-4n-0KKKr6fUq8vn-t6W9bqSnULAJb-biBsNhx2w==&token=aa2d356b-e2f0-45e8-9725-e0efc7b5d29c&autoplay=autoplay",
-            "md5": "TODO: md5 sum of the first 10241 bytes of the video file (use --test)",
+            "url": (
+                "https://player.hotmart.com/embed/DLNy9QQ4qr?signature=cSnA"
+                "r99eUZ0cne-ZMMJdjwwzV5hD4pLXVPO3urVQUF0XoWaG3MqF6jhfPFf7il"
+                "Eh6YdtJeirComlat6kF_ZFQMFf1iW-lmqXfsWdANDVYfh8-lqjKY02_Xxg"
+                "a0nwV3WwrYRkuQ7pnJZiueGkbSHvfixgNGzp12kNDqK1ynPojnVfIaijK2"
+                "NQV9A0oeG7icUW2K-C9KD0phuuhQmt5qS8u7FxRC7buQm5MoSKYGMi_ot2"
+                "FUSe2Mgx_S1TOYYNgi0FiTyUyixn884HouIIz8e_N4ceE8PF7x8mVK_IWH"
+                "gIGic2NhBo9aAo7m8TmP4FA5SNaQnEIPqY1G7SHmDoBvcXyA==&token=a"
+                "a2d356b-e2f0-45e8-9725-e0efc7b5d29c&autoplay=autoplay"
+            ),
+            "md5": "620b25017119475adbd6f7932294129d",
             "info_dict": {
-                "id": "42",
+                "id": "DLNy9QQ4qr",
+                "video_id": "DLNy9QQ4qr",
                 "ext": "mp4",
-                "title": "Video title goes here",
-                "thumbnail": r"re:^https?://.*\.jpg$",
-                # TODO more properties, either as:
-                # * A value
-                # * MD5 checksum; start the string with md5:
-                # * A regular expression; start the string with re:
-                # * Any Python type (for example int or float)
+                "title": "Hotmart video #DLNy9QQ4qr",
+                "thumbnail": (
+                    r"re:https?://.*\.(?:jpg|jpeg|png|gif)\?token=exp=\d+~acl"
+                    r"=.*~hmac=[a-f0-9]+$"
+                ),
             },
         }
     ]
@@ -30,21 +41,31 @@ class HotmartIE(InfoExtractor):
         video_data_string = get_element_by_id("__NEXT_DATA__", webpage)
         video_data = self._parse_json(video_data_string, video_id)
 
-        # Encrypted url is 'urlEncrypted' instead of 'url'
-        # See https://github.com/yt-dlp/yt-dlp/issues/3564 for initial discussion of design
+        # Extract the title from the video_data object
+        title = traverse_obj(
+            video_data, ("props", "pageProps", "applicationData", "mediaTitle")
+        )
+
         url = traverse_obj(
             video_data,
-            ("props", "pageProps", "applicationData", "mediaAssets", 0, "url"),
+            (
+                "props",
+                "pageProps",
+                "applicationData",
+                "mediaAssets",
+                0,
+                "urlEncrypted",
+            ),
         )
         thumbnail_url = traverse_obj(
-            video_data, ("props", "pageProps", "applicationData", "urlThumbnail")
+            video_data,
+            ("props", "pageProps", "applicationData", "thumbnailUrl"),
         )
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             url, video_id, "mp4"
         )
 
-        title = self._og_search_title(webpage, default=None)
         description = self._og_search_description(webpage, default=None)
         chapter = None
         chapter_number = None
