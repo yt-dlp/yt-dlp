@@ -1142,6 +1142,7 @@ from .mtv import (
 )
 from .muenchentv import MuenchenTVIE
 from .murrtube import MurrtubeIE, MurrtubeUserIE
+from .museai import MuseAIIE
 from .musescore import MuseScoreIE
 from .musicdex import (
     MusicdexSongIE,
