@@ -207,7 +207,7 @@ class TeachableIE(TeachableBaseIE):
 
         prefixed = url.startswith(self._URL_PREFIX)
         if prefixed:
-            url = url[len(self._URL_PREFIX) :]
+            url = url[len(self._URL_PREFIX):]
 
         webpage = self._download_webpage(url, video_id)
 
@@ -383,7 +383,7 @@ class TeachableCourseIE(TeachableBaseIE):
         prefixed = url.startswith(self._URL_PREFIX)
         if prefixed:
             prefix = self._URL_PREFIX
-            url = url[len(prefix) :]
+            url = url[len(prefix):]
 
         webpage = self._download_webpage(url, course_id)
 
