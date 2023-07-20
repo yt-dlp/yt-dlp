@@ -1280,6 +1280,15 @@ class TestRequest:
         req.data = b'test3'
         assert req.headers.get('Content-Type') == 'application/x-www-form-urlencoded'
 
+    def test_update_req(self):
+        req = Request('http://example.com')
+        assert req.data is None
+        assert 'Content-Type' not in req.headers
+        # test that 0-byte payloads will be sent
+        req.update(data=b'')
+        assert req.data == b''
+        assert req.headers.get('Content-Type') == 'application/x-www-form-urlencoded'
+
     def test_proxies(self):
         req = Request(url='http://example.com', proxies={'http': 'http://127.0.0.1:8080'})
         assert req.proxies == {'http': 'http://127.0.0.1:8080'}
