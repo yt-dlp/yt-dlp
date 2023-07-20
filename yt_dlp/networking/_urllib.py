@@ -315,7 +315,7 @@ class HEADRequest(urllib.request.Request):
 def update_Request(req, url=None, data=None, headers=None, query=None):
     req_headers = req.headers.copy()
     req_headers.update(headers or {})
-    req_data = data or req.data
+    req_data = data if data is not None else req.data
     req_url = update_url_query(url or req.get_full_url(), query)
     req_get_method = req.get_method()
     if req_get_method == 'HEAD':

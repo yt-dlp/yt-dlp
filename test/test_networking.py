@@ -1152,7 +1152,7 @@ class TestYoutubeDLNetworking:
             'debug_printtraffic': True,
             'compat_opts': ['no-certifi'],
             'nocheckcertificate': True,
-            'legacy_server_connect': True,
+            'legacyserverconnect': True,
         }) as ydl:
             rh = self.build_handler(ydl)
             assert rh.headers.get('test') == 'testtest'
@@ -1278,6 +1278,17 @@ class TestRequest:
         req.data = None
         assert 'Content-Type' not in req.headers
         req.data = b'test3'
+        assert req.headers.get('Content-Type') == 'application/x-www-form-urlencoded'
+
+    def test_update_req(self):
+        req = Request('http://example.com')
+        assert req.data is None
+        assert req.method == 'GET'
+        assert 'Content-Type' not in req.headers
+        # Test that zero-byte payloads will be sent
+        req.update(data=b'')
+        assert req.data == b''
+        assert req.method == 'POST'
         assert req.headers.get('Content-Type') == 'application/x-www-form-urlencoded'
 
     def test_proxies(self):
