@@ -74,6 +74,9 @@ class LecturioIE(LecturioBaseIE):
         'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
         'only_matching': True,
     }, {
+        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-at-1-staatsexamen/oeffentliches-recht-staatsexamen.vortrag',
+        'only_matching': True,
+    }, {
         'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',
         'only_matching': True,
     }]
