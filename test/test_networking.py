@@ -1283,10 +1283,12 @@ class TestRequest:
     def test_update_req(self):
         req = Request('http://example.com')
         assert req.data is None
+        assert req.method == 'GET'
         assert 'Content-Type' not in req.headers
-        # test that 0-byte payloads will be sent
+        # Test that zero-byte payloads will be sent
         req.update(data=b'')
         assert req.data == b''
+        assert req.method == 'POST'
         assert req.headers.get('Content-Type') == 'application/x-www-form-urlencoded'
 
     def test_proxies(self):
