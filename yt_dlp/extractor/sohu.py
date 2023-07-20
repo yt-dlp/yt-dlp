@@ -12,6 +12,7 @@ from ..utils import (
     float_or_none,
     str_or_none,
     url_or_none,
+    unified_timestamp,
     try_get,
     urljoin,
     traverse_obj,
@@ -204,7 +205,14 @@ class SohuIE(InfoExtractor):
                 'duration': traverse_obj(vid_data, ('data', 'totalDuration', {float_or_none})),
             }
 
+        if mytv:
+            release_time = unified_timestamp(self._search_regex(
+                r"publishTime: '(\d+-\d+-\d+ \d+:\d+)'", webpage, 'upload time', fatal=False))
+        else:
+            release_time = unified_timestamp(traverse_obj(vid_data, ('tv_application_time', {str_or_none})))
+
         return {
+            'timestamp': release_time - 8 * 3600 if release_time else None,
             **traverse_obj(vid_data, {
                 'uploader': ('wm_data', 'wm_username', {str_or_none}),
                 'thumbnail': ('data', 'coverImg', {url_or_none}),
