@@ -1152,7 +1152,7 @@ class TestYoutubeDLNetworking:
             'debug_printtraffic': True,
             'compat_opts': ['no-certifi'],
             'nocheckcertificate': True,
-            'legacy_server_connect': True,
+            'legacyserverconnect': True,
         }) as ydl:
             rh = self.build_handler(ydl)
             assert rh.headers.get('test') == 'testtest'
