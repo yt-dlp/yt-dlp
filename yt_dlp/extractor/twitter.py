@@ -1,4 +1,3 @@
-import functools
 import json
 import re
 
@@ -11,7 +10,6 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
-    bug_reports_message,
     dict_get,
     filter_dict,
     float_or_none,
@@ -37,6 +35,7 @@ class TwitterBaseIE(InfoExtractor):
     _GRAPHQL_API_BASE = 'https://twitter.com/i/api/graphql/'
     _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _AUTH = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
+    _LEGACY_AUTH = 'AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE'
     _flow_token = None
 
     _LOGIN_INIT_DATA = json.dumps({
@@ -148,12 +147,18 @@ class TwitterBaseIE(InfoExtractor):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
     def _fetch_guest_token(self, display_id):
-        webpage = self._download_webpage('https://twitter.com/', display_id, 'Downloading guest token')
-        return self._search_regex(r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'guest token')
+        guest_token = traverse_obj(self._download_json(
+            f'{self._API_BASE}guest/activate.json', display_id, 'Downloading guest token', data=b'',
+            headers=self._set_base_headers(legacy=display_id and self._configuration_arg('legacy_api'))),
+            ('guest_token', {str}))
+        if not guest_token:
+            raise ExtractorError('Could not retrieve guest token')
+        return guest_token
 
-    def _set_base_headers(self):
+    def _set_base_headers(self, legacy=False):
+        bearer_token = self._LEGACY_AUTH if legacy and not self.is_logged_in else self._AUTH
         return filter_dict({
-            'Authorization': f'Bearer {self._AUTH}',
+            'Authorization': f'Bearer {bearer_token}',
             'x-csrf-token': try_call(lambda: self._get_cookies(self._API_BASE)['ct0'].value),
         })
 
@@ -180,10 +185,13 @@ class TwitterBaseIE(InfoExtractor):
         if self.is_logged_in:
             return
 
+        webpage = self._download_webpage('https://twitter.com/', None, 'Downloading login page')
+        guest_token = self._search_regex(
+            r'\.cookie\s*=\s*["\']gt=(\d+);', webpage, 'gt', default=None) or self._fetch_guest_token(None)
         headers = {
             **self._set_base_headers(),
             'content-type': 'application/json',
-            'x-guest-token': self._fetch_guest_token(None),
+            'x-guest-token': guest_token,
             'x-twitter-client-language': 'en',
             'x-twitter-active-user': 'yes',
             'Referer': 'https://twitter.com/',
@@ -280,7 +288,7 @@ class TwitterBaseIE(InfoExtractor):
         self.report_login()
 
     def _call_api(self, path, video_id, query={}, graphql=False):
-        headers = self._set_base_headers()
+        headers = self._set_base_headers(legacy=not graphql and self._configuration_arg('legacy_api'))
         headers.update({
             'x-twitter-auth-type': 'OAuth2Session',
             'x-twitter-client-language': 'en',
@@ -1022,7 +1030,8 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
         },
-        'skip': 'Legacy API tweet extraction is broken',
+        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
+        'skip': 'Protected tweet',
     }, {
         # orig tweet w/ graphql
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
@@ -1191,21 +1200,20 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if self.is_logged_in:
+        if not self.is_logged_in and self._configuration_arg('legacy_api'):
+            status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
+                'cards_platform': 'Web-12',
+                'include_cards': 1,
+                'include_reply_count': 1,
+                'include_user_entities': 0,
+                'tweet_mode': 'extended',
+            }), 'retweeted_status', None)
+        elif not self.is_logged_in:
+            status = self._graphql_to_legacy(
+                self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
+        else:
             status = self._graphql_to_legacy(
                 self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
-        else:
-            try:
-                status = self._graphql_to_legacy(
-                    self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
-            except ExtractorError as e:
-                if self._login_hint() in e.msg or bug_reports_message() not in e.msg:
-                    raise  # Do not try fallback when tweet is expected to be unavailable
-                self.report_warning(e.msg, video_id=twid)
-                self.report_warning('Falling back to syndication endpoint; some metadata may be missing')
-                status = self._download_json(
-                    'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
-                    headers={'User-Agent': 'Googlebot'}, query={'id': twid})
 
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
@@ -1234,11 +1242,6 @@ class TwitterIE(TwitterBaseIE):
 
         def extract_from_video_info(media):
             media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
-            if not media_id:
-                # Workaround for syndication fallback
-                media_id = traverse_obj(media, (
-                    'video_info', 'variants', ..., 'url',
-                    {functools.partial(re.search, r'_video/(\d+)/')}, 1), get_all=False)
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
@@ -1263,7 +1266,7 @@ class TwitterIE(TwitterBaseIE):
                 add_thumbnail('orig', media.get('original_info') or {})
 
             return {
-                'id': media_id or twid,
+                'id': media_id,
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
@@ -1348,15 +1351,13 @@ class TwitterIE(TwitterBaseIE):
                 }
 
         videos = traverse_obj(status, (
-            ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
-            lambda _, m: m['type'] != 'photo', {dict}))
+            (None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo', {dict}))
 
         if self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
             selected_entries = (*map(extract_from_video_info, videos), *extract_from_card_info(status.get('card')))
         else:
             desired_obj = traverse_obj(status, (
-                ('mediaDetails', ((None, 'quoted_status'), 'extended_entities', 'media')),
-                int(selected_index) - 1, {dict}), get_all=False)
+                (None, 'quoted_status'), 'extended_entities', 'media', int(selected_index) - 1, {dict}), get_all=False)
             if not desired_obj:
                 raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
             elif desired_obj.get('type') != 'video':
