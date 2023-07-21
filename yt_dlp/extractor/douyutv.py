@@ -38,16 +38,17 @@ class DouyuTVIE(DouyuBaseIE):
     IE_DESC = '斗鱼'
     _VALID_URL = r'https?://(?:www\.)?douyu(?:tv)?\.com/(topic/\w+\?rid=|(?:[^/]+/))*(?P<id>[A-Za-z0-9]+)'
     _TESTS = [{
-        'url': 'http://www.douyutv.com/iseven',
+        'url': 'https://www.douyu.com/pigff',
         'info_dict': {
-            'id': '17732',
-            'display_id': 'iseven',
-            'ext': 'flv',
-            'title': 're:^清晨醒脑！根本停不下来！ [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': r're:.*m7show@163\.com.*',
-            'thumbnail': r're:^https?://.*\.png',
-            'uploader': '7师傅',
+            'id': '24422',
+            'display_id': 'pigff',
+            'ext': 'ts',
+            'title': 're:^【PIGFF】.* [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'description': r'≥15级牌子看鱼吧置顶帖进粉丝vx群',
+            'thumbnail': str,
+            'uploader': 'pigff',
             'is_live': True,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': True,
@@ -171,17 +172,15 @@ class DouyuTVIE(DouyuBaseIE):
         if room.get('show_status') == '2':
             raise UserNotLive(video_id=video_id)
 
-        video_url = urljoin('https://openhls-tct.douyucdn2.cn/', self._search_regex(r'(live/.*)', room['hls_url'], 'URL'))
-        video_url = video_url.replace('/playlist.m3u8', '.m3u8')
-        formats, subs = self._extract_m3u8_formats_and_subtitles(video_url, video_id, fatal=False)
+        formats = []
 
         form_data = self._sign(room_id, video_id, {'rate': 0})
         stream_info = self._download_json(
             f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
             video_id, note="Downloading livestream format",
             data=urlencode_postdata(form_data))
-
         formats.append(self._extract_stream_format(stream_info))
+
         for rate_id in traverse_obj(stream_info, ('data', 'multirates', ..., 'rate')):
             if rate_id != traverse_obj(stream_info, ('data', 'rate')):
                 form_data['rate'] = rate_id
@@ -191,21 +190,17 @@ class DouyuTVIE(DouyuBaseIE):
                         video_id, note=f'Downloading livestream format {rate_id}',
                         data=urlencode_postdata(form_data))))
 
-        title = unescapeHTML(room['room_name'])
-        description = room.get('show_details')
-        thumbnail = room.get('room_src')
-        uploader = room.get('nickname')
-
         return {
             'id': room_id,
-            'display_id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'uploader': uploader,
-            'is_live': True,
-            'subtitles': subs,
             'formats': formats,
+            'is_live': True,
+            **traverse_obj(room, {
+                'display_id': ('url', {str_or_none}, {lambda i: i[1:] if i else None}),
+                'title': ('room_name', {str_or_none}, {unescapeHTML}),
+                'description': ('show_details', {str_or_none}),
+                'uploader': ('nickname', {str_or_none}),
+                'thumbnail': ('room_src', {url_or_none}),
+            })
         }
 
 
