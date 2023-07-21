@@ -4099,7 +4099,7 @@ class YoutubeDL:
                     'verbose': 'debug_printtraffic',
                     'source_address': 'source_address',
                     'timeout': 'socket_timeout',
-                    'legacy_ssl_support': 'legacy_server_connect',
+                    'legacy_ssl_support': 'legacyserverconnect',
                     'enable_file_urls': 'enable_file_urls',
                     'client_cert': {
                         'client_certificate': 'client_certificate',

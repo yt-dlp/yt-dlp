@@ -425,7 +425,7 @@ class Request:
             raise TypeError('headers must be a mapping')
 
     def update(self, url=None, data=None, headers=None, query=None):
-        self.data = data or self.data
+        self.data = data if data is not None else self.data
         self.headers.update(headers or {})
         self.url = update_url_query(url or self.url, query or {})
 
