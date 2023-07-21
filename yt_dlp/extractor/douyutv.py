@@ -109,11 +109,9 @@ class DouyuTVIE(DouyuBaseIE):
     }]
 
     def _sign(self, room_id, video_id, params={}):
-        params = {
-            'tt': round(time.time()),
-            'did': uuid.uuid4().hex,
-        }
-        params.update(self._get_sign(room_id, params['did'], params['tt'], video_id))
+        params.update(self._calc_sign(
+            self._get_sign_func(room_id, video_id),
+            room_id, uuid.uuid4().hex, round(time.time()), video_id))
         return params
 
     def _get_sign_func(self, room_id, video_id):
@@ -121,28 +119,25 @@ class DouyuTVIE(DouyuBaseIE):
             f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', video_id,
             note='Getting signing script')['data'][f'room{room_id}']
 
-    def _get_sign(self, room_id, nonce, ts, video_id):
-        sign_func = self._get_sign_func(room_id, video_id)
-        return self._calc_sign(sign_func, room_id, nonce, ts, video_id)
-
-    def _extract_stream_format(self, stream_info):
-        rtmp_url = traverse_obj(stream_info, ('data', 'rtmp_url'))
-        rtmp_live = traverse_obj(stream_info, ('data', 'rtmp_live'))
-        if rtmp_url and rtmp_live:
-            stream_url = urljoin(rtmp_url, rtmp_live)
-            rate_id = traverse_obj(stream_info, ('data', 'rate'))
-            rate_info = traverse_obj(stream_info, ('data', 'multirates', {lambda _, v: v.get('rate') == rate_id}, 0))
-            m3u8_extra = {'ext': 'ts', 'protocol': 'm3u8_native'} if '.m3u8' in stream_url else {}
-            return {
-                'url': stream_url,
-                'format_id': str(rate_id),
-                'quality': -rate_id,
-                **traverse_obj(rate_info, {
-                    'format': ('name', {str_or_none}),
-                    'tbr': ('bit', {int_or_none}),
-                }),
-                **m3u8_extra,
-            }
+    def _extract_formats(self, stream_formats):
+        formats = []
+        for stream_info in traverse_obj(stream_formats, (..., 'data')):
+            stream_url = urljoin(
+                traverse_obj(stream_info, 'rtmp_url'), traverse_obj(stream_info, 'rtmp_live'))
+            if stream_url:
+                rate_id = traverse_obj(stream_info, ('rate', {int_or_none}))
+                rate_info = traverse_obj(stream_info, ('multirates', lambda _, v: v.get('rate') == rate_id), get_all=False)
+                formats.append({
+                    'url': stream_url,
+                    'format_id': str_or_none(rate_id),
+                    'ext': 'ts' if '.m3u8' in stream_url else determine_ext(stream_url),
+                    'quality': rate_id % -10000 if rate_id is not None else None,
+                    **traverse_obj(rate_info, {
+                        'format': ('name', {str_or_none}),
+                        'tbr': ('bit', {int_or_none}),
+                    }),
+                })
+        return formats
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -172,27 +167,23 @@ class DouyuTVIE(DouyuBaseIE):
         if room.get('show_status') == '2':
             raise UserNotLive(video_id=video_id)
 
-        formats = []
-
         form_data = self._sign(room_id, video_id, {'rate': 0})
-        stream_info = self._download_json(
+        stream_formats = [self._download_json(
             f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
             video_id, note="Downloading livestream format",
-            data=urlencode_postdata(form_data))
-        formats.append(self._extract_stream_format(stream_info))
+            data=urlencode_postdata(form_data))]
 
-        for rate_id in traverse_obj(stream_info, ('data', 'multirates', ..., 'rate')):
-            if rate_id != traverse_obj(stream_info, ('data', 'rate')):
+        for rate_id in traverse_obj(stream_formats[0], ('data', 'multirates', ..., 'rate')):
+            if rate_id != traverse_obj(stream_formats[0], ('data', 'rate')):
                 form_data['rate'] = rate_id
-                formats.append(self._extract_stream_format(
-                    self._download_json(
-                        f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
-                        video_id, note=f'Downloading livestream format {rate_id}',
-                        data=urlencode_postdata(form_data))))
+                stream_formats.append(self._download_json(
+                    f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
+                    video_id, note=f'Downloading livestream format {rate_id}',
+                    data=urlencode_postdata(form_data)))
 
         return {
             'id': room_id,
-            'formats': formats,
+            'formats': self._extract_formats(stream_formats),
             'is_live': True,
             **traverse_obj(room, {
                 'display_id': ('url', {str_or_none}, {lambda i: i[1:] if i else None}),
