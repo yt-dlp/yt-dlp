@@ -8,7 +8,7 @@ from ..utils import (
     extract_attributes,
     ExtractorError,
     get_element_by_class,
-    get_element_html_by_class,
+    get_elements_html_by_class,
     int_or_none,
     strip_or_none,
     urlencode_postdata,
@@ -167,10 +167,11 @@ class TeachableIE(TeachableBaseIE):
 
         webpage = self._download_webpage(url, video_id)
 
-        hotmart_container_element = get_element_html_by_class(
+        hotmart_container_elements = get_elements_html_by_class(
             'hotmart_video_player', webpage
         )
-        if hotmart_container_element is not None:
+        hotmart_urls = []
+        for hotmart_container_element in hotmart_container_elements:
             hotmart_container_attributes = extract_attributes(hotmart_container_element)
             attachment_id = hotmart_container_attributes['data-attachment-id']
 
@@ -188,9 +189,7 @@ class TeachableIE(TeachableBaseIE):
                 f'{hotmart_video_url_data ["teachable_application_key"]}'
             )
 
-            hotmart_urls = [hotmart_url]
-        else:
-            hotmart_urls = []
+            hotmart_urls.append(hotmart_url)
 
         wistia_urls = WistiaIE._extract_embed_urls(url, webpage)
         if not wistia_urls and not hotmart_urls:
