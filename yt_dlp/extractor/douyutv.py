@@ -7,19 +7,33 @@ import uuid
 from .common import InfoExtractor
 from .openload import PhantomJSwrapper
 from ..utils import (
-    ExtractorError,
     UserNotLive,
     int_or_none,
     str_or_none,
+    url_or_none,
     traverse_obj,
+    determine_ext,
+    parse_resolution,
     urlencode_postdata,
     unescapeHTML,
-    unified_strdate,
     urljoin,
 )
 
 
-class DouyuTVIE(InfoExtractor):
+class DouyuBaseIE(InfoExtractor):
+    def _get_cryptojs_md5(self, video_id):
+        return self._download_webpage(
+            'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js', video_id,
+            note='Downloading signing dependency')
+
+    def _calc_sign(self, sign_func, a, b, c, video_id):
+        js_script = self._get_cryptojs_md5(video_id) + f';{sign_func};console.log(ub98484234("{a}","{b}","{c}"))'
+        phantom = PhantomJSwrapper(self)
+        result = phantom.execute(js_script, video_id).strip()
+        return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
+
+
+class DouyuTVIE(DouyuBaseIE):
     IE_DESC = '斗鱼'
     _VALID_URL = r'https?://(?:www\.)?douyu(?:tv)?\.com/(topic/\w+\?rid=|(?:[^/]+/))*(?P<id>[A-Za-z0-9]+)'
     _TESTS = [{
@@ -100,22 +114,14 @@ class DouyuTVIE(InfoExtractor):
         params.update(self._get_sign(room_id, params['did'], params['tt'], video_id))
         return params
 
-    def _get_cryptojs_md5(self, video_id):
-        return self._download_webpage(
-            'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js', video_id,
-            note='Downloading signing dependency')
-
     def _get_sign_func(self, room_id, video_id):
-        sign_data = self._download_json(
+        return self._download_json(
             f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', video_id,
-            note='Getting signing script')
-        return self._get_cryptojs_md5(video_id) + ';' + sign_data['data'][f'room{room_id}']
+            note='Getting signing script')['data'][f'room{room_id}']
 
     def _get_sign(self, room_id, nonce, ts, video_id):
-        js_script = self._get_sign_func(room_id, video_id) + f';console.log(ub98484234({room_id}, "{nonce}", {ts}))'
-        phantom = PhantomJSwrapper(self)
-        result = phantom.execute(js_script, video_id).strip()
-        return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
+        sign_func = self._get_sign_func(room_id, video_id)
+        return self._calc_sign(sign_func, room_id, nonce, ts, video_id)
 
     def _extract_stream_format(self, stream_info):
         rtmp_url = traverse_obj(stream_info, ('data', 'rtmp_url'))
@@ -203,27 +209,43 @@ class DouyuTVIE(InfoExtractor):
         }
 
 
-class DouyuShowIE(InfoExtractor):
+class DouyuShowIE(DouyuBaseIE):
     _VALID_URL = r'https?://v(?:mobile)?\.douyu\.com/show/(?P<id>[0-9a-zA-Z]+)'
 
     _TESTS = [{
-        'url': 'https://v.douyu.com/show/rjNBdvnVXNzvE2yw',
-        'md5': '0c2cfd068ee2afe657801269b2d86214',
+        'url': 'https://v.douyu.com/show/mPyq7oVNe5Yv1gLY',
         'info_dict': {
-            'id': 'rjNBdvnVXNzvE2yw',
-            'ext': 'mp4',
-            'title': '陈一发儿：砒霜 我有个室友系列！04-01 22点场',
-            'duration': 7150.08,
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': '陈一发儿',
-            'uploader_id': 'XrZwYelr5wbK',
-            'uploader_url': 'https://v.douyu.com/author/XrZwYelr5wbK',
-            'upload_date': '20170402',
+            'id': 'mPyq7oVNe5Yv1gLY',
+            'ext': 'ts',
+            'title': '四川人小时候的味道“蒜苗回锅肉”，传统菜不能丢，要常做来吃',
+            'duration': 633,
+            'thumbnail': str,
+            'uploader': '美食作家王刚V',
+            'uploader_id': 'OVAO4NVx1m7Q',
+            'timestamp': 1661850002,
+            'upload_date': '20220830',
+            'view_count': int,
+            'tags': ['美食', '美食综合'],
         },
     }, {
         'url': 'https://vmobile.douyu.com/show/rjNBdvnVXNzvE2yw',
         'only_matching': True,
     }]
+
+    _QUALITIES = {
+        'super': -1,
+        'high': -2,
+        'normal': -3,
+    }
+
+    _RESOLUTIONS = {
+        'super': '1920x1080',
+        'high': '1280x720',
+        'normal': '852x480',
+    }
+
+    def _sign(self, sign_func, vid, video_id):
+        return self._calc_sign(sign_func, vid, uuid.uuid4().hex, round(time.time()), video_id)
 
     def _real_extract(self, url):
         url = url.replace('vmobile.', 'v.')
@@ -231,52 +253,46 @@ class DouyuShowIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        room_info = self._parse_json(self._search_regex(
-            r'var\s+\$ROOM\s*=\s*({.+});', webpage, 'room info'), video_id)
+        video_host = self._search_regex(r'rel="dns-prefetch" href="([^"]+)"', webpage, 'video host')
+        video_host = re.sub(r'//(.*)', r'https://\1', video_host)
+        js_sign_func = self._search_regex(r'<script>([^<]+ub98484234.*?)</script>', webpage, 'JS sign func')
 
-        video_info = None
+        video_info_str = self._search_regex(
+            r'<script>window\.\$DATA=({[^<]+});?</script>', webpage, 'video info')
+        video_info = self._parse_json(
+            re.sub(r'([{,])(\w+):', r'\1"\2":', video_info_str), video_id)
 
-        for trial in range(5):
-            # Sometimes Douyu rejects our request. Let's try it more times
-            try:
-                video_info = self._download_json(
-                    'https://vmobile.douyu.com/video/getInfo', video_id,
-                    query={'vid': video_id},
-                    headers={
-                        'Referer': url,
-                        'x-requested-with': 'XMLHttpRequest',
-                    })
-                break
-            except ExtractorError:
-                self._sleep(1, video_id)
+        form_data = {
+            'vid': video_id,
+            **self._sign(js_sign_func, video_info['ROOM']['point_id'], video_id),
+        }
+        url_info = self._download_json(
+            'https://v.douyu.com/api/stream/getStreamUrl', video_id,
+            data=urlencode_postdata(form_data))
 
-        if not video_info:
-            raise ExtractorError('Can\'t fetch video info')
-
-        formats = self._extract_m3u8_formats(
-            video_info['data']['video_url'], video_id,
-            entry_protocol='m3u8_native', ext='mp4')
-
-        upload_date = unified_strdate(self._html_search_regex(
-            r'<em>上传时间：</em><span>([^<]+)</span>', webpage,
-            'upload date', fatal=False))
-
-        uploader = uploader_id = uploader_url = None
-        mobj = re.search(
-            r'(?m)<a[^>]+href="/author/([0-9a-zA-Z]+)".+?<strong[^>]+title="([^"]+)"',
-            webpage)
-        if mobj:
-            uploader_id, uploader = mobj.groups()
-            uploader_url = urljoin(url, '/author/' + uploader_id)
+        formats = []
+        for name, url in traverse_obj(url_info, ('data', 'thumb_video')).items():
+            video_url = traverse_obj(url, ('url', {url_or_none}))
+            if video_url:
+                formats.append({
+                    'format': name,
+                    'url': video_url,
+                    'quality': self._QUALITIES.get(name),
+                    'ext': 'ts' if '.m3u8' in video_url else determine_ext(video_url),
+                    **parse_resolution(self._RESOLUTIONS.get(name))
+                })
 
         return {
             'id': video_id,
-            'title': room_info['name'],
             'formats': formats,
-            'duration': room_info.get('duration'),
-            'thumbnail': room_info.get('pic'),
-            'upload_date': upload_date,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'uploader_url': uploader_url,
+            **traverse_obj(video_info, ('DATA', {
+                'title': ('content', 'title', {str_or_none}),
+                'uploader': ('content', 'author', {str_or_none}),
+                'uploader_id': ('content', 'up_id', {str_or_none}),
+                'duration': ('content', 'video_duration', {int_or_none}),
+                'thumbnail': ('content', 'video_pic', {url_or_none}),
+                'timestamp': ('content', 'create_time', {int_or_none}),
+                'view_count': ('content', 'view_num', {int_or_none}),
+                'tags': ('videoTag', ..., 'tagName', {str_or_none}),
+            }))
         }
