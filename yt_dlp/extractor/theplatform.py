@@ -20,8 +20,8 @@ from ..utils import (
     mimetype2ext,
     find_xpath_attr,
     urlhandle_detect_ext,
-    HEADRequest,
 )
+from ..networking import HEADRequest
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})
