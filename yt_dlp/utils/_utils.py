@@ -4698,10 +4698,7 @@ def supports_terminal_sequences(stream):
             return False
     elif not os.getenv('TERM'):
         return False
-    try:
-        return stream.isatty()
-    except BaseException:
-        return False
+    return stream.isatty() if hasattr(stream, "isatty") else False
 
 
 def windows_enable_vt_mode():

@@ -65,10 +65,9 @@ class YDLLogger(_YDLLogger):
         if not self._ydl or self._ydl.params.get('noprogress') or self._ydl.params.get('logger'):
             return
         file = self._ydl._out_files.error
-        try:
-            if not file.isatty():
-                return
-        except BaseException:
+        if not hasattr(file, "isatty"):
+            return
+        if not file.isatty():
             return
         return self.ProgressBar(file, preserve_output=False)
 
