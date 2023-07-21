@@ -559,12 +559,13 @@ class FFmpegFD(ExternalFD):
 
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
-            cookies = self.ydl.cookiejar.get_cookies_for_url(fmt['url'])
+            is_http = re.match(r'^https?://', fmt['url'])
+            cookies = self.ydl.cookiejar.get_cookies_for_url(fmt['url']) if is_http else []
             if cookies:
                 args.extend(['-cookies', ''.join(
                     f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
                     for cookie in cookies)])
-            if fmt.get('http_headers') and re.match(r'^https?://', fmt['url']):
+            if fmt.get('http_headers') and is_http:
                 # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
                 args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])
