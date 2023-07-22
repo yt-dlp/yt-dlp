@@ -16,34 +16,34 @@ from ..utils import (
 
 
 class WeiboBaseIE(InfoExtractor):
-    def _safe_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
+    def _update_visitor_cookies(self, video_id):
+        visitor_data = self._download_json(
+            'https://passport.weibo.com/visitor/genvisitor', video_id,
+            note='Generating first-visit guest request',
+            transform_source=strip_jsonp,
+            data=urlencode_postdata({
+                'cb': 'gen_callback',
+                'fp': '{"os":"2","browser":"Gecko57,0,0,0","fonts":"undefined","screenInfo":"1440*900*24","plugins":""}',
+            }))
+
+        self._download_webpage(
+            'https://passport.weibo.com/visitor/visitor', video_id,
+            note='Running first-visit callback to get guest cookies',
+            query={
+                'a': 'incarnate',
+                't': visitor_data['data']['tid'],
+                'w': 2,
+                'c': '%03d' % visitor_data['data']['confidence'],
+                'cb': 'cross_domain',
+                'from': 'weibo',
+                '_rand': random.random(),
+            })
+
+    def _weibo_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
         if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
-            visitor_data = self._download_json(
-                'https://passport.weibo.com/visitor/genvisitor', video_id,
-                note='Generating first-visit guest request',
-                transform_source=strip_jsonp,
-                data=urlencode_postdata({
-                    'cb': 'gen_callback',
-                    'fp': '{"os":"2","browser":"Gecko57,0,0,0","fonts":"undefined","screenInfo":"1440*900*24","plugins":""}',
-                }))
-
-            self._download_webpage(
-                'https://passport.weibo.com/visitor/visitor', video_id,
-                note='Running first-visit callback',
-                query={
-                    'a': 'incarnate',
-                    't': visitor_data['data']['tid'],
-                    'w': 2,
-                    'c': '%03d' % visitor_data['data']['confidence'],
-                    'gc': '',
-                    'cb': 'cross_domain',
-                    'from': 'weibo',
-                    '_rand': random.random(),
-                })
+            self._update_visitor_cookies(video_id)
             webpage = self._download_webpage(url, video_id, *args, fatal=fatal, note=note, **kwargs)
-        #     webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
-        # print(webpage, urlh.__dict__)
         return self._parse_json(webpage, video_id, fatal=fatal)
 
     def _extract_formats(self, video_info):
@@ -160,7 +160,7 @@ class WeiboIE(WeiboBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        return self._parse_video_info(self._safe_download_json(
+        return self._parse_video_info(self._weibo_download_json(
             f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id))
 
 
@@ -192,7 +192,7 @@ class WeiboVideoIE(WeiboBaseIE):
         video_id = self._match_id(url)
 
         post_data = f'data={{"Component_Play_Playinfo":{{"oid":"{video_id}"}}}}'.encode()
-        video_info = self._safe_download_json(
+        video_info = self._weibo_download_json(
             f'https://weibo.com/tv/api/component?page=%2Ftv%2Fshow%2F{video_id.replace(":", "%3A")}',
             video_id, headers={'Referer': url}, data=post_data)['data']['Component_Play_Playinfo']
         return self.url_result(f'https://weibo.com/0/{video_info["mid"]}', WeiboIE)
@@ -214,7 +214,7 @@ class WeiboUserIE(WeiboBaseIE):
     def _entries(self, uid):
         query = {'uid': uid, 'cursor': 0}
         for page in itertools.count(1):
-            response = self._safe_download_json(
+            response = self._weibo_download_json(
                 'https://weibo.com/ajax/profile/getWaterFallContent',
                 uid, query=query, note=f'Downloading videos page {page}')['data']
             for video_info in response.get('list', []):
