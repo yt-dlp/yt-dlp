@@ -404,8 +404,8 @@ class PatreonCampaignIE(PatreonBaseIE):
             posts_json = self._call_api('posts', campaign_id, query=params, note='Downloading posts page %d' % page)
 
             cursor = traverse_obj(posts_json, ('meta', 'pagination', 'cursors', 'next'))
-            for post in traverse_obj(posts_json, ('data', lambda _, v: v['attributes']['patreon_url'])):
-                yield self.url_result(urljoin('https://www.patreon.com/', post['attributes']['patreon_url']), PatreonIE)
+            for post_url in traverse_obj(posts_json, ('data', ..., 'attributes', 'patreon_url')):
+                yield self.url_result(urljoin('https://www.patreon.com/', post_url), PatreonIE)
 
             if cursor is None:
                 break
