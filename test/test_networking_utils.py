@@ -134,28 +134,6 @@ class TestNetworkingUtils:
         add_accept_encoding_header(headers, supported_encodings)
         assert headers == HTTPHeaderDict(expected)
 
-    @pytest.mark.parametrize('path,expected', [
-        ('/a/b/c/./../../g', '/a/g'),
-        ('mid/content=5/../6', 'mid/6'),
-        ('/ad/../cd', '/cd'),
-        ('/ad/../cd/', '/cd/'),
-        ('/..', '/'),
-        ('/./', '/'),
-        ('/./a', '/a'),
-        ('/abc/./.././d/././e/.././f/./../../ghi', '/ghi'),
-        ('/', '/'),
-        ('/t', '/t'),
-        ('t', 't'),
-        ('', ''),
-        ('/../a/b/c', '/a/b/c'),
-        ('../a', 'a'),
-        ('./a', 'a'),
-        ('.', ''),
-        ('////', '////')
-    ])
-    def test_remove_dot_segments(self, path, expected):
-        assert remove_dot_segments(path) == expected
-
 
 class TestInstanceStoreMixin:
 

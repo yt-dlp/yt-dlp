@@ -43,6 +43,7 @@ from ..socks import ProxyError as SocksProxyError
 from ..socks import sockssocket
 from ..utils import update_url_query
 from ..utils.networking import normalize_url
+
 SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
 

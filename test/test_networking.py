@@ -356,6 +356,16 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             res.close()
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_remove_dot_segments(self, handler):
+        with handler() as rh:
+            # remove dot segments. This isn't a comprehensive test,
+            # but it should be enough to check whether the handler is removing dot segments
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/a/b/./../../headers'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
+            res.close()
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_unicode_path_redirection(self, handler):
         with handler() as rh:
             r = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/302-non-ascii-redirect'))
