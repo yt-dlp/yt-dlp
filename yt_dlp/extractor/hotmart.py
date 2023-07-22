@@ -5,40 +5,21 @@ from ..utils import (
     int_or_none,
     url_or_none,
 )
-import urllib.request
-import json
-
-
-class TeachableAPI:
-    @staticmethod
-    def get_hotmart_url():
-        req = urllib.request.Request(
-            'https://gns3.teachable.com/api/v2/hotmart/private_video?attachment_id=13633604',
-            headers={'User-Agent': 'Mozilla/5.0'}
-        )
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read())
-            hotmart_url = (
-                'https://player.hotmart.com/embed/'
-                f'{data["video_id"]}?'
-                f'signature={data["signature"]}&'
-                'token='
-                f'{data["teachable_application_key"]}'
-            )
-            return hotmart_url
 
 
 class HotmartIE(InfoExtractor):
     _VALID_URL = r'https?://player\.hotmart\.com/embed/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [
         {
-            'url': TeachableAPI.get_hotmart_url(),
-            'md5': 'f9b6107c07300e4f77e23dde37f391a4',
+            'url': (
+                'https://player.hotmart.com/embed/pRQKDWkKLB?signature=S0Pr1OaDwGvKwQ8i6Y9whykEo4uuok2P4AShiYcyarvFkQDT_rBlR5L1qdIbIferFBHfTVJlXcbgUAwMMPiV6sWaA0XIU4OO282MO092DX_Z8KqS1h0Y-452TMjAt3dW2ZYMKWtfA2A2sxM7JmpYZZdMKTrT7nwoPsfbythXfph3dCLzxNQ0gS-rHfD7SYWuKJGN1JmK6iAygJf1thpskoeOJyK04SpDwMoqIOYfsrUktvsJFlV3oWM1tVoeDIQPWSZGXE6WRWDPNmTz6h7IHvc-QKGzoRy3_CvzSEioq2SaDNDdloECrKH37V1eCNvdaIr0dQeHqH_vI0NMBsfCow==&token=aa2d356b-e2f0-45e8-9725-e0efc7b5d29c&autoplay=autoplay'
+            ),
+            'md5': '95d7a252bb97954663fcf6c6db4b4555',
             'info_dict': {
-                'id': 'Nq7vkXmXRA',
-                'video_id': 'Nq7vkXmXRA',
+                'id': 'pRQKDWkKLB',
+                'video_id': 'pRQKDWkKLB',
                 'ext': 'mp4',
-                'title': 'Hotmart video #Nq7vkXmXRA',
+                'title': 'Hotmart video #pRQKDWkKLB',
                 'thumbnail': (
                     r're:https?://.*\.(?:jpg|jpeg|png|gif)\?token=exp=\d+~acl=.*~hmac=[a-f0-9]+$'
                 ),
