@@ -1300,15 +1300,15 @@ class YoutubeDL:
                 else:
                     break
 
-            fmt = outer_mobj.group('format')
-            if fmt == 's' and value is not None and last_field in field_size_compat_map.keys():
-                fmt = f'0{field_size_compat_map[last_field]:d}d'
-
             if None not in (value, replacement):
                 try:
                     value = replacement_formatter.format(replacement, value)
                 except ValueError:
                     value, default = None, na
+
+            fmt = outer_mobj.group('format')
+            if fmt == 's' and last_field in field_size_compat_map.keys() and isinstance(value, int):
+                fmt = f'0{field_size_compat_map[last_field]:d}d'
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
