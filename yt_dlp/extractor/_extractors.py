@@ -1220,7 +1220,7 @@ from .neteasemusic import (
     NetEaseMusicIE,
     NetEaseMusicAlbumIE,
     NetEaseMusicSingerIE,
-    NetEaseMusicListIE,
+    # NetEaseMusicListIE,
     NetEaseMusicMvIE,
     NetEaseMusicProgramIE,
     NetEaseMusicDjRadioIE,

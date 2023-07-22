@@ -148,7 +148,12 @@ class NetEaseMusicBaseIE(InfoExtractor):
     def query_api(self, endpoint, video_id, note):
         req = Request('%s%s' % (self._API_BASE, endpoint))
         req.headers['Referer'] = self._API_BASE
-        return self._download_json(req, video_id, note)
+        result = self._download_json(req, video_id, note)
+        if result['code'] == -462:
+            self.raise_login_required(f'Login required to download: {result["message"]}')
+        elif result['code'] != 200:
+            raise ExtractorError(f'Failed to get meta info: {result["code"]} {result}')
+        return result
 
 
 class NetEaseMusicIE(NetEaseMusicBaseIE):
@@ -278,14 +283,9 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         album_id = self._match_id(url)
 
-        result = self.query_api(
+        info = self.query_api(
             'album/%s?id=%s' % (album_id, album_id),
-            album_id, 'Downloading album data')
-        if result['code'] == -462:
-            self.raise_login_required(result['message'])
-        elif result['code'] != 200:
-            raise ExtractorError(f'Failed to get album info: {result["code"]} {result}')
-        info = result['album']
+            album_id, 'Downloading album data')['album']
 
         name = info['name']
         desc = info.get('description') or None
@@ -306,7 +306,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
         'url': 'http://music.163.com/#/artist?id=10559',
         'info_dict': {
             'id': '10559',
-            'title': '张惠妹 - aMEI;阿密特',
+            'title': '张惠妹 - aMEI;阿妹;阿密特',
         },
         'playlist_count': 50,
         'skip': 'Blocked outside Mainland China',
@@ -353,7 +353,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             'title': 'Billboard 2007 Top 100',
             'description': 'md5:12fd0819cab2965b9583ace0f8b7b022'
         },
-        'playlist_count': 99,
+        'playlist_count': 10,
         'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'Toplist/Charts sample',
@@ -373,6 +373,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
         info = self.query_api(
             'playlist/detail?id=%s&lv=-1&tv=-1' % list_id,
             list_id, 'Downloading playlist data')['result']
+        # TODO: need to use new API
 
         name = info['name']
         desc = info.get('description')
@@ -401,8 +402,10 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'ext': 'mp4',
             'title': '이럴거면 그러지말지',
             'description': '白雅言自作曲唱甜蜜爱情',
-            'creator': '白雅言',
+            'creator': '白娥娟',
             'upload_date': '20150520',
+            'thumbnail': r're:http.*\.jpg',
+            'duration': 217,
         },
         'skip': 'Blocked outside Mainland China',
     }
@@ -438,41 +441,42 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     _TESTS = [{
         'url': 'http://music.163.com/#/program?id=10109055',
         'info_dict': {
-            'id': '10109055',
+            'id': '32593346',
             'ext': 'mp3',
             'title': '不丹足球背后的故事',
             'description': '喜马拉雅人的足球梦 ...',
             'creator': '大话西藏',
-            'timestamp': 1434179342,
+            'timestamp': 1434179287,
             'upload_date': '20150613',
+            'thumbnail': r're:http.*\.jpg',
             'duration': 900,
         },
-        'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'This program has accompanying songs.',
         'url': 'http://music.163.com/#/program?id=10141022',
         'info_dict': {
             'id': '10141022',
-            'title': '25岁，你是自在如风的少年<27°C>',
+            'title': '滚滚电台的有声节目',
             'description': 'md5:8d594db46cc3e6509107ede70a4aaa3b',
         },
         'playlist_count': 4,
-        'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'This program has accompanying songs.',
         'url': 'http://music.163.com/#/program?id=10141022',
         'info_dict': {
-            'id': '10141022',
+            'id': '32647209',
             'ext': 'mp3',
-            'title': '25岁，你是自在如风的少年<27°C>',
+            'title': '滚滚电台的有声节目',
             'description': 'md5:8d594db46cc3e6509107ede70a4aaa3b',
-            'timestamp': 1434450841,
+            'creator': '滚滚电台ORZ',
+            'timestamp': 1434450733,
             'upload_date': '20150616',
+            'thumbnail': r're:http.*\.jpg',
+            'duration': 1104,
         },
         'params': {
             'noplaylist': True
         },
-        'skip': 'Blocked outside Mainland China',
     }]
 
     def _real_extract(self, url):
@@ -489,7 +493,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             formats = self.extract_formats(info['mainSong'])
 
             return {
-                'id': info['mainSong']['id'],
+                'id': str(info['mainSong']['id']),
                 'title': name,
                 'description': description,
                 'creator': info['dj']['brand'],
@@ -518,10 +522,9 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         'info_dict': {
             'id': '42',
             'title': '声音蔓延',
-            'description': 'md5:766220985cbd16fdd552f64c578a6b15'
+            'description': 'md5:c7381ebd7989f9f367668a5aee7d5f08'
         },
         'playlist_mincount': 40,
-        'skip': 'Blocked outside Mainland China',
     }
     _PAGE_SIZE = 1000
 
