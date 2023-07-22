@@ -105,7 +105,7 @@ class RequestDirector:
 _REQUEST_HANDLERS = {}
 
 
-def register(handler):
+def register_rh(handler):
     """Register a RequestHandler class"""
     assert issubclass(handler, RequestHandler), f'{handler} must be a subclass of RequestHandler'
     assert handler.RH_KEY not in _REQUEST_HANDLERS, f'RequestHandler {handler.RH_KEY} already registered'
@@ -425,7 +425,7 @@ class Request:
             raise TypeError('headers must be a mapping')
 
     def update(self, url=None, data=None, headers=None, query=None):
-        self.data = data or self.data
+        self.data = data if data is not None else self.data
         self.headers.update(headers or {})
         self.url = update_url_query(url or self.url, query or {})
 

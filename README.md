@@ -1569,7 +1569,7 @@ The available fields are:
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
  - `ext`: Equivalent to `vext,aext`
  - `filesize`: Exact filesize, if known in advance
- - `fs_approx`: Approximate filesize calculated from the manifests
+ - `fs_approx`: Approximate filesize
  - `size`: Exact filesize if available, otherwise approximate filesize
  - `height`: Height of video
  - `width`: Width of video
@@ -1580,7 +1580,7 @@ The available fields are:
  - `tbr`: Total average bitrate in KBit/s
  - `vbr`: Average video bitrate in KBit/s
  - `abr`: Average audio bitrate in KBit/s
- - `br`: Equivalent to using `tbr,vbr,abr`
+ - `br`: Average bitrate in KBit/s, `tbr`/`vbr`/`abr`
  - `asr`: Audio sample rate in Hz
  
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
