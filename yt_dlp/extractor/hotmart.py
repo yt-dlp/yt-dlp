@@ -1,6 +1,3 @@
-import json
-import urllib.request
-
 from .common import InfoExtractor
 from ..utils import (
     get_element_by_id,
@@ -8,6 +5,8 @@ from ..utils import (
     int_or_none,
     url_or_none,
 )
+import urllib.request
+import json
 
 
 class TeachableAPI:
