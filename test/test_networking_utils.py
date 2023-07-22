@@ -98,7 +98,7 @@ class TestNetworkingUtils:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         loaded_certifi_certs = False
 
-        # Monkey-Patch SSLContext to confirm it tries to load from certifi.where() location
+        # Monkey-patch SSLContext to confirm it tries to load from certifi.where()
         def load_verify_locations(cafile=None, capath=None, cadata=None):
             assert cafile == certifi.where() or cadata == certifi.contents()
             assert capath is None
@@ -121,7 +121,7 @@ class TestNetworkingUtils:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         loaded_sys_certs = False
 
-        # set_default_verify_paths() should be called to get default system certs
+        # set_default_verify_paths() should be called to load default OpenSSL certs
         def set_default_verify_paths():
             context._set_default_verify_paths_real()
             nonlocal loaded_sys_certs
