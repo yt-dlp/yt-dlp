@@ -21,7 +21,7 @@ from .exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from ..compat.types import NoneType
+from ..compat import types
 from ..utils import (
     bug_reports_message,
     classproperty,
@@ -272,8 +272,8 @@ class RequestHandler(abc.ABC):
 
     def _check_extensions(self, extensions):
         """Check extensions for unsupported extensions. Subclasses should extend this."""
-        assert isinstance(extensions.get('cookiejar'), (CookieJar, NoneType))
-        assert isinstance(extensions.get('timeout'), (float, int, NoneType))
+        assert isinstance(extensions.get('cookiejar'), (CookieJar, types.NoneType))
+        assert isinstance(extensions.get('timeout'), (float, int, types.NoneType))
 
     @wrap_request_errors
     def validate(self, request: Request):
