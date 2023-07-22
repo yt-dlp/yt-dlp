@@ -887,22 +887,15 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
     BVID_PATH = ('media_list', ..., 'bv_id')
 
     def _extract_medialist(self, query, list_id):
-        page_data = self._download_json(
-            'https://api.bilibili.com/x/v2/medialist/resource/list',
-            list_id, query=query, note=f'getting playlist {query["biz_id"]} items'
-        )['data']
-        entries = list(self._get_entries(page_data))
-        total_count = page_data.get('total_count', None)
-        while page_data.get('has_more', False):
-            query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
+        for page_num in itertools.count(1):
             page_data = self._download_json(
                 'https://api.bilibili.com/x/v2/medialist/resource/list',
-                list_id, query=query, note=f'getting {query["biz_id"]} items after av{query["oid"]}'
+                list_id, query=query, note=f'getting playlist {query["biz_id"]} page {page_num}'
             )['data']
-            entries.extend(list(self._get_entries(page_data)))
-        if len(entries) != total_count:
-            self.report_warning(f'extracted items {len(entries)} does not match total count {total_count}')
-        return entries
+            yield from self._get_entries(page_data)
+            query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
+            if not page_data.get('has_more', False):
+                break
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
