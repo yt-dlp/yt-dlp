@@ -1,5 +1,6 @@
 import random
 import itertools
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -17,7 +18,7 @@ from ..utils import (
 class WeiboBaseIE(InfoExtractor):
     def _safe_download_json(self, url, video_id, *args, fatal=True, note='Downloading JSON metadata', **kwargs):
         webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
-        if 'passport.weibo.com' in urlh.url:
+        if urllib.parse.urlparse(urlh.url).netloc == 'passport.weibo.com':
             visitor_data = self._download_json(
                 'https://passport.weibo.com/visitor/genvisitor', video_id,
                 note='Generating first-visit guest request',
