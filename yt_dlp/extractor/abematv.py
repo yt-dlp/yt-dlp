@@ -27,74 +27,18 @@ from ..utils import (
     update_url_query,
 )
 
-# NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
-
-def add_opener(ydl, handler):
-    ''' Add a handler for opening URLs, like _download_webpage '''
+def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
+    """Add a handler for opening URLs, like _download_webpage"""
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    ydl._opener.add_handler(handler)
-
-
-def remove_opener(ydl, handler):
-    '''
-    Remove handler(s) for opening URLs
-    @param handler Either handler object itself or handler type.
-    Specifying handler type will remove all handler which isinstance returns True.
-    '''
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    opener = ydl._opener
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    if isinstance(handler, (type, tuple)):
-        find_cp = lambda x: isinstance(x, handler)
-    else:
-        find_cp = lambda x: x is handler
-
-    removed = []
-    for meth in dir(handler):
-        if meth in ["redirect_request", "do_open", "proxy_open"]:
-            # oops, coincidental match
-            continue
-
-        i = meth.find("_")
-        protocol = meth[:i]
-        condition = meth[i + 1:]
-
-        if condition.startswith("error"):
-            j = condition.find("_") + i + 1
-            kind = meth[j + 1:]
-            try:
-                kind = int(kind)
-            except ValueError:
-                pass
-            lookup = opener.handle_error.get(protocol, {})
-            opener.handle_error[protocol] = lookup
-        elif condition == "open":
-            kind = protocol
-            lookup = opener.handle_open
-        elif condition == "response":
-            kind = protocol
-            lookup = opener.process_response
-        elif condition == "request":
-            kind = protocol
-            lookup = opener.process_request
-        else:
-            continue
-
-        handlers = lookup.setdefault(kind, [])
-        if handlers:
-            handlers[:] = [x for x in handlers if not find_cp(x)]
-
-        removed.append(x for x in handlers if find_cp(x))
-
-    if removed:
-        for x in opener.handlers:
-            if find_cp(x):
-                x.add_parent(None)
-        opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
+    rh = ydl._request_director.handlers['Urllib']
+    if 'abematv-license' in rh._SUPPORTED_URL_SCHEMES:
+        return
+    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=ydl.proxies)
+    assert isinstance(opener, urllib.request.OpenerDirector)
+    opener.add_handler(handler)
+    rh._SUPPORTED_URL_SCHEMES = (*rh._SUPPORTED_URL_SCHEMES, 'abematv-license')
 
 
 class AbemaLicenseHandler(urllib.request.BaseHandler):
@@ -140,7 +84,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
         ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={
-            'Content-Length': len(response_data),
+            'Content-Length': str(len(response_data)),
         }, url=url, code=200)
 
 
@@ -212,10 +156,7 @@ class AbemaTVBaseIE(InfoExtractor):
             })
         AbemaTVBaseIE._USERTOKEN = user_data['token']
 
-        # don't allow adding it 2 times or more, though it's guarded
-        remove_opener(self._downloader, AbemaLicenseHandler)
         add_opener(self._downloader, AbemaLicenseHandler(self))
-
         return self._USERTOKEN
 
     def _get_media_token(self, invalidate=False, to_show=True):
