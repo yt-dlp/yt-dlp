@@ -951,8 +951,8 @@ class FakeResponse(Response):
 
 class FakeRH(RequestHandler):
 
-    def validate(self, request):
-        assert isinstance(request, Request)
+    def _validate(self, request):
+        return
 
     def _send(self, request: Request):
         if request.url.startswith('ssl://'):
