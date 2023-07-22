@@ -1,9 +1,7 @@
 import urllib.parse
-from abc import ABCMeta, abstractmethod
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
-from .. import NO_DEFAULT
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -11,12 +9,7 @@ from ..utils import (
 )
 
 
-class AntennaWatchGrBaseIE(InfoExtractor, metaclass=ABCMeta):
-    @property
-    @abstractmethod
-    def _API_PATH(self):
-        pass
-
+class AntennaBaseIE(InfoExtractor):
     def _download_and_extract_api_data(self, video_id, netloc, cid=None):
         url = f'{self.http_scheme()}//{netloc}{self._API_PATH}'
         info = self._download_json(url, video_id, query={'cid': cid or video_id})
@@ -24,12 +17,8 @@ class AntennaWatchGrBaseIE(InfoExtractor, metaclass=ABCMeta):
             source = info['url']
         except KeyError:
             raise ExtractorError('no source found for %s' % video_id)
-
-        formats = [{'url': source}]
-        subs = {}
-        if determine_ext(source) == 'm3u8':
-            formats, subs = self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
-
+        formats, subs = (self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
+                         if determine_ext(source) == 'm3u8' else ([{'url': source}], {}))
         thumbnails = scale_thumbnails_to_max_format_width(
             formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
         return {
@@ -41,10 +30,10 @@ class AntennaWatchGrBaseIE(InfoExtractor, metaclass=ABCMeta):
         }
 
 
-class Ant1NewsGrWatchIE(AntennaWatchGrBaseIE):
-    IE_NAME = 'ant1newsgr:watch'
-    IE_DESC = 'ant1news.gr videos'
-    _VALID_URL = r'https?://(?P<netloc>(?:www\.)?ant1news\.gr)/watch/(?P<id>\d+)/'
+class Ant1NewsGrWatchIE(AntennaBaseIE):
+    IE_NAME = 'antenna:watch'
+    IE_DESC = 'antenna.gr and ant1news.gr videos'
+    _VALID_URL = r'https?://(?P<netloc>(?:www\.)?(?:antenna|ant1news)\.gr)/watch/(?P<id>\d+)/'
     _API_PATH = '/templates/data/player'
 
     _TESTS = [{
@@ -57,40 +46,25 @@ class Ant1NewsGrWatchIE(AntennaWatchGrBaseIE):
             'description': 'md5:18665af715a6dcfeac1d6153a44f16b0',
             'thumbnail': 'https://ant1media.azureedge.net/imgHandler/640/26d46bf6-8158-4f02-b197-7096c714b2de.jpg',
         },
-    }]
-
-    def real_extract_template(self, url, default=NO_DEFAULT):
-        video_id, netloc = self._match_valid_url(url).group('id', 'netloc')
-        webpage = self._download_webpage(url, video_id)
-        info = self._download_and_extract_api_data(video_id, netloc)
-        info['description'] = self._og_search_description(webpage, default=default)
-        return info
-
-    def _real_extract(self, url):
-        return self.real_extract_template(url)
-
-
-class AntennaGrWatchIE(Ant1NewsGrWatchIE):
-    IE_NAME = 'antennagr:watch'
-    IE_DESC = 'antenna.gr videos'
-    _VALID_URL = r'https?://(?P<netloc>(?:www\.)?antenna\.gr)/watch/(?P<id>\d+)/'
-
-    _TESTS = [{
+    }, {
         'url': 'https://www.antenna.gr/watch/1643812/oi-prodotes-epeisodio-01',
         'info_dict': {
             'id': '1643812',
             'ext': 'mp4',
             'title': 'ΟΙ ΠΡΟΔΟΤΕΣ – ΕΠΕΙΣΟΔΙΟ 01',
-            'description': None,
             'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1000/b3d63096-e72d-43c4-87a0-00d4363d242f.jpg',
         },
     }]
 
-    def _real_extract(self, url, default=None):
-        return self.real_extract_template(url, default=default)
+    def _real_extract(self, url):
+        video_id, netloc = self._match_valid_url(url).group('id', 'netloc')
+        webpage = self._download_webpage(url, video_id)
+        info = self._download_and_extract_api_data(video_id, netloc)
+        info['description'] = self._og_search_description(webpage, default=None)
+        return info
 
 
-class Ant1NewsGrArticleIE(InfoExtractor):
+class Ant1NewsGrArticleIE(AntennaBaseIE):
     IE_NAME = 'ant1newsgr:article'
     IE_DESC = 'ant1news.gr articles'
     _VALID_URL = r'https?://(?:www\.)?ant1news\.gr/[^/]+/article/(?P<id>\d+)/'
@@ -130,7 +104,7 @@ class Ant1NewsGrArticleIE(InfoExtractor):
             video_kwargs={'url_transparent': True, 'timestamp': info.get('timestamp')})
 
 
-class Ant1NewsGrEmbedIE(AntennaWatchGrBaseIE):
+class Ant1NewsGrEmbedIE(AntennaBaseIE):
     IE_NAME = 'ant1newsgr:embed'
     IE_DESC = 'ant1news.gr embedded videos'
     _BASE_PLAYER_URL_RE = r'(?:https?:)?//(?:[a-zA-Z0-9\-]+\.)?(?:antenna|ant1news)\.gr/templates/pages/player'
