@@ -9,6 +9,7 @@ from ..utils import (
     mimetype2ext,
     strip_jsonp,
     urlencode_postdata,
+    parse_resolution,
     traverse_obj,
 )
 
@@ -44,14 +45,15 @@ class WeiboBaseIE(InfoExtractor):
         # print(webpage, urlh.__dict__)
         return self._parse_json(webpage, video_id, fatal=fatal)
 
-    def _extract_formats(self, playback_list):
+    def _extract_formats(self, video_info):
+        media_info = traverse_obj(video_info, ('page_info', 'media_info'))
         formats = [{
             **traverse_obj(play_info, {
                 'url': ('url', {url_or_none}),
                 'format': ('quality_desc', {str_or_none}),
                 'format_id': ('label', {str_or_none}),
                 'ext': ('mime', {mimetype2ext}),
-                'bitrate': ('bitrate', {int_or_none}, {lambda i: i if i else None}),
+                'tbr': ('bitrate', {int_or_none}, {lambda i: i if i else None}),
                 'vcodec': ('video_codecs', {str_or_none}),
                 'fps': ('fps', {int_or_none}),
                 'width': ('width', {int_or_none}),
@@ -61,13 +63,31 @@ class WeiboBaseIE(InfoExtractor):
                 'asr': ('audio_sample_rate', {int_or_none}),
                 'audio_channels': ('audio_channels', {int_or_none}),
             })
-        } for play_info in traverse_obj(playback_list, (..., 'play_info'))]
-        return [i for i in formats if i.get('url')]
+        } for play_info in traverse_obj(media_info, ('playback_list', ..., 'play_info'))]
+        formats = [i for i in formats if i.get('url')]
+        if not formats:
+            for url in set(traverse_obj(media_info, lambda _, i: url_or_none(i))):
+                if 'label=' in url:
+                    format_id, resolution = self._search_regex(
+                        r'label=(\w+)&template=(\d+x\d+)', url, 'format info',
+                        group=(1, 2), default=(None, None))
+                    formats.append({
+                        'url': url_or_none(url),
+                        'format_id': format_id,
+                        **parse_resolution(resolution),
+                        **traverse_obj(media_info, (
+                            'video_details', lambda _, i: i.get('label', '').startswith(format_id), {
+                                'size': ('size', {int_or_none}),
+                                'tbr': ('bitrate', {int_or_none}),
+                            }
+                        ), get_all=False),
+                    })
+        return formats
 
     def _parse_video_info(self, video_info, video_id=None):
         return {
             'id': video_id,
-            'formats': self._extract_formats(traverse_obj(video_info, ('page_info', 'media_info', 'playback_list'))),
+            'formats': self._extract_formats(video_info),
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
