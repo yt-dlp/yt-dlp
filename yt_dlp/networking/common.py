@@ -14,7 +14,7 @@ from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
 
-from ._helper import make_ssl_context, wrap_request_errors
+from ._helper import make_ssl_context, wrap_request_errors, normalize_url
 from .exceptions import (
     NoSupportingHandlers,
     RequestError,
@@ -368,7 +368,7 @@ class Request:
             raise TypeError('url must be a string')
         elif url.startswith('//'):
             url = 'http:' + url
-        self._url = escape_url(url)
+        self._url = normalize_url(url)
 
     @property
     def method(self):
