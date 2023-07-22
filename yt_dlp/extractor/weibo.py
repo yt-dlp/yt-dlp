@@ -44,20 +44,45 @@ class WeiboBaseIE(InfoExtractor):
 
 class WeiboIE(WeiboBaseIE):
     _VALID_URL = r'https?://(?:m\.weibo\.cn/status|(?:www\.)?weibo\.com/[0-9]+)/(?P<id>[a-zA-Z0-9]+)'
-    _TEST = [{
-        'url': 'https://weibo.com/6275294458/Fp6RGfbff?type=comment',
+    _TESTS = [{
+        'url': 'https://weibo.com/7827771738/N4xlMvjhI',
         'info_dict': {
-            'id': 'Fp6RGfbff',
+            'id': '4910815147462302',
             'ext': 'mp4',
-            'title': 'You should have servants to massage you,... 来自Hosico_猫 - 微博',
+            'display_id': 'N4xlMvjhI',
+            'title': '【睡前消息暑假版第一期：拉泰国一把  对中国有好处】',
+            'description': 'md5:e2637a7673980d68694ea7c43cf12a5f',
+            'duration': 918,
+            'timestamp': 1686312819,
+            'upload_date': '20230609',
+            'thumbnail': r're:https://.*\.jpg',
+            'uploader': '睡前视频基地',
+            'uploader_id': '7827771738',
+            'uploader_url': 'https://weibo.com/u/7827771738',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'tags': ['泰国大选远进党获胜', '睡前消息', '暑期版'],
+            'bitrate': 1031615,
         },
     }, {
         'url': 'https://m.weibo.cn/status/4189191225395228',
         'info_dict': {
             'id': '4189191225395228',
             'ext': 'mp4',
-            'title': '午睡当然是要甜甜蜜蜜的啦',
-            'uploader': '柴犬柴犬'
+            'display_id': 'FBqgOmDxO',
+            'title': '柴犬柴犬的秒拍视频',
+            'description': 'md5:80f461ab5cdae6bbdb70efbf5a1db24f',
+            'duration': 53,
+            'timestamp': 1514264429,
+            'upload_date': '20171226',
+            'thumbnail': r're:https://.*\.jpg',
+            'uploader': '柴犬柴犬',
+            'uploader_id': '5926682210',
+            'uploader_url': 'https://weibo.com/u/5926682210',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
         }
     }]
 
@@ -90,8 +115,10 @@ class WeiboIE(WeiboBaseIE):
             'id': video_id,
             'formats': self._extract_formats(traverse_obj(video_info, ('page_info', 'media_info', 'playback_list'))),
             **traverse_obj(video_info, {
+                'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
-                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'next_title'), {str_or_none}),
+                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {
+                    lambda i: str_or_none(i) if i else None}),
                 'description': ('text_raw', {str_or_none}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
@@ -104,20 +131,42 @@ class WeiboIE(WeiboBaseIE):
                 'view_count': ('page_info', 'media_info', 'online_users_number', {int_or_none}),
                 'like_count': ('attitudes_count', {int_or_none}),
                 'repost_count': ('reposts_count', {int_or_none}),
+            }, get_all=False),
+            **traverse_obj(video_info, {
                 'tags': ('topic_struct', ..., 'topic_title', {str_or_none}),
-            }, get_all=False)
+            }, get_all=True),
         }
 
 
 class WeiboVideoIE(WeiboBaseIE):
-    _VALID_URL = r'https://weibo.com/tv/show/(?P<prefix>\d+):(?P<id>\d+)'
-    _TEST = []
+    _VALID_URL = r'https://weibo.com/tv/show/(?P<id>\d+:\d+)'
+    _TESTS = [{
+        'url': 'https://weibo.com/tv/show/1034:4797699866951785?from=old_pc_videoshow',
+        'info_dict': {
+            'id': '4797700463137878',
+            'ext': 'mp4',
+            'display_id': 'LEZDodaiW',
+            'title': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了',
+            'description': '呃，稍微了解了一下靡烟miya，感觉这东西也太二了 http://t.cn/A6aerGsM ​​​',
+            'duration': 76,
+            'timestamp': 1659344278,
+            'upload_date': '20220801',
+            'thumbnail': r're:https://.*\.jpg',
+            'uploader': '君子爱财陈平安',
+            'uploader_id': '3905382233',
+            'uploader_url': 'https://weibo.com/u/3905382233',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'bitrate': 1275495,
+        }
+    }]
 
     def _real_extract(self, url):
-        prefix, video_id = self._match_valid_url(url).groups()
+        video_id = self._match_id(url)
 
-        post_data = f'data={{"Component_Play_Playinfo":{{"oid":"{prefix}:{video_id}"}}}}'.encode()
+        post_data = f'data={{"Component_Play_Playinfo":{{"oid":"{video_id}"}}}}'.encode()
         video_info = self._safe_download_json(
-            f'https://weibo.com/tv/api/component?page=%2Ftv%2Fshow%2F{prefix}%3A{video_id}',
+            f'https://weibo.com/tv/api/component?page=%2Ftv%2Fshow%2F{video_id.replace(":", "%3A")}',
             video_id, headers={'Referer': url}, data=post_data)['data']['Component_Play_Playinfo']
         return self.url_result(f'https://weibo.com/0/{video_info["mid"]}', WeiboIE)
