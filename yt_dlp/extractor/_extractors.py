@@ -2348,6 +2348,7 @@ from .webofstories import (
 from .weibo import (
     WeiboIE,
     WeiboVideoIE,
+    WeiboUserIE,
 )
 from .weiqitv import WeiqiTVIE
 from .weverse import (

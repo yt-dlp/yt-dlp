@@ -1,4 +1,5 @@
 import random
+import itertools
 
 from .common import InfoExtractor
 from ..utils import (
@@ -39,7 +40,56 @@ class WeiboBaseIE(InfoExtractor):
                     '_rand': random.random(),
                 })
             webpage = self._download_webpage(url, video_id, *args, fatal=fatal, note=note, **kwargs)
+        #     webpage, urlh = self._download_webpage_handle(url, video_id, *args, fatal=fatal, note=note, **kwargs)
+        # print(webpage, urlh.__dict__)
         return self._parse_json(webpage, video_id, fatal=fatal)
+
+    def _extract_formats(self, playback_list):
+        formats = [{
+            **traverse_obj(play_info, {
+                'url': ('url', {url_or_none}),
+                'format': ('quality_desc', {str_or_none}),
+                'format_id': ('label', {str_or_none}),
+                'ext': ('mime', {mimetype2ext}),
+                'bitrate': ('bitrate', {int_or_none}, {lambda i: i if i else None}),
+                'vcodec': ('video_codecs', {str_or_none}),
+                'fps': ('fps', {int_or_none}),
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+                'filesize': ('size', {int_or_none}),
+                'acodec': ('audio_codecs', {str_or_none}),
+                'asr': ('audio_sample_rate', {int_or_none}),
+                'audio_channels': ('audio_channels', {int_or_none}),
+            })
+        } for play_info in traverse_obj(playback_list, (..., 'play_info'))]
+        return [i for i in formats if i.get('url')]
+
+    def _parse_video_info(self, video_info, video_id=None):
+        return {
+            'id': video_id,
+            'formats': self._extract_formats(traverse_obj(video_info, ('page_info', 'media_info', 'playback_list'))),
+            **traverse_obj(video_info, {
+                'id': (('id', 'id_str', 'mid'), {str_or_none}),
+                'display_id': ('mblogid', {str_or_none}),
+                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {
+                    lambda i: str_or_none(i) if i else None}),
+                'description': ('text_raw', {str_or_none}),
+                'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
+                'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
+                'thumbnails': (
+                    'page_info', 'page_pic', {url_or_none},
+                    {lambda i: [{'url': i, 'http_headers': {'Referer': 'https://weibo.com/'}}] if i else None}),
+                'uploader': ('user', 'screen_name', {str_or_none}),
+                'uploader_id': ('user', ('id', 'id_str'), {str_or_none}),
+                'uploader_url': ('user', 'profile_url', {lambda i: f'https://weibo.com{i}' if i else None}),
+                'view_count': ('page_info', 'media_info', 'online_users_number', {int_or_none}),
+                'like_count': ('attitudes_count', {int_or_none}),
+                'repost_count': ('reposts_count', {int_or_none}),
+            }, get_all=False),
+            **traverse_obj(video_info, {
+                'tags': ('topic_struct', ..., 'topic_title', {str_or_none}),
+            }, get_all=True),
+        }
 
 
 class WeiboIE(WeiboBaseIE):
@@ -86,56 +136,11 @@ class WeiboIE(WeiboBaseIE):
         }
     }]
 
-    def _extract_formats(self, playback_list):
-        return [{
-            **traverse_obj(play_info, {
-                'url': ('url', {url_or_none}),
-                'format': ('quality_desc', {str_or_none}),
-                'format_id': ('label', {str_or_none}),
-                'ext': ('mime', {mimetype2ext}),
-                'bitrate': ('bitrate', {int_or_none}, {lambda i: i if i else None}),
-                'vcodec': ('video_codecs', {str_or_none}),
-                'fps': ('fps', {int_or_none}),
-                'width': ('width', {int_or_none}),
-                'height': ('height', {int_or_none}),
-                'filesize': ('size', {int_or_none}),
-                'acodec': ('audio_codecs', {str_or_none}),
-                'asr': ('audio_sample_rate', {int_or_none}),
-                'audio_channels': ('audio_channels', {int_or_none}),
-            })
-        } for play_info in traverse_obj(playback_list, (..., 'play_info'))]
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        video_info = self._safe_download_json(
-            f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id)
-
-        return {
-            'id': video_id,
-            'formats': self._extract_formats(traverse_obj(video_info, ('page_info', 'media_info', 'playback_list'))),
-            **traverse_obj(video_info, {
-                'id': (('id', 'id_str', 'mid'), {str_or_none}),
-                'display_id': ('mblogid', {str_or_none}),
-                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {
-                    lambda i: str_or_none(i) if i else None}),
-                'description': ('text_raw', {str_or_none}),
-                'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
-                'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
-                'thumbnails': (
-                    'page_info', 'page_pic', {url_or_none},
-                    {lambda i: [{'url': i, 'http_headers': {'Referer': 'https://weibo.com/'}}] if i else None}),
-                'uploader': ('user', 'screen_name', {str_or_none}),
-                'uploader_id': ('user', ('id', 'id_str'), {str_or_none}),
-                'uploader_url': ('user', 'profile_url', {lambda i: f'https://weibo.com{i}' if i else None}),
-                'view_count': ('page_info', 'media_info', 'online_users_number', {int_or_none}),
-                'like_count': ('attitudes_count', {int_or_none}),
-                'repost_count': ('reposts_count', {int_or_none}),
-            }, get_all=False),
-            **traverse_obj(video_info, {
-                'tags': ('topic_struct', ..., 'topic_title', {str_or_none}),
-            }, get_all=True),
-        }
+        return self._parse_video_info(self._safe_download_json(
+            f'https://weibo.com/ajax/statuses/show?id={video_id}', video_id))
 
 
 class WeiboVideoIE(WeiboBaseIE):
@@ -170,3 +175,41 @@ class WeiboVideoIE(WeiboBaseIE):
             f'https://weibo.com/tv/api/component?page=%2Ftv%2Fshow%2F{video_id.replace(":", "%3A")}',
             video_id, headers={'Referer': url}, data=post_data)['data']['Component_Play_Playinfo']
         return self.url_result(f'https://weibo.com/0/{video_info["mid"]}', WeiboIE)
+
+
+class WeiboUserIE(WeiboBaseIE):
+    _VALID_URL = r'https://weibo.com/u/(?P<id>\d+)'
+    _TESTS = [{
+
+    }]
+
+    def _entries(self, uid):
+        query = {'uid': uid, 'cursor': 0}
+        for page in itertools.count(1):
+            response = self._safe_download_json(
+                'https://weibo.com/ajax/profile/getWaterFallContent',
+                uid, query=query, note=f'Downloading videos page {page}')['data']
+            for video_info in response.get('list', []):
+                yield self._parse_video_info(video_info)
+            if (int_or_none(response.get('next_cursor')) or -1) > 0:
+                query['cursor'] = response['next_cursor']
+            else:
+                break
+
+    def _first_and_entries(self, uid):
+        entries = self._entries(uid)
+        video = next(entries)
+
+        def _entries():
+            yield video
+            yield from entries
+        return video, _entries()
+
+    def _real_extract(self, url):
+        uid = self._match_id(url)
+        video, entries = self._first_and_entries(uid)
+        return self.playlist_result(entries, uid, **traverse_obj(video, {
+            'title': ('uploader', {lambda i: f'{i}的视频' if i else None}),
+            'description': ('uploader', {lambda i: f'{i}的全部视频' if i else None}),
+            'uploader': 'uploader',
+        }))
