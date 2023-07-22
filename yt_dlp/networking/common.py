@@ -14,7 +14,7 @@ from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
 
-from ._helper import make_ssl_context, wrap_request_errors, normalize_url
+from ._helper import make_ssl_context, wrap_request_errors
 from .exceptions import (
     NoSupportingHandlers,
     RequestError,
@@ -26,10 +26,9 @@ from ..utils import (
     classproperty,
     deprecation_warning,
     error_to_str,
-    escape_url,
     update_url_query,
 )
-from ..utils.networking import HTTPHeaderDict
+from ..utils.networking import HTTPHeaderDict, normalize_url
 
 if typing.TYPE_CHECKING:
     RequestData = bytes | Iterable[bytes] | typing.IO | None

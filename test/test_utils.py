@@ -130,7 +130,7 @@ from yt_dlp.utils import (
     xpath_attr,
     xpath_element,
     xpath_text,
-    xpath_with_ns,
+    xpath_with_ns, remove_dot_segments,
 )
 from yt_dlp.utils.networking import HTTPHeaderDict
 

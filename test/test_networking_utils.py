@@ -26,7 +26,6 @@ from yt_dlp.networking._helper import (
     make_socks_proxy_opts,
     select_proxy,
     ssl_load_certs,
-    remove_dot_segments,
 )
 from yt_dlp.networking.exceptions import (
     HTTPError,
