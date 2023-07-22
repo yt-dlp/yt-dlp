@@ -11,17 +11,19 @@ from ..utils import (
 class TheWeatherChannelIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?weather\.com(?P<asset_name>(?:/(?P<locale>[a-z]{2}-[A-Z]{2}))?/(?:[^/]+/)*video/(?P<id>[^/?#]+))'
     _TESTS = [{
-        'url': 'https://weather.com/series/great-outdoors/video/ice-climber-is-in-for-a-shock',
-        'md5': 'c4cbe74c9c17c5676b704b950b73dd92',
+        'url': 'https://weather.com/storms/hurricane/video/invest-95l-in-atlantic-has-a-medium-chance-of-development',
+        'md5': '68f0cf616435683f27ce36bd9c927394',
         'info_dict': {
-            'id': 'cc82397e-cc3f-4d11-9390-a785add090e8',
+            'id': '81acef2d-ee8c-4545-ba83-bff3cc80db97',
             'ext': 'mp4',
-            'title': 'Ice Climber Is In For A Shock',
-            'description': 'md5:55606ce1378d4c72e6545e160c9d9695',
-            'uploader': 'TWC - Digital (No Distro)',
-            'uploader_id': '6ccd5455-16bb-46f2-9c57-ff858bb9f62c',
-            'upload_date': '20160720',
-            'timestamp': 1469018835,
+            'title': 'Invest 95L In Atlantic Has A Medium Chance Of Development',
+            'description': 'md5:0de720fd5f0d0e32207bd4c270fff824',
+            'uploader': 'TWC - Digital',
+            'uploader_id': 'b5a999e0-9e04-11e1-9ee2-001d092f5a10',
+            'upload_date': '20230721',
+            'timestamp': 1689967343,
+            'display_id': 'invest-95l-in-atlantic-has-a-medium-chance-of-development',
+            'duration': 34.0,
         }
     }, {
         'url': 'https://weather.com/en-CA/international/videos/video/unidentified-object-falls-from-sky-in-india',
