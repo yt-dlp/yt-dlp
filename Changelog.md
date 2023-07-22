@@ -10,7 +10,7 @@
 - Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)
     - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains
     - Cookies are scoped when passed to external downloaders
-    - Add `cookie` field to info.json and deprecate `http_headers.Cookie`
+    - Add `cookies` field to info.json and deprecate `http_headers.Cookie`
 
 #### Core changes
 - [Allow extractors to mark formats as potentially DRM](https://github.com/yt-dlp/yt-dlp/commit/bc344cd456380999c1ee74554dfd432a38f32ec7) ([#7396](https://github.com/yt-dlp/yt-dlp/issues/7396)) by [pukkandan](https://github.com/pukkandan)
@@ -51,7 +51,7 @@
 - **http**: [Avoid infinite loop when no data is received](https://github.com/yt-dlp/yt-dlp/commit/662ef1e910b72e57957f06589925b2332ba52821) by [pukkandan](https://github.com/pukkandan)
 
 #### Misc. changes
-- [Add CodeQL workflow](https://github.com/yt-dlp/yt-dlp/commit/6355b5f1e1e8e7f4ef866d71d51e03baf0e82f17) ([#7497](https://github.com/yt-dlp/yt-dlp/issues/7497)) by [pukkandan](https://github.com/pukkandan)
+- [Add CodeQL workflow](https://github.com/yt-dlp/yt-dlp/commit/6355b5f1e1e8e7f4ef866d71d51e03baf0e82f17) ([#7497](https://github.com/yt-dlp/yt-dlp/issues/7497)) by [jorgectf](https://github.com/jorgectf)
 - **cleanup**: Miscellaneous: [337734d](https://github.com/yt-dlp/yt-dlp/commit/337734d4a8a6500bc65434843db346b5cbd05e81) by [pukkandan](https://github.com/pukkandan)
 - **docs**: [Minor fixes](https://github.com/yt-dlp/yt-dlp/commit/b532a3481046e1eabb6232ee8196fb696c356ff6) by [pukkandan](https://github.com/pukkandan)
 - **make_changelog**: [Skip reverted commits](https://github.com/yt-dlp/yt-dlp/commit/fa44802809d189fca0f4782263d48d6533384503) by [pukkandan](https://github.com/pukkandan)
