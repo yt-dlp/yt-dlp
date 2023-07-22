@@ -1213,17 +1213,16 @@ class TwitterIE(TwitterBaseIE):
                 self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
 
         try:
-            if self._configuration_arg('legacy_api'):
-                status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
-                    'cards_platform': 'Web-12',
-                    'include_cards': 1,
-                    'include_reply_count': 1,
-                    'include_user_entities': 0,
-                    'tweet_mode': 'extended',
-                }), 'retweeted_status', None)
-            else:
-                status = self._graphql_to_legacy(
+            if not self._configuration_arg('legacy_api'):
+                return self._graphql_to_legacy(
                     self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
+            return traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
+                'cards_platform': 'Web-12',
+                'include_cards': 1,
+                'include_reply_count': 1,
+                'include_user_entities': 0,
+                'tweet_mode': 'extended',
+            }), 'retweeted_status', None)
 
         except ExtractorError as e:
             if e.expected:
@@ -1234,8 +1233,7 @@ class TwitterIE(TwitterBaseIE):
                 'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
                 headers={'User-Agent': 'Googlebot'}, query={'id': twid})
             status['extended_entities'] = {'media': status.get('mediaDetails')}
-
-        return status
+            return status
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
