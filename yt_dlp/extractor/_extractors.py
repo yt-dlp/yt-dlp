@@ -1699,7 +1699,7 @@ from .megatvcom import (
     MegaTVComEmbedIE,
 )
 from .antenna import (
-    Ant1NewsGrWatchIE,
+    AntennaGrWatchIE,
     Ant1NewsGrArticleIE,
     Ant1NewsGrEmbedIE,
 )

@@ -17,8 +17,13 @@ class AntennaBaseIE(InfoExtractor):
             source = info['url']
         except KeyError:
             raise ExtractorError('no source found for %s' % video_id)
-        formats, subs = (self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
-                         if determine_ext(source) == 'm3u8' else ([{'url': source}], {}))
+
+        ext = determine_ext(source)
+        formats = [{'url': source, 'ext': ext, 'format': ext, 'format_id': ext}]
+        subs = {}
+        if ext == 'm3u8':
+            formats, subs = self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
+
         thumbnails = scale_thumbnails_to_max_format_width(
             formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
         return {
@@ -30,7 +35,7 @@ class AntennaBaseIE(InfoExtractor):
         }
 
 
-class Ant1NewsGrWatchIE(AntennaBaseIE):
+class AntennaGrWatchIE(AntennaBaseIE):
     IE_NAME = 'antenna:watch'
     IE_DESC = 'antenna.gr and ant1news.gr videos'
     _VALID_URL = r'https?://(?P<netloc>(?:www\.)?(?:antenna|ant1news)\.gr)/watch/(?P<id>\d+)/'
@@ -51,6 +56,8 @@ class Ant1NewsGrWatchIE(AntennaBaseIE):
         'info_dict': {
             'id': '1643812',
             'ext': 'mp4',
+            'format': 'mp4',
+            'format_id': 'mp4',
             'title': 'ΟΙ ΠΡΟΔΟΤΕΣ – ΕΠΕΙΣΟΔΙΟ 01',
             'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1000/b3d63096-e72d-43c4-87a0-00d4363d242f.jpg',
         },
