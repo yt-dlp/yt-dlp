@@ -23,6 +23,7 @@ class SyfyIE(AdobePassIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'redirects to syfy.com. All videos there seem to be geo-restricted.',
     }]
 
     def _real_extract(self, url):
