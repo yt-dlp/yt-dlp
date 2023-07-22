@@ -872,6 +872,10 @@ from .japandiet import (
     SangiinIE,
 )
 from .jeuxvideo import JeuxVideoIE
+from .jiocinema import (
+    JioCinemaIE,
+    JioCinemaSeriesIE,
+)
 from .jiosaavn import (
     JioSaavnSongIE,
     JioSaavnAlbumIE,
@@ -2282,10 +2286,6 @@ from .voicy import (
     VoicyChannelIE,
 )
 from .volejtv import VolejTVIE
-from .voot import (
-    VootIE,
-    VootSeriesIE,
-)
 from .voxmedia import (
     VoxMediaVolumeIE,
     VoxMediaIE,
