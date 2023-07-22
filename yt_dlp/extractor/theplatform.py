@@ -45,7 +45,7 @@ class ThePlatformBaseIE(OnceIE):
                     raise ExtractorError(
                         error_element.attrib['abstract'], expected=True)
 
-        smil_formats = self._parse_smil_formats(
+        smil_formats, smil_subs = self._parse_smil_formats_and_subtitles(
             meta, smil_url, video_id, namespace=default_ns,
             # the parameters are from syfy.com, other sites may use others,
             # they also work for nbc.com
@@ -66,6 +66,7 @@ class ThePlatformBaseIE(OnceIE):
                 formats.append(_format)
 
         subtitles = self._parse_smil_subtitles(meta, default_ns)
+        self._merge_subtitles(smil_subs, target=subtitles)
 
         return formats, subtitles
 
