@@ -28,7 +28,7 @@ from ._helper import (
     make_socks_proxy_opts,
     select_proxy,
 )
-from .common import Features, RequestHandler, Response, register
+from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -315,7 +315,7 @@ class HEADRequest(urllib.request.Request):
 def update_Request(req, url=None, data=None, headers=None, query=None):
     req_headers = req.headers.copy()
     req_headers.update(headers or {})
-    req_data = data or req.data
+    req_data = data if data is not None else req.data
     req_url = update_url_query(url or req.get_full_url(), query)
     req_get_method = req.get_method()
     if req_get_method == 'HEAD':
@@ -372,7 +372,7 @@ def handle_response_read_exceptions(e):
         raise TransportError(cause=e) from e
 
 
-@register
+@register_rh
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
     _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')
