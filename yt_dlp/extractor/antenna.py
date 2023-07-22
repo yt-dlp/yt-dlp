@@ -41,7 +41,7 @@ class AntennaGrWatchIE(AntennaBaseIE):
 
     _TESTS = [{
         'url': 'https://www.ant1news.gr/watch/1506168/ant1-news-09112021-stis-18-45',
-        'md5': '95925e6b32106754235f2417e0d2dfab',
+        'md5': 'c472d9dd7cd233c63aff2ea42201cda6',
         'info_dict': {
             'id': '1506168',
             'ext': 'mp4',
@@ -51,6 +51,7 @@ class AntennaGrWatchIE(AntennaBaseIE):
         },
     }, {
         'url': 'https://www.antenna.gr/watch/1643812/oi-prodotes-epeisodio-01',
+        'md5': '8f6f7dd3b1dba4d835ba990e25f31243',
         'info_dict': {
             'id': '1643812',
             'ext': 'mp4',
