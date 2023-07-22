@@ -123,6 +123,10 @@ class XHamsterIE(InfoExtractor):
     }, {
         'url': 'https://xhvid.com/videos/lk-mm-xhc6wn6',
         'only_matching': True,
+    },
+       {
+        'url': 'https://xhvid.com/videos/japanese-wife-4038764',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
