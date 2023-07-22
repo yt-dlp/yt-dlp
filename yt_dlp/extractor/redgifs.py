@@ -1,8 +1,8 @@
 import functools
-import urllib
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -82,7 +82,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                     f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
                 break
             except ExtractorError as e:
-                if first_attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                if first_attempt and isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     del self._API_HEADERS['authorization']  # refresh the token
                     continue
                 raise

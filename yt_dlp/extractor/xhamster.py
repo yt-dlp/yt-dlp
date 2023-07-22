@@ -183,7 +183,7 @@ class XHamsterIE(InfoExtractor):
                         'height': get_height(quality),
                         'filesize': format_sizes.get(quality),
                         'http_headers': {
-                            'Referer': urlh.geturl(),
+                            'Referer': urlh.url,
                         },
                     })
             xplayer_sources = try_get(

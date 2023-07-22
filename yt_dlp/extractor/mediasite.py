@@ -171,7 +171,7 @@ class MediasiteIE(InfoExtractor):
         query = mobj.group('query')
 
         webpage, urlh = self._download_webpage_handle(url, resource_id)  # XXX: add UrlReferrer?
-        redirect_url = urlh.geturl()
+        redirect_url = urlh.url
 
         # XXX: might have also extracted UrlReferrer and QueryString from the html
         service_path = compat_urlparse.urljoin(redirect_url, self._html_search_regex(
