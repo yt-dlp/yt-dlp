@@ -96,16 +96,41 @@ class TestNetworkingUtils:
     @pytest.mark.skipif(not certifi, reason='certifi is not installed')
     def test_load_certifi(self):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        context2 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        loaded_certifi_certs = False
+
+        # Monkey-Patch SSLContext to confirm it tries to load from certifi.where() location
+        def load_verify_locations(cafile=None, capath=None, cadata=None):
+            assert cafile == certifi.where() or cadata == certifi.contents()
+            assert capath is None
+            context._load_verify_locations_real(cafile=cafile, capath=capath, cadata=cadata)
+            nonlocal loaded_certifi_certs
+            loaded_certifi_certs = True
+
+        context._load_verify_locations_real = context.load_verify_locations
+        context.load_verify_locations = load_verify_locations
         ssl_load_certs(context, use_certifi=True)
+        assert loaded_certifi_certs
+
+        context2 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context2.load_verify_locations(cafile=certifi.where())
+
+        # Check no other certificates are loaded
         assert context.get_ca_certs() == context2.get_ca_certs()
 
-        # Test load normal certs
-        # XXX: could there be a case where system certs are the same as certifi?
-        context3 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ssl_load_certs(context3, use_certifi=False)
-        assert context3.get_ca_certs() != context.get_ca_certs()
+    def test_load_default_certs(self):
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        loaded_sys_certs = False
+
+        # set_default_verify_paths() should be called to get default system certs
+        def set_default_verify_paths():
+            context._set_default_verify_paths_real()
+            nonlocal loaded_sys_certs
+            loaded_sys_certs = True
+
+        context._set_default_verify_paths_real = context.set_default_verify_paths
+        context.set_default_verify_paths = set_default_verify_paths
+        ssl_load_certs(context, use_certifi=False)
+        assert loaded_sys_certs
 
     @pytest.mark.parametrize('method,status,expected', [
         ('GET', 303, 'GET'),
