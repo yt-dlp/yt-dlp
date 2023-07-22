@@ -152,6 +152,7 @@ class TestNetworkingUtils:
         ('../a', 'a'),
         ('./a', 'a'),
         ('.', ''),
+        ('////', '////')
     ])
     def test_remove_dot_segments(self, path, expected):
         assert remove_dot_segments(path) == expected
