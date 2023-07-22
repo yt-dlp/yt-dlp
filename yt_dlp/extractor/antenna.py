@@ -11,21 +11,19 @@ from ..utils import (
 
 class AntennaBaseIE(InfoExtractor):
     def _download_and_extract_api_data(self, video_id, netloc, cid=None):
-        url = f'{self.http_scheme()}//{netloc}{self._API_PATH}'
-        info = self._download_json(url, video_id, query={'cid': cid or video_id})
-        try:
-            source = info['url']
-        except KeyError:
-            raise ExtractorError('no source found for %s' % video_id)
+        info = self._download_json(f'{self.http_scheme()}//{netloc}{self._API_PATH}',
+                                   video_id, query={'cid': cid or video_id})
+        if not info.get('url'):
+            raise ExtractorError(f'No source found for {video_id}')
 
-        ext = determine_ext(source)
-        formats = [{'url': source, 'ext': ext, 'format': ext, 'format_id': ext}]
-        subs = {}
+        ext = determine_ext(info['url'])
         if ext == 'm3u8':
-            formats, subs = self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
+            formats, subs = self._extract_m3u8_formats_and_subtitles(info['url'], video_id, 'mp4')
+        else:
+            formats, subs = [{'url': info['url'], 'format_id': ext}], {}
 
         thumbnails = scale_thumbnails_to_max_format_width(
-            formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
+            formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+') if info.get('thumb') else []
         return {
             'id': video_id,
             'title': info.get('title'),
@@ -49,17 +47,16 @@ class AntennaGrWatchIE(AntennaBaseIE):
             'ext': 'mp4',
             'title': 'md5:0ad00fa66ecf8aa233d26ab0dba7514a',
             'description': 'md5:18665af715a6dcfeac1d6153a44f16b0',
-            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/640/26d46bf6-8158-4f02-b197-7096c714b2de.jpg',
+            'thumbnail': r're:https://ant1media\.azureedge\.net/imgHandler/\d+/26d46bf6-8158-4f02-b197-7096c714b2de\.jpg',
         },
     }, {
         'url': 'https://www.antenna.gr/watch/1643812/oi-prodotes-epeisodio-01',
         'info_dict': {
             'id': '1643812',
             'ext': 'mp4',
-            'format': 'mp4',
             'format_id': 'mp4',
             'title': 'ΟΙ ΠΡΟΔΟΤΕΣ – ΕΠΕΙΣΟΔΙΟ 01',
-            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1000/b3d63096-e72d-43c4-87a0-00d4363d242f.jpg',
+            'thumbnail': r're:https://ant1media\.azureedge\.net/imgHandler/\d+/b3d63096-e72d-43c4-87a0-00d4363d242f\.jpg',
         },
     }]
 
