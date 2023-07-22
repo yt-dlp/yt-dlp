@@ -269,7 +269,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
         'url': 'http://music.163.com/#/album?id=220780',
         'info_dict': {
             'id': '220780',
-            'title': 'B\'day',
+            'title': 'B\'Day',
         },
         'playlist_count': 23,
         'skip': 'Blocked outside Mainland China',
@@ -278,12 +278,17 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         album_id = self._match_id(url)
 
-        info = self.query_api(
+        result = self.query_api(
             'album/%s?id=%s' % (album_id, album_id),
-            album_id, 'Downloading album data')['album']
+            album_id, 'Downloading album data')
+        if result['code'] == -462:
+            self.raise_login_required(result['message'])
+        elif result['code'] != 200:
+            raise ExtractorError(f'Failed to get album info: {result["code"]} {result}')
+        info = result['album']
 
         name = info['name']
-        desc = info.get('description')
+        desc = info.get('description') or None
         entries = [
             self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
                             'NetEaseMusic', song['id'])
