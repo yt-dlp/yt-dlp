@@ -1229,11 +1229,12 @@ class TwitterIE(TwitterBaseIE):
                 raise
             self.report_warning(
                 f'{e.orig_msg}. Falling back to syndication endpoint; some metadata may be missing', twid)
-            status = self._download_json(
-                'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
-                headers={'User-Agent': 'Googlebot'}, query={'id': twid})
-            status['extended_entities'] = {'media': status.get('mediaDetails')}
-            return status
+
+        status = self._download_json(
+            'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+            headers={'User-Agent': 'Googlebot'}, query={'id': twid})
+        status['extended_entities'] = {'media': status.get('mediaDetails')}
+        return status
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
