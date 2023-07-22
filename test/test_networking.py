@@ -804,10 +804,10 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             assert not isinstance(exc_info.value, TransportError)
 
 
-def run_validation(handler, fail, req, **handler_kwargs):
+def run_validation(handler, error, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
-        if fail:
-            with pytest.raises(UnsupportedRequest if type(fail) == bool else fail):
+        if error:
+            with pytest.raises(error):
                 rh.validate(req)
         else:
             rh.validate(req)
@@ -837,26 +837,26 @@ class TestRequestHandlerValidation:
             ('https', False, {}),
             ('data', False, {}),
             ('ftp', False, {}),
-            ('file', True, {}),
+            ('file', UnsupportedRequest, {}),
             ('file', False, {'enable_file_urls': True}),
         ]),
         (NoCheckRH, [('http', False, {})]),
-        (ValidationRH, [('http', True, {})])
+        (ValidationRH, [('http', UnsupportedRequest, {})])
     ]
 
     PROXY_SCHEME_TESTS = [
         # scheme, expected to fail
         ('Urllib', [
             ('http', False),
-            ('https', True),
+            ('https', UnsupportedRequest),
             ('socks4', False),
             ('socks4a', False),
             ('socks5', False),
             ('socks5h', False),
-            ('socks', True),
+            ('socks', UnsupportedRequest),
         ]),
         (NoCheckRH, [('http', False)]),
-        (HTTPSupportedRH, [('http', True)]),
+        (HTTPSupportedRH, [('http', UnsupportedRequest)]),
     ]
 
     PROXY_KEY_TESTS = [
@@ -866,8 +866,8 @@ class TestRequestHandlerValidation:
             ('unrelated', False),
         ]),
         (NoCheckRH, [('all', False)]),
-        (HTTPSupportedRH, [('all', True)]),
-        (HTTPSupportedRH, [('no', True)]),
+        (HTTPSupportedRH, [('all', UnsupportedRequest)]),
+        (HTTPSupportedRH, [('no', UnsupportedRequest)]),
     ]
 
     EXTENSION_TESTS = [
@@ -924,7 +924,7 @@ class TestRequestHandlerValidation:
     @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1'])
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_missing_proxy_scheme(self, handler, proxy_url):
-        run_validation(handler, True, Request('http://', proxies={'http': 'example.com'}))
+        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': 'example.com'}))
 
     @pytest.mark.parametrize('handler,extensions,fail', [
         (handler_tests[0], extensions, fail)
@@ -951,8 +951,8 @@ class FakeResponse(Response):
 
 class FakeRH(RequestHandler):
 
-    def _validate(self, request):
-        return
+    def validate(self, request):
+        assert isinstance(request, Request)
 
     def _send(self, request: Request):
         if request.url.startswith('ssl://'):

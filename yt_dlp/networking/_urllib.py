@@ -28,7 +28,7 @@ from ._helper import (
     make_socks_proxy_opts,
     select_proxy,
 )
-from .common import Features, RequestHandler, Response, register
+from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -372,7 +372,7 @@ def handle_response_read_exceptions(e):
         raise TransportError(cause=e) from e
 
 
-@register
+@register_rh
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
     _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')

@@ -13,6 +13,7 @@ from collections.abc import Iterable, Mapping
 from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
+from types import NoneType
 
 from ._helper import make_ssl_context, wrap_request_errors
 from .exceptions import (
@@ -105,7 +106,7 @@ class RequestDirector:
 _REQUEST_HANDLERS = {}
 
 
-def register(handler):
+def register_rh(handler):
     """Register a RequestHandler class"""
     assert issubclass(handler, RequestHandler), f'{handler} must be a subclass of RequestHandler'
     assert handler.RH_KEY not in _REQUEST_HANDLERS, f'RequestHandler {handler.RH_KEY} already registered'
@@ -139,7 +140,7 @@ class RequestHandler(abc.ABC):
     If a Request is not supported by the handler, an UnsupportedRequest
     should be raised with a reason.
 
-    By default, some checks are done on the request in _validate() based on the following class variables:
+    By default, some checks are done on the request in validate() based on the following class variables:
     - `_SUPPORTED_URL_SCHEMES`: a tuple of supported url schemes.
         Any Request with an url scheme not in this list will raise an UnsupportedRequest.
 
@@ -170,7 +171,7 @@ class RequestHandler(abc.ABC):
     Requests may have additional optional parameters defined as extensions.
      RequestHandler subclasses may choose to support custom extensions.
 
-    If an extension is supported, subclasses should override _check_extensions(extensions)
+    If an extension is supported, subclasses should extend _check_extensions(extensions)
     to pop and validate the extension.
     - Extensions left in `extensions` are treated as unsupported and UnsupportedRequest will be raised.
 
@@ -270,24 +271,21 @@ class RequestHandler(abc.ABC):
                 raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
     def _check_extensions(self, extensions):
-        """Check extensions for unsupported extensions. Subclasses should override this."""
-        assert isinstance(extensions.get('cookiejar'), (CookieJar, type(None)))
-        assert isinstance(extensions.get('timeout'), (float, int, type(None)))
-
-    def _validate(self, request):
-        self._check_url_scheme(request)
-        self._check_proxies(request.proxies or self.proxies)
-        extensions = request.extensions.copy()
-        self._check_extensions(extensions)
-        if extensions:
-            # TODO(future): add support for optional extensions
-            raise UnsupportedRequest(f'Unsupported extensions: {", ".join(extensions.keys())}')
+        """Check extensions for unsupported extensions. Subclasses should extend this."""
+        assert isinstance(extensions.get('cookiejar'), (CookieJar, NoneType))
+        assert isinstance(extensions.get('timeout'), (float, int, NoneType))
 
     @wrap_request_errors
     def validate(self, request: Request):
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
-        self._validate(request)
+        self._check_url_scheme(request)
+        self._check_proxies(request.proxies or self.proxies)
+        extensions = request.extensions.copy()
+        self._check_extensions(extensions)
+        if extensions:
+            # TODO: add support for optional extensions
+            raise UnsupportedRequest(f'Unsupported extensions: {", ".join(extensions.keys())}')
 
     @wrap_request_errors
     def send(self, request: Request) -> Response:
