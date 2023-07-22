@@ -20,7 +20,7 @@ class WeiboBaseIE(InfoExtractor):
         if 'passport.weibo.com' in urlh.url:
             visitor_data = self._download_json(
                 'https://passport.weibo.com/visitor/genvisitor', video_id,
-                note='Generating first-visit data',
+                note='Generating first-visit guest request',
                 transform_source=strip_jsonp,
                 data=urlencode_postdata({
                     'cb': 'gen_callback',
@@ -200,7 +200,14 @@ class WeiboVideoIE(WeiboBaseIE):
 class WeiboUserIE(WeiboBaseIE):
     _VALID_URL = r'https://weibo.com/u/(?P<id>\d+)'
     _TESTS = [{
-
+        'url': 'https://weibo.com/u/2066652961?tabtype=video',
+        'info_dict': {
+            'id': '2066652961',
+            'title': '萧影殿下的视频',
+            'description': '萧影殿下的全部视频',
+            'uploader': '萧影殿下',
+        },
+        'playlist_mincount': 195,
     }]
 
     def _entries(self, uid):
