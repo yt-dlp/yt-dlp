@@ -572,7 +572,7 @@ class YoutubeDL:
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
-        'preference', 'language', 'language_preference', 'quality', 'source_preference',
+        'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
     }
@@ -621,7 +621,8 @@ class YoutubeDL:
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
-                self.report_warning('Overwriting params from "color" with "no_color"')
+                self.params.setdefault('_warnings', []).append(
+                    'Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
         term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
@@ -949,7 +950,7 @@ class YoutubeDL:
 
     def save_cookies(self):
         if self.params.get('cookiefile') is not None:
-            self.cookiejar.save(ignore_discard=True, ignore_expires=True)
+            self.cookiejar.save()
 
     def __exit__(self, *args):
         self.restore_console_title()
@@ -1300,15 +1301,15 @@ class YoutubeDL:
                 else:
                     break
 
-            fmt = outer_mobj.group('format')
-            if fmt == 's' and value is not None and last_field in field_size_compat_map.keys():
-                fmt = f'0{field_size_compat_map[last_field]:d}d'
-
             if None not in (value, replacement):
                 try:
                     value = replacement_formatter.format(replacement, value)
                 except ValueError:
                     value, default = None, na
+
+            fmt = outer_mobj.group('format')
+            if fmt == 's' and last_field in field_size_compat_map.keys() and isinstance(value, int):
+                fmt = f'0{field_size_compat_map[last_field]:d}d'
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
@@ -3290,7 +3291,7 @@ class YoutubeDL:
                 fd, success = None, True
                 if info_dict.get('protocol') or info_dict.get('url'):
                     fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
-                    if fd is not FFmpegFD and 'no-direct-merge' not in self.params['compat_opts'] and (
+                    if fd != FFmpegFD and 'no-direct-merge' not in self.params['compat_opts'] and (
                             info_dict.get('section_start') or info_dict.get('section_end')):
                         msg = ('This format cannot be partially downloaded' if FFmpegFD.available()
                                else 'You have requested downloading the video partially, but ffmpeg is not installed')
@@ -3451,7 +3452,7 @@ class YoutubeDL:
                     postprocessed_by_ffmpeg = info_dict.get('requested_formats') or any((
                         isinstance(pp, FFmpegVideoConvertorPP)
                         and resolve_recode_mapping(ext, pp.mapping)[0] not in (ext, None)
-                    ) for pp in self._pps['post_process'])
+                    ) for pp in self._pps['post_process']) or fd == FFmpegFD
 
                     if not postprocessed_by_ffmpeg:
                         ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
@@ -4033,7 +4034,7 @@ class YoutubeDL:
         """
         Get a urllib OpenerDirector from the Urllib handler (deprecated).
         """
-        self.deprecation_warning('YoutubeDL._opener() is deprecated, use YoutubeDL.urlopen()')
+        self.deprecation_warning('YoutubeDL._opener is deprecated, use YoutubeDL.urlopen()')
         handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 

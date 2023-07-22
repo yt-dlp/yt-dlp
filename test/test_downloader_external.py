@@ -129,6 +129,11 @@ class TestFFmpegFD(unittest.TestCase):
                 'ffmpeg', '-y', '-hide_banner', '-cookies', 'test=ytdlp; path=/; domain=.example.com;\r\n',
                 '-i', 'http://www.example.com/', '-c', 'copy', '-f', 'mp4', 'file:test'])
 
+            # Test with non-url input (ffmpeg reads from stdin '-' for websockets)
+            downloader._call_downloader('test', {'url': 'x', 'ext': 'mp4'})
+            self.assertEqual(self._args, [
+                'ffmpeg', '-y', '-hide_banner', '-i', 'x', '-c', 'copy', '-f', 'mp4', 'file:test'])
+
 
 if __name__ == '__main__':
     unittest.main()
