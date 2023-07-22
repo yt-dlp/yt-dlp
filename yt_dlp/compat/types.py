@@ -7,6 +7,7 @@ passthrough_module(__name__, 'types')
 del passthrough_module
 
 try:
-    NoneType  # >= 3.10
-except NameError:
+    # NB: pypy has builtin NoneType, so checking NameError won't work
+    from types import NoneType  # >= 3.10
+except ImportError:
     NoneType = type(None)
