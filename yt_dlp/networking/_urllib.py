@@ -278,7 +278,7 @@ class RedirectHandler(urllib.request.HTTPRedirectHandler):
         new_headers = {k: v for k, v in req.headers.items() if k.title() not in remove_headers}
 
         return urllib.request.Request(
-            normalize_url(newurl), headers=new_headers, origin_req_host=req.origin_req_host,
+            newurl, headers=new_headers, origin_req_host=req.origin_req_host,
             unverifiable=True, method=new_method, data=new_data)
 
 
