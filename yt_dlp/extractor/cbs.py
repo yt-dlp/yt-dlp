@@ -101,6 +101,7 @@ class CBSIE(CBSBaseIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'geo-restricted, and needs a subscription',
     }, {
         'url': 'https://www.cbs.com/shows/video/sZH1MGgomIosZgxGJ1l263MFq16oMtW1/',
         'info_dict': {
@@ -117,6 +118,7 @@ class CBSIE(CBSBaseIE):
         },
         'expected_warnings': [
             'This content expired on', 'No video formats found', 'Requested format is not available'],
+        'skip': 'returns 404, plus videos here are generally geo-restricted',
     }, {
         'url': 'http://colbertlateshow.com/video/8GmB0oY0McANFvp2aEffk9jZZZ2YyXxy/the-colbeard/',
         'only_matching': True,
