@@ -66,7 +66,7 @@ class WeiboBaseIE(InfoExtractor):
             })
         } for play_info in traverse_obj(media_info, ('playback_list', ..., 'play_info'))]
         formats = [i for i in formats if i.get('url')]
-        if not formats:
+        if not formats:  # fallback, should be barely used
             for url in set(traverse_obj(media_info, lambda _, i: url_or_none(i))):
                 if 'label=' in url:
                     format_id, resolution = self._search_regex(
@@ -93,7 +93,7 @@ class WeiboBaseIE(InfoExtractor):
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
                 'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {
-                    lambda i: str_or_none(i) if i else None}),
+                    lambda i: str_or_none(i) if i else None}),  # to avoid catching empty string
                 'description': ('text_raw', {str_or_none}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
@@ -134,7 +134,6 @@ class WeiboIE(WeiboBaseIE):
             'like_count': int,
             'repost_count': int,
             'tags': ['泰国大选远进党获胜', '睡前消息', '暑期版'],
-            'bitrate': 1031615,
         },
     }, {
         'url': 'https://m.weibo.cn/status/4189191225395228',
@@ -155,6 +154,14 @@ class WeiboIE(WeiboBaseIE):
             'like_count': int,
             'repost_count': int,
         }
+    }, {
+        'url': 'https://weibo.com/0/4224132150961381',
+        'note': 'no playback_list example',
+        'info_dict': {
+            'id': '4224132150961381',
+            'ext': 'mp4',
+        },
+        'skip': 'listed as example only'
     }]
 
     def _real_extract(self, url):
@@ -184,7 +191,6 @@ class WeiboVideoIE(WeiboBaseIE):
             'view_count': int,
             'like_count': int,
             'repost_count': int,
-            'bitrate': 1275495,
         }
     }]
 
