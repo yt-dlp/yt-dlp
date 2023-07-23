@@ -125,7 +125,7 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     },
        {
-        'url': 'https://xhvid.com/videos/japanese-wife-4038764',
+        'url': 'https://xhamster19.com/videos/femaleagent-shy-beauty-takes-the-bait-1509445',
         'only_matching': True,
     }]
 
