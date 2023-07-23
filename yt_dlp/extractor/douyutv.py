@@ -1,6 +1,5 @@
 import time
 import hashlib
-import re
 import urllib
 import uuid
 
@@ -16,6 +15,7 @@ from ..utils import (
     parse_resolution,
     urlencode_postdata,
     unescapeHTML,
+    js_to_json,
     urljoin,
 )
 
@@ -108,10 +108,9 @@ class DouyuTVIE(DouyuBaseIE):
         'only_matching': True,
     }]
 
-    def _sign(self, room_id, video_id, params={}):
+    def _sign(self, js_sign_func, room_id, video_id, params={}):
         params.update(self._calc_sign(
-            self._get_sign_func(room_id, video_id),
-            room_id, uuid.uuid4().hex, round(time.time()), video_id))
+            js_sign_func, room_id, uuid.uuid4().hex, round(time.time()), video_id))
         return params
 
     def _get_sign_func(self, room_id, video_id):
@@ -119,7 +118,7 @@ class DouyuTVIE(DouyuBaseIE):
             f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', video_id,
             note='Getting signing script')['data'][f'room{room_id}']
 
-    def _extract_formats(self, stream_formats):
+    def _extract_stream_formats(self, stream_formats):
         formats = []
         for stream_info in traverse_obj(stream_formats, (..., 'data')):
             stream_url = urljoin(
@@ -142,14 +141,18 @@ class DouyuTVIE(DouyuBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        page = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id)
         room_id = self._html_search_regex(
-            r'(?:\$ROOM\.room_id\s*=|room_id\\?"\s*:)\s*(\d+)[,;]', page, 'room id')
+            r'\$ROOM\.room_id\s*=\s*(\d+)', webpage, 'room id')
 
-        if '"videoLoop":1,' in page:
+        if '"videoLoop":1,' in webpage:
             raise UserNotLive('The channel is auto-playing VODs', video_id=video_id)
-        if '$ROOM.show_status =2;' in page:
+        if '$ROOM.show_status =2;' in webpage:
             raise UserNotLive(video_id=video_id)
+
+        js_sign_func = self._search_regex(
+            r'<script[^>]*>([^<]+ub98484234.*?)</script>', webpage, 'JS sign func', fatal=False
+        ) or self._get_sign_func(room_id, video_id)
 
         # Grab metadata from API
         params = {
@@ -167,7 +170,7 @@ class DouyuTVIE(DouyuBaseIE):
         if room.get('show_status') == '2':
             raise UserNotLive(video_id=video_id)
 
-        form_data = self._sign(room_id, video_id, {'rate': 0})
+        form_data = self._sign(js_sign_func, room_id, video_id, {'rate': 0})
         stream_formats = [self._download_json(
             f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
             video_id, note="Downloading livestream format",
@@ -183,7 +186,7 @@ class DouyuTVIE(DouyuBaseIE):
 
         return {
             'id': room_id,
-            'formats': self._extract_formats(stream_formats),
+            'formats': self._extract_stream_formats(stream_formats),
             'is_live': True,
             **traverse_obj(room, {
                 'display_id': ('url', {str_or_none}, {lambda i: i[1:] if i else None}),
@@ -245,12 +248,11 @@ class DouyuShowIE(DouyuBaseIE):
 
         webpage = self._download_webpage(url, video_id)
 
-        video_info_str = self._search_regex(
-            r'<script>window\.\$DATA=({[^<]+});?</script>', webpage, 'video info')
-        video_info = self._parse_json(
-            re.sub(r'([{,])(\w+):', r'\1"\2":', video_info_str), video_id)
+        video_info = self._search_json(
+            r'<script>window\.\$DATA=', webpage,
+            'video info', video_id, transform_source=js_to_json)
 
-        js_sign_func = self._search_regex(r'<script>([^<]+ub98484234.*?)</script>', webpage, 'JS sign func')
+        js_sign_func = self._search_regex(r'<script[^>]*>([^<]+ub98484234.*?)</script>', webpage, 'JS sign func')
         form_data = {
             'vid': video_id,
             **self._sign(js_sign_func, video_info['ROOM']['point_id'], video_id),
@@ -273,7 +275,7 @@ class DouyuShowIE(DouyuBaseIE):
                 })
             else:
                 self.to_screen(
-                    f'"{self._FORMATS.get(name, name)}" format may requires logging in. {self._login_hint()}')
+                    f'"{self._FORMATS.get(name, name)}" format may require logging in. {self._login_hint()}')
 
         return {
             'id': video_id,
