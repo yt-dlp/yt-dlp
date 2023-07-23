@@ -4,7 +4,6 @@ import re
 import time
 from base64 import b64encode
 from binascii import hexlify
-from datetime import datetime
 from hashlib import md5
 from random import randint
 
@@ -16,8 +15,11 @@ from ..utils import (
     ExtractorError,
     bytes_to_intlist,
     error_to_compat_str,
+    strftime_or_none,
     float_or_none,
     int_or_none,
+    str_or_none,
+    traverse_obj,
     intlist_to_bytes,
     urljoin,
     try_get,
@@ -395,9 +397,12 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
         'info_dict': {
             'id': '79177352',
             'title': 'Billboard 2007 Top 100',
-            'description': 'md5:12fd0819cab2965b9583ace0f8b7b022'
+            'description': 'md5:12fd0819cab2965b9583ace0f8b7b022',
+            'tags': ['欧美'],
+            'uploader': '浑然破灭',
+            'uploader_id': '67549805',
         },
-        'playlist_count': 10,
+        'playlist_mincount': 95,
         'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'Toplist/Charts sample',
@@ -414,25 +419,27 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         list_id = self._match_id(url)
 
-        info = self.query_api(
-            'playlist/detail?id=%s&lv=-1&tv=-1' % list_id,
-            list_id, 'Downloading playlist data')['result']
-        # TODO: need to use new API
+        info = self._download_eapi_json(
+            '/v3/playlist/detail', list_id,
+            {'id': list_id, 't': '-1', 'n': '500', 's': '0'},
+            note="Downloading playlist info")
 
-        name = info['name']
-        desc = info.get('description')
-
-        if info.get('specialType') == 10:  # is a chart/toplist
-            datestamp = datetime.fromtimestamp(
-                self.convert_milliseconds(info['updateTime'])).strftime('%Y-%m-%d')
-            name = '%s %s' % (name, datestamp)
+        meta = traverse_obj(info, ('playlist', {
+            'title': ('name', {str_or_none}),
+            'description': ('description', {str_or_none}),
+            'tags': ('tags', ..., {str_or_none}),
+            'uploader': ('creator', 'nickname', {str_or_none}),
+            'uploader_id': ('creator', 'userId', {str_or_none}),
+            'timestamp': ('creator', 'updateTime', {lambda i: int_or_none(i, scale=1000)}),
+        }))
+        if traverse_obj(info, ('playlist', 'specialType')) == 10:
+            meta['title'] = f'{meta.get("title")} {strftime_or_none(meta.get("timestamp"), "%Y-%m-%d")}'
 
         entries = [
-            self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
-                            'NetEaseMusic', song['id'])
-            for song in info['tracks']
-        ]
-        return self.playlist_result(entries, list_id, name, desc)
+            self.url_result(f'http://music.163.com/#/song?id={song_id}',
+                            NetEaseMusicIE, song_id)
+            for song_id in traverse_obj(info, ('playlist', 'tracks', ..., 'id'))]
+        return self.playlist_result(entries, list_id, **meta)
 
 
 class NetEaseMusicMvIE(NetEaseMusicBaseIE):
