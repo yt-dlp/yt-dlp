@@ -22,8 +22,6 @@ from ..utils import (
 
 
 class DouyuBaseIE(InfoExtractor):
-    _cryptojs_md5 = None
-
     def _download_cryptojs_md5(self, video_id):
         for url in [
             'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
