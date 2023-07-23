@@ -1,8 +1,6 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     extract_attributes,
     try_get,
@@ -64,9 +62,9 @@ class TVPlayerIE(InfoExtractor):
                     'validate': validate,
                 }))['tvplayer']['response']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
+            if isinstance(e.cause, HTTPError):
                 response = self._parse_json(
-                    e.cause.read().decode(), resource_id)['tvplayer']['response']
+                    e.cause.response.read().decode(), resource_id)['tvplayer']['response']
                 raise ExtractorError(
                     '%s said: %s' % (self.IE_NAME, response['error']), expected=True)
             raise

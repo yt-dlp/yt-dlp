@@ -1,6 +1,6 @@
 import json
-import urllib.error
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -40,7 +40,7 @@ class CinetecaMilanoIE(InfoExtractor):
                     'Authorization': try_get(self._get_cookies('https://www.cinetecamilano.it'), lambda x: f'Bearer {x["cnt-token"].value}') or ''
                 })
         except ExtractorError as e:
-            if ((isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 500)
+            if ((isinstance(e.cause, HTTPError) and e.cause.status == 500)
                     or isinstance(e.cause, json.JSONDecodeError)):
                 self.raise_login_required(method='cookies')
             raise

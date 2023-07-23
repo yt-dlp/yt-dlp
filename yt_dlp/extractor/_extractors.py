@@ -15,7 +15,6 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeSearchURLIE,
     YoutubeMusicSearchURLIE,
     YoutubeSubscriptionsIE,
-    YoutubeStoriesIE,
     YoutubeTruncatedIDIE,
     YoutubeTruncatedURLIE,
     YoutubeYtBeIE,
@@ -215,6 +214,7 @@ from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
     BiliBiliBangumiIE,
+    BiliBiliBangumiSeasonIE,
     BiliBiliBangumiMediaIE,
     BiliBiliSearchIE,
     BilibiliCategoryIE,
@@ -1012,6 +1012,7 @@ from .lynda import (
     LyndaCourseIE
 )
 from .m6 import M6IE
+from .magellantv import MagellanTVIE
 from .magentamusik360 import MagentaMusik360IE
 from .mailru import (
     MailRuIE,
@@ -1141,6 +1142,7 @@ from .mtv import (
 )
 from .muenchentv import MuenchenTVIE
 from .murrtube import MurrtubeIE, MurrtubeUserIE
+from .museai import MuseAIIE
 from .musescore import MuseScoreIE
 from .musicdex import (
     MusicdexSongIE,
@@ -1871,7 +1873,6 @@ from .storyfire import (
     StoryFireSeriesIE,
 )
 from .streamable import StreamableIE
-from .streamanity import StreamanityIE
 from .streamcloud import StreamcloudIE
 from .streamcz import StreamCZIE
 from .streamff import StreamFFIE

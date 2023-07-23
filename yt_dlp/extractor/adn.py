@@ -6,10 +6,8 @@ import random
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import (
-    compat_HTTPError,
-    compat_b64decode,
-)
+from ..compat import compat_b64decode
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ass_subtitles_timecode,
     bytes_to_intlist,
@@ -142,9 +140,9 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 self._HEADERS = {'authorization': 'Bearer ' + access_token}
         except ExtractorError as e:
             message = None
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 resp = self._parse_json(
-                    e.cause.read().decode(), None, fatal=False) or {}
+                    e.cause.response.read().decode(), None, fatal=False) or {}
                 message = resp.get('message') or resp.get('code')
             self.report_warning(message or self._LOGIN_ERR_MESSAGE)
 
@@ -195,14 +193,14 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     })
                 break
             except ExtractorError as e:
-                if not isinstance(e.cause, compat_HTTPError):
+                if not isinstance(e.cause, HTTPError):
                     raise e
 
-                if e.cause.code == 401:
+                if e.cause.status == 401:
                     # This usually goes away with a different random pkcs1pad, so retry
                     continue
 
-                error = self._parse_json(e.cause.read(), video_id)
+                error = self._parse_json(e.cause.response.read(), video_id)
                 message = error.get('message')
                 if e.cause.code == 403 and error.get('code') == 'player-bad-geolocation-country':
                     self.raise_geo_restricted(msg=message)
