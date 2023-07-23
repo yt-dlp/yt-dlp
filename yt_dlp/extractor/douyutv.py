@@ -35,7 +35,7 @@ class DouyuBaseIE(InfoExtractor):
         return DouyuBaseIE._cryptojs_md5
 
     def _calc_sign(self, sign_func, a, b, c, video_id):
-        js_script = self._get_cryptojs_md5(video_id) + f';{sign_func};console.log(ub98484234("{a}","{b}","{c}"))'
+        js_script = f'{self._get_cryptojs_md5(video_id)};{sign_func};console.log(ub98484234("{a}","{b}","{c}"))'
         phantom = PhantomJSwrapper(self)
         result = phantom.execute(js_script, video_id,
                                  note='Executing JS signing script').strip()
@@ -43,7 +43,7 @@ class DouyuBaseIE(InfoExtractor):
 
 
 class DouyuTVIE(DouyuBaseIE):
-    IE_DESC = '斗鱼'
+    IE_DESC = '斗鱼直播'
     _VALID_URL = r'https?://(?:www\.)?douyu(?:tv)?\.com/(topic/\w+\?rid=|(?:[^/]+/))*(?P<id>[A-Za-z0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyu.com/pigff',
@@ -150,8 +150,7 @@ class DouyuTVIE(DouyuBaseIE):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
-        room_id = self._html_search_regex(
-            r'\$ROOM\.room_id\s*=\s*(\d+)', webpage, 'room id')
+        room_id = self._search_regex(r'\$ROOM\.room_id\s*=\s*(\d+)', webpage, 'room id')
 
         if '"videoLoop":1,' in webpage:
             raise UserNotLive('The channel is auto-playing VODs', video_id=video_id)
