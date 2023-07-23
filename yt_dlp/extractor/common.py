@@ -2240,8 +2240,7 @@ class InfoExtractor:
                 out.append('{%s}%s' % (namespace, c))
         return '/'.join(out)
 
-    def _extract_smil_formats_and_subtitles(
-            self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None, *, extract_subs=True):
+    def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
         if self.get_param('ignore_no_formats_error'):
             fatal = False
 
@@ -2249,24 +2248,15 @@ class InfoExtractor:
         if res is False:
             assert not fatal
             return [], {}
-
         smil, urlh = res
-        smil_url = urlh.url
 
-        namespace = self._parse_smil_namespace(smil)
-
-        fmts, subs = self._parse_smil_formats_and_subtitles(
-            smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
-        smil_subs = self._parse_smil_subtitles(smil, namespace=namespace)
-        if not extract_subs and smil_subs:
-            self._report_ignoring_subs('SMIL')
-        self._merge_subtitles(smil_subs, target=subs)
-
-        return fmts, subs
+        return self._parse_smil_formats_and_subtitles(smil, urlh.url, video_id, f4m_params=f4m_params,
+                                                      namespace=self._parse_smil_namespace(smil))
 
     def _extract_smil_formats(self, *args, **kwargs):
-        kwargs['extract_subs'] = False
-        fmts, _ = self._extract_smil_formats_and_subtitles(*args, **kwargs)
+        fmts, subs = self._extract_smil_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self._report_ignoring_subs('SMIL')
         return fmts
 
     def _extract_smil_info(self, smil_url, video_id, fatal=True, f4m_params=None):
@@ -2287,9 +2277,8 @@ class InfoExtractor:
     def _parse_smil(self, smil, smil_url, video_id, f4m_params=None):
         namespace = self._parse_smil_namespace(smil)
 
-        formats = self._parse_smil_formats(
+        formats, subtitles = self._parse_smil_formats_and_subtitles(
             smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
-        subtitles = self._parse_smil_subtitles(smil, namespace=namespace)
 
         video_id = os.path.splitext(url_basename(smil_url))[0]
         title = None
@@ -2329,12 +2318,13 @@ class InfoExtractor:
             r'(?i)^{([^}]+)?}smil$', smil.tag, 'namespace', default=None)
 
     def _parse_smil_formats(self, *args, **kwargs):
-        kwargs['parse_subs'] = False
-        fmts, _ = self._parse_smil_formats_and_subtitles(*args, **kwargs)
+        fmts, subs = self._parse_smil_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self._report_ignoring_subs('SMIL')
         return fmts
 
     def _parse_smil_formats_and_subtitles(
-            self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None, *, parse_subs=True):
+            self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         base = smil_url
         for meta in smil.findall(self._xpath_ns('./head/meta', namespace)):
             b = meta.get('base') or meta.get('httpBase')
@@ -2392,8 +2382,6 @@ class InfoExtractor:
             if proto == 'm3u8' or src_ext == 'm3u8':
                 m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     src_url, video_id, ext or 'mp4', m3u8_id='hls', fatal=False)
-                if not parse_subs and m3u8_subs:
-                    self._report_ignoring_subs('HLS')
                 self._merge_subtitles(m3u8_subs, target=subtitles)
                 if len(m3u8_formats) == 1:
                     m3u8_count += 1
@@ -2418,15 +2406,11 @@ class InfoExtractor:
                 mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(
                     src_url, video_id, mpd_id='dash', fatal=False)
                 formats.extend(mpd_formats)
-                if not parse_subs and mpd_subs:
-                    self._report_ignoring_subs('DASH')
                 self._merge_subtitles(mpd_subs, target=subtitles)
             elif re.search(r'\.ism/[Mm]anifest', src_url):
                 ism_formats, ism_subs = self._extract_ism_formats_and_subtitles(
                     src_url, video_id, ism_id='mss', fatal=False)
                 formats.extend(ism_formats)
-                if not parse_subs and ism_subs:
-                    self._report_ignoring_subs('ISM')
                 self._merge_subtitles(ism_subs, target=subtitles)
             elif src_url.startswith('http') and self._is_valid_url(src, video_id):
                 http_count += 1
@@ -2457,6 +2441,9 @@ class InfoExtractor:
                 'height': int_or_none(medium.get('height')),
                 'format_note': 'SMIL storyboards',
             })
+
+        smil_subs = self._parse_smil_subtitles(smil, namespace=namespace)
+        self._merge_subtitles(smil_subs, target=subtitles)
 
         return formats, subtitles
 
