@@ -21,10 +21,18 @@ from ..utils import (
 
 
 class DouyuBaseIE(InfoExtractor):
+    _cryptojs_md5 = None
+
     def _get_cryptojs_md5(self, video_id):
-        return self._download_webpage(
-            'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js', video_id,
-            note='Downloading signing dependency')
+        for url in [
+            'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
+            'https://cdn.bootcdn.net/ajax/libs/crypto-js/3.1.2/rollups/md5.js',
+        ]:
+            if DouyuBaseIE._cryptojs_md5:
+                break
+            DouyuBaseIE._cryptojs_md5 = self._download_webpage(
+                url, video_id, note='Downloading signing dependency', fatal=False)
+        return DouyuBaseIE._cryptojs_md5
 
     def _calc_sign(self, sign_func, a, b, c, video_id):
         js_script = self._get_cryptojs_md5(video_id) + f';{sign_func};console.log(ub98484234("{a}","{b}","{c}"))'
