@@ -157,11 +157,7 @@ class WeiboIE(WeiboBaseIE):
     }, {
         'url': 'https://weibo.com/0/4224132150961381',
         'note': 'no playback_list example',
-        'info_dict': {
-            'id': '4224132150961381',
-            'ext': 'mp4',
-        },
-        'skip': 'listed as example only'
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
