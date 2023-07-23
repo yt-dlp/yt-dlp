@@ -805,7 +805,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
     ])
     def test_httplib_validation_errors(self, handler, req, match, version_check):
         if version_check and version_check(sys.version_info):
-            pytest.skip(f'Python {tuple(sys.version_info)} version does not have this validation')
+            pytest.skip(f'Python {sys.version} version does not have the required validation for this test.')
 
         with handler() as rh:
             with pytest.raises(RequestError, match=match) as exc_info:
