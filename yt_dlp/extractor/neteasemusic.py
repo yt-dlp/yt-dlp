@@ -86,68 +86,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
             {'ids': f'[{song_id}]', 'br': bitrate},
             note=f'Downloading song URL info: bitrate {bitrate}')
 
-    def make_player_api_request_data_and_headers(self, song_id, bitrate):
-        KEY = b'e82ckenh8dichen8'
-        URL = '/api/song/enhance/player/url'
-        now = int(time.time() * 1000)
-        rand = randint(0, 1000)
-        cookie = {
-            'osver': None,
-            'deviceId': None,
-            'appver': '8.0.0',
-            'versioncode': '140',
-            'mobilename': None,
-            'buildver': '1623435496',
-            'resolution': '1920x1080',
-            '__csrf': '',
-            'os': 'pc',
-            'channel': None,
-            'requestId': '{0}_{1:04}'.format(now, rand),
-        }
-        request_text = json.dumps(
-            {'ids': '[{0}]'.format(song_id), 'br': bitrate, 'header': cookie},
-            separators=(',', ':'))
-        message = 'nobody{0}use{1}md5forencrypt'.format(
-            URL, request_text).encode('latin1')
-        msg_digest = md5(message).hexdigest()
-
-        data = '{0}-36cd479b6b5-{1}-36cd479b6b5-{2}'.format(
-            URL, request_text, msg_digest)
-        data = pkcs7_padding(bytes_to_intlist(data))
-        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, bytes_to_intlist(KEY)))
-        encrypted_params = hexlify(encrypted).decode('ascii').upper()
-
-        cookie = '; '.join(
-            ['{0}={1}'.format(k, v if v is not None else 'undefined')
-             for [k, v] in cookie.items()])
-
-        headers = {
-            'User-Agent': self.get_param('http_headers', {}).get('User-Agent'),
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': 'https://music.163.com',
-            'Cookie': cookie,
-        }
-        return ('params={0}'.format(encrypted_params), headers)
-
-    def _call_player_api_old(self, song_id, bitrate):
-        url = 'https://interface3.music.163.com/eapi/song/enhance/player/url'
-        data, headers = self.make_player_api_request_data_and_headers(song_id, bitrate)
-        try:
-            msg = 'empty result'
-            result = self._download_json(
-                url, song_id, data=data.encode('ascii'), headers=headers)
-            if result:
-                return result
-        except ExtractorError as e:
-            if type(e.cause) in (ValueError, TypeError):
-                # JSON load failure
-                raise
-        except Exception as e:
-            msg = error_to_compat_str(e)
-            self.report_warning('%s API call (%s) failed: %s' % (
-                song_id, bitrate, msg))
-        return {}
-
     def extract_formats(self, info):
         err = 0
         formats = []
