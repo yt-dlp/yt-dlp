@@ -14,7 +14,6 @@ from ..networking import Request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
-    error_to_compat_str,
     strftime_or_none,
     float_or_none,
     int_or_none,
