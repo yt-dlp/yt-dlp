@@ -19,6 +19,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     intlist_to_bytes,
+    urljoin,
     try_get,
 )
 
@@ -39,6 +40,49 @@ class NetEaseMusicBaseIE(InfoExtractor):
         m.update(bytes(string_bytes))
         result = b64encode(m.digest()).decode('ascii')
         return result.replace('/', '_').replace('+', '-')
+
+    def _create_eapi_cipher(self, api_path, query, cookies):
+        KEY = b'e82ckenh8dichen8'
+        request_text = json.dumps({**query, 'header': cookies}, separators=(',', ':'))
+
+        message = f'nobody{api_path}use{request_text}md5forencrypt'.encode('latin1')
+        msg_digest = md5(message).hexdigest()
+
+        data = pkcs7_padding(bytes_to_intlist(
+            f'{api_path}-36cd479b6b5-{request_text}-36cd479b6b5-{msg_digest}'))
+        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, bytes_to_intlist(KEY)))
+        return b'params=' + hexlify(encrypted).upper()
+
+    def _download_eapi_json(self, path, song_id, query, headers={}, **kwargs):
+        cookies = {
+            'osver': None,
+            'deviceId': None,
+            'appver': '8.0.0',
+            'versioncode': '140',
+            'mobilename': None,
+            'buildver': '1623435496',
+            'resolution': '1920x1080',
+            '__csrf': '',
+            'os': 'pc',
+            'channel': None,
+            'requestId': f'{int(time.time() * 1000)}_{randint(0, 1000):04}',
+        }
+        headers = {
+            'User-Agent': self.get_param('http_headers', {}).get('User-Agent'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Referer': 'https://music.163.com',
+            'Cookie': '; '.join([f'{k}={v if v is not None else "undefined"}' for [k, v] in cookies.items()]),
+            **headers,
+        }
+        url = urljoin('https://interface3.music.163.com/', f'/eapi{path}')
+        data = self._create_eapi_cipher(f'/api{path}', query, cookies)
+        return self._download_json(url, song_id, data=data, headers=headers, **kwargs)
+
+    def _call_player_api(self, song_id, bitrate):
+        return self._download_eapi_json(
+            '/song/enhance/player/url', song_id,
+            {'ids': f'[{song_id}]', 'br': bitrate},
+            note=f'Downloading song URL info: bitrate {bitrate}')
 
     def make_player_api_request_data_and_headers(self, song_id, bitrate):
         KEY = b'e82ckenh8dichen8'
@@ -83,7 +127,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
         }
         return ('params={0}'.format(encrypted_params), headers)
 
-    def _call_player_api(self, song_id, bitrate):
+    def _call_player_api_old(self, song_id, bitrate):
         url = 'https://interface3.music.163.com/eapi/song/enhance/player/url'
         data, headers = self.make_player_api_request_data_and_headers(song_id, bitrate)
         try:
