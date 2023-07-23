@@ -282,8 +282,7 @@ class TrillerUserIE(TrillerBaseIE):
             f'{self._API_BASE_URL}/api/users/by_username/{username}',
             username, note='Downloading user info', headers=self._API_HEADERS), ('user', {dict})) or {}
 
-        is_followed = user_info.get('followed_by_me')
-        if user_info.get('private') and not (is_followed == 'true' or is_followed is True):
+        if user_info.get('private') and user_info.get('followed_by_me') not in (True, 'true'):
             raise ExtractorError('This user profile is private', expected=True)
         elif traverse_obj(user_info, (('blocked_by_user', 'blocking_user'), {bool}), get_all=False):
             raise ExtractorError('The author of the video is blocked', expected=True)
