@@ -785,22 +785,31 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_httplib_validation_errors(self, handler):
+    @pytest.mark.parametrize('req,match,version_check', [
+        # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1256
+        # bpo-39603: Check implemented in 3.7.9+, 3.8.5+
+        (
+            Request('http://127.0.0.1', method='GET\n'),
+            'method can\'t contain control characters',
+            lambda v: v < (3, 7, 9) or (3, 8, 0) <= v < (3, 8, 5)
+        ),
+        # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1265
+        # bpo-38576: Check implemented in 3.7.8+, 3.8.3+
+        (
+            Request('http://127.0.0. 1', method='GET'),
+            'URL can\'t contain control characters',
+            lambda v: v < (3, 7, 8) or (3, 8, 0) <= v < (3, 8, 3)
+        ),
+        # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1288C31-L1288C50
+        (Request('http://127.0.0.1', headers={'foo\n': 'bar'}), 'Invalid header name', None),
+    ])
+    def test_httplib_validation_errors(self, handler, req, match, version_check):
+        if version_check and version_check(sys.version_info):
+            pytest.skip(f'Python {sys.version} version does not have the required validation for this test.')
+
         with handler() as rh:
-
-            # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1256
-            with pytest.raises(RequestError, match='method can\'t contain control characters') as exc_info:
-                validate_and_send(rh, Request('http://127.0.0.1', method='GET\n'))
-            assert not isinstance(exc_info.value, TransportError)
-
-            # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1265
-            with pytest.raises(RequestError, match='URL can\'t contain control characters') as exc_info:
-                validate_and_send(rh, Request('http://127.0.0. 1', method='GET\n'))
-            assert not isinstance(exc_info.value, TransportError)
-
-            # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1288C31-L1288C50
-            with pytest.raises(RequestError, match='Invalid header name') as exc_info:
-                validate_and_send(rh, Request('http://127.0.0.1', headers={'foo\n': 'bar'}))
+            with pytest.raises(RequestError, match=match) as exc_info:
+                validate_and_send(rh, req)
             assert not isinstance(exc_info.value, TransportError)
 
 
