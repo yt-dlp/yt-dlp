@@ -154,10 +154,12 @@ class MediasetIE(ThePlatformBaseIE):
         }
     }]
 
-    def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
+    def _parse_smil_formats_and_subtitles(
+            self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         for video in smil.findall(self._xpath_ns('.//video', namespace)):
             video.attrib['src'] = re.sub(r'(https?://vod05)t(-mediaset-it\.akamaized\.net/.+?.mpd)\?.+', r'\1\2', video.attrib['src'])
-        return super(MediasetIE, self)._parse_smil_formats(smil, smil_url, video_id, namespace, f4m_params, transform_rtmp_url)
+        return super(MediasetIE, self)._parse_smil_formats_and_subtitles(
+            smil, smil_url, video_id, namespace, f4m_params, transform_rtmp_url)
 
     def _check_drm_formats(self, tp_formats, video_id):
         has_nondrm, drm_manifest = False, ''

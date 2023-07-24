@@ -45,7 +45,7 @@ class ThePlatformBaseIE(OnceIE):
                     raise ExtractorError(
                         error_element.attrib['abstract'], expected=True)
 
-        smil_formats = self._parse_smil_formats(
+        smil_formats, subtitles = self._parse_smil_formats_and_subtitles(
             meta, smil_url, video_id, namespace=default_ns,
             # the parameters are from syfy.com, other sites may use others,
             # they also work for nbc.com
@@ -64,8 +64,6 @@ class ThePlatformBaseIE(OnceIE):
                         _format['url'] = update_url_query(media_url, {'hdnea3': hdnea2.value})
 
                 formats.append(_format)
-
-        subtitles = self._parse_smil_subtitles(meta, default_ns)
 
         return formats, subtitles
 
