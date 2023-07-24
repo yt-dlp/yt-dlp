@@ -773,6 +773,9 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
             'like_count': int,
         },
         'playlist_mincount': 22,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/detail/ml1103407912',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
