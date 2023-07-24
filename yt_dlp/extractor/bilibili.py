@@ -637,8 +637,8 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
 class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
     BVID_PATH = ()
 
-    def _get_entries(self, page_data):
-        for bvid in traverse_obj(page_data, self.BVID_PATH):
+    def _get_entries(self, page_data, bvid_path=None):
+        for bvid in traverse_obj(page_data, bvid_path or self.BVID_PATH):
             yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
 
     def _get_uploader(self, uid, playlist_id):
@@ -669,7 +669,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
         'playlist_mincount': 31,
     }]
 
-    BVID_PATH = ('archives', ..., 'bvid')
+    BVID_PATH = ('archives', ..., 'bvid', {str})
 
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
@@ -719,7 +719,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
         'playlist_mincount': 513,
     }]
 
-    BVID_PATH = ('archives', ..., 'bvid', {str_or_none})
+    BVID_PATH = ('archives', ..., 'bvid', {str})
 
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
@@ -787,13 +787,12 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
         if list_info['code'] == -403:
             self.raise_login_required(msg='This is a private favorites list. You need to log in as its owner')
 
-        entries = [
-            self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
-            for bvid in traverse_obj(self._download_json(
+        entries = self._get_entries(
+            self._download_json(
                 f'https://api.bilibili.com/x/v3/fav/resource/ids?media_id={fid}',
                 fid, note='Download favlist entries'),
-                ('data', ..., 'bvid', {str_or_none}))
-        ]
+            ('data', ..., 'bvid', {str}),
+        )
 
         return self.playlist_result(entries, fid, **traverse_obj(list_info, ('data', 'info', {
             'title': ('title', {str_or_none}),
@@ -809,7 +808,7 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/watchlater'
+    _VALID_URL = r'https?://www\.bilibili\.com/watchlater/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/watchlater/#/list',
         'info_dict': {'id': 'watchlater'},
@@ -817,15 +816,14 @@ class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
         'skip': 'login required',
     }]
 
-    BVID_PATH = ('list', ..., 'bvid')
-
     def _real_extract(self, url):
+        list_id = getattr(self._get_cookies(url).get('DedeUserID'), 'value', 'watchlater')
         watchlater_info = self._download_json(
-            'https://api.bilibili.com/x/v2/history/toview/web?jsonp=jsonp', 'watchlater')
+            'https://api.bilibili.com/x/v2/history/toview/web?jsonp=jsonp', list_id)
         if watchlater_info['code'] == -101:
             self.raise_login_required(msg='You need to login to access your watchlater list')
-        entries = list(self._get_entries(watchlater_info['data']))
-        return self.playlist_result(entries, title='稍后再看')
+        entries = self._get_entries(watchlater_info, ('data', 'list', ..., 'bvid', {str}))
+        return self.playlist_result(entries, id=list_id, title='稍后再看')
 
 
 class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
