@@ -755,7 +755,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/favlist/?\?.*\bfid=(?P<fid>\d+)'
+    _VALID_URL = r'https?://(?:space.bilibili\.com/\d+/favlist/?\?fid=|(?:www\.)?bilibili\.com/medialist/detail/ml)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/84912/favlist?fid=1103407912&ftype=create',
         'info_dict': {
@@ -775,42 +775,34 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
         'playlist_mincount': 22,
     }]
 
-    BVID_PATH = ('medias', ..., 'bvid', {str_or_none})
-
     def _real_extract(self, url):
-        mid, fid = self._match_valid_url(url).group('mid', 'fid')
-        playlist_id = fid
+        fid = self._match_id(url)
 
-        def fetch_page(page_idx):
-            fav_info = self._download_json(
-                'https://api.bilibili.com/x/v3/fav/resource/list',
-                playlist_id, note=f'Downloading page {page_idx}',
-                query={'media_id': fid, 'pn': page_idx + 1, 'ps': 20})
-            if fav_info['code'] == -403:
-                self.raise_login_required(msg='This is a private favorites list. You need to log in as its owner')
-            return fav_info['data']
+        list_info = self._download_json(
+            f'https://api.bilibili.com/x/v3/fav/resource/list?media_id={fid}&pn=1&ps=20',
+            fid, note='Downloading favlist metadata')
+        if list_info['code'] == -403:
+            self.raise_login_required(msg='This is a private favorites list. You need to log in as its owner')
 
-        def get_metadata(page_data):
-            page_size = 20
-            entry_count = page_data['info']['media_count']
-            return {
-                'page_count': math.ceil(entry_count / page_size),
-                'page_size': page_size,
-                **traverse_obj(page_data, {
-                    'title': ('info', 'title', {str_or_none}),
-                    'description': ('info', 'intro', {str_or_none}),
-                    'uploader': ('info', 'upper', 'name', {str_or_none}),
-                    'uploader_id': ('info', 'upper', 'mid', {str_or_none}),
-                    'timestamp': ('info', 'ctime', {int_or_none}),
-                    'modified_timestamp': ('info', 'mtime', {int_or_none}),
-                    'thumbnail': ('info', 'cover', {url_or_none}),
-                    'view_count': ('info', 'cnt_info', 'play', {int_or_none}),
-                    'like_count': ('info', 'cnt_info', 'thumb_up', {int_or_none}),
-                })
-            }
+        entries = [
+            self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
+            for bvid in traverse_obj(self._download_json(
+                f'https://api.bilibili.com/x/v3/fav/resource/ids?media_id={fid}',
+                fid, note='Download favlist entries'),
+                ('data', ..., 'bvid', {str_or_none}))
+        ]
 
-        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, self._get_entries)
-        return self.playlist_result(paged_list, playlist_id, **metadata)
+        return self.playlist_result(entries, fid, **traverse_obj(list_info, ('data', 'info', {
+            'title': ('title', {str_or_none}),
+            'description': ('intro', {str_or_none}),
+            'uploader': ('upper', 'name', {str_or_none}),
+            'uploader_id': ('upper', 'mid', {str_or_none}),
+            'timestamp': ('ctime', {int_or_none}),
+            'modified_timestamp': ('mtime', {int_or_none}),
+            'thumbnail': ('cover', {url_or_none}),
+            'view_count': ('cnt_info', 'play', {int_or_none}),
+            'like_count': ('cnt_info', 'thumb_up', {int_or_none}),
+        })))
 
 
 class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
