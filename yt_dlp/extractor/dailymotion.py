@@ -93,7 +93,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player?(?:/[0-9a-z]*)\.html\?)?video|swf)|
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/[0-9a-z]*)?\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
                         [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
