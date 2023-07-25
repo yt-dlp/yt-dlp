@@ -958,7 +958,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(normalize_url('http://www.example.com/../a/b/../c/./d.html'), 'http://www.example.com/a/c/d.html')
 
     def test_remove_dot_segments(self):
-        # XXX: we really should use pytest with parametrize here for my sanity
         self.assertEqual(remove_dot_segments('/a/b/c/./../../g'), '/a/g')
         self.assertEqual(remove_dot_segments('mid/content=5/../6'), 'mid/6')
         self.assertEqual(remove_dot_segments('/ad/../cd'), '/cd')
