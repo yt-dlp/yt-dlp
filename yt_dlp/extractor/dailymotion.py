@@ -205,6 +205,12 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
         'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/x86gw.html?video=k46oCapRs4iikoz9DWy',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
