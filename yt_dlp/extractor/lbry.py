@@ -1,5 +1,6 @@
 import functools
 import json
+import re
 import urllib.parse
 
 from .common import InfoExtractor
@@ -246,12 +247,13 @@ class LBRYIE(LBRYBaseIE):
             streaming_url = self._call_api_proxy(
                 'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
 
-            # GET request returns original video/audio file if available
+            # GET request to v3 API returns original video/audio file if available
+            direct_url = re.sub(r'/api/v\d+/', '/api/v3/', streaming_url)
             ext = urlhandle_detect_ext(self._request_webpage(
-                streaming_url, display_id, 'Checking for original quality', headers=headers))
+                direct_url, display_id, 'Checking for original quality', headers=headers))
             if ext != 'm3u8':
                 formats.append({
-                    'url': streaming_url,
+                    'url': direct_url,
                     'format_id': 'original',
                     'quality': 1,
                     **traverse_obj(result, ('value', {
