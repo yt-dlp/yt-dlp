@@ -635,15 +635,13 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
-    BVID_PATH = ()
-
     def _get_entries(self, page_data, bvid_path=None):
-        for bvid in traverse_obj(page_data, bvid_path or self.BVID_PATH):
+        for bvid in traverse_obj(page_data, bvid_path) or []:
             yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
 
     def _get_uploader(self, uid, playlist_id):
         webpage = self._download_webpage(f'https://space.bilibili.com/{uid}', playlist_id, fatal=False)
-        return self._search_regex(r'<title>(?P<uname>[^<]+)的个人空间-', webpage, 'uploader', group='uname', fatal=False)
+        return self._search_regex(r'(?s)<title\b[^>]*>([^<]+)的个人空间-', webpage, 'uploader', fatal=False)
 
     def _extract_playlist(self, fetch_page, get_metadata, get_entries):
         metadata, page_list = super()._extract_playlist(fetch_page, get_metadata, get_entries)
@@ -668,8 +666,6 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
         },
         'playlist_mincount': 31,
     }]
-
-    BVID_PATH = ('archives', ..., 'bvid', {str})
 
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
@@ -697,7 +693,10 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
                 })
             }
 
-        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, self._get_entries)
+        def get_entries(page_data):
+            return self._get_entries(page_data, ('archives', ..., 'bvid', {str}))
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, **metadata)
 
 
@@ -718,8 +717,6 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
         },
         'playlist_mincount': 513,
     }]
-
-    BVID_PATH = ('archives', ..., 'bvid', {str})
 
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
@@ -750,7 +747,10 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
                 **playlist_meta
             }
 
-        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, self._get_entries)
+        def get_entries(page_data):
+            return self._get_entries(page_data, ('archives', ..., 'bvid', {str}))
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, **metadata)
 
 
@@ -877,15 +877,13 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
         'skip': 'login required',
     }]
 
-    BVID_PATH = ('media_list', ..., 'bv_id')
-
     def _extract_medialist(self, query, list_id):
         for page_num in itertools.count(1):
             page_data = self._download_json(
                 'https://api.bilibili.com/x/v2/medialist/resource/list',
                 list_id, query=query, note=f'getting playlist {query["biz_id"]} page {page_num}'
             )['data']
-            yield from self._get_entries(page_data)
+            yield from self._get_entries(page_data, ('media_list', ..., 'bv_id'))
             query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
             if not page_data.get('has_more', False):
                 break
@@ -909,8 +907,8 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
             'ps': 20,
             'with_current': False,
             **traverse_obj(initial_state, {
-                'type': ('playlist', 'type', {int}),
-                'biz_id': ('playlist', 'id', {lambda i: int(i)}),
+                'type': ('playlist', 'type', {int_or_none}),
+                'biz_id': ('playlist', 'id', {int_or_none}),
                 'tid': ('tid', {int_or_none}),
                 'sort_field': ('sortFiled', {int_or_none}),
                 'desc': ('desc', {bool_or_none}),
