@@ -117,7 +117,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ["hollywood", "celeb", "celebrity", "movies", "red carpet"],
-            'thumbnail': 'https://s2.dmcdn.net/v/K456B1aXqIx58LKWQ/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1aXqIx58LKWQ/x1080',
         },
     }, {
         'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
@@ -136,7 +136,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
-            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
         }
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
