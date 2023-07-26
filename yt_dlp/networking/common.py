@@ -21,6 +21,7 @@ from .exceptions import (
     TransportError,
     UnsupportedRequest,
 )
+from ..compat.types import NoneType
 from ..utils import (
     bug_reports_message,
     classproperty,
@@ -147,6 +148,7 @@ class RequestHandler(abc.ABC):
         a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
     - `_SUPPORTED_FEATURES`: a tuple of supported features, as defined in Features enum.
+
     The above may be set to None to disable the checks.
 
     Parameters:
@@ -169,9 +171,14 @@ class RequestHandler(abc.ABC):
     Requests may have additional optional parameters defined as extensions.
      RequestHandler subclasses may choose to support custom extensions.
 
+    If an extension is supported, subclasses should extend _check_extensions(extensions)
+    to pop and validate the extension.
+    - Extensions left in `extensions` are treated as unsupported and UnsupportedRequest will be raised.
+
     The following extensions are defined for RequestHandler:
-    - `cookiejar`: Cookiejar to use for this request
-    - `timeout`: socket timeout to use for this request
+    - `cookiejar`: Cookiejar to use for this request.
+    - `timeout`: socket timeout to use for this request.
+    To enable these, add extensions.pop('<extension>', None) to _check_extensions
 
     Apart from the url protocol, proxies dict may contain the following keys:
     - `all`: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
@@ -263,26 +270,19 @@ class RequestHandler(abc.ABC):
             if scheme not in self._SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
-    def _check_cookiejar_extension(self, extensions):
-        if not extensions.get('cookiejar'):
-            return
-        if not isinstance(extensions['cookiejar'], CookieJar):
-            raise UnsupportedRequest('cookiejar is not a CookieJar')
-
-    def _check_timeout_extension(self, extensions):
-        if extensions.get('timeout') is None:
-            return
-        if not isinstance(extensions['timeout'], (float, int)):
-            raise UnsupportedRequest('timeout is not a float or int')
-
     def _check_extensions(self, extensions):
-        self._check_cookiejar_extension(extensions)
-        self._check_timeout_extension(extensions)
+        """Check extensions for unsupported extensions. Subclasses should extend this."""
+        assert isinstance(extensions.get('cookiejar'), (CookieJar, NoneType))
+        assert isinstance(extensions.get('timeout'), (float, int, NoneType))
 
     def _validate(self, request):
         self._check_url_scheme(request)
         self._check_proxies(request.proxies or self.proxies)
-        self._check_extensions(request.extensions)
+        extensions = request.extensions.copy()
+        self._check_extensions(extensions)
+        if extensions:
+            # TODO: add support for optional extensions
+            raise UnsupportedRequest(f'Unsupported extensions: {", ".join(extensions.keys())}')
 
     @wrap_request_errors
     def validate(self, request: Request):

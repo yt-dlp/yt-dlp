@@ -132,7 +132,6 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'age_limit': 0,
                 'thumbnail': r're:https?://.+\.jpg',
             },
-            'expected_warnings': ['Ignoring subtitle tracks'],
             'params': {
                 'skip_download': 'm3u8',
             },

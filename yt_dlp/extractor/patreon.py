@@ -2,21 +2,21 @@ import itertools
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
-
 from ..compat import compat_urllib_parse_unquote
 from ..networking.exceptions import HTTPError
 from ..utils import (
+    KNOWN_EXTENSIONS,
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     int_or_none,
-    KNOWN_EXTENSIONS,
     mimetype2ext,
     parse_iso8601,
     str_or_none,
     traverse_obj,
     try_get,
     url_or_none,
+    urljoin,
 )
 
 
@@ -404,8 +404,8 @@ class PatreonCampaignIE(PatreonBaseIE):
             posts_json = self._call_api('posts', campaign_id, query=params, note='Downloading posts page %d' % page)
 
             cursor = traverse_obj(posts_json, ('meta', 'pagination', 'cursors', 'next'))
-            for post in posts_json.get('data') or []:
-                yield self.url_result(url_or_none(traverse_obj(post, ('attributes', 'patreon_url'))), 'Patreon')
+            for post_url in traverse_obj(posts_json, ('data', ..., 'attributes', 'patreon_url')):
+                yield self.url_result(urljoin('https://www.patreon.com/', post_url), PatreonIE)
 
             if cursor is None:
                 break
