@@ -162,7 +162,8 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
+        'skip': 'cnet no longer seems to use theplatform, at least not in this video',
     }, {
         'url': 'https://player.theplatform.com/p/D6x-PC/pulse_preview/embed/select/media/yMBg9E8KFxZD',
         'info_dict': {
@@ -171,7 +172,8 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'description': 'md5:644ad9188d655b742f942bf2e06b002d',
             'title': 'HIGHLIGHTS: USA bag first ever series Cup win',
             'uploader': 'EGSM',
-        }
+        },
+        'skip': 'no clue where this comes from, and doesnt work anymore. If someone knows, please fix.',
     }, {
         'url': 'http://player.theplatform.com/p/NnzsPC/widget/select/media/4Y0TlYUr_ZT7',
         'only_matching': True,
@@ -189,6 +191,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'upload_date': '20150701',
             'uploader': 'NBCU-NEWS',
         },
+        'skip': 'Error: Player PID "nbcNewsOffsite" is disabled. Again, no clue where this comes from, someone please fix.'
     }, {
         # From http://www.nbc.com/the-blacklist/video/sir-crispin-crandall/2928790?onid=137781#vc137781=1
         # geo-restricted (US), HLS encrypted with AES-128
