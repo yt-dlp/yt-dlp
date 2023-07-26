@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from ..utils import parse_qs
 
 
 class RbgTumIE(InfoExtractor):
@@ -97,3 +98,37 @@ class RbgTumCourseIE(InfoExtractor):
             lecture_urls.append(self.url_result(f'{hostname}/w/{lecture_url}', ie=RbgTumIE))
 
         return self.playlist_result(lecture_urls, course_id, lecture_series_title)
+
+
+class RbgTumNewCourseIE(InfoExtractor):
+    _VALID_URL = r'(?P<hostname>https://(live\.rbg\.tum\.de|tum\.live))/\?'
+    _TESTS = [{
+        'url': 'https://live.rbg.tum.de/?year=2022&term=S&slug=fpv&view=3',
+        'info_dict': {
+            'title': 'Funktionale Programmierung und Verifikation (IN0003)',
+            'id': '2022/S/fpv',
+        },
+        'params': {
+            'noplaylist': False,
+        },
+        'playlist_count': 13,
+    }, {
+        'url': 'https://live.rbg.tum.de/?year=2022&term=W&slug=set&view=3',
+        'info_dict': {
+            'title': 'SET FSMPIC',
+            'id': '2022/W/set',
+        },
+        'params': {
+            'noplaylist': False,
+        },
+        'playlist_count': 6,
+    }, {
+        'url': 'https://tum.live/?year=2023&term=S&slug=linalginfo&view=3',
+        'only_matching': True,
+    }, ]
+
+    def _real_extract(self, url):
+        query = parse_qs(url)
+        year, term, slug = query['year'][0], query['term'][0], query['slug'][0]
+        hostname = self._match_valid_url(url).group('hostname')
+        return self.url_result(f'{hostname}/old/course/{year}/{term}/{slug}', ie=RbgTumCourseIE)

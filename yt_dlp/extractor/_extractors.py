@@ -1585,6 +1585,7 @@ from .rbmaradio import RBMARadioIE
 from .rbgtum import (
     RbgTumIE,
     RbgTumCourseIE,
+    RbgTumNewCourseIE,
 )
 from .rcs import (
     RCSIE,
