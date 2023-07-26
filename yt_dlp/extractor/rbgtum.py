@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import parse_qs
+from ..utils import parse_qs, ExtractorError
 
 
 class RbgTumIE(InfoExtractor):
@@ -61,7 +61,7 @@ class RbgTumIE(InfoExtractor):
 
 
 class RbgTumCourseIE(InfoExtractor):
-    _VALID_URL = r'(?P<hostname>https://(live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>.+)'
+    _VALID_URL = r'(?P<hostname>https://(?:live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>(?P<year>[^/]+)/(?P<term>[^/]+)/(?P<slug>.+))'
     _TESTS = [{
         'url': 'https://live.rbg.tum.de/old/course/2022/S/fpv',
         'info_dict': {
@@ -88,16 +88,29 @@ class RbgTumCourseIE(InfoExtractor):
     }, ]
 
     def _real_extract(self, url):
-        course_id, hostname = self._match_valid_url(url).group('id', 'hostname')
-        webpage = self._download_webpage(url, course_id)
+        course_id, hostname, year, term, slug = self._match_valid_url(url).group('id', 'hostname', 'year', 'term', 'slug')
 
-        lecture_series_title = self._html_search_regex(r'<title>(?:TUM-Live \| )(.*)</title>', webpage, 'title')
+        json = f'{hostname}/api/courses/{slug}/?year={year}&term={term}'
+        try:
+            meta = self._download_json(json, course_id)
 
-        lecture_urls = []
-        for lecture_url in re.findall(r'href="/w/([^/]+/[^/"]+)"', webpage):
-            lecture_urls.append(self.url_result(f'{hostname}/w/{lecture_url}', ie=RbgTumIE))
+            lecture_series_title = meta.get('Name')
+            streams = meta.get('Streams') or []
 
-        return self.playlist_result(lecture_urls, course_id, lecture_series_title)
+            lecture_urls = [self.url_result(f'{hostname}/w/{slug}/{stream["ID"]}', ie=RbgTumIE) for stream in streams if stream.get('ID')]
+
+            return self.playlist_result(lecture_urls, course_id, lecture_series_title)
+        except ExtractorError as e:
+            self.report_warning(f'Failed to download JSON: {e.cause}, falling back to HTML parsing')
+            webpage = self._download_webpage(url, course_id)
+
+            lecture_series_title = self._html_search_regex(r'<title>(?:TUM-Live \| )(.*)</title>', webpage, 'title')
+
+            lecture_urls = []
+            for lecture_url in re.findall(r'href="/w/([^/]+/[^/"]+)"', webpage):
+                lecture_urls.append(self.url_result(f'{hostname}/w/{lecture_url}', ie=RbgTumIE))
+
+            return self.playlist_result(lecture_urls, course_id, lecture_series_title)
 
 
 class RbgTumNewCourseIE(InfoExtractor):
