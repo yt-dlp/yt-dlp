@@ -101,6 +101,7 @@ class CBSIE(CBSBaseIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'geo-restricted, and needs a subscription',
     }, {
         'url': 'https://www.cbs.com/shows/video/sZH1MGgomIosZgxGJ1l263MFq16oMtW1/',
         'info_dict': {
@@ -117,6 +118,7 @@ class CBSIE(CBSBaseIE):
         },
         'expected_warnings': [
             'This content expired on', 'No video formats found', 'Requested format is not available'],
+        'skip': 'returns 404, plus videos here are generally geo-restricted',
     }, {
         'url': 'http://colbertlateshow.com/video/8GmB0oY0McANFvp2aEffk9jZZZ2YyXxy/the-colbeard/',
         'only_matching': True,
@@ -187,6 +189,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'thumbnail': r're:^https://.+\.jpg',
             'tags': [],
         },
+        'skip': 'geo-restricted',
     }, {
         'url': 'https://www.paramountpressexpress.com/cbs-entertainment/video/?watch=2s5eh8kppc',
         'md5': 'edcb03e3210b88a3e56c05aa863e0e5b',
@@ -202,6 +205,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'thumbnail': r're:^https://.+\.jpg',
             'tags': [],
         },
+        'skip': 'geo-restricted',
     }, {
         'url': 'https://www.paramountpressexpress.com/paramount-plus/yt-video/?watch=OX9wJWOcqck',
         'info_dict': {
@@ -228,6 +232,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'categories': ['Entertainment'],
             'tags': ['Rugrats'],
         },
+        'skip': 'geo-restricted',
     }, {
         'url': 'https://www.paramountpressexpress.com/showtime/yt-video/?watch=_ljssSoDLkw',
         'info_dict': {
@@ -255,6 +260,7 @@ class ParamountPressExpressIE(InfoExtractor):
             'categories': ['People & Blogs'],
             'tags': 'count:27',
         },
+        'skip': 'geo-restricted',
     }]
 
     def _real_extract(self, url):
