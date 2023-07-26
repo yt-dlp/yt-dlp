@@ -4,7 +4,7 @@ from .common import InfoExtractor
 
 
 class RbgTumIE(InfoExtractor):
-    _VALID_URL = r'https://(live\.rbg\.tum\.de|tum\.live)/w/(?P<id>.+)'
+    _VALID_URL = r'https://(?:live\.rbg\.tum\.de|tum\.live)/w/(?P<id>[^?#]+)'
     _TESTS = [{
         # Combined view
         'url': 'https://live.rbg.tum.de/w/cpp/22128',
@@ -36,7 +36,6 @@ class RbgTumIE(InfoExtractor):
             'series': 'Fachschaftsvollversammlung Informatik',
         }
     }, {
-        # new URL
         'url': 'https://tum.live/w/linalginfo/27102',
         'only_matching': True,
     }, ]
@@ -45,7 +44,7 @@ class RbgTumIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        m3u8 = self._html_search_regex(r'(https://.+?\.m3u8[^"]*)', webpage, 'm3u8')
+        m3u8 = self._html_search_regex(r'(https://[^"]+\.m3u8[^"]*)', webpage, 'm3u8')
         lecture_title = self._html_search_regex(r'(?si)<h1.*?>(.*)</h1>', webpage, 'title')
         lecture_series_title = self._html_search_regex(
             r'(?s)<title\b[^>]*>\s*(?:TUM-Live\s\|\s?)?([^:]+):?.*?</title>', webpage, 'series')
@@ -83,20 +82,18 @@ class RbgTumCourseIE(InfoExtractor):
         },
         'playlist_count': 6,
     }, {
-        # new URL
         'url': 'https://tum.live/course/2023/S/linalginfo',
         'only_matching': True,
     }, ]
 
     def _real_extract(self, url):
-        course_id = self._match_id(url)
-        hostname = self._match_valid_url(url).group('hostname')
+        course_id, hostname = self._match_valid_url(url).group('id', 'hostname')
         webpage = self._download_webpage(url, course_id)
 
         lecture_series_title = self._html_search_regex(r'(?si)<h1.*?>(.*)</h1>', webpage, 'title')
 
         lecture_urls = []
         for lecture_url in re.findall(r'(?i)href="/w/(.+)(?<!/cam)(?<!/pres)(?<!/chat)"', webpage):
-            lecture_urls.append(self.url_result(hostname + '/w/' + lecture_url, ie=RbgTumIE.ie_key()))
+            lecture_urls.append(self.url_result(f'{hostname}/w/{lecture_url}', ie=RbgTumIE))
 
         return self.playlist_result(lecture_urls, course_id, lecture_series_title)
