@@ -1134,19 +1134,14 @@ class TestYoutubeDLNetworking:
         ('https', 'socks5://example.com', 'socks5h://example.com'),
         ('http', 'socks://example.com', 'socks4://example.com'),
         ('http', 'socks4://example.com', 'socks4://example.com'),
-        ('unrelated', '/bad/proxy', '__notpresent__'),  # clean_proxies should remove bad proxies
+        ('unrelated', '/bad/proxy', '/bad/proxy'),  # clean_proxies should ignore bad proxies
     ])
     def test_clean_proxy(self, proxy_key, proxy_url, expected):
-        def check(proxies):
-            if expected == '__notpresent__':
-                assert proxy_key not in proxies
-            else:
-                assert proxies[proxy_key] == expected
 
         # proxies should be cleaned in urlopen()
         with FakeRHYDL() as ydl:
             req = ydl.urlopen(Request('test://', proxies={proxy_key: proxy_url})).request
-            check(req.proxies)
+            assert req.proxies[proxy_key] == expected
 
         # and should also be cleaned when building the handler
         env_key = f'{proxy_key.upper()}_PROXY'
@@ -1155,7 +1150,7 @@ class TestYoutubeDLNetworking:
             os.environ[env_key] = proxy_url  # ensure that provided proxies override env
             with FakeYDL() as ydl:
                 rh = self.build_handler(ydl)
-                check(rh.proxies)
+                assert rh.proxies[proxy_key] == expected
         finally:
             if old_env_proxy:
                 os.environ[env_key] = old_env_proxy
