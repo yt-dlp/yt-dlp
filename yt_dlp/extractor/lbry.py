@@ -84,7 +84,7 @@ class LBRYIE(LBRYBaseIE):
     _TESTS = [{
         # Video
         'url': 'https://lbry.tv/@Mantega:1/First-day-LBRY:1',
-        'md5': 'fffd15d76062e9a985c22c7c7f2f4805',
+        'md5': '65bd7ec1f6744ada55da8e4c48a2edf9',
         'info_dict': {
             'id': '17f983b61f53091fb8ea58a9c56804e4ff8cff4d',
             'ext': 'mp4',
@@ -133,9 +133,8 @@ class LBRYIE(LBRYBaseIE):
             'license': 'None',
         }
     }, {
-        # HLS
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
-        'md5': '25049011f3c8bc2f8b60ad88a031837e',
+        'md5': 'c35fac796f62a14274b4dc2addb5d0ba',
         'info_dict': {
             'id': 'e51671357333fe22ae88aad320bde2f6f96b1410',
             'ext': 'mp4',
