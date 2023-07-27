@@ -930,6 +930,10 @@ class TestRequestHandlerValidation:
         run_validation(handler, False, Request('http://', proxies={'http': None}))
         run_validation(handler, False, Request('http://'), proxies={'http': None})
 
+    @pytest.mark.parametrize('handler', ['Urllib', HTTPSupportedRH], indirect=True)
+    def test_invalid_proxy(self, handler):
+        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': '/a/b/c'}))
+
     @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1'])
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_missing_proxy_scheme(self, handler, proxy_url):
@@ -1126,15 +1130,23 @@ class TestYoutubeDLNetworking:
         ('http', '__noproxy__', None),
         ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
         ('https', 'example.com', 'http://example.com'),
+        ('https', '//example.com', 'http://example.com'),
         ('https', 'socks5://example.com', 'socks5h://example.com'),
         ('http', 'socks://example.com', 'socks4://example.com'),
         ('http', 'socks4://example.com', 'socks4://example.com'),
+        ('unrelated', '/bad/proxy', '__notpresent__'),  # clean_proxies should remove bad proxies
     ])
     def test_clean_proxy(self, proxy_key, proxy_url, expected):
+        def check(proxies):
+            if expected == '__notpresent__':
+                assert proxy_key not in proxies
+            else:
+                assert proxies[proxy_key] == expected
+
         # proxies should be cleaned in urlopen()
         with FakeRHYDL() as ydl:
             req = ydl.urlopen(Request('test://', proxies={proxy_key: proxy_url})).request
-            assert req.proxies[proxy_key] == expected
+            check(req.proxies)
 
         # and should also be cleaned when building the handler
         env_key = f'{proxy_key.upper()}_PROXY'
@@ -1143,7 +1155,7 @@ class TestYoutubeDLNetworking:
             os.environ[env_key] = proxy_url  # ensure that provided proxies override env
             with FakeYDL() as ydl:
                 rh = self.build_handler(ydl)
-                assert rh.proxies[proxy_key] == expected
+                check(rh.proxies)
         finally:
             if old_env_proxy:
                 os.environ[env_key] = old_env_proxy
