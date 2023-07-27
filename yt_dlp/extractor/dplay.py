@@ -783,6 +783,9 @@ class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
             'duration': 1066.356,
             'tags': [],
         },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/ugly-duckling/2450033/12439',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'MTOD'
