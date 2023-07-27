@@ -142,6 +142,9 @@ class RbgTumNewCourseIE(InfoExtractor):
 
     def _real_extract(self, url):
         query = parse_qs(url)
-        year, term, slug = query['year'][0], query['term'][0], query['slug'][0]
+        try:
+            year, term, slug = query['year'][0], query['term'][0], query['slug'][0]
+        except KeyError as e:
+            raise ExtractorError(f'Failed to parse URL, expected query parameters: {e}') from e
         hostname = self._match_valid_url(url).group('hostname')
         return self.url_result(f'{hostname}/old/course/{year}/{term}/{slug}', ie=RbgTumCourseIE)
