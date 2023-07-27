@@ -2562,7 +2562,7 @@ class GenericIE(InfoExtractor):
         self._downloader.write_debug('Looking for embeds')
         embeds = list(self._extract_embeds(original_url, webpage, urlh=full_response, info_dict=info_dict))
         if len(embeds) == 1:
-            return {**info_dict, **embeds[0]}
+            return merge_dicts(embeds[0], info_dict)
         elif embeds:
             return self.playlist_result(embeds, **info_dict)
         raise UnsupportedError(url)
