@@ -930,14 +930,10 @@ class TestRequestHandlerValidation:
         run_validation(handler, False, Request('http://', proxies={'http': None}))
         run_validation(handler, False, Request('http://'), proxies={'http': None})
 
-    @pytest.mark.parametrize('handler', ['Urllib', HTTPSupportedRH], indirect=True)
-    def test_invalid_proxy(self, handler):
-        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': '/a/b/c'}))
-
-    @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1'])
+    @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1', '/a/b/c'])
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_missing_proxy_scheme(self, handler, proxy_url):
-        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': 'example.com'}))
+    def test_invalid_proxy_url(self, handler, proxy_url):
+        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': proxy_url}))
 
     @pytest.mark.parametrize('handler,extensions,fail', [
         (handler_tests[0], extensions, fail)
@@ -1137,7 +1133,6 @@ class TestYoutubeDLNetworking:
         ('unrelated', '/bad/proxy', '/bad/proxy'),  # clean_proxies should ignore bad proxies
     ])
     def test_clean_proxy(self, proxy_key, proxy_url, expected):
-
         # proxies should be cleaned in urlopen()
         with FakeRHYDL() as ydl:
             req = ydl.urlopen(Request('test://', proxies={proxy_key: proxy_url})).request

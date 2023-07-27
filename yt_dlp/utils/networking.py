@@ -90,7 +90,6 @@ def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
     if req_proxy:
         proxies.clear()  # XXX: compat: Ytdl-Request-Proxy takes preference over everything, including NO_PROXY
         proxies['all'] = req_proxy
-
     for proxy_key, proxy_url in proxies.items():
         if proxy_url == '__noproxy__':
             proxies[proxy_key] = None
