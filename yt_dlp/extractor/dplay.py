@@ -767,6 +767,22 @@ class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
             'upload_date': '20140101',
             'tags': [],
         },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/roadworthy-rescues-teaser-trailer/4922860/',
+        'info_dict': {
+            'id': '4922860',
+            'ext': 'mp4',
+            'title': 'Roadworthy Rescues | Teaser Trailer',
+            'description': 'Derek Bieri helps Freiburger and Finnegan with their \'68 big-block Dart.',
+            'display_id': 'roadworthy-rescues-teaser-trailer/4922860',
+            'creator': 'Originals',
+            'series': 'Roadworthy Rescues',
+            'thumbnail': r're:^https?://.+\.jpe?g$',
+            'upload_date': '20220907',
+            'timestamp': 1662523200,
+            'duration': 1066.356,
+            'tags': [],
+        },
     }]
 
     _PRODUCT = 'MTOD'
