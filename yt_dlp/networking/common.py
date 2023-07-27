@@ -262,9 +262,13 @@ class RequestHandler(abc.ABC):
                 # Skip proxy scheme checks
                 continue
 
-            # Scheme-less proxies are not supported
-            if urllib.request._parse_proxy(proxy_url)[0] is None:
-                raise UnsupportedRequest(f'Proxy "{proxy_url}" missing scheme')
+            try:
+                if urllib.request._parse_proxy(proxy_url)[0] is None:
+                    # Scheme-less proxies are not supported
+                    raise UnsupportedRequest(f'Proxy "{proxy_url}" missing scheme')
+            except ValueError as e:
+                # parse_proxy may raise on some invalid proxy urls such as "/a/b/c"
+                raise UnsupportedRequest(f'Invalid proxy url "{proxy_url}": {e}')
 
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
             if scheme not in self._SUPPORTED_PROXY_SCHEMES:
