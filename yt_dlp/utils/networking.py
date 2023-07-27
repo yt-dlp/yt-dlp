@@ -99,7 +99,13 @@ def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
             continue
         if proxy_url is not None:
             # Ensure proxies without a scheme are http.
-            proxy_scheme = urllib.request._parse_proxy(proxy_url)[0]
+            try:
+                proxy_scheme = urllib.request._parse_proxy(proxy_url)[0]
+            except ValueError:
+                # Ignore invalid proxy URLs. Sometimes these may be introduced through environment
+                # variables unrelated to proxy settings - e.g. Colab `COLAB_LANGUAGE_SERVER_PROXY`.
+                # If the proxy is going to be used, the Request Handler proxy validation will handle it.
+                continue
             if proxy_scheme is None:
                 proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
 
