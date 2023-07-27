@@ -206,11 +206,11 @@ class TikTokBaseIE(InfoExtractor):
         known_resolutions = {}
 
         def audio_meta(url):
-            ext = determine_ext(url)
+            ext = determine_ext(url, default_ext='m4a')
             return {
                 'format_note': 'Music track',
-                'ext': 'm4a' if ext != 'mp3' else ext,
-                'acodec': 'aac' if ext != 'mp3' else ext,
+                'ext': ext,
+                'acodec': 'aac' if ext == 'm4a' else ext,
                 'vcodec': 'none',
                 'width': None,
                 'height': None,
