@@ -205,15 +205,16 @@ class TikTokBaseIE(InfoExtractor):
 
         known_resolutions = {}
 
-        def mp3_meta(url):
+        def audio_meta(url):
+            ext = determine_ext(url)
             return {
                 'format_note': 'Music track',
-                'ext': 'mp3',
-                'acodec': 'mp3',
+                'ext': 'm4a' if ext != 'mp3' else ext,
+                'acodec': 'aac' if ext != 'mp3' else ext,
                 'vcodec': 'none',
                 'width': None,
                 'height': None,
-            } if determine_ext(url) == 'mp3' else {}
+            } if ext == 'mp3' or '-music-' in url else {}
 
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
@@ -231,7 +232,7 @@ class TikTokBaseIE(InfoExtractor):
                 **add_meta, **parsed_meta,
                 'format_note': join_nonempty(
                     add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' '),
-                **mp3_meta(url),
+                **audio_meta(url),
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
