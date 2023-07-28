@@ -11,3 +11,7 @@ from .common import (
 # isort: split
 # TODO: all request handlers should be safely imported
 from . import _urllib
+try:
+    from . import _curlcffi  # noqa: F401
+except ImportError:
+    pass
