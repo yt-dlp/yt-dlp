@@ -1,7 +1,6 @@
 # flake8: noqa: 401
 from .common import (
     HEADRequest,
-    Preference,
     PUTRequest,
     Request,
     RequestDirector,

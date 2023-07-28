@@ -4078,7 +4078,7 @@ class YoutubeDL:
         except HTTPError as e:  # TODO: Remove in a future release
             raise _CompatHTTPError(e) from e
 
-    def build_request_director(self, handlers, preferences):
+    def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)
         headers = self.params.get('http_headers').copy()
         proxies = self.proxies.copy()
@@ -4107,7 +4107,7 @@ class YoutubeDL:
                     },
                 }),
             ))
-        director.preferences.update(preferences)
+        director.preferences.update(preferences or [])
         return director
 
     def encode(self, s):
