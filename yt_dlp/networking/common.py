@@ -58,10 +58,12 @@ class RequestDirector:
 
     Helper class that, when given a request, forward it to a RequestHandler that supports it.
 
+    Preference functions in the form of func(handler, request) -> int
+    can be registered into the `preferences` set. These are used to sort handlers
+    in order of preference.
+
     @param logger: Logger instance.
     @param verbose: Print debug request information to stdout.
-
-    TODO: preferences doc
     """
 
     def __init__(self, logger, verbose=False):
