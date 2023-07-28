@@ -35,7 +35,6 @@ from yt_dlp.networking import (
     PUTRequest,
     Request,
     RequestDirector,
-    Preference,
     RequestHandler,
     Response,
 )
@@ -1013,22 +1012,17 @@ class TestRequestDirector:
         assert isinstance(director.send(Request('http://')), FakeResponse)
 
     def test_unsupported_handlers(self):
-        director = RequestDirector(logger=FakeLogger())
-        director.add_handler(FakeRH(logger=FakeLogger()))
-
         class SupportedRH(RequestHandler):
             _SUPPORTED_URL_SCHEMES = ['http']
 
             def _send(self, request: Request):
                 return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
 
-        class SupportedRHPReference(Preference):
-            _RH_KEY = 'Supported'
-            _PREFERENCE = 100
-
-        # This handler should by default take preference over FakeRH
+        director = RequestDirector(logger=FakeLogger())
         director.add_handler(SupportedRH(logger=FakeLogger()))
-        director.add_preference(SupportedRHPReference())
+        director.add_handler(FakeRH(logger=FakeLogger()))
+
+        # First should take preference
         assert director.send(Request('http://')).read() == b'supported'
         assert director.send(Request('any://')).read() == b''
 
@@ -1065,71 +1059,16 @@ class TestRequestDirector:
             def _send(self, request: Request):
                 return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
 
-        class SomeRHPreference(Preference):
-            _RH_KEY = SomeRH.RH_KEY
-
-            def _get_preference(self, request, handler):
-                if 'prefer' in request.headers:
-                    return 100
-                else:
-                    return -1
+        def some_preference(rh, request):
+            return (0 if not isinstance(rh, SomeRH)
+                    else 100 if 'prefer' in request.headers
+                    else -1)
 
         director.add_handler(SomeRH(logger=FakeLogger()))
-        preference = SomeRHPreference()
-        director.add_preference(preference)
-        assert preference in director.preferences
+        director.preferences.add(some_preference)
 
         assert director.send(Request('http://')).read() == b''
         assert director.send(Request('http://', headers={'prefer': '1'})).read() == b'supported'
-
-
-class TestPreference:
-    def test_class_vars(self):
-
-        class TestRH(FakeRH):
-            pass
-
-        class TestTwoRH(FakeRH):
-            pass
-
-        class TestPreference(Preference):
-            _RH_KEY = TestRH.RH_KEY
-            _PREFERENCE = 100
-
-        assert TestPreference().get_preference(Request('http://'), TestRH(logger=FakeLogger())) == 100
-        assert TestPreference().get_preference(Request('http://'), TestTwoRH(logger=FakeLogger())) == 0
-
-        class AnyPreference(Preference):
-            _RH_KEY = None
-            _PREFERENCE = 100
-
-        assert AnyPreference().get_preference(Request('http://'), TestRH(logger=FakeLogger())) == 100
-        assert AnyPreference().get_preference(Request('http://'), TestTwoRH(logger=FakeLogger())) == 100
-
-    def test_dynamic(self):
-        class TestRH(FakeRH):
-            pass
-
-        class TestTwoRH(FakeRH):
-            pass
-
-        class TestPreference(Preference):
-            _RH_KEY = TestRH.RH_KEY
-
-            def _get_preference(self, request, handler):
-                return 100
-
-        assert TestPreference().get_preference(Request('http://'), TestRH(logger=FakeLogger())) == 100
-        assert TestPreference().get_preference(Request('http://'), TestTwoRH(logger=FakeLogger())) == 0
-
-    def test_default(self):
-        class TestRH(FakeRH):
-            pass
-
-        class TestPreference(Preference):
-            pass
-
-        assert TestPreference().get_preference(Request('http://'), TestRH(logger=FakeLogger())) == 0
 
 
 # XXX: do we want to move this to test_YoutubeDL.py?

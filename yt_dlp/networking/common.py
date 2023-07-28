@@ -34,45 +34,23 @@ from ..utils.networking import HTTPHeaderDict
 
 if typing.TYPE_CHECKING:
     RequestData = bytes | Iterable[bytes] | typing.IO | None
+    Preference = typing.Callable[[RequestHandler, Request], int]
 
-_PREFERENCES = []
-
-
-def register_preference(preference: type[Preference]):
-    """Register a RequestHandler class"""
-    assert issubclass(preference, Preference), f'{preference} must be a subclass of Preference'
-    assert preference not in _PREFERENCES, f'{preference} is already registered'
-    _PREFERENCES.append(preference)
-    return preference
+_RH_PREFERENCES: set[Preference] = set()
 
 
-class Preference:
-    """Preference class
+def register_preference(*handlers: type[RequestHandler]):
+    assert all(issubclass(handler, RequestHandler) for handler in handlers)
 
-    Used by RequestDirector to determine the order in which RequestHandlers should be tried for a given request.
-    The higher the preference, the higher the priority of the handler.
-
-    _RH_KEY: optional, to restrict the preference to a specific RequestHandler
-    _PREFERENCE: optional, to add a fixed preference for a handler. Takes precedence over _get_preference.
-
-    If subclasses do not set _PREFERENCE, they should implement _get_preference
-     to dynamically generate a preference based off the request and handler.
-
-    The returned preference should be an integer. The default preference is 0.
-    """
-    _RH_KEY: str = None
-    _PREFERENCE: int = None
-
-    def get_preference(self, request: Request, handler: RequestHandler) -> int:
-        if self._RH_KEY is not None and handler.RH_KEY != self._RH_KEY:
+    def outer(preference: Preference):
+        @functools.wraps(preference)
+        def inner(handler, *args, **kwargs):
+            if not handlers or isinstance(handler, handlers):
+                return preference(handler, *args, **kwargs)
             return 0
-        elif self._PREFERENCE is not None:
-            return self._PREFERENCE
-        return self._get_preference(request, handler)
-
-    def _get_preference(self, request: Request, handler: RequestHandler) -> int:
-        """Generate a preference for the given request and handler. Implement this method in subclasses"""
-        return 0
+        _RH_PREFERENCES.add(inner)
+        return inner
+    return outer
 
 
 class RequestDirector:
@@ -82,6 +60,8 @@ class RequestDirector:
 
     @param logger: Logger instance.
     @param verbose: Print debug request information to stdout.
+
+    TODO: preferences doc
     """
 
     def __init__(self, logger, verbose=False):
@@ -99,19 +79,15 @@ class RequestDirector:
         assert isinstance(handler, RequestHandler), 'handler must be a RequestHandler'
         self.handlers[handler.RH_KEY] = handler
 
-    def add_preference(self, preference: Preference):
-        assert isinstance(preference, Preference), 'preference must be a Preference'
-        self.preferences.add(preference)
-
     def _get_handlers(self, request: Request) -> list[RequestHandler]:
         """Sorts handlers by preference, given a request"""
-        handler_preferences = {}
-        for rh_key, handler in self.handlers.items():
-            handler_preferences.setdefault(rh_key, 0)
-            for preference in self.preferences:
-                handler_preferences[rh_key] += preference.get_preference(request, handler)
-        self._print_verbose(f'Handler preferences for this request: {handler_preferences}')
-        return sorted(self.handlers.values(), key=lambda h: handler_preferences[h.RH_KEY], reverse=True)
+        preferences = {
+            rh: sum(pref(rh, request) for pref in self.preferences)
+            for rh in self.handlers.values()
+        }
+        self._print_verbose('Handler preferences for this request: %s' % ', '.join(
+            f'{rh.RH_NAME}={pref}' for rh, pref in preferences.items()))
+        return sorted(self.handlers.values(), key=preferences.get, reverse=True)
 
     def _print_verbose(self, msg):
         if self.verbose:
