@@ -32,12 +32,6 @@ from ..utils import (
 )
 from ..utils.networking import HTTPHeaderDict
 
-if typing.TYPE_CHECKING:
-    RequestData = bytes | Iterable[bytes] | typing.IO | None
-    Preference = typing.Callable[[RequestHandler, Request], int]
-
-_RH_PREFERENCES: set[Preference] = set()
-
 
 def register_preference(*handlers: type[RequestHandler]):
     assert all(issubclass(handler, RequestHandler) for handler in handlers)
@@ -561,3 +555,10 @@ class Response(io.IOBase):
     def getheader(self, name, default=None):
         deprecation_warning('Response.getheader() is deprecated, use Response.get_header', stacklevel=2)
         return self.get_header(name, default)
+
+
+if typing.TYPE_CHECKING:
+    RequestData = bytes | Iterable[bytes] | typing.IO | None
+    Preference = typing.Callable[[RequestHandler, Request], int]
+
+_RH_PREFERENCES: set[Preference] = set()
