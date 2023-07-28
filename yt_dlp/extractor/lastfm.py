@@ -126,4 +126,42 @@ class LastFMIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         player_url = self._search_regex(r'(?s)class="header-new-playlink"\s+href="([^"]+)"', webpage, 'player_url')
-        return self.url_result(player_url, 'Youtube')
+
+        preferred_original = {}
+        track_or_album = re.search(r'(?s)class="header-new-playlink".*?(Play\s+(?:track|album))', webpage).group(1)
+        media_type = None
+        if track_or_album == 'Play track':
+            media_type = 'track'
+        elif track_or_album == 'Play album':
+            media_type = 'album'
+
+        def get_albums(webpage):
+            base_url = 'https://www.last.fm'
+            albums = re.findall(r'(?s)class="source-album-details".*?href="([^"]+)"', webpage)
+            return list(set([base_url + url if url.startswith('/') else url for url in albums]))
+
+        def get_album_meta(webpage):
+            thumbnail = re.search(r'(?s)class="cover-art".*?img\s+src="([^"]+)"', webpage).group(1)
+            release_date = re.search(r'(?s)class="catalogue-metadata-heading">Release\s+Date</dt>.*?>(\d+)\s+(\w+)\s+(\d+)</dd>', webpage).groups()
+            import datetime
+            release_date = datetime.datetime.strptime(' '.join(release_date), '%d %B %Y').date()
+            return {'thumbnail': thumbnail, 'release_date': release_date}
+
+        if media_type == 'track':
+            albums = get_albums(webpage)
+            albums_meta = []
+            import urllib.request as req
+            for album in albums:
+                with req.urlopen(album) as response:
+                    album_webpage = response.read().decode('utf-8')
+                album_meta = get_album_meta(album_webpage)
+                albums_meta.append(album_meta)
+            earliest_album = sorted(albums_meta, key=lambda a: a['release_date'])[0]
+            preferred_original['thumbnail'] = earliest_album['thumbnail']
+
+        result = self.url_result(player_url, 'Youtube')
+        result['preferred_original'] = preferred_original
+        thumbnails = [{'url': preferred_original['thumbnail']}]
+        result['thumbnails'] = thumbnails
+        result['_type'] = 'url_transparent'
+        return result
