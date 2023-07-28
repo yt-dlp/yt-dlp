@@ -173,6 +173,12 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Location', self.path)
             self.send_header('Content-Length', '0')
             self.end_headers()
+        elif self.path == '/redirect_dotsegments':
+            self.send_response(301)
+            # redirect to /headers but with dot segments before
+            self.send_header('Location', '/a/b/./../../headers')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         elif self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -353,6 +359,21 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             # don't normalize existing percent encodings
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
             assert res.status == 200
+            res.close()
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_remove_dot_segments(self, handler):
+        with handler() as rh:
+            # This isn't a comprehensive test,
+            # but it should be enough to check whether the handler is removing dot segments
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/a/b/./../../headers'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
+            res.close()
+
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_dotsegments'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
             res.close()
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)

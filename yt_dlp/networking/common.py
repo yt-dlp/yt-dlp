@@ -27,10 +27,9 @@ from ..utils import (
     classproperty,
     deprecation_warning,
     error_to_str,
-    escape_url,
     update_url_query,
 )
-from ..utils.networking import HTTPHeaderDict
+from ..utils.networking import HTTPHeaderDict, normalize_url
 
 if typing.TYPE_CHECKING:
     RequestData = bytes | Iterable[bytes] | typing.IO | None
@@ -372,7 +371,7 @@ class Request:
             raise TypeError('url must be a string')
         elif url.startswith('//'):
             url = 'http:' + url
-        self._url = escape_url(url)
+        self._url = normalize_url(url)
 
     @property
     def method(self):
