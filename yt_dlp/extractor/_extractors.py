@@ -2363,6 +2363,7 @@ from .weyyak import WeyyakIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
+from .wimbledon import WimbledonIE
 from .wimtv import WimTVIE
 from .whowatch import WhoWatchIE
 from .wistia import (
