@@ -36,8 +36,8 @@ class MegaTubeIE(InfoExtractor):
         thumbnail = data_json.get('preview_url')
 
         title = (self._og_search_title(
-            webpage, default=None) or self._html_extract_title(
-            webpage).split("(")[0]
+            webpage, default=None) or re.sub("(.*)\(.*\)", "\\1", 
+            self._html_extract_title(webpage)).strip()
         ).strip()
 
         return {
