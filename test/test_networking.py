@@ -173,6 +173,12 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Location', self.path)
             self.send_header('Content-Length', '0')
             self.end_headers()
+        elif self.path == '/redirect_dotsegments':
+            self.send_response(301)
+            # redirect to /headers but with dot segments before
+            self.send_header('Location', '/a/b/./../../headers')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         elif self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -353,6 +359,21 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             # don't normalize existing percent encodings
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
             assert res.status == 200
+            res.close()
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_remove_dot_segments(self, handler):
+        with handler() as rh:
+            # This isn't a comprehensive test,
+            # but it should be enough to check whether the handler is removing dot segments
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/a/b/./../../headers'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
+            res.close()
+
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_dotsegments'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
             res.close()
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
@@ -785,29 +806,38 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_httplib_validation_errors(self, handler):
+    @pytest.mark.parametrize('req,match,version_check', [
+        # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1256
+        # bpo-39603: Check implemented in 3.7.9+, 3.8.5+
+        (
+            Request('http://127.0.0.1', method='GET\n'),
+            'method can\'t contain control characters',
+            lambda v: v < (3, 7, 9) or (3, 8, 0) <= v < (3, 8, 5)
+        ),
+        # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1265
+        # bpo-38576: Check implemented in 3.7.8+, 3.8.3+
+        (
+            Request('http://127.0.0. 1', method='GET'),
+            'URL can\'t contain control characters',
+            lambda v: v < (3, 7, 8) or (3, 8, 0) <= v < (3, 8, 3)
+        ),
+        # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1288C31-L1288C50
+        (Request('http://127.0.0.1', headers={'foo\n': 'bar'}), 'Invalid header name', None),
+    ])
+    def test_httplib_validation_errors(self, handler, req, match, version_check):
+        if version_check and version_check(sys.version_info):
+            pytest.skip(f'Python {sys.version} version does not have the required validation for this test.')
+
         with handler() as rh:
-
-            # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1256
-            with pytest.raises(RequestError, match='method can\'t contain control characters') as exc_info:
-                validate_and_send(rh, Request('http://127.0.0.1', method='GET\n'))
-            assert not isinstance(exc_info.value, TransportError)
-
-            # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1265
-            with pytest.raises(RequestError, match='URL can\'t contain control characters') as exc_info:
-                validate_and_send(rh, Request('http://127.0.0. 1', method='GET\n'))
-            assert not isinstance(exc_info.value, TransportError)
-
-            # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1288C31-L1288C50
-            with pytest.raises(RequestError, match='Invalid header name') as exc_info:
-                validate_and_send(rh, Request('http://127.0.0.1', headers={'foo\n': 'bar'}))
+            with pytest.raises(RequestError, match=match) as exc_info:
+                validate_and_send(rh, req)
             assert not isinstance(exc_info.value, TransportError)
 
 
-def run_validation(handler, fail, req, **handler_kwargs):
+def run_validation(handler, error, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
-        if fail:
-            with pytest.raises(UnsupportedRequest):
+        if error:
+            with pytest.raises(error):
                 rh.validate(req)
         else:
             rh.validate(req)
@@ -824,6 +854,9 @@ class TestRequestHandlerValidation:
         _SUPPORTED_PROXY_SCHEMES = None
         _SUPPORTED_URL_SCHEMES = None
 
+        def _check_extensions(self, extensions):
+            extensions.clear()
+
     class HTTPSupportedRH(ValidationRH):
         _SUPPORTED_URL_SCHEMES = ('http',)
 
@@ -834,26 +867,26 @@ class TestRequestHandlerValidation:
             ('https', False, {}),
             ('data', False, {}),
             ('ftp', False, {}),
-            ('file', True, {}),
+            ('file', UnsupportedRequest, {}),
             ('file', False, {'enable_file_urls': True}),
         ]),
         (NoCheckRH, [('http', False, {})]),
-        (ValidationRH, [('http', True, {})])
+        (ValidationRH, [('http', UnsupportedRequest, {})])
     ]
 
     PROXY_SCHEME_TESTS = [
         # scheme, expected to fail
         ('Urllib', [
             ('http', False),
-            ('https', True),
+            ('https', UnsupportedRequest),
             ('socks4', False),
             ('socks4a', False),
             ('socks5', False),
             ('socks5h', False),
-            ('socks', True),
+            ('socks', UnsupportedRequest),
         ]),
         (NoCheckRH, [('http', False)]),
-        (HTTPSupportedRH, [('http', True)]),
+        (HTTPSupportedRH, [('http', UnsupportedRequest)]),
     ]
 
     PROXY_KEY_TESTS = [
@@ -863,8 +896,22 @@ class TestRequestHandlerValidation:
             ('unrelated', False),
         ]),
         (NoCheckRH, [('all', False)]),
-        (HTTPSupportedRH, [('all', True)]),
-        (HTTPSupportedRH, [('no', True)]),
+        (HTTPSupportedRH, [('all', UnsupportedRequest)]),
+        (HTTPSupportedRH, [('no', UnsupportedRequest)]),
+    ]
+
+    EXTENSION_TESTS = [
+        ('Urllib', [
+            ({'cookiejar': 'notacookiejar'}, AssertionError),
+            ({'cookiejar': CookieJar()}, False),
+            ({'timeout': 1}, False),
+            ({'timeout': 'notatimeout'}, AssertionError),
+            ({'unsupported': 'value'}, UnsupportedRequest),
+        ]),
+        (NoCheckRH, [
+            ({'cookiejar': 'notacookiejar'}, False),
+            ({'somerandom': 'test'}, False),  # but any extension is allowed through
+        ]),
     ]
 
     @pytest.mark.parametrize('handler,scheme,fail,handler_kwargs', [
@@ -904,18 +951,19 @@ class TestRequestHandlerValidation:
         run_validation(handler, False, Request('http://', proxies={'http': None}))
         run_validation(handler, False, Request('http://'), proxies={'http': None})
 
-    @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1'])
+    @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1', '/a/b/c'])
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_missing_proxy_scheme(self, handler, proxy_url):
-        run_validation(handler, True, Request('http://', proxies={'http': 'example.com'}))
+    def test_invalid_proxy_url(self, handler, proxy_url):
+        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': proxy_url}))
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_cookiejar_extension(self, handler):
-        run_validation(handler, True, Request('http://', extensions={'cookiejar': 'notacookiejar'}))
-
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_timeout_extension(self, handler):
-        run_validation(handler, True, Request('http://', extensions={'timeout': 'notavalidtimeout'}))
+    @pytest.mark.parametrize('handler,extensions,fail', [
+        (handler_tests[0], extensions, fail)
+        for handler_tests in EXTENSION_TESTS
+        for extensions, fail in handler_tests[1]
+    ], indirect=['handler'])
+    def test_extension(self, handler, extensions, fail):
+        run_validation(
+            handler, fail, Request('http://', extensions=extensions))
 
     def test_invalid_request_type(self):
         rh = self.ValidationRH(logger=FakeLogger())
@@ -1099,9 +1147,11 @@ class TestYoutubeDLNetworking:
         ('http', '__noproxy__', None),
         ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
         ('https', 'example.com', 'http://example.com'),
+        ('https', '//example.com', 'http://example.com'),
         ('https', 'socks5://example.com', 'socks5h://example.com'),
         ('http', 'socks://example.com', 'socks4://example.com'),
         ('http', 'socks4://example.com', 'socks4://example.com'),
+        ('unrelated', '/bad/proxy', '/bad/proxy'),  # clean_proxies should ignore bad proxies
     ])
     def test_clean_proxy(self, proxy_key, proxy_url, expected):
         # proxies should be cleaned in urlopen()
