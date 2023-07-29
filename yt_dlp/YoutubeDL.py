@@ -4087,7 +4087,7 @@ class YoutubeDL:
 
         director = RequestDirector(logger=logger, verbose=self.params.get('debug_printtraffic'))
         for handler in handlers:
-            director.add_handler(handler(
+            params = dict(
                 logger=logger,
                 headers=headers,
                 cookiejar=self.cookiejar,
@@ -4105,8 +4105,14 @@ class YoutubeDL:
                         'client_certificate_key': 'client_certificate_key',
                         'client_certificate_password': 'client_certificate_password',
                     },
-                }),
-            ))
+                }))
+            if handler.RH_KEY == 'Requests':
+                # Increase the requests connection pool size if the number of concurrent downloads is high.
+                # Otherwise, since the pool size is limited to 10 by default, requests will not reuse some connections.
+                n = self.params.get('concurrent_fragment_downloads', 1)
+                if n > handler.DEFAULT_POOLSIZE:
+                    params['conn_pool_maxsize'] = n
+            director.add_handler(handler(**params))
         return director
 
     def encode(self, s):
