@@ -29,6 +29,7 @@ from email.message import Message
 from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
+from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli
 from yt_dlp.networking import (
     HEADRequest,
@@ -478,7 +479,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert 'Cookie: test=test' not in res
 
         # Specified Cookie header should override global cookiejar for that request
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             version=0, name='test', value='ytdlp', port=None, port_specified=False,
             domain='127.0.0.1', domain_specified=True, domain_initial_dot=False, path='/',
@@ -505,7 +506,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_cookies(self, handler):
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
             False, '/headers', True, False, None, False, None, None, {}))
@@ -903,7 +904,8 @@ class TestRequestHandlerValidation:
     EXTENSION_TESTS = [
         ('Urllib', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
-            ({'cookiejar': CookieJar()}, False),
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
+            ({'cookiejar': CookieJar()}, AssertionError),
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),

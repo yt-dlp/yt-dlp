@@ -831,6 +831,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id&hi {:>10} {}|)s', 'hi       1234 1234')
         test(R'%(id&{0} {}|)s', 'NA')
         test(R'%(id&{0.1}|)s', 'NA')
+        test('%(height&{:,d})S', '1,080')
 
         # Laziness
         def gen():

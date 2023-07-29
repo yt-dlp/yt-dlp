@@ -248,9 +248,9 @@ class LBRYIE(LBRYBaseIE):
 
             # GET request to v3 API returns original video/audio file if available
             direct_url = re.sub(r'/api/v\d+/', '/api/v3/', streaming_url)
-            ext = urlhandle_detect_ext(self._request_webpage(
-                direct_url, display_id, 'Checking for original quality', headers=headers))
-            if ext != 'm3u8':
+            urlh = self._request_webpage(
+                direct_url, display_id, 'Checking for original quality', headers=headers, fatal=False)
+            if urlh and urlhandle_detect_ext(urlh) != 'm3u8':
                 formats.append({
                     'url': direct_url,
                     'format_id': 'original',

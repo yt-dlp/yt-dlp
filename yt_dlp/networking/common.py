@@ -12,7 +12,6 @@ import urllib.response
 from collections.abc import Iterable, Mapping
 from email.message import Message
 from http import HTTPStatus
-from http.cookiejar import CookieJar
 
 from ._helper import make_ssl_context, wrap_request_errors
 from .exceptions import (
@@ -22,6 +21,7 @@ from .exceptions import (
     UnsupportedRequest,
 )
 from ..compat.types import NoneType
+from ..cookies import YoutubeDLCookieJar
 from ..utils import (
     bug_reports_message,
     classproperty,
@@ -194,7 +194,7 @@ class RequestHandler(abc.ABC):
         self, *,
         logger,  # TODO(Grub4k): default logger
         headers: HTTPHeaderDict = None,
-        cookiejar: CookieJar = None,
+        cookiejar: YoutubeDLCookieJar = None,
         timeout: float | int | None = None,
         proxies: dict = None,
         source_address: str = None,
@@ -208,7 +208,7 @@ class RequestHandler(abc.ABC):
 
         self._logger = logger
         self.headers = headers or {}
-        self.cookiejar = cookiejar if cookiejar is not None else CookieJar()
+        self.cookiejar = cookiejar if cookiejar is not None else YoutubeDLCookieJar()
         self.timeout = float(timeout or 20)
         self.proxies = proxies or {}
         self.source_address = source_address
@@ -275,7 +275,7 @@ class RequestHandler(abc.ABC):
 
     def _check_extensions(self, extensions):
         """Check extensions for unsupported extensions. Subclasses should extend this."""
-        assert isinstance(extensions.get('cookiejar'), (CookieJar, NoneType))
+        assert isinstance(extensions.get('cookiejar'), (YoutubeDLCookieJar, NoneType))
         assert isinstance(extensions.get('timeout'), (float, int, NoneType))
 
     def _validate(self, request):
@@ -302,6 +302,7 @@ class RequestHandler(abc.ABC):
     @abc.abstractmethod
     def _send(self, request: Request):
         """Handle a request from start to finish. Redefine in subclasses."""
+        pass
 
     def close(self):
         pass
