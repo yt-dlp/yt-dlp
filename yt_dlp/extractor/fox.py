@@ -20,7 +20,7 @@ from ..utils import (
 
 
 class FOXIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fox\.com/watch/(?P<id>[\da-fA-F]+)'
+    _VALID_URL = r'https?://(?:www\.)?fox(?:sports)?\.com/(?:watch|replay)/(?P<id>[\da-fA-F]+)'
     _TESTS = [{
         # clip
         'url': 'https://www.fox.com/watch/4b765a60490325103ea69888fb2bd4e8/',
