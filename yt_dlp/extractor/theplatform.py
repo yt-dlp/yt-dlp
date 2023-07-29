@@ -308,7 +308,8 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             ext = urlhandle_detect_ext(self._request_webpage(
                 HEADRequest(m3u8_url), video_id, 'Checking for additional m3u8 formats', fatal=False))
             if ext == 'm3u8':
-                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, fatal=False)
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
+                    m3u8_url, video_id, m3u8_id='hls', fatal=False)
                 formats.extend(m3u8_fmts)
                 self._merge_subtitles(m3u8_subs, target=subtitles)
 
