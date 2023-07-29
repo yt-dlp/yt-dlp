@@ -899,6 +899,10 @@ class TestRequestHandlerValidation:
             ('file', UnsupportedRequest, {}),
             ('file', False, {'enable_file_urls': True}),
         ]),
+        ('Websockets', [
+            ('ws', False, {}),
+            ('wss', False, {}),
+        ]),
         (NoCheckRH, [('http', False, {})]),
         (ValidationRH, [('http', UnsupportedRequest, {})])
     ]
@@ -914,6 +918,7 @@ class TestRequestHandlerValidation:
             ('socks5h', False),
             ('socks', UnsupportedRequest),
         ]),
+        ('Websockets', [('http', UnsupportedRequest)]),
         (NoCheckRH, [('http', False)]),
         (HTTPSupportedRH, [('http', UnsupportedRequest)]),
     ]
@@ -940,6 +945,10 @@ class TestRequestHandlerValidation:
         (NoCheckRH, [
             ({'cookiejar': 'notacookiejar'}, False),
             ({'somerandom': 'test'}, False),  # but any extension is allowed through
+        ]),
+        ('Websockets', [  # TODO
+            ({'cookiejar': CookieJar()}, UnsupportedRequest),
+            ({'timeout': 2}, UnsupportedRequest),
         ]),
     ]
 
