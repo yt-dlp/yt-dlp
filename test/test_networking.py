@@ -51,7 +51,7 @@ from yt_dlp.networking.exceptions import (
     UnsupportedRequest,
 )
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
-from yt_dlp.utils.networking import HTTPHeaderDict
+from yt_dlp.utils.networking import HTTPHeaderDict, std_headers
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -73,6 +73,7 @@ def _build_proxy_handler(name):
 
 class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
+    default_request_version = 'HTTP/1.1'
 
     def log_message(self, format, *args):
         pass
@@ -110,6 +111,8 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def _read_data(self):
         if 'Content-Length' in self.headers:
             return self.rfile.read(int(self.headers['Content-Length']))
+        else:
+            return b''
 
     def do_POST(self):
         data = self._read_data() + str(self.headers).encode()
@@ -320,7 +323,7 @@ def handler(request):
 
 
 class TestHTTPRequestHandler(TestRequestHandlerBase):
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_verify_cert(self, handler):
         with handler() as rh:
             with pytest.raises(CertificateVerifyError):
@@ -331,7 +334,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert r.status == 200
             r.close()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_ssl_error(self, handler):
         # HTTPS server with too old TLS version
         # XXX: is there a better way to test this than to create a new server?
@@ -345,11 +348,11 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
         https_server_thread.start()
 
         with handler(verify=False) as rh:
-            with pytest.raises(SSLError, match='sslv3 alert handshake failure') as exc_info:
+            with pytest.raises(SSLError, match='(?i)sslv3.alert.handshake.failure') as exc_info:
                 validate_and_send(rh, Request(f'https://127.0.0.1:{https_port}/headers'))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_percent_encode(self, handler):
         with handler() as rh:
             # Unicode characters should be encoded with uppercase percent-encoding
@@ -361,7 +364,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.status == 200
             res.close()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_remove_dot_segments(self, handler):
         with handler() as rh:
             # This isn't a comprehensive test,
@@ -383,7 +386,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert r.url == f'http://127.0.0.1:{self.http_port}/%E4%B8%AD%E6%96%87.html'
             r.close()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_raise_http_error(self, handler):
         with handler() as rh:
             for bad_status in (400, 500, 599, 302):
@@ -393,7 +396,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             # Should not raise an error
             validate_and_send(rh, Request('http://127.0.0.1:%d/gen_200' % self.http_port)).close()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_response_url(self, handler):
         with handler() as rh:
             # Response url should be that of the last url in redirect chain
@@ -404,13 +407,16 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res2.url == f'http://127.0.0.1:{self.http_port}/gen_200'
             res2.close()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_redirect(self, handler):
-        with handler() as rh:
+        with handler(verbose=True, timeout=9000) as rh:
             def do_req(redirect_status, method, assert_no_content=False):
                 data = b'testdata' if method in ('POST', 'PUT') else None
+                headers = {}
+                if data is not None:
+                    headers['Content-Type'] = 'application/test'
                 res = validate_and_send(
-                    rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data))
+                    rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data, headers=headers))
 
                 headers = b''
                 data_sent = b''
@@ -421,13 +427,17 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                         data_sent = b''
 
                 headers += res.read()
+                headers = headers.decode().lower()
 
+                # Content-Type and Content-Length should be removed
+                # See: https://datatracker.ietf.org/doc/html/rfc9110#section-15.4-6.5.1
+                # Some user-agents such as curl do not remove the header on redirect.
                 if assert_no_content or data is None:
-                    assert b'Content-Type' not in headers
-                    assert b'Content-Length' not in headers
-                else:
-                    assert b'Content-Type' in headers
-                    assert b'Content-Length' in headers
+                    # assert 'content-type' not in headers
+                    assert 'content-length' not in headers
+                elif assert_no_content is not None:
+                    # assert 'content-type' in headers
+                    assert 'content-length' in headers
 
                 return data_sent.decode(), res.headers.get('method', '')
 
@@ -435,7 +445,9 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert do_req(303, 'POST', True) == ('', 'GET')
             assert do_req(303, 'HEAD') == ('', 'HEAD')
 
-            assert do_req(303, 'PUT', True) == ('', 'GET')
+            # 303 MAY change method to GET?
+            # See: https://github.com/curl/curl/issues/5237
+            assert do_req(303, 'PUT', None) in (('', 'GET'), ('testdata', 'PUT'))
 
             # 301 and 302 turn POST only into a GET
             assert do_req(301, 'POST', True) == ('', 'GET')
@@ -454,12 +466,14 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert do_req(307, 'HEAD') == ('', 'HEAD')
             assert do_req(308, 'HEAD') == ('', 'HEAD')
 
+            # XXX: technically not, these may be left undefined
+            # https://datatracker.ietf.org/doc/html/rfc9110#name-300-multiple-choices
             # These should not redirect and instead raise an HTTPError
-            for code in (300, 304, 305, 306):
-                with pytest.raises(HTTPError):
-                    do_req(code, 'GET')
+            # for code in (300, 304, 305, 306):
+            #     with pytest.raises(HTTPError):
+            #         do_req(code, 'GET')
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_request_cookie_header(self, handler):
         # We should accept a Cookie header being passed as in normal headers and handle it appropriately.
         with handler() as rh:
@@ -468,14 +482,14 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(
                     f'http://127.0.0.1:{self.http_port}/headers',
                     headers={'Cookie': 'test=test'})).read().decode()
-            assert 'Cookie: test=test' in res
+            assert 'cookie: test=test' in res.lower()
 
             # Specified Cookie header should be removed on any redirect
             res = validate_and_send(
                 rh, Request(
                     f'http://127.0.0.1:{self.http_port}/308-to-headers',
-                    headers={'Cookie': 'test=test'})).read().decode()
-            assert 'Cookie: test=test' not in res
+                    headers={'Cookie': 'test=test2'})).read().decode()
+            assert 'cookie: test=test2' not in res.lower()
 
         # Specified Cookie header should override global cookiejar for that request
         cookiejar = http.cookiejar.CookieJar()
@@ -487,23 +501,23 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
         with handler(cookiejar=cookiejar) as rh:
             data = validate_and_send(
-                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'cookie': 'test=test'})).read()
-            assert b'Cookie: test=ytdlp' not in data
-            assert b'Cookie: test=test' in data
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'cookie': 'test=test3'})).read()
+            assert b'cookie: test=ytdlp' not in data.lower()
+            assert b'cookie: test=test3' in data.lower()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_redirect_loop(self, handler):
         with handler() as rh:
             with pytest.raises(HTTPError, match='redirect loop'):
                 validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_loop'))
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_incompleteread(self, handler):
         with handler(timeout=2) as rh:
-            with pytest.raises(IncompleteRead):
+            with pytest.raises(IncompleteRead, match='13 bytes read'):
                 validate_and_send(rh, Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_cookies(self, handler):
         cookiejar = http.cookiejar.CookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
@@ -512,31 +526,31 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
         with handler(cookiejar=cookiejar) as rh:
             data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
-            assert b'Cookie: test=ytdlp' in data
+            assert b'cookie: test=ytdlp' in data.lower()
 
         # Per request
         with handler() as rh:
             data = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={'cookiejar': cookiejar})).read()
-            assert b'Cookie: test=ytdlp' in data
+            assert b'cookie: test=ytdlp' in data.lower()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_headers(self, handler):
 
         with handler(headers=HTTPHeaderDict({'test1': 'test', 'test2': 'test2'})) as rh:
             # Global Headers
-            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read()
-            assert b'Test1: test' in data
+            data = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers')).read().lower()
+            assert b'test1: test' in data
 
             # Per request headers, merged with global
             data = validate_and_send(rh, Request(
-                f'http://127.0.0.1:{self.http_port}/headers', headers={'test2': 'changed', 'test3': 'test3'})).read()
-            assert b'Test1: test' in data
-            assert b'Test2: changed' in data
-            assert b'Test2: test2' not in data
-            assert b'Test3: test3' in data
+                f'http://127.0.0.1:{self.http_port}/headers', headers={'test2': 'changed', 'test3': 'test3'})).read().lower()
+            assert b'test1: test' in data
+            assert b'test2: changed' in data
+            assert b'test2: test2' not in data
+            assert b'test3: test3' in data
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_timeout(self, handler):
         with handler() as rh:
             # Default timeout is 20 seconds, so this should go through
@@ -552,7 +566,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1', extensions={'timeout': 4}))
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
         with handler(source_address=source_address) as rh:
@@ -560,7 +574,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode()
             assert source_address == data
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_gzip_trailing_garbage(self, handler):
         with handler() as rh:
             data = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode()
@@ -577,7 +591,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.headers.get('Content-Encoding') == 'br'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_deflate(self, handler):
         with handler() as rh:
             res = validate_and_send(
@@ -587,7 +601,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.headers.get('Content-Encoding') == 'deflate'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_gzip(self, handler):
         with handler() as rh:
             res = validate_and_send(
@@ -597,7 +611,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.headers.get('Content-Encoding') == 'gzip'
             assert res.read() == b'<html><video src="/vid.mp4" /></html>'
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_multiple_encodings(self, handler):
         with handler() as rh:
             for pair in ('gzip,deflate', 'deflate, gzip', 'gzip, gzip', 'deflate, deflate'):
@@ -608,17 +622,18 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 assert res.headers.get('Content-Encoding') == pair
                 assert res.read() == b'<html><video src="/vid.mp4" /></html>'
 
+    # Not supported by Curl
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_unsupported_encoding(self, handler):
         with handler() as rh:
             res = validate_and_send(
                 rh, Request(
                     f'http://127.0.0.1:{self.http_port}/content-encoding',
-                    headers={'ytdl-encoding': 'unsupported'}))
+                    headers={'ytdl-encoding': 'unsupported', 'Accept-Encoding': '*'}))
             assert res.headers.get('Content-Encoding') == 'unsupported'
             assert res.read() == b'raw'
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_read(self, handler):
         with handler() as rh:
             res = validate_and_send(
@@ -648,7 +663,7 @@ class TestHTTPProxy(TestRequestHandlerBase):
         cls.geo_proxy_thread.daemon = True
         cls.geo_proxy_thread.start()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_http_proxy(self, handler):
         http_proxy = f'http://127.0.0.1:{self.proxy_port}'
         geo_proxy = f'http://127.0.0.1:{self.geo_port}'
@@ -674,7 +689,7 @@ class TestHTTPProxy(TestRequestHandlerBase):
             assert res != f'normal: {real_url}'
             assert 'Accept' in res
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_noproxy(self, handler):
         with handler(proxies={'proxy': f'http://127.0.0.1:{self.proxy_port}'}) as rh:
             # NO_PROXY
@@ -684,7 +699,7 @@ class TestHTTPProxy(TestRequestHandlerBase):
                     'utf-8')
                 assert 'Accept' in nop_response
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_allproxy(self, handler):
         url = 'http://foo.com/bar'
         with handler() as rh:
@@ -692,7 +707,7 @@ class TestHTTPProxy(TestRequestHandlerBase):
                 'utf-8')
             assert response == f'normal: {url}'
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_http_proxy_with_idn(self, handler):
         with handler(proxies={
             'http': f'http://127.0.0.1:{self.proxy_port}',
@@ -730,27 +745,27 @@ class TestClientCertificate:
         ) as rh:
             validate_and_send(rh, Request(f'https://127.0.0.1:{self.port}/video.html')).read().decode()
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_certificate_combined_nopass(self, handler):
         self._run_test(handler, client_cert={
             'client_certificate': os.path.join(self.certdir, 'clientwithkey.crt'),
         })
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_certificate_nocombined_nopass(self, handler):
         self._run_test(handler, client_cert={
             'client_certificate': os.path.join(self.certdir, 'client.crt'),
             'client_certificate_key': os.path.join(self.certdir, 'client.key'),
         })
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_certificate_combined_pass(self, handler):
         self._run_test(handler, client_cert={
             'client_certificate': os.path.join(self.certdir, 'clientwithencryptedkey.crt'),
             'client_certificate_password': 'foobar',
         })
 
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_certificate_nocombined_pass(self, handler):
         self._run_test(handler, client_cert={
             'client_certificate': os.path.join(self.certdir, 'client.crt'),
@@ -834,6 +849,44 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             assert not isinstance(exc_info.value, TransportError)
 
 
+class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
+
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+    @pytest.mark.parametrize('params,extensions', [
+        ({}, {'impersonate': 'chrome110'}),
+        ({'impersonate': 'chrome110'}, {}),
+        ({'impersonate': 'chrome99'}, {'impersonate': 'chrome110'})
+    ])
+    def test_impersonate(self, handler, params, extensions):
+        with handler(headers=std_headers, **params) as rh:
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions=extensions)).read().decode()
+            assert 'sec-ch-ua: "Chromium";v="110"' in res
+            # Check that user agent is added over ours
+            assert 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36' in res
+
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+    def test_headers(self, handler):
+        with handler(headers=std_headers) as rh:
+            # Ensure curl-impersonate overrides our standard headers (usually added
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={
+                    'impersonate': 'safari15_3'}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
+
+            assert std_headers['user-agent'].lower() not in res
+            assert std_headers['accept-language'].lower() not in res
+            assert std_headers['sec-fetch-mode'].lower() not in res
+            # other than UA, custom headers that differ from std_headers should be kept
+            assert 'sec-fetch-mode: custom' in res
+            assert 'x-custom: test' in res
+            # but when not impersonating don't remove std_headers
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'x-custom': 'test'})).read().decode().lower()
+            assert std_headers['user-agent'].lower() in res
+            assert std_headers['accept-language'].lower() in res
+            assert 'x-custom: test' in res
+
+
 def run_validation(handler, error, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
         if error:
@@ -870,6 +923,10 @@ class TestRequestHandlerValidation:
             ('file', UnsupportedRequest, {}),
             ('file', False, {'enable_file_urls': True}),
         ]),
+        ('CurlCFFI', [
+            ('http', False, {}),
+            ('https', False, {}),
+        ]),
         (NoCheckRH, [('http', False, {})]),
         (ValidationRH, [('http', UnsupportedRequest, {})])
     ]
@@ -885,6 +942,14 @@ class TestRequestHandlerValidation:
             ('socks5h', False),
             ('socks', UnsupportedRequest),
         ]),
+        ('CurlCFFI', [
+            ('http', False),
+            ('https', False),
+            ('socks4', False),
+            ('socks4a', False),
+            ('socks5', False),
+            ('socks5h', False),
+        ]),
         (NoCheckRH, [('http', False)]),
         (HTTPSupportedRH, [('http', UnsupportedRequest)]),
     ]
@@ -892,6 +957,10 @@ class TestRequestHandlerValidation:
     PROXY_KEY_TESTS = [
         # key, expected to fail
         ('Urllib', [
+            ('all', False),
+            ('unrelated', False),
+        ]),
+        ('CurlCFFI', [
             ('all', False),
             ('unrelated', False),
         ]),
@@ -908,6 +977,16 @@ class TestRequestHandlerValidation:
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
         ]),
+        ('CurlCFFI', [
+            ({'cookiejar': 'notacookiejar'}, AssertionError),
+            ({'cookiejar': CookieJar()}, False),
+            ({'timeout': 1}, False),
+            ({'timeout': 'notatimeout'}, AssertionError),
+            ({'unsupported': 'value'}, UnsupportedRequest),
+            ({'impersonate': 'badtarget'}, UnsupportedRequest),
+            ({'impersonate': 123}, AssertionError),
+            ({'impersonate': 'chrome110'}, False)
+        ]),
         (NoCheckRH, [
             ({'cookiejar': 'notacookiejar'}, False),
             ({'somerandom': 'test'}, False),  # but any extension is allowed through
@@ -923,7 +1002,7 @@ class TestRequestHandlerValidation:
     def test_url_scheme(self, handler, scheme, fail, handler_kwargs):
         run_validation(handler, fail, Request(f'{scheme}://'), **(handler_kwargs or {}))
 
-    @pytest.mark.parametrize('handler,fail', [('Urllib', False)], indirect=['handler'])
+    @pytest.mark.parametrize('handler,fail', [('Urllib', False), ('CurlCFFI', False)], indirect=['handler'])
     def test_no_proxy(self, handler, fail):
         run_validation(handler, fail, Request('http://', proxies={'no': '127.0.0.1,github.com'}))
         run_validation(handler, fail, Request('http://'), proxies={'no': '127.0.0.1,github.com'})
@@ -946,13 +1025,13 @@ class TestRequestHandlerValidation:
         run_validation(handler, fail, Request('http://', proxies={'http': f'{scheme}://example.com'}))
         run_validation(handler, fail, Request('http://'), proxies={'http': f'{scheme}://example.com'})
 
-    @pytest.mark.parametrize('handler', ['Urllib', HTTPSupportedRH], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', HTTPSupportedRH, 'CurlCFFI'], indirect=True)
     def test_empty_proxy(self, handler):
         run_validation(handler, False, Request('http://', proxies={'http': None}))
         run_validation(handler, False, Request('http://'), proxies={'http': None})
 
     @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1', '/a/b/c'])
-    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_invalid_proxy_url(self, handler, proxy_url):
         run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': proxy_url}))
 

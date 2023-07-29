@@ -4067,6 +4067,13 @@ class YoutubeDL:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
+                elif re.search(r'unsupported extensions:.*impersonate', ue.msg.lower()):
+                    self.report_warning(
+                        'To impersonate a browser for this request please install one of: curl_cffi. '
+                        'Retrying request without impersonation...')
+                    req = req.copy()
+                    req.extensions.pop('impersonate')
+                    return self.urlopen(req)
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):

@@ -1,9 +1,8 @@
 import io
-import os
 import re
 from enum import IntEnum
 
-from .common import Features, Request, RequestHandler, Response, register_rh
+from .common import Features, Request, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -85,6 +84,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
         extensions.pop('impersonate', None)
+        extensions.pop('cookiejar', None)
+        extensions.pop('timeout', None)
 
     def _generate_set_cookie(self, cookiejar):
         for cookie in cookiejar:
