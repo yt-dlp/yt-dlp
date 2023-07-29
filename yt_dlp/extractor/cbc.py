@@ -194,9 +194,8 @@ class CBCPlayerIE(InfoExtractor):
             'duration': 186.867,
         },
     }, {
-        # This generally lasts about a month. The reason this video is fitting is
-        # because it has subtitles, which are now also supported.
-        # If this video is expired, look here for a new one:
+        # Has subtitles
+        # These broadcasts expire after ~1 month, can find new test URL here:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
         'url': 'http://www.cbc.ca/player/play/2249992771553',
         'md5': '2f2fb675dd4f0f8a5bb7588d1b13bacd',
@@ -204,26 +203,13 @@ class CBCPlayerIE(InfoExtractor):
             'id': '2249992771553',
             'ext': 'mp4',
             'title': 'The National | Women’s soccer pay, Florida seawater, Swift quake',
-            'description': 'July 28, 2023 | Canada’s women’s soccer team reaches an interim deal on compensation but says the fight is far from over. The water temperature off the coast of Florida hits hot-tub levels. Plus, Taylor Swift fans cause a small earthquake in Seattle.',
+            'description': 'md5:adba28011a56cfa47a080ff198dad27a',
             'timestamp': 1690596000,
             'duration': 2716.333,
-            'subtitles': {
-                'eng': [
-                    {
-                        'ext': 'vtt',
-                        'protocol': 'm3u8_native',
-                    }
-                ]
-            },
+            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
             'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/481/326/thumbnail.jpeg',
             'uploader': 'CBCC-NEW',
-            'chapters': [
-                {'end_time': 1196.0, 'start_time': 0.0},
-                {'end_time': 1398.0, 'start_time': 1196.0},
-                {'end_time': 1753.0, 'start_time': 1398.0},
-                {'end_time': 2395.0, 'start_time': 1753.0},
-                {'end_time': 2716.333, 'start_time': 2395.0}
-            ],
+            'chapters': 'count:5',
             'upload_date': '20230729',
         },
     }]
