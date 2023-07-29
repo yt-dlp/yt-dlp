@@ -37,18 +37,17 @@ class WebsocketsResponseAdapter(WebSocketResponse):
 @register_rh
 class WebsocketsRH(WebSocketRequestHandler):
     _SUPPORTED_URL_SCHEMES = ('wss', 'ws')
-    RH_NAME = 'python-websockets'
+    RH_NAME = 'websockets'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name in ('websockets.client', 'websockets.server'):
             logger = logging.getLogger(name)
-            logger.setLevel('DEBUG')
             handler = logging.StreamHandler(stream=sys.stdout)
             handler.setFormatter(logging.Formatter(f'{self.RH_NAME}: %(message)s'))
             logger.addHandler(handler)
-        if self.verbose:
-            logger.setLevel(logging.DEBUG)
+            if self.verbose:
+                logger.setLevel(logging.DEBUG)
 
     def _send(self, request):
         ws_kwargs = {}
