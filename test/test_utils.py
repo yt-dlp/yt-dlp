@@ -2344,6 +2344,8 @@ Line 1
 
     def test_http_header_dict(self):
         headers = HTTPHeaderDict()
+        headers['ytdl-test'] = b'0'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '0')])
         headers['ytdl-test'] = 1
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
         headers['Ytdl-test'] = '2'
