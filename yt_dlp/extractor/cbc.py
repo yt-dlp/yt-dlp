@@ -224,10 +224,7 @@ class CBCPlayerIE(InfoExtractor):
                     'force_smil_url': True
                 }),
             'id': video_id,
-            # needed because the m3u8 stream bandwidth info is wrong at least sometimes,
-            # making the format chooser prefer a supposedly higher quality file when it's just the same mp4 split up and served via hls.
-            # Since the bandwidth for downloading the direct mp4 does not seem to be limited, it's better to just download the whole mp4 file at once.
-            '_format_sort_fields': ('res', 'proto')
+            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS since HLS bandwidth information can be misleading
         }
 
 
