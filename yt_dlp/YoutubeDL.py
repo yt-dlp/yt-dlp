@@ -1301,20 +1301,11 @@ class YoutubeDL:
                 else:
                     break
 
-            if None not in (value, replacement):
-                try:
-                    value = replacement_formatter.format(replacement, value)
-                except ValueError:
-                    value, default = None, na
-
             fmt = outer_mobj.group('format')
-            if fmt == 's' and last_field in field_size_compat_map.keys() and isinstance(value, int):
-                fmt = f'0{field_size_compat_map[last_field]:d}d'
-
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
             if value is None:
-                value, fmt = default, 's'
+                pass
             elif fmt[-1] == 'l':  # list
                 delim = '\n' if '#' in flags else ', '
                 value, fmt = delim.join(map(str, variadic(value, allowed_types=(str, bytes)))), str_fmt
@@ -1348,8 +1339,18 @@ class YoutubeDL:
                     fmt = str_fmt
             elif fmt[-1] not in 'rsa':  # numeric
                 value = float_or_none(value)
-                if value is None:
-                    value, fmt = default, 's'
+
+            if None not in (value, replacement):
+                try:
+                    value = replacement_formatter.format(replacement, value)
+                except ValueError:
+                    value, default = None, na
+
+            if fmt == 's' and last_field in field_size_compat_map.keys() and isinstance(value, int):
+                fmt = f'0{field_size_compat_map[last_field]:d}d'
+
+            if value is None:
+                value, fmt = default, 's'
 
             if sanitize:
                 # If value is an object, sanitize might convert it to a string
