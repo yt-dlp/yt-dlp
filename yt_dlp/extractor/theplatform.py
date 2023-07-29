@@ -167,7 +167,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             # rtmp download
             'skip_download': True,
         },
-        'skip': 'cnet no longer seems to use theplatform, at least not in this video',
+        'skip': '404 Not Found',
     }, {
         'url': 'https://player.theplatform.com/p/D6x-PC/pulse_preview/embed/select/media/yMBg9E8KFxZD',
         'info_dict': {
