@@ -3597,7 +3597,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if _split_innertube_client(client)[0] == 'android':
             yt_query['params'] = 'CgIQBg=='
 
-        pp_arg = self._configuration_arg('player_params', [None])[0]
+        pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
         if pp_arg:
             yt_query['params'] = pp_arg
 
@@ -4018,7 +4018,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            pp = self._configuration_arg('player_params', [None])[0]
+            pp = self._configuration_arg('player_params', [None], casesense=True)[0]
             if pp:
                 query['pp'] = pp
             webpage = self._download_webpage(
