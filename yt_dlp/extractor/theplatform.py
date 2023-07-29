@@ -19,6 +19,7 @@ from ..utils import (
     xpath_with_ns,
     mimetype2ext,
     find_xpath_attr,
+    traverse_obj,
     update_url,
     urlhandle_detect_ext,
 )
