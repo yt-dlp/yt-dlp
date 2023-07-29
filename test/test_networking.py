@@ -787,6 +787,16 @@ class TestWebsockets:
             ws.send(b'foo')
             assert ws.recv() == b'foo'
 
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    @pytest.mark.parametrize('params,extensions', [
+        ({'timeout': 0.00001}, {}),
+        ({}, {'timeout': 0.00001}),
+    ])
+    def test_timeout(self, handler, params, extensions):
+        with handler(**params) as rh:
+            with pytest.raises(TransportError):
+                validate_and_send(rh, Request('ws://127.0.0.1:8765', extensions=extensions))
+
 
 class TestUrllibRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)

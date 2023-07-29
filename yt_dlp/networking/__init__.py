@@ -11,3 +11,4 @@ from .common import (
 # isort: split
 # TODO: all request handlers should be safely imported
 from . import _urllib
+from . import _websockets
