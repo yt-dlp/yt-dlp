@@ -2339,12 +2339,12 @@ class YoutubeDL:
             return new_dict
 
         def _check_formats(formats):
-            if (self.params.get('check_formats') is not None
+            if self.params.get('check_formats') == 'selected':
+                yield from self._check_formats(formats)
+                return
+            elif (self.params.get('check_formats') is not None
                     or self.params.get('allow_unplayable_formats')):
                 yield from formats
-                return
-            elif self.params.get('check_formats') == 'selected':
-                yield from self._check_formats(formats)
                 return
 
             for f in formats:
