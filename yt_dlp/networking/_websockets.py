@@ -10,7 +10,7 @@ import urllib.parse
 import sys
 
 from .common import register_rh
-from .exceptions import TransportError
+from .exceptions import TransportError, RequestError
 from .websocket import WebSocketResponse, WebSocketRequestHandler
 from ..dependencies import websockets
 
@@ -18,23 +18,40 @@ if not websockets:
     raise ImportError('websockets is not installed')
 
 import websockets.sync.client
+from websockets.exceptions import InvalidHandshake, InvalidURI, ConnectionClosed
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
 
     def __init__(self, wsw: websockets.sync.client.ClientConnection, url):
-        super().__init__(io.BytesIO(b''), url=url, headers=wsw.response.headers, status=101)
+        super().__init__(
+            fp=io.BytesIO(wsw.response.body or b''),  # TODO: test
+            url=url,
+            headers=wsw.response.headers,  # TODO: test multiple headers (may need to use raw_items())
+            status=wsw.response.status_code,
+            reason=wsw.response.reason_phrase,
+        )
         self.wsw = wsw
 
     def close(self, status=None):
-        self.wsw.__exit__(None, None, None)
+        self.wsw.close()
         super().close()
 
     def send(self, *args):
-        return self.wsw.send(*args)
+        # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
+        try:
+            return self.wsw.send(*args)
+        except (ConnectionClosed, RuntimeError) as e:
+            raise TransportError(cause=e) from e
+        except TypeError as e:
+            raise RequestError(cause=e) from e
 
     def recv(self, *args):
-        return self.wsw.recv(*args)
+        # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
+        try:
+            return self.wsw.recv(*args)
+        except (ConnectionClosed, RuntimeError) as e:
+            raise TransportError(cause=e) from e
 
 
 @register_rh
@@ -57,6 +74,15 @@ class WebsocketsRH(WebSocketRequestHandler):
         extensions.pop('timeout', None)
 
     def _send(self, request):
+        """
+        https://websockets.readthedocs.io/en/stable/reference/sync/client.html
+        TODO:
+        - Cookie Support
+        - Test Exception Mapping
+        - Timeout handling for closing?
+        - WS Pinging
+        - KeyboardInterrupt doesn't seem to kill websockets
+        """
         ws_kwargs = {}
         if urllib.parse.urlparse(request.url).scheme == 'wss':
             ws_kwargs['ssl_context'] = self._make_sslcontext()
@@ -69,6 +95,10 @@ class WebsocketsRH(WebSocketRequestHandler):
             conn = websockets.sync.client.connect(
                 request.url, additional_headers=self._merge_headers(request.headers), open_timeout=timeout, **ws_kwargs)
             return WebsocketsResponseAdapter(conn, url=request.url)
-        except TimeoutError as e:
+
+        # Exceptions as per https://websockets.readthedocs.io/en/stable/reference/sync/client.html
+        except InvalidURI as e:
+            raise RequestError(cause=e) from e
+        except (OSError, TimeoutError, InvalidHandshake) as e:
             raise TransportError(cause=e) from e
 
