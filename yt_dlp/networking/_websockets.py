@@ -72,6 +72,7 @@ class WebsocketsRH(WebSocketRequestHandler):
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
         extensions.pop('timeout', None)
+        extensions.pop('cookiejar', None)
 
     def _send(self, request):
         """
@@ -91,9 +92,18 @@ class WebsocketsRH(WebSocketRequestHandler):
         if source_address is not None:
             ws_kwargs['source_address'] = source_address
         timeout = float(request.extensions.get('timeout') or self.timeout)
+        headers = self._merge_headers(request.headers)
+        if 'cookie' not in headers:
+            cookiejar = request.extensions.get('cookiejar') or self.cookiejar
+            headers['cookie'] = cookiejar.get_cookie_header(request.url)  # TODO: Require cookiejar to be YTDLCookieJar?
         try:
             conn = websockets.sync.client.connect(
-                request.url, additional_headers=self._merge_headers(request.headers), open_timeout=timeout, **ws_kwargs)
+                uri=request.url,
+                additional_headers=headers,
+                open_timeout=timeout,
+                user_agent_header=None,
+                **ws_kwargs
+            )
             return WebsocketsResponseAdapter(conn, url=request.url)
 
         # Exceptions as per https://websockets.readthedocs.io/en/stable/reference/sync/client.html

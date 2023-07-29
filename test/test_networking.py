@@ -919,7 +919,7 @@ class TestRequestHandlerValidation:
 
     PROXY_SCHEME_TESTS = [
         # scheme, expected to fail
-        ('Urllib', [
+        ('Urllib', 'http', [
             ('http', False),
             ('https', UnsupportedRequest),
             ('socks4', False),
@@ -928,9 +928,9 @@ class TestRequestHandlerValidation:
             ('socks5h', False),
             ('socks', UnsupportedRequest),
         ]),
-        ('Websockets', [('http', UnsupportedRequest)]),
-        (NoCheckRH, [('http', False)]),
-        (HTTPSupportedRH, [('http', UnsupportedRequest)]),
+        ('Websockets', 'ws', [('http', UnsupportedRequest)]),
+        (NoCheckRH, 'http', [('http', False)]),
+        (HTTPSupportedRH, 'http', [('http', UnsupportedRequest)]),
     ]
 
     PROXY_KEY_TESTS = [
@@ -945,20 +945,20 @@ class TestRequestHandlerValidation:
     ]
 
     EXTENSION_TESTS = [
-        ('Urllib', [
+        ('Urllib', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
             ({'cookiejar': CookieJar()}, False),
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
         ]),
-        (NoCheckRH, [
+        (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
             ({'somerandom': 'test'}, False),  # but any extension is allowed through
         ]),
-        ('Websockets', [  # TODO
-            ({'cookiejar': CookieJar()}, UnsupportedRequest),
-            ({'timeout': 2}, UnsupportedRequest),
+        ('Websockets', 'ws', [  # TODO
+            ({'cookiejar': CookieJar()}, False),
+            ({'timeout': 2}, False),
         ]),
     ]
 
@@ -985,14 +985,14 @@ class TestRequestHandlerValidation:
         run_validation(handler, fail, Request('http://', proxies={proxy_key: 'http://example.com'}))
         run_validation(handler, fail, Request('http://'), proxies={proxy_key: 'http://example.com'})
 
-    @pytest.mark.parametrize('handler,scheme,fail', [
-        (handler_tests[0], scheme, fail)
+    @pytest.mark.parametrize('handler,req_scheme,scheme,fail', [
+        (handler_tests[0], handler_tests[1], scheme, fail)
         for handler_tests in PROXY_SCHEME_TESTS
-        for scheme, fail in handler_tests[1]
+        for scheme, fail in handler_tests[2]
     ], indirect=['handler'])
-    def test_proxy_scheme(self, handler, scheme, fail):
-        run_validation(handler, fail, Request('http://', proxies={'http': f'{scheme}://example.com'}))
-        run_validation(handler, fail, Request('http://'), proxies={'http': f'{scheme}://example.com'})
+    def test_proxy_scheme(self, handler, req_scheme, scheme, fail):
+        run_validation(handler, fail, Request(f'{req_scheme}://', proxies={req_scheme: f'{scheme}://example.com'}))
+        run_validation(handler, fail, Request(f'{req_scheme}://'), proxies={req_scheme: f'{scheme}://example.com'})
 
     @pytest.mark.parametrize('handler', ['Urllib', HTTPSupportedRH], indirect=True)
     def test_empty_proxy(self, handler):
@@ -1004,14 +1004,14 @@ class TestRequestHandlerValidation:
     def test_invalid_proxy_url(self, handler, proxy_url):
         run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': proxy_url}))
 
-    @pytest.mark.parametrize('handler,extensions,fail', [
-        (handler_tests[0], extensions, fail)
+    @pytest.mark.parametrize('handler,scheme,extensions,fail', [
+        (handler_tests[0], handler_tests[1], extensions, fail)
         for handler_tests in EXTENSION_TESTS
-        for extensions, fail in handler_tests[1]
+        for extensions, fail in handler_tests[2]
     ], indirect=['handler'])
-    def test_extension(self, handler, extensions, fail):
+    def test_extension(self, handler, scheme, extensions, fail):
         run_validation(
-            handler, fail, Request('http://', extensions=extensions))
+            handler, fail, Request(f'{scheme}://', extensions=extensions))
 
     def test_invalid_request_type(self):
         rh = self.ValidationRH(logger=FakeLogger())
