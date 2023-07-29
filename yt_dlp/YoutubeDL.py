@@ -4057,6 +4057,12 @@ class YoutubeDL:
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)
 
+        # TODO: Remove
+        # Also note: will cause recursion error if curl_cffi is not installed
+        impersonate_debug = os.environ.get('YT_DLP_CCI_IMPERSONATE')
+        if impersonate_debug:
+            req.extensions['impersonate'] = impersonate_debug
+
         try:
             return self._request_director.send(req)
         except NoSupportingHandlers as e:
