@@ -305,13 +305,17 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         # With some sites, manifest URL must be forced to extract HLS formats
         if not traverse_obj(formats, lambda _, v: v['format_id'].startswith('hls')):
             m3u8_url = update_url(url, query='mbr=true&manifest=m3u', fragment=None)
-            ext = urlhandle_detect_ext(self._request_webpage(
-                HEADRequest(m3u8_url), video_id, 'Checking for additional m3u8 formats', fatal=False))
-            if ext == 'm3u8':
-                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
-                    m3u8_url, video_id, m3u8_id='hls', fatal=False)
-                formats.extend(m3u8_fmts)
-                self._merge_subtitles(m3u8_subs, target=subtitles)
+            try:
+                ext = urlhandle_detect_ext(self._request_webpage(
+                    HEADRequest(m3u8_url), video_id, 'Checking for additional m3u8 formats', fatal=False))
+            except Exception:
+                pass
+            else:
+                if ext == 'm3u8':
+                    m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
+                        m3u8_url, video_id, m3u8_id='hls', fatal=False)
+                    formats.extend(m3u8_fmts)
+                    self._merge_subtitles(m3u8_subs, target=subtitles)
 
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
