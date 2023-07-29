@@ -6,6 +6,7 @@ import asyncio
 import atexit
 import io
 import logging
+import urllib.parse
 import sys
 
 from .common import register_rh
@@ -35,7 +36,7 @@ class WebsocketsResponseAdapter(WebSocketResponse):
 
 @register_rh
 class WebsocketsRH(WebSocketRequestHandler):
-    SUPPORTED_SCHEMES = ('wss', 'ws')
+    _SUPPORTED_URL_SCHEMES = ('wss', 'ws')
     RH_NAME = 'python-websockets'
 
     def __init__(self, *args, **kwargs):
@@ -50,9 +51,10 @@ class WebsocketsRH(WebSocketRequestHandler):
             logger.setLevel(logging.DEBUG)
 
     def _send(self, request):
-        ws_kwargs = {
-            'ssl': self._make_sslcontext()
-        }
+        ws_kwargs = {}
+        if urllib.parse.urlparse(request.url).scheme == 'wss':
+            ws_kwargs['ssl'] = self._make_sslcontext()
+
         source_address = self.source_address
         if source_address is not None:
             ws_kwargs['source_address'] = source_address

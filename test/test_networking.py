@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import asyncio
 # Allow direct execution
 import os
 import sys
@@ -29,7 +29,7 @@ from email.message import Message
 from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
-from yt_dlp.dependencies import brotli
+from yt_dlp.dependencies import brotli, websockets
 from yt_dlp.networking import (
     HEADRequest,
     PUTRequest,
@@ -757,6 +757,35 @@ class TestClientCertificate:
             'client_certificate_key': os.path.join(self.certdir, 'clientencrypted.key'),
             'client_certificate_password': 'foobar',
         })
+
+
+@pytest.mark.skipif(not websockets, reason='websockets must be installed to test websocket request handlers')
+class TestWebsockets:
+    @classmethod
+    def setup_class(cls):
+        import websockets.server
+
+        async def echo(websocket):
+            async for message in websocket:
+                await websocket.send(message)
+
+        def run():
+            async def main():
+                async with websockets.server.serve(echo, "localhost", 8765):
+                    await asyncio.Future()
+            asyncio.run(main())
+
+        cls.ws_server_thread = threading.Thread(target=run)
+        cls.ws_server_thread.daemon = True
+        cls.ws_server_thread.start()
+        time.sleep(1)  # wait for server to start
+
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    def test_send_recv(self, handler):
+        with handler() as rh:
+            ws = validate_and_send(rh, Request('ws://127.0.0.1:8765'))
+            ws.send(b'foo')
+            assert ws.recv() == b'foo'
 
 
 class TestUrllibRequestHandler(TestRequestHandlerBase):
