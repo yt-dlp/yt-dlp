@@ -28,6 +28,11 @@ from ..networking._urllib import (  # noqa: F401
 )
 from ..networking.exceptions import HTTPError, network_exceptions  # noqa: F401
 
+try:
+    from ..networking._websockets import WebSocketsWrapper
+except ImportError:
+    WebSocketsWrapper = None
+
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
 
