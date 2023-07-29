@@ -528,7 +528,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'skip': 'unable to download video data: HTTP Error 403: Forbidden',
+        'params': {'skip_download': True},  # XXX: unable to download video data: HTTP Error 403: Forbidden
     }, {
         # Video without title and description
         'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
