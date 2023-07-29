@@ -198,15 +198,15 @@ class CBCPlayerIE(InfoExtractor):
         # because it has subtitles, which are now also supported.
         # If this video is expired, look here for a new one:
         # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
-        'url': 'http://www.cbc.ca/player/play/2233316419710',
-        'md5': '8d60d5cc8b8afeee329c098dd9bce62e',
+        'url': 'http://www.cbc.ca/player/play/2249992771553',
+        'md5': '2f2fb675dd4f0f8a5bb7588d1b13bacd',
         'info_dict': {
-            'id': '2233316419710',
+            'id': '2249992771553',
             'ext': 'mp4',
-            'title': 'The National | Sub implosion, Bus crash victims, Facebook blocks news',
-            'description': 'June 22, 2023 | The U.S. Coast Guard says the submersible that went missing near the Titanic likely imploded. Police release the photos and names of the 16 people killed in the Manitoba bus crash. Plus, Meta says it will block news on Facebook and Instagram in Canada.',
-            'timestamp': 1687485600,
-            'duration': 2692.066,
+            'title': 'The National | Women’s soccer pay, Florida seawater, Swift quake',
+            'description': 'July 28, 2023 | Canada’s women’s soccer team reaches an interim deal on compensation but says the fight is far from over. The water temperature off the coast of Florida hits hot-tub levels. Plus, Taylor Swift fans cause a small earthquake in Seattle.',
+            'timestamp': 1690596000,
+            'duration': 2716.333,
             'subtitles': {
                 'eng': [
                     {
@@ -215,16 +215,16 @@ class CBCPlayerIE(InfoExtractor):
                     }
                 ]
             },
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/961/523/thumbnail.jpeg',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/481/326/thumbnail.jpeg',
             'uploader': 'CBCC-NEW',
             'chapters': [
-                {'end_time': 1202.433, 'start_time': 0.0},
-                {'end_time': 1520.961, 'start_time': 1202.433},
-                {'end_time': 2059.176, 'start_time': 1520.961},
-                {'end_time': 2559.192, 'start_time': 2059.176},
-                {'end_time': 2692.066, 'start_time': 2559.192}
+                {'end_time': 1196.0, 'start_time': 0.0},
+                {'end_time': 1398.0, 'start_time': 1196.0},
+                {'end_time': 1753.0, 'start_time': 1398.0},
+                {'end_time': 2395.0, 'start_time': 1753.0},
+                {'end_time': 2716.333, 'start_time': 2395.0}
             ],
-            'upload_date': '20230623',
+            'upload_date': '20230729',
         },
     }]
 
