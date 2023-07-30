@@ -224,7 +224,7 @@ class CBCPlayerIE(InfoExtractor):
                     'force_smil_url': True
                 }),
             'id': video_id,
-            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS since HLS bandwidth information can be misleading
+            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
         }
 
 
