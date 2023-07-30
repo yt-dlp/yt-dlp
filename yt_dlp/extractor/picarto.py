@@ -1,8 +1,9 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    js_to_json,
+    traverse_obj,
 )
+import urllib.parse
 
 
 class PicartoIE(InfoExtractor):
@@ -84,7 +85,7 @@ class PicartoIE(InfoExtractor):
 
 
 class PicartoVodIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?picarto\.tv/videopopout/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(videopopout|[a-zA-Z0-9]+/videos)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://picarto.tv/videopopout/ArtofZod_2017.12.12.00.13.23.flv',
         'md5': '3ab45ba4352c52ee841a28fb73f2d9ca',
@@ -97,26 +98,39 @@ class PicartoVodIE(InfoExtractor):
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
         'only_matching': True,
+    }, {
+        'url': 'https://picarto.tv/ArtofZod/videos/772650',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        data = traverse_obj(self._download_json(
+            'https://ptvintern.picarto.tv/ptvapi', video_id, query={
+                'query': '''{
+  video(id: "%s") {
+    id
+    title
+    file_name
+    video_recording_image_url
+    channel {
+      name
+    }
+  }
+}''' % (video_id),
+            }), ('data', 'video'))
 
-        vod_info = self._parse_json(
-            self._search_regex(
-                r'(?s)#vod-player["\']\s*,\s*(\{.+?\})\s*\)', webpage,
-                'vod player'),
-            video_id, transform_source=js_to_json)
+        title = data["file_name"]
+        netloc = urllib.parse.urlparse(data["video_recording_image_url"]).netloc
 
         formats = self._extract_m3u8_formats(
-            vod_info['vod'], video_id, 'mp4', entry_protocol='m3u8_native',
-            m3u8_id='hls')
+            f"https://{netloc}/stream/hls/{title}/index.m3u8", video_id, 'mp4',
+            entry_protocol='m3u8_native', m3u8_id='hls')
 
         return {
             'id': video_id,
-            'title': video_id,
-            'thumbnail': vod_info.get('vodThumb'),
+            'title': title,
+            'thumbnail': data['video_recording_image_url'],
             'formats': formats,
         }
