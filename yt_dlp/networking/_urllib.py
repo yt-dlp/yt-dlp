@@ -41,7 +41,8 @@ from .exceptions import (
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
 from ..socks import sockssocket
-from ..utils import escape_url, update_url_query
+from ..utils import update_url_query
+from ..utils.networking import normalize_url
 
 SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -179,7 +180,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         # Since redirects are also affected (e.g. http://www.southpark.de/alle-episoden/s18e09)
         # the code of this workaround has been moved here from YoutubeDL.urlopen()
         url = req.get_full_url()
-        url_escaped = escape_url(url)
+        url_escaped = normalize_url(url)
 
         # Substitute URL if any change after escaping
         if url != url_escaped:
@@ -212,7 +213,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
                 location = location.encode('iso-8859-1').decode()
-                location_escaped = escape_url(location)
+                location_escaped = normalize_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
                     resp.headers['Location'] = location_escaped

@@ -29,6 +29,7 @@ from email.message import Message
 from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
+from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli
 from yt_dlp.networking import (
     HEADRequest,
@@ -171,6 +172,12 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         elif self.path.startswith('/redirect_loop'):
             self.send_response(301)
             self.send_header('Location', self.path)
+            self.send_header('Content-Length', '0')
+            self.end_headers()
+        elif self.path == '/redirect_dotsegments':
+            self.send_response(301)
+            # redirect to /headers but with dot segments before
+            self.send_header('Location', '/a/b/./../../headers')
             self.send_header('Content-Length', '0')
             self.end_headers()
         elif self.path.startswith('/redirect_'):
@@ -356,6 +363,21 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             res.close()
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_remove_dot_segments(self, handler):
+        with handler() as rh:
+            # This isn't a comprehensive test,
+            # but it should be enough to check whether the handler is removing dot segments
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/a/b/./../../headers'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
+            res.close()
+
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_dotsegments'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
+            res.close()
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_unicode_path_redirection(self, handler):
         with handler() as rh:
             r = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/302-non-ascii-redirect'))
@@ -457,7 +479,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert 'Cookie: test=test' not in res
 
         # Specified Cookie header should override global cookiejar for that request
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             version=0, name='test', value='ytdlp', port=None, port_specified=False,
             domain='127.0.0.1', domain_specified=True, domain_initial_dot=False, path='/',
@@ -484,7 +506,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_cookies(self, handler):
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
             False, '/headers', True, False, None, False, None, None, {}))
@@ -882,7 +904,8 @@ class TestRequestHandlerValidation:
     EXTENSION_TESTS = [
         ('Urllib', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
-            ({'cookiejar': CookieJar()}, False),
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
+            ({'cookiejar': CookieJar()}, AssertionError),
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),

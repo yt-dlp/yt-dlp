@@ -765,7 +765,7 @@ class VKPlayBaseIE(InfoExtractor):
 
 
 class VKPlayIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<username>[^/]+)/record/(?P<id>[a-f0-9\-]+)'
+    _VALID_URL = r'https?://vkplay\.live/(?P<username>[^/#?]+)/record/(?P<id>[a-f0-9-]+)'
     _TESTS = [{
         'url': 'https://vkplay.live/zitsmann/record/f5e6e3b5-dc52-4d14-965d-0680dd2882da',
         'info_dict': {
@@ -802,7 +802,7 @@ class VKPlayIE(VKPlayBaseIE):
 
 
 class VKPlayLiveIE(VKPlayBaseIE):
-    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/]+)/?(?:[#?]|$)'
+    _VALID_URL = r'https?://vkplay\.live/(?P<id>[^/#?]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://vkplay.live/bayda',
         'info_dict': {

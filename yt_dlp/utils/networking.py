@@ -66,6 +66,8 @@ class HTTPHeaderDict(collections.UserDict, dict):
         self.update(kwargs)
 
     def __setitem__(self, key, value):
+        if isinstance(value, bytes):
+            value = value.decode('latin-1')
         super().__setitem__(key.title(), str(value))
 
     def __getitem__(self, key):
@@ -122,3 +124,41 @@ def clean_headers(headers: HTTPHeaderDict):
     if 'Youtubedl-No-Compression' in headers:  # compat
         del headers['Youtubedl-No-Compression']
         headers['Accept-Encoding'] = 'identity'
+
+
+def remove_dot_segments(path):
+    # Implements RFC3986 5.2.4 remote_dot_segments
+    # Pseudo-code: https://tools.ietf.org/html/rfc3986#section-5.2.4
+    # https://github.com/urllib3/urllib3/blob/ba49f5c4e19e6bca6827282feb77a3c9f937e64b/src/urllib3/util/url.py#L263
+    output = []
+    segments = path.split('/')
+    for s in segments:
+        if s == '.':
+            continue
+        elif s == '..':
+            if output:
+                output.pop()
+        else:
+            output.append(s)
+    if not segments[0] and (not output or output[0]):
+        output.insert(0, '')
+    if segments[-1] in ('.', '..'):
+        output.append('')
+    return '/'.join(output)
+
+
+def escape_rfc3986(s):
+    """Escape non-ASCII characters as suggested by RFC 3986"""
+    return urllib.parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
+
+
+def normalize_url(url):
+    """Normalize URL as suggested by RFC 3986"""
+    url_parsed = urllib.parse.urlparse(url)
+    return url_parsed._replace(
+        netloc=url_parsed.netloc.encode('idna').decode('ascii'),
+        path=escape_rfc3986(remove_dot_segments(url_parsed.path)),
+        params=escape_rfc3986(url_parsed.params),
+        query=escape_rfc3986(url_parsed.query),
+        fragment=escape_rfc3986(url_parsed.fragment)
+    ).geturl()
