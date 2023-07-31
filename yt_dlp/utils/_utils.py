@@ -2021,7 +2021,7 @@ def parse_duration(s):
                 )?
                 T)?
                 (?:
-                    (?P<hours>[0-9]+)\s*h(?:ours?)?,?\s*
+                    (?P<hours>[0-9]+)\s*h(?:(?:ou)?rs?)?,?\s*
                 )?
                 (?:
                     (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?,?\s*
@@ -2462,23 +2462,6 @@ def lowercase_escape(s):
         r'\\u[0-9a-fA-F]{4}',
         lambda m: unicode_escape(m.group(0))[0],
         s)
-
-
-def escape_rfc3986(s):
-    """Escape non-ASCII characters as suggested by RFC 3986"""
-    return urllib.parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
-
-
-def escape_url(url):
-    """Escape URL as suggested by RFC 3986"""
-    url_parsed = urllib.parse.urlparse(url)
-    return url_parsed._replace(
-        netloc=url_parsed.netloc.encode('idna').decode('ascii'),
-        path=escape_rfc3986(url_parsed.path),
-        params=escape_rfc3986(url_parsed.params),
-        query=escape_rfc3986(url_parsed.query),
-        fragment=escape_rfc3986(url_parsed.fragment)
-    ).geturl()
 
 
 def parse_qs(url, **kwargs):
