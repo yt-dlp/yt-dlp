@@ -1,7 +1,11 @@
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import (
+    ExtractorError,
+    traverse_obj,
+    str_or_none,
+)
 
 
 class PicartoIE(InfoExtractor):
@@ -100,8 +104,9 @@ class PicartoVodIE(InfoExtractor):
         'info_dict': {
             'id': '772650',
             'ext': 'mp4',
-            'title': 'govod+golive+ArtofZod_2023.06.12.23.28.30_nsfw.mkv',
-            'thumbnail': r're:^https?://.*\.jpg'
+            'title': 'Art of Zod - Drawing and Painting',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'channel': 'ArtofZod',
         }
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
@@ -113,28 +118,32 @@ class PicartoVodIE(InfoExtractor):
 
         data = self._download_json(
             'https://ptvintern.picarto.tv/ptvapi', video_id, query={
-                'query': '''{
-  video(id: "%s") {
+                'query': f'''{{
+  video(id: "{video_id}") {{
     id
     title
     file_name
     video_recording_image_url
-    channel {
+    channel {{
       name
-    }
-  }
-}''' % video_id,
+    }}
+  }}
+}}'''
             })['data']['video']
 
-        title = data['file_name']
+        file_name = data['file_name']
         netloc = urllib.parse.urlparse(data['video_recording_image_url']).netloc
 
         formats = self._extract_m3u8_formats(
-            f'https://{netloc}/stream/hls/{title}/index.m3u8', video_id, 'mp4', m3u8_id='hls')
+            f'https://{netloc}/stream/hls/{file_name}/index.m3u8', video_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_id,
-            'title': title,
-            'thumbnail': data.get('video_recording_image_url'),
+            **traverse_obj(data, {
+                'id': ('id', {str_or_none}),
+                'title': ('title', {str}),
+                'thumbnail': 'video_recording_image_url',
+                'channel': ('channel', 'name', {str}),
+            }),
             'formats': formats,
         }
