@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-
 from ..utils import traverse_obj
 
 
@@ -13,9 +12,8 @@ class S4CIE(InfoExtractor):
             'title': 'Y Swn',
             'description': 'md5:f7681a30e4955b250b3224aa9fe70cf0',
             'duration': 5340
-        }
-    },
-        {
+        },
+    }, {
         'url': 'https://www.s4c.cymru/clic/programme/856636948',
         'info_dict': {
             'id': '856636948',
@@ -23,9 +21,8 @@ class S4CIE(InfoExtractor):
             'title': 'Am Dro',
             'duration': 2880,
             'description': 'md5:100d8686fc9a632a0cb2db52a3433ffe',
-        }
-    },
-    ]
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -51,8 +48,8 @@ class S4CIE(InfoExtractor):
                 'thirdParty': 'false',
                 'filename': filename,
             }, note='Downloading streaming urls JSON')['hls']
-
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+
         return {
             'id': video_id,
             'formats': formats,
