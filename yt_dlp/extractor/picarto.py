@@ -1,7 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    traverse_obj,
 )
 import urllib.parse
 
@@ -85,7 +84,7 @@ class PicartoIE(InfoExtractor):
 
 
 class PicartoVodIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?picarto\.tv/(videopopout|[a-zA-Z0-9]+/videos)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?picarto\.tv/(?:videopopout|\w+/videos)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://picarto.tv/videopopout/ArtofZod_2017.12.12.00.13.23.flv',
         'md5': '3ab45ba4352c52ee841a28fb73f2d9ca',
@@ -95,18 +94,25 @@ class PicartoVodIE(InfoExtractor):
             'title': 'ArtofZod_2017.12.12.00.13.23.flv',
             'thumbnail': r're:^https?://.*\.jpg'
         },
+        'skip': 'The VOD does not exist',
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
         'only_matching': True,
     }, {
         'url': 'https://picarto.tv/ArtofZod/videos/772650',
-        'only_matching': True,
+        'md5': '00067a0889f1f6869cc512e3e79c521b',
+        'info_dict': {
+            'id': '772650',
+            'ext': 'mp4',
+            'title': 'govod+golive+ArtofZod_2023.06.12.23.28.30_nsfw.mkv',
+            'thumbnail': r're:^https?://.*\.jpg'
+        }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        data = traverse_obj(self._download_json(
+        data = self._download_json(
             'https://ptvintern.picarto.tv/ptvapi', video_id, query={
                 'query': '''{
   video(id: "%s") {
@@ -118,19 +124,18 @@ class PicartoVodIE(InfoExtractor):
       name
     }
   }
-}''' % (video_id),
-            }), ('data', 'video'))
+}''' % video_id,
+            })['data']['video']
 
-        title = data["file_name"]
-        netloc = urllib.parse.urlparse(data["video_recording_image_url"]).netloc
+        title = data['file_name']
+        netloc = urllib.parse.urlparse(data['video_recording_image_url']).netloc
 
         formats = self._extract_m3u8_formats(
-            f"https://{netloc}/stream/hls/{title}/index.m3u8", video_id, 'mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls')
+            f'https://{netloc}/stream/hls/{title}/index.m3u8', video_id, 'mp4', m3u8_id='hls')
 
         return {
             'id': video_id,
             'title': title,
-            'thumbnail': data['video_recording_image_url'],
+            'thumbnail': data.get('video_recording_image_url'),
             'formats': formats,
         }
