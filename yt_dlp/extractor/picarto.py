@@ -1,8 +1,7 @@
-from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-)
 import urllib.parse
+
+from .common import InfoExtractor
+from ..utils import ExtractorError
 
 
 class PicartoIE(InfoExtractor):
@@ -96,9 +95,6 @@ class PicartoVodIE(InfoExtractor):
         },
         'skip': 'The VOD does not exist',
     }, {
-        'url': 'https://picarto.tv/videopopout/Plague',
-        'only_matching': True,
-    }, {
         'url': 'https://picarto.tv/ArtofZod/videos/772650',
         'md5': '00067a0889f1f6869cc512e3e79c521b',
         'info_dict': {
@@ -107,6 +103,9 @@ class PicartoVodIE(InfoExtractor):
             'title': 'govod+golive+ArtofZod_2023.06.12.23.28.30_nsfw.mkv',
             'thumbnail': r're:^https?://.*\.jpg'
         }
+    }, {
+        'url': 'https://picarto.tv/videopopout/Plague',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
