@@ -1420,7 +1420,7 @@ from .patreon import (
     PatreonIE,
     PatreonCampaignIE
 )
-from .pbs import PBSIE
+from .pbs import PBSIE, PBSKidsIE
 from .pearvideo import PearVideoIE
 from .peekvids import PeekVidsIE, PlayVidsIE
 from .peertube import (
