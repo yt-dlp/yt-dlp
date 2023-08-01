@@ -50,6 +50,10 @@ class FOXIE(InfoExtractor):
         # sports event, geo-restricted
         'url': 'https://www.fox.com/watch/b057484dade738d1f373b3e46216fa2c/',
         'only_matching': True,
+    }, {
+        # fox sports replay, geo-restricted
+        'url': 'https://www.foxsports.com/replay/561f3e071347a24e5e877abc56b22e89',
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _HOME_PAGE_URL = 'https://www.fox.com/'
