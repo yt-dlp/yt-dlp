@@ -107,6 +107,7 @@ class PicartoVodIE(InfoExtractor):
             'title': 'Art of Zod - Drawing and Painting',
             'thumbnail': r're:^https?://.*\.jpg',
             'channel': 'ArtofZod',
+            'age_limit': 18,
         }
     }, {
         'url': 'https://picarto.tv/videopopout/Plague',
@@ -122,6 +123,7 @@ class PicartoVodIE(InfoExtractor):
   video(id: "{video_id}") {{
     id
     title
+    adult
     file_name
     video_recording_image_url
     channel {{
@@ -144,6 +146,7 @@ class PicartoVodIE(InfoExtractor):
                 'title': ('title', {str}),
                 'thumbnail': 'video_recording_image_url',
                 'channel': ('channel', 'name', {str}),
+                'age_limit': ('adult', {lambda x: 18 if x else 0}),
             }),
             'formats': formats,
         }
