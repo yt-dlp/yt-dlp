@@ -1709,6 +1709,7 @@ from .ruv import (
     RuvIE,
     RuvSpilaIE
 )
+from .s4c import S4CIE
 from .safari import (
     SafariIE,
     SafariApiIE,
