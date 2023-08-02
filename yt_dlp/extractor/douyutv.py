@@ -37,12 +37,17 @@ class DouyuBaseIE(InfoExtractor):
     def _get_cryptojs_md5(self, video_id):
         return self.cache.load('douyu', 'crypto-js-md5') or self._download_cryptojs_md5(video_id)
 
-    def _calc_sign(self, sign_func, a, b, c, video_id):
+    def _calc_sign(self, sign_func, video_id, a, b=uuid.uuid4().hex, c=round(time.time())):
         js_script = f'{self._get_cryptojs_md5(video_id)};{sign_func};console.log(ub98484234("{a}","{b}","{c}"))'
         phantom = PhantomJSwrapper(self)
         result = phantom.execute(js_script, video_id,
                                  note='Executing JS signing script').strip()
         return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
+
+    def _search_js_sign_func(self, webpage, fatal=True):
+        # use preceeding greedy non-capture to achieve non-greedy in backward direction
+        return self._search_regex(
+            r'(?:<script.*)*<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func', fatal=fatal)
 
 
 class DouyuTVIE(DouyuBaseIE):
@@ -119,10 +124,8 @@ class DouyuTVIE(DouyuBaseIE):
         'only_matching': True,
     }]
 
-    def _sign(self, js_sign_func, room_id, video_id, params={}):
-        params.update(self._calc_sign(
-            js_sign_func, room_id, uuid.uuid4().hex, round(time.time()), video_id))
-        return params
+    def _sign(self, js_sign_func, room_id, video_id):
+        return self._calc_sign(js_sign_func, video_id, room_id, uuid.uuid4().hex, round(time.time()))
 
     def _get_sign_func(self, room_id, video_id):
         return self._download_json(
@@ -160,10 +163,6 @@ class DouyuTVIE(DouyuBaseIE):
         if '$ROOM.show_status =2;' in webpage:
             raise UserNotLive(video_id=video_id)
 
-        # use preceeding greedy non-capture to achieve non-greedy in backward direction
-        js_sign_func = self._search_regex(
-            r'(?:<script.*)*<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func', fatal=False
-        ) or self._get_sign_func(room_id, video_id)
 
         # Grab metadata from API
         params = {
@@ -181,7 +180,11 @@ class DouyuTVIE(DouyuBaseIE):
         if room.get('show_status') == '2':
             raise UserNotLive(video_id=video_id)
 
-        form_data = self._sign(js_sign_func, room_id, video_id, {'rate': 0})
+        js_sign_func = self._search_js_sign_func(webpage, fatal=False) or self._get_sign_func(room_id, video_id)
+        form_data = {
+            'rate': 0,
+            **self._calc_sign(js_sign_func, video_id, room_id),
+        }
         stream_formats = [self._download_json(
             f'https://www.douyu.com/lapi/live/getH5Play/{room_id}',
             video_id, note="Downloading livestream format",
@@ -250,9 +253,6 @@ class DouyuShowIE(DouyuBaseIE):
         'normal': '852x480',
     }
 
-    def _sign(self, sign_func, vid, video_id):
-        return self._calc_sign(sign_func, vid, uuid.uuid4().hex, round(time.time()), video_id)
-
     def _real_extract(self, url):
         url = url.replace('vmobile.', 'v.')
         video_id = self._match_id(url)
@@ -263,10 +263,10 @@ class DouyuShowIE(DouyuBaseIE):
             r'<script>window\.\$DATA=', webpage,
             'video info', video_id, transform_source=js_to_json)
 
-        js_sign_func = self._search_regex(r'(?:<script.*)*<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func')
+        js_sign_func = self._search_js_sign_func(webpage)
         form_data = {
             'vid': video_id,
-            **self._sign(js_sign_func, video_info['ROOM']['point_id'], video_id),
+            **self._calc_sign(js_sign_func, video_id, video_info['ROOM']['point_id']),
         }
         url_info = self._download_json(
             'https://v.douyu.com/api/stream/getStreamUrl', video_id,
