@@ -47,7 +47,7 @@ class DouyuBaseIE(InfoExtractor):
     def _search_js_sign_func(self, webpage, fatal=True):
         # use preceeding greedy non-capture to achieve non-greedy in backward direction
         return self._search_regex(
-            r'(?:<script.*)*<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func', fatal=fatal)
+            r'(?:<script.*)?<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func', fatal=fatal)
 
 
 class DouyuTVIE(DouyuBaseIE):
