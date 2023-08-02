@@ -160,8 +160,9 @@ class DouyuTVIE(DouyuBaseIE):
         if '$ROOM.show_status =2;' in webpage:
             raise UserNotLive(video_id=video_id)
 
+        # use preceeding greedy non-capture to achieve non-greedy in backward direction
         js_sign_func = self._search_regex(
-            r'<script[^>]*>([^<]+ub98484234.*?)</script>', webpage, 'JS sign func', fatal=False
+            r'(?:<script.*)*<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func', fatal=False
         ) or self._get_sign_func(room_id, video_id)
 
         # Grab metadata from API
@@ -262,7 +263,7 @@ class DouyuShowIE(DouyuBaseIE):
             r'<script>window\.\$DATA=', webpage,
             'video info', video_id, transform_source=js_to_json)
 
-        js_sign_func = self._search_regex(r'<script[^>]*>([^<]+ub98484234.*?)</script>', webpage, 'JS sign func')
+        js_sign_func = self._search_regex(r'(?:<script.*)*<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func')
         form_data = {
             'vid': video_id,
             **self._sign(js_sign_func, video_info['ROOM']['point_id'], video_id),
