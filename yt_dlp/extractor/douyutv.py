@@ -163,7 +163,6 @@ class DouyuTVIE(DouyuBaseIE):
         if '$ROOM.show_status =2;' in webpage:
             raise UserNotLive(video_id=video_id)
 
-
         # Grab metadata from API
         params = {
             'aid': 'wp',
