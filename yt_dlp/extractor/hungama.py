@@ -11,7 +11,7 @@ from ..utils import (
 class HungamaIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:www\.)?hungama\.com/
+                        (?:www\.|un\.)?hungama\.com/
                         (?:
                             (?:video|movie)/[^/]+/|
                             tv-show/(?:[^/]+/){2}\d+/episode/[^/]+/
@@ -19,7 +19,7 @@ class HungamaIE(InfoExtractor):
                         (?P<id>\d+)
                     '''
     _TESTS = [{
-        'url': 'http://www.hungama.com/video/krishna-chants/39349649/',
+        'url': 'http://un.hungama.com/video/krishna-chants/39349649/',
         'md5': '687c5f1e9f832f3b59f44ed0eb1f120a',
         'info_dict': {
             'id': '39349649',
@@ -71,9 +71,9 @@ class HungamaIE(InfoExtractor):
 
 
 class HungamaSongIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?hungama\.com/song/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.|un\.)?hungama\.com/song/[^/]+/(?P<id>\d+)'
     _TEST = {
-        'url': 'https://www.hungama.com/song/kitni-haseen-zindagi/2931166/',
+        'url': 'https://un.hungama.com/song/kitni-haseen-zindagi/2931166/',
         'md5': 'd4a6a05a394ad0453a9bea3ca00e6024',
         'info_dict': {
             'id': '2931166',
@@ -123,9 +123,9 @@ class HungamaSongIE(InfoExtractor):
 
 
 class HungamaAlbumPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?hungama\.com/(?:playlists|album)/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.|un\.)?hungama\.com/(?:playlists|album)/[^/]+/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://www.hungama.com/album/bhuj-the-pride-of-india/69481490/',
+        'url': 'https://un.hungama.com/album/bhuj-the-pride-of-india/69481490/',
         'playlist_mincount': 7,
         'info_dict': {
             'id': '69481490',
