@@ -73,3 +73,37 @@ class TBSJPEpisodeIE(InfoExtractor):
             'formats': formats,
             'subtitles': sub,
         }
+
+
+class TBSJPProgramIE(InfoExtractor):
+    _VALID_URL = r'https://cu\.tbs\.co\.jp/program/(?P<id>[\d]+)'
+    _TESTS = [{
+        'url': 'https://cu.tbs.co.jp/program/23601',
+        'playlist_mincount': 4,
+        'info_dict': {
+            'id': '23601',
+            'categories': ['エンタメ', 'ミライカプセル', '会社', '働く', 'バラエティ', '動画'],
+            'description': '幼少期の夢は大人になって、どう成長したのだろうか？\nそしてその夢は今後、どのように広がっていくのか？\nいま話題の会社で働く人の「夢の成長」を描く',
+            'series': 'ミライカプセル　-I have a dream-',
+            'title': 'ミライカプセル　-I have a dream-'
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        page = self._download_webpage(url, video_id)
+        meta = self._search_json('window.app=', page, 'programme info', video_id)
+
+        programme = traverse_obj(meta, ('falcorCache', 'catalog', 'program', video_id, 'false', 'value'))
+
+        return {
+            '_type': 'playlist',
+            'entries': [self.url_result(f'https://cu.tbs.co.jp/episode/{id}')
+                for id in traverse_obj(programme, ('custom_data', 'seriesList', 'episodeCode', ...))],
+            **traverse_obj(programme, {
+                'categories': 'keywords',
+                'id': ('tv_episode_info', 'show_content_id'),
+                'description': ('custom_data', 'program_description'),
+                'series': ('custom_data', 'program_name'),
+                'title': ('custom_data', 'program_name'),
+            })}
