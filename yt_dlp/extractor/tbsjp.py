@@ -57,7 +57,8 @@ class TBSJPEpisodeIE(InfoExtractor):
         api_key = self._search_regex(r'api_key: *[\'"]([^\'"]+)[\'"]', tf_js, 'stream API key')
 
         source_meta = self._download_json(f'{video_url}ref:{video_id}', video_id,
-            headers={"X-Streaks-Api-Key": api_key}, note='Downloading stream metadata')
+                                          headers={"X-Streaks-Api-Key": api_key},
+                                          note='Downloading stream metadata')
 
         formats = []
         subs = []
@@ -99,7 +100,7 @@ class TBSJPProgramIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'entries': [self.url_result(f'https://cu.tbs.co.jp/episode/{id}')
-                for id in traverse_obj(programme, ('custom_data', 'seriesList', 'episodeCode', ...))],
+                        for id in traverse_obj(programme, ('custom_data', 'seriesList', 'episodeCode', ...))],
             **traverse_obj(programme, {
                 'categories': 'keywords',
                 'id': ('tv_episode_info', 'show_content_id'),
