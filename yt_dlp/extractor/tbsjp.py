@@ -59,7 +59,7 @@ class TBSJPEpisodeIE(InfoExtractor):
 
         try:
             source_meta = self._download_json(f'{video_url}ref:{video_id}', video_id,
-                                              headers={"X-Streaks-Api-Key": api_key},
+                                              headers={'X-Streaks-Api-Key': api_key},
                                               note='Downloading stream metadata')
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 403:
