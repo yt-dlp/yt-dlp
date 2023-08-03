@@ -1,6 +1,7 @@
 from .common import InfoExtractor
-
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     get_element_text_and_html_by_tag,
     traverse_obj,
     unified_timestamp,
@@ -56,9 +57,14 @@ class TBSJPEpisodeIE(InfoExtractor):
         video_url = self._search_regex(r'videoPlaybackUrl: *[\'"]([^\'"]+)[\'"]', tf_js, 'stream API url')
         api_key = self._search_regex(r'api_key: *[\'"]([^\'"]+)[\'"]', tf_js, 'stream API key')
 
-        source_meta = self._download_json(f'{video_url}ref:{video_id}', video_id,
-                                          headers={"X-Streaks-Api-Key": api_key},
-                                          note='Downloading stream metadata')
+        try:
+            source_meta = self._download_json(f'{video_url}ref:{video_id}', video_id,
+                                              headers={"X-Streaks-Api-Key": api_key},
+                                              note='Downloading stream metadata')
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                self.raise_geo_restricted(countries=['JP'])
+            raise
 
         formats = []
         subs = []
