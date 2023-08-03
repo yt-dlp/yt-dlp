@@ -127,7 +127,6 @@ class LastFMIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         player_url = self._search_regex(r'(?s)class="header-new-playlink"\s+href="([^"]+)"', webpage, 'player_url')
 
-        preferred_original = {}
         track_or_album = re.search(r'(?s)class="header-new-playlink".*?(Play\s+(?:track|album))', webpage).group(1)
         media_type = None
         if track_or_album == 'Play track':
@@ -157,11 +156,10 @@ class LastFMIE(InfoExtractor):
                 album_meta = get_album_meta(album_webpage)
                 albums_meta.append(album_meta)
             earliest_album = sorted(albums_meta, key=lambda a: a['release_date'])[0]
-            preferred_original['thumbnail'] = earliest_album['thumbnail']
+            thumbnail = earliest_album['thumbnail']
 
         result = self.url_result(player_url, 'Youtube')
-        result['preferred_original'] = preferred_original
-        thumbnails = [{'url': preferred_original['thumbnail']}]
+        thumbnails = [{'url': thumbnail}]
         result['thumbnails'] = thumbnails
         result['_type'] = 'url_transparent'
         return result
