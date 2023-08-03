@@ -108,3 +108,48 @@ class TBSJPProgramIE(InfoExtractor):
                 'series': ('custom_data', 'program_name'),
                 'title': ('custom_data', 'program_name'),
             })}
+
+
+class TBSJPPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https://cu\.tbs\.co\.jp/playlist/(?P<id>[\da-f]+)'
+    _TESTS = [{
+        'url': 'https://cu.tbs.co.jp/playlist/184f9970e7ba48e4915f1b252c55015e',
+        'playlist_mincount': 4,
+        'info_dict': {
+            'title': 'まもなく配信終了',
+            'id': '184f9970e7ba48e4915f1b252c55015e',
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        page = self._download_webpage(url, video_id)
+        meta = self._search_json('window.app=', page, 'playlist info', video_id)
+
+        playlist = traverse_obj(meta, ('falcorCache', 'playList', video_id))
+
+        entries = []
+        for entry in traverse_obj(playlist, ('catalogs', 'value')):
+            # it's likely possible to get most/all of the metadata from the playlist page json,
+            # but just going to go with the lazy solution for now
+            content_id = entry.get('content_id')
+            content_type = entry.get('content_type')
+            if content_type == 'tv_show':
+                url = f'https://cu.tbs.co.jp/program/{content_id}'
+            elif content_type == 'tv_episode':
+                url = f'https://cu.tbs.co.jp/episode/{content_id}'
+            else:
+                self.report_warning(f'{content_id}: Unexpected content_type: {content_type}. Skipping.')
+
+            if url:
+                entries.append(self.url_result(url))
+
+        return {
+            '_type': 'playlist',
+            **traverse_obj(playlist, {
+                'id': ('id', 'value'),
+                'title': ('display_name', 'value'),
+                'playlist_count': ('total_count', 'value'),
+            }),
+            'entries': entries,
+        }

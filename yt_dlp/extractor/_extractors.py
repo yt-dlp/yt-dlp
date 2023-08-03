@@ -1904,6 +1904,7 @@ from .tbs import TBSIE
 from .tbsjp import (
     TBSJPEpisodeIE,
     TBSJPProgramIE,
+    TBSJPPlaylistIE,
 )
 from .tdslifeway import TDSLifewayIE
 from .teachable import (
