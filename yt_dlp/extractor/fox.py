@@ -20,7 +20,7 @@ from ..utils import (
 
 
 class FOXIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?fox\.com/watch/(?P<id>[\da-fA-F]+)'
+    _VALID_URL = r'https?://(?:www\.)?fox(?:sports)?\.com/(?:watch|replay)/(?P<id>[\da-fA-F]+)'
     _TESTS = [{
         # clip
         'url': 'https://www.fox.com/watch/4b765a60490325103ea69888fb2bd4e8/',
@@ -49,6 +49,10 @@ class FOXIE(InfoExtractor):
     }, {
         # sports event, geo-restricted
         'url': 'https://www.fox.com/watch/b057484dade738d1f373b3e46216fa2c/',
+        'only_matching': True,
+    }, {
+        # fox sports replay, geo-restricted
+        'url': 'https://www.foxsports.com/replay/561f3e071347a24e5e877abc56b22e89',
         'only_matching': True,
     }]
     _GEO_BYPASS = False

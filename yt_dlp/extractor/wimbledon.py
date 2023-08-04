@@ -6,7 +6,7 @@ from ..utils import (
 
 
 class WimbledonIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?wimbledon\.com/\w+/video/media/(?P<id>\d+).html'
+    _VALID_URL = r'https?://(?:www\.)?wimbledon\.com/\w+/video/media/(?P<id>\d+)\.html'
     _TESTS = [{
         'url': 'https://www.wimbledon.com/en_GB/video/media/6330247525112.html',
         'info_dict': {
