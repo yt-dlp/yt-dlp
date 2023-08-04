@@ -33,7 +33,6 @@ from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
     Popen,
     error_to_str,
-    escape_url,
     expand_path,
     is_path_like,
     sanitize_url,
@@ -42,6 +41,7 @@ from .utils import (
     write_string,
 )
 from .utils._utils import _YDLLogger
+from .utils.networking import normalize_url
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -1308,7 +1308,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
 
     def get_cookie_header(self, url):
         """Generate a Cookie HTTP header for a given url"""
-        cookie_req = urllib.request.Request(escape_url(sanitize_url(url)))
+        cookie_req = urllib.request.Request(normalize_url(sanitize_url(url)))
         self.add_cookie_header(cookie_req)
         return cookie_req.get_header('Cookie')
 
@@ -1317,7 +1317,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
         # Policy `_now` attribute must be set before calling `_cookies_for_request`
         # Ref: https://github.com/python/cpython/blob/3.7/Lib/http/cookiejar.py#L1360
         self._policy._now = self._now = int(time.time())
-        return self._cookies_for_request(urllib.request.Request(escape_url(sanitize_url(url))))
+        return self._cookies_for_request(urllib.request.Request(normalize_url(sanitize_url(url))))
 
     def clear(self, *args, **kwargs):
         with contextlib.suppress(KeyError):

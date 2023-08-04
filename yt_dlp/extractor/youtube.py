@@ -3583,8 +3583,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    _PLAYER_PARAMS = 'CgIQBg=='
-
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
@@ -3597,7 +3595,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'videoId': video_id,
         }
         if _split_innertube_client(client)[0] == 'android':
-            yt_query['params'] = self._PLAYER_PARAMS
+            yt_query['params'] = 'CgIQBg=='
+
+        pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
+        if pp_arg:
+            yt_query['params'] = pp_arg
 
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
@@ -4016,6 +4018,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
+            pp = self._configuration_arg('player_params', [None], casesense=True)[0]
+            if pp:
+                query['pp'] = pp
             webpage = self._download_webpage(
                 webpage_url, video_id, fatal=False, query=query)
 

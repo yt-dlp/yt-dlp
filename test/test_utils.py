@@ -47,8 +47,6 @@ from yt_dlp.utils import (
     encode_base_n,
     encode_compat_str,
     encodeFilename,
-    escape_rfc3986,
-    escape_url,
     expand_path,
     extract_attributes,
     extract_basic_auth,
@@ -132,7 +130,12 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
-from yt_dlp.utils.networking import HTTPHeaderDict
+from yt_dlp.utils.networking import (
+    HTTPHeaderDict,
+    escape_rfc3986,
+    normalize_url,
+    remove_dot_segments,
+)
 
 
 class TestUtil(unittest.TestCase):
@@ -933,24 +936,45 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(escape_rfc3986('foo bar'), 'foo%20bar')
         self.assertEqual(escape_rfc3986('foo%20bar'), 'foo%20bar')
 
-    def test_escape_url(self):
+    def test_normalize_url(self):
         self.assertEqual(
-            escape_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
+            normalize_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
             'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4'
         )
         self.assertEqual(
-            escape_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
+            normalize_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
             'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/фрагмент'),
+            normalize_url('http://тест.рф/фрагмент'),
             'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/абв?абв=абв#абв'),
+            normalize_url('http://тест.рф/абв?абв=абв#абв'),
             'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
         )
-        self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+        self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+
+        self.assertEqual(normalize_url('http://www.example.com/../a/b/../c/./d.html'), 'http://www.example.com/a/c/d.html')
+
+    def test_remove_dot_segments(self):
+        self.assertEqual(remove_dot_segments('/a/b/c/./../../g'), '/a/g')
+        self.assertEqual(remove_dot_segments('mid/content=5/../6'), 'mid/6')
+        self.assertEqual(remove_dot_segments('/ad/../cd'), '/cd')
+        self.assertEqual(remove_dot_segments('/ad/../cd/'), '/cd/')
+        self.assertEqual(remove_dot_segments('/..'), '/')
+        self.assertEqual(remove_dot_segments('/./'), '/')
+        self.assertEqual(remove_dot_segments('/./a'), '/a')
+        self.assertEqual(remove_dot_segments('/abc/./.././d/././e/.././f/./../../ghi'), '/ghi')
+        self.assertEqual(remove_dot_segments('/'), '/')
+        self.assertEqual(remove_dot_segments('/t'), '/t')
+        self.assertEqual(remove_dot_segments('t'), 't')
+        self.assertEqual(remove_dot_segments(''), '')
+        self.assertEqual(remove_dot_segments('/../a/b/c'), '/a/b/c')
+        self.assertEqual(remove_dot_segments('../a'), 'a')
+        self.assertEqual(remove_dot_segments('./a'), 'a')
+        self.assertEqual(remove_dot_segments('.'), '')
+        self.assertEqual(remove_dot_segments('////'), '////')
 
     def test_js_to_json_vars_strings(self):
         self.assertDictEqual(
@@ -2320,6 +2344,8 @@ Line 1
 
     def test_http_header_dict(self):
         headers = HTTPHeaderDict()
+        headers['ytdl-test'] = b'0'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '0')])
         headers['ytdl-test'] = 1
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
         headers['Ytdl-test'] = '2'
