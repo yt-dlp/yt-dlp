@@ -498,9 +498,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return
         socs = cookies.get('SOCS')
         if socs and not socs.value.startswith('CAA'):  # not consented
-            self.to_screen("consented")
             return
-        self.to_screen("setting consent cookie")
         self._set_cookie('.youtube.com', 'SOCS', 'CAI', secure=True)  # accept all (required for mixes)
 
     def _initialize_pref(self):
