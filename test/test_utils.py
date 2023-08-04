@@ -22,7 +22,6 @@ from yt_dlp.compat import (
     compat_os_name,
 )
 from yt_dlp.utils import (
-    HTTPHeaderDict,
     Config,
     DateRange,
     ExtractorError,
@@ -48,8 +47,6 @@ from yt_dlp.utils import (
     encode_base_n,
     encode_compat_str,
     encodeFilename,
-    escape_rfc3986,
-    escape_url,
     expand_path,
     extract_attributes,
     extract_basic_auth,
@@ -132,6 +129,12 @@ from yt_dlp.utils import (
     xpath_element,
     xpath_text,
     xpath_with_ns,
+)
+from yt_dlp.utils.networking import (
+    HTTPHeaderDict,
+    escape_rfc3986,
+    normalize_url,
+    remove_dot_segments,
 )
 
 
@@ -655,6 +658,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('P0Y0M0DT0H4M20.880S'), 260.88)
         self.assertEqual(parse_duration('01:02:03:050'), 3723.05)
         self.assertEqual(parse_duration('103:050'), 103.05)
+        self.assertEqual(parse_duration('1HR 3MIN'), 3780)
+        self.assertEqual(parse_duration('2hrs 3mins'), 7380)
 
     def test_fix_xml_ampersands(self):
         self.assertEqual(
@@ -931,24 +936,45 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(escape_rfc3986('foo bar'), 'foo%20bar')
         self.assertEqual(escape_rfc3986('foo%20bar'), 'foo%20bar')
 
-    def test_escape_url(self):
+    def test_normalize_url(self):
         self.assertEqual(
-            escape_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
+            normalize_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
             'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4'
         )
         self.assertEqual(
-            escape_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
+            normalize_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
             'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/фрагмент'),
+            normalize_url('http://тест.рф/фрагмент'),
             'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/абв?абв=абв#абв'),
+            normalize_url('http://тест.рф/абв?абв=абв#абв'),
             'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
         )
-        self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+        self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+
+        self.assertEqual(normalize_url('http://www.example.com/../a/b/../c/./d.html'), 'http://www.example.com/a/c/d.html')
+
+    def test_remove_dot_segments(self):
+        self.assertEqual(remove_dot_segments('/a/b/c/./../../g'), '/a/g')
+        self.assertEqual(remove_dot_segments('mid/content=5/../6'), 'mid/6')
+        self.assertEqual(remove_dot_segments('/ad/../cd'), '/cd')
+        self.assertEqual(remove_dot_segments('/ad/../cd/'), '/cd/')
+        self.assertEqual(remove_dot_segments('/..'), '/')
+        self.assertEqual(remove_dot_segments('/./'), '/')
+        self.assertEqual(remove_dot_segments('/./a'), '/a')
+        self.assertEqual(remove_dot_segments('/abc/./.././d/././e/.././f/./../../ghi'), '/ghi')
+        self.assertEqual(remove_dot_segments('/'), '/')
+        self.assertEqual(remove_dot_segments('/t'), '/t')
+        self.assertEqual(remove_dot_segments('t'), 't')
+        self.assertEqual(remove_dot_segments(''), '')
+        self.assertEqual(remove_dot_segments('/../a/b/c'), '/a/b/c')
+        self.assertEqual(remove_dot_segments('../a'), 'a')
+        self.assertEqual(remove_dot_segments('./a'), 'a')
+        self.assertEqual(remove_dot_segments('.'), '')
+        self.assertEqual(remove_dot_segments('////'), '////')
 
     def test_js_to_json_vars_strings(self):
         self.assertDictEqual(
@@ -1827,6 +1853,8 @@ Line 1
     def test_clean_podcast_url(self):
         self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')
         self.assertEqual(clean_podcast_url('https://play.podtrac.com/npr-344098539/edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3'), 'https://edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3')
+        self.assertEqual(clean_podcast_url('https://pdst.fm/e/2.gum.fm/chtbl.com/track/chrt.fm/track/34D33/pscrb.fm/rss/p/traffic.megaphone.fm/ITLLC7765286967.mp3?updated=1687282661'), 'https://traffic.megaphone.fm/ITLLC7765286967.mp3?updated=1687282661')
+        self.assertEqual(clean_podcast_url('https://pdst.fm/e/https://mgln.ai/e/441/www.buzzsprout.com/1121972/13019085-ep-252-the-deep-life-stack.mp3'), 'https://www.buzzsprout.com/1121972/13019085-ep-252-the-deep-life-stack.mp3')
 
     def test_LazyList(self):
         it = list(range(10))
@@ -2314,10 +2342,10 @@ Line 1
         self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
                          msg='function on a `re.Match` should give group name as well')
 
-    def test_case_insensitive_dict(self):
+    def test_http_header_dict(self):
         headers = HTTPHeaderDict()
         headers['ytdl-test'] = 1
-        self.assertEqual(list(headers.items()), [('Ytdl-Test', 1)])
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
         headers['Ytdl-test'] = '2'
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
         self.assertTrue('ytDl-Test' in headers)
@@ -2337,7 +2365,7 @@ Line 1
 
         # ensure we prefer latter headers
         headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
-        self.assertEqual(set(headers3.items()), {('Ytdl-Test', 2)})
+        self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
         del headers3['ytdl-tesT']
         self.assertEqual(dict(headers3), {})
 

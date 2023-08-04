@@ -3,6 +3,7 @@
 # Allow direct execution
 import os
 import sys
+
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,12 +19,7 @@ import warnings
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import certifi
 from yt_dlp.networking import Response
-from yt_dlp.networking.exceptions import (
-    HTTPError,
-    IncompleteRead,
-    _CompatHTTPError,
-)
-from yt_dlp.networking.utils import (
+from yt_dlp.networking._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
     get_redirect_method,
@@ -31,8 +27,13 @@ from yt_dlp.networking.utils import (
     select_proxy,
     ssl_load_certs,
 )
+from yt_dlp.networking.exceptions import (
+    HTTPError,
+    IncompleteRead,
+    _CompatHTTPError,
+)
 from yt_dlp.socks import ProxyType
-from yt_dlp.utils import HTTPHeaderDict
+from yt_dlp.utils.networking import HTTPHeaderDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

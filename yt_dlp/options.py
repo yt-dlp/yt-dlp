@@ -511,6 +511,11 @@ def create_parser():
         help='Client-side IP address to bind to',
     )
     network.add_option(
+        '--impersonate',
+        metavar='TARGET', dest='impersonate', default=None,
+        help='curl-impersonate target name to impersonate for requests.',
+    )
+    network.add_option(
         '-4', '--force-ipv4',
         action='store_const', const='0.0.0.0', dest='source_address',
         help='Make all connections via IPv4',

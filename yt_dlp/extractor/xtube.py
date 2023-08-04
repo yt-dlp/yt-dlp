@@ -2,7 +2,7 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import (
     int_or_none,
     js_to_json,

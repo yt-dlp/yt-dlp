@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..networking.common import HEADRequest, Request
+from ..networking import HEADRequest, Request
 from ..utils import remove_start, smuggle_url, urlencode_postdata
 
 

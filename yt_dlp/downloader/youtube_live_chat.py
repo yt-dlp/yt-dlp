@@ -11,6 +11,7 @@ from ..utils import (
     int_or_none,
     try_get,
 )
+from ..utils.networking import HTTPHeaderDict
 
 
 class YoutubeLiveChatFD(FragmentFD):

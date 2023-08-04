@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -282,7 +282,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 if m:
                     yield m.group(1)
                     start, stop = (_msectotimecode(int(t)) for t in m.groups()[1:])
-                    yield f'{start} --> {stop}'
+                    yield '{0} --> {1}'.format(start, stop)
                 else:
                     yield line
 

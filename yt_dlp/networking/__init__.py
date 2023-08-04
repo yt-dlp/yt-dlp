@@ -1,11 +1,17 @@
-from .common import Request  # noqa: F401
+# flake8: noqa: 401
+from .common import (
+    HEADRequest,
+    PUTRequest,
+    Request,
+    RequestDirector,
+    RequestHandler,
+    Response,
+)
 
 # isort: split
 # TODO: all request handlers should be safely imported
-from . import _urllib  # noqa: F401
+from . import _urllib
 try:
     from . import _curlcffi  # noqa: F401
 except ImportError:
     pass
-
-from .director import RequestDirector  # noqa: F401

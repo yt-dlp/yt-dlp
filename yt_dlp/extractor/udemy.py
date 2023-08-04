@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str, compat_urlparse
-from ..networking.common import Request
+from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
@@ -126,7 +126,7 @@ class UdemyIE(InfoExtractor):
         headers = kwargs.get('headers', {}).copy()
         headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36'
         kwargs['headers'] = headers
-        ret = super()._download_webpage_handle(
+        ret = super(UdemyIE, self)._download_webpage_handle(
             *args, **kwargs)
         if not ret:
             return ret
@@ -158,7 +158,7 @@ class UdemyIE(InfoExtractor):
         else:
             url_or_request = Request(url_or_request, headers=headers)
 
-        response = super()._download_json(url_or_request, *args, **kwargs)
+        response = super(UdemyIE, self)._download_json(url_or_request, *args, **kwargs)
         self._handle_error(response)
         return response
 
@@ -423,7 +423,7 @@ class UdemyCourseIE(UdemyIE):  # XXX: Do not subclass from concrete IE
 
     @classmethod
     def suitable(cls, url):
-        return False if UdemyIE.suitable(url) else super().suitable(url)
+        return False if UdemyIE.suitable(url) else super(UdemyCourseIE, cls).suitable(url)
 
     def _real_extract(self, url):
         course_path = self._match_id(url)

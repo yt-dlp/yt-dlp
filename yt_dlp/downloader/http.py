@@ -3,14 +3,13 @@ import random
 import time
 
 from .common import FileDownloader
-from ..networking.common import Request
+from ..networking import Request
 from ..networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
     TransportError,
 )
 from ..utils import (
-    HTTPHeaderDict,
     ContentTooShortError,
     RetryManager,
     ThrottledDownload,
@@ -22,6 +21,7 @@ from ..utils import (
     try_call,
     write_xattr,
 )
+from ..utils.networking import HTTPHeaderDict
 
 
 class HttpFD(FileDownloader):

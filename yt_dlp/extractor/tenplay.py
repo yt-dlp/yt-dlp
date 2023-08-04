@@ -1,8 +1,8 @@
-import base64
 from datetime import datetime
+import base64
 
 from .common import InfoExtractor
-from ..networking.common import HEADRequest
+from ..networking import HEADRequest
 from ..utils import int_or_none, urlencode_postdata
 
 

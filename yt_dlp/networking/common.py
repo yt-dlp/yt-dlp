@@ -9,25 +9,103 @@ import typing
 import urllib.parse
 import urllib.request
 import urllib.response
+from collections.abc import Iterable, Mapping
 from email.message import Message
 from http import HTTPStatus
 from http.cookiejar import CookieJar
-from typing import IO, Iterable, Mapping, Union
 
-from .exceptions import TransportError, UnsupportedRequest
-from .utils import make_ssl_context
+from ._helper import make_ssl_context, wrap_request_errors
+from .exceptions import (
+    NoSupportingHandlers,
+    RequestError,
+    TransportError,
+    UnsupportedRequest,
+)
+from ..compat.types import NoneType
 from ..utils import (
-    HTTPHeaderDict,
+    bug_reports_message,
     classproperty,
     deprecation_warning,
-    escape_url,
+    error_to_str,
     update_url_query,
 )
+from ..utils.networking import HTTPHeaderDict, normalize_url
+
+if typing.TYPE_CHECKING:
+    RequestData = bytes | Iterable[bytes] | typing.IO | None
+
+
+class RequestDirector:
+    """RequestDirector class
+
+    Helper class that, when given a request, forward it to a RequestHandler that supports it.
+
+    @param logger: Logger instance.
+    @param verbose: Print debug request information to stdout.
+    """
+
+    def __init__(self, logger, verbose=False):
+        self.handlers: dict[str, RequestHandler] = {}
+        self.logger = logger  # TODO(Grub4k): default logger
+        self.verbose = verbose
+
+    def close(self):
+        for handler in self.handlers.values():
+            handler.close()
+
+    def add_handler(self, handler: RequestHandler):
+        """Add a handler. If a handler of the same RH_KEY exists, it will overwrite it"""
+        assert isinstance(handler, RequestHandler), 'handler must be a RequestHandler'
+        self.handlers[handler.RH_KEY] = handler
+
+    def _print_verbose(self, msg):
+        if self.verbose:
+            self.logger.stdout(f'director: {msg}')
+
+    def send(self, request: Request) -> Response:
+        """
+        Passes a request onto a suitable RequestHandler
+        """
+        if not self.handlers:
+            raise RequestError('No request handlers configured')
+
+        assert isinstance(request, Request)
+
+        unexpected_errors = []
+        unsupported_errors = []
+        # TODO (future): add a per-request preference system
+        for handler in reversed(list(self.handlers.values())):
+            self._print_verbose(f'Checking if "{handler.RH_NAME}" supports this request.')
+            try:
+                handler.validate(request)
+            except UnsupportedRequest as e:
+                self._print_verbose(
+                    f'"{handler.RH_NAME}" cannot handle this request (reason: {error_to_str(e)})')
+                unsupported_errors.append(e)
+                continue
+
+            self._print_verbose(f'Sending request via "{handler.RH_NAME}"')
+            try:
+                response = handler.send(request)
+            except RequestError:
+                raise
+            except Exception as e:
+                self.logger.error(
+                    f'[{handler.RH_NAME}] Unexpected error: {error_to_str(e)}{bug_reports_message()}',
+                    is_error=False)
+                unexpected_errors.append(e)
+                continue
+
+            assert isinstance(response, Response)
+            return response
+
+        raise NoSupportingHandlers(unsupported_errors, unexpected_errors)
+
 
 _REQUEST_HANDLERS = {}
 
 
-def register(handler):
+def register_rh(handler):
     """Register a RequestHandler class"""
     assert issubclass(handler, RequestHandler), f'{handler} must be a subclass of RequestHandler'
     assert handler.RH_KEY not in _REQUEST_HANDLERS, f'RequestHandler {handler.RH_KEY} already registered'
@@ -38,18 +116,6 @@ def register(handler):
 class Features(enum.Enum):
     ALL_PROXY = enum.auto()
     NO_PROXY = enum.auto()
-
-
-def _wrap_request_errors(func):
-    @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except UnsupportedRequest as e:
-            if e.handler is None:
-                e.handler = self
-            raise
-    return wrapper
 
 
 class RequestHandler(abc.ABC):
@@ -81,6 +147,7 @@ class RequestHandler(abc.ABC):
         a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
     - `_SUPPORTED_FEATURES`: a tuple of supported features, as defined in Features enum.
+
     The above may be set to None to disable the checks.
 
     Parameters:
@@ -103,9 +170,14 @@ class RequestHandler(abc.ABC):
     Requests may have additional optional parameters defined as extensions.
      RequestHandler subclasses may choose to support custom extensions.
 
+    If an extension is supported, subclasses should extend _check_extensions(extensions)
+    to pop and validate the extension.
+    - Extensions left in `extensions` are treated as unsupported and UnsupportedRequest will be raised.
+
     The following extensions are defined for RequestHandler:
-    - `cookiejar`: Cookiejar to use for this request
-    - `timeout`: socket timeout to use for this request
+    - `cookiejar`: Cookiejar to use for this request.
+    - `timeout`: socket timeout to use for this request.
+    To enable these, add extensions.pop('<extension>', None) to _check_extensions
 
     Apart from the url protocol, proxies dict may contain the following keys:
     - `all`: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
@@ -117,11 +189,10 @@ class RequestHandler(abc.ABC):
     _SUPPORTED_URL_SCHEMES = ()
     _SUPPORTED_PROXY_SCHEMES = ()
     _SUPPORTED_FEATURES = ()
-    _SUPPORTED_EXTENSIONS = ()
 
     def __init__(
         self, *,
-        logger,  # TODO(Grub4k)
+        logger,  # TODO(Grub4k): default logger
         headers: HTTPHeaderDict = None,
         cookiejar: CookieJar = None,
         timeout: float | int | None = None,
@@ -132,10 +203,10 @@ class RequestHandler(abc.ABC):
         client_cert: dict[str, str | None] = None,
         verify: bool = True,
         legacy_ssl_support: bool = False,
-        **kwargs,
+        **_,
     ):
 
-        self._logger = logger  # TODO(Grub4k): default logger
+        self._logger = logger
         self.headers = headers or {}
         self.cookiejar = cookiejar if cookiejar is not None else CookieJar()
         self.timeout = float(timeout or 20)
@@ -190,47 +261,39 @@ class RequestHandler(abc.ABC):
                 # Skip proxy scheme checks
                 continue
 
-            # Scheme-less proxies are not supported
-            if urllib.request._parse_proxy(proxy_url)[0] is None:
-                raise UnsupportedRequest(f'Proxy "{proxy_url}" missing scheme')
+            try:
+                if urllib.request._parse_proxy(proxy_url)[0] is None:
+                    # Scheme-less proxies are not supported
+                    raise UnsupportedRequest(f'Proxy "{proxy_url}" missing scheme')
+            except ValueError as e:
+                # parse_proxy may raise on some invalid proxy urls such as "/a/b/c"
+                raise UnsupportedRequest(f'Invalid proxy url "{proxy_url}": {e}')
 
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
             if scheme not in self._SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'Unsupported proxy type: "{scheme}"')
 
-    def _check_cookiejar_extension(self, extensions):
-        if not extensions.get('cookiejar'):
-            return
-        if not isinstance(extensions['cookiejar'], CookieJar):
-            raise UnsupportedRequest('cookiejar is not a CookieJar')
-
-    def _check_timeout_extension(self, extensions):
-        if extensions.get('timeout') is None:
-            return
-        if not isinstance(extensions['timeout'], (float, int)):
-            raise UnsupportedRequest('timeout is not a float or int')
-
     def _check_extensions(self, extensions):
-        if self._SUPPORTED_EXTENSIONS is None:
-            return
-        for extension in extensions:
-            if extension not in self._SUPPORTED_EXTENSIONS and not extension.startswith('_'):
-                raise UnsupportedRequest(f'Unsupported request extension: "{extension}"')
-        self._check_cookiejar_extension(extensions)
-        self._check_timeout_extension(extensions)
+        """Check extensions for unsupported extensions. Subclasses should extend this."""
+        assert isinstance(extensions.get('cookiejar'), (CookieJar, NoneType))
+        assert isinstance(extensions.get('timeout'), (float, int, NoneType))
 
     def _validate(self, request):
         self._check_url_scheme(request)
         self._check_proxies(request.proxies or self.proxies)
-        self._check_extensions(request.extensions)
+        extensions = request.extensions.copy()
+        self._check_extensions(extensions)
+        if extensions:
+            # TODO: add support for optional extensions
+            raise UnsupportedRequest(f'Unsupported extensions: {", ".join(extensions.keys())}')
 
-    @_wrap_request_errors
+    @wrap_request_errors
     def validate(self, request: Request):
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
         self._validate(request)
 
-    @_wrap_request_errors
+    @wrap_request_errors
     def send(self, request: Request) -> Response:
         if not isinstance(request, Request):
             raise TypeError('Expected an instance of Request')
@@ -259,9 +322,6 @@ class RequestHandler(abc.ABC):
         self.close()
 
 
-_TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
-
-
 class Request:
     """
     Represents a request to be made.
@@ -279,7 +339,7 @@ class Request:
     def __init__(
             self,
             url: str,
-            data: _TYPE_REQ_DATA = None,
+            data: RequestData = None,
             headers: typing.Mapping = None,
             proxies: dict = None,
             query: dict = None,
@@ -311,7 +371,7 @@ class Request:
             raise TypeError('url must be a string')
         elif url.startswith('//'):
             url = 'http:' + url
-        self._url = escape_url(url)
+        self._url = normalize_url(url)
 
     @property
     def method(self):
@@ -331,7 +391,7 @@ class Request:
         return self._data
 
     @data.setter
-    def data(self, data: _TYPE_REQ_DATA):
+    def data(self, data: RequestData):
         # Try catch some common mistakes
         if data is not None and (
             not isinstance(data, (bytes, io.IOBase, Iterable)) or isinstance(data, (str, Mapping))
@@ -368,7 +428,7 @@ class Request:
             raise TypeError('headers must be a mapping')
 
     def update(self, url=None, data=None, headers=None, query=None):
-        self.data = data or self.data
+        self.data = data if data is not None else self.data
         self.headers.update(headers or {})
         self.url = update_url_query(url or self.url, query or {})
 
@@ -404,13 +464,13 @@ class Response(io.IOBase):
 
     def __init__(
             self,
-            fp: IO,
+            fp: typing.IO,
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
             reason: str = None):
 
-        self.raw = fp
+        self.fp = fp
         self.headers = Message()
         for name, value in headers.items():
             self.headers.add_header(name, value)
@@ -422,18 +482,18 @@ class Response(io.IOBase):
             self.reason = None
 
     def readable(self):
-        return self.raw.readable()
+        return self.fp.readable()
 
     def read(self, amt: int = None) -> bytes:
         # Expected errors raised here should be of type RequestError or subclasses.
         # Subclasses should redefine this method with more precise error handling.
         try:
-            return self.raw.read(amt)
+            return self.fp.read(amt)
         except Exception as e:
             raise TransportError(cause=e) from e
 
     def close(self):
-        self.raw.close()
+        self.fp.close()
         return super().close()
 
     def get_header(self, name, default=None):

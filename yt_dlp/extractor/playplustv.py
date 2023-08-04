@@ -1,7 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..networking.common import PUTRequest
+from ..networking import PUTRequest
 from ..networking.exceptions import HTTPError
 from ..utils import ExtractorError, clean_html, int_or_none
 

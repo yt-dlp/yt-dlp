@@ -10,7 +10,7 @@ import uuid
 
 from .fragment import FragmentFD
 from ..compat import functools
-from ..networking.common import Request
+from ..networking import Request
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
@@ -199,8 +199,9 @@ class CurlFD(ExternalFD):
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
-        if self.ydl.cookiejar.get_cookie_header(info_dict['url']):
-            cmd += ['--cookie-jar', self._write_cookies()]
+        cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
+        if cookie_header:
+            cmd += ['--cookie', cookie_header]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', f'{key}: {val}']
@@ -233,7 +234,7 @@ class AxelFD(ExternalFD):
                 cmd += ['-H', f'{key}: {val}']
         cookie_header = self.ydl.cookiejar.get_cookie_header(info_dict['url'])
         if cookie_header:
-            cmd += [f'Cookie: {cookie_header}', '--max-redirect=0']
+            cmd += ['-H', f'Cookie: {cookie_header}', '--max-redirect=0']
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
@@ -558,12 +559,13 @@ class FFmpegFD(ExternalFD):
 
         selected_formats = info_dict.get('requested_formats') or [info_dict]
         for i, fmt in enumerate(selected_formats):
-            cookies = self.ydl.cookiejar.get_cookies_for_url(fmt['url'])
+            is_http = re.match(r'^https?://', fmt['url'])
+            cookies = self.ydl.cookiejar.get_cookies_for_url(fmt['url']) if is_http else []
             if cookies:
                 args.extend(['-cookies', ''.join(
                     f'{cookie.name}={cookie.value}; path={cookie.path}; domain={cookie.domain};\r\n'
                     for cookie in cookies)])
-            if fmt.get('http_headers') and re.match(r'^https?://', fmt['url']):
+            if fmt.get('http_headers') and is_http:
                 # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
                 # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
                 args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in fmt['http_headers'].items())])

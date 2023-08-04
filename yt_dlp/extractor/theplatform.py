@@ -1,23 +1,24 @@
-import binascii
-import hashlib
-import hmac
 import re
 import time
+import hmac
+import binascii
+import hashlib
 
-from .adobepass import AdobePassIE
+
 from .once import OnceIE
-from ..networking.common import Request
+from .adobepass import AdobePassIE
+from ..networking import Request
 from ..utils import (
-    ExtractorError,
     determine_ext,
-    find_xpath_attr,
+    ExtractorError,
     float_or_none,
     int_or_none,
-    mimetype2ext,
     parse_qs,
     unsmuggle_url,
     update_url_query,
     xpath_with_ns,
+    mimetype2ext,
+    find_xpath_attr,
 )
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
@@ -44,7 +45,7 @@ class ThePlatformBaseIE(OnceIE):
                     raise ExtractorError(
                         error_element.attrib['abstract'], expected=True)
 
-        smil_formats = self._parse_smil_formats(
+        smil_formats, subtitles = self._parse_smil_formats_and_subtitles(
             meta, smil_url, video_id, namespace=default_ns,
             # the parameters are from syfy.com, other sites may use others,
             # they also work for nbc.com
@@ -63,8 +64,6 @@ class ThePlatformBaseIE(OnceIE):
                         _format['url'] = update_url_query(media_url, {'hdnea3': hdnea2.value})
 
                 formats.append(_format)
-
-        subtitles = self._parse_smil_subtitles(meta, default_ns)
 
         return formats, subtitles
 

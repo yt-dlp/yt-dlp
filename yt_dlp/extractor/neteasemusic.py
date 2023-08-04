@@ -11,7 +11,7 @@ from random import randint
 from .common import InfoExtractor
 from ..aes import aes_ecb_encrypt, pkcs7_padding
 from ..compat import compat_urllib_parse_urlencode
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
@@ -56,23 +56,23 @@ class NetEaseMusicBaseIE(InfoExtractor):
             '__csrf': '',
             'os': 'pc',
             'channel': None,
-            'requestId': f'{now}_{rand:04}',
+            'requestId': '{0}_{1:04}'.format(now, rand),
         }
         request_text = json.dumps(
-            {'ids': f'[{song_id}]', 'br': bitrate, 'header': cookie},
+            {'ids': '[{0}]'.format(song_id), 'br': bitrate, 'header': cookie},
             separators=(',', ':'))
-        message = 'nobody{}use{}md5forencrypt'.format(
+        message = 'nobody{0}use{1}md5forencrypt'.format(
             URL, request_text).encode('latin1')
         msg_digest = md5(message).hexdigest()
 
-        data = '{}-36cd479b6b5-{}-36cd479b6b5-{}'.format(
+        data = '{0}-36cd479b6b5-{1}-36cd479b6b5-{2}'.format(
             URL, request_text, msg_digest)
         data = pkcs7_padding(bytes_to_intlist(data))
         encrypted = intlist_to_bytes(aes_ecb_encrypt(data, bytes_to_intlist(KEY)))
         encrypted_params = hexlify(encrypted).decode('ascii').upper()
 
         cookie = '; '.join(
-            ['{}={}'.format(k, v if v is not None else 'undefined')
+            ['{0}={1}'.format(k, v if v is not None else 'undefined')
              for [k, v] in cookie.items()])
 
         headers = {
@@ -81,7 +81,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
             'Referer': 'https://music.163.com',
             'Cookie': cookie,
         }
-        return (f'params={encrypted_params}', headers)
+        return ('params={0}'.format(encrypted_params), headers)
 
     def _call_player_api(self, song_id, bitrate):
         url = 'https://interface3.music.163.com/eapi/song/enhance/player/url'
@@ -215,9 +215,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
 
         lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
         original_ts_texts = re.findall(lyrics_expr, original)
-        translation_ts_dict = {
-            time_stamp: text for time_stamp, text in re.findall(lyrics_expr, translated)
-        }
+        translation_ts_dict = dict(
+            (time_stamp, text) for time_stamp, text in re.findall(lyrics_expr, translated)
+        )
         lyrics = '\n'.join([
             '%s%s / %s' % (time_stamp, text, translation_ts_dict.get(time_stamp, ''))
             for time_stamp, text in original_ts_texts

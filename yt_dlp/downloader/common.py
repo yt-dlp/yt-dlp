@@ -32,7 +32,6 @@ from ..utils import (
     timetuple_from_msec,
     try_call,
 )
-from ..utils.traversal import traverse_obj
 
 
 class FileDownloader:
@@ -452,11 +451,6 @@ class FileDownloader:
         if sleep_interval > 0:
             self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds ...')
             time.sleep(sleep_interval)
-
-        # Filter the `Cookie` header from the info_dict to prevent leaks.
-        # See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
-        info_dict['http_headers'] = dict(traverse_obj(info_dict, (
-            'http_headers', {dict.items}, lambda _, pair: pair[0].lower() != 'cookie'))) or None
 
         ret = self.real_download(filename, info_dict)
         self._finish_multiline_status()

@@ -33,8 +33,8 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
-from .networking.director import RequestDirector, _PREFERENCES as _RH_PREFERENCES
-from .networking.common import _REQUEST_HANDLERS, HEADRequest, Request
+from .networking import HEADRequest, Request, RequestDirector
+from .networking.common import _REQUEST_HANDLERS
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
@@ -43,7 +43,6 @@ from .networking.exceptions import (
     _CompatHTTPError,
     network_exceptions,
 )
-from .networking.utils import std_headers
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -73,7 +72,6 @@ from .utils import (
     POSTPROCESS_WHEN,
     STR_FORMAT_RE_TMPL,
     STR_FORMAT_TYPES,
-    HTTPHeaderDict,
     ContentTooShortError,
     DateRange,
     DownloadCancelled,
@@ -99,8 +97,6 @@ from .utils import (
     age_restricted,
     args_to_str,
     bug_reports_message,
-    clean_headers,
-    clean_proxies,
     date_from_str,
     deprecation_warning,
     determine_ext,
@@ -156,6 +152,12 @@ from .utils import (
     write_string,
 )
 from .utils._utils import _YDLLogger
+from .utils.networking import (
+    HTTPHeaderDict,
+    clean_headers,
+    clean_proxies,
+    std_headers,
+)
 from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
@@ -397,6 +399,7 @@ class YoutubeDL:
                        - "detect_or_warn": check whether we can do anything
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
+    impersonate:       curl-impersonate target name to impersonate for requests.
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
@@ -570,7 +573,7 @@ class YoutubeDL:
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
-        'preference', 'language', 'language_preference', 'quality', 'source_preference',
+        'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
     }
@@ -619,7 +622,8 @@ class YoutubeDL:
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
-                self.report_warning('Overwriting params from "color" with "no_color"')
+                self.params.setdefault('_warnings', []).append(
+                    'Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
         term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
@@ -678,17 +682,14 @@ class YoutubeDL:
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
+        self.__header_cookies = []
+        self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
+        self.params['http_headers'].pop('Cookie', None)
+
         self._request_director = self.build_request_director(
             sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
-
-        for preference in _RH_PREFERENCES:
-            self._request_director.add_preference(preference())
-
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
-
-        self.__header_cookies = []
-        self._load_cookies(traverse_obj(self.params.get('http_headers'), 'cookie', casesense=False))  # compat
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
@@ -950,7 +951,7 @@ class YoutubeDL:
 
     def save_cookies(self):
         if self.params.get('cookiefile') is not None:
-            self.cookiejar.save(ignore_discard=True, ignore_expires=True)
+            self.cookiejar.save()
 
     def __exit__(self, *args):
         self.restore_console_title()
@@ -1063,11 +1064,6 @@ class YoutubeDL:
             self.params['logger'].debug(message)
         else:
             self.to_stderr(message, only_once)
-
-    def to_debugtraffic(self, msg):
-        self.deprecation_warning('YoutubeDL.to_debugtraffic is deprecated')
-        if self.params.get('debug_printtraffic'):
-            self.to_stdout(msg)
 
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
@@ -1306,15 +1302,15 @@ class YoutubeDL:
                 else:
                     break
 
-            fmt = outer_mobj.group('format')
-            if fmt == 's' and value is not None and last_field in field_size_compat_map.keys():
-                fmt = f'0{field_size_compat_map[last_field]:d}d'
-
             if None not in (value, replacement):
                 try:
                     value = replacement_formatter.format(replacement, value)
                 except ValueError:
                     value, default = None, na
+
+            fmt = outer_mobj.group('format')
+            if fmt == 's' and last_field in field_size_compat_map.keys() and isinstance(value, int):
+                fmt = f'0{field_size_compat_map[last_field]:d}d'
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
@@ -1499,7 +1495,10 @@ class YoutubeDL:
             return ret
 
         if self.in_download_archive(info_dict):
-            reason = '%s has already been recorded in the archive' % video_title
+            reason = ''.join((
+                format_field(info_dict, 'id', f'{self._format_screen("%s", self.Styles.ID)}: '),
+                format_field(info_dict, 'title', f'{self._format_screen("%s", self.Styles.EMPHASIS)} '),
+                'has already been recorded in the archive'))
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
             try:
@@ -1560,7 +1559,8 @@ class YoutubeDL:
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):
-                self.to_screen(f'[{key}] {temp_id}: has already been recorded in the archive')
+                self.to_screen(f'[download] {self._format_screen(temp_id, self.Styles.ID)}: '
+                               'has already been recorded in the archive')
                 if self.params.get('break_on_existing', False):
                     raise ExistingVideoReached()
                 break
@@ -1648,18 +1648,19 @@ class YoutubeDL:
                 self.to_screen('')
             raise
 
-    def _load_cookies(self, data, *, from_headers=True):
+    def _load_cookies(self, data, *, autoscope=True):
         """Loads cookies from a `Cookie` header
 
         This tries to work around the security vulnerability of passing cookies to every domain.
         See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
-        The unscoped cookies are saved for later to be stored in the jar with a limited scope.
 
         @param data         The Cookie header as string to load the cookies from
-        @param from_headers If `False`, allows Set-Cookie syntax in the cookie string (at least a domain will be required)
+        @param autoscope    If `False`, scope cookies using Set-Cookie syntax and error for cookie without domains
+                            If `True`, save cookies for later to be stored in the jar with a limited scope
+                            If a URL, save cookies in the jar with the domain of the URL
         """
         for cookie in LenientSimpleCookie(data).values():
-            if from_headers and any(cookie.values()):
+            if autoscope and any(cookie.values()):
                 raise ValueError('Invalid syntax in Cookie Header')
 
             domain = cookie.get('domain') or ''
@@ -1673,17 +1674,23 @@ class YoutubeDL:
 
             if domain:
                 self.cookiejar.set_cookie(prepared_cookie)
-            elif from_headers:
+            elif autoscope is True:
                 self.deprecated_feature(
                     'Passing cookies as a header is a potential security risk; '
                     'they will be scoped to the domain of the downloaded urls. '
                     'Please consider loading cookies from a file or browser instead.')
                 self.__header_cookies.append(prepared_cookie)
+            elif autoscope:
+                self.report_warning(
+                    'The extractor result contains an unscoped cookie as an HTTP header. '
+                    f'If you are using yt-dlp with an input URL{bug_reports_message(before=",")}',
+                    only_once=True)
+                self._apply_header_cookies(autoscope, [prepared_cookie])
             else:
                 self.report_error('Unscoped cookies are not allowed; please specify some sort of scoping',
                                   tb=False, is_error=False)
 
-    def _apply_header_cookies(self, url):
+    def _apply_header_cookies(self, url, cookies=None):
         """Applies stray header cookies to the provided url
 
         This loads header cookies and scopes them to the domain provided in `url`.
@@ -1694,7 +1701,7 @@ class YoutubeDL:
         if not parsed.hostname:
             return
 
-        for cookie in map(copy.copy, self.__header_cookies):
+        for cookie in map(copy.copy, cookies or self.__header_cookies):
             cookie.domain = f'.{parsed.hostname}'
             self.cookiejar.set_cookie(cookie)
 
@@ -2484,9 +2491,16 @@ class YoutubeDL:
         parsed_selector = _parse_format_selection(iter(TokenIterator(tokens)))
         return _build_selector_function(parsed_selector)
 
-    def _calc_headers(self, info_dict):
+    def _calc_headers(self, info_dict, load_cookies=False):
         res = HTTPHeaderDict(self.params['http_headers'], info_dict.get('http_headers'))
         clean_headers(res)
+
+        if load_cookies:  # For --load-info-json
+            self._load_cookies(res.get('Cookie'), autoscope=info_dict['url'])  # compat
+            self._load_cookies(info_dict.get('cookies'), autoscope=False)
+        # The `Cookie` header is removed to prevent leaks and unscoped cookies.
+        # See: https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj
+        res.pop('Cookie', None)
         cookies = self.cookiejar.get_cookies_for_url(info_dict['url'])
         if cookies:
             encoder = LenientSimpleCookie()
@@ -2765,7 +2779,12 @@ class YoutubeDL:
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
-            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
+            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict), load_cookies=True)
+
+        # Safeguard against old/insecure infojson when using --load-info-json
+        if info_dict.get('http_headers'):
+            info_dict['http_headers'] = HTTPHeaderDict(info_dict['http_headers'])
+            info_dict['http_headers'].pop('Cookie', None)
 
         # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
@@ -3273,7 +3292,7 @@ class YoutubeDL:
                 fd, success = None, True
                 if info_dict.get('protocol') or info_dict.get('url'):
                     fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
-                    if fd is not FFmpegFD and 'no-direct-merge' not in self.params['compat_opts'] and (
+                    if fd != FFmpegFD and 'no-direct-merge' not in self.params['compat_opts'] and (
                             info_dict.get('section_start') or info_dict.get('section_end')):
                         msg = ('This format cannot be partially downloaded' if FFmpegFD.available()
                                else 'You have requested downloading the video partially, but ffmpeg is not installed')
@@ -3434,7 +3453,7 @@ class YoutubeDL:
                     postprocessed_by_ffmpeg = info_dict.get('requested_formats') or any((
                         isinstance(pp, FFmpegVideoConvertorPP)
                         and resolve_recode_mapping(ext, pp.mapping)[0] not in (ext, None)
-                    ) for pp in self._pps['post_process'])
+                    ) for pp in self._pps['post_process']) or fd == FFmpegFD
 
                     if not postprocessed_by_ffmpeg:
                         ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
@@ -3511,8 +3530,6 @@ class YoutubeDL:
             infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
                      for info in variadic(json.loads('\n'.join(f)))]
         for info in infos:
-            self._load_cookies(info.get('cookies'), from_headers=False)
-            self._load_cookies(traverse_obj(info.get('http_headers'), 'Cookie', casesense=False))  # compat
             try:
                 self.__download_wrapper(self.process_ie_result)(info, download=True)
             except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
@@ -4016,7 +4033,7 @@ class YoutubeDL:
         """
         Get a urllib OpenerDirector from the Urllib handler (deprecated).
         """
-        self.deprecation_warning('YoutubeDL._opener() is deprecated, use YoutubeDL.urlopen()')
+        self.deprecation_warning('YoutubeDL._opener is deprecated, use YoutubeDL.urlopen()')
         handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
@@ -4040,6 +4057,8 @@ class YoutubeDL:
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)
 
+        # TODO: Remove
+        # Also note: will cause recursion error if curl_cffi is not installed
         impersonate_debug = os.environ.get('YT_DLP_CCI_IMPERSONATE')
         if impersonate_debug:
             req.extensions['impersonate'] = impersonate_debug
@@ -4054,6 +4073,13 @@ class YoutubeDL:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
+                elif re.search(r'unsupported extensions:.*impersonate', ue.msg.lower()):
+                    self.report_warning(
+                        'To impersonate a browser for this request please install one of: curl_cffi. '
+                        'Retrying request without impersonation...')
+                    req = req.copy()
+                    req.extensions.pop('impersonate')
+                    return self.urlopen(req)
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
@@ -4086,13 +4112,14 @@ class YoutubeDL:
                     'verbose': 'debug_printtraffic',
                     'source_address': 'source_address',
                     'timeout': 'socket_timeout',
-                    'legacy_ssl_support': 'legacy_server_connect',
+                    'legacy_ssl_support': 'legacyserverconnect',
                     'enable_file_urls': 'enable_file_urls',
                     'client_cert': {
                         'client_certificate': 'client_certificate',
                         'client_certificate_key': 'client_certificate_key',
                         'client_certificate_password': 'client_certificate_password',
                     },
+                    'impersonate': 'impersonate',
                 }),
             ))
         return director

@@ -2021,7 +2021,7 @@ def parse_duration(s):
                 )?
                 T)?
                 (?:
-                    (?P<hours>[0-9]+)\s*h(?:ours?)?,?\s*
+                    (?P<hours>[0-9]+)\s*h(?:(?:ou)?rs?)?,?\s*
                 )?
                 (?:
                     (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?,?\s*
@@ -2462,23 +2462,6 @@ def lowercase_escape(s):
         r'\\u[0-9a-fA-F]{4}',
         lambda m: unicode_escape(m.group(0))[0],
         s)
-
-
-def escape_rfc3986(s):
-    """Escape non-ASCII characters as suggested by RFC 3986"""
-    return urllib.parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
-
-
-def escape_url(url):
-    """Escape URL as suggested by RFC 3986"""
-    url_parsed = urllib.parse.urlparse(url)
-    return url_parsed._replace(
-        netloc=url_parsed.netloc.encode('idna').decode('ascii'),
-        path=escape_rfc3986(url_parsed.path),
-        params=escape_rfc3986(url_parsed.params),
-        query=escape_rfc3986(url_parsed.query),
-        fragment=escape_rfc3986(url_parsed.fragment)
-    ).geturl()
 
 
 def parse_qs(url, **kwargs):
@@ -4594,14 +4577,18 @@ def clean_podcast_url(url):
             (?:
                 chtbl\.com/track|
                 media\.blubrry\.com| # https://create.blubrry.com/resources/podcast-media-download-statistics/getting-started/
-                play\.podtrac\.com
-            )/[^/]+|
+                play\.podtrac\.com|
+                chrt\.fm/track|
+                mgln\.ai/e
+            )(?:/[^/.]+)?|
             (?:dts|www)\.podtrac\.com/(?:pts/)?redirect\.[0-9a-z]{3,4}| # http://analytics.podtrac.com/how-to-measure
             flex\.acast\.com|
             pd(?:
                 cn\.co| # https://podcorn.com/analytics-prefix/
                 st\.fm # https://podsights.com/docs/
-            )/e
+            )/e|
+            [0-9]\.gum\.fm|
+            pscrb\.fm/rss/p
         )/''', '', url)
     return re.sub(r'^\w+://(\w+://)', r'\1', url)
 
@@ -5136,32 +5123,6 @@ def truncate_string(s, left, right=0):
     return f'{s[:left-3]}...{s[-right:] if right else ""}'
 
 
-class HTTPHeaderDict(collections.UserDict, dict):
-    """
-    Store and access keys case-insensitively.
-    The constructor can take multiple dicts, in which keys in the latter are prioritised.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        for dct in args:
-            if dct is not None:
-                self.update(dct)
-        self.update(kwargs)
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key.title(), value)
-
-    def __getitem__(self, key):
-        return super().__getitem__(key.title())
-
-    def __delitem__(self, key):
-        super().__delitem__(key.title())
-
-    def __contains__(self, key):
-        return super().__contains__(key.title() if isinstance(key, str) else key)
-
-
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):
     assert 'all' in alias_dict, '"all" alias is required'
     requested = list(start or [])
@@ -5489,42 +5450,6 @@ class FormatSorter:
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
 
 
-def clean_proxies(proxies: dict, headers: HTTPHeaderDict):
-    req_proxy = headers.pop('Ytdl-Request-Proxy', None)
-    if req_proxy:
-        proxies.clear()  # XXX: compat: Ytdl-Request-Proxy takes preference over everything, including NO_PROXY
-        proxies['all'] = req_proxy
-    for proxy_key, proxy_url in proxies.items():
-        if proxy_url == '__noproxy__':
-            proxies[proxy_key] = None
-            continue
-        if proxy_key == 'no':  # special case
-            continue
-        if proxy_url is not None:
-            # Ensure proxies without a scheme are http.
-            proxy_scheme = urllib.request._parse_proxy(proxy_url)[0]
-            if proxy_scheme is None:
-                proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
-
-            replace_scheme = {
-                'socks5': 'socks5h',  # compat: socks5 was treated as socks5h
-                'socks': 'socks4'  # compat: non-standard
-            }
-            if proxy_scheme in replace_scheme:
-                proxies[proxy_key] = urllib.parse.urlunparse(
-                    urllib.parse.urlparse(proxy_url)._replace(scheme=replace_scheme[proxy_scheme]))
-
-
-def clean_headers(headers: HTTPHeaderDict):
-    if 'Youtubedl-No-Compression' in headers:  # compat
-        del headers['Youtubedl-No-Compression']
-        headers['Accept-Encoding'] = 'identity'
-
-    # Ensure headers are strings
-    for k, v in headers.items():
-        headers[k] = str(v)
-
-
 # XXX: Temporary
 class _YDLLogger:
     def __init__(self, ydl=None):
@@ -5538,9 +5463,9 @@ class _YDLLogger:
         if self._ydl:
             self._ydl.to_screen(message)
 
-    def warning(self, message, only_once=False):
+    def warning(self, message, *, once=False):
         if self._ydl:
-            self._ydl.report_warning(message, only_once)
+            self._ydl.report_warning(message, once)
 
     def error(self, message, *, is_error=True):
         if self._ydl:
@@ -5549,3 +5474,7 @@ class _YDLLogger:
     def stdout(self, message):
         if self._ydl:
             self._ydl.to_stdout(message)
+
+    def stderr(self, message):
+        if self._ydl:
+            self._ydl.to_stderr(message)

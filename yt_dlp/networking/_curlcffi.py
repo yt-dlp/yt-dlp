@@ -1,10 +1,8 @@
 import io
-import os
 import re
 from enum import IntEnum
 
-from .common import Features, Request, RequestHandler, Response, register
-from .director import Preference, register_preference
+from .common import Features, Request, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -12,8 +10,8 @@ from .exceptions import (
     SSLError,
     TransportError,
 )
-from .impersonate import ImpersonateHandlerMixin
-from .utils import InstanceStoreMixin, select_proxy
+from .impersonate import ImpersonateRequestHandler
+from ._helper import InstanceStoreMixin, select_proxy
 from ..cookies import LenientSimpleCookie
 from ..dependencies import curl_cffi
 from ..utils import int_or_none, traverse_obj
@@ -66,13 +64,12 @@ def get_error_code(error: curl_cffi.curl.CurlError):
     return int_or_none(re.search(r'ErrCode:\s+(\d+)', str(error)).group(1))
 
 
-@register
-class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
+@register_rh
+class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     RH_NAME = 'curl_cffi'
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
-    _SUPPORTED_EXTENSIONS = ('cookiejar', 'timeout', 'impersonate')
     _SUPPORTED_IMPERSONATE_TARGETS = curl_cffi.requests.BrowserType._member_names_
 
     def _create_instance(self):
@@ -86,7 +83,9 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
-        self._check_impersonate_extension(extensions)
+        extensions.pop('impersonate', None)
+        extensions.pop('cookiejar', None)
+        extensions.pop('timeout', None)
 
     def _generate_set_cookie(self, cookiejar):
         for cookie in cookiejar:
@@ -150,7 +149,7 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
                 verify=self.verify,
                 max_redirects=5,
                 timeout=request.extensions.get('timeout') or self.timeout,
-                impersonate=request.extensions.get('impersonate'),
+                impersonate=self._get_impersonate_target(request),
             )
         except curl_cffi.requests.errors.RequestsError as e:
             error_code = get_error_code(e)
@@ -204,16 +203,6 @@ class CurlCFFIRH(RequestHandler, InstanceStoreMixin, ImpersonateHandlerMixin):
             raise HTTPError(response, redirect_loop=max_redirects_exceeded)
 
         return response
-
-
-@register_preference
-class CurlCFFIPrefernce(Preference):
-    _RH_KEY = CurlCFFIRH.RH_KEY
-
-    def _get_preference(self, request: Request, handler: RequestHandler) -> int:
-        if request.extensions.get('impersonate') or os.environ.get('YT_DLP_PREFER_CCI'):
-            return 1000
-        return -1000
 
 
 # https://curl.se/libcurl/c/libcurl-errors.html

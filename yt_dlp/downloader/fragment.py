@@ -12,13 +12,8 @@ from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_os_name
 from ..networking import Request
 from ..networking.exceptions import HTTPError, IncompleteRead
-from ..utils import (
-    HTTPHeaderDict,
-    DownloadError,
-    RetryManager,
-    encodeFilename,
-    traverse_obj,
-)
+from ..utils import DownloadError, RetryManager, encodeFilename, traverse_obj
+from ..utils.networking import HTTPHeaderDict
 
 
 class HttpQuietDownloader(HttpFD):

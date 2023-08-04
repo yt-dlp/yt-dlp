@@ -2,7 +2,7 @@ import random
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..networking.common import Request
+from ..networking import Request
 from ..utils import ExtractorError, int_or_none, xpath_text
 
 
@@ -58,7 +58,7 @@ class MioMioIE(InfoExtractor):
             video_id)
 
         vid_config_request = Request(
-            f'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/sina.php?{xml_config}',
+            'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/sina.php?{0}'.format(xml_config),
             headers=http_headers)
 
         # the following xml contains the actual configuration information on the video file(s)

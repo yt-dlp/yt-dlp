@@ -8,25 +8,25 @@ import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
+from .networking import escape_rfc3986  # noqa: F401
+from .networking import normalize_url as escape_url  # noqa: F401
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
+from ..networking._helper import make_ssl_context
 from ..networking._urllib import HTTPHandler
-from ..networking.utils import make_ssl_context
 
 # isort: split
+from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
 from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
-from ..networking._urllib import \
-    ProxyHandler as PerRequestProxyHandler  # noqa: F401
-from ..networking._urllib import \
-    RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
+from ..networking._urllib import ProxyHandler as PerRequestProxyHandler  # noqa: F401
+from ..networking._urllib import RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
 from ..networking._urllib import (  # noqa: F401
     make_socks_conn_class,
     update_Request,
 )
 from ..networking.exceptions import HTTPError, network_exceptions  # noqa: F401
-from ..networking.utils import random_user_agent, std_headers  # noqa: F401
 
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
@@ -199,7 +199,7 @@ def request_to_url(req):
 
 
 def sanitized_Request(url, *args, **kwargs):
-    from ..utils import escape_url, extract_basic_auth, sanitize_url
+    from ..utils import extract_basic_auth, sanitize_url
     url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
     if auth_header is not None:
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})

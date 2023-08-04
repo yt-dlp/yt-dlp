@@ -1,12 +1,16 @@
+from abc import ABC
+
 from .exceptions import UnsupportedRequest
-from .utils import std_headers
+from ..utils.networking import std_headers
+from .common import RequestHandler
+from ..compat.types import NoneType
 
 
-class ImpersonateHandlerMixin:
+class ImpersonateRequestHandler(RequestHandler, ABC):
     """
-    Mixin class for request handlers that support browser impersonation.
+    Base class for request handlers that support browser impersonation.
 
-    This mixin class provides a method for checking the validity of the impersonate extension,
+    This provides a method for checking the validity of the impersonate extension,
     which can be used in _check_extensions.
 
     The following may be defined:
@@ -17,21 +21,33 @@ class ImpersonateHandlerMixin:
     """
     _SUPPORTED_IMPERSONATE_TARGETS: tuple = ()
 
-    def _check_impersonate_extension(self, extensions):
-        if self._SUPPORTED_IMPERSONATE_TARGETS is None:
+    def __init__(self, *, impersonate=None, **kwargs):
+        super().__init__(**kwargs)
+        self.impersonate = impersonate
+
+    def _get_impersonate_target(self, request):
+        return request.extensions.get('impersonate') or self.impersonate
+
+    def _check_extensions(self, extensions):
+        super()._check_extensions(extensions)
+        self._check_impersonate_target(extensions.get('impersonate'))
+
+    def _check_impersonate_target(self, target):
+        assert isinstance(target, (str, NoneType))
+        if self._SUPPORTED_IMPERSONATE_TARGETS is None or target is None:
             return
-        target = extensions.get('impersonate')
-        if target is None:
-            return
-        if not isinstance(target, str):
-            raise UnsupportedRequest(f'Impersonate extension must be of type str, got {type(target)}')
+        # XXX: this will raise even if the handler doesn't support the impersonate extension
         if target not in self._SUPPORTED_IMPERSONATE_TARGETS:
             raise UnsupportedRequest(f'Unsupported impersonate target: {target}')
 
+    def _validate(self, request):
+        super()._validate(request)
+        self._check_impersonate_target(self.impersonate)
+
     def _get_impersonate_headers(self, request):
         headers = self._merge_headers(request.headers)
-        impersonate = request.extensions.get('impersonate')
-        if impersonate:
+        impersonate_target = self._get_impersonate_target(request)
+        if impersonate_target:
             # remove all headers present in std_headers
             headers.pop('User-Agent', None)
             for header in std_headers:

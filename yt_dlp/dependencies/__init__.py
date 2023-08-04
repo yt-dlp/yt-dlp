@@ -56,6 +56,10 @@ except (ImportError, SyntaxError):
     # See https://github.com/yt-dlp/yt-dlp/issues/2633
     websockets = None
 
+try:
+    import curl_cffi
+except ImportError:
+    curl_cffi = None
 
 try:
     import xattr  # xattr or pyxattr

@@ -5,8 +5,10 @@ import random
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
-from ..networking.common import HEADRequest
+from ..compat import (
+    compat_str,
+)
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -228,7 +230,7 @@ class GloboArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if GloboIE.suitable(url) else super().suitable(url)
+        return False if GloboIE.suitable(url) else super(GloboArticleIE, cls).suitable(url)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

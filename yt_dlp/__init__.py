@@ -62,6 +62,7 @@ from .utils import (
     variadic,
     write_string,
 )
+from .utils.networking import std_headers
 from .YoutubeDL import YoutubeDL
 
 _IN_CLI = False
@@ -910,6 +911,7 @@ def parse_options(argv=None):
         'postprocessors': postprocessors,
         'fixup': opts.fixup,
         'source_address': opts.source_address,
+        'impersonate': opts.impersonate,
         'call_home': opts.call_home,
         'sleep_interval_requests': opts.sleep_interval_requests,
         'sleep_interval': opts.sleep_interval,
