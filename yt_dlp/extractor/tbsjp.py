@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    clean_html,
     get_element_text_and_html_by_tag,
     int_or_none,
     str_or_none,
@@ -62,18 +63,19 @@ class TBSJPEpisodeIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'title': try_call(lambda: get_element_text_and_html_by_tag('h3', webpage)[0]),
-            'episode': traverse_obj(episode, ('title', lambda _, v: not v.get('is_phonetic'), 'value'), get_all=False),
+            'title': try_call(lambda: clean_html(get_element_text_and_html_by_tag('h3', webpage)[0])),
+            'id': video_id,
             **traverse_obj(episode, {
-                'categories': 'keywords',
-                'id': 'content_id',
+                'categories': ('keywords', {list}),
+                'id': ('content_id', {str}),
                 'description': ('description', 0, 'value'),
                 'timestamp': ('created_at', {unified_timestamp}),
                 'release_timestamp': ('pub_date', {unified_timestamp}),
                 'duration': ('tv_episode_info', 'duration', {int_or_none}),
                 'episode_number': ('tv_episode_info', 'episode_number', {int_or_none}),
+                'episode': ('title', lambda _, v: not v.get('is_phonetic'), 'value'),
                 'series': ('custom_data', 'program_name'),
-            }),
+            }, get_all=False),
             'formats': formats,
             'subtitles': subtitles,
         }
@@ -106,7 +108,7 @@ class TBSJPProgramIE(InfoExtractor):
                         for video_id in traverse_obj(programme, ('custom_data', 'seriesList', 'episodeCode', ...))],
             'id': programme_id,
             **traverse_obj(programme, {
-                'categories': 'keywords',
+                'categories': ('keywords', ...),
                 'id': ('tv_episode_info', 'show_content_id', {str_or_none}),
                 'description': ('custom_data', 'program_description'),
                 'series': ('custom_data', 'program_name'),
@@ -146,12 +148,4 @@ class TBSJPPlaylistIE(InfoExtractor):
             else:
                 self.report_warning(f'Skipping "{content_id}" with unsupported content_type "{content_type}"')
 
-        return {
-            '_type': 'playlist',
-            'id': playlist_id,
-            **traverse_obj(playlist, {
-                'id': ('id', 'value'),
-                'title': ('display_name', 'value'),
-            }),
-            'entries': entries,
-        }
+        return self.playlist_result(entries, playlist_id, traverse_obj(playlist, ('display_name', 'value')))
