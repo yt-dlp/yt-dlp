@@ -130,13 +130,11 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         if 'no' in proxies:
             session.curl.setopt(CurlOpt.NOPROXY, proxies['no'].encode())
             proxies.pop('no', None)
-        if 'all' in proxies:
-            session.curl.setopt(CurlOpt.PROXY, proxies['all'].encode())
-        else:
-            # curl doesn't support per protocol proxies, so we select the one that matches the request protocol
-            proxy = select_proxy(request.url, proxies=proxies)
-            if proxy:
-                session.curl.setopt(CurlOpt.PROXY, proxy.encode())
+
+        # curl doesn't support per protocol proxies, so we select the one that matches the request protocol
+        proxy = select_proxy(request.url, proxies=proxies)
+        if proxy:
+            session.curl.setopt(CurlOpt.PROXY, proxy.encode())
 
         headers = self._get_impersonate_headers(request)
 
