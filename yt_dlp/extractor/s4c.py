@@ -70,3 +70,45 @@ class S4CIE(InfoExtractor):
                 'duration': ('duration', {lambda x: int(x) * 60}),
             }), get_all=False),
         }
+
+
+class S4CSeriesIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?s4c\.cymru/clic/series/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.s4c.cymru/clic/series/864982911',
+        'playlist_mincount': 6,
+        'info_dict': {
+            'id': '864982911',
+            'title': 'Iaith ar Daith',
+            'description': 'md5:e878ebf660dce89bd2ef521d7ce06397'
+        },
+    }, {
+        'url': 'https://www.s4c.cymru/clic/series/866852587',
+        'playlist_mincount': 8,
+        'info_dict': {
+            'id': '866852587',
+            'title': 'FFIT Cymru',
+            'description': 'md5:abcb3c129cb68dbb6cd304fd33b07e96'
+        },
+    }]
+
+    def _real_extract(self, url):
+        series_id = self._match_id(url)
+        seriesDetails = self._download_json(
+            'https://www.s4c.cymru/df/series_details', series_id, query={
+                'lang': 'e',
+                'series_id': series_id,
+                'show_prog_in_series': 'Y'
+            }, note='Downloading player config JSON')
+        episodes = (self.url_result(
+                    'https://www.s4c.cymru/clic/programme/%s' % episode['id'],
+                    video_id=episode['id'])
+                    for episode in traverse_obj(seriesDetails, ('other_progs_in_series')))
+
+        return self.playlist_result(
+            entries=episodes,
+            playlist_id=series_id,
+            **traverse_obj(seriesDetails, ('full_prog_details', 0, {
+                'title': (('series_title'), {str}),
+                'description': ('full_billing', {str.strip}),
+            }), get_all=False))
