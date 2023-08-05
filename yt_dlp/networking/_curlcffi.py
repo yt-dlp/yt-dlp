@@ -102,7 +102,6 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         session.cookies.clear()
         for cookie_str in self._generate_set_cookie(cookiejar):
             session.curl.setopt(CurlOpt.COOKIELIST, ('set-cookie: ' + cookie_str).encode())
-        session.curl.setopt(CurlOpt.COOKIELIST, b'ALL')
         if self.source_address is not None:
             session.curl.setopt(CurlOpt.INTERFACE, self.source_address.encode())
 
