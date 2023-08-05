@@ -4058,7 +4058,7 @@ class YoutubeDL:
         clean_headers(req.headers)
 
         # --impersonate should be enforced for every request
-        if 'impersonate' in self.params and 'impersonate' not in req.extensions:
+        if self.params.get('impersonate') and 'impersonate' not in req.extensions:
             req.extensions['impersonate'] = self.params['impersonate']
 
         def _urlopen(req):
