@@ -26,22 +26,6 @@ from curl_cffi.const import CurlInfo, CurlOpt
 
 class CurlCFFISession(curl_cffi.requests.Session):
 
-    def __init__(
-        self,
-        verbose=False,
-        **kwargs
-    ):
-        super().__init__(**kwargs)
-        self.verbose = verbose
-
-    @property
-    def curl(self):
-        # due to how curl_cffi handles threading
-        curl = super().curl
-        if self.verbose:
-            curl.setopt(CurlOpt.VERBOSE, 1)
-        return curl
-
     def _set_curl_options(self, curl, method: str, url: str, *args, **kwargs):
 
         res = super()._set_curl_options(curl, method, url, *args, **kwargs)
@@ -73,13 +57,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_IMPERSONATE_TARGETS = curl_cffi.requests.BrowserType._member_names_
 
     def _create_instance(self):
-        session_opts = {}
-
-        if self.verbose:
-            session_opts['verbose'] = True
-
-        session = CurlCFFISession(**session_opts)
-        return session
+        return CurlCFFISession()
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
