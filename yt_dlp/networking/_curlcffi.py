@@ -89,18 +89,20 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         # See: https://github.com/yifeikong/curl_cffi/issues/26
         max_redirects_exceeded = False
         session: CurlCFFISession = self._get_instance()
+
+        if self.verbose:
+            session.curl.setopt(CurlOpt.VERBOSE, 1)
+
         cookiejar = request.extensions.get('cookiejar') or self.cookiejar
 
         # Reset the internal curl cookie store to ensure consistency with our cookiejar
+        # (only needed until we have a way of extracting all cookies from curl)
         # See: https://curl.se/libcurl/c/CURLOPT_COOKIELIST.html
-        # XXX: does this actually work?
         session.curl.setopt(CurlOpt.COOKIELIST, b'ALL')
         session.cookies.clear()
         for cookie_str in self._generate_set_cookie(cookiejar):
             session.curl.setopt(CurlOpt.COOKIELIST, ('set-cookie: ' + cookie_str).encode())
-
-        # XXX: if we need to change http version
-        # session.curl.setopt(CurlOpt.HTTP_VERSION, 2)
+        session.curl.setopt(CurlOpt.COOKIELIST, b'ALL')
         if self.source_address is not None:
             session.curl.setopt(CurlOpt.INTERFACE, self.source_address.encode())
 

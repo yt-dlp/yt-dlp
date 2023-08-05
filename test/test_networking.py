@@ -380,6 +380,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
             res.close()
 
+    # Not supported by CurlCFFI (non-standard)
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_unicode_path_redirection(self, handler):
         with handler() as rh:
@@ -474,7 +475,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             #     with pytest.raises(HTTPError):
             #         do_req(code, 'GET')
 
-    # FIXME: Not supported by CurlCFFI
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_request_cookie_header(self, handler):
         # We should accept a Cookie header being passed as in normal headers and handle it appropriately.
@@ -576,7 +576,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                 rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode()
             assert source_address == data
 
-    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
+    # Not supported by CurlCFFI
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_gzip_trailing_garbage(self, handler):
         with handler() as rh:
             data = validate_and_send(rh, Request(f'http://localhost:{self.http_port}/trailing_garbage')).read().decode()
