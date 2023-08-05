@@ -746,7 +746,7 @@ class MotorTrendIE(DiscoveryPlusBaseIE):
 
 
 class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?motortrendondemand\.com/detail' + DPlayBaseIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?motortrend(?:ondemand\.com|\.com/plus)/detail' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.motortrendondemand.com/detail/wheelstanding-dump-truck-stubby-bobs-comeback/37699/784',
         'info_dict': {
@@ -767,6 +767,25 @@ class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
             'upload_date': '20140101',
             'tags': [],
         },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/roadworthy-rescues-teaser-trailer/4922860/',
+        'info_dict': {
+            'id': '4922860',
+            'ext': 'mp4',
+            'title': 'Roadworthy Rescues | Teaser Trailer',
+            'description': 'Derek Bieri helps Freiburger and Finnegan with their \'68 big-block Dart.',
+            'display_id': 'roadworthy-rescues-teaser-trailer/4922860',
+            'creator': 'Originals',
+            'series': 'Roadworthy Rescues',
+            'thumbnail': r're:^https?://.+\.jpe?g$',
+            'upload_date': '20220907',
+            'timestamp': 1662523200,
+            'duration': 1066.356,
+            'tags': [],
+        },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/ugly-duckling/2450033/12439',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'MTOD'

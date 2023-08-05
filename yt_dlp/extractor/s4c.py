@@ -49,6 +49,7 @@ class S4CIE(InfoExtractor):
             subtitles[i['3']] = [{'url': i['0']}]
 
         filename = playerConfig['filename']
+
         m3u8_url = self._download_json(
             'https://player-api.s4c-cdn.co.uk/streaming-urls/prod', video_id, query={
                 'mode': 'od',

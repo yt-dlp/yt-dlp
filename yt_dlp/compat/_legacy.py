@@ -16,12 +16,12 @@ import shlex
 import shutil
 import socket
 import struct
+import subprocess
 import tokenize
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as etree
-from subprocess import DEVNULL
 
 # isort: split
 import asyncio  # noqa: F401
@@ -85,7 +85,7 @@ compat_socket_create_connection = socket.create_connection
 compat_Struct = struct.Struct
 compat_struct_pack = struct.pack
 compat_struct_unpack = struct.unpack
-compat_subprocess_get_DEVNULL = lambda: DEVNULL
+compat_subprocess_get_DEVNULL = lambda: subprocess.DEVNULL
 compat_tokenize_tokenize = tokenize.tokenize
 compat_urllib_error = urllib.error
 compat_urllib_HTTPError = urllib.error.HTTPError
