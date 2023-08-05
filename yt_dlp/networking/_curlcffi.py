@@ -116,6 +116,14 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
         headers = self._get_impersonate_headers(request)
 
+        if self._client_cert:
+            session.curl.setopt(CurlOpt.SSLCERT, self._client_cert['client_certificate'].encode())
+            client_certificate_key = self._client_cert.get('client_certificate_key')
+            client_certificate_password = self._client_cert.get('client_certificate_password')
+            if client_certificate_key:
+                session.curl.setopt(CurlOpt.SSLKEY, client_certificate_key.encode())
+            if client_certificate_password:
+                session.curl.setopt(CurlOpt.KEYPASSWD, client_certificate_password.encode())
         try:
             curl_response = session.request(
                 method=request.method,
