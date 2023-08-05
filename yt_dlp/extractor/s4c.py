@@ -30,7 +30,7 @@ class S4CIE(InfoExtractor):
             f'https://www.s4c.cymru/df/full_prog_details?lang=e&programme_id={video_id}',
             video_id, fatal=False)
 
-        filename = self._download_json(
+        playerConfig = self._download_json(
             'https://player-api.s4c-cdn.co.uk/player-configuration/prod', video_id, query={
                 'programme_id': video_id,
                 'signed': '0',
@@ -38,7 +38,14 @@ class S4CIE(InfoExtractor):
                 'mode': 'od',
                 'appId': 'clic',
                 'streamName': '',
-            }, note='Downloading player config JSON')['filename']
+            }, note='Downloading player config JSON')
+        filename = playerConfig['filename']
+        subtitlesList = playerConfig['subtitles']
+        subtitles = {}
+
+        for i in subtitlesList:
+            subtitles[i['3']] = [{'url': i['0']}]
+
         m3u8_url = self._download_json(
             'https://player-api.s4c-cdn.co.uk/streaming-urls/prod', video_id, query={
                 'mode': 'od',
@@ -48,8 +55,7 @@ class S4CIE(InfoExtractor):
                 'thirdParty': 'false',
                 'filename': filename,
             }, note='Downloading streaming urls JSON')['hls']
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
-
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
         return {
             'id': video_id,
             'formats': formats,
