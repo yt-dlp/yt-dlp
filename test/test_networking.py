@@ -474,6 +474,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             #     with pytest.raises(HTTPError):
             #         do_req(code, 'GET')
 
+    # FIXME: Not supported by CurlCFFI
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_request_cookie_header(self, handler):
         # We should accept a Cookie header being passed as in normal headers and handle it appropriately.
@@ -719,6 +720,7 @@ class TestHTTPProxy(TestRequestHandlerBase):
             assert response == 'normal: http://xn--fiq228c.tw/'
 
 
+# FIXME: Not yet supported by CurlCFFI RH
 class TestClientCertificate:
 
     @classmethod
@@ -981,7 +983,7 @@ class TestRequestHandlerValidation:
         ]),
         ('CurlCFFI', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
-            ({'cookiejar': CookieJar()}, False),
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),

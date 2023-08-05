@@ -43,6 +43,7 @@ from .networking.exceptions import (
     _CompatHTTPError,
     network_exceptions,
 )
+from .networking.impersonate import ImpersonateRequestHandler
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -4056,40 +4057,54 @@ class YoutubeDL:
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)
 
-        # TODO: Remove
-        # Also note: will cause recursion error if curl_cffi is not installed
-        impersonate_debug = os.environ.get('YT_DLP_CCI_IMPERSONATE')
-        if impersonate_debug:
-            req.extensions['impersonate'] = impersonate_debug
+        # --impersonate should be enforced for every request
+        if 'impersonate' in self.params and 'impersonate' not in req.extensions:
+            req.extensions['impersonate'] = self.params['impersonate']
 
-        try:
-            return self._request_director.send(req)
-        except NoSupportingHandlers as e:
-            for ue in e.unsupported_errors:
-                if not (ue.handler and ue.msg):
-                    continue
-                if ue.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
+        def _urlopen(req):
+            try:
+                return self._request_director.send(req)
+            except NoSupportingHandlers as e:
+                unsupported_errors = list(filter(lambda ue: ue.handler and ue.msg, e.unsupported_errors))
+
+                ue = traverse_obj(
+                    unsupported_errors,
+                    (lambda _, v: v.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in v.msg.lower()),
+                    get_all=False)
+                if ue:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
-                elif re.search(r'unsupported extensions:.*impersonate', ue.msg.lower()):
+
+                ue = traverse_obj(
+                    unsupported_errors,
+                    (lambda _, v: isinstance(v.handler, ImpersonateRequestHandler) and 'unsupported impersonate target' in v.msg.lower()), get_all=False)
+                if ue:
+                    # TODO: when we have multiple impersonation, will need to make this handle
+                    #  cases where the unsupported target is due to a missing library.
+                    raise RequestError(
+                        f'The requested impersonation target is not supported: {req.extensions.get("impersonate")}.', cause=ue) from ue
+
+                if list(filter(lambda ue: re.search(r'unsupported extensions:.*impersonate', ue.msg.lower()), unsupported_errors)):
                     self.report_warning(
                         'To impersonate a browser for this request please install one of: curl_cffi. '
                         'Retrying request without impersonation...')
-                    req = req.copy()
-                    req.extensions.pop('impersonate')
-                    return self.urlopen(req)
-            raise
-        except SSLError as e:
-            if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
-                raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
-            elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
-                raise RequestError(
-                    'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
-                    'Try using --legacy-server-connect', cause=e) from e
-            raise
-        except HTTPError as e:  # TODO: Remove in a future release
-            raise _CompatHTTPError(e) from e
+                    new_req = req.copy()
+                    new_req.extensions.pop('impersonate')
+                    return _urlopen(new_req)
+                raise
+            except SSLError as e:
+                if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
+                    raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
+                elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
+                    raise RequestError(
+                        'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
+                        'Try using --legacy-server-connect', cause=e) from e
+                raise
+            except HTTPError as e:  # TODO: Remove in a future release
+                raise _CompatHTTPError(e) from e
+
+        return _urlopen(req)
 
     def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)
@@ -4118,7 +4133,6 @@ class YoutubeDL:
                         'client_certificate_key': 'client_certificate_key',
                         'client_certificate_password': 'client_certificate_password',
                     },
-                    'impersonate': 'impersonate',
                 }),
             ))
         director.preferences.update(preferences or [])

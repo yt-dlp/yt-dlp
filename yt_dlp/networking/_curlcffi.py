@@ -2,7 +2,7 @@ import io
 import re
 from enum import IntEnum
 
-from .common import Features, Request, Response, register_rh
+from .common import Features, Request, Response, register_rh, register_preference
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -203,6 +203,11 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             raise HTTPError(response, redirect_loop=max_redirects_exceeded)
 
         return response
+
+
+@register_preference(CurlCFFIRH)
+def curl_cffi_preference(rh, request):
+    return -100
 
 
 # https://curl.se/libcurl/c/libcurl-errors.html
