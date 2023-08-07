@@ -24,13 +24,15 @@ class LiTVIE(InfoExtractor):
         'playlist_count': 51,  # 50 episodes + 1 trailer
     }, {
         'url': 'https://www.litv.tv/vod/drama/content.do?brc_id=root&id=VOD00041610&isUHEnabled=true&autoPlay=1',
-        'md5': '969e343d9244778cb29acec608e53640',
+        'md5': 'b90ff1e9f1d8f5cfcd0a44c3e2b34c7a',
         'info_dict': {
             'id': 'VOD00041610',
             'ext': 'mp4',
             'title': '花千骨第1集',
             'thumbnail': r're:https?://.*\.jpg$',
-            'description': 'md5:c7017aa144c87467c4fb2909c4b05d6f',
+            'description': '《花千骨》陸劇線上看。十六年前，平靜的村莊內，一名女嬰隨異相出生，途徑此地的蜀山掌門清虛道長算出此女命運非同一般，她體內散發的異香易招惹妖魔。一念慈悲下，他在村莊周邊設下結界阻擋妖魔入侵，讓其年滿十六後去蜀山，並賜名花千骨。',
+            'categories': ['奇幻', '愛情', '中國', '仙俠'],
+            'episode': 'Episode 1',
             'episode_number': 1,
         },
         'params': {
@@ -102,7 +104,7 @@ class LiTVIE(InfoExtractor):
                 'contentType': program_info['contentType'],
             }
             video_data = self._download_json(
-                'https://www.litv.tv/vod/getMainUrl', video_id,
+                'https://www.litv.tv/vod/ajax/getMainUrlNoAuth', video_id,
                 data=json.dumps(payload).encode('utf-8'),
                 headers={'Content-Type': 'application/json'})
 
