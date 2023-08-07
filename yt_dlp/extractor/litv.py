@@ -13,7 +13,7 @@ from ..utils import (
 class LiTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?litv\.tv/(?:vod|promo)/[^/]+/(?:content\.do)?\?.*?\b(?:content_)?id=(?P<id>[^&]+)'
 
-    _URL_TEMPLATE = 'https://www.litv.tv/vod/%s/content.do?id=%s'
+    _URL_TEMPLATE = 'https://www.litv.tv/vod/%s/content.do?content_id=%s'
 
     _TESTS = [{
         'url': 'https://www.litv.tv/vod/drama/content.do?brc_id=root&id=VOD00041610&isUHEnabled=true&autoPlay=1',
