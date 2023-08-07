@@ -68,6 +68,16 @@ class LiTVIE(InfoExtractor):
             r'var\s+programInfo\s*=\s*([^;]+)', webpage, 'VOD data', default='{}'),
             video_id)
 
+        # In browsers `getProgramInfo` request is always issued. Usually this
+        # endpoint gives the same result as the data embedded in the webpage.
+        # If, for some reason, there are no embedded data, we do an extra request.
+        if 'assetId' not in program_info:
+            program_info = self._download_json(
+                'https://www.litv.tv/vod/ajax/getProgramInfo', video_id,
+                query={'contentId': video_id},
+                headers={'Content-Type': 'application/json',
+                         'Accept': 'application/json'})
+
         series_id = program_info['seriesId']
         if self._yes_playlist(series_id, video_id, smuggled_data):
             playlist_data = self._download_json(
@@ -78,15 +88,6 @@ class LiTVIE(InfoExtractor):
                          'Accept': 'application/json'})
             return self._extract_playlist(playlist_data, program_info['contentType'])
 
-        # In browsers `getMainUrl` request is always issued. Usually this
-        # endpoint gives the same result as the data embedded in the webpage.
-        # If georestricted, there are no embedded data, so an extra request is
-        # necessary to get the error code
-        if 'assetId' not in program_info:
-            program_info = self._download_json(
-                'https://www.litv.tv/vod/ajax/getProgramInfo', video_id,
-                query={'contentId': video_id},
-                headers={'Accept': 'application/json'})
         video_data = self._parse_json(self._search_regex(
             r'uiHlsUrl\s*=\s*testBackendData\(([^;]+)\);',
             webpage, 'video data', default='{}'), video_id)
