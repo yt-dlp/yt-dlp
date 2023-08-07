@@ -15,11 +15,13 @@ from ..utils import (
     float_or_none,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     js_to_json,
     parse_duration,
     parse_iso8601,
     parse_qs,
     strip_or_none,
+    traverse_obj,
     try_get,
     unescapeHTML,
     unified_timestamp,
@@ -41,7 +43,6 @@ class BBCCoUkIE(InfoExtractor):
                             iplayer(?:/[^/]+)?/(?:episode/|playlist/)|
                             music/(?:clips|audiovideo/popular)[/#]|
                             radio/player/|
-                            sounds/play/|
                             events/[^/]+/play/[^/]+/
                         )
                         (?P<id>%s)(?!/(?:episodes|broadcasts|clips))
@@ -1118,6 +1119,15 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 image_url = current_programme.get('image_url')
                 if image_url:
                     thumbnail = image_url.replace('{recipe}', 'raw')
+                tracklist = []
+                for track in traverse_obj(preload_state, ("tracklist", "tracks")):
+                    tracklist.append({
+                        "title": join_nonempty("primary", "secondary", "tertiary", delim=" - ", from_dict=track.get("titles")),
+                        **traverse_obj(track, {
+                            "start_time": ("offset", "start"),
+                            "end_time": ("offset", "end"),
+                        }),
+                    })
                 return {
                     'id': programme_id,
                     'title': title,
@@ -1128,6 +1138,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'uploader_id': network.get('id'),
                     'formats': formats,
                     'subtitles': subtitles,
+                    'chapters': tracklist,
                 }
 
         bbc3_config = self._parse_json(
