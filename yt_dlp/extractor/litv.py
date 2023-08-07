@@ -5,7 +5,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     smuggle_url,
-    traverse_obj,
     unsmuggle_url,
 )
 
