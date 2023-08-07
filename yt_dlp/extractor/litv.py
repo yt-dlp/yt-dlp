@@ -21,7 +21,7 @@ class LiTVIE(InfoExtractor):
             'id': 'VOD00041606',
             'title': '花千骨',
         },
-        'playlist_count': 50,
+        'playlist_count': 51,  # 50 episodes + 1 trailer
     }, {
         'url': 'https://www.litv.tv/vod/drama/content.do?brc_id=root&id=VOD00041610&isUHEnabled=true&autoPlay=1',
         'md5': '969e343d9244778cb29acec608e53640',
@@ -49,15 +49,16 @@ class LiTVIE(InfoExtractor):
         'skip': 'Georestricted to Taiwan',
     }]
 
-    def _extract_playlist(self, season_list, video_id, program_info, prompt=True):
-        episode_title = program_info['title']
-        content_id = season_list['contentId']
+    def _extract_playlist(self, seasons_list, content_type):
+        episode_title = seasons_list['title']
+        content_id = seasons_list['contentId']
 
         all_episodes = [
             self.url_result(smuggle_url(
-                self._URL_TEMPLATE % (program_info['contentType'], episode['contentId']),
+                self._URL_TEMPLATE % (content_type, episode['contentId']),
                 {'force_noplaylist': True}))  # To prevent infinite recursion
-            for episode in season_list['episode']]
+            for season in seasons_list['seasons']
+            for episode in season['episode']]
 
         return self.playlist_result(all_episodes, content_id, episode_title)
 
@@ -72,10 +73,15 @@ class LiTVIE(InfoExtractor):
             r'var\s+programInfo\s*=\s*([^;]+)', webpage, 'VOD data', default='{}'),
             video_id)
 
-        season_list = list(program_info.get('seasonList', {}).values())
-        playlist_id = traverse_obj(season_list, 0, 'contentId')
-        if self._yes_playlist(playlist_id, video_id, smuggled_data):
-            return self._extract_playlist(season_list[0], video_id, program_info)
+        series_id = program_info['seriesId']
+        if self._yes_playlist(series_id, video_id, smuggled_data):
+            playlist_data = self._download_json(
+                'https://www.litv.tv/vod/ajax/getSeriesTree',
+                video_id,
+                query={'seriesId': series_id},
+                headers={'Content-Type': 'application/json',
+                         'Accept': 'application/json'})
+            return self._extract_playlist(playlist_data, program_info['contentType'])
 
         # In browsers `getMainUrl` request is always issued. Usually this
         # endpoint gives the same result as the data embedded in the webpage.
