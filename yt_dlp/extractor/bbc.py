@@ -220,20 +220,6 @@ class BBCCoUkIE(InfoExtractor):
                 'skip_download': True,
             },
         }, {
-            'url': 'https://www.bbc.co.uk/sounds/play/m0007jzb',
-            'note': 'Audio',
-            'info_dict': {
-                'id': 'm0007jz9',
-                'ext': 'mp4',
-                'title': 'BBC Proms, 2019, Prom 34: West–Eastern Divan Orchestra',
-                'description': "Live BBC Proms. West–Eastern Divan Orchestra with Daniel Barenboim and Martha Argerich.",
-                'duration': 9840,
-            },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            }
-        }, {
             'url': 'http://www.bbc.co.uk/iplayer/playlist/p01dvks4',
             'only_matching': True,
         }, {
@@ -844,6 +830,20 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'thumbnail': r're:https?://.+/p07c9dsr.jpg',
             'upload_date': '20190604',
             'categories': ['Psychology'],
+        },
+    }, {
+        # BBC Sounds
+        'url': 'https://www.bbc.co.uk/sounds/play/m001p2jp',
+        'info_dict': {
+            'id': 'm001p2jn',
+            'ext': 'mp4',
+            'title': 'Late Junction - Bonjo Iyabinghi Noah and GAIKA in session',
+            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/raw/p0cgqwnb.jpg',
+            'duration': 7200,
+            'chapters': 'count:24',
+            'description': 'md5:36f16179df6ee9992e80fea912d97ea8',
+            'uploader': 'Radio 3',
+            'uploader_id': 'bbc_radio_three',
         },
     }, {  # onion routes
         'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
