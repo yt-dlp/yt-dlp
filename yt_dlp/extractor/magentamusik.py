@@ -21,16 +21,12 @@ class MagentaMusikIE(InfoExtractor):
         video_id = self._html_search_regex(r'"assetId":"[^\d]+([0-9]+)"', webpage, 'video_id')
 
         json = self._download_json("https://wcps.t-online.de/cvss/magentamusic/vodplayer/v3/player/58935/%s/Main%%20Movie" % video_id, video_id)
-      
         xml_url = json['content']['feature']['representations'][0]['contentPackages'][0]['media']['href']
         metadata = json['content']['feature'].get('metadata')
         title = None
-        description = None
         if metadata:
             title = metadata.get('title')
             duration = metadata.get('runtimeInSeconds')
-           
-
         xml = self._download_xml(xml_url, video_id)
         final_url = xml[0][0][0].attrib['src']
 
