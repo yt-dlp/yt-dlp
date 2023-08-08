@@ -145,6 +145,7 @@ class SVTPlayIE(SVTPlayBaseIE):
                     )
                     '''
     _TESTS = [{
+        'skip': 'Episode is no longer available',
         'url': 'https://www.svtplay.se/video/30479064',
         'md5': '2382036fd6f8c994856c323fe51c426e',
         'info_dict': {
@@ -158,6 +159,36 @@ class SVTPlayIE(SVTPlayBaseIE):
             'age_limit': 0,
             'subtitles': {
                 'sv': [{
+                    'ext': 'vtt',
+                }]
+            },
+        },
+        'params': {
+            # skip for now due to download test asserts that segment is > 10000 bytes and svt uses
+            # init segments that are smaller
+            # AssertionError: Expected test_SVTPlay_jNwpV9P.mp4 to be at least 9.77KiB, but it's only 864.00B
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.svtplay.se/video/emBxBQj',
+        'md5': '2382036fd6f8c994856c323fe51c426e',
+        'info_dict': {
+            'id': 'eyBd9aj',
+            'ext': 'mp4',
+            'title': '1. Farlig kryssning',
+            'timestamp': 1491019200,
+            'upload_date': '20170401',
+            'duration': 2566,
+            'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
+            'age_limit': 0,
+            'episode': '1. Farlig kryssning',
+            'series': 'Rederiet',
+            'subtitles': {
+                'sv': [{
+                    'ext': 'vtt',
+                }, {
+                    'ext': 'vtt',
+                }, {
                     'ext': 'vtt',
                 }]
             },
@@ -250,12 +281,8 @@ class SVTPlayIE(SVTPlayBaseIE):
         if not svt_id:
             svt_id = self._search_regex(
                 (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
-                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\b(?:modalId|id)=([\da-zA-Z-]+)' % re.escape(video_id),
-                 r'["\']videoSvtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
-                 r'["\']videoSvtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)',
-                 r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"',
-                 r'["\']svtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
-                 r'["\']svtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)'),
+                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/[\da-zA-Z-]+/[^"\']*\b(?:modalId|id)=([\da-zA-Z-]+)',
+                 r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"'),
                 webpage, 'video id')
 
         info_dict = self._extract_by_video_id(svt_id, webpage)
