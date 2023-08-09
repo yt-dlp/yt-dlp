@@ -696,7 +696,7 @@ formats = [
 
 ### Use convenience conversion and parsing functions
 
-Wrap all extracted numeric data into safe functions from [`yt_dlp/utils.py`](yt_dlp/utils.py): `int_or_none`, `float_or_none`. Use them for string to number conversions as well.
+Wrap all extracted numeric data into safe functions from [`yt_dlp/utils/_utils.py`](yt_dlp/utils/_utils.py): `int_or_none`, `float_or_none`. Use them for string to number conversions as well.
 
 Use `url_or_none` for safe URL processing.
 
@@ -704,7 +704,7 @@ Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe
 
 Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
 
-Explore [`yt_dlp/utils.py`](yt_dlp/utils.py) for more useful convenience functions.
+Explore [`yt_dlp/utils/_utils.py`](yt_dlp/utils/_utils.py) for more useful convenience functions.
 
 #### Examples
 
