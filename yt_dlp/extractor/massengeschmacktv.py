@@ -17,11 +17,12 @@ class MassengeschmackTVIE(InfoExtractor):
 
     _TEST = {
         'url': 'https://massengeschmack.tv/play/fktv202',
-        'md5': 'a9e054db9c2b5a08f0a0527cc201e8d3',
+        'md5': '9996f314994a49fefe5f39aa1b07ae21',
         'info_dict': {
             'id': 'fktv202',
             'ext': 'mp4',
-            'title': 'Fernsehkritik-TV - Folge 202',
+            'title': 'Fernsehkritik-TV #202',
+            'thumbnail': 'https://cache.massengeschmack.tv/img/mag/fktv202.jpg'
         },
     }
 
@@ -30,7 +31,7 @@ class MassengeschmackTVIE(InfoExtractor):
 
         webpage = self._download_webpage(url, episode)
         title = clean_html(self._html_search_regex(
-            '<h3>([^<]+)</h3>', webpage, 'title'))
+            '<[^>]+(?:id|ID)=["\']clip-title["\'][^>]*>([^<]+)', webpage, 'title'))
         thumbnail = self._search_regex(r'POSTER\s*=\s*"([^"]+)', webpage, 'thumbnail', fatal=False)
         sources = self._parse_json(self._search_regex(r'(?s)MEDIA\s*=\s*(\[.+?\]);', webpage, 'media'), episode, js_to_json)
 
