@@ -65,6 +65,8 @@ class HTTPHeaderDict(collections.UserDict, dict):
         self.update(kwargs)
 
     def __setitem__(self, key, value):
+        if isinstance(value, bytes):
+            value = value.decode('latin-1')
         super().__setitem__(key.title(), str(value))
 
     def __getitem__(self, key):

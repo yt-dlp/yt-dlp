@@ -729,7 +729,7 @@ class InfoExtractor:
         except UnsupportedError:
             raise
         except ExtractorError as e:
-            e.video_id = e.video_id or self.get_temp_id(url),
+            e.video_id = e.video_id or self.get_temp_id(url)
             e.ie = e.ie or self.IE_NAME,
             e.traceback = e.traceback or sys.exc_info()[2]
             raise
