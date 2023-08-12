@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import json
 # Allow direct execution
 import os
 import sys
@@ -769,7 +769,12 @@ class TestWebsockets:
 
         async def echo(websocket):
             async for message in websocket:
-                await websocket.send(message)
+                if message == b'headers':
+                    await websocket.send(json.dumps(dict(websocket.request_headers)))
+                elif message == 'source_address':
+                    await websocket.send(websocket.remote_address[0])
+                else:
+                    await websocket.send(message)
 
         def run():
             async def main():
@@ -798,6 +803,38 @@ class TestWebsockets:
         with handler(**params) as rh:
             with pytest.raises(TransportError):
                 validate_and_send(rh, Request('ws://127.0.0.1:8765', extensions=extensions))
+
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    def test_cookies(self, handler):
+        cookiejar = YoutubeDLCookieJar()
+        cookiejar.set_cookie(http.cookiejar.Cookie(
+            version=0, name='test', value='ytdlp', port=None, port_specified=False,
+            domain='127.0.0.1', domain_specified=True, domain_initial_dot=False, path='/',
+            path_specified=True, secure=False, expires=None, discard=False, comment=None,
+            comment_url=None, rest={}))
+
+        with handler(cookiejar=cookiejar) as rh:
+            res = validate_and_send(rh, Request('ws://127.0.0.1:8765'))
+            res.send(b'headers')
+            assert json.loads(res.recv())['cookie'] == 'test=ytdlp'
+
+        with handler() as rh:
+            res = validate_and_send(rh, Request('ws://127.0.0.1:8765'))
+            res.send(b'headers')
+            assert 'cookie' not in json.loads(res.recv())
+
+            res = validate_and_send(rh, Request('ws://127.0.0.1:8765', extensions={'cookiejar': cookiejar}))
+            res.send(b'headers')
+            assert json.loads(res.recv())['cookie'] == 'test=ytdlp'
+
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    def test_source_address(self, handler):
+        source_address = f'127.0.0.{random.randint(5, 255)}'
+        with handler(source_address=source_address) as rh:
+            res = validate_and_send(
+                rh, Request(f'ws://127.0.0.1:8765/source_address'))
+            res.send('source_address')
+            assert source_address == res.recv()
 
 
 class TestUrllibRequestHandler(TestRequestHandlerBase):

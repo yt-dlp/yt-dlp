@@ -7,6 +7,7 @@ import sys
 import typing
 import urllib.parse
 import urllib.request
+import socket
 
 from .exceptions import RequestError, UnsupportedRequest
 from ..dependencies import certifi
@@ -206,3 +207,42 @@ def wrap_request_errors(func):
                 e.handler = self
             raise
     return wrapper
+
+
+def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+    # This is to workaround _create_connection() from socket where it will try all
+    # address data from getaddrinfo() including IPv6. This filters the result from
+    # getaddrinfo() based on the source_address value.
+    # This is based on the cpython socket.create_connection() function.
+    # https://github.com/python/cpython/blob/main/Lib/socket.py#L810
+    if source_address is None:
+        return socket.create_connection(address, timeout)
+    host, port = address
+    err = None
+    addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    af = socket.AF_INET if '.' in source_address[0] else socket.AF_INET6
+    ip_addrs = [addr for addr in addrs if addr[0] == af]
+    if addrs and not ip_addrs:
+        ip_version = 'v4' if af == socket.AF_INET else 'v6'
+        raise OSError(
+            "No remote IP%s addresses available for connect, can't use '%s' as source address"
+            % (ip_version, source_address[0]))
+    for res in ip_addrs:
+        af, socktype, proto, canonname, sa = res
+        sock = None
+        try:
+            sock = socket.socket(af, socktype, proto)
+            if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+                sock.settimeout(timeout)
+            sock.bind(source_address)
+            sock.connect(sa)
+            err = None  # Explicitly break reference cycle
+            return sock
+        except OSError as _:
+            err = _
+            if sock is not None:
+                sock.close()
+    if err is not None:
+        raise err
+    else:
+        raise OSError('getaddrinfo returns an empty list')

@@ -8,6 +8,9 @@ import io
 import logging
 import urllib.parse
 import sys
+from ._helper import create_connection
+
+from websockets.uri import parse_uri
 
 from .common import register_rh
 from .exceptions import TransportError, RequestError
@@ -95,14 +98,23 @@ class WebsocketsRH(WebSocketRequestHandler):
         headers = self._merge_headers(request.headers)
         if 'cookie' not in headers:
             cookiejar = request.extensions.get('cookiejar') or self.cookiejar
-            headers['cookie'] = cookiejar.get_cookie_header(request.url)  # TODO: Require cookiejar to be YTDLCookieJar?
+            cookie_header = cookiejar.get_cookie_header(request.url)
+            if cookie_header:
+                headers['cookie'] = cookie_header
+
+        wsuri = parse_uri(request.url)
+        sock = create_connection(
+            (wsuri.host, wsuri.port),
+            source_address=(self.source_address, 0) if self.source_address else None,
+            timeout=timeout
+        )
         try:
             conn = websockets.sync.client.connect(
+                sock=sock,
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
-                **ws_kwargs
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
 
