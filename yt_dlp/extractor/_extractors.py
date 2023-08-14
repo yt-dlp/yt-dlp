@@ -1901,6 +1901,11 @@ from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
 from .tass import TassIE
 from .tbs import TBSIE
+from .tbsjp import (
+    TBSJPEpisodeIE,
+    TBSJPProgramIE,
+    TBSJPPlaylistIE,
+)
 from .tdslifeway import TDSLifewayIE
 from .teachable import (
     TeachableIE,
