@@ -264,6 +264,40 @@ class NFLPlusReplayIE(NFLBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'note': 'Subscription required',
+        'url': 'https://www.nfl.com/plus/games/giants-at-vikings-2022-post-1',
+        'playlist_count': 4,
+        'info_dict': {
+            'id': 'giants-at-vikings-2022-post-1',
+        },
+    }, {
+        'note': 'Subscription required',
+        'url': 'https://www.nfl.com/plus/games/giants-at-patriots-2011-pre-4',
+        'playlist_count': 2,
+        'info_dict': {
+            'id': 'giants-at-patriots-2011-pre-4',
+        },
+    }, {
+        'note': 'Subscription required',
+        'url': 'https://www.nfl.com/plus/games/giants-at-patriots-2011-pre-4',
+        'info_dict': {
+            'id': '950701',
+            'ext': 'mp4',
+            'title': 'Giants @ Patriots',
+            'description': 'Giants at Patriots on September 01, 2011',
+            'uploader': 'NFL',
+            'upload_date': '20210724',
+            'timestamp': 1627085874,
+            'duration': 1532,
+            'categories': ['Game Highlights'],
+            'tags': ['play-by-play'],
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'extractor_args': {'nflplusreplay': {'type': ['condensed_game']}},
+        },
     }]
 
     _REPLAY_TYPES = {
@@ -310,12 +344,12 @@ class NFLPlusEpisodeIE(NFLBaseIE):
     IE_NAME = 'nfl.com:plus:episode'
     _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/episodes/(?P<id>[\w-]+)'
     _TESTS = [{
-        'note': 'premium content',
+        'note': 'Subscription required',
         'url': 'https://www.nfl.com/plus/episodes/kurt-s-qb-insider-conference-championships',
         'info_dict': {
             'id': '1576832',
             'ext': 'mp4',
-            'title': 'Kurt\'s QB Insider: Conference Championships',
+            'title': 'Conference Championships',
             'description': 'md5:944f7fab56f7a37430bf8473f5473857',
             'uploader': 'NFL',
             'upload_date': '20230127',
