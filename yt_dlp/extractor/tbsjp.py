@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class TBSJPEpisodeIE(InfoExtractor):
-    _VALID_URL = r'https://cu\.tbs\.co\.jp/episode/(?P<id>[\d_]+)'
+    _VALID_URL = r'https?://cu\.tbs\.co\.jp/episode/(?P<id>[\d_]+)'
     _GEO_BYPASS = False
     _TESTS = [{
         'url': 'https://cu.tbs.co.jp/episode/23613_2044134_1000049010',
