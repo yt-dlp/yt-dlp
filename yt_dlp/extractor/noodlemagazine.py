@@ -2,7 +2,8 @@ from .common import InfoExtractor
 from ..utils import (
     parse_duration,
     parse_count,
-    unified_strdate
+    unified_strdate,
+    ExtractorError
 )
 
 
@@ -37,15 +38,21 @@ class NoodleMagazineIE(InfoExtractor):
         like_count = parse_count(self._html_search_meta('ya:ovs:likes', webpage, default=None))
         upload_date = unified_strdate(self._html_search_meta('ya:ovs:upload_date', webpage, default=''))
 
-        key = self._html_search_regex(rf'/{video_id}\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'key')
-        playlist_info = self._download_json(f'https://adult.noodlemagazine.com/playlist/{video_id}?m={key}', video_id)
+        player_url = self._html_search_regex(rf'(/player/{video_id}[^"\'\s,]+)', webpage, 'player-url')
+        player_iframe = self._download_webpage(f'https://adult.noodlemagazine.com{player_url}', video_id)
+        playlist_url = self._html_search_regex(rf'(/playlist/{video_id}[^"\'\s,]+)', player_iframe, 'playlist-url')
+        playlist_info = self._download_json(f'https://adult.noodlemagazine.com{playlist_url}', video_id)
+
         thumbnail = self._og_search_property('image', webpage, default=None) or playlist_info.get('image')
+        sources = playlist_info.get('sources')
+        if not sources:
+            raise ExtractorError('Player sources not found!', expected=False, video_id=video_id)
 
         formats = [{
             'url': source.get('file'),
             'quality': source.get('label'),
             'ext': source.get('type'),
-        } for source in playlist_info.get('sources')]
+        } for source in sources]
 
         return {
             'id': video_id,
