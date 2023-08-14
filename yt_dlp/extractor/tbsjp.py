@@ -83,7 +83,7 @@ class TBSJPEpisodeIE(InfoExtractor):
 
 
 class TBSJPProgramIE(InfoExtractor):
-    _VALID_URL = r'https://cu\.tbs\.co\.jp/program/(?P<id>[\d]+)'
+    _VALID_URL = r'https?://cu\.tbs\.co\.jp/program/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://cu.tbs.co.jp/program/23601',
         'playlist_mincount': 4,
@@ -119,7 +119,7 @@ class TBSJPProgramIE(InfoExtractor):
 
 
 class TBSJPPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https://cu\.tbs\.co\.jp/playlist/(?P<id>[\da-f]+)'
+    _VALID_URL = r'https?://cu\.tbs\.co\.jp/playlist/(?P<id>[\da-f]+)'
     _TESTS = [{
         'url': 'https://cu.tbs.co.jp/playlist/184f9970e7ba48e4915f1b252c55015e',
         'playlist_mincount': 4,
@@ -135,18 +135,18 @@ class TBSJPPlaylistIE(InfoExtractor):
         meta = self._search_json(r'window\.app\s*=', page, 'playlist info', playlist_id)
         playlist = traverse_obj(meta, ('falcorCache', 'playList', playlist_id))
 
-        entries = []
-        for entry in traverse_obj(playlist, ('catalogs', 'value', lambda _, v: v['content_id'])):
-            # it's likely possible to get most/all of the metadata from the playlist page json instead
-            content_id = entry['content_id']
-            content_type = entry.get('content_type')
-            if content_type == 'tv_show':
-                entries.append(self.url_result(
-                    f'https://cu.tbs.co.jp/program/{content_id}', TBSJPProgramIE, content_id))
-            elif content_type == 'tv_episode':
-                entries.append(self.url_result(
-                    f'https://cu.tbs.co.jp/episode/{content_id}', TBSJPEpisodeIE, content_id))
-            else:
-                self.report_warning(f'Skipping "{content_id}" with unsupported content_type "{content_type}"')
+        def entries():
+            for entry in traverse_obj(playlist, ('catalogs', 'value', lambda _, v: v['content_id'])):
+                # TODO: it's likely possible to get all metadata from the playlist page json instead
+                content_id = entry['content_id']
+                content_type = entry.get('content_type')
+                if content_type == 'tv_show':
+                    yield self.url_result(
+                        f'https://cu.tbs.co.jp/program/{content_id}', TBSJPProgramIE, content_id)
+                elif content_type == 'tv_episode':
+                    yield self.url_result(
+                        f'https://cu.tbs.co.jp/episode/{content_id}', TBSJPEpisodeIE, content_id)
+                else:
+                    self.report_warning(f'Skipping "{content_id}" with unsupported content_type "{content_type}"')
 
-        return self.playlist_result(entries, playlist_id, traverse_obj(playlist, ('display_name', 'value')))
+        return self.playlist_result(entries(), playlist_id, traverse_obj(playlist, ('display_name', 'value')))
