@@ -17,15 +17,6 @@ class ZoomIE(InfoExtractor):
     IE_NAME = 'zoom'
     _VALID_URL = r'(?P<base_url>https?://(?:[^.]+\.)?zoom.us/)rec(?:ording)?/(?P<type>play|share)/(?P<id>[A-Za-z0-9_.-]+)'
     _TESTS = [{
-        # play URL
-        'url': 'https://ffgolf.zoom.us/rec/play/qhEhXbrxq1Zoucx8CMtHzq1Z_2YZRPVCqWK_K-2FkEGRsSLDeOX8Tu4P6jtjZcRry8QhIbvKZdtr4UNo.QcPn2debFskI9whJ',
-        'md5': '2c4b1c4e5213ebf9db293e88d9385bee',
-        'info_dict': {
-            'id': 'qhEhXbrxq1Zoucx8CMtHzq1Z_2YZRPVCqWK_K-2FkEGRsSLDeOX8Tu4P6jtjZcRry8QhIbvKZdtr4UNo.QcPn2debFskI9whJ',
-            'ext': 'mp4',
-            'title': 'Prépa AF2023 - Séance 5 du 11 avril - R20/VM/GO',
-        },
-    }, {
         'url': 'https://economist.zoom.us/rec/play/dUk_CNBETmZ5VA2BwEl-jjakPpJ3M1pcfVYAPRsoIbEByGsLjUZtaa4yCATQuOL3der8BlTwxQePl_j0.EImBkXzTIaPvdZO5',
         'md5': 'ab445e8c911fddc4f9adc842c2c5d434',
         'info_dict': {
@@ -34,6 +25,15 @@ class ZoomIE(InfoExtractor):
             'title': 'China\'s "two sessions" and the new five-year plan',
         },
         'skip': 'Recording requires email authentication to access',
+    }, {
+        # play URL
+        'url': 'https://ffgolf.zoom.us/rec/play/qhEhXbrxq1Zoucx8CMtHzq1Z_2YZRPVCqWK_K-2FkEGRsSLDeOX8Tu4P6jtjZcRry8QhIbvKZdtr4UNo.QcPn2debFskI9whJ',
+        'md5': '2c4b1c4e5213ebf9db293e88d9385bee',
+        'info_dict': {
+            'id': 'qhEhXbrxq1Zoucx8CMtHzq1Z_2YZRPVCqWK_K-2FkEGRsSLDeOX8Tu4P6jtjZcRry8QhIbvKZdtr4UNo.QcPn2debFskI9whJ',
+            'ext': 'mp4',
+            'title': 'Prépa AF2023 - Séance 5 du 11 avril - R20/VM/GO',
+        },
     }, {
         # share URL
         'url': 'https://us02web.zoom.us/rec/share/hkUk5Zxcga0nkyNGhVCRfzkA2gX_mzgS3LpTxEEWJz9Y_QpIQ4mZFOUx7KZRZDQA.9LGQBdqmDAYgiZ_8',
