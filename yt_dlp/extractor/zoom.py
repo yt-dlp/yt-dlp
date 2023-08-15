@@ -10,6 +10,8 @@ from ..utils import (
     urljoin,
 )
 
+import urllib
+
 
 class ZoomIE(InfoExtractor):
     IE_NAME = 'zoom'
@@ -41,6 +43,7 @@ class ZoomIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Timea Andrea Lelik\'s Personal Meeting Room',
         },
+        'skip': 'Error message: You cannot view this recording. This recording has expired.',
     }]
 
     def _get_page_data(self, webpage, video_id):
@@ -87,9 +90,13 @@ class ZoomIE(InfoExtractor):
             # When things go wrong, file_id can be empty string
             raise ExtractorError('Unable to extract file ID')
 
+        json_path = f'{base_url}nws/recording/1.0/play/info/{file_id}'
+
+        if url_type == 'share':
+            json_path += '?continueMode=true' 
+
         data = self._download_json(
-            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id,
-            note='Downloading play info JSON')['result']
+            json_path, video_id, note='Downloading play info JSON')['result']
 
         subtitles = {}
         for _type in ('transcript', 'cc', 'chapter'):
@@ -107,7 +114,7 @@ class ZoomIE(InfoExtractor):
                 'url': str_or_none(data.get('viewMp4Url')),
                 'width': int_or_none(traverse_obj(data, ('viewResolvtions', 0))),
                 'height': int_or_none(traverse_obj(data, ('viewResolvtions', 1))),
-                'format_id': str_or_none(traverse_obj(data, ('recording', 'id'))),
+                'format_id': 'viewMp4Url',
                 'ext': 'mp4',
                 'filesize_approx': parse_filesize(str_or_none(traverse_obj(data, ('recording', 'fileSizeInMB')))),
                 'preference': 0
@@ -119,9 +126,24 @@ class ZoomIE(InfoExtractor):
                 'url': str_or_none(data.get('shareMp4Url')),
                 'width': int_or_none(traverse_obj(data, ('shareResolvtions', 0))),
                 'height': int_or_none(traverse_obj(data, ('shareResolvtions', 1))),
-                'format_id': str_or_none(traverse_obj(data, ('shareVideo', 'id'))),
+                'format_id': 'shareMp4Url',
                 'ext': 'mp4',
                 'preference': -1
+            })
+
+        view_with_share_url = data.get('viewMp4WithshareUrl')
+
+        if view_with_share_url:
+            resolution = self.resolution_from_url(view_with_share_url)
+
+            formats.append({
+                'format_note': 'Screen share with camera',
+                'url': str_or_none(data.get('viewMp4WithshareUrl')),
+                'width': int_or_none(traverse_obj(resolution, 0)),
+                'height': int_or_none(traverse_obj(resolution, 1)),
+                'format_id': 'viewMp4WithshareUrl',
+                'ext': 'mp4',
+                'preference': 1
             })
 
         return {
@@ -133,3 +155,17 @@ class ZoomIE(InfoExtractor):
                 'Referer': base_url,
             },
         }
+
+    @staticmethod
+    def resolution_from_url(url):
+        parsed_url = urllib.parse.urlparse(url)
+        file_path = parsed_url.path
+
+        if not file_path:
+            return
+        
+        resolutino_str = file_path[file_path.rfind('_') + 1:file_path.rfind('.')]
+
+        if resolutino_str:
+            return resolutino_str.split('x')
+
