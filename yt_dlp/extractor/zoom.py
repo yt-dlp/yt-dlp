@@ -93,7 +93,7 @@ class ZoomIE(InfoExtractor):
         json_path = f'{base_url}nws/recording/1.0/play/info/{file_id}'
 
         if url_type == 'share':
-            json_path += '?continueMode=true' 
+            json_path += '?continueMode=true'
 
         data = self._download_json(
             json_path, video_id, note='Downloading play info JSON')['result']
@@ -163,9 +163,8 @@ class ZoomIE(InfoExtractor):
 
         if not file_path:
             return
-        
+
         resolutino_str = file_path[file_path.rfind('_') + 1:file_path.rfind('.')]
 
         if resolutino_str:
             return resolutino_str.split('x')
-
