@@ -9,6 +9,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    get_element_by_id,
     int_or_none,
     join_nonempty,
     js_to_json,
@@ -225,6 +226,60 @@ class CBCPlayerIE(InfoExtractor):
                 }),
             'id': video_id,
             '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
+        }
+
+
+class CBCPlayerPlaylistIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:player:playlist'
+    _VALID_URL = r'(?:cbcplayer:|https?://(?:www\.)?cbc\.ca/(?:player/)(?!play/))(?P<id>.+)'
+    _TESTS = [{
+        'url': 'https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/tv shows/the national/latest broadcast',
+            'ie_key': 'CBCPlayer',
+        }
+    }, {
+        'url': 'https://www.cbc.ca/player/news/Canada/North',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/canada/north',
+            'ie_key': 'CBCPlayer',
+        }
+    }]
+
+    def _real_extract(self, url):
+        # We have no other playlist id other than the URL, so use that
+        playlist_id = self._match_id(url).replace('%20', ' ').lower()
+        # the json info we're looking for isn't marked as such, therefore we need a bit of a workaround.
+        json_content = self._parse_json(
+            get_element_by_id('initialStateDom', self._download_webpage(url, playlist_id))[27:-1],
+            playlist_id)
+        playlist_items = []
+        for key, value in json_content.get('video').get('clipsByCategory').items():
+            # We need to do a case insensitive match. If anyone has a better way, feel free to improve.
+            if key.lower() == playlist_id:
+                for video in value.get('items'):
+                    playlist_items.append({
+                        '_type': 'url',
+                        'url': 'https://www.cbc.ca/player/play/%s' % video['id'],
+                        'ie_key': 'CBCPlayer',
+                        'timestamp': video['airDate'],
+                        'categories': [video['contentArea']],
+                        'description': video['description'],
+                        'duration': video['duration'],
+                        'id': video['id'],
+                        'is_live': video['isLive'],
+                        'series': video['showName'],
+                        'thumbnail': video['thumbnail'],
+                        'title': video['title'],
+                    })
+                break
+        return {
+            '_type': 'playlist',
+            'id': playlist_id,
+            'ie_key': 'CBCPlayer',
+            'entries': playlist_items,
         }
 
 
