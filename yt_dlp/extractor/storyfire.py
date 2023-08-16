@@ -32,9 +32,7 @@ class StoryFireBaseIE(InfoExtractor):
             'description': video.get('description'),
             'url': smuggle_url(
                 'https://player.vimeo.com/video/' + vimeo_id, {
-                    'http_headers': {
-                        'Referer': 'https://storyfire.com/',
-                    }
+                    'referer': 'https://storyfire.com/',
                 }),
             'thumbnail': video.get('storyImage'),
             'view_count': int_or_none(video.get('views')),
