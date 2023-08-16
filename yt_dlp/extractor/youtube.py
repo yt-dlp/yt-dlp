@@ -441,6 +441,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?hyperpipe\.esmailelbob\.xyz',
         r'(?:www\.)?listen\.whatever\.social',
         r'(?:www\.)?music\.adminforge\.de',
+        # Nsfw Youtube 
+        r'(?:www\.)?nsfwyoutube\.com'
     )
 
     # extracted from account/account_menu ep
