@@ -53,10 +53,10 @@ class CommitGroup(enum.Enum):
                     'cookies',
                     'core',
                     'dependencies',
+                    'formats',
                     'jsinterp',
                     'networking',
                     'outtmpl',
-                    'formats',
                     'plugins',
                     'update',
                     'upstream',
@@ -254,7 +254,7 @@ class CommitRange:
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
-    REVERT_RE = re.compile(r'(?i:Revert)\s+([\da-f]{40})')
+    REVERT_RE = re.compile(r'(?:\[[^\]]+\]\s+)?(?i:Revert)\s+([\da-f]{40})')
     FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 

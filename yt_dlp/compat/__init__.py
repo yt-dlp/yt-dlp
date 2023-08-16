@@ -1,14 +1,11 @@
 import os
 import sys
-import warnings
 import xml.etree.ElementTree as etree
 
-from ._deprecated import *  # noqa: F401, F403
 from .compat_utils import passthrough_module
 
-# XXX: Implement this the same way as other DeprecationWarnings without circular import
-passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
-    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=5))
+passthrough_module(__name__, '._deprecated')
+del passthrough_module
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in

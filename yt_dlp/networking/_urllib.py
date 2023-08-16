@@ -28,7 +28,7 @@ from ._helper import (
     make_socks_proxy_opts,
     select_proxy,
 )
-from .common import Features, RequestHandler, Response, register
+from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -41,7 +41,8 @@ from .exceptions import (
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
 from ..socks import sockssocket
-from ..utils import escape_url, update_url_query
+from ..utils import update_url_query
+from ..utils.networking import normalize_url
 
 SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -179,7 +180,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         # Since redirects are also affected (e.g. http://www.southpark.de/alle-episoden/s18e09)
         # the code of this workaround has been moved here from YoutubeDL.urlopen()
         url = req.get_full_url()
-        url_escaped = escape_url(url)
+        url_escaped = normalize_url(url)
 
         # Substitute URL if any change after escaping
         if url != url_escaped:
@@ -212,7 +213,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
                 location = location.encode('iso-8859-1').decode()
-                location_escaped = escape_url(location)
+                location_escaped = normalize_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
                     resp.headers['Location'] = location_escaped
@@ -315,7 +316,7 @@ class HEADRequest(urllib.request.Request):
 def update_Request(req, url=None, data=None, headers=None, query=None):
     req_headers = req.headers.copy()
     req_headers.update(headers or {})
-    req_data = data or req.data
+    req_data = data if data is not None else req.data
     req_url = update_url_query(url or req.get_full_url(), query)
     req_get_method = req.get_method()
     if req_get_method == 'HEAD':
@@ -372,7 +373,7 @@ def handle_response_read_exceptions(e):
         raise TransportError(cause=e) from e
 
 
-@register
+@register_rh
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
     _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')
@@ -384,6 +385,11 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         self.enable_file_urls = enable_file_urls
         if self.enable_file_urls:
             self._SUPPORTED_URL_SCHEMES = (*self._SUPPORTED_URL_SCHEMES, 'file')
+
+    def _check_extensions(self, extensions):
+        super()._check_extensions(extensions)
+        extensions.pop('cookiejar', None)
+        extensions.pop('timeout', None)
 
     def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()

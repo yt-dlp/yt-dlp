@@ -63,6 +63,11 @@
     {
         "action": "add",
         "when": "1ceb657bdd254ad961489e5060f2ccc7d556b729",
-        "short": "[priority] Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)\n    - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains\n    - Cookies are scoped when passed to external downloaders\n    - Add `cookie` field to info.json and deprecate `http_headers.Cookie`"
+        "short": "[priority] Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)\n    - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains\n    - Cookies are scoped when passed to external downloaders\n    - Add `cookies` field to info.json and deprecate `http_headers.Cookie`"
+    },
+    {
+        "action": "change",
+        "when": "b03fa7834579a01cc5fba48c0e73488a16683d48",
+        "short": "[ie/twitter] Revert 92315c03774cfabb3a921884326beb4b981f786b"
     }
 ]

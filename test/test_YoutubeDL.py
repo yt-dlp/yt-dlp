@@ -26,7 +26,6 @@ from yt_dlp.utils import (
 )
 from yt_dlp.utils.traversal import traverse_obj
 
-
 TEST_URL = 'http://localhost/sample.mp4'
 
 
@@ -687,6 +686,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
         test('%(playlist_index|)s', '001')
+        test('%(playlist_index&{}!)s', '1!')
         test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
@@ -831,6 +831,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id&hi {:>10} {}|)s', 'hi       1234 1234')
         test(R'%(id&{0} {}|)s', 'NA')
         test(R'%(id&{0.1}|)s', 'NA')
+        test('%(height&{:,d})S', '1,080')
 
         # Laziness
         def gen():
