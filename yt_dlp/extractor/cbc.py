@@ -253,7 +253,10 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         playlist_id = self._match_id(url).replace('%20', ' ').lower()
         # the json info we're looking for isn't marked as such, therefore we need a bit of a workaround.
         json_content = self._parse_json(
-            get_element_by_id('initialStateDom', self._download_webpage(url, playlist_id))[27:-1],
+            re.sub(
+                r'^.*?{', '{',
+                get_element_by_id('initialStateDom', self._download_webpage(url, playlist_id))
+            )[:-1],
             playlist_id)
         playlist_items = []
         for key, value in json_content.get('video').get('clipsByCategory').items():
