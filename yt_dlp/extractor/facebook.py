@@ -508,10 +508,21 @@ class FacebookIE(InfoExtractor):
                 r'bigPipe\.onPageletArrive\(({.*?id\s*:\s*"%s".*?})\);' % self._SUPPORTED_PAGLETS_REGEX
             ], webpage, 'js data', default='{}'), video_id, js_to_json, False)
             video_data = extract_from_jsmods_instances(server_js_data)
+        
+        def extract_js_data():
+            return [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+                r'<script\s*type=\"application\/json\".*?data-sjs\>({.*?})<\/script>', webpage) if re.findall(r'"(?:dash_manifest|playable_url(?:_quality_hd)?)"\s*:\s*"[^"]+"', j)]
+        
+        def extract_relay_prefetched_js_data():
+            replay_data = extract_js_data()
+            post = traverse_obj(replay_data[0], ('require', ..., ..., ..., '__bbox', 'require', ..., ...,..., '__bbox', 'result', 'data'))[0]
+            return post
 
         if not video_data:
             data = extract_relay_prefetched_data(
                 r'"(?:dash_manifest|playable_url(?:_quality_hd)?)"\s*:\s*"[^"]+"')
+            if not data:
+                data = extract_relay_prefetched_js_data()
             if data:
                 entries = []
 
