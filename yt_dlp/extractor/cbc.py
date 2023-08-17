@@ -231,7 +231,7 @@ class CBCPlayerIE(InfoExtractor):
 
 class CBCPlayerPlaylistIE(InfoExtractor):
     IE_NAME = 'cbc.ca:player:playlist'
-    _VALID_URL = r'(?:cbcplayer:|https?://(?:www\.)?cbc\.ca/(?:player/)(?!play/))(?P<id>.+)'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?:player/)(?!play/)(?P<id>[^?#]+)'
     _TESTS = [{
         'url': 'https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast',
         'playlist_mincount': 25,
