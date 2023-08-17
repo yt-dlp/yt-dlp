@@ -249,8 +249,7 @@ class CBCPlayerPlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        # We have no other playlist id other than the URL, so use that
-        playlist_id = self._match_id(url).replace('%20', ' ').lower()
+        playlist_id = urllib.parse.unquote(self._match_id(url)).lower()
         # the json info we're looking for isn't marked as such, therefore we need a bit of a workaround.
         json_content = self._parse_json(
             re.sub(
