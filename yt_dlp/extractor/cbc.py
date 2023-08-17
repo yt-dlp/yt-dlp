@@ -250,13 +250,9 @@ class CBCPlayerPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = urllib.parse.unquote(self._match_id(url)).lower()
-        # the json info we're looking for isn't marked as such, therefore we need a bit of a workaround.
-        json_content = self._parse_json(
-            re.sub(
-                r'^.*?{', '{',
-                get_element_by_id('initialStateDom', self._download_webpage(url, playlist_id))
-            )[:-1],
-            playlist_id)
+        webpage = self._download_webpage(url, playlist_id)
+        json_content = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', playlist_id)
         playlist_items = []
         for key, value in json_content.get('video').get('clipsByCategory').items():
             # We need to do a case insensitive match. If anyone has a better way, feel free to improve.
