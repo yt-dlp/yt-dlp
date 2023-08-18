@@ -2,7 +2,7 @@ import json
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -39,7 +39,7 @@ class DPlayBaseIE(InfoExtractor):
         return f'Bearer {token}'
 
     def _process_errors(self, e, geo_countries):
-        info = self._parse_json(e.cause.read().decode('utf-8'), None)
+        info = self._parse_json(e.cause.response.read().decode('utf-8'), None)
         error = info['errors'][0]
         error_code = error.get('code')
         if error_code == 'access.denied.geoblocked':
@@ -87,7 +87,7 @@ class DPlayBaseIE(InfoExtractor):
                     'include': 'images,primaryChannel,show,tags'
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 self._process_errors(e, geo_countries)
             raise
         video_id = video['data']['id']
@@ -99,7 +99,7 @@ class DPlayBaseIE(InfoExtractor):
             streaming = self._download_video_playback_info(
                 disco_base, video_id, headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self._process_errors(e, geo_countries)
             raise
         for format_dict in streaming:
@@ -746,7 +746,7 @@ class MotorTrendIE(DiscoveryPlusBaseIE):
 
 
 class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?motortrendondemand\.com/detail' + DPlayBaseIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?motortrend(?:ondemand\.com|\.com/plus)/detail' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.motortrendondemand.com/detail/wheelstanding-dump-truck-stubby-bobs-comeback/37699/784',
         'info_dict': {
@@ -767,6 +767,25 @@ class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
             'upload_date': '20140101',
             'tags': [],
         },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/roadworthy-rescues-teaser-trailer/4922860/',
+        'info_dict': {
+            'id': '4922860',
+            'ext': 'mp4',
+            'title': 'Roadworthy Rescues | Teaser Trailer',
+            'description': 'Derek Bieri helps Freiburger and Finnegan with their \'68 big-block Dart.',
+            'display_id': 'roadworthy-rescues-teaser-trailer/4922860',
+            'creator': 'Originals',
+            'series': 'Roadworthy Rescues',
+            'thumbnail': r're:^https?://.+\.jpe?g$',
+            'upload_date': '20220907',
+            'timestamp': 1662523200,
+            'duration': 1066.356,
+            'tags': [],
+        },
+    }, {
+        'url': 'https://www.motortrend.com/plus/detail/ugly-duckling/2450033/12439',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'MTOD'

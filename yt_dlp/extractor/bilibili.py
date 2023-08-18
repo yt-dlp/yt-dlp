@@ -4,11 +4,11 @@ import hashlib
 import itertools
 import math
 import time
-import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..dependencies import Cryptodome
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -614,7 +614,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 response = self._download_json('https://api.bilibili.com/x/space/wbi/arc/search',
                                                playlist_id, note=f'Downloading page {page_idx}', query=query)
             except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 412:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError(
                         'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
                 raise

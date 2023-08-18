@@ -1,3 +1,4 @@
+import functools
 import json
 import re
 
@@ -279,6 +280,12 @@ class TwitterBaseIE(InfoExtractor):
                     'Submitting confirmation code', headers, data=build_login_json(input_dict(
                         next_subtask, self._get_tfa_info('confirmation code sent to your email or phone'))))
 
+            elif next_subtask == 'ArkoseLogin':
+                self.raise_login_required('Twitter is requiring captcha for this login attempt', method='cookies')
+
+            elif next_subtask == 'DenyLoginSubtask':
+                self.raise_login_required('Twitter rejected this login attempt as suspicious', method='cookies')
+
             elif next_subtask == 'LoginSuccessSubtask':
                 raise ExtractorError('Twitter API did not grant auth token cookie')
 
@@ -304,8 +311,9 @@ class TwitterBaseIE(InfoExtractor):
 
         if result.get('errors'):
             errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
-            raise ExtractorError(
-                f'Error(s) while querying API: {errors or "Unknown error"}', expected=True)
+            if errors and 'not authorized' in errors:
+                self.raise_login_required(remove_end(errors, '.'))
+            raise ExtractorError(f'Error(s) while querying API: {errors or "Unknown error"}')
 
         return result
 
@@ -607,7 +615,7 @@ class TwitterIE(TwitterBaseIE):
         # has mp4 formats via mobile API
         'url': 'https://twitter.com/news_al3alm/status/852138619213144067',
         'info_dict': {
-            'id': '852138619213144067',
+            'id': '852077943283097602',
             'ext': 'mp4',
             'title': 'عالم الأخبار - كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعارضين : اتقوا الله .. الظلم ظلمات يوم القيامة',
             'description': 'كلمة تاريخية بجلسة الجناسي التاريخية.. النائب خالد مؤنس العتيبي للمعارضين : اتقوا الله .. الظلم ظلمات يوم القيامة   https://t.co/xg6OhpyKfN',
@@ -616,8 +624,16 @@ class TwitterIE(TwitterBaseIE):
             'duration': 277.4,
             'timestamp': 1492000653,
             'upload_date': '20170412',
+            'display_id': '852138619213144067',
+            'age_limit': 0,
+            'uploader_url': 'https://twitter.com/news_al3alm',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'tags': [],
+            'repost_count': int,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
         },
-        'skip': 'Account suspended',
     }, {
         'url': 'https://twitter.com/i/web/status/910031516746514432',
         'info_dict': {
@@ -675,15 +691,15 @@ class TwitterIE(TwitterBaseIE):
             'id': '1087791272830607360',
             'display_id': '1087791357756956680',
             'ext': 'mp4',
-            'title': 'Twitter - A new is coming.  Some of you got an opt-in to try it now. Check out the emoji button, quick keyboard shortcuts, upgraded trends, advanced search, and more. Let us know your thoughts!',
+            'title': 'X - A new is coming.  Some of you got an opt-in to try it now. Check out the emoji button, quick keyboard shortcuts, upgraded trends, advanced search, and more. Let us know your thoughts!',
             'thumbnail': r're:^https?://.*\.jpg',
             'description': 'md5:6dfd341a3310fb97d80d2bf7145df976',
-            'uploader': 'Twitter',
-            'uploader_id': 'Twitter',
+            'uploader': 'X',
+            'uploader_id': 'X',
             'duration': 61.567,
             'timestamp': 1548184644,
             'upload_date': '20190122',
-            'uploader_url': 'https://twitter.com/Twitter',
+            'uploader_url': 'https://twitter.com/X',
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
@@ -991,10 +1007,10 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
-            'uploader': 'Mün The Shinobi',
+            'uploader': 'Mün The Friend Of YWAP',
             'repost_count': int,
             'upload_date': '20221206',
-            'title': 'Mün The Shinobi - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'title': 'Mün The Friend Of YWAP - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
             'comment_count': int,
             'like_count': int,
             'tags': [],
@@ -1024,6 +1040,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
         },
         'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
+        'skip': 'Protected tweet',
     }, {
         # orig tweet w/ graphql
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
@@ -1047,6 +1064,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+        'skip': 'Protected tweet',
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -1103,6 +1121,8 @@ class TwitterIE(TwitterBaseIE):
             reason = result.get('reason')
             if reason == 'NsfwLoggedOut':
                 self.raise_login_required('NSFW tweet requires authentication')
+            elif reason == 'Protected':
+                self.raise_login_required('You are not authorized to view this protected tweet')
             raise ExtractorError(reason or 'Requested tweet is unavailable', expected=True)
 
         status = result.get('legacy', {})
@@ -1187,22 +1207,38 @@ class TwitterIE(TwitterBaseIE):
             }
         }
 
-    def _real_extract(self, url):
-        twid, selected_index = self._match_valid_url(url).group('id', 'index')
-        if not self.is_logged_in and self._configuration_arg('legacy_api'):
-            status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
+    def _extract_status(self, twid):
+        if self.is_logged_in:
+            return self._graphql_to_legacy(
+                self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
+
+        try:
+            if not self._configuration_arg('legacy_api'):
+                return self._graphql_to_legacy(
+                    self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
+            return traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
                 'cards_platform': 'Web-12',
                 'include_cards': 1,
                 'include_reply_count': 1,
                 'include_user_entities': 0,
                 'tweet_mode': 'extended',
             }), 'retweeted_status', None)
-        elif not self.is_logged_in:
-            status = self._graphql_to_legacy(
-                self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
-        else:
-            status = self._graphql_to_legacy(
-                self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
+
+        except ExtractorError as e:
+            if e.expected:
+                raise
+            self.report_warning(
+                f'{e.orig_msg}. Falling back to syndication endpoint; some metadata may be missing', twid)
+
+        status = self._download_json(
+            'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+            headers={'User-Agent': 'Googlebot'}, query={'id': twid})
+        status['extended_entities'] = {'media': status.get('mediaDetails')}
+        return status
+
+    def _real_extract(self, url):
+        twid, selected_index = self._match_valid_url(url).group('id', 'index')
+        status = self._extract_status(twid)
 
         title = description = traverse_obj(
             status, (('full_text', 'text'), {lambda x: x.replace('\n', ' ')}), get_all=False) or ''
@@ -1230,7 +1266,10 @@ class TwitterIE(TwitterBaseIE):
         }
 
         def extract_from_video_info(media):
-            media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
+            media_id = traverse_obj(media, 'id_str', 'id', (
+                'video_info', 'variants', ..., 'url',
+                {functools.partial(re.search, r'_video/(\d+)/')}, 1
+            ), get_all=False, expected_type=str_or_none) or twid
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
@@ -1499,6 +1538,38 @@ class TwitterSpacesIE(TwitterBaseIE):
             'release_date': '20220807',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        # post_live/TimedOut but downloadable
+        'url': 'https://twitter.com/i/spaces/1vAxRAVQWONJl',
+        'info_dict': {
+            'id': '1vAxRAVQWONJl',
+            'ext': 'm4a',
+            'title': 'Framing Up FinOps: Billing Tools',
+            'description': 'Twitter Space participated by rupa, Alfonso Hernandez',
+            'uploader': 'Google Cloud',
+            'uploader_id': 'googlecloud',
+            'live_status': 'post_live',
+            'timestamp': 1681409554,
+            'upload_date': '20230413',
+            'release_timestamp': 1681839000,
+            'release_date': '20230418',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # Needs ffmpeg as downloader, see: https://github.com/yt-dlp/yt-dlp/issues/7536
+        'url': 'https://twitter.com/i/spaces/1eaKbrQbjoRKX',
+        'info_dict': {
+            'id': '1eaKbrQbjoRKX',
+            'ext': 'm4a',
+            'title': 'あ',
+            'description': 'Twitter Space participated by nobody yet',
+            'uploader': '息根とめる🔪Twitchで復活',
+            'uploader_id': 'tomeru_ikinone',
+            'live_status': 'was_live',
+            'timestamp': 1685617198,
+            'upload_date': '20230601',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     SPACE_STATUS = {
@@ -1555,9 +1626,9 @@ class TwitterSpacesIE(TwitterBaseIE):
             source = traverse_obj(
                 self._call_api(f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key']),
                 ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
-            formats = self._extract_m3u8_formats(
-                source, metadata['media_key'], 'm4a', live=is_live, fatal=False,
-                headers={'Referer': 'https://twitter.com/'}) if source else []
+            formats = self._extract_m3u8_formats(  # XXX: Some Spaces need ffmpeg as downloader
+                source, metadata['media_key'], 'm4a', entry_protocol='m3u8', live=is_live,
+                headers={'Referer': 'https://twitter.com/'}, fatal=False) if source else []
             for fmt in formats:
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
                 if not is_live:
@@ -1596,7 +1667,7 @@ class TwitterShortenerIE(TwitterBaseIE):
         if eid:
             id = eid
             url = self._BASE_URL + id
-        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).geturl()
+        new_url = self._request_webpage(url, id, headers={'User-Agent': 'curl'}).url
         __UNSAFE_LINK = "https://twitter.com/safety/unsafe_link_warning?unsafe_link="
         if new_url.startswith(__UNSAFE_LINK):
             new_url = new_url.replace(__UNSAFE_LINK, "")

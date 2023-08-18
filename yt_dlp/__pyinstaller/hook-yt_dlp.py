@@ -18,7 +18,8 @@ def pycryptodome_module():
 
 
 def get_hidden_imports():
-    yield 'yt_dlp.compat._legacy'
+    yield from ('yt_dlp.compat._legacy', 'yt_dlp.compat._deprecated')
+    yield from ('yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated')
     yield pycryptodome_module()
     yield from collect_submodules('websockets')
     # These are auto-detected, but explicitly add them just in case

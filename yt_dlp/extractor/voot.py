@@ -1,10 +1,10 @@
 import json
 import time
-import urllib.error
 import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -140,7 +140,7 @@ class VootIE(VootBaseIE):
                     'voottoken': self._TOKEN,
                 })['m3u8']
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 self._check_token_expiry()
             raise
 

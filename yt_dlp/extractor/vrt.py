@@ -1,10 +1,10 @@
 import functools
 import json
 import time
-import urllib.error
 import urllib.parse
 
 from .gigya import GigyaBaseIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -44,9 +44,11 @@ class VRTBaseIE(GigyaBaseIE):
             'version': '2.7.4-prod-2023-04-19T06:05:45'
         }
     }
-    # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.fd1de01a40a1e3d842ea.js
+    # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.8cdb11341bcb79e4cd44.js
     _JWT_KEY_ID = '0-0Fp51UZykfaiCJrfTE3+oMI8zvDteYfPtR+2n1R+z8w='
-    _JWT_SIGNING_KEY = '2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae'
+    _JWT_SIGNING_KEY = 'b5f500d55cb44715107249ccd8a5c0136cfb2788dbb71b90a4f142423bacaf38'  # -dev
+    # player-stag.vrt.be key:    d23987504521ae6fbf2716caca6700a24bb1579477b43c84e146b279de5ca595
+    # player.vrt.be key:         2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae
 
     def _extract_formats_and_subtitles(self, data, video_id):
         if traverse_obj(data, 'drm'):
@@ -261,7 +263,7 @@ class VrtNUIE(VRTBaseIE):
                         '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
                     }))
             except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     retry.error = e
                     continue
                 raise

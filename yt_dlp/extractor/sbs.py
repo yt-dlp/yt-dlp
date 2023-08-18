@@ -1,6 +1,6 @@
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     float_or_none,
     int_or_none,
     parse_duration,

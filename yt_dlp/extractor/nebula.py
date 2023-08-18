@@ -1,8 +1,8 @@
 import itertools
 import json
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import ExtractorError, make_archive_id, parse_iso8601, remove_start
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
@@ -48,7 +48,7 @@ class NebulaBaseIE(InfoExtractor):
             return inner_call()
         except ExtractorError as exc:
             # if 401 or 403, attempt credential re-auth and retry
-            if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
+            if exc.cause and isinstance(exc.cause, HTTPError) and exc.cause.status in (401, 403):
                 self.to_screen(f'Reauthenticating to Nebula and retrying, because last {auth_type} call resulted in error {exc.cause.code}')
                 self._perform_login()
                 return inner_call()

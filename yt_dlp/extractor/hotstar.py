@@ -6,7 +6,8 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str
+from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -83,7 +84,7 @@ class HotStarIE(HotStarBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
         (?:
-            (?P<type>movies|sports|episode|(?P<tv>tv|shows))/
+            (?P<type>movies|sports|clips|episode|(?P<tv>tv|shows))/
             (?(tv)(?:[^/?#]+/){2}|[^?#]*)
         )?
         [^/?#]+/
@@ -142,6 +143,18 @@ class HotStarIE(HotStarBaseIE):
             'channel_id': 3,
         },
     }, {
+        'url': 'https://www.hotstar.com/in/clips/e3-sairat-kahani-pyaar-ki/1000262286',
+        'info_dict': {
+            'id': '1000262286',
+            'ext': 'mp4',
+            'title': 'E3 - SaiRat, Kahani Pyaar Ki',
+            'description': 'md5:e3b4b3203bc0c5396fe7d0e4948a6385',
+            'episode': 'E3 - SaiRat, Kahani Pyaar Ki',
+            'upload_date': '20210606',
+            'timestamp': 1622943900,
+            'duration': 5395,
+        },
+    }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
     }, {
@@ -159,6 +172,7 @@ class HotStarIE(HotStarBaseIE):
         'episode': 'episode',
         'tv': 'episode',
         'shows': 'episode',
+        'clips': 'content',
         None: 'content',
     }
 
@@ -233,7 +247,7 @@ class HotStarIE(HotStarBaseIE):
                         'height': int_or_none(playback_set.get('height')),
                     }]
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     geo_restricted = True
                 continue
 
