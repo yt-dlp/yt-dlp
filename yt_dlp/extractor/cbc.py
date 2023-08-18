@@ -161,7 +161,7 @@ class CBCPlayerIE(InfoExtractor):
             'upload_date': '20160210',
             'uploader': 'CBCC-NEW',
         },
-        'skip': 'Geo-restricted to Canada',
+        'skip': 'Geo-restricted to Canada and no longer available',
     }, {
         # Redirected from http://www.cbc.ca/player/AudioMobile/All%20in%20a%20Weekend%20Montreal/ID/2657632011/
         'url': 'http://www.cbc.ca/player/play/2657631896',
@@ -174,6 +174,9 @@ class CBCPlayerIE(InfoExtractor):
             'timestamp': 1425704400,
             'upload_date': '20150307',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
+            'chapters': [],
+            'duration': 494.811,
         },
     }, {
         'url': 'http://www.cbc.ca/player/play/2164402062',
@@ -186,6 +189,28 @@ class CBCPlayerIE(InfoExtractor):
             'timestamp': 1320410746,
             'upload_date': '20111104',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
+            'chapters': [],
+            'duration': 186.867,
+        },
+    }, {
+        # Has subtitles
+        # These broadcasts expire after ~1 month, can find new test URL here:
+        # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
+        'url': 'http://www.cbc.ca/player/play/2249992771553',
+        'md5': '2f2fb675dd4f0f8a5bb7588d1b13bacd',
+        'info_dict': {
+            'id': '2249992771553',
+            'ext': 'mp4',
+            'title': 'The National | Women’s soccer pay, Florida seawater, Swift quake',
+            'description': 'md5:adba28011a56cfa47a080ff198dad27a',
+            'timestamp': 1690596000,
+            'duration': 2716.333,
+            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/481/326/thumbnail.jpeg',
+            'uploader': 'CBCC-NEW',
+            'chapters': 'count:5',
+            'upload_date': '20230729',
         },
     }]
 
@@ -199,6 +224,7 @@ class CBCPlayerIE(InfoExtractor):
                     'force_smil_url': True
                 }),
             'id': video_id,
+            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
         }
 
 

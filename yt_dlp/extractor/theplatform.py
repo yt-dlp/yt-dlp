@@ -19,7 +19,11 @@ from ..utils import (
     xpath_with_ns,
     mimetype2ext,
     find_xpath_attr,
+    traverse_obj,
+    update_url,
+    urlhandle_detect_ext,
 )
+from ..networking import HEADRequest
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})
@@ -162,7 +166,8 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
+        'skip': '404 Not Found',
     }, {
         'url': 'https://player.theplatform.com/p/D6x-PC/pulse_preview/embed/select/media/yMBg9E8KFxZD',
         'info_dict': {
@@ -171,7 +176,8 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'description': 'md5:644ad9188d655b742f942bf2e06b002d',
             'title': 'HIGHLIGHTS: USA bag first ever series Cup win',
             'uploader': 'EGSM',
-        }
+        },
+        'skip': '404 Not Found',
     }, {
         'url': 'http://player.theplatform.com/p/NnzsPC/widget/select/media/4Y0TlYUr_ZT7',
         'only_matching': True,
@@ -189,6 +195,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'upload_date': '20150701',
             'uploader': 'NBCU-NEWS',
         },
+        'skip': '404 Not Found',
     }, {
         # From http://www.nbc.com/the-blacklist/video/sir-crispin-crandall/2928790?onid=137781#vc137781=1
         # geo-restricted (US), HLS encrypted with AES-128
@@ -294,6 +301,17 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             smil_url = self._sign_url(smil_url, sig['key'], sig['secret'])
 
         formats, subtitles = self._extract_theplatform_smil(smil_url, video_id)
+
+        # With some sites, manifest URL must be forced to extract HLS formats
+        if not traverse_obj(formats, lambda _, v: v['format_id'].startswith('hls')):
+            m3u8_url = update_url(url, query='mbr=true&manifest=m3u', fragment=None)
+            urlh = self._request_webpage(
+                HEADRequest(m3u8_url), video_id, 'Checking for HLS formats', 'No HLS formats found', fatal=False)
+            if urlh and urlhandle_detect_ext(urlh) == 'm3u8':
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
+                    m3u8_url, video_id, m3u8_id='hls', fatal=False)
+                formats.extend(m3u8_fmts)
+                self._merge_subtitles(m3u8_subs, target=subtitles)
 
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
