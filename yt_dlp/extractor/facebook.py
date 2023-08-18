@@ -73,8 +73,7 @@ class FacebookIE(InfoExtractor):
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
     _VIDEO_PAGE_TAHOE_TEMPLATE = 'https://www.facebook.com/video/tahoe/async/%s/?chain=true&isvideo=true&payloadtype=primary'
 
-    _TESTS = [
-    {
+    _TESTS = [{
         'url': 'https://www.facebook.com/radiokicksfm/videos/3676516585958356/',
         'info_dict': {
             'id': '3676516585958356',
@@ -90,8 +89,7 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
             'concurrent_view_count': 0,
         },
-    },
-    {
+    }, {
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
         'info_dict': {
