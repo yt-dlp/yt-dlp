@@ -253,32 +253,25 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
         json_content = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', playlist_id)
-        playlist_items = []
-        for key, value in json_content.get('video').get('clipsByCategory').items():
-            # We need to do a case insensitive match. If anyone has a better way, feel free to improve.
-            if key.lower() == playlist_id:
-                for video in value.get('items'):
-                    playlist_items.append({
-                        '_type': 'url',
-                        'url': 'https://www.cbc.ca/player/play/%s' % video['id'],
-                        'ie_key': 'CBCPlayer',
-                        'timestamp': video['airDate'],
-                        'categories': [video['contentArea']],
-                        'description': video['description'],
-                        'duration': video['duration'],
-                        'id': video['id'],
-                        'is_live': video['isLive'],
-                        'series': video['showName'],
-                        'thumbnail': video['thumbnail'],
-                        'title': video['title'],
-                    })
-                break
-        return {
-            '_type': 'playlist',
-            'id': playlist_id,
-            'ie_key': 'CBCPlayer',
-            'entries': playlist_items,
-        }
+        def entries():
+            for video in traverse_obj(json_content, (
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', lambda _, v: v['id']
+            )):
+                yield self.url_result(
+                    f'https://www.cbc.ca/player/play/{video["id"]}', CBCPlayerIE,
+                    **traverse_obj(video, {
+                        'id': ('id', {str_or_none}),
+                        'title': 'title',
+                        'description': 'description',
+                        'series': 'showName',
+                        'categories': ('contentArea', {lambda x: [x] if x else None}),
+                        'timestamp': ('airDate', {int_or_none}),
+                        'duration': ('duration', {int_or_none}),
+                        'is_live': ('isLive', {bool}),
+                        'thumbnail': ('thumbnail', {url_or_none}),
+                    }))
+
+        return self.playlist_result(entries(), playlist_id)
 
 
 class CBCGemIE(InfoExtractor):
