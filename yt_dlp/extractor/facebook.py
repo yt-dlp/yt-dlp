@@ -73,7 +73,25 @@ class FacebookIE(InfoExtractor):
     _VIDEO_PAGE_TEMPLATE = 'https://www.facebook.com/video/video.php?v=%s'
     _VIDEO_PAGE_TAHOE_TEMPLATE = 'https://www.facebook.com/video/tahoe/async/%s/?chain=true&isvideo=true&payloadtype=primary'
 
-    _TESTS = [{
+    _TESTS = [
+    {
+        'url': 'https://www.facebook.com/radiokicksfm/videos/3676516585958356/',
+        'info_dict': {
+            'id': '3676516585958356',
+            'ext': 'mp4',
+            'title': 'dr Adam Przygoda',
+            'description': 'DR ADAM PRZYGODA LIVE (przepraszamy na początku rozmowy nie ma dźwięku ) Bilety na II Konferencja Zdrowia "Łączy Nas dbałość o zdrowie\' Londyn 2023 | Targi Zdrowia   znajdziesz na Www.konferencjalondyn.co.uk \nRADIO KICKS FM  jest głównym patronem medialnym wydarzenia.',
+            'uploader': 'RADIO KICKS FM',
+            'upload_date': '20230818',
+            'timestamp': 1692346159,
+            'thumbnail': r're:^https?://.*',
+            'uploader_id': '100063551323670',
+            'duration': 3132.184,
+            'view_count': int,
+            'concurrent_view_count': 0,
+        },
+    },
+    {
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
         'info_dict': {
@@ -97,7 +115,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20140506',
             'timestamp': 1399398998,
             'thumbnail': r're:^https?://.*',
-            'uploader_id': 'pfbid04scW44U4P9iTyLZAGy8y8W3pR3i2VugvHCimiRudUAVbN3MPp9eXBaYFcgVworZwl',
+            'uploader_id': 'pfbid05Gg6yArwD5tAX9g6xdLkTgf6dBnBAPuCYTjfueQBDAYW19tARDAp4BjrnUeUhmuyl',
             'duration': 131.03,
             'concurrent_view_count': int,
         },
@@ -179,7 +197,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1486648217,
             'upload_date': '20170209',
             'uploader': 'Yaroslav Korpan',
-            'uploader_id': 'pfbid029y8j22EwH3ikeqgH3SEP9G3CAi9kmWKgXJJG9s5geV7mo3J2bvURqHCdgucRgAyhl',
+            'uploader_id': 'pfbid029tEoNV4cHL7NS2NWNkHopnqqK9vo8oDC2w72YueiHkR3pCEdMD3kFfWdtzym2RwPl',
             'concurrent_view_count': int,
             'thumbnail': r're:^https?://.*',
             'view_count': int,
@@ -274,7 +292,7 @@ class FacebookIE(InfoExtractor):
             'title': 'Josef',
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid02gXHbDwxumkaKJQaTGUf3znYfYzTuidGEWawiramNx4YamSj2afwYSRkpcjtHtMRJl',
+            'uploader_id': 'pfbid02gSPfaQnamrMTEwW53PkXcvmHgtKPuGw9atAhCn545KqXUA1wQ1pNY7F3rjMbqQdvl',
             'timestamp': 1549275572,
             'duration': 3.413,
             'uploader': 'Josef Novak',
@@ -401,9 +419,9 @@ class FacebookIE(InfoExtractor):
 
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'handleWithCustomApplyEach\(\s*ScheduledApplyEach\s*,\s*(\{.+?\})\s*\);', webpage)]
+                r'data-sjs>({.*?ScheduledServerJS.*?})<\/script', webpage)]
             post = traverse_obj(post_data, (
-                ..., 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+                ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -493,7 +511,7 @@ class FacebookIE(InfoExtractor):
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
-                r'handleWithCustomApplyEach\([^,]+,\s*({.*?%s.*?})\);' % _filter,
+                r'data-sjs>({.*?%s.*?})<\/script' % _filter,
                 webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
 
         def extract_relay_prefetched_data(_filter):
@@ -501,6 +519,11 @@ class FacebookIE(InfoExtractor):
             for require in (replay_data.get('require') or []):
                 if require[0] == 'RelayPrefetchedStreamCache':
                     return try_get(require, lambda x: x[3][1]['__bbox']['result']['data'], dict) or {}
+                else:
+                    data = traverse_obj(require, (
+                        ..., ..., '__bbox', 'require', lambda _, v: "RelayPrefetchedStreamCache" in v,
+                        ..., ..., "__bbox", "result", "data"))
+                    return data[0] if data else {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
@@ -511,7 +534,7 @@ class FacebookIE(InfoExtractor):
 
         if not video_data:
             data = extract_relay_prefetched_data(
-                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)"\s*:\s*"[^"]+"')
+                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)')
             if data:
                 entries = []
 
@@ -526,7 +549,8 @@ class FacebookIE(InfoExtractor):
                     formats = []
                     q = qualities(['sd', 'hd'])
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
-                                           ('playable_url_dash', '')):
+                                           ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
+                                           ('browser_native_sd_url', 'sd')):
                         playable_url = video.get(key)
                         if not playable_url:
                             continue
