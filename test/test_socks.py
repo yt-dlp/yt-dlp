@@ -392,7 +392,7 @@ class TestSocks5Proxy:
             reason='IPv6 destination addresses are not yet supported'))
     ], indirect=True)
     def test_socks5_ipv6_destination(self, handler, ctx):
-        with ctx.socks_server() as server_address:
+        with ctx.socks_server(Socks5ProxyHandler) as server_address:
             with handler(proxies={'all': f'socks5://{server_address}'}) as rh:
                 response = ctx.socks_info_request(rh, target_domain='[::1]')
                 assert response['ipv6_address'] == '::1'
