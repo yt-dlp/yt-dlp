@@ -2,7 +2,7 @@ import re
 import json
 import base64
 import time
-import urllib
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
@@ -16,11 +16,9 @@ from ..utils import (
     orderedSet,
     parse_iso8601,
     smuggle_url,
-    str_or_none,
     strip_or_none,
     traverse_obj,
     try_get,
-    url_or_none,
 )
 
 
@@ -258,19 +256,7 @@ class CBCPlayerPlaylistIE(InfoExtractor):
             for video in traverse_obj(json_content, (
                 'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', lambda _, v: v['id']
             )):
-                yield self.url_result(
-                    f'https://www.cbc.ca/player/play/{video["id"]}', CBCPlayerIE,
-                    **traverse_obj(video, {
-                        'id': ('id', {str_or_none}),
-                        'title': 'title',
-                        'description': 'description',
-                        'series': 'showName',
-                        'categories': ('contentArea', {lambda x: [x] if x else None}),
-                        'timestamp': ('airDate', {int_or_none}),
-                        'duration': ('duration', {int_or_none}),
-                        'is_live': ('isLive', {bool}),
-                        'thumbnail': ('thumbnail', {url_or_none}),
-                    }))
+                yield self.url_result(f'https://www.cbc.ca/player/play/{video["id"]}', CBCPlayerIE)
 
         return self.playlist_result(entries(), playlist_id)
 
