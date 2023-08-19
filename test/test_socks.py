@@ -135,7 +135,6 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
 
         socks_info['port'] = struct.unpack('!H', self.connection.recv(2))[0]
 
-        # TODO: test error mapping here
         self.connection.sendall(struct.pack(
             '!BBBBIH', SOCKS5_VERSION, self.socks_kwargs.get('reply', Socks5Reply.SUCCEEDED), 0x0, 0x1, 0x7f000001, 40000))
 
