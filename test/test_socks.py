@@ -18,6 +18,7 @@ import json
 import random
 import socket
 import struct
+import time
 from socketserver import (
     BaseRequestHandler,
     StreamRequestHandler,
@@ -26,7 +27,7 @@ from socketserver import (
 
 from test.helper import http_server_port
 from yt_dlp.networking import Request
-from yt_dlp.networking.exceptions import ProxyError
+from yt_dlp.networking.exceptions import ProxyError, TransportError
 from yt_dlp.socks import (
     SOCKS4_REPLY_VERSION,
     SOCKS4_VERSION,
@@ -79,6 +80,9 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
     # SOCKS5 username/password authentication https://tools.ietf.org/html/rfc1929
 
     def handle(self):
+        sleep = self.socks_kwargs.get('sleep')
+        if sleep:
+            time.sleep(sleep)
         version, nmethods = struct.unpack('!BB', self.connection.recv(2))
         assert version == SOCKS5_VERSION
         methods = []
@@ -157,7 +161,9 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         return data
 
     def handle(self):
-
+        sleep = self.socks_kwargs.get('sleep')
+        if sleep:
+            time.sleep(sleep)
         socks_info = {
             'version': SOCKS4_VERSION,
             'command': None,
@@ -340,6 +346,13 @@ class TestSocks4Proxy:
                 assert response['ipv4_address'] == '127.0.0.1'
                 assert response['version'] == 4
 
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
+    def test_timeout(self, handler, ctx):
+        with ctx.socks_server(Socks4ProxyHandler, sleep=2) as server_address:
+            with handler(proxies={'all': f'socks4://{server_address}'}, timeout=1) as rh:
+                with pytest.raises(TransportError):
+                    ctx.socks_info_request(rh)
+
 
 class TestSocks5Proxy:
 
@@ -451,6 +464,13 @@ class TestSocks5Proxy:
         with ctx.socks_server(Socks5ProxyHandler, reply=reply_code) as server_address:
             with handler(proxies={'all': f'socks5://{server_address}'}) as rh:
                 with pytest.raises(ProxyError):
+                    ctx.socks_info_request(rh)
+
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
+    def test_timeout(self, handler, ctx):
+        with ctx.socks_server(Socks5ProxyHandler, sleep=2) as server_address:
+            with handler(proxies={'all': f'socks5://{server_address}'}, timeout=1) as rh:
+                with pytest.raises(TransportError):
                     ctx.socks_info_request(rh)
 
 
