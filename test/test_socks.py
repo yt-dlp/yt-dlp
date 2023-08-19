@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-
+import functools
+import json
 # Allow direct execution
 import os
 import sys
+import threading
 import unittest
+
+import pytest
+
+from yt_dlp.networking import Request
+from yt_dlp.networking.exceptions import ProxyError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -11,103 +18,239 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import random
 import subprocess
 import urllib.request
+from socketserver import StreamRequestHandler, ThreadingTCPServer, BaseRequestHandler
+import struct
+import socket
+import http.server
+from test.helper import FakeYDL, get_params, is_download_test, http_server_port
+from test.test_networking import handler
 
-from test.helper import FakeYDL, get_params, is_download_test
+SOCKS_NEGOTIATION_NONE = 0x0
+SOCKS_NEGOTIATION_USER_PASS = 0x2
+
+SOCKS_VERSION_SOCKS5 = 0x5
+SOCKS_VERSION_SOCKS4 = 0x4
 
 
-@is_download_test
-class TestMultipleSocks(unittest.TestCase):
-    @staticmethod
-    def _check_params(attrs):
-        params = get_params()
-        for attr in attrs:
-            if attr not in params:
-                print('Missing %s. Skipping.' % attr)
+class SocksTestRequestHandler(BaseRequestHandler):
+
+    def __init__(self, *args, socks_info=None, **kwargs):
+        self.socks_info = socks_info
+        super().__init__(*args, **kwargs)
+
+
+class Socks5ProxyServer(StreamRequestHandler):
+
+    # SOCKS5 protocol https://tools.ietf.org/html/rfc1928
+    # SOCKS5 username/password authentication https://tools.ietf.org/html/rfc1929
+
+    def __init__(self, auth, request_handler_class, *args, **kwargs):
+        self.auth = auth
+        self.request_handler_class = request_handler_class
+        super().__init__(*args, **kwargs)
+
+    def handle(self):
+        version, nmethods = struct.unpack("!BB", self.connection.recv(2))
+        assert version == SOCKS_VERSION_SOCKS5  # SOCKS5
+        methods = []
+        for i in range(nmethods):
+            methods.append(ord(self.connection.recv(1)))
+
+        # if we have a username and password, but the client doesn't support it, close the connection
+        if self.auth is not None and SOCKS_NEGOTIATION_USER_PASS not in methods:
+            self.connection.sendall(struct.pack("!BB", SOCKS_VERSION_SOCKS5, 0xFF))
+            self.server.close_request(self.request)
+            return
+
+        elif SOCKS_NEGOTIATION_USER_PASS in methods:
+            self.connection.sendall(struct.pack("!BB", SOCKS_VERSION_SOCKS5, SOCKS_NEGOTIATION_USER_PASS))
+
+            # Now verify creds
+            version, user_len = struct.unpack("!BB", self.connection.recv(2))
+            username = self.connection.recv(user_len).decode()
+            pass_len = ord(self.connection.recv(1))
+            password = self.connection.recv(pass_len).decode()
+
+            if username == self.auth[0] and password == self.auth[1]:
+                self.connection.sendall(struct.pack("!BB", 0x1, 0x0))  # success
+            else:
+                self.connection.sendall(struct.pack("!BB", 0x1, 0x1))  # failure
+                self.server.close_request(self.request)
                 return
-        return params
 
-    def test_proxy_http(self):
-        params = self._check_params(['primary_proxy', 'primary_server_ip'])
-        if params is None:
-            return
-        ydl = FakeYDL({
-            'proxy': params['primary_proxy']
-        })
-        self.assertEqual(
-            ydl.urlopen('http://yt-dl.org/ip').read().decode(),
-            params['primary_server_ip'])
-
-    def test_proxy_https(self):
-        params = self._check_params(['primary_proxy', 'primary_server_ip'])
-        if params is None:
-            return
-        ydl = FakeYDL({
-            'proxy': params['primary_proxy']
-        })
-        self.assertEqual(
-            ydl.urlopen('https://yt-dl.org/ip').read().decode(),
-            params['primary_server_ip'])
-
-    def test_secondary_proxy_http(self):
-        params = self._check_params(['secondary_proxy', 'secondary_server_ip'])
-        if params is None:
-            return
-        ydl = FakeYDL()
-        req = urllib.request.Request('http://yt-dl.org/ip')
-        req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
-        self.assertEqual(
-            ydl.urlopen(req).read().decode(),
-            params['secondary_server_ip'])
-
-    def test_secondary_proxy_https(self):
-        params = self._check_params(['secondary_proxy', 'secondary_server_ip'])
-        if params is None:
-            return
-        ydl = FakeYDL()
-        req = urllib.request.Request('https://yt-dl.org/ip')
-        req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
-        self.assertEqual(
-            ydl.urlopen(req).read().decode(),
-            params['secondary_server_ip'])
-
-
-@is_download_test
-class TestSocks(unittest.TestCase):
-    _SKIP_SOCKS_TEST = True
-
-    def setUp(self):
-        if self._SKIP_SOCKS_TEST:
+        elif SOCKS_NEGOTIATION_NONE in methods:
+            self.connection.sendall(struct.pack("!BB", SOCKS_VERSION_SOCKS5, SOCKS_NEGOTIATION_NONE))
+        else:
+            self.connection.sendall(struct.pack("!BB", SOCKS_VERSION_SOCKS5, 0xFF))
+            self.server.close_request(self.request)
             return
 
-        self.port = random.randint(20000, 30000)
-        self.server_process = subprocess.Popen([
-            'srelay', '-f', '-i', '127.0.0.1:%d' % self.port],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        version, command, _, address_type = struct.unpack("!BBBB", self.connection.recv(4))
+        socks_info = {
+            'version': version,
+            'auth_methods': methods,
+            'command': command,
+            'client_address': self.client_address,
+            'ipv4_address': None,
+            'domain_address': None,
+            'ipv6_address': None,
+        }
+        if address_type == 0x1:
+            socks_info['ipv4_address'] = socket.inet_ntoa(self.connection.recv(4))
+        elif address_type == 0x3:
+            socks_info['domain_address'] = self.connection.recv(ord(self.connection.recv(1))).decode()
+        elif address_type == 0x4:
+            socks_info['ipv6_address'] = socket.inet_ntop(socket.AF_INET6, self.connection.recv(16))
+        else:
+            self.server.close_request(self.request)
+        socks_info['port'] = struct.unpack('!H', self.connection.recv(2))[0]
 
-    def tearDown(self):
-        if self._SKIP_SOCKS_TEST:
-            return
+        # TODO: test error mapping here
+        self.connection.sendall(
+            struct.pack("!BBBBBBBB", SOCKS_VERSION_SOCKS5, 0x0, 0x0, 0x1, 0x7f, 0x0, 0x0, 0x1))
 
-        self.server_process.terminate()
-        self.server_process.communicate()
+        self.connection.sendall(struct.pack("!H", 40000))
 
-    def _get_ip(self, protocol):
-        if self._SKIP_SOCKS_TEST:
-            return '127.0.0.1'
+        self.request_handler_class(
+            self.request,
+            self.client_address,
+            self.server,
+            socks_info=socks_info
+            )
 
-        ydl = FakeYDL({
-            'proxy': '%s://127.0.0.1:%d' % (protocol, self.port),
-        })
-        return ydl.urlopen('http://yt-dl.org/ip').read().decode()
 
-    def test_socks4(self):
-        self.assertTrue(isinstance(self._get_ip('socks4'), str))
+class IPv6ThreadingTCPServer(ThreadingTCPServer):
+    address_family = socket.AF_INET6
 
-    def test_socks4a(self):
-        self.assertTrue(isinstance(self._get_ip('socks4a'), str))
 
-    def test_socks5(self):
-        self.assertTrue(isinstance(self._get_ip('socks5'), str))
+class SocksHTTPTestRequestHandler(http.server.BaseHTTPRequestHandler, SocksTestRequestHandler):
+    def do_GET(self):
+        if self.path == '/':
+            payload = b'<html><video src="/vid.mp4" /></html>'
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+        elif self.path == '/proxy':
+            payload = json.dumps(self.socks_info.copy())
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload.encode())
+
+
+def request_proxy_info(handler, target=None, **req_kwargs):
+    request = Request(target or 'http://127.0.0.1:40000/proxy', **req_kwargs)
+    handler.validate(request)
+    return json.loads(handler.send(request).read().decode())
+
+
+class TestSocks5Proxy:
+    @classmethod
+    def setup_class(cls):
+        cls.socks_http_no_auth = ThreadingTCPServer(
+            ('127.0.0.1', 0), functools.partial(Socks5ProxyServer, None, SocksHTTPTestRequestHandler))
+        cls.socks_http_no_auth_port = http_server_port(cls.socks_http_no_auth)
+        cls.socks_http_no_auth_thread = threading.Thread(target=cls.socks_http_no_auth.serve_forever)
+        cls.socks_http_no_auth_thread.daemon = True
+        cls.socks_http_no_auth_thread.start()
+
+        cls.socks_http_auth = ThreadingTCPServer(
+            ('127.0.0.1', 0), functools.partial(Socks5ProxyServer, ('test', 'testpass'), SocksHTTPTestRequestHandler))
+        cls.socks_http_auth_port = http_server_port(cls.socks_http_auth)
+        cls.socks_http_auth_thread = threading.Thread(target=cls.socks_http_auth.serve_forever)
+        cls.socks_http_auth_thread.daemon = True
+        cls.socks_http_auth_thread.start()
+
+        cls.socks_http_ipv6 = IPv6ThreadingTCPServer(
+            ('::1', 0), functools.partial(Socks5ProxyServer, None, SocksHTTPTestRequestHandler))
+        cls.socks_http_ipv6_port = http_server_port(cls.socks_http_ipv6)
+        cls.socks_http_ipv6_thread = threading.Thread(target=cls.socks_http_ipv6.serve_forever)
+        cls.socks_http_ipv6_thread.daemon = True
+        cls.socks_http_ipv6_thread.start()
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_socks5_no_auth(self, handler):
+        with handler(proxies={'all': f'socks5://127.0.0.1:{self.socks_http_no_auth_port}'}) as rh:
+            response = request_proxy_info(rh)
+            assert response['auth_methods'] == [0x0]
+            assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_socks5_user_pass(self, handler):
+        with handler() as rh:
+            with pytest.raises(ProxyError):
+                request_proxy_info(rh, proxies={'all': f'socks5://127.0.0.1:{self.socks_http_auth_port}'})
+
+            response = request_proxy_info(
+                rh, proxies={'all': f'socks5://test:testpass@localhost:{self.socks_http_auth_port}'})
+
+            assert response['auth_methods'] == [0x0, 0x2]
+            assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_socks5_ipv4_target(self, handler):
+        with handler(proxies={'all': f'socks5://127.0.0.1:{self.socks_http_no_auth_port}'}) as rh:
+            response = request_proxy_info(rh, target='http://1.1.1.1/proxy')
+            assert response['ipv4_address'] == '1.1.1.1'
+            assert response['port'] == 80
+            assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_socks5_domain_target(self, handler):
+        with handler(proxies={'all': f'socks5://127.0.0.1:{self.socks_http_no_auth_port}'}) as rh:
+            response = request_proxy_info(rh, target='http://localhost:9999/proxy')
+            assert response['ipv4_address'] == '127.0.0.1'
+            assert response['port'] == 9999
+            assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_socks5h_domain_target(self, handler):
+        with handler(proxies={'all': f'socks5h://127.0.0.1:{self.socks_http_no_auth_port}'}) as rh:
+            response = request_proxy_info(rh, target='http://localhost:9999/proxy')
+            assert response['ipv4_address'] is None
+            assert response['domain_address'] == 'localhost'
+            assert response['port'] == 9999
+            assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.skip('IPv6 destination addresses are not yet supported')
+    def test_socks5_ipv6_destination(self, handler):
+        with handler(proxies={'all': f'socks5://127.0.0.1:{self.socks_http_no_auth_port}'}) as rh:
+            response = request_proxy_info(rh, target='http://[::1]/proxy')
+            assert response['ipv6_address'] == '::1'
+            assert response['port'] == 80
+            assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.skip('IPv6 socks5 proxies are not yet supported')
+    def test_ipv6_socks5_proxy(self, handler):
+        with handler(proxies={'all': f'socks5://[::1]:{self.socks_http_ipv6_port}'}) as rh:
+            response = request_proxy_info(rh, target='http://127.0.0.1/proxy')
+            assert response['client_address'][0] == '::1'
+            assert response['ipv4_address'] == '127.0.0.1'
+            assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_domain_socks5_proxy(self, handler):
+        with handler(proxies={'all': f'socks5://localhost:{self.socks_http_no_auth_port}'}) as rh:
+            response = request_proxy_info(rh)
+            assert response['version'] == 5
+
+    # XXX: is there any feasible way of testing IPv6 source addresses?
+    # Same would go for non-proxy source_address test...
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    @pytest.mark.skip('source_address is not yet supported for socks5 proxies')
+    def test_ipv4_source_address_socks5_proxy(self, handler):
+        source_address = f'127.0.0.{random.randint(5, 255)}'
+        with handler(proxies={'all': f'socks5://127.0.0.1:{self.socks_http_no_auth_port}'}, source_address=source_address) as rh:
+            response = request_proxy_info(rh)
+            assert response['client_address'][0] == source_address
+            assert response['version'] == 5
+
+    # TODO: test error mapping
 
 
 if __name__ == '__main__':
