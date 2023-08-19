@@ -202,14 +202,14 @@ class SocksHTTPTestRequestHandler(http.server.BaseHTTPRequestHandler, SocksTestR
 
 
 @contextlib.contextmanager
-def socks_server(socks_server_class, bind_ip=None, **socks_server_kwargs):
+def socks_server(socks_server_class, request_handler, bind_ip=None, **socks_server_kwargs):
     server = server_thread = None
     try:
         bind_address = bind_ip or '127.0.0.1'
         server_type = ThreadingTCPServer if '.' in bind_address else IPv6ThreadingTCPServer
         server = server_type(
             (bind_address, 0), functools.partial(
-                socks_server_class, SocksHTTPTestRequestHandler, socks_server_kwargs))
+                socks_server_class, request_handler , socks_server_kwargs))
         server_port = http_server_port(server)
         server_thread = threading.Thread(target=server.serve_forever)
         server_thread.daemon = True
@@ -226,9 +226,10 @@ def socks_server(socks_server_class, bind_ip=None, **socks_server_kwargs):
 
 class SocksTestProxyBase:
     SOCKS_SERVER_CLASS = None
+    REQUEST_HANDLER_CLASS = None
 
     def socks_server(self, *args, **kwargs):
-        return socks_server(self.SOCKS_SERVER_CLASS, *args, **kwargs)
+        return socks_server(self.SOCKS_SERVER_CLASS, self.REQUEST_HANDLER_CLASS, *args, **kwargs)
 
     @abc.abstractmethod
     def socks_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs) -> dict:
@@ -236,6 +237,8 @@ class SocksTestProxyBase:
 
 
 class HTTPSocksTestProxyBase(SocksTestProxyBase):
+    REQUEST_HANDLER_CLASS = SocksHTTPTestRequestHandler
+
     def socks_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs):
         request = Request(f'http://{target_domain or "127.0.0.1"}:{target_port or "40000"}/socks_info', **req_kwargs)
         handler.validate(request)
