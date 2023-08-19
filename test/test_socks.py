@@ -79,43 +79,42 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
     # SOCKS5 username/password authentication https://tools.ietf.org/html/rfc1929
 
     def handle(self):
-        version, nmethods = struct.unpack("!BB", self.connection.recv(2))
-        assert version == SOCKS5_VERSION  # SOCKS5
+        version, nmethods = struct.unpack('!BB', self.connection.recv(2))
+        assert version == SOCKS5_VERSION
         methods = []
         for i in range(nmethods):
             methods.append(ord(self.connection.recv(1)))
 
         auth = self.socks_kwargs.get('auth')
-        # if we have a username and password, but the client doesn't support it, close the connection
+
         if auth is not None and Socks5Auth.AUTH_USER_PASS not in methods:
-            self.connection.sendall(struct.pack("!BB", SOCKS5_VERSION, Socks5Auth.AUTH_NO_ACCEPTABLE))
+            self.connection.sendall(struct.pack('!BB', SOCKS5_VERSION, Socks5Auth.AUTH_NO_ACCEPTABLE))
             self.server.close_request(self.request)
             return
 
         elif Socks5Auth.AUTH_USER_PASS in methods:
             self.connection.sendall(struct.pack("!BB", SOCKS5_VERSION, Socks5Auth.AUTH_USER_PASS))
 
-            # Now verify creds
-            _, user_len = struct.unpack("!BB", self.connection.recv(2))
+            _, user_len = struct.unpack('!BB', self.connection.recv(2))
             username = self.connection.recv(user_len).decode()
             pass_len = ord(self.connection.recv(1))
             password = self.connection.recv(pass_len).decode()
 
             if username == auth[0] and password == auth[1]:
-                self.connection.sendall(struct.pack("!BB", SOCKS5_USER_AUTH_VERSION, SOCKS5_USER_AUTH_SUCCESS))
+                self.connection.sendall(struct.pack('!BB', SOCKS5_USER_AUTH_VERSION, SOCKS5_USER_AUTH_SUCCESS))
             else:
-                self.connection.sendall(struct.pack("!BB", SOCKS5_USER_AUTH_VERSION, SOCKS5_USER_AUTH_FAILURE))
+                self.connection.sendall(struct.pack('!BB', SOCKS5_USER_AUTH_VERSION, SOCKS5_USER_AUTH_FAILURE))
                 self.server.close_request(self.request)
                 return
 
         elif Socks5Auth.AUTH_NONE in methods:
-            self.connection.sendall(struct.pack("!BB", SOCKS5_VERSION, Socks5Auth.AUTH_NONE))
+            self.connection.sendall(struct.pack('!BB', SOCKS5_VERSION, Socks5Auth.AUTH_NONE))
         else:
-            self.connection.sendall(struct.pack("!BB", SOCKS5_VERSION, Socks5Auth.AUTH_NO_ACCEPTABLE))
+            self.connection.sendall(struct.pack('!BB', SOCKS5_VERSION, Socks5Auth.AUTH_NO_ACCEPTABLE))
             self.server.close_request(self.request)
             return
 
-        version, command, _, address_type = struct.unpack("!BBBB", self.connection.recv(4))
+        version, command, _, address_type = struct.unpack('!BBBB', self.connection.recv(4))
         socks_info = {
             'version': version,
             'auth_methods': methods,
@@ -138,7 +137,7 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
 
         # TODO: test error mapping here
         self.connection.sendall(struct.pack(
-            "!BBBBIH", SOCKS5_VERSION, Socks5Reply.SUCCEEDED, 0x0, 0x1, 0x7f000001, 40000))
+            '!BBBBIH', SOCKS5_VERSION, self.socks_kwargs.get('reply', Socks5Reply.SUCCEEDED), 0x0, 0x1, 0x7f000001, 40000))
 
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
 
@@ -168,7 +167,7 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
             'port': None,
             'domain_address': None,
         }
-        version, command, dest_port, dest_ip = struct.unpack("!BBHI", self.connection.recv(8))
+        version, command, dest_port, dest_ip = struct.unpack('!BBHI', self.connection.recv(8))
         socks_info['port'] = dest_port
         socks_info['command'] = command
         if version != SOCKS4_VERSION:
@@ -190,8 +189,10 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         if use_remote_dns:
             socks_info['domain_address'] = self._read_until_null().decode()
 
-        # TODO: test error mapping here
-        self.connection.sendall(struct.pack("!BBHI", SOCKS4_REPLY_VERSION, Socks4CD.REQUEST_GRANTED, 40000, 0x7f000001))
+        self.connection.sendall(
+            struct.pack(
+                '!BBHI', SOCKS4_REPLY_VERSION,
+                self.socks_kwargs.get('cd_reply', Socks4CD.REQUEST_GRANTED), 40000, 0x7f000001))
 
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
 
@@ -264,16 +265,20 @@ def ctx(request):
 
 
 class TestSocks4Proxy:
-
     @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
-    def test_socks4_auth(self, handler, ctx):
+    def test_socks4_no_auth(self, handler, ctx):
         with handler() as rh:
             with ctx.socks_server(Socks4ProxyHandler) as server_address:
                 response = ctx.socks_info_request(
                     rh, proxies={'all': f'socks4://{server_address}'})
                 assert response['version'] == 4
 
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
+    def test_socks4_auth(self, handler, ctx):
+        with handler() as rh:
             with ctx.socks_server(Socks4ProxyHandler, user_id='user') as server_address:
+                with pytest.raises(ProxyError):
+                    ctx.socks_info_request(rh, proxies={'all': f'socks4://{server_address}'})
                 response = ctx.socks_info_request(
                     rh, proxies={'all': f'socks4://user:@{server_address}'})
                 assert response['version'] == 4
@@ -282,7 +287,7 @@ class TestSocks4Proxy:
         pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
             reason='socks4a implementation currently broken when destination is not a domain name'))
     ], indirect=True)
-    def test_socks4a_ipv4(self, handler, ctx):
+    def test_socks4a_ipv4_target(self, handler, ctx):
         with ctx.socks_server(Socks4ProxyHandler) as server_address:
             with handler(proxies={'all': f'socks4a://{server_address}'}) as rh:
                 response = ctx.socks_info_request(rh, target_domain='127.0.0.1')
@@ -291,7 +296,7 @@ class TestSocks4Proxy:
                 assert response['domain_address'] is None
 
     @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
-    def test_socks4a_domain(self, handler, ctx):
+    def test_socks4a_domain_target(self, handler, ctx):
         with ctx.socks_server(Socks4ProxyHandler) as server_address:
             with handler(proxies={'all': f'socks4a://{server_address}'}) as rh:
                 response = ctx.socks_info_request(rh, target_domain='localhost')
@@ -311,6 +316,18 @@ class TestSocks4Proxy:
                 response = ctx.socks_info_request(rh)
                 assert response['client_address'][0] == source_address
                 assert response['version'] == 4
+
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
+    @pytest.mark.parametrize('reply_code', [
+        Socks4CD.REQUEST_REJECTED_OR_FAILED,
+        Socks4CD.REQUEST_REJECTED_CANNOT_CONNECT_TO_IDENTD,
+        Socks4CD.REQUEST_REJECTED_DIFFERENT_USERID,
+    ])
+    def test_socks5_errors(self, handler, ctx, reply_code):
+        with ctx.socks_server(Socks4ProxyHandler, cd_reply=reply_code) as server_address:
+            with handler(proxies={'all': f'socks4://{server_address}'}) as rh:
+                with pytest.raises(ProxyError):
+                    ctx.socks_info_request(rh)
 
 
 class TestSocks5Proxy:
@@ -333,7 +350,7 @@ class TestSocks5Proxy:
                 response = ctx.socks_info_request(
                     rh, proxies={'all': f'socks5://test:testpass@{server_address}'})
 
-                assert response['auth_methods'] == [0x0, 0x2]
+                assert response['auth_methods'] == [Socks5Auth.AUTH_NONE, Socks5Auth.AUTH_USER_PASS]
                 assert response['version'] == 5
 
     @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
@@ -407,6 +424,23 @@ class TestSocks5Proxy:
                 response = ctx.socks_info_request(rh)
                 assert response['client_address'][0] == source_address
                 assert response['version'] == 5
+
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
+    @pytest.mark.parametrize('reply_code', [
+        Socks5Reply.GENERAL_FAILURE,
+        Socks5Reply.CONNECTION_NOT_ALLOWED,
+        Socks5Reply.NETWORK_UNREACHABLE,
+        Socks5Reply.HOST_UNREACHABLE,
+        Socks5Reply.CONNECTION_REFUSED,
+        Socks5Reply.TTL_EXPIRED,
+        Socks5Reply.COMMAND_NOT_SUPPORTED,
+        Socks5Reply.ADDRESS_TYPE_NOT_SUPPORTED,
+    ])
+    def test_socks5_errors(self, handler, ctx, reply_code):
+        with ctx.socks_server(Socks5ProxyHandler, reply=reply_code) as server_address:
+            with handler(proxies={'all': f'socks5://{server_address}'}) as rh:
+                with pytest.raises(ProxyError):
+                    ctx.socks_info_request(rh)
 
 
 if __name__ == '__main__':
