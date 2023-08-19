@@ -323,11 +323,23 @@ class TestSocks4Proxy:
         Socks4CD.REQUEST_REJECTED_CANNOT_CONNECT_TO_IDENTD,
         Socks4CD.REQUEST_REJECTED_DIFFERENT_USERID,
     ])
-    def test_socks5_errors(self, handler, ctx, reply_code):
+    def test_socks4_errors(self, handler, ctx, reply_code):
         with ctx.socks_server(Socks4ProxyHandler, cd_reply=reply_code) as server_address:
             with handler(proxies={'all': f'socks4://{server_address}'}) as rh:
                 with pytest.raises(ProxyError):
                     ctx.socks_info_request(rh)
+
+    @pytest.mark.parametrize('handler,ctx', [
+        pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
+            reason='IPv6 socks4 proxies are not yet supported'))
+    ], indirect=True)
+    def test_ipv6_socks4_proxy(self, handler, ctx):
+        with ctx.socks_server(Socks4ProxyHandler, bind_ip='::1') as server_address:
+            with handler(proxies={'all': f'socks4://{server_address}'}) as rh:
+                response = ctx.socks_info_request(rh, target_domain='127.0.0.1')
+                assert response['client_address'][0] == '::1'
+                assert response['ipv4_address'] == '127.0.0.1'
+                assert response['version'] == 4
 
 
 class TestSocks5Proxy:
