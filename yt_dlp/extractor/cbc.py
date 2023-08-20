@@ -253,10 +253,10 @@ class CBCPlayerPlaylistIE(InfoExtractor):
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', playlist_id)
 
         def entries():
-            for video in traverse_obj(json_content, (
-                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', lambda _, v: v['id']
+            for video_id in traverse_obj(json_content, (
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id'
             )):
-                yield self.url_result(f'https://www.cbc.ca/player/play/{video["id"]}', CBCPlayerIE)
+                yield self.url_result(f'https://www.cbc.ca/player/play/{video_id}', CBCPlayerIE)
 
         return self.playlist_result(entries(), playlist_id)
 
