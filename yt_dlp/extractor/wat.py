@@ -51,7 +51,7 @@ class WatIE(InfoExtractor):
                 'duration': 2312,
                 'ext': 'mp4',
             },
-            'params': {'skip_download': 'all'},
+            'params': {'skip_download': 'm3u8'},
         }
     ]
     _GEO_BYPASS = False
