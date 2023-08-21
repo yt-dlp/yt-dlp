@@ -1,3 +1,4 @@
+import base64
 import os.path
 import re
 
@@ -7,6 +8,7 @@ from ..utils import (
     ExtractorError,
     traverse_obj,
     try_get,
+    update_url_query,
     url_basename,
 )
 
@@ -53,16 +55,26 @@ class DropboxIE(InfoExtractor):
             else:
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
 
-        info_json = self._search_json(r'InitReact\.mountComponent\(.*?,', webpage, 'mountComponent', video_id,
-                                      contains_pattern=r'{.+?"preview".+?}', end_pattern=r'\)')['props']
-        transcode_url = traverse_obj(info_json, ((None, 'preview'), 'file', 'preview', 'content', 'transcode_url'), get_all=False)
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id)
+        formats, subtitles, has_anonymous_download = [], {}, False
+        for encoded in reversed(re.findall('registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
+            decoded = base64.b64decode(encoded).decode('utf-8', 'ignore')
+            transcode_url = self._search_regex(
+                r'\n\x03(https://[^\x12\x03\n]+\.m3u8)', decoded, 'transcode url', default=None)
+            if not transcode_url:
+                continue
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id)
+            if self._search_regex(r'(anonymous:\tanonymous)', decoded, 'anonymous', default=False):
+                has_anonymous_download = True
+            break
 
         # downloads enabled we can get the original file
-        if 'anonymous' in (try_get(info_json, lambda x: x['sharePermission']['canDownloadRoles']) or []):
-            video_url = re.sub(r'[?&]dl=0', '', url)
-            video_url += ('?' if '?' not in video_url else '&') + 'dl=1'
-            formats.append({'url': video_url, 'format_id': 'original', 'format_note': 'Original', 'quality': 1})
+        if has_anonymous_download:
+            formats.append({
+                'url': update_url_query(url, {'dl': '1'}),
+                'format_id': 'original',
+                'format_note': 'Original',
+                'quality': 1
+            })
 
         return {
             'id': video_id,
