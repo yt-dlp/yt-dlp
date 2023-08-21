@@ -79,7 +79,7 @@ class FacebookIE(InfoExtractor):
             'id': '3676516585958356',
             'ext': 'mp4',
             'title': 'dr Adam Przygoda',
-            'description': 'DR ADAM PRZYGODA LIVE (przepraszamy na początku rozmowy nie ma dźwięku ) Bilety na II Konferencja Zdrowia "Łączy Nas dbałość o zdrowie\' Londyn 2023 | Targi Zdrowia   znajdziesz na Www.konferencjalondyn.co.uk \nRADIO KICKS FM  jest głównym patronem medialnym wydarzenia.',
+            'description': 'md5:34675bda53336b1d16400265c2bb9b3b',
             'uploader': 'RADIO KICKS FM',
             'upload_date': '20230818',
             'timestamp': 1692346159,
@@ -113,7 +113,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20140506',
             'timestamp': 1399398998,
             'thumbnail': r're:^https?://.*',
-            'uploader_id': 'pfbid05Gg6yArwD5tAX9g6xdLkTgf6dBnBAPuCYTjfueQBDAYW19tARDAp4BjrnUeUhmuyl',
+            'uploader_id': 'pfbid028wxorhX2ErLFJ578N6P3crHD3PHmXTCqCvfBpsnbSLmbokwSY75p5hWBjHGkG4zxl',
             'duration': 131.03,
             'concurrent_view_count': int,
         },
@@ -195,7 +195,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1486648217,
             'upload_date': '20170209',
             'uploader': 'Yaroslav Korpan',
-            'uploader_id': 'pfbid029tEoNV4cHL7NS2NWNkHopnqqK9vo8oDC2w72YueiHkR3pCEdMD3kFfWdtzym2RwPl',
+            'uploader_id': 'pfbid06AScABAWcW91qpiuGrLt99Ef9tvwHoXP6t8KeFYEqkSfreMtfa9nTveh8b2ZEVSWl',
             'concurrent_view_count': int,
             'thumbnail': r're:^https?://.*',
             'view_count': int,
@@ -290,7 +290,7 @@ class FacebookIE(InfoExtractor):
             'title': 'Josef',
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid02gSPfaQnamrMTEwW53PkXcvmHgtKPuGw9atAhCn545KqXUA1wQ1pNY7F3rjMbqQdvl',
+            'uploader_id': 'pfbid02gkCBqv63n3iV79siJTzc4GRk8YT3dfvo2Tc4o2Coy98gUTNbX6ucCwK7bhDdYhvpl',
             'timestamp': 1549275572,
             'duration': 3.413,
             'uploader': 'Josef Novak',
@@ -417,7 +417,7 @@ class FacebookIE(InfoExtractor):
 
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'data-sjs>({.*?ScheduledServerJS.*?})<\/script', webpage)]
+                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
@@ -509,7 +509,7 @@ class FacebookIE(InfoExtractor):
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
-                r'data-sjs>({.*?%s.*?})<\/script' % _filter,
+                r'data-sjs>({.*?%s.*?})</script>' % _filter,
                 webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
 
         def extract_relay_prefetched_data(_filter):
