@@ -6,8 +6,6 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
-    traverse_obj,
-    try_get,
     update_url_query,
     url_basename,
 )
