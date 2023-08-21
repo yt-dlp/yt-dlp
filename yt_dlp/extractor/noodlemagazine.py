@@ -1,16 +1,15 @@
 from .common import InfoExtractor
 from ..utils import (
-    parse_duration,
-    parse_count,
-    unified_strdate,
+    ExtractorError,
     extract_attributes,
     get_element_html_by_id,
-    urljoin,
-    traverse_obj,
     int_or_none,
-    ExtractorError
+    parse_count,
+    parse_duration,
+    unified_strdate,
+    urljoin,
 )
-
+from ..utils.traversal import traverse_obj
 
 class NoodleMagazineIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www|adult\.)?noodlemagazine\.com/watch/(?P<id>[0-9-_]+)'
