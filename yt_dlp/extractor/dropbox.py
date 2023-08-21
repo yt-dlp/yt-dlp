@@ -56,7 +56,7 @@ class DropboxIE(InfoExtractor):
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
 
         formats, subtitles, has_anonymous_download = [], {}, False
-        for encoded in reversed(re.findall('registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
+        for encoded in reversed(re.findall(r'registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
             decoded = base64.b64decode(encoded).decode('utf-8', 'ignore')
             transcode_url = self._search_regex(
                 r'\n\x03(https://[^\x12\x03\n]+\.m3u8)', decoded, 'transcode url', default=None)
