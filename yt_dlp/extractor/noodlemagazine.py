@@ -3,6 +3,11 @@ from ..utils import (
     parse_duration,
     parse_count,
     unified_strdate,
+    extract_attributes,
+    get_element_html_by_id,
+    urljoin,
+    traverse_obj,
+    int_or_none,
     ExtractorError
 )
 
@@ -51,11 +56,12 @@ class NoodleMagazineIE(InfoExtractor):
         if not sources:
             raise ExtractorError('Player sources not found!', expected=False, video_id=video_id)
 
-        formats = [{
-            'url': source.get('file'),
-            'quality': source.get('label'),
-            'ext': source.get('type'),
-        } for source in sources]
+        formats = traverse_obj(playlist_info, ('sources', lambda _, v: v['file'], {
+            'url': 'file',
+            'format_id': 'label',
+            'height': ('label', {int_or_none}),
+            'ext': 'type',
+        }))
 
         return {
             'id': video_id,
