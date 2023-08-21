@@ -101,8 +101,7 @@ class WeverseBaseIE(InfoExtractor):
             elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 if 'Authorization' in self._API_HEADERS:
                     raise ExtractorError('Your account does not have access to this content', expected=True)
-                else:
-                    self.raise_login_required()
+                self.raise_login_required()
             raise
 
     def _call_post_api(self, video_id):
