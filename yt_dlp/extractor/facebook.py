@@ -290,7 +290,7 @@ class FacebookIE(InfoExtractor):
             'title': 'Josef',
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid02gkCBqv63n3iV79siJTzc4GRk8YT3dfvo2Tc4o2Coy98gUTNbX6ucCwK7bhDdYhvpl',
+            'uploader_id': 'pfbid0cibUN6tV7DYgdbJdsUFN46wc4jKpVSPAvJQhFofGqBGmVn3V3JtAs2tfUwziw2hUl',
             'timestamp': 1549275572,
             'duration': 3.413,
             'uploader': 'Josef Novak',
@@ -513,15 +513,10 @@ class FacebookIE(InfoExtractor):
                 webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
 
         def extract_relay_prefetched_data(_filter):
-            replay_data = extract_relay_data(_filter)
-            for require in (replay_data.get('require') or []):
-                if require[0] == 'RelayPrefetchedStreamCache':
-                    return try_get(require, lambda x: x[3][1]['__bbox']['result']['data'], dict) or {}
-                else:
-                    data = traverse_obj(require, (
-                        ..., ..., '__bbox', 'require', lambda _, v: "RelayPrefetchedStreamCache" in v,
-                        ..., ..., "__bbox", "result", "data"))
-                    return data[0] if data else {}
+            return traverse_obj(extract_relay_data(_filter), (
+                'require', (None, (..., ..., ..., '__bbox', 'require')),
+                lambda _, v: 'RelayPrefetchedStreamCache' in v, ..., ...,
+                '__bbox', 'result', 'data', {dict}), get_all=False) or {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
