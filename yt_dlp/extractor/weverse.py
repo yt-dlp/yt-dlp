@@ -106,10 +106,8 @@ class WeverseBaseIE(InfoExtractor):
             raise
 
     def _call_post_api(self, video_id):
-        if 'Authorization' in self._API_HEADERS:
-            return self._call_api(f'/post/v1.0/post-{video_id}?fieldSet=postV1', video_id)
-        else:
-            return self._call_api(f'/post/v1.0/post-{video_id}/preview?fieldSet=postV1', video_id)
+        path = '' if 'Authorization' in self._API_HEADERS else '/preview'
+        return self._call_api(f'/post/v1.0/post-{video_id}{path}?fieldSet=postV1', video_id)
 
     def _get_community_id(self, channel):
         return str(self._call_api(
