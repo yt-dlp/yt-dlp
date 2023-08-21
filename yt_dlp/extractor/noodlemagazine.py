@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     extract_attributes,
     get_element_html_by_id,
     int_or_none,
