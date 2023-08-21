@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    parse_qs,
     time_seconds,
     traverse_obj,
 )
@@ -9,7 +10,7 @@ from ..utils import (
 
 class PIAULIZAPortalIE(InfoExtractor):
     IE_DESC = 'ulizaportal.jp - PIA LIVE STREAM'
-    _VALID_URL = r'https://ulizaportal\.jp/pages/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})(\?expires=(?P<expires>\d+).*)?'
+    _VALID_URL = r'https://ulizaportal\.jp/pages/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
         'url': 'https://ulizaportal.jp/pages/005f18b7-e810-5618-cb82-0987c5755d44',
         'info_dict': {
@@ -37,7 +38,7 @@ class PIAULIZAPortalIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        expires = int_or_none(traverse_obj(self._match_valid_url(url), ('expires')))
+        expires = int_or_none(traverse_obj(parse_qs(url), ('expires', 0)))
         if expires and expires <= time_seconds():
             raise ExtractorError('The link is expired.', video_id=video_id, expected=True)
 
