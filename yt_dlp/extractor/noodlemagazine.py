@@ -10,6 +10,7 @@ from ..utils import (
 )
 from ..utils.traversal import traverse_obj
 
+
 class NoodleMagazineIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www|adult\.)?noodlemagazine\.com/watch/(?P<id>[0-9-_]+)'
     _TEST = {
