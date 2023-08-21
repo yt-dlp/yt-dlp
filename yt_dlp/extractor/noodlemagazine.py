@@ -52,10 +52,6 @@ class NoodleMagazineIE(InfoExtractor):
             urljoin('https://adult.noodlemagazine.com', playlist_url), video_id, headers={'Referer': url})
 
         thumbnail = self._og_search_property('image', webpage, default=None) or playlist_info.get('image')
-        sources = playlist_info.get('sources')
-        if not sources:
-            raise ExtractorError('Player sources not found!', expected=False, video_id=video_id)
-
         formats = traverse_obj(playlist_info, ('sources', lambda _, v: v['file'], {
             'url': 'file',
             'format_id': 'label',
