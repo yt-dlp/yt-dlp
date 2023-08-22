@@ -31,7 +31,6 @@ class AntennaBaseIE(InfoExtractor):
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subs,
-            '_old_archive_ids': [make_archive_id('Ant1NewsGrWatch', video_id)],
         }
 
 
@@ -68,6 +67,7 @@ class AntennaGrWatchIE(AntennaBaseIE):
         webpage = self._download_webpage(url, video_id)
         info = self._download_and_extract_api_data(video_id, netloc)
         info['description'] = self._og_search_description(webpage, default=None)
+        info['_old_archive_ids'] = [make_archive_id('Ant1NewsGrWatch', video_id)],
         return info
 
 
