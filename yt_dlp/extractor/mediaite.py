@@ -98,6 +98,6 @@ class MediaiteIE(InfoExtractor):
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
-        id = self._search_regex(r'"https://cdn\.jwplayer\.com/players/(.*)\.', webpage, 'id').split('-')[0]
-        data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{id}', id)
+        video_id = self._search_regex(r'"https://cdn\.jwplayer\.com/players/(\w+)', webpage, 'id')
+        data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{video_id}', video_id)
         return self._parse_jwplayer_data(data_json)
