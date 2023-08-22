@@ -44,9 +44,11 @@ class PIAULIZAPortalIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        player_data = self._download_webpage(self._search_regex(
-            r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/(?:[^"]*))"[^>]*>',
-            webpage, 'player data url'), video_id, headers={'Referer': 'https://ulizaportal.jp/'},
+        player_data = self._download_webpage(
+            self._search_regex(
+                r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/(?:[^"]*))"[^>]*>',
+                webpage, 'player data url'),
+            video_id, headers={'Referer': 'https://ulizaportal.jp/'},
             note='Fetching player data', errnote='Unable to fetch player data')
 
         formats = self._extract_m3u8_formats(
