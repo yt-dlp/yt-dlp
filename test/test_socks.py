@@ -151,14 +151,7 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
     # SOCKS4A protocol http://www.openssh.com/txt/socks4a.protocol
 
     def _read_until_null(self):
-        # good enough for testing
-        data = b''
-        while True:
-            raw = self.connection.recv(1)
-            if raw == b'\x00':
-                break
-            data += raw
-        return data
+        return b''.join(iter(functools.partial(self.connection.recv, 1), b'\x00'))
 
     def handle(self):
         sleep = self.socks_kwargs.get('sleep')
