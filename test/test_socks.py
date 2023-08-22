@@ -83,11 +83,9 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         sleep = self.socks_kwargs.get('sleep')
         if sleep:
             time.sleep(sleep)
-        version, nmethods = struct.unpack('!BB', self.connection.recv(2))
+        version, nmethods = self.connection.recv(2)
         assert version == SOCKS5_VERSION
-        methods = []
-        for i in range(nmethods):
-            methods.append(ord(self.connection.recv(1)))
+        methods = list(self.connection.recv(nmethods))
 
         auth = self.socks_kwargs.get('auth')
 
@@ -139,6 +137,7 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
 
         socks_info['port'] = struct.unpack('!H', self.connection.recv(2))[0]
 
+        # dummy response, the returned IP is just a placeholder
         self.connection.sendall(struct.pack(
             '!BBBBIH', SOCKS5_VERSION, self.socks_kwargs.get('reply', Socks5Reply.SUCCEEDED), 0x0, 0x1, 0x7f000001, 40000))
 
@@ -187,6 +186,7 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         if use_remote_dns:
             socks_info['domain_address'] = self._read_until_null().decode()
 
+        # dummy response, the returned IP is just a placeholder
         self.connection.sendall(
             struct.pack(
                 '!BBHI', SOCKS4_REPLY_VERSION,
