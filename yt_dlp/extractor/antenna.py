@@ -5,6 +5,7 @@ from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
     determine_ext,
+    make_archive_id,
     scale_thumbnails_to_max_format_width,
 )
 
@@ -30,6 +31,7 @@ class AntennaBaseIE(InfoExtractor):
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subs,
+            '_old_archive_ids': [make_archive_id('Ant1NewsGrWatch', video_id)],
         }
 
 
