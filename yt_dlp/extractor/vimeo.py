@@ -322,7 +322,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                          (?(u)
                              /(?!videos|likes)[^/?#]+/?|
                              (?(q)|/(?P<unlisted_hash>[\da-f]{10})?)?
-                             (?(unlisted_hash)/?) 
+                             (?(unlisted_hash)/?)
                          )
                          (?:(?(q)[&]|(?(u)|/?)[?]).*?)?(?:[#].*)?$
                  '''
