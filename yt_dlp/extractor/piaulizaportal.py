@@ -51,7 +51,8 @@ class PIAULIZAPortalIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(
             self._search_regex(
-                r'https://vms-api.p.uliza.jp/v1/prog-index.m3u8[^"]+', player_data, 'm3u8 url', group=(0), default=None),
+                r'https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"]+', player_data,
+                'm3u8 url', group=(0), default=None),
             video_id, errnote=False)
 
         m3u8_type = self._search_regex(
