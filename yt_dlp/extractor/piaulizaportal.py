@@ -10,7 +10,7 @@ from ..utils import (
 
 class PIAULIZAPortalIE(InfoExtractor):
     IE_DESC = 'ulizaportal.jp - PIA LIVE STREAM'
-    _VALID_URL = r'https://ulizaportal\.jp/pages/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+    _VALID_URL = r'https?://ulizaportal\.jp/pages/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
         'url': 'https://ulizaportal.jp/pages/005f18b7-e810-5618-cb82-0987c5755d44',
         'info_dict': {
