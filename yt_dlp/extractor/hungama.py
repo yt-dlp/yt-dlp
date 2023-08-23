@@ -118,7 +118,6 @@ class HungamaSongIE(InfoExtractor):
             'release_year': 2000,
             'thumbnail': 'https://stat2.hungama.ind.in/assets/images/default_images/da-200x200.png',
         },
-        'skip': 'Redirects to main page',
     }, {
         'url': 'https://un.hungama.com/song/tum-kya-mile-from-rocky-aur-rani-kii-prem-kahaani/103553672',
         'md5': '964f46828e8b250aa35e5fdcfdcac367',
