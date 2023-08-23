@@ -154,7 +154,7 @@ class HotStarIE(HotStarBaseIE):
             'timestamp': 1622943900,
             'duration': 5395,
         },
-    },{
+    }, {
         'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
         'info_dict': {
             'id': '1000091195',
