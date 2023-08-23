@@ -278,64 +278,29 @@ class NFLPlusReplayIE(NFLBaseIE):
         'info_dict': {
             'id': 'giants-at-patriots-2011-pre-4',
         },
-    }, {
-        'note': 'Subscription required',
-        'url': 'https://www.nfl.com/plus/games/giants-at-patriots-2011-pre-4',
-        'info_dict': {
-            'id': '950701',
-            'ext': 'mp4',
-            'title': 'Giants @ Patriots',
-            'description': 'Giants at Patriots on September 01, 2011',
-            'uploader': 'NFL',
-            'upload_date': '20210724',
-            'timestamp': 1627085874,
-            'duration': 1532,
-            'categories': ['Game Highlights'],
-            'tags': ['play-by-play'],
-            'thumbnail': r're:^https?://.*\.jpg',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'extractor_args': {'nflplusreplay': {'type': ['condensed_game']}},
-        },
     }]
-
-    _REPLAY_TYPES = {
-        'full_game': 'Full Game',
-        'full_game_spanish': 'Full Game - Spanish',
-        'condensed_game': 'Condensed Game',
-        'all_22': 'All-22',
-    }
 
     def _real_extract(self, url):
         slug, video_id = self._match_valid_url(url).group('slug', 'id')
-        requested_types = self._configuration_arg('type', ['all'])
-        if 'all' in requested_types:
-            requested_types = list(self._REPLAY_TYPES.keys())
-        requested_types = traverse_obj(self._REPLAY_TYPES, (None, requested_types))
-
-        if not video_id:
-            self._get_auth_token(url, slug)
-            headers = {'Authorization': f'Bearer {self._TOKEN}'}
-            game_id = self._download_json(
-                f'https://api.nfl.com/football/v2/games/externalId/slug/{slug}', slug,
-                'Downloading game ID', query={'withExternalIds': 'true'}, headers=headers)['id']
-            replays = self._download_json(
-                'https://api.nfl.com/content/v1/videos/replays', slug, 'Downloading replays JSON',
-                query={'gameId': game_id}, headers=headers)
-            if len(requested_types) == 1:
-                video_id = traverse_obj(replays, (
-                    'items', lambda _, v: v['subType'] == requested_types[0], 'mcpPlaybackId'), get_all=False)
 
         if video_id:
             return self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)
 
+        self._get_auth_token(url, slug)
+        headers = {'Authorization': f'Bearer {self._TOKEN}'}
+        game_id = self._download_json(
+            f'https://api.nfl.com/football/v2/games/externalId/slug/{slug}', slug,
+            'Downloading game ID', query={'withExternalIds': 'true'}, headers=headers)['id']
+        replays = self._download_json(
+            'https://api.nfl.com/content/v1/videos/replays', slug, 'Downloading replays JSON',
+            query={'gameId': game_id}, headers=headers)
+
         def entries():
-            for replay in traverse_obj(
-                replays, ('items', lambda _, v: v['mcpPlaybackId'] and v['subType'] in requested_types)
-            ):
+            for replay in traverse_obj(replays, ('items', lambda _, v: v['mcpPlaybackId'])):
                 video_id = replay['mcpPlaybackId']
-                yield self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)
+                yield self.url_result(
+                    f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id,
+                    media_type=replay.get('subType'), url_transparent=True)
 
         return self.playlist_result(entries(), slug)
 
