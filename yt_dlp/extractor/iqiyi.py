@@ -527,7 +527,7 @@ class IqIE(InfoExtractor):
         if player_js_cache:
             return player_js_cache
         webpack_js_url = self._proto_relative_url(self._search_regex(
-            r'<script src="((?:https?)?//stc.iqiyipic.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
+            r'<script src="((?:https?:)?//stc\.iqiyipic\.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
         webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
         webpack_map = self._search_json(
             r'["\']\s*\+\s*', webpack_js, 'JS locations', video_id,

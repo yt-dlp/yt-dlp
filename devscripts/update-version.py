@@ -51,7 +51,7 @@ CHANNEL = {channel!r}
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Update the version.py file')
     parser.add_argument(
-        '-c', '--channel', choices=['stable', 'nightly'], default='stable',
+        '-c', '--channel', default='stable',
         help='Select update channel (default: %(default)s)')
     parser.add_argument(
         '-o', '--output', default='yt_dlp/version.py',

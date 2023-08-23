@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class EurosportIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.eurosport\.com/\w+/[\w-]+/\d+/[\w-]+_(?P<id>vid\d+)'
+    _VALID_URL = r'https?://www\.eurosport\.com/\w+/(?:[\w-]+/[\d-]+/)?[\w-]+_(?P<id>vid\d+)'
     _TESTS = [{
         'url': 'https://www.eurosport.com/tennis/roland-garros/2022/highlights-rafael-nadal-brushes-aside-caper-ruud-to-win-record-extending-14th-french-open-title_vid1694147/video.shtml',
         'info_dict': {
@@ -43,6 +43,32 @@ class EurosportIE(InfoExtractor):
             'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2022/07/27/3423347-69852108-2560-1440.jpg',
             'description': 'md5:32bbe3a773ac132c57fb1e8cca4b7c71',
             'upload_date': '20220727',
+        }
+    }, {
+        'url': 'https://www.eurosport.com/football/champions-league/2022-2023/pep-guardiola-emotionally-destroyed-after-manchester-city-win-over-bayern-munich-in-champions-league_vid1896254/video.shtml',
+        'info_dict': {
+            'id': '3096477',
+            'ext': 'mp4',
+            'title': 'md5:82edc17370124c7a19b3cf518517583b',
+            'duration': 84.0,
+            'description': 'md5:b3f44ef7f5b5b95b24a273b163083feb',
+            'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2023/04/12/3682873-74947393-2560-1440.jpg',
+            'timestamp': 1681292028,
+            'upload_date': '20230412',
+            'display_id': 'vid1896254',
+        }
+    }, {
+        'url': 'https://www.eurosport.com/football/last-year-s-semi-final-pain-was-still-there-pep-guardiola-after-man-city-reach-cl-final_vid1914115/video.shtml',
+        'info_dict': {
+            'id': '3149108',
+            'ext': 'mp4',
+            'title': '\'Last year\'s semi-final pain was still there\' - Pep Guardiola after Man City reach CL final',
+            'description': 'md5:89ef142fe0170a66abab77fac2955d8e',
+            'display_id': 'vid1914115',
+            'timestamp': 1684403618,
+            'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2023/05/18/3707254-75435008-2560-1440.jpg',
+            'duration': 105.0,
+            'upload_date': '20230518',
         }
     }]
 
