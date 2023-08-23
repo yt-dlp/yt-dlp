@@ -3,7 +3,7 @@ import base64
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
-from ..utils import int_or_none, urlencode_postdata
+from ..utils import int_or_none, traverse_obj, urlencode_postdata, urljoin
 
 
 class TenPlayIE(InfoExtractor):
@@ -113,3 +113,63 @@ class TenPlayIE(InfoExtractor):
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
         }
+
+
+class TenPlaySeasonIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
+
+    _TESTS = [{
+        'url': 'https://10play.com.au/masterchef/episodes/season-14',
+        'info_dict': {
+            'title': 'Season 14',
+            'id': 'MjMyOTIy',
+        },
+        'playlist_count': 64,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2022',
+        'info_dict': {
+            'title': 'Season 2022',
+            'id': 'Mjc0OTIw',
+        },
+        'playlist_count': 256,
+        'params': {
+            'skip_download': True,
+        }
+    }]
+
+    def _entries(self, show, season, load_more_url):
+        skip_ids = []
+        has_more = True
+
+        base_url = f'https://10play.com.au/{show}/episodes/{season}'
+
+        while has_more:
+            episodes_carousel = self._download_json(
+                load_more_url, f'{show}/{season}', query={'skipIds[]': skip_ids},
+                note=f'Fetching episodes {len(skip_ids)}+')
+
+            has_more = episodes_carousel['hasMore']
+            episodes_chunk = episodes_carousel['items']
+            skip_ids += [ep['id'] for ep in episodes_chunk]
+
+            yield from [urljoin(base_url, ep['cardLink']) for ep in episodes_chunk]
+
+    def _real_extract(self, url):
+        show, season = self._match_valid_url(url).group('show', 'season')
+
+        season_info = self._download_json(
+            f'https://10play.com.au/api/shows/{show}/episodes/{season}', f'{show}/{season}')
+
+        episodes_carousel = traverse_obj(season_info, ('content', 0, 'components', (
+            lambda _, v: v['title'].lower() == 'episodes', (..., {dict}))), get_all=False) or {}
+
+        playlist_id = episodes_carousel['tpId']
+        playlist_title = traverse_obj(season_info, ('content', 0, 'title', {str}))
+
+        load_more_url = urljoin(url, episodes_carousel['loadMoreUrl'])
+
+        return self.playlist_from_matches(
+            self._entries(show, season, load_more_url), playlist_id, playlist_title)
