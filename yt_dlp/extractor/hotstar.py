@@ -124,6 +124,26 @@ class HotStarIE(HotStarBaseIE):
             'episode_number': 8,
         }
     }, {
+        'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
+        'info_dict': {
+            'id': '1000282843',
+            'ext': 'mp4',
+            'title': 'Anupama, Anuj Share a Moment',
+            'season': 'Chapter 1',
+            'description': 'md5:8d74ed2248423b8b06d5c8add4d7a0c0',
+            'timestamp': 1678149000,
+            'channel': 'StarPlus',
+            'series': 'Anupama',
+            'season_number': 1,
+            'season_id': 7399,
+            'upload_date': '20230307',
+            'episode': 'Anupama, Anuj Share a Moment',
+            'episode_number': 853,
+            'duration': 1272,
+            'channel_id': 3,
+        },
+        'skip': 'HTTP Error 504: Gateway Time-out',  # XXX: Investigate 504 errors on some episodes
+    }, {
         'url': 'https://www.hotstar.com/in/shows/kana-kaanum-kaalangal/1260097087/back-to-school/1260097320',
         'info_dict': {
             'id': '1260097320',
