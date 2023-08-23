@@ -154,6 +154,19 @@ class HotStarIE(HotStarBaseIE):
             'timestamp': 1622943900,
             'duration': 5395,
         },
+    },{
+        'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
+        'info_dict': {
+            'id': '1000091195',
+            'ext': 'mp4',
+            'title': 'Premam',
+            'release_year': 2015,
+            'description': 'md5:d833c654e4187b5e34757eafb5b72d7f',
+            'timestamp': 1462149000,
+            'upload_date': '20160502',
+            'episode': 'Premam',
+            'duration': 8994,
+        },
     }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
