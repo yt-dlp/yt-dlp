@@ -7,9 +7,9 @@ import json
 
 from math import log10, floor, ceil
 from datetime import date
+from urllib.error import HTTPError
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str
 from ..utils import (
     ExtractorError,
     parse_iso8601,
@@ -25,7 +25,7 @@ from ..utils import (
 # TODO  Try to resolve unknown languages in audio tracks.
 # TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
 # TODO  Clean out all unnecessary debugging output.
-# TODO  Change so that ERR is not artist
+# TODO  Change so that ERR is not consistently the artist
 
 
 def json_find_node(obj, criteria):
@@ -193,7 +193,7 @@ class ERRBaseIE(InfoExtractor):
         try:
             m3u8_formats, m3u8_subtitles = self._extract_m3u8_formats_and_subtitles(master_url, video_id, headers=headers)
         except ExtractorError as ex:
-            if isinstance(ex.cause, compat_HTTPError) and ex.cause.code == 404:
+            if isinstance(ex.cause, HTTPError) and ex.cause.code == 404:
                 self.report_warning(
                     'master url links to nonexistent resource \'%s\'' %
                     master_url)
@@ -520,9 +520,9 @@ class ERRTVIE(ERRBaseIE):
             'season': 'Season 28',
             'content_type': 'episode',
             'geoblocked': False,
-            'release_timestamp': 1655009100,
+            'release_timestamp': 1691211600,
             'drm': False,
-            'release_date': '20220612',
+            'release_date': '20230805',
             'media_type': 'video',
             'alt_title': 'Ornitoloogiaühing 100',
             'series_type': 2,
@@ -725,7 +725,7 @@ class ERRTVIE(ERRBaseIE):
         info['_type'] = 'video' if extract_medias else 'url'
         info['content_type'] = obj['type']
         info['webpage_url'] = obj['canonicalUrl']
-        info['id'] = compat_str(obj['id'])
+        info['id'] = str(obj['id'])
         info['display_id'] = obj['fancyUrl']
         if 'publicStart' in obj:
             info['timestamp'] = obj['publicStart']
@@ -855,7 +855,7 @@ class ERRTVIE(ERRBaseIE):
         if include_root:
             if not root_data:
                 root_data = json_find_value(playlist_data, 'rootContent')
-            info['id'] = compat_str(root_data['id'])
+            info['id'] = str(root_data['id'])
             info['display_id'] = root_data['url']
             info['title'] = sanitize_title(root_data['heading'])
             info['_type'] = 'playlist'
@@ -987,7 +987,7 @@ class ERRTVIE(ERRBaseIE):
             if (url not in self._ERR_URL_SET
                     and not self._downloader.params.get('noplaylist')
                     and json_has_value(show_data, 'rootContent')):
-                root_content_id = compat_str(json_find_value(show_data, 'rootContentId'))
+                root_content_id = str(json_find_value(show_data, 'rootContentId'))
                 playlist_data = None
                 if self._ERR_API_USE_SEASONLIST:
                     playlist_data = json_find_value(jsonpage, 'seasonList')
