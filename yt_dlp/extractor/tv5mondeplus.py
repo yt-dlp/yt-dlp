@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -13,28 +15,33 @@ class TV5MondePlusIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:tv5mondeplus|revoir\.tv5monde)\.com/toutes-les-videos/[^/]+/(?P<id>[^/?#]+)'
     _TESTS = [{
         # movie
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/cinema/ceux-qui-travaillent',
-        'md5': '32fa0cde16a4480d1251502a66856d5f',
+        'url': 'https://revoir.tv5monde.com/toutes-les-videos/cinema/les-novices',
+        'md5': 'c86f60bf8b75436455b1b205f9745955',
         'info_dict': {
-            'id': 'dc57a011-ec4b-4648-2a9a-4f03f8352ed3',
-            'display_id': 'ceux-qui-travaillent',
+            'id': '106971507_6D4BA7b',
+            'display_id': 'les-novices',
             'ext': 'mp4',
-            'title': 'Ceux qui travaillent',
-            'description': 'md5:570e8bb688036ace873b2d50d24c026d',
-            'upload_date': '20210819',
+            'title': 'Les novices',
+            'description': 'md5:2e7c33ba3ad48dabfcc2a956b88bde2b',
+            'upload_date': '20230821',
+            'thumbnail': 'https://revoir.tv5monde.com/uploads/media/video_thumbnail/0738/60/01e952b7ccf36b7c6007ec9131588954ab651de9.jpeg',
+            'duration': 5177,
+            'episode': 'Les novices',
         },
     }, {
         # series episode
-        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/vestiaires-caro-actrice',
+        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/opj-les-dents-de-la-terre-2',
         'info_dict': {
-            'id': '9e9d599e-23af-6915-843e-ecbf62e97925',
-            'display_id': 'vestiaires-caro-actrice',
+            'id': '106990379_6D4BA7b',
+            'display_id': 'opj-les-dents-de-la-terre-2',
             'ext': 'mp4',
-            'title': "Vestiaires - Caro actrice",
-            'description': 'md5:db15d2e1976641e08377f942778058ea',
-            'upload_date': '20210819',
-            'series': "Vestiaires",
-            'episode': 'Caro actrice',
+            'title': "OPJ - Les dents de la Terre (2)",
+            'description': 'md5:288f87fd68d993f814e66e60e5302d9d',
+            'upload_date': '20230823',
+            'series': "OPJ",
+            'episode': 'Les dents de la Terre (2)',
+            'duration': 2877,
+            'thumbnail': 'https://dl-revoir.tv5monde.com/images/1a/5753448.jpg'
         },
         'params': {
             'skip_download': True,
@@ -65,8 +72,20 @@ class TV5MondePlusIE(InfoExtractor):
         formats = []
         for video_file in video_files:
             v_url = video_file.get('url')
+            v_type = video_file.get('type')
             if not v_url:
                 continue
+            if v_type == 'application/deferred':
+                d_param = urllib.parse.quote(v_url)
+                headers = {'Authorization': 'Bearer ' + video_file.get('token')}
+                json = self._download_json(
+                    f'https://api.tv5monde.com/player/asset/{d_param}/resolve?condenseKS=true', v_url,
+                    note='Downloading deferred info', headers=headers)
+                v_url = json[0]['url']
+                video_id = self._search_regex(
+                    r'assets/([\d]{9}_[\da-fA-F]{7})/materials', v_url, 'video id',
+                    default=display_id)
+
             video_format = video_file.get('format') or determine_ext(v_url)
             if video_format == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
@@ -100,10 +119,11 @@ class TV5MondePlusIE(InfoExtractor):
         if upload_date:
             upload_date = upload_date.replace('_', '')
 
-        video_id = self._search_regex(
-            (r'data-guid=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})',
-             r'id_contenu["\']\s:\s*(\d+)'), webpage, 'video id',
-            default=display_id)
+        if not video_id:
+            video_id = self._search_regex(
+                (r'data-guid=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})',
+                 r'id_contenu["\']\s:\s*(\d+)'), webpage, 'video id',
+                default=display_id)
 
         return {
             'id': video_id,
