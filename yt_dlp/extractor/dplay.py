@@ -355,12 +355,10 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
             video_id, headers=headers, data=json.dumps({
                 'deviceInfo': {
                     'adBlocker': False,
+                    'drmSupported': False,
                 },
                 'videoId': video_id,
-                'wisteriaProperties': {
-                    'platform': 'desktop',
-                    'product': self._PRODUCT,
-                },
+                'wisteriaProperties': {},
             }).encode('utf-8'))['data']['attributes']['streaming']
 
     def _real_extract(self, url):
@@ -878,7 +876,7 @@ class DiscoveryPlusIndiaIE(DiscoveryPlusBaseIE):
         })
 
 
-class DiscoveryNetworksDeIE(DPlayBaseIE):
+class DiscoveryNetworksDeIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de|dplay\.co\.uk)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
 
     _TESTS = [{
@@ -921,7 +919,14 @@ class DiscoveryNetworksDeIE(DPlayBaseIE):
         realm = 'questuk' if country == 'GB' else domain.replace('.', '')
         return self._get_disco_api_info(
             url, '%s/%s' % (programme, alternate_id),
-            'sonic-eu1-prod.disco-api.com', realm, country)
+            'eu1-prod.disco-api.com', realm, country)
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
 
 
 class DiscoveryPlusShowBaseIE(DPlayBaseIE):
