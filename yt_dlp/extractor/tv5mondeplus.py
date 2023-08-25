@@ -96,10 +96,10 @@ class TV5MondePlusIE(InfoExtractor):
             r'(<[^>]+class="video_player_loader"[^>]+>)',
             webpage, 'video player loader'))
 
+        video_id = None
         video_files = self._parse_json(
             vpl_data['data-broadcast'], display_id)
         formats = []
-        video_id = None
         for video_file in video_files:
             v_url = video_file.get('url')
             if not v_url:
