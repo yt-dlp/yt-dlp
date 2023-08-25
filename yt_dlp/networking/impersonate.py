@@ -2,7 +2,7 @@ from abc import ABC
 
 from .exceptions import UnsupportedRequest
 from ..utils.networking import std_headers
-from .common import RequestHandler
+from .common import RequestHandler, register_preference
 from ..compat.types import NoneType
 
 
@@ -14,10 +14,14 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
     which can be used in _check_extensions.
 
     The following may be defined:
-     `SUPPORTED_IMPERSONATE_TARGETS`: a tuple of supported targets to impersonate,
+     `_SUPPORTED_IMPERSONATE_TARGETS`: a tuple of supported targets to impersonate,
         in curl-impersonate target name format. Any Request with an impersonate
         target not in this list will raise an UnsupportedRequest.
         Set to None to disable this check.
+
+    Parameters:
+    @param impersonate: the default impersonate target to use for requests.
+                        Set to None to disable impersonation.
     """
     _SUPPORTED_IMPERSONATE_TARGETS: tuple = ()
 
@@ -54,3 +58,10 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
                 if header in headers and std_headers[header] == headers[header]:
                     headers.pop(header, None)
         return headers
+
+
+@register_preference(ImpersonateRequestHandler)
+def impersonate_preference(rh, request):
+    if request.extensions.get('impersonate'):
+        return 1000
+    return 0

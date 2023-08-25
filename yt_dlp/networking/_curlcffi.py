@@ -2,7 +2,7 @@ import io
 import re
 from enum import IntEnum
 
-from .common import Features, Request, Response, register_rh
+from .common import Features, Request, Response, register_rh, register_preference
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -25,22 +25,6 @@ from curl_cffi.const import CurlInfo, CurlOpt
 
 
 class CurlCFFISession(curl_cffi.requests.Session):
-
-    def __init__(
-        self,
-        verbose=False,
-        **kwargs
-    ):
-        super().__init__(**kwargs)
-        self.verbose = verbose
-
-    @property
-    def curl(self):
-        # due to how curl_cffi handles threading
-        curl = super().curl
-        if self.verbose:
-            curl.setopt(CurlOpt.VERBOSE, 1)
-        return curl
 
     def _set_curl_options(self, curl, method: str, url: str, *args, **kwargs):
 
@@ -73,13 +57,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_IMPERSONATE_TARGETS = curl_cffi.requests.BrowserType._member_names_
 
     def _create_instance(self):
-        session_opts = {}
-
-        if self.verbose:
-            session_opts['verbose'] = True
-
-        session = CurlCFFISession(**session_opts)
-        return session
+        return CurlCFFISession()
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
@@ -111,18 +89,19 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         # See: https://github.com/yifeikong/curl_cffi/issues/26
         max_redirects_exceeded = False
         session: CurlCFFISession = self._get_instance()
+
+        if self.verbose:
+            session.curl.setopt(CurlOpt.VERBOSE, 1)
+
         cookiejar = request.extensions.get('cookiejar') or self.cookiejar
 
         # Reset the internal curl cookie store to ensure consistency with our cookiejar
+        # (only needed until we have a way of extracting all cookies from curl)
         # See: https://curl.se/libcurl/c/CURLOPT_COOKIELIST.html
-        # XXX: does this actually work?
         session.curl.setopt(CurlOpt.COOKIELIST, b'ALL')
         session.cookies.clear()
         for cookie_str in self._generate_set_cookie(cookiejar):
             session.curl.setopt(CurlOpt.COOKIELIST, ('set-cookie: ' + cookie_str).encode())
-
-        # XXX: if we need to change http version
-        # session.curl.setopt(CurlOpt.HTTP_VERSION, 2)
         if self.source_address is not None:
             session.curl.setopt(CurlOpt.INTERFACE, self.source_address.encode())
 
@@ -130,16 +109,22 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         if 'no' in proxies:
             session.curl.setopt(CurlOpt.NOPROXY, proxies['no'].encode())
             proxies.pop('no', None)
-        if 'all' in proxies:
-            session.curl.setopt(CurlOpt.PROXY, proxies['all'].encode())
-        else:
-            # curl doesn't support per protocol proxies, so we select the one that matches the request protocol
-            proxy = select_proxy(request.url, proxies=proxies)
-            if proxy:
-                session.curl.setopt(CurlOpt.PROXY, proxy.encode())
+
+        # curl doesn't support per protocol proxies, so we select the one that matches the request protocol
+        proxy = select_proxy(request.url, proxies=proxies)
+        if proxy:
+            session.curl.setopt(CurlOpt.PROXY, proxy.encode())
 
         headers = self._get_impersonate_headers(request)
 
+        if self._client_cert:
+            session.curl.setopt(CurlOpt.SSLCERT, self._client_cert['client_certificate'].encode())
+            client_certificate_key = self._client_cert.get('client_certificate_key')
+            client_certificate_password = self._client_cert.get('client_certificate_password')
+            if client_certificate_key:
+                session.curl.setopt(CurlOpt.SSLKEY, client_certificate_key.encode())
+            if client_certificate_password:
+                session.curl.setopt(CurlOpt.KEYPASSWD, client_certificate_password.encode())
         try:
             curl_response = session.request(
                 method=request.method,
@@ -203,6 +188,11 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             raise HTTPError(response, redirect_loop=max_redirects_exceeded)
 
         return response
+
+
+@register_preference(CurlCFFIRH)
+def curl_cffi_preference(rh, request):
+    return -100
 
 
 # https://curl.se/libcurl/c/libcurl-errors.html

@@ -205,15 +205,16 @@ class TikTokBaseIE(InfoExtractor):
 
         known_resolutions = {}
 
-        def mp3_meta(url):
+        def audio_meta(url):
+            ext = determine_ext(url, default_ext='m4a')
             return {
                 'format_note': 'Music track',
-                'ext': 'mp3',
-                'acodec': 'mp3',
+                'ext': ext,
+                'acodec': 'aac' if ext == 'm4a' else ext,
                 'vcodec': 'none',
                 'width': None,
                 'height': None,
-            } if determine_ext(url) == 'mp3' else {}
+            } if ext == 'mp3' or '-music-' in url else {}
 
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
@@ -231,7 +232,7 @@ class TikTokBaseIE(InfoExtractor):
                 **add_meta, **parsed_meta,
                 'format_note': join_nonempty(
                     add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' '),
-                **mp3_meta(url),
+                **audio_meta(url),
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
@@ -527,6 +528,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+        'params': {'skip_download': True},  # XXX: unable to download video data: HTTP Error 403: Forbidden
     }, {
         # Video without title and description
         'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
@@ -600,7 +602,7 @@ class TikTokIE(TikTokBaseIE):
     }, {
         # only available via web
         'url': 'https://www.tiktok.com/@moxypatch/video/7206382937372134662',
-        'md5': '8d8c0be14127020cd9f5def4a2e6b411',
+        'md5': '6aba7fad816e8709ff2c149679ace165',
         'info_dict': {
             'id': '7206382937372134662',
             'ext': 'mp4',
@@ -637,8 +639,8 @@ class TikTokIE(TikTokBaseIE):
             'uploader_id': '86328792343818240',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
             'channel_id': 'MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
-            'creator': 't8',
-            'artist': 't8',
+            'creator': 'tate mcrae',
+            'artist': 'tate mcrae',
             'track': 'original sound',
             'upload_date': '20220609',
             'timestamp': 1654805899,
@@ -650,6 +652,31 @@ class TikTokIE(TikTokBaseIE):
             'thumbnail': r're:^https://.+\.webp',
         },
         'params': {'format': 'bytevc1_1080p_808907-0'},
+    }, {
+        # Slideshow, audio-only m4a format
+        'url': 'https://www.tiktok.com/@hara_yoimiya/video/7253412088251534594',
+        'md5': '2ff8fe0174db2dbf49c597a7bef4e47d',
+        'info_dict': {
+            'id': '7253412088251534594',
+            'ext': 'm4a',
+            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'description': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'uploader': 'hara_yoimiya',
+            'uploader_id': '6582536342634676230',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
+            'channel_id': 'MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
+            'creator': 'лампочка',
+            'artist': 'Øneheart',
+            'album': 'watching the stars',
+            'track': 'watching the stars',
+            'upload_date': '20230708',
+            'timestamp': 1688816612,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'repost_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',

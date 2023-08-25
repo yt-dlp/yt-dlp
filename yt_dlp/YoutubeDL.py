@@ -34,7 +34,7 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
-from .networking.common import _REQUEST_HANDLERS
+from .networking.common import _REQUEST_HANDLERS, _RH_PREFERENCES
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
@@ -43,6 +43,7 @@ from .networking.exceptions import (
     _CompatHTTPError,
     network_exceptions,
 )
+from .networking.impersonate import ImpersonateRequestHandler
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -256,8 +257,6 @@ class YoutubeDL:
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
                        and don't overwrite any file if False
-                       For compatibility with youtube-dl,
-                       "nooverwrites" may also be used instead
     playlist_items:    Specific indices of playlist to download.
     playlistrandom:    Download playlist items in random order.
     lazy_playlist:     Process playlist entries as they are received.
@@ -554,6 +553,7 @@ class YoutubeDL:
                        You can reduce network I/O by disabling it if you don't
                        care about HLS. (only for youtube)
     no_color:          Same as `color='no_color'`
+    no_overwrites:     Same as `overwrites=False`
     """
 
     _NUMERIC_FIELDS = {
@@ -605,6 +605,7 @@ class YoutubeDL:
         self._playlist_level = 0
         self._playlist_urls = set()
         self.cache = Cache(self)
+        self.__header_cookies = []
 
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
@@ -633,7 +634,7 @@ class YoutubeDL:
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
                 return term_allow_color and supports_terminal_sequences(stream)
-            assert policy in ('always', 'never', 'no_color')
+            assert policy in ('always', 'never', 'no_color'), policy
             return {'always': True, 'never': False}.get(policy, policy)
 
         self._allow_colors = Namespace(**{
@@ -682,12 +683,10 @@ class YoutubeDL:
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
-        self.__header_cookies = []
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
         self.params['http_headers'].pop('Cookie', None)
+        self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
-        self._request_director = self.build_request_director(
-            sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
@@ -2340,12 +2339,12 @@ class YoutubeDL:
             return new_dict
 
         def _check_formats(formats):
-            if (self.params.get('check_formats') is not None
+            if self.params.get('check_formats') == 'selected':
+                yield from self._check_formats(formats)
+                return
+            elif (self.params.get('check_formats') is not None
                     or self.params.get('allow_unplayable_formats')):
                 yield from formats
-                return
-            elif self.params.get('check_formats') == 'selected':
-                yield from self._check_formats(formats)
                 return
 
             for f in formats:
@@ -3453,10 +3452,11 @@ class YoutubeDL:
                     postprocessed_by_ffmpeg = info_dict.get('requested_formats') or any((
                         isinstance(pp, FFmpegVideoConvertorPP)
                         and resolve_recode_mapping(ext, pp.mapping)[0] not in (ext, None)
-                    ) for pp in self._pps['post_process']) or fd == FFmpegFD
+                    ) for pp in self._pps['post_process'])
 
                     if not postprocessed_by_ffmpeg:
-                        ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
+                        ffmpeg_fixup(fd != FFmpegFD and ext == 'm4a'
+                                     and info_dict.get('container') == 'm4a_dash',
                                      'writing DASH m4a. Only some players support this container',
                                      FFmpegFixupM4aPP)
                         ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
@@ -4057,44 +4057,58 @@ class YoutubeDL:
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)
 
-        # TODO: Remove
-        # Also note: will cause recursion error if curl_cffi is not installed
-        impersonate_debug = os.environ.get('YT_DLP_CCI_IMPERSONATE')
-        if impersonate_debug:
-            req.extensions['impersonate'] = impersonate_debug
+        # --impersonate should be enforced for every request
+        if self.params.get('impersonate') and 'impersonate' not in req.extensions:
+            req.extensions['impersonate'] = self.params['impersonate']
 
-        try:
-            return self._request_director.send(req)
-        except NoSupportingHandlers as e:
-            for ue in e.unsupported_errors:
-                if not (ue.handler and ue.msg):
-                    continue
-                if ue.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
+        def _urlopen(req):
+            try:
+                return self._request_director.send(req)
+            except NoSupportingHandlers as e:
+                unsupported_errors = list(filter(lambda ue: ue.handler and ue.msg, e.unsupported_errors))
+
+                ue = traverse_obj(
+                    unsupported_errors,
+                    (lambda _, v: v.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in v.msg.lower()),
+                    get_all=False)
+                if ue:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
-                elif re.search(r'unsupported extensions:.*impersonate', ue.msg.lower()):
+
+                ue = traverse_obj(
+                    unsupported_errors,
+                    (lambda _, v: isinstance(v.handler, ImpersonateRequestHandler) and 'unsupported impersonate target' in v.msg.lower()), get_all=False)
+                if ue:
+                    # TODO: when we have multiple impersonation, will need to make this handle
+                    #  cases where the unsupported target is due to a missing library.
+                    raise RequestError(
+                        f'The requested impersonation target is not supported: {req.extensions.get("impersonate")}.', cause=ue) from ue
+
+                if list(filter(lambda ue: re.search(r'unsupported extensions:.*impersonate', ue.msg.lower()), unsupported_errors)):
                     self.report_warning(
                         'To impersonate a browser for this request please install one of: curl_cffi. '
                         'Retrying request without impersonation...')
-                    req = req.copy()
-                    req.extensions.pop('impersonate')
-                    return self.urlopen(req)
-            raise
-        except SSLError as e:
-            if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
-                raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
-            elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
-                raise RequestError(
-                    'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
-                    'Try using --legacy-server-connect', cause=e) from e
-            raise
-        except HTTPError as e:  # TODO: Remove in a future release
-            raise _CompatHTTPError(e) from e
+                    new_req = req.copy()
+                    new_req.extensions.pop('impersonate')
+                    return _urlopen(new_req)
+                raise
+            except SSLError as e:
+                if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
+                    raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
+                elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
+                    raise RequestError(
+                        'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
+                        'Try using --legacy-server-connect', cause=e) from e
+                raise
+            except HTTPError as e:  # TODO: Remove in a future release
+                raise _CompatHTTPError(e) from e
 
-    def build_request_director(self, handlers):
+        return _urlopen(req)
+
+    def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)
-        headers = self.params.get('http_headers').copy()
+        headers = self.params['http_headers'].copy()
         proxies = self.proxies.copy()
         clean_headers(headers)
         clean_proxies(proxies, headers)
@@ -4119,9 +4133,9 @@ class YoutubeDL:
                         'client_certificate_key': 'client_certificate_key',
                         'client_certificate_password': 'client_certificate_password',
                     },
-                    'impersonate': 'impersonate',
                 }),
             ))
+        director.preferences.update(preferences or [])
         return director
 
     def encode(self, s):
