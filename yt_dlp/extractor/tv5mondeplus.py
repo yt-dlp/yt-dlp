@@ -72,10 +72,9 @@ class TV5MondePlusIE(InfoExtractor):
         formats = []
         for video_file in video_files:
             v_url = video_file.get('url')
-            v_type = video_file.get('type')
             if not v_url:
                 continue
-            if v_type == 'application/deferred':
+            if video_file.get('type') == 'application/deferred':
                 d_param = urllib.parse.quote(v_url)
                 headers = {'Authorization': 'Bearer ' + video_file.get('token')}
                 json = self._download_json(
