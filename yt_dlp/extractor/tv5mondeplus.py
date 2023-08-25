@@ -6,7 +6,9 @@ from ..utils import (
     extract_attributes,
     int_or_none,
     parse_duration,
+    traverse_obj,
     try_get,
+    url_or_none,
 )
 
 
@@ -38,14 +40,41 @@ class TV5MondePlusIE(InfoExtractor):
             'title': "OPJ - Les dents de la Terre (2)",
             'description': 'md5:288f87fd68d993f814e66e60e5302d9d',
             'upload_date': '20230823',
-            'series': "OPJ",
+            'series': 'OPJ',
             'episode': 'Les dents de la Terre (2)',
             'duration': 2877,
-            'thumbnail': 'https://dl-revoir.tv5monde.com/images/1a/5753448.jpg'
+            'thumbnail': 'https://revoir.tv5monde.com/uploads/revoirimages/af/600px_5753448.jpg'
+        },
+    }, {
+        # movie
+        'url': 'https://revoir.tv5monde.com/toutes-les-videos/cinema/ceux-qui-travaillent',
+        'md5': '32fa0cde16a4480d1251502a66856d5f',
+        'info_dict': {
+            'id': 'dc57a011-ec4b-4648-2a9a-4f03f8352ed3',
+            'display_id': 'ceux-qui-travaillent',
+            'ext': 'mp4',
+            'title': 'Ceux qui travaillent',
+            'description': 'md5:570e8bb688036ace873b2d50d24c026d',
+            'upload_date': '20210819',
+        },
+        'skip': 'no longer available',
+    }, {
+        # series episode
+        'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/vestiaires-caro-actrice',
+        'info_dict': {
+            'id': '9e9d599e-23af-6915-843e-ecbf62e97925',
+            'display_id': 'vestiaires-caro-actrice',
+            'ext': 'mp4',
+            'title': "Vestiaires - Caro actrice",
+            'description': 'md5:db15d2e1976641e08377f942778058ea',
+            'upload_date': '20210819',
+            'series': "Vestiaires",
+            'episode': 'Caro actrice',
         },
         'params': {
             'skip_download': True,
         },
+        'skip': 'no longer available',
     }, {
         'url': 'https://revoir.tv5monde.com/toutes-les-videos/series-fictions/neuf-jours-en-hiver-neuf-jours-en-hiver',
         'only_matching': True,
