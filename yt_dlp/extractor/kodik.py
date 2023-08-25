@@ -16,10 +16,10 @@ def decode_link(link: str) -> str:
     return 'https:' + base64.b64decode(finalstr).decode()
 
 q = {
-    '1080': '1',
-    '720': '2',
-    '480': '3',
-    '360': '4',
+    '1080': '4',
+    '720': '3',
+    '480': '2',
+    '360': '1',
 }
 
 class KodikIE(InfoExtractor):
