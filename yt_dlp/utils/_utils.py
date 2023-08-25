@@ -4733,7 +4733,7 @@ def number_of_digits(number):
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = (traversal.traverse_obj(from_dict, variadic(v)) for v in values)
-    return delim.join(str(v).strip() for v in values if v)
+    return delim.join(map(str, filter(None, values)))
 
 
 def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):

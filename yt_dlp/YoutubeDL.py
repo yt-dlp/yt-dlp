@@ -1379,11 +1379,13 @@ class YoutubeDL:
             if not filename:
                 return None
 
-            trim_file_name = self.params.get('trim_file_name', False)
+            trim_file_name = self.params.get('trim_file_name')
             if trim_file_name:
                 # https://github.com/yt-dlp/yt-dlp/issues/5526#issuecomment-1312783517
                 no_ext, *ext = filename.rsplit('.', info_dict.get('ext', '').count('.') + 1)
-                filename = join_nonempty(no_ext[:trim_file_name], *ext, delim='.')
+                # cut filename and remove trailing spaces and extra dots
+                name = no_ext[:trim_file_name].strip().rstrip('.')
+                filename = join_nonempty(name, *ext, delim='.')
 
             if tmpl_type in ('', 'temp'):
                 final_ext, ext = self.params.get('final_ext'), info_dict.get('ext')
