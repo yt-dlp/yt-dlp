@@ -16,10 +16,10 @@ def decode_link(link: str) -> str:
     return 'https:' + base64.b64decode(finalstr).decode()
 
 q = {
-    '1080': '4',
-    '720': '3',
-    '480': '2',
-    '360': '1',
+    '1080': 0,
+    '720': 1,
+    '480': 2,
+    '360': 3,
 }
 
 class KodikIE(InfoExtractor):
@@ -44,10 +44,11 @@ class KodikIE(InfoExtractor):
         for lnk in json['links']:
             link = decode_link(json['links'][lnk][0]['src'])
             fmt = self._extract_m3u8_formats(link, video_id, 'mp4', 'm3u8_native')
+            print(link)
             for f in fmt:
                 f.update({
                     'thumbnail' : 'https:' + tb,
-                    'quality': q[re.findall(r'(\d+).mp4', link)[0]]
+                    #'quality': q[re.findall(r'(\d+).mp4', link)[0]]
                 })
 
             formats.extend(fmt)
