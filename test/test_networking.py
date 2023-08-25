@@ -405,12 +405,12 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data, headers=headers))
 
                 headers = b''
-                data_sent = b''
+                data_recv = b''
                 if data is not None:
-                    data_sent += res.read(len(data))
-                    if data_sent != data:
-                        headers += data_sent
-                        data_sent = b''
+                    data_recv += res.read(len(data))
+                    if data_recv != data:
+                        headers += data_recv
+                        data_recv = b''
 
                 headers += res.read()
                 headers = headers.decode().lower()
@@ -425,7 +425,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
                     # assert 'content-type' in headers
                     assert 'content-length' in headers
 
-                return data_sent.decode(), res.headers.get('method', '')
+                return data_recv.decode(), res.headers.get('method', '')
 
             # A 303 must either use GET or HEAD for subsequent request
             assert do_req(303, 'POST', True) == ('', 'GET')
