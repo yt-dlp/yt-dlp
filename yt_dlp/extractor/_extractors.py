@@ -303,6 +303,7 @@ from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
     CBCIE,
     CBCPlayerIE,
+    CBCPlayerPlaylistIE,
     CBCGemIE,
     CBCGemPlaylistIE,
     CBCGemLiveIE,
