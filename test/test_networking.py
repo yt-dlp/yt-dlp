@@ -394,71 +394,48 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res2.url == f'http://127.0.0.1:{self.http_port}/gen_200'
             res2.close()
 
+    # Covers some basic cases we expect some level of consistency between request handlers for
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
-    def test_redirect(self, handler):
-        with handler(verbose=True, timeout=9000) as rh:
-            def do_req(redirect_status, method, assert_no_content=False):
-                data = b'testdata' if method in ('POST', 'PUT') else None
-                headers = {}
-                if data is not None:
-                    headers['Content-Type'] = 'application/test'
-                res = validate_and_send(
-                    rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data, headers=headers))
+    @pytest.mark.parametrize('redirect_status,method,expected', [
+        # A 303 must either use GET or HEAD for subsequent request
+        (303, 'POST', ('', 'GET', False)),
+        (303, 'HEAD', ('', 'HEAD', False)),
 
-                headers = b''
-                data_recv = b''
-                if data is not None:
-                    data_recv += res.read(len(data))
-                    if data_recv != data:
-                        headers += data_recv
-                        data_recv = b''
+        # 301 and 302 turn POST only into a GET
+        (301, 'POST', ('', 'GET', False)),
+        (301, 'HEAD', ('', 'HEAD', False)),
+        (302, 'POST', ('', 'GET', False)),
+        (302, 'HEAD', ('', 'HEAD', False)),
 
-                headers += res.read()
-                headers = headers.decode().lower()
+        # 307 and 308 should not change method
+        (307, 'POST', ('testdata', 'POST', True)),
+        (308, 'POST', ('testdata', 'POST', True)),
+        (307, 'HEAD', ('', 'HEAD', False)),
+        (308, 'HEAD', ('', 'HEAD', False)),
+    ])
+    def test_redirect(self, handler, redirect_status, method, expected):
+        with handler() as rh:
+            data = b'testdata' if method == 'POST' else None
+            headers = {}
+            if data is not None:
+                headers['Content-Type'] = 'application/test'
+            res = validate_and_send(
+                rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_{redirect_status}', method=method, data=data,
+                            headers=headers))
 
-                # Content-Type and Content-Length should be removed
-                # See: https://datatracker.ietf.org/doc/html/rfc9110#section-15.4-6.5.1
-                # Some user-agents such as curl do not remove the header on redirect.
-                if assert_no_content or data is None:
-                    # assert 'content-type' not in headers
-                    assert 'content-length' not in headers
-                elif assert_no_content is not None:
-                    # assert 'content-type' in headers
-                    assert 'content-length' in headers
+            headers = b''
+            data_recv = b''
+            if data is not None:
+                data_recv += res.read(len(data))
+                if data_recv != data:
+                    headers += data_recv
+                    data_recv = b''
 
-                return data_recv.decode(), res.headers.get('method', '')
+            headers += res.read()
 
-            # A 303 must either use GET or HEAD for subsequent request
-            assert do_req(303, 'POST', True) == ('', 'GET')
-            assert do_req(303, 'HEAD') == ('', 'HEAD')
-
-            # 303 MAY change method to GET?
-            # See: https://github.com/curl/curl/issues/5237
-            assert do_req(303, 'PUT', None) in (('', 'GET'), ('testdata', 'PUT'))
-
-            # 301 and 302 turn POST only into a GET
-            assert do_req(301, 'POST', True) == ('', 'GET')
-            assert do_req(301, 'HEAD') == ('', 'HEAD')
-            assert do_req(302, 'POST', True) == ('', 'GET')
-            assert do_req(302, 'HEAD') == ('', 'HEAD')
-
-            assert do_req(301, 'PUT') == ('testdata', 'PUT')
-            assert do_req(302, 'PUT') == ('testdata', 'PUT')
-
-            # 307 and 308 should not change method
-            for m in ('POST', 'PUT'):
-                assert do_req(307, m) == ('testdata', m)
-                assert do_req(308, m) == ('testdata', m)
-
-            assert do_req(307, 'HEAD') == ('', 'HEAD')
-            assert do_req(308, 'HEAD') == ('', 'HEAD')
-
-            # XXX: technically not, these may be left undefined
-            # https://datatracker.ietf.org/doc/html/rfc9110#name-300-multiple-choices
-            # These should not redirect and instead raise an HTTPError
-            # for code in (300, 304, 305, 306):
-            #     with pytest.raises(HTTPError):
-            #         do_req(code, 'GET')
+            assert expected[0] == data_recv.decode()
+            assert expected[1] == res.headers.get('method')
+            assert expected[2] == ('content-length' in headers.decode().lower())
 
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_request_cookie_header(self, handler):

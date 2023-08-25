@@ -24,28 +24,6 @@ from curl_cffi import ffi
 from curl_cffi.const import CurlInfo, CurlOpt, CurlECode
 
 
-class CurlCFFISession(curl_cffi.requests.Session):
-
-    def _set_curl_options(self, curl, method: str, url: str, *args, **kwargs):
-
-        res = super()._set_curl_options(curl, method, url, *args, **kwargs)
-        data = traverse_obj(kwargs, 'data') or traverse_obj(args, 1)
-
-        # TODO: make some of this redirect handling optional in tests
-        # We only need very basic handling for tests
-        # Attempt to align curl redirect handling with ours
-        curl.setopt(CurlOpt.CUSTOMREQUEST, ffi.NULL)
-
-        if data and method != 'POST':
-            # Don't strip data on 301,302,303 redirects for PUT etc.
-            curl.setopt(CurlOpt.POSTREDIR, 1 | 2 | 4)  # CURL_REDIR_POST_ALL
-
-        if method not in ('GET', 'POST'):
-            curl.setopt(CurlOpt.CUSTOMREQUEST, method.encode())
-
-        return res
-
-
 @register_rh
 class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     RH_NAME = 'curl_cffi'
@@ -55,7 +33,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_IMPERSONATE_TARGETS = curl_cffi.requests.BrowserType._member_names_
 
     def _create_instance(self, cookiejar=None):
-        return CurlCFFISession(cookies=cookiejar)
+        return curl_cffi.requests.Session(cookies=cookiejar)
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
@@ -108,16 +86,15 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 interface=self.source_address,
             )
         except curl_cffi.requests.errors.RequestsError as e:
-            error_code = e.args[0].code  # TODO
-            if error_code in (CurlECode.PEER_FAILED_VERIFICATION, CurlECode.OBSOLETE51):
+            if e.code in (CurlECode.PEER_FAILED_VERIFICATION, CurlECode.OBSOLETE51):
                 # Error code 51 used to be this in curl <7.62.0
                 # See: https://curl.se/libcurl/c/libcurl-errors.html
                 raise CertificateVerifyError(cause=e) from e
 
-            elif error_code == CurlECode.SSL_CONNECT_ERROR:
+            elif e.code == CurlECode.SSL_CONNECT_ERROR:
                 raise SSLError(cause=e) from e
 
-            elif error_code == CurlECode.TOO_MANY_REDIRECTS:
+            elif e.code == CurlECode.TOO_MANY_REDIRECTS:
                 # The response isn't exposed on too many redirects.
                 # We are creating a dummy response here, but it's
                 # not ideal since it only contains initial request data
@@ -134,8 +111,9 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 curl_response.url = session.curl.getinfo(CurlInfo.EFFECTIVE_URL).decode()
                 curl_response.status_code = session.curl.getinfo(CurlInfo.RESPONSE_CODE)
 
-            elif error_code == CurlECode.PARTIAL_FILE:
+            elif e.code == CurlECode.PARTIAL_FILE:
                 raise IncompleteRead(
+                    # TODO
                     # XXX: do we need partial to have the content?
                     partial=[''] * int(session.curl.getinfo(CurlInfo.SIZE_DOWNLOAD)),
                     expected=session.curl.getinfo(CurlInfo.CONTENT_LENGTH_DOWNLOAD),
