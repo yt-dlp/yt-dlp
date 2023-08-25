@@ -188,7 +188,8 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._headers()
         elif self.path.startswith('/308-to-headers'):
             self.send_response(308)
-            self.send_header('Location', '/headers')
+            # get server port
+            self.send_header('Location', f'http://localhost:{self.connection.getsockname()[1]}/headers')
             self.send_header('Content-Length', '0')
             self.end_headers()
         elif self.path == '/trailing_garbage':
@@ -462,7 +463,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_request_cookie_header(self, handler):
         # We should accept a Cookie header being passed as in normal headers and handle it appropriately.
-        with handler() as rh:
+        with handler(verbose=True) as rh:
             # Specified Cookie header should be used
             res = validate_and_send(
                 rh, Request(
@@ -478,6 +479,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert 'cookie: test=test2' not in res.lower()
 
         # Specified Cookie header should override global cookiejar for that request
+        # Whether cookies from the cookiejar is applied on the redirect is considered undefined for now
         cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             version=0, name='test', value='ytdlp', port=None, port_specified=False,

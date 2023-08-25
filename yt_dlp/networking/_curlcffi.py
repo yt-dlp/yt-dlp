@@ -31,6 +31,8 @@ class CurlCFFISession(curl_cffi.requests.Session):
         res = super()._set_curl_options(curl, method, url, *args, **kwargs)
         data = traverse_obj(kwargs, 'data') or traverse_obj(args, 1)
 
+        # TODO: make some of this redirect handling optional in tests
+        # We only need very basic handling for tests
         # Attempt to align curl redirect handling with ours
         curl.setopt(CurlOpt.CUSTOMREQUEST, ffi.NULL)
 
@@ -44,10 +46,6 @@ class CurlCFFISession(curl_cffi.requests.Session):
         return res
 
 
-def get_error_code(error: curl_cffi.curl.CurlError):
-    return int_or_none(re.search(r'ErrCode:\s+(\d+)', str(error)).group(1))
-
-
 @register_rh
 class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     RH_NAME = 'curl_cffi'
@@ -56,8 +54,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_IMPERSONATE_TARGETS = curl_cffi.requests.BrowserType._member_names_
 
-    def _create_instance(self):
-        return CurlCFFISession()
+    def _create_instance(self, cookiejar=None):
+        return CurlCFFISession(cookies=cookiejar)
 
     def _check_extensions(self, extensions):
         super()._check_extensions(extensions)
@@ -65,45 +63,17 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         extensions.pop('cookiejar', None)
         extensions.pop('timeout', None)
 
-    def _generate_set_cookie(self, cookiejar):
-        for cookie in cookiejar:
-            encoder = LenientSimpleCookie()
-            values = []
-            _, value = encoder.value_encode(cookie.value)
-            values.append(f'{cookie.name}={value}')
-            if cookie.domain:
-                values.append(f'Domain={cookie.domain}')
-            if cookie.path:
-                values.append(f'Path={cookie.path}')
-            if cookie.secure:
-                values.append('Secure')
-            if cookie.expires:
-                values.append(f'Expires={cookie.expires}')
-            if cookie.version:
-                values.append(f'Version={cookie.version}')
-            yield '; '.join(values)
-
     def _send(self, request: Request):
         # XXX: curl_cffi reads the whole response at once into memory
         # Streaming is not yet supported.
         # See: https://github.com/yifeikong/curl_cffi/issues/26
         max_redirects_exceeded = False
-        session: CurlCFFISession = self._get_instance()
+        cookiejar = request.extensions.get('cookiejar') or self.cookiejar
+        session: CurlCFFISession = self._get_instance(
+            cookiejar=cookiejar if 'cookie' not in request.headers else None)
 
         if self.verbose:
             session.curl.setopt(CurlOpt.VERBOSE, 1)
-
-        cookiejar = request.extensions.get('cookiejar') or self.cookiejar
-
-        # Reset the internal curl cookie store to ensure consistency with our cookiejar
-        # (only needed until we have a way of extracting all cookies from curl)
-        # See: https://curl.se/libcurl/c/CURLOPT_COOKIELIST.html
-        session.curl.setopt(CurlOpt.COOKIELIST, b'ALL')
-        session.cookies.clear()
-        for cookie_str in self._generate_set_cookie(cookiejar):
-            session.curl.setopt(CurlOpt.COOKIELIST, ('set-cookie: ' + cookie_str).encode())
-        if self.source_address is not None:
-            session.curl.setopt(CurlOpt.INTERFACE, self.source_address.encode())
 
         proxies = (request.proxies or self.proxies).copy()
         if 'no' in proxies:
@@ -135,9 +105,10 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 max_redirects=5,
                 timeout=request.extensions.get('timeout') or self.timeout,
                 impersonate=self._get_impersonate_target(request),
+                interface=self.source_address,
             )
         except curl_cffi.requests.errors.RequestsError as e:
-            error_code = get_error_code(e)
+            error_code = e.args[0].code  # TODO
             if error_code in (CurlECode.PEER_FAILED_VERIFICATION, CurlECode.OBSOLETE51):
                 # Error code 51 used to be this in curl <7.62.0
                 # See: https://curl.se/libcurl/c/libcurl-errors.html
@@ -151,9 +122,9 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 # We are creating a dummy response here, but it's
                 # not ideal since it only contains initial request data
                 max_redirects_exceeded = True
-                curl_response = curl_cffi.requests.cookies.Response(
+                curl_response = curl_cffi.requests.models.Response(
                     curl=session.curl,
-                    request=curl_cffi.requests.cookies.Request(
+                    request=curl_cffi.requests.models.Request(
                         url=request.url,
                         headers=curl_cffi.requests.headers.Headers(request.headers),
                         method=request.method,
@@ -177,12 +148,6 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             headers=curl_response.headers,
             url=curl_response.url,
             status=curl_response.status_code)
-
-        # XXX: this won't apply cookies from intermediate responses in a redirect chain
-        # curl_cffi doesn't support CurlInfo.COOKIELIST yet which we need to reliably read cookies
-        # See: https://github.com/yifeikong/curl_cffi/issues/4
-        for cookie in session.cookies.jar:
-            cookiejar.set_cookie(cookie)
 
         if not 200 <= response.status < 300:
             raise HTTPError(response, redirect_loop=max_redirects_exceeded)
