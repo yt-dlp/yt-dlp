@@ -8,12 +8,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import functools
 import gzip
 import http.client
 import http.cookiejar
 import http.server
-import inspect
 import io
 import pathlib
 import random
@@ -40,7 +38,6 @@ from yt_dlp.networking import (
     Response,
 )
 from yt_dlp.networking._urllib import UrllibRH
-from yt_dlp.networking.common import _REQUEST_HANDLERS
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -305,19 +302,6 @@ class TestRequestHandlerBase:
         cls.https_server_thread = threading.Thread(target=cls.https_httpd.serve_forever)
         cls.https_server_thread.daemon = True
         cls.https_server_thread.start()
-
-
-@pytest.fixture
-def handler(request):
-    RH_KEY = request.param
-    if inspect.isclass(RH_KEY) and issubclass(RH_KEY, RequestHandler):
-        handler = RH_KEY
-    elif RH_KEY in _REQUEST_HANDLERS:
-        handler = _REQUEST_HANDLERS[RH_KEY]
-    else:
-        pytest.skip(f'{RH_KEY} request handler is not available')
-
-    return functools.partial(handler, logger=FakeLogger)
 
 
 class TestHTTPRequestHandler(TestRequestHandlerBase):
