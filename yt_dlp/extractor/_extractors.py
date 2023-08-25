@@ -303,6 +303,7 @@ from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
     CBCIE,
     CBCPlayerIE,
+    CBCPlayerPlaylistIE,
     CBCGemIE,
     CBCGemPlaylistIE,
     CBCGemLiveIE,
@@ -1901,6 +1902,11 @@ from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
 from .tass import TassIE
 from .tbs import TBSIE
+from .tbsjp import (
+    TBSJPEpisodeIE,
+    TBSJPProgramIE,
+    TBSJPPlaylistIE,
+)
 from .tdslifeway import TDSLifewayIE
 from .teachable import (
     TeachableIE,
