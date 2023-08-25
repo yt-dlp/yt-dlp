@@ -9,6 +9,7 @@ from .exceptions import (
     IncompleteRead,
     SSLError,
     TransportError,
+    ProxyError
 )
 from .impersonate import ImpersonateRequestHandler
 from ._helper import InstanceStoreMixin, select_proxy
@@ -47,7 +48,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         # See: https://github.com/yifeikong/curl_cffi/issues/26
         max_redirects_exceeded = False
         cookiejar = request.extensions.get('cookiejar') or self.cookiejar
-        session: CurlCFFISession = self._get_instance(
+        session: curl_cffi.requests.Session = self._get_instance(
             cookiejar=cookiejar if 'cookie' not in request.headers else None)
 
         if self.verbose:
@@ -62,6 +63,9 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         proxy = select_proxy(request.url, proxies=proxies)
         if proxy:
             session.curl.setopt(CurlOpt.PROXY, proxy.encode())
+            if proxy.startswith('https'):
+                # enable HTTP CONNECT for https urls
+                session.curl.setopt(CurlOpt.HTTPPROXYTUNNEL, 1)
 
         headers = self._get_impersonate_headers(request)
 
@@ -118,6 +122,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                     partial=[''] * int(session.curl.getinfo(CurlInfo.SIZE_DOWNLOAD)),
                     expected=session.curl.getinfo(CurlInfo.CONTENT_LENGTH_DOWNLOAD),
                     cause=e) from e
+            elif e.code == CurlECode.PROXY:
+                raise ProxyError(cause=e) from e
             else:
                 raise TransportError(cause=e) from e
 

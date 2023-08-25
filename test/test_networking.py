@@ -610,6 +610,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
 
 class TestHTTPProxy(TestRequestHandlerBase):
+    # Note: this only tests http urls over non-CONNECT proxy
     @classmethod
     def setup_class(cls):
         super().setup_class()
@@ -684,9 +685,7 @@ class TestHTTPProxy(TestRequestHandlerBase):
             assert response == 'normal: http://xn--fiq228c.tw/'
 
 
-# FIXME: Not yet supported by CurlCFFI RH
 class TestClientCertificate:
-
     @classmethod
     def setup_class(cls):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
