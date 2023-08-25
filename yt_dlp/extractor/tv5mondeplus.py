@@ -114,6 +114,7 @@ class TV5MondePlusIE(InfoExtractor):
                 v_url = traverse_obj(deferred_json, (0, 'url', {url_or_none}))
                 if not v_url:
                     continue
+                # data-guid from the webpage isn't stable, use the asset id from the json urls
                 video_id = self._search_regex(
                     r'assets/([\d]{9}_[\da-fA-F]{7})/materials', v_url, 'video id',
                     default=display_id)
