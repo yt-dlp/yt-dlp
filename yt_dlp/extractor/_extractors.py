@@ -2534,3 +2534,4 @@ from .zoom import ZoomIE
 from .zype import ZypeIE
 
 from .jutsu import JutSuEpisodeIE, JutSuAnimeIE
+from .kodik import KodikIE
