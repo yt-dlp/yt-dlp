@@ -120,8 +120,7 @@ class TV5MondePlusIE(InfoExtractor):
                         continue
                     # data-guid from the webpage isn't stable, use the material id from the json urls
                     video_id = self._search_regex(
-                        r'materials/([\da-zA-Z]{10}_[\da-fA-F]{7})/', v_url, 'video id',
-                        default=display_id)
+                        r'materials/([\da-zA-Z]{10}_[\da-fA-F]{7})/', v_url, 'video id', default=None)
                     process_video_files(deferred_json)
 
                 video_format = video_file.get('format') or determine_ext(v_url)
