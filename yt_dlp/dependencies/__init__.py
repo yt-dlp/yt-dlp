@@ -57,11 +57,6 @@ except (ImportError, SyntaxError):
     websockets = None
 
 try:
-    import curl_cffi
-except ImportError:
-    curl_cffi = None
-
-try:
     import xattr  # xattr or pyxattr
 except ImportError:
     xattr = None

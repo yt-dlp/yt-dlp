@@ -20,7 +20,6 @@ from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
-from .networking.utils import std_headers
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,

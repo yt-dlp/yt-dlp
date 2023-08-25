@@ -4,7 +4,6 @@ import time
 from .fragment import FragmentFD
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    HTTPHeaderDict,
     RegexNotFoundError,
     RetryManager,
     dict_get,
