@@ -48,7 +48,6 @@ class KodikIE(InfoExtractor):
             for f in fmt:
                 f.update({
                     'thumbnail' : 'https:' + tb,
-                    #'quality': q[re.findall(r'(\d+).mp4', link)[0]]
                 })
 
             formats.extend(fmt)
