@@ -813,7 +813,6 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
                     break
             for e in page_entries:
                 yield e
-            yield from page_entries
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
