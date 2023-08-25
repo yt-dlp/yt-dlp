@@ -76,11 +76,15 @@ class TV5MondePlusIE(InfoExtractor):
                 continue
             if video_file.get('type') == 'application/deferred':
                 d_param = urllib.parse.quote(v_url)
-                headers = {'Authorization': 'Bearer ' + video_file.get('token')}
-                json = self._download_json(
-                    f'https://api.tv5monde.com/player/asset/{d_param}/resolve?condenseKS=true', v_url,
-                    note='Downloading deferred info', headers=headers)
-                v_url = json[0]['url']
+                token = video_file.get('token')
+                if not token:
+                    continue
+                deferred_json = self._download_json(
+                    f'https://api.tv5monde.com/player/asset/{d_param}/resolve?condenseKS=true', display_id,
+                    note='Downloading deferred info', headers={'Authorization': f'Bearer {token}'}, fatal=False)
+                v_url = traverse_obj(deferred_json, (0, 'url', {url_or_none}))
+                if not v_url:
+                    continue
                 video_id = self._search_regex(
                     r'assets/([\d]{9}_[\da-fA-F]{7})/materials', v_url, 'video id',
                     default=display_id)
