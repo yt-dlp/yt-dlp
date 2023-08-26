@@ -3,5 +3,5 @@ pycryptodomex
 websockets
 brotli; platform_python_implementation=='CPython'
 brotlicffi; platform_python_implementation!='CPython'
-curl-cffi >= 0.5.9b3 ; platform_python_implementation=='CPython'
+curl-cffi >= 0.5.9b3
 certifi
