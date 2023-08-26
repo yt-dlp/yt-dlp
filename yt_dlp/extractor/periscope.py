@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -67,6 +65,7 @@ class PeriscopeIE(PeriscopeBaseIE):
     IE_DESC = 'Periscope'
     IE_NAME = 'periscope'
     _VALID_URL = r'https?://(?:www\.)?(?:periscope|pscp)\.tv/[^/]+/(?P<id>[^/?#]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=([\'"])(?P<url>(?:https?:)?//(?:www\.)?(?:periscope|pscp)\.tv/(?:(?!\1).)+)\1']
     # Alive example URLs can be found here https://www.periscope.tv/
     _TESTS = [{
         'url': 'https://www.periscope.tv/w/aJUQnjY3MjA3ODF8NTYxMDIyMDl2zCg2pECBgwTqRpQuQD352EMPTKQjT4uqlM3cgWFA-g==',
@@ -91,13 +90,6 @@ class PeriscopeIE(PeriscopeBaseIE):
         'url': 'https://www.periscope.tv/w/1ZkKzPbMVggJv',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=([\'"])(?P<url>(?:https?:)?//(?:www\.)?(?:periscope|pscp)\.tv/(?:(?!\1).)+)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         token = self._match_id(url)
@@ -135,7 +127,6 @@ class PeriscopeIE(PeriscopeBaseIE):
             }
             self._add_width_and_height(rtmp_format)
             formats.append(rtmp_format)
-        self._sort_formats(formats)
 
         info['formats'] = formats
         return info

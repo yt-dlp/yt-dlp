@@ -50,8 +50,6 @@ class OpenRecBaseIE(InfoExtractor):
             formats = list(self._expand_media(video_id, new_media))
             is_live = False
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': get_first(movie_stores, 'title'),
@@ -113,7 +111,6 @@ class OpenRecCaptureIE(OpenRecBaseIE):
 
         formats = self._extract_m3u8_formats(
             capture_data.get('source'), video_id, ext='mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

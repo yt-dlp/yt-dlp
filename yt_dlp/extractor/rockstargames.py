@@ -54,8 +54,6 @@ class RockstarGamesIE(InfoExtractor):
             if youtube_id:
                 return self.url_result(youtube_id, 'Youtube')
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

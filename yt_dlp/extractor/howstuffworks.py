@@ -75,8 +75,6 @@ class HowStuffWorksIE(InfoExtractor):
                     'vbr': vbr,
                 })
 
-        self._sort_formats(formats)
-
         return {
             'id': '%s' % video_id,
             'display_id': display_id,

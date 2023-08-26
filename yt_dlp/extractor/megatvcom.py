@@ -1,14 +1,14 @@
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_id,
-    HEADRequest,
     parse_qs,
     unescapeHTML,
     unified_timestamp,
@@ -87,7 +87,6 @@ class MegaTVComIE(MegaTVComBaseIE):
             formats, subs = [{'url': source}], {}
         if player_attrs.get('subs'):
             self._merge_subtitles({'und': [{'url': player_attrs['subs']}]}, target=subs)
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'display_id': display_id,
@@ -104,7 +103,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
     IE_NAME = 'megatvcom:embed'
     IE_DESC = 'megatv.com embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.)?megatv\.com/embed/?\?p=(?P<id>\d+)'
-    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''')
+    _EMBED_REGEX = [rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''']
 
     _TESTS = [{
         'url': 'https://www.megatv.com/embed/?p=2020520979',
@@ -134,11 +133,6 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
         },
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        for mobj in cls._EMBED_RE.finditer(webpage):
-            yield unescapeHTML(mobj.group('url'))
-
     def _match_canonical_url(self, webpage):
         LINK_RE = r'''(?x)
         <link(?:
@@ -166,5 +160,5 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
         canonical_url = self._request_webpage(
             HEADRequest(canonical_url), video_id,
             note='Resolve canonical URL',
-            errnote='Could not resolve canonical URL').geturl()
+            errnote='Could not resolve canonical URL').url
         return self.url_result(canonical_url, MegaTVComIE.ie_key(), video_id)

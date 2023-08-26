@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -17,6 +15,7 @@ class ExpressenIE(InfoExtractor):
                         tv/(?:[^/]+/)*
                         (?P<id>[^/?#&]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?(?:expressen|di)\.se/(?:tvspelare/video|videoplayer/embed)/tv/.+?)\1']
     _TESTS = [{
         'url': 'https://www.expressen.se/tv/ledare/ledarsnack/ledarsnack-om-arbetslosheten-bland-kvinnor-i-speciellt-utsatta-omraden/',
         'md5': 'deb2ca62e7b1dcd19fa18ba37523f66e',
@@ -45,13 +44,6 @@ class ExpressenIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url') for mobj in re.finditer(
-                r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?(?:expressen|di)\.se/(?:tvspelare/video|videoplayer/embed)/tv/.+?)\1',
-                webpage)]
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
@@ -78,7 +70,6 @@ class ExpressenIE(InfoExtractor):
             formats = [{
                 'url': stream,
             }]
-        self._sort_formats(formats)
 
         title = info.get('titleRaw') or data['title']
         description = info.get('descriptionRaw')

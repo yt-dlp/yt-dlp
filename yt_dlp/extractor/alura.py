@@ -63,8 +63,6 @@ class AluraIE(InfoExtractor):
                             f['height'] = int('720' if m.group('res') == 'hd' else '480')
                 formats.extend(video_format)
 
-            self._sort_formats(formats)
-
             return {
                 'id': video_id,
                 'title': video_title,
@@ -113,7 +111,7 @@ class AluraIE(InfoExtractor):
             raise ExtractorError('Unable to log in')
 
 
-class AluraCourseIE(AluraIE):
+class AluraCourseIE(AluraIE):  # XXX: Do not subclass from concrete IE
 
     _VALID_URL = r'https?://(?:cursos\.)?alura\.com\.br/course/(?P<id>[^/]+)'
     _LOGIN_URL = 'https://cursos.alura.com.br/loginForm?urlAfterLogin=/loginForm'

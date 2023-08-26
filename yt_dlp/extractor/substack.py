@@ -2,7 +2,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import str_or_none, traverse_obj
+from ..utils import js_to_json, str_or_none, traverse_obj
 
 
 class SubstackIE(InfoExtractor):
@@ -14,7 +14,7 @@ class SubstackIE(InfoExtractor):
             'id': '47660949',
             'ext': 'mp4',
             'title': 'I MADE A VLOG',
-            'description': 'md5:10c01ff93439a62e70ce963b2aa0b7f6',
+            'description': 'md5:9248af9a759321e1027226f988f54d96',
             'thumbnail': 'md5:bec758a34d8ee9142d43bcebdf33af18',
             'uploader': 'Maybe Baby',
             'uploader_id': '33628',
@@ -46,14 +46,15 @@ class SubstackIE(InfoExtractor):
     }]
 
     @classmethod
-    def _extract_url(cls, webpage, url):
+    def _extract_embed_urls(cls, url, webpage):
         if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):
             return
 
         mobj = re.search(r'{[^}]*["\']subdomain["\']\s*:\s*["\'](?P<subdomain>[^"]+)', webpage)
         if mobj:
             parsed = urllib.parse.urlparse(url)
-            return parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
+            yield parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
+            raise cls.StopExtraction()
 
     def _extract_video_formats(self, video_id, username):
         formats, subtitles = [], {}
@@ -76,7 +77,9 @@ class SubstackIE(InfoExtractor):
         display_id, username = self._match_valid_url(url).group('id', 'username')
         webpage = self._download_webpage(url, display_id)
 
-        webpage_info = self._search_json(r'<script[^>]*>\s*window\._preloads\s*=', webpage, 'preloads', display_id)
+        webpage_info = self._parse_json(self._search_json(
+            r'window\._preloads\s*=\s*JSON\.parse\(', webpage, 'json string',
+            display_id, transform_source=js_to_json, contains_pattern=r'"{(?s:.+)}"'), display_id)
 
         post_type = webpage_info['post']['type']
         formats, subtitles = [], {}
@@ -87,7 +90,6 @@ class SubstackIE(InfoExtractor):
         else:
             self.raise_no_formats(f'Page type "{post_type}" is not supported')
 
-        self._sort_formats(formats)
         return {
             'id': str(webpage_info['post']['id']),
             'formats': formats,

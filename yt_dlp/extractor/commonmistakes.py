@@ -4,9 +4,7 @@ from ..utils import ExtractorError
 
 class CommonMistakesIE(InfoExtractor):
     IE_DESC = False  # Do not list
-    _VALID_URL = r'''(?x)
-        (?:url|URL)$
-    '''
+    _VALID_URL = r'(?:url|URL|yt-dlp)$'
 
     _TESTS = [{
         'url': 'url',

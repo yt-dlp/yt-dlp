@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -17,7 +17,7 @@ class LimelightBaseIE(InfoExtractor):
     _PLAYLIST_SERVICE_URL = 'http://production-ps.lvp.llnw.net/r/PlaylistService/%s/%s/%s'
 
     @classmethod
-    def _extract_urls(cls, webpage, source_url):
+    def _extract_embed_urls(cls, url, webpage):
         lm = {
             'Media': 'media',
             'Channel': 'channel',
@@ -25,7 +25,7 @@ class LimelightBaseIE(InfoExtractor):
         }
 
         def smuggle(url):
-            return smuggle_url(url, {'source_url': source_url})
+            return smuggle_url(url, {'source_url': url})
 
         entries = []
         for kind, video_id in re.findall(
@@ -69,8 +69,8 @@ class LimelightBaseIE(InfoExtractor):
                 item_id, 'Downloading PlaylistService %s JSON' % method,
                 fatal=fatal, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                error = self._parse_json(e.cause.read().decode(), item_id)['detail']['contentAccessPermission']
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                error = self._parse_json(e.cause.response.read().decode(), item_id)['detail']['contentAccessPermission']
                 if error == 'CountryDisabled':
                     self.raise_geo_restricted()
                 raise ExtractorError(error, expected=True)
@@ -178,8 +178,6 @@ class LimelightBaseIE(InfoExtractor):
                     'quality': -10,
                     'ext': ext,
                 })
-
-        self._sort_formats(formats)
 
         subtitles = {}
         for flag in mobile_item.get('flags'):

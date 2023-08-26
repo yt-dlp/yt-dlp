@@ -7,6 +7,8 @@ from ..utils import (
 
 class ViddlerIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?viddler\.com/(?:v|embed|player)/(?P<id>[a-z0-9]+)(?:.+?\bsecret=(\d+))?'
+    _EMBED_REGEX = [r'<(?:iframe[^>]+?src|param[^>]+?value)=(["\'])(?P<url>(?:https?:)?//(?:www\.)?viddler\.com/(?:embed|player)/.+?)\1']
+
     _TESTS = [{
         'url': 'http://www.viddler.com/v/43903784',
         'md5': '9eee21161d2c7f5b39690c3e325fab2f',
@@ -114,7 +116,6 @@ class ViddlerIE(InfoExtractor):
                 f['format_id'] = format_id + '-html5'
                 f['source_preference'] = 0
                 formats.append(f)
-        self._sort_formats(formats)
 
         categories = [
             t.get('text') for t in data.get('tags', []) if 'text' in t]

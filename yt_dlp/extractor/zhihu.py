@@ -45,7 +45,6 @@ class ZhihuIE(InfoExtractor):
                 'url': play_url,
                 'width': int_or_none(q.get('width')),
             })
-        self._sort_formats(formats)
 
         author = zvideo.get('author') or {}
         url_token = author.get('url_token')

@@ -73,7 +73,6 @@ class ArnesIE(InfoExtractor):
                 'width': int_or_none(media.get('width')),
                 'height': int_or_none(media.get('height')),
             })
-        self._sort_formats(formats)
 
         channel = video.get('channel') or {}
         channel_id = channel.get('url')

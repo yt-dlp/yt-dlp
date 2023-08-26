@@ -2,16 +2,15 @@ import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
+from ..networking import HEADRequest, Request
 from ..utils import (
     ExtractorError,
+    RegexNotFoundError,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
-    HEADRequest,
     int_or_none,
     join_nonempty,
-    RegexNotFoundError,
-    sanitized_Request,
     strip_or_none,
     timeconvert,
     try_get,
@@ -51,15 +50,15 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
     def _extract_mobile_video_formats(self, mtvn_id):
         webpage_url = self._MOBILE_TEMPLATE % mtvn_id
-        req = sanitized_Request(webpage_url)
+        req = Request(webpage_url)
         # Otherwise we get a webpage that would execute some javascript
-        req.add_header('User-Agent', 'curl/7')
+        req.headers['User-Agent'] = 'curl/7'
         webpage = self._download_webpage(req, mtvn_id,
                                          'Downloading mobile page')
         metrics_url = unescapeHTML(self._search_regex(r'<a href="(http://metrics.+?)"', webpage, 'url'))
         req = HEADRequest(metrics_url)
         response = self._request_webpage(req, mtvn_id, 'Resolving url')
-        url = response.geturl()
+        url = response.url
         # Transform the url to get the best quality:
         url = re.sub(r'.+pxE=mp4', 'http://mtvnmobile.vo.llnwd.net/kip0/_pxn=0+_pxK=18639+_pxE=mp4', url, 1)
         return [{'url': url, 'ext': 'mp4'}]
@@ -102,8 +101,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     }])
                 except (KeyError, TypeError):
                     raise ExtractorError('Invalid rendition field.')
-        if formats:
-            self._sort_formats(formats)
         return formats
 
     def _extract_subtitles(self, mdoc, mtvn_id):
@@ -201,8 +198,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
         # http://www.southpark.de/alle-episoden/s14e01-sexual-healing)
         if not formats:
             return None
-
-        self._sort_formats(formats)
 
         return {
             'title': title,
@@ -331,6 +326,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtvservices:embedded'
     _VALID_URL = r'https?://media\.mtvnservices\.com/embed/(?P<mgid>.+?)(\?|/|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1']
 
     _TEST = {
         # From http://www.thewrap.com/peter-dinklage-sums-up-game-of-thrones-in-45-seconds-video/
@@ -345,13 +341,6 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
             'upload_date': '20140515',
         },
     }
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
@@ -542,7 +531,7 @@ class MTVItaliaIE(MTVServicesInfoExtractor):
         }
 
 
-class MTVItaliaProgrammaIE(MTVItaliaIE):
+class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'mtv.it:programma'
     _VALID_URL = r'https?://(?:www\.)?mtv\.it/(?:programmi|playlist)/(?P<id>[0-9a-z]+)'
     _TESTS = [{

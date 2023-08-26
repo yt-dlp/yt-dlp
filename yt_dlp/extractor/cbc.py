@@ -2,20 +2,23 @@ import re
 import json
 import base64
 import time
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
 )
 from ..utils import (
+    ExtractorError,
     int_or_none,
     join_nonempty,
     js_to_json,
     orderedSet,
+    parse_iso8601,
     smuggle_url,
     strip_or_none,
+    traverse_obj,
     try_get,
-    ExtractorError,
 )
 
 
@@ -159,7 +162,7 @@ class CBCPlayerIE(InfoExtractor):
             'upload_date': '20160210',
             'uploader': 'CBCC-NEW',
         },
-        'skip': 'Geo-restricted to Canada',
+        'skip': 'Geo-restricted to Canada and no longer available',
     }, {
         # Redirected from http://www.cbc.ca/player/AudioMobile/All%20in%20a%20Weekend%20Montreal/ID/2657632011/
         'url': 'http://www.cbc.ca/player/play/2657631896',
@@ -172,6 +175,9 @@ class CBCPlayerIE(InfoExtractor):
             'timestamp': 1425704400,
             'upload_date': '20150307',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
+            'chapters': [],
+            'duration': 494.811,
         },
     }, {
         'url': 'http://www.cbc.ca/player/play/2164402062',
@@ -184,6 +190,28 @@ class CBCPlayerIE(InfoExtractor):
             'timestamp': 1320410746,
             'upload_date': '20111104',
             'uploader': 'CBCC-NEW',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/277/67/cancer_852x480_2164412612.jpg',
+            'chapters': [],
+            'duration': 186.867,
+        },
+    }, {
+        # Has subtitles
+        # These broadcasts expire after ~1 month, can find new test URL here:
+        # https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast
+        'url': 'http://www.cbc.ca/player/play/2249992771553',
+        'md5': '2f2fb675dd4f0f8a5bb7588d1b13bacd',
+        'info_dict': {
+            'id': '2249992771553',
+            'ext': 'mp4',
+            'title': 'The National | Women’s soccer pay, Florida seawater, Swift quake',
+            'description': 'md5:adba28011a56cfa47a080ff198dad27a',
+            'timestamp': 1690596000,
+            'duration': 2716.333,
+            'subtitles': {'eng': [{'ext': 'vtt', 'protocol': 'm3u8_native'}]},
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/481/326/thumbnail.jpeg',
+            'uploader': 'CBCC-NEW',
+            'chapters': 'count:5',
+            'upload_date': '20230729',
         },
     }]
 
@@ -197,12 +225,45 @@ class CBCPlayerIE(InfoExtractor):
                     'force_smil_url': True
                 }),
             'id': video_id,
+            '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
         }
+
+
+class CBCPlayerPlaylistIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:player:playlist'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?:player/)(?!play/)(?P<id>[^?#]+)'
+    _TESTS = [{
+        'url': 'https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/tv shows/the national/latest broadcast',
+        }
+    }, {
+        'url': 'https://www.cbc.ca/player/news/Canada/North',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/canada/north',
+        }
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = urllib.parse.unquote(self._match_id(url)).lower()
+        webpage = self._download_webpage(url, playlist_id)
+        json_content = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', playlist_id)
+
+        def entries():
+            for video_id in traverse_obj(json_content, (
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id'
+            )):
+                yield self.url_result(f'https://www.cbc.ca/player/play/{video_id}', CBCPlayerIE)
+
+        return self.playlist_result(entries(), playlist_id)
 
 
 class CBCGemIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca'
-    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
     _TESTS = [{
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
@@ -245,6 +306,9 @@ class CBCGemIE(InfoExtractor):
         },
         'params': {'format': 'bv'},
         'skip': 'Geo-restricted to Canada',
+    }, {
+        'url': 'https://gem.cbc.ca/nadiyas-family-favourites/s01e01',
+        'only_matching': True,
     }]
 
     _GEO_COUNTRIES = ['CA']
@@ -304,13 +368,13 @@ class CBCGemIE(InfoExtractor):
     def _get_claims_token(self, email, password):
         if not self.claims_token_valid():
             self._claims_token = self._new_claims_token(email, password)
-            self._downloader.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
+            self.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
         return self._claims_token
 
     def _real_initialize(self):
         if self.claims_token_valid():
             return
-        self._claims_token = self._downloader.cache.load(self._NETRC_MACHINE, 'claims_token')
+        self._claims_token = self.cache.load(self._NETRC_MACHINE, 'claims_token')
 
     def _find_secret_formats(self, formats, video_id):
         """ Find a valid video url and convert it to the secret variant """
@@ -346,7 +410,9 @@ class CBCGemIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/assets/' + video_id, video_id)
+        video_info = self._download_json(
+            f'https://services.radio-canada.ca/ott/cbc-api/v2/assets/{video_id}',
+            video_id, expected_status=426)
 
         email, password = self._get_login_info()
         if email and password:
@@ -380,8 +446,6 @@ class CBCGemIE(InfoExtractor):
                 if 'descriptive' in format['format_id'].lower():
                     format['preference'] = -2
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': video_info['title'],
@@ -403,7 +467,7 @@ class CBCGemIE(InfoExtractor):
 
 class CBCGemPlaylistIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:playlist'
-    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))/?(?:[?#]|$)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))/?(?:[?#]|$)'
     _TESTS = [{
         # TV show playlist, all public videos
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
@@ -413,6 +477,9 @@ class CBCGemPlaylistIE(InfoExtractor):
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
         },
+    }, {
+        'url': 'https://gem.cbc.ca/schitts-creek/s06',
+        'only_matching': True,
     }]
     _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/shows/'
 
@@ -420,7 +487,7 @@ class CBCGemPlaylistIE(InfoExtractor):
         match = self._match_valid_url(url)
         season_id = match.group('id')
         show = match.group('show')
-        show_info = self._download_json(self._API_BASE + show, season_id)
+        show_info = self._download_json(self._API_BASE + show, season_id, expected_status=426)
         season = int(match.group('season'))
 
         season_info = next((s for s in show_info['seasons'] if s.get('season') == season), None)
@@ -472,49 +539,90 @@ class CBCGemPlaylistIE(InfoExtractor):
 
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
-    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>\d+)'
-    _TEST = {
-        'url': 'https://gem.cbc.ca/live/920604739687',
-        'info_dict': {
-            'title': 'Ottawa',
-            'description': 'The live TV channel and local programming from Ottawa',
-            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
-            'is_live': True,
-            'id': 'AyqZwxRqh8EH',
-            'ext': 'mp4',
-            'timestamp': 1492106160,
-            'upload_date': '20170413',
-            'uploader': 'CBCC-NEW',
+    _VALID_URL = r'https?://gem\.cbc\.ca/live(?:-event)?/(?P<id>\d+)'
+    _TESTS = [
+        {
+            'url': 'https://gem.cbc.ca/live/920604739687',
+            'info_dict': {
+                'title': 'Ottawa',
+                'description': 'The live TV channel and local programming from Ottawa',
+                'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
+                'is_live': True,
+                'id': 'AyqZwxRqh8EH',
+                'ext': 'mp4',
+                'timestamp': 1492106160,
+                'upload_date': '20170413',
+                'uploader': 'CBCC-NEW',
+            },
+            'skip': 'Live might have ended',
         },
-        'skip': 'Live might have ended',
-    }
-
-    # It's unclear where the chars at the end come from, but they appear to be
-    # constant. Might need updating in the future.
-    # There are two URLs, some livestreams are in one, and some
-    # in the other. The JSON schema is the same for both.
-    _API_URLS = ['https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT', 'https://tpfeed.cbc.ca/f/ExhSPC/FNiv9xQx_BnT']
+        {
+            'url': 'https://gem.cbc.ca/live/44',
+            'info_dict': {
+                'id': '44',
+                'ext': 'mp4',
+                'is_live': True,
+                'title': r're:^Ottawa [0-9\-: ]+',
+                'description': 'The live TV channel and local programming from Ottawa',
+                'live_status': 'is_live',
+                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*'
+            },
+            'params': {'skip_download': True},
+            'skip': 'Live might have ended',
+        },
+        {
+            'url': 'https://gem.cbc.ca/live-event/10835',
+            'info_dict': {
+                'id': '10835',
+                'ext': 'mp4',
+                'is_live': True,
+                'title': r're:^The National \| Biden’s trip wraps up, Paltrow testifies, Bird flu [0-9\-: ]+',
+                'description': 'March 24, 2023 | President Biden’s Ottawa visit ends with big pledges from both countries. Plus, Gwyneth Paltrow testifies in her ski collision trial.',
+                'live_status': 'is_live',
+                'thumbnail': r're:https://images.gem.cbc.ca/v1/cbc-gem/live/.*',
+                'timestamp': 1679706000,
+                'upload_date': '20230325',
+            },
+            'params': {'skip_download': True},
+            'skip': 'Live might have ended',
+        }
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        video_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['data']
 
-        for api_url in self._API_URLS:
-            video_info = next((
-                stream for stream in self._download_json(api_url, video_id)['entries']
-                if stream.get('guid') == video_id), None)
-            if video_info:
-                break
-        else:
+        # Two types of metadata JSON
+        if not video_info.get('formattedIdMedia'):
+            video_info = traverse_obj(
+                video_info, (('freeTv', ('streams', ...)), 'items', lambda _, v: v['key'] == video_id, {dict}),
+                get_all=False, default={})
+
+        video_stream_id = video_info.get('formattedIdMedia')
+        if not video_stream_id:
             raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
+        stream_data = self._download_json(
+            'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
+                'appCode': 'mpx',
+                'connectionType': 'hd',
+                'deviceType': 'ipad',
+                'idMedia': video_stream_id,
+                'multibitrate': 'true',
+                'output': 'json',
+                'tech': 'hls',
+                'manifestType': 'desktop',
+            })
+
         return {
-            '_type': 'url_transparent',
-            'ie_key': 'ThePlatform',
-            'url': video_info['content'][0]['url'],
             'id': video_id,
-            'title': video_info.get('title'),
-            'description': video_info.get('description'),
-            'tags': try_get(video_info, lambda x: x['keywords'].split(', ')),
-            'thumbnail': video_info.get('cbc$staticImage'),
+            'formats': self._extract_m3u8_formats(stream_data['url'], video_id, 'mp4', live=True),
             'is_live': True,
+            **traverse_obj(video_info, {
+                'title': 'title',
+                'description': 'description',
+                'thumbnail': ('images', 'card', 'url'),
+                'timestamp': ('airDate', {parse_iso8601}),
+            })
         }

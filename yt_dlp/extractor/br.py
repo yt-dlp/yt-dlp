@@ -157,7 +157,6 @@ class BRIE(InfoExtractor):
                         'format_id': 'rtmp-%s' % asset_type,
                     })
                     formats.append(rtmp_format_info)
-        self._sort_formats(formats)
         return formats
 
     def _extract_thumbnails(self, variants, base_url):
@@ -272,7 +271,6 @@ class BRMediathekIE(InfoExtractor):
                     'tbr': tbr,
                     'filesize': int_or_none(node.get('fileSize')),
                 })
-        self._sort_formats(formats)
 
         subtitles = {}
         for edge in clip.get('captionFiles', {}).get('edges', []):

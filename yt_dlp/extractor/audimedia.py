@@ -76,7 +76,6 @@ class AudiMediaIE(InfoExtractor):
                         'format_id': 'http-%s' % bitrate,
                     })
                 formats.append(f)
-            self._sort_formats(formats)
 
             return {
                 'id': video_id,

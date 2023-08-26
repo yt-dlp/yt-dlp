@@ -48,7 +48,7 @@ class GameJoltBaseIE(InfoExtractor):
                 post_hash_id, note='Downloading comments list page %d' % page)
             if not comments_data.get('comments'):
                 break
-            for comment in traverse_obj(comments_data, (('comments', 'childComments'), ...), expected_type=dict, default=[]):
+            for comment in traverse_obj(comments_data, (('comments', 'childComments'), ...), expected_type=dict):
                 yield {
                     'id': comment['id'],
                     'text': self._parse_content_as_text(

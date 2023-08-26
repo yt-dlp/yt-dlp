@@ -1,13 +1,11 @@
-import re
 import urllib.parse
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     ExtractorError,
     determine_ext,
     scale_thumbnails_to_max_format_width,
-    unescapeHTML,
 )
 
 
@@ -21,7 +19,6 @@ class Ant1NewsGrBaseIE(InfoExtractor):
             raise ExtractorError('no source found for %s' % video_id)
         formats, subs = (self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
                          if determine_ext(source) == 'm3u8' else ([{'url': source}], {}))
-        self._sort_formats(formats)
         thumbnails = scale_thumbnails_to_max_format_width(
             formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
         return {
@@ -91,7 +88,7 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         info = self._search_json_ld(webpage, video_id, expected_type='NewsArticle')
-        embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
+        embed_urls = list(Ant1NewsGrEmbedIE._extract_embed_urls(url, webpage))
         if not embed_urls:
             raise ExtractorError('no videos found for %s' % video_id, expected=True)
         return self.playlist_from_matches(
@@ -104,6 +101,7 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
     IE_DESC = 'ant1news.gr embedded videos'
     _BASE_PLAYER_URL_RE = r'(?:https?:)?//(?:[a-zA-Z0-9\-]+\.)?(?:antenna|ant1news)\.gr/templates/pages/player'
     _VALID_URL = rf'{_BASE_PLAYER_URL_RE}\?([^#]+&)?cid=(?P<id>[^#&]+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{_BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+)(?P=_q1)']
     _API_PATH = '/news/templates/data/jsonPlayer'
 
     _TESTS = [{
@@ -117,23 +115,13 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
         },
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        _EMBED_URL_RE = rf'{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
-        _EMBED_RE = rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{_EMBED_URL_RE})(?P=_q1)'
-        for mobj in re.finditer(_EMBED_RE, webpage):
-            url = unescapeHTML(mobj.group('url'))
-            if not cls.suitable(url):
-                continue
-            yield url
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         canonical_url = self._request_webpage(
             HEADRequest(url), video_id,
             note='Resolve canonical player URL',
-            errnote='Could not resolve canonical player URL').geturl()
+            errnote='Could not resolve canonical player URL').url
         _, netloc, _, _, query, _ = urllib.parse.urlparse(canonical_url)
         cid = urllib.parse.parse_qs(query)['cid'][0]
 

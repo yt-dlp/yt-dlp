@@ -1,29 +1,30 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
 )
+from ..networking import Request
+from ..networking.exceptions import network_exceptions
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     error_to_compat_str,
-    ExtractorError,
     float_or_none,
     get_element_by_id,
     get_first,
     int_or_none,
     js_to_json,
     merge_dicts,
-    network_exceptions,
     parse_count,
     parse_qs,
     qualities,
-    sanitized_Request,
+    str_or_none,
     traverse_obj,
     try_get,
     url_or_none,
@@ -57,6 +58,13 @@ class FacebookIE(InfoExtractor):
                 )
                 (?P<id>[0-9]+)
                 '''
+    _EMBED_REGEX = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
+        # Facebook API embed https://developers.facebook.com/docs/plugins/embedded-video-player
+        r'''(?x)<div[^>]+
+                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
+                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''',
+    ]
     _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
     _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
     _NETRC_MACHINE = 'facebook'
@@ -83,16 +91,16 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '274175099429670',
             'ext': 'mp4',
-            'title': 'Asif Nawab Butt',
-            'description': 'Asif Nawab Butt',
+            'title': 'Asif',
+            'description': '',
             'uploader': 'Asif Nawab Butt',
             'upload_date': '20140506',
             'timestamp': 1399398998,
             'thumbnail': r're:^https?://.*',
+            'uploader_id': 'pfbid04scW44U4P9iTyLZAGy8y8W3pR3i2VugvHCimiRudUAVbN3MPp9eXBaYFcgVworZwl',
+            'duration': 131.03,
+            'concurrent_view_count': int,
         },
-        'expected_warnings': [
-            'title'
-        ]
     }, {
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
@@ -144,7 +152,7 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
-        'md5': '3f3798adb2b73423263e59376f1f5eb7',
+        'md5': 'ca63897a90c9452efee5f8c40d080e25',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
@@ -155,6 +163,9 @@ class FacebookIE(InfoExtractor):
             'uploader': 'CNN',
             'thumbnail': r're:^https?://.*',
             'view_count': int,
+            'uploader_id': '100059479812265',
+            'concurrent_view_count': int,
+            'duration': 44.478,
         },
     }, {
         # bigPipe.onPageletArrive ... onPageletArrive pagelet_group_mall
@@ -163,12 +174,16 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1417995061575415',
             'ext': 'mp4',
-            'title': 'Ukrainian Scientists Worldwide | Довгоочікуване відео',
+            'title': 'Довгоочікуване відео | By Yaroslav - Facebook',
             'description': 'Довгоочікуване відео',
-            'timestamp': 1486648771,
+            'timestamp': 1486648217,
             'upload_date': '20170209',
             'uploader': 'Yaroslav Korpan',
-            'uploader_id': '100000948048708',
+            'uploader_id': 'pfbid029y8j22EwH3ikeqgH3SEP9G3CAi9kmWKgXJJG9s5geV7mo3J2bvURqHCdgucRgAyhl',
+            'concurrent_view_count': int,
+            'thumbnail': r're:^https?://.*',
+            'view_count': int,
+            'duration': 11736.446,
         },
         'params': {
             'skip_download': True,
@@ -185,9 +200,7 @@ class FacebookIE(InfoExtractor):
             'uploader': 'La Guía Del Varón',
             'thumbnail': r're:^https?://.*',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Requires logging in',
     }, {
         # data.node.comet_sections.content.story.attachments[].style_type_renderer.attachment.media
         'url': 'https://www.facebook.com/groups/1024490957622648/permalink/1396382447100162/',
@@ -201,9 +214,7 @@ class FacebookIE(InfoExtractor):
             'uploader': 'Elisabeth Ahtn',
             'uploader_id': '100013949973717',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Requires logging in',
     }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,
@@ -245,7 +256,11 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1527084179,
             'upload_date': '20180523',
             'uploader': 'ESL One Dota 2',
-            'uploader_id': '234218833769558',
+            'uploader_id': '100066514874195',
+            'duration': 4524.212,
+            'view_count': int,
+            'thumbnail': r're:^https?://.*',
+            'concurrent_view_count': int,
         },
         'params': {
             'skip_download': True,
@@ -255,8 +270,17 @@ class FacebookIE(InfoExtractor):
         'url': 'https://www.facebook.com/100033620354545/videos/106560053808006/',
         'info_dict': {
             'id': '106560053808006',
+            'ext': 'mp4',
+            'title': 'Josef',
+            'thumbnail': r're:^https?://.*',
+            'concurrent_view_count': int,
+            'uploader_id': 'pfbid02gXHbDwxumkaKJQaTGUf3znYfYzTuidGEWawiramNx4YamSj2afwYSRkpcjtHtMRJl',
+            'timestamp': 1549275572,
+            'duration': 3.413,
+            'uploader': 'Josef Novak',
+            'description': '',
+            'upload_date': '20190204',
         },
-        'playlist_count': 2,
     }, {
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/watch/?v=647537299265662',
@@ -269,6 +293,7 @@ class FacebookIE(InfoExtractor):
             'id': '10157667649866271',
         },
         'playlist_count': 3,
+        'skip': 'Requires logging in',
     }, {
         # data.nodes[].comet_sections.content.story.attachments[].style_type_renderer.attachment.media
         'url': 'https://m.facebook.com/Alliance.Police.Department/posts/4048563708499330',
@@ -311,23 +336,8 @@ class FacebookIE(InfoExtractor):
         'graphURI': '/api/graphql/'
     }
 
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        for mobj in re.finditer(
-                r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
-                webpage):
-            urls.append(mobj.group('url'))
-        # Facebook API embed
-        # see https://developers.facebook.com/docs/plugins/embedded-video-player
-        for mobj in re.finditer(r'''(?x)<div[^>]+
-                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
-                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''', webpage):
-            urls.append(mobj.group('url'))
-        return urls
-
     def _perform_login(self, username, password):
-        login_page_req = sanitized_Request(self._LOGIN_URL)
+        login_page_req = Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
         login_page = self._download_webpage(login_page_req, None,
                                             note='Downloading login page',
@@ -348,8 +358,8 @@ class FacebookIE(InfoExtractor):
             'timezone': '-60',
             'trynum': '1',
         }
-        request = sanitized_Request(self._LOGIN_URL, urlencode_postdata(login_form))
-        request.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        request = Request(self._LOGIN_URL, urlencode_postdata(login_form))
+        request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
         try:
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
@@ -375,8 +385,8 @@ class FacebookIE(InfoExtractor):
                 'h': h,
                 'name_action_selected': 'dont_save',
             }
-            check_req = sanitized_Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
-            check_req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+            check_req = Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
+            check_req.headers['Content-Type'] = 'application/x-www-form-urlencoded'
             check_response = self._download_webpage(check_req, None,
                                                     note='Confirming login')
             if re.search(r'id="checkpointSubmitButton"', check_response) is not None:
@@ -398,7 +408,10 @@ class FacebookIE(InfoExtractor):
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
-            uploader_data = get_first(media, 'owner') or get_first(post, ('node', 'actors', ...)) or {}
+            uploader_data = (
+                get_first(media, ('owner', {dict}))
+                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
+                or get_first(post, ('node', 'actors', ..., {dict})) or {})
 
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
@@ -423,16 +436,17 @@ class FacebookIE(InfoExtractor):
             # in https://www.facebook.com/yaroslav.korpan/videos/1417995061575415/
             if thumbnail and not re.search(r'\.(?:jpg|png)', thumbnail):
                 thumbnail = None
-            view_count = parse_count(self._search_regex(
-                r'\bviewCount\s*:\s*["\']([\d,.]+)', webpage, 'view count',
-                default=None))
             info_dict = {
                 'description': description,
                 'uploader': uploader,
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
-                'view_count': view_count,
+                'view_count': parse_count(self._search_regex(
+                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
+                    webpage, 'view count', default=None)),
+                'concurrent_view_count': get_first(post, (
+                    ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -467,15 +481,15 @@ class FacebookIE(InfoExtractor):
             dash_manifest = video.get('dash_manifest')
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
-                    compat_etree_fromstring(compat_urllib_parse_unquote_plus(dash_manifest))))
+                    compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest)),
+                    mpd_url=video.get('dash_manifest_url')))
 
-        def process_formats(formats):
+        def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
-            for f in formats:
+            for f in info['formats']:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-
-            self._sort_formats(formats, ('res', 'quality'))
+            info['_format_sort_fields'] = ('res', 'quality')
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -502,6 +516,13 @@ class FacebookIE(InfoExtractor):
                 entries = []
 
                 def parse_graphql_video(video):
+                    v_id = video.get('videoId') or video.get('id') or video_id
+                    reel_info = traverse_obj(
+                        video, ('creation_story', 'short_form_video_context', 'playback_video', {dict}))
+                    if reel_info:
+                        video = video['creation_story']
+                        video['owner'] = traverse_obj(video, ('short_form_video_context', 'video_owner'))
+                        video.update(reel_info)
                     formats = []
                     q = qualities(['sd', 'hd'])
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
@@ -518,17 +539,17 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
-                    process_formats(formats)
-                    v_id = video.get('videoId') or video.get('id') or video_id
                     info = {
                         'id': v_id,
                         'formats': formats,
                         'thumbnail': traverse_obj(
                             video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
-                        'uploader_id': try_get(video, lambda x: x['owner']['id']),
-                        'timestamp': int_or_none(video.get('publish_time')),
-                        'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),
+                        'uploader_id': traverse_obj(video, ('owner', 'id', {str_or_none})),
+                        'timestamp': traverse_obj(video, 'publish_time', 'creation_time', expected_type=int_or_none),
+                        'duration': (float_or_none(video.get('playable_duration_in_ms'), 1000)
+                                     or float_or_none(video.get('length_in_second'))),
                     }
+                    process_formats(info)
                     description = try_get(video, lambda x: x['savable_description']['text'])
                     title = video.get('name')
                     if title:
@@ -695,13 +716,12 @@ class FacebookIE(InfoExtractor):
             if subtitles_src:
                 subtitles.setdefault('en', []).append({'url': subtitles_src})
 
-        process_formats(formats)
-
         info_dict = {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
         }
+        process_formats(info_dict)
         info_dict.update(extract_metadata(webpage))
 
         return info_dict
@@ -780,3 +800,30 @@ class FacebookRedirectURLIE(InfoExtractor):
         if not redirect_url:
             raise ExtractorError('Invalid facebook redirect URL', expected=True)
         return self.url_result(redirect_url)
+
+
+class FacebookReelIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/reel/(?P<id>\d+)'
+    IE_NAME = 'facebook:reel'
+
+    _TESTS = [{
+        'url': 'https://www.facebook.com/reel/1195289147628387',
+        'md5': 'f13dd37f2633595982db5ed8765474d3',
+        'info_dict': {
+            'id': '1195289147628387',
+            'ext': 'mp4',
+            'title': 'md5:b05800b5b1ad56c0ca78bd3807b6a61e',
+            'description': 'md5:22f03309b216ac84720183961441d8db',
+            'uploader': 'md5:723e6cb3091241160f20b3c5dc282af1',
+            'uploader_id': '100040874179269',
+            'duration': 9.579,
+            'timestamp': 1637502609,
+            'upload_date': '20211121',
+            'thumbnail': r're:^https?://.*',
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(
+            f'https://m.facebook.com/watch/?v={video_id}&_rdr', FacebookIE, video_id)

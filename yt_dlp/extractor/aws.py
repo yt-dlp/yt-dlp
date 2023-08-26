@@ -6,7 +6,7 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlencode
 
 
-class AWSIE(InfoExtractor):
+class AWSIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _AWS_ALGORITHM = 'AWS4-HMAC-SHA256'
     _AWS_REGION = 'us-east-1'
 

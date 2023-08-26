@@ -88,7 +88,6 @@ class RICEIE(InfoExtractor):
                         'ext': 'flv',
                     })
                 formats.append(fmt)
-        self._sort_formats(formats)
 
         thumbnails = []
         for content_asset in content_data.findall('.//contentAssets'):

@@ -80,7 +80,6 @@ class OnetBaseIE(InfoExtractor):
                                 'vbr': float_or_none(f.get('video_bitrate')),
                             })
                         formats.append(http_f)
-        self._sort_formats(formats)
 
         meta = video.get('meta', {})
 

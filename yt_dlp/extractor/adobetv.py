@@ -70,7 +70,6 @@ class AdobeTVBaseIE(InfoExtractor):
                     })
                     s3_extracted = True
             formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -232,6 +231,7 @@ class AdobeTVChannelIE(AdobeTVPlaylistBaseIE):
 class AdobeTVVideoIE(AdobeTVBaseIE):
     IE_NAME = 'adobetv:video'
     _VALID_URL = r'https?://video\.tv\.adobe\.com/v/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//video\.tv\.adobe\.com/v/\d+[^"]+)[\'"]']
 
     _TEST = {
         # From https://helpx.adobe.com/acrobat/how-to/new-experience-acrobat-dc.html?set=acrobat--get-started--essential-beginners
@@ -268,7 +268,6 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
                 'width': int_or_none(source.get('width') or None),
                 'url': source_src,
             })
-        self._sort_formats(formats)
 
         # For both metadata and downloaded files the duration varies among
         # formats. I just pick the max one

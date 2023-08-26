@@ -43,7 +43,6 @@ class EsriVideoIE(InfoExtractor):
                     'height': int(height),
                     'filesize_approx': parse_filesize(filesize),
                 })
-        self._sort_formats(formats)
 
         title = self._html_search_meta('title', webpage, 'title')
         description = self._html_search_meta(

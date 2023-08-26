@@ -1,22 +1,19 @@
+import getpass
 import json
 import re
 import time
-import urllib.error
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-    compat_getpass
-)
+from ..compat import compat_urlparse
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    unescapeHTML,
-    urlencode_postdata,
-    unified_timestamp,
-    ExtractorError,
     NO_DEFAULT,
+    ExtractorError,
+    unescapeHTML,
+    unified_timestamp,
+    urlencode_postdata,
 )
-
 
 MSO_INFO = {
     'DTV': {
@@ -1347,10 +1344,15 @@ MSO_INFO = {
         'username_field': 'username',
         'password_field': 'password',
     },
+    'AlticeOne': {
+        'name': 'Optimum TV',
+        'username_field': 'j_username',
+        'password_field': 'j_password',
+    },
 }
 
 
-class AdobePassIE(InfoExtractor):
+class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _SERVICE_PROVIDER_TEMPLATE = 'https://sp.auth.adobe.com/adobe-services/%s'
     _USER_AGENT = 'Mozilla/5.0 (X11; Linux i686; rv:47.0) Gecko/20100101 Firefox/47.0'
     _MVPD_CACHE = 'ap-mvpd'
@@ -1392,7 +1394,7 @@ class AdobePassIE(InfoExtractor):
             form_page, urlh = form_page_res
             post_url = self._html_search_regex(r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_page, 'post url', group='url')
             if not re.match(r'https?://', post_url):
-                post_url = compat_urlparse.urljoin(urlh.geturl(), post_url)
+                post_url = compat_urlparse.urljoin(urlh.url, post_url)
             form_data = self._hidden_inputs(form_page)
             form_data.update(data)
             return self._download_webpage_handle(
@@ -1431,7 +1433,7 @@ class AdobePassIE(InfoExtractor):
         guid = xml_text(resource, 'guid') if '<' in resource else resource
         count = 0
         while count < 2:
-            requestor_info = self._downloader.cache.load(self._MVPD_CACHE, requestor_id) or {}
+            requestor_info = self.cache.load(self._MVPD_CACHE, requestor_id) or {}
             authn_token = requestor_info.get('authn_token')
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
@@ -1471,7 +1473,7 @@ class AdobePassIE(InfoExtractor):
                     elif 'automatically signed in with' in provider_redirect_page:
                         # Seems like comcast is rolling up new way of automatically signing customers
                         oauth_redirect_url = self._html_search_regex(
-                            r'continue:\s*"(https://oauth.xfinity.com/oauth/authorize\?.+)"', provider_redirect_page,
+                            r'continue:\s*"(https://oauth\.xfinity\.com/oauth/authorize\?.+)"', provider_redirect_page,
                             'oauth redirect (signed)')
                         # Just need to process the request. No useful data comes back
                         self._download_webpage(oauth_redirect_url, video_id, 'Confirming auto login')
@@ -1506,7 +1508,7 @@ class AdobePassIE(InfoExtractor):
                             'send_confirm_link': False,
                             'send_token': True
                         }))
-                    philo_code = compat_getpass('Type auth code you have received [Return]: ')
+                    philo_code = getpass.getpass('Type auth code you have received [Return]: ')
                     self._download_webpage(
                         'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
                             'token': philo_code
@@ -1571,7 +1573,7 @@ class AdobePassIE(InfoExtractor):
                         }), headers={
                             'Content-Type': 'application/x-www-form-urlencoded'
                         })
-                elif mso_id == 'Spectrum':
+                elif mso_id in ('Spectrum', 'Charter_Direct'):
                     # Spectrum's login for is dynamically loaded via JS so we need to hardcode the flow
                     # as a one-off implementation.
                     provider_redirect_page, urlh = provider_redirect_page_res
@@ -1617,7 +1619,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history'] = 1
 
                     provider_login_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending first bookend',
+                        urlh.url, video_id, 'Sending first bookend',
                         query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
@@ -1627,7 +1629,7 @@ class AdobePassIE(InfoExtractor):
                         })
 
                     provider_refresh_redirect_url = extract_redirect_url(
-                        provider_association_redirect, url=urlh.geturl())
+                        provider_association_redirect, url=urlh.url)
 
                     last_bookend_page, urlh = self._download_webpage_handle(
                         provider_refresh_redirect_url, video_id,
@@ -1636,7 +1638,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history'] = 3
 
                     mvpd_confirm_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending final bookend',
+                        urlh.url, video_id, 'Sending final bookend',
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
@@ -1650,7 +1652,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history_val'] = 1
 
                     provider_login_redirect_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending First Bookend',
+                        urlh.url, video_id, 'Sending First Bookend',
                         query=hidden_data)
 
                     provider_login_redirect_page, urlh = provider_login_redirect_page_res
@@ -1678,7 +1680,7 @@ class AdobePassIE(InfoExtractor):
                         })
 
                     provider_refresh_redirect_url = extract_redirect_url(
-                        provider_association_redirect, url=urlh.geturl())
+                        provider_association_redirect, url=urlh.url)
 
                     last_bookend_page, urlh = self._download_webpage_handle(
                         provider_refresh_redirect_url, video_id,
@@ -1688,7 +1690,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history_val'] = 3
 
                     mvpd_confirm_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending Final Bookend',
+                        urlh.url, video_id, 'Sending Final Bookend',
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
@@ -1697,7 +1699,7 @@ class AdobePassIE(InfoExtractor):
                     # based redirect that should be followed.
                     provider_redirect_page, urlh = provider_redirect_page_res
                     provider_refresh_redirect_url = extract_redirect_url(
-                        provider_redirect_page, url=urlh.geturl())
+                        provider_redirect_page, url=urlh.url)
                     if provider_refresh_redirect_url:
                         provider_redirect_page_res = self._download_webpage_handle(
                             provider_refresh_redirect_url, video_id,
@@ -1708,7 +1710,7 @@ class AdobePassIE(InfoExtractor):
                         mso_info.get('username_field', 'username'): username,
                         mso_info.get('password_field', 'password'): password
                     }
-                    if mso_id == 'Cablevision':
+                    if mso_id in ('Cablevision', 'AlticeOne'):
                         form_data['_eventId_proceed'] = ''
                     mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', form_data)
                     if mso_id != 'Rogers':
@@ -1722,16 +1724,16 @@ class AdobePassIE(InfoExtractor):
                             'requestor_id': requestor_id,
                         }), headers=mvpd_headers)
                 except ExtractorError as e:
-                    if not mso_id and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    if not mso_id and isinstance(e.cause, HTTPError) and e.cause.status == 401:
                         raise_mvpd_required()
                     raise
                 if '<pendingLogout' in session:
-                    self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                    self.cache.store(self._MVPD_CACHE, requestor_id, {})
                     count += 1
                     continue
                 authn_token = unescapeHTML(xml_text(session, 'authnToken'))
                 requestor_info['authn_token'] = authn_token
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
+                self.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
 
             authz_token = requestor_info.get(guid)
             if authz_token and is_expired(authz_token, 'simpleTokenTTL'):
@@ -1747,14 +1749,14 @@ class AdobePassIE(InfoExtractor):
                         'userMeta': '1',
                     }), headers=mvpd_headers)
                 if '<pendingLogout' in authorize:
-                    self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                    self.cache.store(self._MVPD_CACHE, requestor_id, {})
                     count += 1
                     continue
                 if '<error' in authorize:
                     raise ExtractorError(xml_text(authorize, 'details'), expected=True)
                 authz_token = unescapeHTML(xml_text(authorize, 'authzToken'))
                 requestor_info[guid] = authz_token
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
+                self.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
 
             mvpd_headers.update({
                 'ap_19': xml_text(authn_token, 'simpleSamlNameID'),
@@ -1770,7 +1772,7 @@ class AdobePassIE(InfoExtractor):
                     'hashed_guid': 'false',
                 }), headers=mvpd_headers)
             if '<pendingLogout' in short_authorize:
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                self.cache.store(self._MVPD_CACHE, requestor_id, {})
                 count += 1
                 continue
             return short_authorize

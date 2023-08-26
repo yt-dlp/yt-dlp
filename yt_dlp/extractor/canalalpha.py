@@ -82,7 +82,6 @@ class CanalAlphaIE(InfoExtractor):
             dash_frmts, dash_subs = self._parse_mpd_formats_and_subtitles(manifests['dash'])
             formats.extend(dash_frmts)
             subtitles = self._merge_subtitles(subtitles, dash_subs)
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': data_json.get('title').strip(),

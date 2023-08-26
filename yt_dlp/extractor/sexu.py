@@ -34,7 +34,6 @@ class SexuIE(InfoExtractor):
                 r'^(\d+)[pP]', source.get('label', ''), 'height',
                 default=None)),
         } for source in sources if source.get('file')]
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             r'<title>([^<]+)\s*-\s*Sexu\.Com</title>', webpage, 'title')

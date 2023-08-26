@@ -80,8 +80,6 @@ class BanByeIE(BanByeBaseIE):
             'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.mp4',
         } for quality in data['quality']]
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': data.get('title'),

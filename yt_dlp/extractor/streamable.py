@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -12,6 +10,7 @@ from ..utils import (
 
 class StreamableIE(InfoExtractor):
     _VALID_URL = r'https?://streamable\.com/(?:[es]/)?(?P<id>\w+)'
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(?P<q1>[\'"])(?P<url>(?:https?:)?//streamable\.com/.+?)(?P=q1)']
     _TESTS = [
         {
             'url': 'https://streamable.com/dnd1',
@@ -53,14 +52,6 @@ class StreamableIE(InfoExtractor):
         }
     ]
 
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=(?P<q1>[\'"])(?P<src>(?:https?:)?//streamable\.com/(?:(?!\1).+))(?P=q1)',
-            webpage)
-        if mobj:
-            return mobj.group('src')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -98,7 +89,6 @@ class StreamableIE(InfoExtractor):
                 'vcodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['video_codec_name'])).get('vcodec'),
                 'acodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['audio_codec_name'])).get('acodec'),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

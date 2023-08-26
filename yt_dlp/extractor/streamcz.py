@@ -109,7 +109,6 @@ class StreamCZIE(InfoExtractor):
                 })
 
         formats = list(self._extract_formats(spl_url, video))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

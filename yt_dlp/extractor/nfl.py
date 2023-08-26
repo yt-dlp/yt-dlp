@@ -1,10 +1,18 @@
+import base64
+import json
 import re
+import time
+import uuid
 
+from .anvato import AnvatoIE
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     get_element_by_class,
+    traverse_obj,
+    urlencode_postdata,
 )
 
 
@@ -53,26 +61,23 @@ class NFLBaseIE(InfoExtractor):
                             )
                         )/
                     '''
-    _VIDEO_CONFIG_REGEX = r'<script[^>]+id="[^"]*video-config-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}[^"]*"[^>]*>\s*({.+})'
-    _WORKING = False
+    _VIDEO_CONFIG_REGEX = r'<script[^>]+id="[^"]*video-config-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}[^"]*"[^>]*>\s*({.+});?\s*</script>'
+    _ANVATO_PREFIX = 'anvato:GXvEgwyJeWem8KCYXfeoHWknwP48Mboj:'
 
     def _parse_video_config(self, video_config, display_id):
         video_config = self._parse_json(video_config, display_id)
         item = video_config['playlist'][0]
         mcp_id = item.get('mcpID')
         if mcp_id:
-            info = self.url_result(
-                'anvato:GXvEgwyJeWem8KCYXfeoHWknwP48Mboj:' + mcp_id,
-                'Anvato', mcp_id)
+            info = self.url_result(f'{self._ANVATO_PREFIX}{mcp_id}', AnvatoIE, mcp_id)
         else:
             media_id = item.get('id') or item['entityId']
-            title = item['title']
+            title = item.get('title')
             item_url = item['url']
             info = {'id': media_id}
             ext = determine_ext(item_url)
             if ext == 'm3u8':
                 info['formats'] = self._extract_m3u8_formats(item_url, media_id, 'mp4')
-                self._sort_formats(info['formats'])
             else:
                 info['url'] = item_url
                 if item.get('audio') is True:
@@ -108,6 +113,9 @@ class NFLIE(NFLBaseIE):
             'timestamp': 1608009755,
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'NFL',
+            'tags': 'count:6',
+            'duration': 157,
+            'categories': 'count:3',
         }
     }, {
         'url': 'https://www.chiefs.com/listen/patrick-mahomes-travis-kelce-react-to-win-over-dolphins-the-breakdown',
@@ -117,7 +125,8 @@ class NFLIE(NFLBaseIE):
             'ext': 'mp3',
             'title': 'Patrick Mahomes, Travis Kelce React to Win Over Dolphins | The Breakdown',
             'description': 'md5:12ada8ee70e6762658c30e223e095075',
-        }
+        },
+        'skip': 'HTTP Error 404: Not Found',
     }, {
         'url': 'https://www.buffalobills.com/video/buffalo-bills-military-recognition-week-14',
         'only_matching': True,
@@ -155,3 +164,138 @@ class NFLArticleIE(NFLBaseIE):
             'nfl-c-article__title', webpage)) or self._html_search_meta(
             ['og:title', 'twitter:title'], webpage)
         return self.playlist_result(entries, display_id, title)
+
+
+class NFLPlusReplayIE(NFLBaseIE):
+    IE_NAME = 'nfl.com:plus:replay'
+    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/games/[\w-]+/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.nfl.com/plus/games/giants-at-vikings-2022-post-1/1572108',
+        'info_dict': {
+            'id': '1572108',
+            'ext': 'mp4',
+            'title': 'New York Giants at Minnesota Vikings',
+            'description': 'New York Giants play the Minnesota Vikings at U.S. Bank Stadium on January 15, 2023',
+            'uploader': 'NFL',
+            'upload_date': '20230116',
+            'timestamp': 1673864520,
+            'duration': 7157,
+            'categories': ['Game Highlights'],
+            'tags': ['Minnesota Vikings', 'New York Giants', 'Minnesota Vikings vs. New York Giants'],
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)
+
+
+class NFLPlusEpisodeIE(NFLBaseIE):
+    IE_NAME = 'nfl.com:plus:episode'
+    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/episodes/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'note': 'premium content',
+        'url': 'https://www.nfl.com/plus/episodes/kurt-s-qb-insider-conference-championships',
+        'info_dict': {
+            'id': '1576832',
+            'ext': 'mp4',
+            'title': 'Kurt\'s QB Insider: Conference Championships',
+            'description': 'md5:944f7fab56f7a37430bf8473f5473857',
+            'uploader': 'NFL',
+            'upload_date': '20230127',
+            'timestamp': 1674782760,
+            'duration': 730,
+            'categories': ['Analysis'],
+            'tags': ['Cincinnati Bengals at Kansas City Chiefs (2022-POST-3)'],
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    _CLIENT_DATA = {
+        'clientKey': '4cFUW6DmwJpzT9L7LrG3qRAcABG5s04g',
+        'clientSecret': 'CZuvCL49d9OwfGsR',
+        'deviceId': str(uuid.uuid4()),
+        'deviceInfo': base64.b64encode(json.dumps({
+            'model': 'desktop',
+            'version': 'Chrome',
+            'osName': 'Windows',
+            'osVersion': '10.0',
+        }, separators=(',', ':')).encode()).decode(),
+        'networkType': 'other',
+        'nflClaimGroupsToAdd': [],
+        'nflClaimGroupsToRemove': [],
+    }
+    _ACCOUNT_INFO = {}
+    _API_KEY = None
+
+    _TOKEN = None
+    _TOKEN_EXPIRY = 0
+
+    def _get_account_info(self, url, video_id):
+        cookies = self._get_cookies('https://www.nfl.com/')
+        login_token = traverse_obj(cookies, (
+            (f'glt_{self._API_KEY}', f'gig_loginToken_{self._API_KEY}',
+             lambda k, _: k.startswith('glt_') or k.startswith('gig_loginToken_')),
+            {lambda x: x.value}), get_all=False)
+        if not login_token:
+            self.raise_login_required()
+
+        account = self._download_json(
+            'https://auth-id.nfl.com/accounts.getAccountInfo', video_id,
+            note='Downloading account info', data=urlencode_postdata({
+                'include': 'profile,data',
+                'lang': 'en',
+                'APIKey': self._API_KEY,
+                'sdk': 'js_latest',
+                'login_token': login_token,
+                'authMode': 'cookie',
+                'pageURL': url,
+                'sdkBuild': traverse_obj(cookies, (
+                    'gig_canary_ver', {lambda x: x.value.partition('-')[0]}), default='13642'),
+                'format': 'json',
+            }), headers={'Content-Type': 'application/x-www-form-urlencoded'})
+
+        self._ACCOUNT_INFO = traverse_obj(account, {
+            'signatureTimestamp': 'signatureTimestamp',
+            'uid': 'UID',
+            'uidSignature': 'UIDSignature',
+        })
+
+        if len(self._ACCOUNT_INFO) != 3:
+            raise ExtractorError('Failed to retrieve account info with provided cookies', expected=True)
+
+    def _get_auth_token(self, url, video_id):
+        if not self._ACCOUNT_INFO:
+            self._get_account_info(url, video_id)
+
+        token = self._download_json(
+            'https://api.nfl.com/identity/v3/token%s' % (
+                '/refresh' if self._ACCOUNT_INFO.get('refreshToken') else ''),
+            video_id, headers={'Content-Type': 'application/json'}, note='Downloading access token',
+            data=json.dumps({**self._CLIENT_DATA, **self._ACCOUNT_INFO}, separators=(',', ':')).encode())
+
+        self._TOKEN = token['accessToken']
+        self._TOKEN_EXPIRY = token['expiresIn']
+        self._ACCOUNT_INFO['refreshToken'] = token['refreshToken']
+
+    def _real_extract(self, url):
+        slug = self._match_id(url)
+
+        if not self._API_KEY:
+            webpage = self._download_webpage(url, slug, fatal=False) or ''
+            self._API_KEY = self._search_regex(
+                r'window\.gigyaApiKey=["\'](\w+)["\'];', webpage, 'API key',
+                default='3_Qa8TkWpIB8ESCBT8tY2TukbVKgO5F6BJVc7N1oComdwFzI7H2L9NOWdm11i_BY9f')
+
+        if not self._TOKEN or self._TOKEN_EXPIRY <= int(time.time()):
+            self._get_auth_token(url, slug)
+
+        video_id = self._download_json(
+            f'https://api.nfl.com/content/v1/videos/episodes/{slug}', slug, headers={
+                'Authorization': f'Bearer {self._TOKEN}',
+            })['mcpPlaybackId']
+
+        return self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)

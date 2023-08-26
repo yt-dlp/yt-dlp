@@ -48,7 +48,6 @@ class NobelPrizeIE(InfoExtractor):
                 formats.append({
                     'url': source_src,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

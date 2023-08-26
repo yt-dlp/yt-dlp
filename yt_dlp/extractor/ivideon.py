@@ -67,7 +67,6 @@ class IvideonIE(InfoExtractor):
             'ext': 'flv',
             'quality': quality(format_id),
         } for format_id in self._QUALITIES]
-        self._sort_formats(formats)
 
         return {
             'id': server_id,

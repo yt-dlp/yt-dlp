@@ -92,7 +92,6 @@ class SWRMediathekIE(InfoExtractor):
                     'vcodec': codec if media_type == 'Video' else 'none',
                     'acodec': codec if media_type == 'Audio' else None,
                 })
-        self._sort_formats(formats)
 
         upload_date = None
         entry_pdatet = attr.get('entry_pdatet')

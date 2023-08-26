@@ -36,7 +36,6 @@ class OneFootballIE(InfoExtractor):
         data_json = self._search_json_ld(webpage, id)
         m3u8_url = self._html_search_regex(r'(https://cdn\.jwplayer\.com/manifests/.+\.m3u8)', webpage, 'm3u8_url')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, id)
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': data_json.get('title'),

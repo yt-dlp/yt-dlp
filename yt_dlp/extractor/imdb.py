@@ -100,7 +100,6 @@ class ImdbIE(InfoExtractor):
                 'ext': ext,
                 'quality': quality(format_id),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

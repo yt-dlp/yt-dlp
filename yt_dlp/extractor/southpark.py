@@ -34,7 +34,7 @@ class SouthParkIE(MTVServicesInfoExtractor):
         }
 
 
-class SouthParkEsIE(SouthParkIE):
+class SouthParkEsIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southpark.cc.com:español'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.cc\.com/es/episodios/(?P<id>.+?)(\?|#|$))'
     _LANG = 'es'
@@ -50,7 +50,7 @@ class SouthParkEsIE(SouthParkIE):
     }]
 
 
-class SouthParkDeIE(SouthParkIE):
+class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southpark.de'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:(en/(videoclip|collections|episodes|video-clips))|(videoclip|collections|folgen))/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
     _TESTS = [{
@@ -109,7 +109,7 @@ class SouthParkDeIE(SouthParkIE):
         return
 
 
-class SouthParkLatIE(SouthParkIE):
+class SouthParkLatIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southpark.lat'
     _VALID_URL = r'https?://(?:www\.)?southpark\.lat/(?:en/)?(?:video-?clips?|collections|episod(?:e|io)s)/(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -152,7 +152,7 @@ class SouthParkLatIE(SouthParkIE):
         return
 
 
-class SouthParkNlIE(SouthParkIE):
+class SouthParkNlIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southpark.nl'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.nl/(?:clips|(?:full-)?episodes|collections)/(?P<id>.+?)(\?|#|$))'
     _FEED_URL = 'http://www.southpark.nl/feeds/video-player/mrss/'
@@ -167,7 +167,7 @@ class SouthParkNlIE(SouthParkIE):
     }]
 
 
-class SouthParkDkIE(SouthParkIE):
+class SouthParkDkIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southparkstudios.dk'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southparkstudios\.(?:dk|nu)/(?:clips|full-episodes|collections)/(?P<id>.+?)(\?|#|$))'
     _FEED_URL = 'http://www.southparkstudios.dk/feeds/video-player/mrss/'
