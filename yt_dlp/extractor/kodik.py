@@ -15,13 +15,6 @@ def decode_link(link: str) -> str:
     finalstr = re.sub(r"[a-zA-Z]", replacer, link)
     return 'https:' + base64.b64decode(finalstr).decode()
 
-q = {
-    '1080': 0,
-    '720': 1,
-    '480': 2,
-    '360': 3,
-}
-
 class KodikIE(InfoExtractor):
     _VALID_URL = r"^(?P<protocol>http[s]?:|)\/\/(?P<host>[a-z0-9]+\.[a-z]+)\/(?P<type>[a-z]+)\/(?P<id>\d+)\/(?P<hash>[0-9a-z]+)\/(?P<quality>\d+p)$"
     
@@ -48,6 +41,7 @@ class KodikIE(InfoExtractor):
             for f in fmt:
                 f.update({
                     'thumbnail' : 'https:' + tb,
+                    'quality': re.findall(r'(\d+).mp4', link)[0]
                 })
 
             formats.extend(fmt)
