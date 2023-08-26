@@ -97,8 +97,9 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt-get -y install zip pandoc man sed
-          python -m pip install -U pip setuptools wheel
-          python -m pip install -U Pyinstaller -r requirements.txt
+          python -m pip install -U pip setuptools wheel pip-tools
+          pip-compile -o requirements-all.txt --extra curl_cffi setup.py
+          python -m pip install -U Pyinstaller -r requirements-all.txt
           reqs=$(mktemp)
           cat > $reqs << EOF
           python=3.10.*
@@ -267,8 +268,9 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip setuptools wheel
-          python3 -m pip install -U --user Pyinstaller -r requirements.txt
+          python3 -m pip install -U --user pip setuptools wheel pip-tools
+          pip-compile -o requirements-all.txt --extra curl_cffi setup.py
+          python3 -m pip install -U --user Pyinstaller -r requirements-all.txt
 
       - name: Prepare
         run: |
@@ -306,8 +308,9 @@ jobs:
           python-version: "3.8"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-          python -m pip install -U pip setuptools wheel py2exe
-          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
+          python -m pip install -U pip setuptools wheel py2exe pip-tools
+          pip-compile -o requirements-all.txt --extra curl_cffi setup.py
+          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements-all.txt
 
       - name: Prepare
         run: |
