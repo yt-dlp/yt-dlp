@@ -117,10 +117,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
             elif e.code == CurlECode.PARTIAL_FILE:
                 raise IncompleteRead(
-                    # TODO
-                    # XXX: do we need partial to have the content?
-                    partial=[''] * int(session.curl.getinfo(CurlInfo.SIZE_DOWNLOAD)),
-                    expected=session.curl.getinfo(CurlInfo.CONTENT_LENGTH_DOWNLOAD),
+                    expected=int_or_none(
+                        re.search(r'(\d+) bytes remaining to read', str(e)).group(1)),
                     cause=e) from e
             elif e.code == CurlECode.PROXY:
                 raise ProxyError(cause=e) from e

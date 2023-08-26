@@ -479,7 +479,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
     def test_incompleteread(self, handler):
         with handler(timeout=2) as rh:
-            with pytest.raises(IncompleteRead, match='13 bytes read'):
+            with pytest.raises(IncompleteRead):
                 validate_and_send(rh, Request('http://127.0.0.1:%d/incompleteread' % self.http_port)).read()
 
     @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)

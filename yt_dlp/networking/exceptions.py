@@ -75,10 +75,12 @@ class HTTPError(RequestError):
 
 
 class IncompleteRead(TransportError):
-    def __init__(self, partial, expected=None, **kwargs):
+    def __init__(self, partial=None, expected=None, **kwargs):
         self.partial = partial
+        if isinstance(partial, int):
+            self.partial = [b''] * partial
         self.expected = expected
-        msg = f'{len(partial)} bytes read'
+        msg = f'{len(self.partial) if partial is not None else "unknown"} bytes read'
         if expected is not None:
             msg += f', {expected} more expected'
 
