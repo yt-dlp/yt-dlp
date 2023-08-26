@@ -9,19 +9,18 @@ from .exceptions import (
     IncompleteRead,
     SSLError,
     TransportError,
-    ProxyError
+    ProxyError,
+    RequiredDependencyNotInstalled
 )
 from .impersonate import ImpersonateRequestHandler
 from ._helper import InstanceStoreMixin, select_proxy
-from ..cookies import LenientSimpleCookie
 from ..dependencies import curl_cffi
 from ..utils import int_or_none, traverse_obj
 
 if curl_cffi is None:
-    raise ImportError('curl_cffi is not installed')
+    raise RequiredDependencyNotInstalled('curl_cffi is not installed')
 
 import curl_cffi.requests
-from curl_cffi import ffi
 from curl_cffi.const import CurlInfo, CurlOpt, CurlECode
 
 

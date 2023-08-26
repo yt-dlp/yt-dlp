@@ -9,6 +9,10 @@ if typing.TYPE_CHECKING:
     from .common import RequestHandler, Response
 
 
+class RequiredDependencyNotInstalled(ImportError):
+    pass
+
+
 class RequestError(YoutubeDLError):
     def __init__(
         self,
