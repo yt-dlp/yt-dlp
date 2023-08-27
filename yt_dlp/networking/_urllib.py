@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import gzip
 import http.client
 import io
 import socket
@@ -155,20 +154,9 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
 
     @staticmethod
     def gz(data):
-        gz = gzip.GzipFile(fileobj=io.BytesIO(data), mode='rb')
-        try:
-            return gz.read()
-        except OSError as original_oserror:
-            # There may be junk add the end of the file
-            # See http://stackoverflow.com/q/4928560/35070 for details
-            for i in range(1, 1024):
-                try:
-                    gz = gzip.GzipFile(fileobj=io.BytesIO(data[:-i]), mode='rb')
-                    return gz.read()
-                except OSError:
-                    continue
-            else:
-                raise original_oserror
+        # There may be junk added the end of the file
+        # We ignore it by only ever decoding a single gzip payload
+        return zlib.decompress(data, wbits=zlib.MAX_WBITS | 16)
 
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
