@@ -184,13 +184,7 @@ class SVTPlayIE(SVTPlayBaseIE):
             'episode': '1. Farlig kryssning',
             'series': 'Rederiet',
             'subtitles': {
-                'sv': [{
-                    'ext': 'vtt',
-                }, {
-                    'ext': 'vtt',
-                }, {
-                    'ext': 'vtt',
-                }]
+                'sv': 'count:3'
             },
         },
         'params': {
