@@ -86,7 +86,7 @@ class MediaiteIE(InfoExtractor):
         'info_dict': {
             'id': 'E6EhDX5z',
             'ext': 'mp4',
-            'title': "Fox Business Network - 4:00 PM - 5:00 PM - 1:39:42 pm - 1:42:20 pm",
+            'title': 'Fox Business Network - 4:00 PM - 5:00 PM - 1:39:42 pm - 1:42:20 pm',
             'description': '',
             'thumbnail': 'https://cdn.jwplayer.com/v2/media/E6EhDX5z/poster.jpg?width=720',
             'duration': 157,
@@ -98,6 +98,9 @@ class MediaiteIE(InfoExtractor):
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
-        id = self._search_regex(r'"https://cdn\.jwplayer\.com/players/(.*)\.', webpage, 'id').split('-')[0]
+        id = self._search_regex(
+            [r'"https://cdn\.jwplayer\.com/players/(.*)-',
+             r'data-video-id\s?=\s?\"([^\"]+)\"'],
+            webpage, 'id')
         data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{id}', id)
         return self._parse_jwplayer_data(data_json)
