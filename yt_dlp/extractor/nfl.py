@@ -294,6 +294,8 @@ class NFLPlusReplayIE(NFLBaseIE):
         replays = self._download_json(
             'https://api.nfl.com/content/v1/videos/replays', slug, 'Downloading replays JSON',
             query={'gameId': game_id}, headers=headers)
+        self.to_screen(f'Available replay types: {", ".join(traverse_obj(replays, ("items", ..., "subType")))}')
+        self.to_screen('Use --match-filter "media_type = \'REPLAY TYPE\'" to filter for a specific replay type')
 
         def entries():
             for replay in traverse_obj(replays, ('items', lambda _, v: v['mcpPlaybackId'])):
