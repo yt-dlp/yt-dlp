@@ -22,6 +22,9 @@ class DropboxIE(InfoExtractor):
                 'title': 'youtube-dl test video \'ä"BaW_jenozKc'
             }
         }, {
+            'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh',
+            'only_matching': True,
+        }, {
             'url': 'https://www.dropbox.com/sh/2mgpiuq7kv8nqdf/AABy-fW4dkydT4GmWi2mdOUDa?dl=0&preview=Drone+Shot.mp4',
             'only_matching': True,
         }, {
