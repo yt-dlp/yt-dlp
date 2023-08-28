@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class DropboxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dropbox\.com/(?:(?:e/)?scl/fi|sh?)/(?P<id>\w+)/.*'
+    _VALID_URL = r'https?://(?:www\.)?dropbox\.com/(?:(?:e/)?scl/fi|sh?)/(?P<id>\w+)'
     _TESTS = [
         {
             'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh/youtube-dl%20test%20video%20%27%C3%A4%22BaW_jenozKc.mp4?dl=0',
