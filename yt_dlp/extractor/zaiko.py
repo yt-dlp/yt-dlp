@@ -16,7 +16,7 @@ from ..utils import (
 class ZaikoBaseIE(InfoExtractor):
     def _download_real_webpage(self, url, video_id):
         webpage, urlh = self._download_webpage_handle(url, video_id)
-        final_url = urlh.geturl()
+        final_url = urlh.url
         if 'zaiko.io/login' in final_url:
             self.raise_login_required()
         elif '/_buy/' in final_url:

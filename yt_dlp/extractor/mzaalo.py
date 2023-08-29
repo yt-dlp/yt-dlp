@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class MzaaloIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mzaalo\.com/play/(?P<type>movie|original|clip)/(?P<id>[a-fA-F0-9-]+)/[\w-]+'
+    _VALID_URL = r'(?i)https?://(?:www\.)?mzaalo\.com/(?:play|watch)/(?P<type>movie|original|clip)/(?P<id>[a-f0-9-]+)/[\w-]+'
     _TESTS = [{
         # Movies
         'url': 'https://www.mzaalo.com/play/movie/c0958d9f-f90e-4503-a755-44358758921d/Jamun',
@@ -55,6 +55,9 @@ class MzaaloIE(InfoExtractor):
             'language': 'hin',
         },
         'params': {'skip_download': 'm3u8'}
+    }, {
+        'url': 'https://mzaalo.com/watch/MOVIE/389c892d-0b65-4019-bf73-d4edcb1c014f/Chalo-Dilli',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

@@ -3,11 +3,11 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
 from ..dependencies import websockets
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     WebSocketsWrapper,
     js_to_json,
-    sanitized_Request,
     traverse_obj,
     update_url_query,
     urlencode_postdata,
@@ -57,7 +57,7 @@ class FC2IE(InfoExtractor):
         }
 
         login_data = urlencode_postdata(login_form_strs)
-        request = sanitized_Request(
+        request = Request(
             'https://secure.id.fc2.com/index.php?mode=login&switch_language=en', login_data)
 
         login_results = self._download_webpage(request, None, note='Logging in', errnote='Unable to log in')
@@ -66,7 +66,7 @@ class FC2IE(InfoExtractor):
             return False
 
         # this is also needed
-        login_redir = sanitized_Request('http://id.fc2.com/?mode=redirect&login=done')
+        login_redir = Request('http://id.fc2.com/?mode=redirect&login=done')
         self._download_webpage(
             login_redir, None, note='Login redirect', errnote='Login redirect failed')
 

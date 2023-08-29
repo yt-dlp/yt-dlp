@@ -12,7 +12,7 @@
 [![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
 [![CI Status](https://img.shields.io/github/actions/workflow/status/yt-dlp/yt-dlp/core.yml?branch=master&label=Tests&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
 [![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
-[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
+[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/pulse/monthly "Last activity")
 
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
@@ -76,7 +76,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Forked from [**yt-dlc@f9401f2**](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee) and merged with [**youtube-dl@42f2d4**](https://github.com/yt-dlp/yt-dlp/commit/42f2d4) ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))
+* Forked from [**yt-dlc@f9401f2**](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee) and merged with [**youtube-dl@42f2d4**](https://github.com/ytdl-org/youtube-dl/commit/07af47960f3bb262ead02490ce65c8c45c01741e) ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in YouTube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -1323,7 +1323,7 @@ The available fields are:
  - `extractor` (string): Name of the extractor
  - `extractor_key` (string): Key name of the extractor
  - `epoch` (numeric): Unix epoch of when the information extraction was completed
- - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`
+ - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`, padded with leading zeros to 5 digits
  - `video_autonumber` (numeric): Number that will be increased with each video
  - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist_id` (string): Identifier of the playlist that contains the video
@@ -1509,7 +1509,7 @@ Unless `--video-multistreams` is used, all formats with a video stream except th
 
 ## Filtering Formats
 
-You can also filter the video formats by putting a condition in brackets, as in `-f "best[height=720]"` (or `-f "[filesize>10M]"`).
+You can also filter the video formats by putting a condition in brackets, as in `-f "best[height=720]"` (or `-f "[filesize>10M]"` since filters without a selector are interpreted as `best`).
 
 The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `>=`, `=` (equals), `!=` (not equals):
 
@@ -1545,7 +1545,7 @@ Any string comparison may be prefixed with negation `!` in order to produce an o
 
 **Note**: None of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the website. Any other field made available by the extractor can also be used for filtering.
 
-Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
+Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "bv[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
 
 Format selectors can also be grouped using parentheses; e.g. `-f "(mp4,webm)[height<480]"` will download the best pre-merged mp4 and webm formats with a height lower than 480.
 
@@ -1569,7 +1569,7 @@ The available fields are:
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
  - `ext`: Equivalent to `vext,aext`
  - `filesize`: Exact filesize, if known in advance
- - `fs_approx`: Approximate filesize calculated from the manifests
+ - `fs_approx`: Approximate filesize
  - `size`: Exact filesize if available, otherwise approximate filesize
  - `height`: Height of video
  - `width`: Width of video
@@ -1580,7 +1580,7 @@ The available fields are:
  - `tbr`: Total average bitrate in KBit/s
  - `vbr`: Average video bitrate in KBit/s
  - `abr`: Average audio bitrate in KBit/s
- - `br`: Equivalent to using `tbr,vbr,abr`
+ - `br`: Average bitrate in KBit/s, `tbr`/`vbr`/`abr`
  - `asr`: Audio sample rate in Hz
  
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
@@ -1802,10 +1802,11 @@ The following extractors use this feature:
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
 * `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `ios,android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
+* `player_params`: YouTube player parameters to use for player requests. Will overwrite any default ones set by yt-dlp.
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
-* `formats`: Change the types of formats to return. `dashy` (convert http to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash and post-live m3u8)
+* `formats`: Change the types of formats to return. `dashy` (convert HTTP to DASH), `duplicate` (identical content but different URLs or protocol; includes `dashy`), `incomplete` (cannot be downloaded completely - live dash and post-live m3u8)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests
 
@@ -1855,7 +1856,7 @@ The following extractors use this feature:
 #### twitter
 * `legacy_api`: Force usage of the legacy Twitter API instead of the GraphQL API for tweet extraction. Has no effect if login cookies are passed
 
-#### wrestleuniverse
+#### stacommu, wrestleuniverse
 * `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
 
 #### twitch
@@ -1953,7 +1954,7 @@ with YoutubeDL() as ydl:
     ydl.download(URLS)
 ```
 
-Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L184).
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L183) or `help(yt_dlp.YoutubeDL)` in a Python shell. If you are already familiar with the CLI, you can use [`devscripts/cli_to_api.py`](https://github.com/yt-dlp/yt-dlp/blob/master/devscripts/cli_to_api.py) to translate any CLI switches to `YoutubeDL` params.
 
 **Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the [example below](#extracting-information)
 

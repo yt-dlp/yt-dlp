@@ -2,9 +2,9 @@ import functools
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     OnDemandPagedList,
     clean_html,
     get_element_by_class,

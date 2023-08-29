@@ -15,7 +15,6 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeSearchURLIE,
     YoutubeMusicSearchURLIE,
     YoutubeSubscriptionsIE,
-    YoutubeStoriesIE,
     YoutubeTruncatedIDIE,
     YoutubeTruncatedURLIE,
     YoutubeYtBeIE,
@@ -215,6 +214,7 @@ from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
     BiliBiliBangumiIE,
+    BiliBiliBangumiSeasonIE,
     BiliBiliBangumiMediaIE,
     BiliBiliSearchIE,
     BilibiliCategoryIE,
@@ -303,6 +303,7 @@ from .cartoonnetwork import CartoonNetworkIE
 from .cbc import (
     CBCIE,
     CBCPlayerIE,
+    CBCPlayerPlaylistIE,
     CBCGemIE,
     CBCGemPlaylistIE,
     CBCGemLiveIE,
@@ -1012,6 +1013,7 @@ from .lynda import (
     LyndaCourseIE
 )
 from .m6 import M6IE
+from .magellantv import MagellanTVIE
 from .magentamusik360 import MagentaMusik360IE
 from .mailru import (
     MailRuIE,
@@ -1141,6 +1143,7 @@ from .mtv import (
 )
 from .muenchentv import MuenchenTVIE
 from .murrtube import MurrtubeIE, MurrtubeUserIE
+from .museai import MuseAIIE
 from .musescore import MuseScoreIE
 from .musicdex import (
     MusicdexSongIE,
@@ -1418,7 +1421,7 @@ from .patreon import (
     PatreonIE,
     PatreonCampaignIE
 )
-from .pbs import PBSIE
+from .pbs import PBSIE, PBSKidsIE
 from .pearvideo import PearVideoIE
 from .peekvids import PeekVidsIE, PlayVidsIE
 from .peertube import (
@@ -1696,8 +1699,8 @@ from .megatvcom import (
     MegaTVComIE,
     MegaTVComEmbedIE,
 )
-from .ant1newsgr import (
-    Ant1NewsGrWatchIE,
+from .antenna import (
+    AntennaGrWatchIE,
     Ant1NewsGrArticleIE,
     Ant1NewsGrEmbedIE,
 )
@@ -1707,6 +1710,7 @@ from .ruv import (
     RuvIE,
     RuvSpilaIE
 )
+from .s4c import S4CIE
 from .safari import (
     SafariIE,
     SafariApiIE,
@@ -1855,6 +1859,10 @@ from .srgssr import (
     SRGSSRPlayIE,
 )
 from .srmediathek import SRMediathekIE
+from .stacommu import (
+    StacommuLiveIE,
+    StacommuVODIE,
+)
 from .stanfordoc import StanfordOpenClassroomIE
 from .startv import StarTVIE
 from .steam import (
@@ -1867,7 +1875,6 @@ from .storyfire import (
     StoryFireSeriesIE,
 )
 from .streamable import StreamableIE
-from .streamanity import StreamanityIE
 from .streamcloud import StreamcloudIE
 from .streamcz import StreamCZIE
 from .streamff import StreamFFIE
@@ -1895,6 +1902,11 @@ from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
 from .tass import TassIE
 from .tbs import TBSIE
+from .tbsjp import (
+    TBSJPEpisodeIE,
+    TBSJPProgramIE,
+    TBSJPPlaylistIE,
+)
 from .tdslifeway import TDSLifewayIE
 from .teachable import (
     TeachableIE,
@@ -2268,6 +2280,8 @@ from .vk import (
     VKIE,
     VKUserVideosIE,
     VKWallPostIE,
+    VKPlayIE,
+    VKPlayLiveIE,
 )
 from .vocaroo import VocarooIE
 from .vodlocker import VodlockerIE
@@ -2356,6 +2370,7 @@ from .weyyak import WeyyakIE
 from .whyp import WhypIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
+from .wimbledon import WimbledonIE
 from .wimtv import WimTVIE
 from .whowatch import WhoWatchIE
 from .wistia import (

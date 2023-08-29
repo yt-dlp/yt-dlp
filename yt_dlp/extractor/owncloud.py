@@ -44,7 +44,7 @@ class OwnCloudIE(InfoExtractor):
         webpage, urlh = self._download_webpage_handle(url, video_id)
 
         if re.search(r'<label[^>]+for="password"', webpage):
-            webpage = self._verify_video_password(webpage, urlh.geturl(), video_id)
+            webpage = self._verify_video_password(webpage, urlh.url, video_id)
 
         hidden_inputs = self._hidden_inputs(webpage)
         title = hidden_inputs.get('filename')
