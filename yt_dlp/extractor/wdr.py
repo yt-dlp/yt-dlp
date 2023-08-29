@@ -268,7 +268,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                     (?:
                         (["\'])(?:mediaLink|wdrrPlayerPlayBtn|videoButton)\b.*?\1[^>]+|
                         (["\'])videoLink\b.*?\2[\s]*>\n[^\n]*
-                    )data-extension-ard=(["\'])(?P<data>(?:(?!\3).)+)\3
+                    )data-extension(?:-ard)?=(["\'])(?P<data>(?:(?!\3).)+)\3
                     ''', webpage):
             media_link_obj = self._parse_json(
                 mobj.group('data'), display_id, transform_source=js_to_json,
@@ -295,7 +295,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                     compat_urlparse.urljoin(url, mobj.group('href')),
                     ie=WDRPageIE.ie_key())
                 for mobj in re.finditer(
-                    r'<a[^>]+\bhref=(["\'])(?P<href>(?:(?!\1).)+)\1[^>]+\bdata-extension-ard=',
+                    r'<a[^>]+\bhref=(["\'])(?P<href>(?:(?!\1).)+)\1[^>]+\bdata-extension(?:-ard)?=',
                     webpage) if re.match(self._PAGE_REGEX, mobj.group('href'))
             ]
 
