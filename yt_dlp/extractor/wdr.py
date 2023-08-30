@@ -173,6 +173,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'skip': 'HTTP Error 404: Not Found',
         },
         {
+            # FIXME: Asset JSON is directly embedded in webpage
             'url': 'http://www1.wdr.de/mediathek/video/live/index.html',
             'info_dict': {
                 'id': 'mdb-2296252',
@@ -185,7 +186,6 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'params': {
                 'skip_download': True,  # m3u8 download
             },
-            'skip': 'The index playlist has no entries outside of Germany',
         },
         {
             'url': 'http://www1.wdr.de/mediathek/video/sendungen/aktuelle-stunde/aktuelle-stunde-120.html',
