@@ -251,6 +251,16 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'url': 'https://kinder.wdr.de/tv/die-sendung-mit-dem-elefanten/av/video-folge---astronaut-100.html',
             'only_matching': True,
         },
+        {
+            'url': 'https://www1.wdr.de/mediathek/video/sendungen/rockpalast/video-baroness---freak-valley-festival--100.html',
+            'info_dict': {
+                'id': 'mdb-2741028',
+                'ext': 'mp4',
+                'title': 'Baroness - Freak Valley Festival 2022',
+                'alt_title': 'Rockpalast',
+                'upload_date': '20220725',
+            },
+        }
     ]
 
     def _real_extract(self, url):
