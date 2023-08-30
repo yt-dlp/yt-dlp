@@ -185,6 +185,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'params': {
                 'skip_download': True,  # m3u8 download
             },
+            'skip': 'The index playlist has no entries outside of Germany',
         },
         {
             'url': 'http://www1.wdr.de/mediathek/video/sendungen/aktuelle-stunde/aktuelle-stunde-120.html',
@@ -221,6 +222,8 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'id': 'mdb-869971',
                 'ext': 'mp4',
                 'title': r're:^COSMO Livestream [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+                'alt_title': 'COSMO Livestream',
+                'live_status': 'is_live',
                 'upload_date': '20160101',
             },
             'params': {
