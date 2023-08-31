@@ -200,8 +200,10 @@ class HotStarIE(HotStarBaseIE):
         video_type = self._TYPE.get(video_type, video_type)
         cookies = self._get_cookies(url)  # Cookies before any request
 
-        video_data = self._call_api_v1(f'{video_type}/detail', video_id,
-                                       query={'tas': 10000, 'contentId': video_id})['body']['results']['item']
+        video_data = traverse_obj(
+            self._call_api_v1(
+                f'{video_type}/detail', video_id, fatal=False, query={'tas': 10000, 'contentId': video_id}),
+            ('body', 'results', 'item', {dict})) or {}
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
             self.report_drm(video_id)
 
