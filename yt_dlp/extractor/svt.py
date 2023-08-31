@@ -1,3 +1,4 @@
+import json
 import re
 
 from .common import InfoExtractor
@@ -6,10 +7,11 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
-    unified_timestamp,
     str_or_none,
     strip_or_none,
+    traverse_obj,
     try_get,
+    unified_timestamp,
 )
 
 
@@ -268,6 +270,11 @@ class SVTPlayIE(SVTPlayBaseIE):
             svt_id = try_get(
                 data, lambda x: x['statistics']['dataLake']['content']['id'],
                 compat_str)
+
+        if not svt_id:
+            nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
+            svt_id = traverse_obj(nextjs_data, (
+                'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath', 'id', {str}), get_all=False)
 
         if not svt_id:
             svt_id = self._search_regex(
