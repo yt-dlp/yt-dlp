@@ -124,7 +124,7 @@ class VideaIE(InfoExtractor):
         query['_t'] = result[:16]
 
         b64_info, handle = self._download_webpage_handle(
-            'http://videa.hu/videaplayer_get_xml.php', video_id, query=query)
+            'http://videa.hu/player/xml', video_id, query=query)
         if b64_info.startswith('<?xml'):
             info = self._parse_xml(b64_info, video_id)
         else:
