@@ -1,9 +1,14 @@
 from .common import InfoExtractor
 from ..utils import (
-    parse_duration,
+    extract_attributes,
+    get_element_html_by_id,
+    int_or_none,
     parse_count,
-    unified_strdate
+    parse_duration,
+    unified_strdate,
+    urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class NoodleMagazineIE(InfoExtractor):
@@ -37,15 +42,21 @@ class NoodleMagazineIE(InfoExtractor):
         like_count = parse_count(self._html_search_meta('ya:ovs:likes', webpage, default=None))
         upload_date = unified_strdate(self._html_search_meta('ya:ovs:upload_date', webpage, default=''))
 
-        key = self._html_search_regex(rf'/{video_id}\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'key')
-        playlist_info = self._download_json(f'https://adult.noodlemagazine.com/playlist/{video_id}?m={key}', video_id)
-        thumbnail = self._og_search_property('image', webpage, default=None) or playlist_info.get('image')
+        player_path = extract_attributes(get_element_html_by_id('iplayer', webpage) or '')['src']
+        player_iframe = self._download_webpage(
+            urljoin('https://adult.noodlemagazine.com', player_path), video_id, 'Downloading iframe page')
+        playlist_url = self._search_regex(
+            r'window\.playlistUrl\s*=\s*["\']([^"\']+)["\']', player_iframe, 'playlist url')
+        playlist_info = self._download_json(
+            urljoin('https://adult.noodlemagazine.com', playlist_url), video_id, headers={'Referer': url})
 
-        formats = [{
-            'url': source.get('file'),
-            'quality': source.get('label'),
-            'ext': source.get('type'),
-        } for source in playlist_info.get('sources')]
+        thumbnail = self._og_search_property('image', webpage, default=None) or playlist_info.get('image')
+        formats = traverse_obj(playlist_info, ('sources', lambda _, v: v['file'], {
+            'url': 'file',
+            'format_id': 'label',
+            'height': ('label', {int_or_none}),
+            'ext': 'type',
+        }))
 
         return {
             'id': video_id,
