@@ -280,8 +280,7 @@ class SVTPlayIE(SVTPlayBaseIE):
         if not svt_id:
             svt_id = self._search_regex(
                 (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
-                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/[\w-]+/[^"\']*\b(?:modalId|id)=([\w-]+)',
-                 r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"'),
+                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/[\w-]+/[^"\']*\b(?:modalId|id)=([\w-]+)'),
                 webpage, 'video id')
 
         info_dict = self._extract_by_video_id(svt_id, webpage)
