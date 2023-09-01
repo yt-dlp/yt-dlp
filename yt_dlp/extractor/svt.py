@@ -274,7 +274,8 @@ class SVTPlayIE(SVTPlayBaseIE):
         if not svt_id:
             nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
             svt_id = traverse_obj(nextjs_data, (
-                'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath', 'id', {str}), get_all=False)
+                'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath',
+                'video', 'svtId', {str}), get_all=False)
 
         if not svt_id:
             svt_id = self._search_regex(
