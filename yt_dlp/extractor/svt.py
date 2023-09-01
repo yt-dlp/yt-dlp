@@ -147,7 +147,6 @@ class SVTPlayIE(SVTPlayBaseIE):
                     )
                     '''
     _TESTS = [{
-        'skip': 'Episode is no longer available',
         'url': 'https://www.svtplay.se/video/30479064',
         'md5': '2382036fd6f8c994856c323fe51c426e',
         'info_dict': {
@@ -166,11 +165,9 @@ class SVTPlayIE(SVTPlayBaseIE):
             },
         },
         'params': {
-            # skip for now due to download test asserts that segment is > 10000 bytes and svt uses
-            # init segments that are smaller
-            # AssertionError: Expected test_SVTPlay_jNwpV9P.mp4 to be at least 9.77KiB, but it's only 864.00B
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
+        'skip': 'Episode is no longer available',
     }, {
         'url': 'https://www.svtplay.se/video/emBxBQj',
         'md5': '2382036fd6f8c994856c323fe51c426e',
@@ -191,6 +188,23 @@ class SVTPlayIE(SVTPlayBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://www.svtplay.se/video/jz2rYz7/anders-hansen-moter/james-fallon?info=visa',
+        'info_dict': {
+            'id': 'jvXAGVb',
+            'ext': 'mp4',
+            'title': 'James Fallon',
+            'timestamp': 1673917200,
+            'upload_date': '20230117',
+            'duration': 1081,
+            'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
+            'age_limit': 0,
+            'episode': 'James Fallon',
+            'series': 'Anders Hansen möter...',
+        },
+        'params': {
+            'skip_download': 'dash',
         },
     }, {
         'url': 'https://www.svtplay.se/video/30479064/husdrommar/husdrommar-sasong-8-designdrommar-i-stenungsund?modalId=8zVbDPA',
