@@ -1,4 +1,3 @@
-import functools
 import json
 import re
 
@@ -1212,29 +1211,17 @@ class TwitterIE(TwitterBaseIE):
             return self._graphql_to_legacy(
                 self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
 
-        try:
-            if not self._configuration_arg('legacy_api'):
-                return self._graphql_to_legacy(
-                    self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
-            return traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
-                'cards_platform': 'Web-12',
-                'include_cards': 1,
-                'include_reply_count': 1,
-                'include_user_entities': 0,
-                'tweet_mode': 'extended',
-            }), 'retweeted_status', None)
+        if not self._configuration_arg('legacy_api'):
+            return self._graphql_to_legacy(
+                self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
 
-        except ExtractorError as e:
-            if e.expected:
-                raise
-            self.report_warning(
-                f'{e.orig_msg}. Falling back to syndication endpoint; some metadata may be missing', twid)
-
-        status = self._download_json(
-            'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
-            headers={'User-Agent': 'Googlebot'}, query={'id': twid})
-        status['extended_entities'] = {'media': status.get('mediaDetails')}
-        return status
+        return traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
+            'cards_platform': 'Web-12',
+            'include_cards': 1,
+            'include_reply_count': 1,
+            'include_user_entities': 0,
+            'tweet_mode': 'extended',
+        }), 'retweeted_status', None)
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
@@ -1266,10 +1253,7 @@ class TwitterIE(TwitterBaseIE):
         }
 
         def extract_from_video_info(media):
-            media_id = traverse_obj(media, 'id_str', 'id', (
-                'video_info', 'variants', ..., 'url',
-                {functools.partial(re.search, r'_video/(\d+)/')}, 1
-            ), get_all=False, expected_type=str_or_none) or twid
+            media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
