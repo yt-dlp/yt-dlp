@@ -2,7 +2,7 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UnsupportedError,
@@ -144,7 +144,7 @@ class RumbleEmbedIE(InfoExtractor):
         if embeds:
             return embeds
         return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
-            r'<script>\s*Rumble\(\s*"play"\s*,\s*{\s*[\'"]video[\'"]\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
+            r'<script>[^<]*\bRumble\(\s*"play"\s*,\s*{\s*[\'"]?video[\'"]?\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -371,7 +371,7 @@ class RumbleChannelIE(InfoExtractor):
             try:
                 webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     break
                 raise
             for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):

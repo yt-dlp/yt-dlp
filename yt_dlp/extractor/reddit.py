@@ -240,6 +240,7 @@ class RedditIE(InfoExtractor):
                 'url': unescapeHTML(thumbnail_url),
                 'width': int_or_none(src.get('width')),
                 'height': int_or_none(src.get('height')),
+                'http_headers': {'Accept': '*/*'},
             })
 
         for image in try_get(data, lambda x: x['preview']['images']) or []:

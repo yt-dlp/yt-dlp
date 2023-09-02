@@ -7,9 +7,9 @@ import time
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     LazyList,
     UnsupportedError,
     UserNotLive,
@@ -62,7 +62,7 @@ class TikTokBaseIE(InfoExtractor):
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
             }, query=query)
 
@@ -79,11 +79,11 @@ class TikTokBaseIE(InfoExtractor):
             '_rticket': int(time.time() * 1000),
             'ts': int(time.time()),
             'device_brand': 'Google',
-            'device_type': 'Pixel 4',
+            'device_type': 'Pixel 7',
             'device_platform': 'android',
-            'resolution': '1080*1920',
+            'resolution': '1080*2400',
             'dpi': 420,
-            'os_version': '10',
+            'os_version': '13',
             'os_api': '29',
             'carrier_region': 'US',
             'sys_region': 'US',
@@ -205,21 +205,22 @@ class TikTokBaseIE(InfoExtractor):
 
         known_resolutions = {}
 
-        def mp3_meta(url):
+        def audio_meta(url):
+            ext = determine_ext(url, default_ext='m4a')
             return {
                 'format_note': 'Music track',
-                'ext': 'mp3',
-                'acodec': 'mp3',
+                'ext': ext,
+                'acodec': 'aac' if ext == 'm4a' else ext,
                 'vcodec': 'none',
                 'width': None,
                 'height': None,
-            } if determine_ext(url) == 'mp3' else {}
+            } if ext == 'mp3' or '-music-' in url else {}
 
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
             if res:
-                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height'))
-                known_resolutions[res].setdefault('width', add_meta.get('width'))
+                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height') or addr.get('height'))
+                known_resolutions[res].setdefault('width', add_meta.get('width') or addr.get('width'))
                 parsed_meta.update(known_resolutions.get(res, {}))
                 add_meta.setdefault('height', int_or_none(res[:-1]))
             return [{
@@ -231,7 +232,7 @@ class TikTokBaseIE(InfoExtractor):
                 **add_meta, **parsed_meta,
                 'format_note': join_nonempty(
                     add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' '),
-                **mp3_meta(url),
+                **audio_meta(url),
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
@@ -527,6 +528,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+        'params': {'skip_download': True},  # XXX: unable to download video data: HTTP Error 403: Forbidden
     }, {
         # Video without title and description
         'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
@@ -600,7 +602,7 @@ class TikTokIE(TikTokBaseIE):
     }, {
         # only available via web
         'url': 'https://www.tiktok.com/@moxypatch/video/7206382937372134662',
-        'md5': '8d8c0be14127020cd9f5def4a2e6b411',
+        'md5': '6aba7fad816e8709ff2c149679ace165',
         'info_dict': {
             'id': '7206382937372134662',
             'ext': 'mp4',
@@ -624,6 +626,57 @@ class TikTokIE(TikTokBaseIE):
             'thumbnails': 'count:3',
         },
         'expected_warnings': ['Unable to find video in feed'],
+    }, {
+        # 1080p format
+        'url': 'https://www.tiktok.com/@tatemcrae/video/7107337212743830830',
+        'md5': '982512017a8a917124d5a08c8ae79621',
+        'info_dict': {
+            'id': '7107337212743830830',
+            'ext': 'mp4',
+            'title': 'new music video 4 don’t come backkkk🧸🖤 i hope u enjoy !! @musicontiktok',
+            'description': 'new music video 4 don’t come backkkk🧸🖤 i hope u enjoy !! @musicontiktok',
+            'uploader': 'tatemcrae',
+            'uploader_id': '86328792343818240',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
+            'channel_id': 'MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
+            'creator': 'tate mcrae',
+            'artist': 'tate mcrae',
+            'track': 'original sound',
+            'upload_date': '20220609',
+            'timestamp': 1654805899,
+            'duration': 150,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
+        'params': {'format': 'bytevc1_1080p_808907-0'},
+    }, {
+        # Slideshow, audio-only m4a format
+        'url': 'https://www.tiktok.com/@hara_yoimiya/video/7253412088251534594',
+        'md5': '2ff8fe0174db2dbf49c597a7bef4e47d',
+        'info_dict': {
+            'id': '7253412088251534594',
+            'ext': 'm4a',
+            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'description': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'uploader': 'hara_yoimiya',
+            'uploader_id': '6582536342634676230',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
+            'channel_id': 'MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
+            'creator': 'лампочка',
+            'artist': 'Øneheart',
+            'album': 'watching the stars',
+            'track': 'watching the stars',
+            'upload_date': '20230708',
+            'timestamp': 1688816612,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'repost_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
@@ -989,18 +1042,16 @@ class DouyinIE(TikTokBaseIE):
             self.to_screen(f'{e}; trying with webpage')
 
         webpage = self._download_webpage(url, video_id)
-        render_data_json = self._search_regex(
-            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>(%7B.+%7D)</script>',
-            webpage, 'render data', default=None)
-        if not render_data_json:
+        render_data = self._search_json(
+            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>', webpage, 'render data', video_id,
+            contains_pattern=r'%7B(?s:.+)%7D', fatal=False, transform_source=compat_urllib_parse_unquote)
+        if not render_data:
             # TODO: Run verification challenge code to generate signature cookies
             cookies = self._get_cookies(self._WEBPAGE_HOST)
             expected = not cookies.get('s_v_web_id') or not cookies.get('ttwid')
             raise ExtractorError(
                 'Fresh cookies (not necessarily logged in) are needed', expected=expected)
 
-        render_data = self._parse_json(
-            render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
         return self._parse_aweme_video_web(get_first(render_data, ('aweme', 'detail')), url, video_id)
 
 
@@ -1060,7 +1111,7 @@ class TikTokVMIE(InfoExtractor):
 
     def _real_extract(self, url):
         new_url = self._request_webpage(
-            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).geturl()
+            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).url
         if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
             raise UnsupportedError(new_url)
         return self.url_result(new_url)

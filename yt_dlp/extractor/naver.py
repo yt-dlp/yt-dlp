@@ -21,7 +21,7 @@ from ..utils import (
 class NaverBaseIE(InfoExtractor):
     _CAPTION_EXT_RE = r'\.(?:ttml|vtt)'
 
-    @staticmethod  # NB: Used in VLiveWebArchiveIE
+    @staticmethod  # NB: Used in VLiveWebArchiveIE, WeverseIE
     def process_subtitles(vod_data, process_url):
         ret = {'subtitles': {}, 'automatic_captions': {}}
         for caption in traverse_obj(vod_data, ('captions', 'list', ...)):

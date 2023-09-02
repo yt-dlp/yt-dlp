@@ -41,7 +41,7 @@ class RadikoBaseIE(InfoExtractor):
                 'x-radiko-device': 'pc',
                 'x-radiko-user': 'dummy_user',
             })
-        auth1_header = auth1_handle.info()
+        auth1_header = auth1_handle.headers
 
         auth_token = auth1_header['X-Radiko-AuthToken']
         kl = int(auth1_header['X-Radiko-KeyLength'])

@@ -1,5 +1,22 @@
 name: Release
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version tag (YYYY.MM.DD[.REV])
+        required: false
+        default: ''
+        type: string
+      channel:
+        description: Update channel (stable/nightly/...)
+        required: false
+        default: ''
+        type: string
+      prerelease:
+        description: Pre-release
+        default: false
+        type: boolean
+
 permissions:
   contents: read
 
@@ -9,8 +26,9 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     outputs:
+      channel: ${{ steps.set_channel.outputs.channel }}
       version: ${{ steps.update_version.outputs.version }}
-      head_sha: ${{ steps.push_release.outputs.head_sha }}
+      head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
       - uses: actions/checkout@v3
@@ -21,10 +39,18 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Set channel
+        id: set_channel
+        run: |
+          CHANNEL="${{ github.repository == 'yt-dlp/yt-dlp' && 'stable' || github.repository }}"
+          echo "channel=${{ inputs.channel || '$CHANNEL' }}" > "$GITHUB_OUTPUT"
+
       - name: Update version
         id: update_version
         run: |
-          python devscripts/update-version.py ${{ vars.PUSH_VERSION_COMMIT == '' && '"$(date -u +"%H%M%S")"' || '' }} | \
+          REVISION="${{ vars.PUSH_VERSION_COMMIT == '' && '$(date -u +"%H%M%S")' || '' }}"
+          REVISION="${{ inputs.prerelease && '$(date -u +"%H%M%S")' || '$REVISION' }}"
+          python devscripts/update-version.py ${{ inputs.version || '$REVISION' }} | \
             grep -Po "version=\d+\.\d+\.\d+(\.\d+)?" >> "$GITHUB_OUTPUT"
 
       - name: Update documentation
@@ -39,6 +65,7 @@ jobs:
 
       - name: Push to release
         id: push_release
+        if: ${{ !inputs.prerelease }}
         run: |
           git config --global user.name github-actions
           git config --global user.email github-actions@example.com
@@ -46,14 +73,30 @@ jobs:
           git commit -m "Release ${{ steps.update_version.outputs.version }}" \
             -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
           git push origin --force ${{ github.event.ref }}:release
+
+      - name: Get target commitish
+        id: get_target
+        run: |
           echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Update master
-        if: vars.PUSH_VERSION_COMMIT != ''
+        if: vars.PUSH_VERSION_COMMIT != '' && !inputs.prerelease
         run: git push origin ${{ github.event.ref }}
 
-  publish_pypi_homebrew:
+  build:
     needs: prepare
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      channel: ${{ needs.prepare.outputs.channel }}
+    permissions:
+      contents: read
+      packages: write # For package cache
+    secrets:
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+
+  publish_pypi_homebrew:
+    needs: [prepare, build]
     runs-on: ubuntu-latest
 
     steps:
@@ -77,7 +120,7 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        if: env.TWINE_PASSWORD != ''
+        if: env.TWINE_PASSWORD != '' && !inputs.prerelease
         run: |
           rm -rf dist/*
           make pypi-files
@@ -89,7 +132,7 @@ jobs:
         env:
           BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != ''
+        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != '' && !inputs.prerelease
         uses: actions/checkout@v3
         with:
           repository: yt-dlp/homebrew-taps
@@ -100,7 +143,7 @@ jobs:
         env:
           BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != ''
+        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != '' && !inputs.prerelease
         run: |
           python devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ needs.prepare.outputs.version }}"
           git -C taps/ config user.name github-actions
@@ -108,22 +151,13 @@ jobs:
           git -C taps/ commit -am 'yt-dlp: ${{ needs.prepare.outputs.version }}'
           git -C taps/ push
 
-  build:
-    needs: prepare
-    uses: ./.github/workflows/build.yml
-    with:
-      version: ${{ needs.prepare.outputs.version }}
-    permissions:
-      contents: read
-      packages: write # For package cache
-    secrets:
-      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-
   publish:
     needs: [prepare, build]
     uses: ./.github/workflows/publish.yml
     permissions:
       contents: write
     with:
+      channel: ${{ needs.prepare.outputs.channel }}
+      prerelease: ${{ inputs.prerelease }}
       version: ${{ needs.prepare.outputs.version }}
       target_commitish: ${{ needs.prepare.outputs.head_sha }}

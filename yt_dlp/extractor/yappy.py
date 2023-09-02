@@ -1,9 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     int_or_none,
     traverse_obj,
     unified_timestamp,
-    url_or_none
+    url_or_none,
 )
 
 
@@ -97,3 +98,30 @@ class YappyIE(InfoExtractor):
             'categories': traverse_obj(media_data, ('categories', ..., 'name')) or None,
             'repost_count': int_or_none(media_data.get('sharingCount'))
         }
+
+
+class YappyProfileIE(InfoExtractor):
+    _VALID_URL = r'https?://yappy\.media/profile/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://yappy.media/profile/59a0c8c485e5410b9c43474bf4c6a373',
+        'info_dict': {
+            'id': '59a0c8c485e5410b9c43474bf4c6a373',
+        },
+        'playlist_mincount': 527,
+    }]
+
+    def _real_extract(self, url):
+        profile_id = self._match_id(url)
+
+        def fetch_page(page_num):
+            page_num += 1
+            videos = self._download_json(
+                f'https://yappy.media/api/video/list/{profile_id}?page={page_num}',
+                profile_id, f'Downloading profile page {page_num} JSON')
+
+            for video in traverse_obj(videos, ('results', lambda _, v: v['uuid'])):
+                yield self.url_result(
+                    f'https://yappy.media/video/{video["uuid"]}', YappyIE,
+                    video['uuid'], video.get('description'))
+
+        return self.playlist_result(OnDemandPagedList(fetch_page, 15), profile_id)
