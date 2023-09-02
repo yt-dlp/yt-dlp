@@ -1138,7 +1138,11 @@ class TwitterIE(TwitterBaseIE):
             'retweeted_status': ('legacy', 'retweeted_status_result', 'result', 'legacy'),
         }, expected_type=dict, default={}))
 
-        # extra transformation is needed since result does not match legacy format
+        # extra transformations needed since result does not match legacy format
+        if status.get('retweeted_status'):
+            status['retweeted_status']['user'] = traverse_obj(status, (
+                'retweeted_status_result', 'result', 'core', 'user_results', 'result', 'legacy', {dict})) or {}
+
         binding_values = {
             binding_value.get('key'): binding_value.get('value')
             for binding_value in traverse_obj(status, ('card', 'binding_values', ..., {dict}))
