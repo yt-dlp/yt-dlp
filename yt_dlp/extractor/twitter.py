@@ -1102,6 +1102,12 @@ class TwitterIE(TwitterBaseIE):
         'only_matching': True,
     }]
 
+    @property
+    def _GRAPHQL_ENDPOINT(self):
+        if self.is_logged_in:
+            return 'zZXycP0V6H7m-2r0mOnFcA/TweetDetail'
+        return '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
+
     def _graphql_to_legacy(self, data, twid):
         result = traverse_obj(data, (
             'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
@@ -1129,6 +1135,7 @@ class TwitterIE(TwitterBaseIE):
             'user': ('core', 'user_results', 'result', 'legacy'),
             'card': ('card', 'legacy'),
             'quoted_status': ('quoted_status_result', 'result', 'legacy'),
+            'retweeted_status': ('legacy', 'retweeted_status_result', 'result', 'legacy'),
         }, expected_type=dict, default={}))
 
         # extra transformation is needed since result does not match legacy format
@@ -1207,21 +1214,18 @@ class TwitterIE(TwitterBaseIE):
         }
 
     def _extract_status(self, twid):
-        if self.is_logged_in:
-            return self._graphql_to_legacy(
-                self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
+        if self._configuration_arg('legacy_api') and not self.is_logged_in:
+            status = self._call_api(f'statuses/show/{twid}.json', twid, {
+                'cards_platform': 'Web-12',
+                'include_cards': 1,
+                'include_reply_count': 1,
+                'include_user_entities': 0,
+                'tweet_mode': 'extended',
+            })
+        else:
+            status = self._graphql_to_legacy(self._call_graphql_api(self._GRAPHQL_ENDPOINT, twid), twid)
 
-        if not self._configuration_arg('legacy_api'):
-            return self._graphql_to_legacy(
-                self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
-
-        return traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
-            'cards_platform': 'Web-12',
-            'include_cards': 1,
-            'include_reply_count': 1,
-            'include_user_entities': 0,
-            'tweet_mode': 'extended',
-        }), 'retweeted_status', None)
+        return traverse_obj(status, 'retweeted_status', None, expected_type=dict) or {}
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
