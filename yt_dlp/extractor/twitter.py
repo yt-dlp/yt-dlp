@@ -1518,6 +1518,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         broadcast = self._call_api(
             'broadcasts/show.json', broadcast_id,
             {'ids': broadcast_id})['broadcasts'][broadcast_id]
+        if not broadcast:
+            raise ExtractorError('Broadcast no longer exists', expected=True)
         info = self._parse_broadcast_data(broadcast, broadcast_id)
         media_key = broadcast['media_key']
         source = self._call_api(
