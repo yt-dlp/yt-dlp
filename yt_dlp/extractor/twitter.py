@@ -720,6 +720,7 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
+        'skip': 'Broadcast no longer exists',
     }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
@@ -772,9 +773,9 @@ class TwitterIE(TwitterBaseIE):
         'url': 'https://twitter.com/UltimaShadowX/status/1577719286659006464',
         'info_dict': {
             'id': '1577719286659006464',
-            'title': 'Ultima📛 | #вʟм - Test',
+            'title': 'Ultima📛| New Era - Test',
             'description': 'Test https://t.co/Y3KEZD7Dad',
-            'uploader': 'Ultima📛 | #вʟм',
+            'uploader': 'Ultima📛| New Era',
             'uploader_id': 'UltimaShadowX',
             'uploader_url': 'https://twitter.com/UltimaShadowX',
             'upload_date': '20221005',
@@ -830,6 +831,7 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 18,
             'tags': []
         },
+        'params': {'skip_download': True},  # XXX: HTTP Error 416 Requested Range Not Satisfiable
         'skip': 'Requires authentication',
     }, {
         # Playlist result only with auth
@@ -897,7 +899,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
             'release_timestamp': 1658417414,
-            'description': 'md5:4dc8e972f1d8b3c6580376fabb02a3ad',
+            'description': 'md5:acce559345fd49f129c20dbcda3f1201',
             'timestamp': 1658407771,
             'release_date': '20220721',
             'upload_date': '20220721',
@@ -1006,10 +1008,10 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
-            'uploader': 'Mün The Friend Of YWAP',
+            'uploader': 'Mün',
             'repost_count': int,
             'upload_date': '20221206',
-            'title': 'Mün The Friend Of YWAP - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'title': 'Mün - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
             'comment_count': int,
             'like_count': int,
             'tags': [],
@@ -1018,7 +1020,7 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1670306984.0,
         },
     }, {
-        # url to retweet id w/ legacy api
+        # retweeted_status (private)
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
         'info_dict': {
             'id': '1623274794488659969',
@@ -1041,29 +1043,50 @@ class TwitterIE(TwitterBaseIE):
         'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
         'skip': 'Protected tweet',
     }, {
-        # orig tweet w/ graphql
-        'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
+        # retweeted_status
+        'url': 'https://twitter.com/playstrumpcard/status/1695424220702888009',
         'info_dict': {
-            'id': '1623274794488659969',
-            'display_id': '1623739803874349067',
+            'id': '1694928337846538240',
             'ext': 'mp4',
-            'title': '@selfisekai@hackerspace.pl 🐀 - RT @Johnnybull3ts: Me after going viral to over 30million people:    Whoopsie-daisy',
-            'description': 'md5:9258bdbb54793bdc124fe1cd47e96c6a',
-            'uploader': '@selfisekai@hackerspace.pl 🐀',
-            'uploader_id': 'liberdalau',
-            'uploader_url': 'https://twitter.com/liberdalau',
+            'display_id': '1695424220702888009',
+            'title': 'md5:e8daa9527bc2b947121395494f786d9d',
+            'description': 'md5:004f2d37fd58737724ec75bc7e679938',
+            'uploader': 'Benny Johnson',
+            'uploader_id': 'bennyjohnson',
+            'uploader_url': 'https://twitter.com/bennyjohnson',
             'age_limit': 0,
             'tags': [],
-            'duration': 8.033,
-            'timestamp': 1675964711.0,
-            'upload_date': '20230209',
-            'thumbnail': r're:https://pbs\.twimg\.com/ext_tw_video_thumb/.+',
+            'duration': 45.001,
+            'timestamp': 1692962814.0,
+            'upload_date': '20230825',
+            'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'like_count': int,
-            'view_count': int,
             'repost_count': int,
+            'view_count': int,
             'comment_count': int,
         },
-        'skip': 'Protected tweet',
+    }, {
+        # retweeted_status w/ legacy_api
+        'url': 'https://twitter.com/playstrumpcard/status/1695424220702888009',
+        'info_dict': {
+            'id': '1694928337846538240',
+            'ext': 'mp4',
+            'display_id': '1695424220702888009',
+            'title': 'md5:e8daa9527bc2b947121395494f786d9d',
+            'description': 'md5:004f2d37fd58737724ec75bc7e679938',
+            'uploader': 'Benny Johnson',
+            'uploader_id': 'bennyjohnson',
+            'uploader_url': 'https://twitter.com/bennyjohnson',
+            'age_limit': 0,
+            'tags': [],
+            'duration': 45.001,
+            'timestamp': 1692962814.0,
+            'upload_date': '20230825',
+            'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
+            'like_count': int,
+            'repost_count': int,
+        },
+        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
