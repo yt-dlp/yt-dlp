@@ -1088,6 +1088,19 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
     }, {
+        # Broadcast embedded in tweet
+        'url': 'https://twitter.com/JessicaDobsonWX/status/1693057346933600402',
+        'info_dict': {
+            'id': '1yNGaNLjEblJj',
+            'ext': 'mp4',
+            'title': 'Jessica Dobson - WAVE Weather Now - Saturday 8/19/23 Update',
+            'uploader': 'Jessica Dobson',
+            'uploader_id': '1DZEoDwDovRQa',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'view_count': int,
+        },
+        'add_ie': ['TwitterBroadcast'],
+    }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
         'only_matching': True,
