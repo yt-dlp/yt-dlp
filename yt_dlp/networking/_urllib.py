@@ -156,6 +156,8 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
     def gz(data):
         # There may be junk added the end of the file
         # We ignore it by only ever decoding a single gzip payload
+        if not data:
+            return data
         return zlib.decompress(data, wbits=zlib.MAX_WBITS | 16)
 
     def http_request(self, req):
