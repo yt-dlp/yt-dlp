@@ -12,11 +12,14 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
+    RegexNotFoundError,
     InAdvancePagedList,
     OnDemandPagedList,
+    clean_html,
     filter_dict,
     float_or_none,
     format_field,
+    get_element_by_class,
     int_or_none,
     join_nonempty,
     make_archive_id,
@@ -389,6 +392,30 @@ class BiliBiliIE(BilibiliBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.bilibili.com/video/BV1jL41167ZG/',
+        'info_dict': {
+            'id': 'BV1jL41167ZG',
+            'title': '一场大火引发的离奇死亡！古典推理经典短篇集《不可能犯罪诊断书》！',
+            'ext': 'mp4',
+        },
+        'skip': 'supporter-only video',
+    }, {
+        'url': 'https://www.bilibili.com/video/BV1Ks411f7aQ/',
+        'info_dict': {
+            'id': 'BV1Ks411f7aQ',
+            'title': '【BD1080P】狼与香辛料I【华盟】',
+            'ext': 'mp4',
+        },
+        'skip': 'login required',
+    }, {
+        'url': 'https://www.bilibili.com/video/BV1GJ411x7h7/',
+        'info_dict': {
+            'id': 'BV1GJ411x7h7',
+            'title': '【官方 MV】Never Gonna Give You Up - Rick Astley',
+            'ext': 'mp4',
+        },
+        'skip': 'geo-restricted',
     }]
 
     def _real_extract(self, url):
@@ -400,7 +427,21 @@ class BiliBiliIE(BilibiliBaseIE):
         if is_festival:
             video_data = initial_state['videoInfo']
         else:
-            play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+            try:
+                play_info_obj = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)
+                play_info = play_info_obj['data']
+            except KeyError:
+                if play_info_obj.get('code') == 87007:
+                    toast = get_element_by_class('tips-toast', webpage) or ''
+                    msg = clean_html(f'{get_element_by_class("belongs-to", toast) or ""} {get_element_by_class("level", toast) or ""}')
+                    raise ExtractorError(f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
+                raise
+            except RegexNotFoundError:
+                if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
+                    self.raise_login_required()
+                if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
+                    self.report_warning('This video may be geo-restricted. You might want to try a VPN or a proxy server (with --proxy)', video_id)
+                raise
             video_data = initial_state['videoData']
 
         video_id, title = video_data['bvid'], video_data.get('title')
