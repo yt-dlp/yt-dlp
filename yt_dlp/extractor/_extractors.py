@@ -165,6 +165,7 @@ from .awaan import (
     AWAANLiveIE,
     AWAANSeasonIE,
 )
+from .axs import AxsIE
 from .azmedien import AZMedienIE
 from .baidu import BaiduVideoIE
 from .banbye import (
