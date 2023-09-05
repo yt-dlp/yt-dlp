@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import traverse_obj, url_or_none
 
 
 class S4CIE(InfoExtractor):
