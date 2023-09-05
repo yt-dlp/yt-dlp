@@ -32,7 +32,7 @@ class S4CIE(InfoExtractor):
             f'https://www.s4c.cymru/df/full_prog_details?lang=e&programme_id={video_id}',
             video_id, fatal=False)
 
-        playerConfig = self._download_json(
+        player_config = self._download_json(
             'https://player-api.s4c-cdn.co.uk/player-configuration/prod', video_id, query={
                 'programme_id': video_id,
                 'signed': '0',
@@ -41,15 +41,12 @@ class S4CIE(InfoExtractor):
                 'appId': 'clic',
                 'streamName': '',
             }, note='Downloading player config JSON')
-        thumbnail = playerConfig['poster']
-        subtitlesList = playerConfig['subtitles']
         subtitles = {}
-
-        for i in subtitlesList:
-            subtitles[i['3']] = [{'url': i['0']}]
-
-        filename = playerConfig['filename']
-
+        for sub in traverse_obj(player_config, ('subtitles', lambda _, v: url_or_none(v['0']))):
+            subtitles.setdefault(sub.get('3', 'en'), []).append({
+                'url': sub['0'],
+                'name': sub.get('1'),
+            })
         m3u8_url = self._download_json(
             'https://player-api.s4c-cdn.co.uk/streaming-urls/prod', video_id, query={
                 'mode': 'od',
@@ -57,14 +54,14 @@ class S4CIE(InfoExtractor):
                 'region': 'WW',
                 'extra': 'false',
                 'thirdParty': 'false',
-                'filename': filename,
+                'filename': player_config['filename'],
             }, note='Downloading streaming urls JSON')['hls']
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+
         return {
             'id': video_id,
-            'formats': formats,
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls'),
             'subtitles': subtitles,
-            'thumbnail': thumbnail,
+            'thumbnail': url_or_none(player_config.get('poster')),
             **traverse_obj(details, ('full_prog_details', 0, {
                 'title': (('programme_title', 'series_title'), {str}),
                 'description': ('full_billing', {str.strip}),
@@ -95,21 +92,14 @@ class S4CSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
-        seriesDetails = self._download_json(
+        series_details = self._download_json(
             'https://www.s4c.cymru/df/series_details', series_id, query={
                 'lang': 'e',
                 'series_id': series_id,
                 'show_prog_in_series': 'Y'
-            }, note='Downloading player config JSON')
-        episodes = (self.url_result(
-                    'https://www.s4c.cymru/clic/programme/%s' % episode['id'],
-                    video_id=episode['id'])
-                    for episode in traverse_obj(seriesDetails, ('other_progs_in_series')))
+            }, note='Downloading series details JSON')
 
         return self.playlist_result(
-            entries=episodes,
-            playlist_id=series_id,
-            **traverse_obj(seriesDetails, ('full_prog_details', 0, {
-                'title': (('series_title'), {str}),
-                'description': ('full_billing', {str.strip}),
-            }), get_all=False))
+            [self.url_result(f'https://www.s4c.cymru/clic/programme/{episode_id}', S4CIE, episode_id)
+             for episode_id in traverse_obj(series_details, ('other_progs_in_series', ..., 'id'))],
+            series_id, traverse_obj(series_details, ('full_prog_details', 0, 'series_title', {str})))
