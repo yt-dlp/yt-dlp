@@ -51,7 +51,7 @@ class NJPWWorldIE(InfoExtractor):
             data=urlencode_postdata({'login_id': username, 'pw': password}),
             headers={'Referer': 'https://front.njpwworld.com/auth'})
         # /auth/login will return 302 for successful logins
-        if urlh.geturl() == self._LOGIN_URL:
+        if urlh.url == self._LOGIN_URL:
             self.report_warning('unable to login')
             return False
 

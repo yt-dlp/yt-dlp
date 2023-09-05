@@ -48,7 +48,7 @@ def passthrough_module(parent, child, allowed_attributes=(..., ), *, callback=la
     """Passthrough parent module into a child module, creating the parent if necessary"""
     def __getattr__(attr):
         if _is_package(parent):
-            with contextlib.suppress(ImportError):
+            with contextlib.suppress(ModuleNotFoundError):
                 return importlib.import_module(f'.{attr}', parent.__name__)
 
         ret = from_child(attr)

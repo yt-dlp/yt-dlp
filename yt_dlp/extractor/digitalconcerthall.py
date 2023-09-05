@@ -11,7 +11,7 @@ from ..utils import (
 
 class DigitalConcertHallIE(InfoExtractor):
     IE_DESC = 'DigitalConcertHall extractor'
-    _VALID_URL = r'https?://(?:www\.)?digitalconcerthall\.com/(?P<language>[a-z]+)/concert/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?digitalconcerthall\.com/(?P<language>[a-z]+)/(?P<type>film|concert)/(?P<id>[0-9]+)'
     _OAUTH_URL = 'https://api.digitalconcerthall.com/v2/oauth2/token'
     _ACCESS_TOKEN = None
     _NETRC_MACHINE = 'digitalconcerthall'
@@ -40,6 +40,19 @@ class DigitalConcertHallIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
         'playlist_count': 3,
+    }, {
+        'url': 'https://www.digitalconcerthall.com/en/film/388',
+        'info_dict': {
+            'id': '388',
+            'ext': 'mp4',
+            'title': 'The Berliner Philharmoniker and Frank Peter Zimmermann',
+            'description': 'md5:cfe25a7044fa4be13743e5089b5b5eb2',
+            'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
+            'upload_date': '20220714',
+            'timestamp': 1657785600,
+            'album_artist': 'Frank Peter Zimmermann / Benedikt von Bernstorff / Jakob von Bernstorff',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _perform_login(self, username, password):
@@ -75,7 +88,7 @@ class DigitalConcertHallIE(InfoExtractor):
         if not self._ACCESS_TOKEN:
             self.raise_login_required(method='password')
 
-    def _entries(self, items, language, **kwargs):
+    def _entries(self, items, language, type_, **kwargs):
         for item in items:
             video_id = item['id']
             stream_info = self._download_json(
@@ -103,11 +116,11 @@ class DigitalConcertHallIE(InfoExtractor):
                     'start_time': chapter.get('time'),
                     'end_time': try_get(chapter, lambda x: x['time'] + x['duration']),
                     'title': chapter.get('text'),
-                } for chapter in item['cuepoints']] if item.get('cuepoints') else None,
+                } for chapter in item['cuepoints']] if item.get('cuepoints') and type_ == 'concert' else None,
             }
 
     def _real_extract(self, url):
-        language, video_id = self._match_valid_url(url).group('language', 'id')
+        language, type_, video_id = self._match_valid_url(url).group('language', 'type', 'id')
         if not language:
             language = 'en'
 
@@ -120,18 +133,18 @@ class DigitalConcertHallIE(InfoExtractor):
         }]
 
         vid_info = self._download_json(
-            f'https://api.digitalconcerthall.com/v2/concert/{video_id}', video_id, headers={
+            f'https://api.digitalconcerthall.com/v2/{type_}/{video_id}', video_id, headers={
                 'Accept': 'application/json',
                 'Accept-Language': language
             })
         album_artist = ' / '.join(traverse_obj(vid_info, ('_links', 'artist', ..., 'name')) or '')
+        videos = [vid_info] if type_ == 'film' else traverse_obj(vid_info, ('_embedded', ..., ...))
 
         return {
             '_type': 'playlist',
             'id': video_id,
             'title': vid_info.get('title'),
-            'entries': self._entries(traverse_obj(vid_info, ('_embedded', ..., ...)), language,
-                                     thumbnails=thumbnails, album_artist=album_artist),
+            'entries': self._entries(videos, language, thumbnails=thumbnails, album_artist=album_artist, type_=type_),
             'thumbnails': thumbnails,
             'album_artist': album_artist,
         }

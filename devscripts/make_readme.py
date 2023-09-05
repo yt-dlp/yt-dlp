@@ -45,32 +45,42 @@ switch_col_width = len(re.search(r'(?m)^\s{5,}', options).group())
 delim = f'\n{" " * switch_col_width}'
 
 PATCHES = (
-    (   # Standardize update message
+    (   # Standardize `--update` message
         r'(?m)^(    -U, --update\s+).+(\n    \s.+)*$',
         r'\1Update this program to the latest version',
     ),
-    (  # Headings
+    (   # Headings
         r'(?m)^  (\w.+\n)(    (?=\w))?',
         r'## \1'
     ),
-    (  # Do not split URLs
+    (   # Fixup `--date` formatting
+        rf'(?m)(    --date DATE.+({delim}[^\[]+)*)\[.+({delim}.+)*$',
+        (rf'\1[now|today|yesterday][-N[day|week|month|year]].{delim}'
+         f'E.g. "--date today-2weeks" downloads only{delim}'
+         'videos uploaded on the same day two weeks ago'),
+    ),
+    (   # Do not split URLs
         rf'({delim[:-1]})? (?P<label>\[\S+\] )?(?P<url>https?({delim})?:({delim})?/({delim})?/(({delim})?\S+)+)\s',
         lambda mobj: ''.join((delim, mobj.group('label') or '', re.sub(r'\s+', '', mobj.group('url')), '\n'))
     ),
-    (  # Do not split "words"
+    (   # Do not split "words"
         rf'(?m)({delim}\S+)+$',
         lambda mobj: ''.join((delim, mobj.group(0).replace(delim, '')))
     ),
-    (  # Allow overshooting last line
+    (   # Allow overshooting last line
         rf'(?m)^(?P<prev>.+)${delim}(?P<current>.+)$(?!{delim})',
         lambda mobj: (mobj.group().replace(delim, ' ')
                       if len(mobj.group()) - len(delim) + 1 <= max_width + ALLOWED_OVERSHOOT
                       else mobj.group())
     ),
-    (  # Avoid newline when a space is available b/w switch and description
+    (   # Avoid newline when a space is available b/w switch and description
         DISABLE_PATCH,  # This creates issues with prepare_manpage
         r'(?m)^(\s{4}-.{%d})(%s)' % (switch_col_width - 6, delim),
         r'\1 '
+    ),
+    (   # Replace brackets with a Markdown link
+        r'SponsorBlock API \((http.+)\)',
+        r'[SponsorBlock API](\1)'
     ),
 )
 

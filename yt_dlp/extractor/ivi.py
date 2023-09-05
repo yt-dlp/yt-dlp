@@ -91,7 +91,7 @@ class IviIE(InfoExtractor):
         for site in (353, 183):
             content_data = (data % site).encode()
             if site == 353:
-                if not Cryptodome:
+                if not Cryptodome.CMAC:
                     continue
 
                 timestamp = (self._download_json(
@@ -105,8 +105,8 @@ class IviIE(InfoExtractor):
 
                 query = {
                     'ts': timestamp,
-                    'sign': Cryptodome.Hash.CMAC.new(self._LIGHT_KEY, timestamp.encode() + content_data,
-                                                     Cryptodome.Cipher.Blowfish).hexdigest(),
+                    'sign': Cryptodome.CMAC.new(self._LIGHT_KEY, timestamp.encode() + content_data,
+                                                Cryptodome.Blowfish).hexdigest(),
                 }
             else:
                 query = {}
@@ -126,7 +126,7 @@ class IviIE(InfoExtractor):
                     extractor_msg = 'Video %s does not exist'
                 elif site == 353:
                     continue
-                elif not Cryptodome:
+                elif not Cryptodome.CMAC:
                     raise ExtractorError('pycryptodomex not found. Please install', expected=True)
                 elif message:
                     extractor_msg += ': ' + message

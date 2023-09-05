@@ -41,7 +41,7 @@ class RadikoBaseIE(InfoExtractor):
                 'x-radiko-device': 'pc',
                 'x-radiko-user': 'dummy_user',
             })
-        auth1_header = auth1_handle.info()
+        auth1_header = auth1_handle.headers
 
         auth_token = auth1_header['X-Radiko-AuthToken']
         kl = int(auth1_header['X-Radiko-KeyLength'])
@@ -133,9 +133,9 @@ class RadikoBaseIE(InfoExtractor):
                     'X-Radiko-AreaId': area_id,
                     'X-Radiko-AuthToken': auth_token,
                 })
-            not_preferred = is_onair and not pcu.startswith(self._HOSTS_FOR_LIVE) or (not is_onair and (pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED) or pcu.startswith(self._HOSTS_FOR_LIVE)))
             for sf in subformats:
-                if not_preferred:
+                if (is_onair ^ pcu.startswith(self._HOSTS_FOR_LIVE)) or (
+                        not is_onair and pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED)):
                     sf['preference'] = -100
                     sf['format_note'] = 'not preferred'
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:

@@ -9,6 +9,7 @@ import re
 from .utils import (
     NO_DEFAULT,
     ExtractorError,
+    function_with_repr,
     js_to_json,
     remove_quotes,
     truncate_string,
@@ -19,7 +20,12 @@ from .utils import (
 
 def _js_bit_op(op):
     def zeroise(x):
-        return 0 if x in (None, JS_Undefined) else x
+        if x in (None, JS_Undefined):
+            return 0
+        with contextlib.suppress(TypeError):
+            if math.isnan(x):  # NB: NaN cannot be checked by membership
+                return 0
+        return x
 
     def wrapped(a, b):
         return op(zeroise(a), zeroise(b)) & 0xffffffff
@@ -38,7 +44,7 @@ def _js_arith_op(op):
 
 
 def _js_div(a, b):
-    if JS_Undefined in (a, b) or not (a and b):
+    if JS_Undefined in (a, b) or not (a or b):
         return float('nan')
     return (a or 0) / b if b else float('inf')
 
@@ -184,7 +190,8 @@ class Debugger:
                     cls.write('=> Raises:', e, '<-|', stmt, level=allow_recursion)
                 raise
             if cls.ENABLED and stmt.strip():
-                cls.write(['->', '=>'][should_ret], repr(ret), '<-|', stmt, level=allow_recursion)
+                if should_ret or not repr(ret) == stmt:
+                    cls.write(['->', '=>'][should_ret], repr(ret), '<-|', stmt, level=allow_recursion)
             return ret, should_ret
         return interpret_statement
 
@@ -205,8 +212,6 @@ class JSInterpreter:
         'y': 4096,  # Perform a "sticky" search that matches starting at the current position in the target string
     }
 
-    _EXC_NAME = '__yt_dlp_exception__'
-
     def __init__(self, code, objects=None):
         self.code, self._functions = code, {}
         self._objects = {} if objects is None else objects
@@ -220,6 +225,8 @@ class JSInterpreter:
     def _named_object(self, namespace, obj):
         self.__named_object_counter += 1
         name = f'__yt_dlp_jsinterp_obj{self.__named_object_counter}'
+        if callable(obj) and not isinstance(obj, function_with_repr):
+            obj = function_with_repr(obj, f'F<{self.__named_object_counter}>')
         namespace[name] = obj
         return name
 
@@ -256,9 +263,11 @@ class JSInterpreter:
                 elif in_quote == '/' and char in '[]':
                     in_regex_char_group = char == '['
             escaping = not escaping and in_quote and char == '\\'
-            after_op = not in_quote and char in OP_CHARS or (char.isspace() and after_op)
+            in_unary_op = (not in_quote and not in_regex_char_group
+                           and after_op not in (True, False) and char in '-+')
+            after_op = char if (not in_quote and char in OP_CHARS) else (char.isspace() and after_op)
 
-            if char != delim[pos] or any(counters.values()) or in_quote:
+            if char != delim[pos] or any(counters.values()) or in_quote or in_unary_op:
                 pos = 0
                 continue
             elif pos != delim_len:
@@ -343,8 +352,10 @@ class JSInterpreter:
             inner, outer = self._separate(expr, expr[0], 1)
             if expr[0] == '/':
                 flags, outer = self._regex_flags(outer)
+                # We don't support regex methods yet, so no point compiling it
+                inner = f'{inner}/{flags}'
                 # Avoid https://github.com/python/cpython/issues/74534
-                inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
+                # inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
             else:
                 inner = json.loads(js_to_json(f'{inner}{expr[0]}', strict=True))
             if not outer:
@@ -355,11 +366,11 @@ class JSInterpreter:
             obj = expr[4:]
             if obj.startswith('Date('):
                 left, right = self._separate_at_paren(obj[4:])
-                expr = unified_timestamp(
+                date = unified_timestamp(
                     self.interpret_expression(left, local_vars, allow_recursion), False)
-                if not expr:
+                if date is None:
                     raise self.Exception(f'Failed to parse date {left!r}', expr)
-                expr = self._dump(int(expr * 1000), local_vars) + right
+                expr = self._dump(int(date * 1000), local_vars) + right
             else:
                 raise self.Exception(f'Unsupported object {obj}', expr)
 
@@ -434,7 +445,7 @@ class JSInterpreter:
                 err = e
 
             pending = (None, False)
-            m = re.match(r'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{'.format(**globals()), expr)
+            m = re.match(fr'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{', expr)
             if m:
                 sub_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
                 if err:
@@ -768,7 +779,7 @@ class JSInterpreter:
         obj = {}
         obj_m = re.search(
             r'''(?x)
-                (?<!this\.)%s\s*=\s*{\s*
+                (?<!\.)%s\s*=\s*{\s*
                     (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
                 }\s*;
             ''' % (re.escape(objname), _FUNC_NAME_RE),
@@ -784,7 +795,8 @@ class JSInterpreter:
             fields)
         for f in fields_m:
             argnames = f.group('args').split(',')
-            obj[remove_quotes(f.group('key'))] = self.build_function(argnames, f.group('code'))
+            name = remove_quotes(f.group('key'))
+            obj[name] = function_with_repr(self.build_function(argnames, f.group('code')), f'F<{name}>')
 
         return obj
 
@@ -800,13 +812,15 @@ class JSInterpreter:
                 \((?P<args>[^)]*)\)\s*
                 (?P<code>{.+})''' % {'name': re.escape(funcname)},
             self.code)
-        code, _ = self._separate_at_paren(func_m.group('code'))
         if func_m is None:
             raise self.Exception(f'Could not find JS function "{funcname}"')
+        code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
     def extract_function(self, funcname):
-        return self.extract_function_from_code(*self.extract_function_code(funcname))
+        return function_with_repr(
+            self.extract_function_from_code(*self.extract_function_code(funcname)),
+            f'F<{funcname}>')
 
     def extract_function_from_code(self, argnames, code, *global_stack):
         local_vars = {}

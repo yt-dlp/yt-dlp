@@ -25,8 +25,7 @@ class RutubeBaseIE(InfoExtractor):
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
-    @staticmethod
-    def _extract_info(video, video_id=None, require_title=True):
+    def _extract_info(self, video, video_id=None, require_title=True):
         title = video['title'] if require_title else video.get('title')
 
         age_limit = video.get('is_adult')
@@ -35,13 +34,15 @@ class RutubeBaseIE(InfoExtractor):
 
         uploader_id = try_get(video, lambda x: x['author']['id'])
         category = try_get(video, lambda x: x['category']['name'])
+        description = video.get('description')
+        duration = int_or_none(video.get('duration'))
 
         return {
             'id': video.get('id') or video_id if video_id else video['id'],
             'title': title,
-            'description': video.get('description'),
+            'description': description,
             'thumbnail': video.get('thumbnail_url'),
-            'duration': int_or_none(video.get('duration')),
+            'duration': duration,
             'uploader': try_get(video, lambda x: x['author']['name']),
             'uploader_id': compat_str(uploader_id) if uploader_id else None,
             'timestamp': unified_timestamp(video.get('created_ts')),
@@ -50,6 +51,7 @@ class RutubeBaseIE(InfoExtractor):
             'view_count': int_or_none(video.get('hits')),
             'comment_count': int_or_none(video.get('comments_count')),
             'is_live': bool_or_none(video.get('is_livestream')),
+            'chapters': self._extract_chapters_from_description(description, duration),
         }
 
     def _download_and_extract_info(self, video_id, query=None):
@@ -111,8 +113,9 @@ class RutubeIE(RutubeBaseIE):
             'view_count': int,
             'thumbnail': 'http://pic.rutubelist.ru/video/d2/a0/d2a0aec998494a396deafc7ba2c82add.jpg',
             'category': ['Новости и СМИ'],
-
+            'chapters': [],
         },
+        'expected_warnings': ['Unable to download f4m'],
     }, {
         'url': 'http://rutube.ru/play/embed/a10e53b86e8f349080f718582ce4c661',
         'only_matching': True,
@@ -142,7 +145,28 @@ class RutubeIE(RutubeBaseIE):
             'view_count': int,
             'thumbnail': 'http://pic.rutubelist.ru/video/f2/d4/f2d42b54be0a6e69c1c22539e3152156.jpg',
             'category': ['Видеоигры'],
+            'chapters': [],
         },
+        'expected_warnings': ['Unable to download f4m'],
+    }, {
+        'url': 'https://rutube.ru/video/c65b465ad0c98c89f3b25cb03dcc87c6/',
+        'info_dict': {
+            'id': 'c65b465ad0c98c89f3b25cb03dcc87c6',
+            'ext': 'mp4',
+            'chapters': 'count:4',
+            'category': ['Бизнес и предпринимательство'],
+            'description': 'md5:252feac1305257d8c1bab215cedde75d',
+            'thumbnail': 'http://pic.rutubelist.ru/video/71/8f/718f27425ea9706073eb80883dd3787b.png',
+            'duration': 782,
+            'age_limit': 0,
+            'uploader_id': '23491359',
+            'timestamp': 1677153329,
+            'view_count': int,
+            'upload_date': '20230223',
+            'title': 'Бизнес с нуля: найм сотрудников. Интервью с директором строительной компании',
+            'uploader': 'Стас Быков',
+        },
+        'expected_warnings': ['Unable to download f4m'],
     }]
 
     @classmethod

@@ -1,5 +1,4 @@
 import contextlib
-import errno
 import json
 import os
 import re
@@ -39,11 +38,7 @@ class Cache:
 
         fn = self._get_cache_fn(section, key, dtype)
         try:
-            try:
-                os.makedirs(os.path.dirname(fn))
-            except OSError as ose:
-                if ose.errno != errno.EEXIST:
-                    raise
+            os.makedirs(os.path.dirname(fn), exist_ok=True)
             self._ydl.write_debug(f'Saving {section}.{key} to cache')
             write_json_file({'yt-dlp_version': __version__, 'data': data}, fn)
         except Exception:

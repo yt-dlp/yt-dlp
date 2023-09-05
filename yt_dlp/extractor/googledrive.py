@@ -3,9 +3,11 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
+    extract_attributes,
     get_element_by_class,
+    get_element_html_by_id,
     int_or_none,
     lowercase_escape,
     try_get,
@@ -34,6 +36,7 @@ class GoogleDriveIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Big Buck Bunny.mp4',
             'duration': 45,
+            'thumbnail': 'https://drive.google.com/thumbnail?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         }
     }, {
         # video can't be watched anonymously due to view count limit reached,
@@ -163,15 +166,13 @@ class GoogleDriveIE(InfoExtractor):
         video_id = self._match_id(url)
         video_info = compat_parse_qs(self._download_webpage(
             'https://drive.google.com/get_video_info',
-            video_id, query={'docid': video_id}))
+            video_id, 'Downloading video webpage', query={'docid': video_id}))
 
         def get_value(key):
             return try_get(video_info, lambda x: x[key][0])
 
         reason = get_value('reason')
         title = get_value('title')
-        if not title and reason:
-            raise ExtractorError(reason, expected=True)
 
         formats = []
         fmt_stream_map = (get_value('fmt_stream_map') or '').split(',')
@@ -209,20 +210,25 @@ class GoogleDriveIE(InfoExtractor):
                 'export': 'download',
             })
 
-        def request_source_file(source_url, kind):
+        def request_source_file(source_url, kind, data=None):
             return self._request_webpage(
                 source_url, video_id, note='Requesting %s file' % kind,
-                errnote='Unable to request %s file' % kind, fatal=False)
+                errnote='Unable to request %s file' % kind, fatal=False, data=data)
         urlh = request_source_file(source_url, 'source')
         if urlh:
             def add_source_format(urlh):
+                nonlocal title
+                if not title:
+                    title = self._search_regex(
+                        r'\bfilename="([^"]+)"', urlh.headers.get('Content-Disposition'),
+                        'title', default=None)
                 formats.append({
                     # Use redirect URLs as download URLs in order to calculate
                     # correct cookies in _calc_cookies.
                     # Using original URLs may result in redirect loop due to
                     # google.com's cookies mistakenly used for googleusercontent.com
                     # redirect URLs (see #23919).
-                    'url': urlh.geturl(),
+                    'url': urlh.url,
                     'ext': determine_ext(title, 'mp4').lower(),
                     'format_id': 'source',
                     'quality': 1,
@@ -234,14 +240,10 @@ class GoogleDriveIE(InfoExtractor):
                     urlh, url, video_id, note='Downloading confirmation page',
                     errnote='Unable to confirm download', fatal=False)
                 if confirmation_webpage:
-                    confirm = self._search_regex(
-                        r'confirm=([^&"\']+)', confirmation_webpage,
-                        'confirmation code', default=None)
-                    if confirm:
-                        confirmed_source_url = update_url_query(source_url, {
-                            'confirm': confirm,
-                        })
-                        urlh = request_source_file(confirmed_source_url, 'confirmed source')
+                    confirmed_source_url = extract_attributes(
+                        get_element_html_by_id('download-form', confirmation_webpage) or '').get('action')
+                    if confirmed_source_url:
+                        urlh = request_source_file(confirmed_source_url, 'confirmed source', data=b'')
                         if urlh and urlh.headers.get('Content-Disposition'):
                             add_source_format(urlh)
                     else:
@@ -251,7 +253,10 @@ class GoogleDriveIE(InfoExtractor):
                             or 'unable to extract confirmation code')
 
         if not formats and reason:
-            self.raise_no_formats(reason, expected=True)
+            if title:
+                self.raise_no_formats(reason, expected=True)
+            else:
+                raise ExtractorError(reason, expected=True)
 
         hl = get_value('hl')
         subtitles_id = None
