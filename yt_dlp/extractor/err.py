@@ -25,7 +25,8 @@ from ..utils import (
 # TODO  Try to resolve unknown languages in audio tracks.
 # TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
 # TODO  Clean out all unnecessary debugging output.
-# TODO  Change so that ERR is not consistently the artist
+# TODO  Change so that ERR is not consistently the artist.
+# TODO  Fix all fixmes.
 
 
 def json_find_node(obj, criteria):
@@ -109,7 +110,8 @@ def sanitize_title(title):
     title = title.replace(u'\u2014', '-')\
                  .replace('\u00a0', ' ')\
                  .strip().strip('.?!')
-    return ' - '.join(map(lambda s: s.strip(), re.split(r'[/.?!:|]+', title)))
+    title = re.sub(r'[?!]+', '.', title)
+    return ' - '.join(map(lambda s: s.strip(), re.split(r'[/|]+', title)))
 
 
 class ERRBaseIE(InfoExtractor):
@@ -246,6 +248,7 @@ class ERRBaseIE(InfoExtractor):
     def _extract_ids(self, url):
         if '_VALID_URL_RE' not in type(self).__dict__:
             type(self)._VALID_URL_RE = re.compile(type(self)._VALID_URL)
+
         mobj = type(self)._VALID_URL_RE.match(url)
         return mobj.groupdict()
 
@@ -321,7 +324,7 @@ class ERRNewsIE(ERRBaseIE):
             'id': '1608242040',
             'display_id': 'kirt-tuli-lukata-selg-sirgu-ja-oelda-mis-seis-on',
             'ext': 'm4a',
-            'title': 'Kirt - tuli lükata selg sirgu ja öelda mis seis on',
+            'title': 'Kirt: tuli lükata selg sirgu ja öelda mis seis on',
             'thumbnail':
             'https://s.err.ee/photo/crop/2020/05/01/775316hc459t24.jpg',
             'description': 'md5:de38c3349a81c988326cc90f38c26f74',
@@ -382,7 +385,7 @@ class ERRNewsIE(ERRBaseIE):
         'info_dict': {
             'id': '1608243468',
             'display_id': 'jaak-heinrich-jagor-tervisemuredest-treeningutel-on-ule-treenitud',
-            'title': 'Jaak-Heinrich Jagor tervisemuredest - treeningutel on üle treenitud',
+            'title': 'Jaak-Heinrich Jagor tervisemuredest: treeningutel on üle treenitud',
             'description': 'md5:c4566d404a363836031c9585e8907f0f',
             'uploader': 'ERR',
             'timestamp': 1623394980,
@@ -544,8 +547,8 @@ class ERRTVIE(ERRBaseIE):
             'id': '1027382',
             'display_id': 'tahelaev',
             'ext': 'mp4',
-            'title': 'Teemaõhtu - Ilon Wikland 90 - 202001 - Ilon Wikland osa - 299',
-            'episode': 'Ilon Wikland osa - 299',
+            'title': 'Teemaõhtu. Ilon Wikland 90 - 202001 - Ilon Wikland osa: 299',
+            'episode': 'Ilon Wikland osa: 299',
             'series': 'Teemaõhtu. Ilon Wikland 90',
             'season': '202001',
             'episode_id': '20200123',
@@ -612,7 +615,7 @@ class ERRTVIE(ERRBaseIE):
         'info_dict': {
             'id': '1608156007',
             'display_id': '4x4_tsukotka',
-            'title': '4x4 - Tšukotka',
+            'title': '4x4. Tšukotka',
             'series_type': 5,
         },
         'playlist_count': 10,
@@ -923,14 +926,7 @@ class ERRTVIE(ERRBaseIE):
             else self._ERR_API_GET_CONTENT
         headers = self._get_request_headers(api_get_content % url_dict,
                                             ['Referer', 'Origin', 'x-srh', 'Cookie'])
-        # TODO remove when ready DEBUG >>>
-        obj = self._download_json(api_get_content % url_dict, video_id, headers=headers)
-        self._debug_json(obj, msg='API_GET_CONTENT_JSON')
-        #self._dump_json(obj, msg='API_GET_CONTENT_JSON\n', sort_keys=False, filename=f'DEBUG-{video_id}')
-        return obj
-        # TODO remove when ready DEBUG <<<
-        # TODO uncomment when ready
-        # return self._download_json(api_get_content % url_dict, video_id, headers=headers)
+        return self._download_json(api_get_content % url_dict, video_id, headers=headers)
 
     def _api_get_parent_content(self, url_dict, video_id):
         headers = self._get_request_headers(self._ERR_API_GET_PARENT_CONTENT % url_dict,
@@ -1009,9 +1005,6 @@ class ERRTVIE(ERRBaseIE):
                     info['entries'].append(entry)
                 else:
                     info.update(entry)
-
-        self._debug_json(info, msg='INFO\n', sort_keys=True)
-        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
 
         return info
 
@@ -1339,7 +1332,7 @@ class ERRArhiivIE(ERRTVIE):
             'id': 'eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
             'display_id': 'eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
             'ext': 'mp4',
-            'title': 'Eesti aja lood - Okupatsioonid - 68 - Muusad sõja varjus',
+            'title': 'Eesti aja lood - Okupatsioonid: 68 - Muusad sõja varjus',
             'thumbnail':
             'https://arhiiv-images.err.ee/public/thumbnails/2009-002267-0068_0001_D10_EESTI-AJA-LOOD-OKUPATSIOONID.jpg',
             'description': 'md5:36772936a0982571ce23aa0dad1f6231',
@@ -1368,7 +1361,7 @@ class ERRArhiivIE(ERRTVIE):
             'id': 'tallinn-mai-juuni-1976',
             'display_id': 'tallinn-mai-juuni-1976',
             'ext': 'mp4',
-            'title': 'Tallinn - Mai-juuni 1976',
+            'title': 'Tallinn. Mai-juuni 1976',
             'thumbnail':
             'https://arhiiv-images.err.ee/public/thumbnails/1976-085466-0001_0002_D10_TALLINN-MAI-JUUNI-1976.jpg',
             'upload_date': '19760917',
@@ -1392,7 +1385,7 @@ class ERRArhiivIE(ERRTVIE):
             'id': 'linnulaul-linnulaul-34-rukkiraak',
             'display_id': 'linnulaul-linnulaul-34-rukkiraak',
             'ext': 'm4a',
-            'title': 'Linnulaul - 34 - Rukkirääk',
+            'title': 'Linnulaul - 34. Rukkirääk',
             'thumbnail':
             'https://arhiiv-images.err.ee/public/thumbnails/2022/557h4afd.jpg',
             'description': 'md5:d41739b0c8e250a3435216afc98c8741',
@@ -1402,6 +1395,7 @@ class ERRArhiivIE(ERRTVIE):
             'media_type': 'audio',
             'series': 'Linnulaul',
             'episode': 'LINNULAUL 34. Rukkirääk',
+            'creator': 'Jüssi Fred (Esineja)',
             'series_id': 20876,
             'upload_date': '20020530',
             'duration': 69.0,
@@ -1441,6 +1435,14 @@ class ERRArhiivIE(ERRTVIE):
                 info['episode_number'] = int(info['episode'])
 
         # page['seriesList'] if available contains playlist items
+        # Valid list urls
+        # monthly lists need year attched to each separate title
+        # https://arhiiv.err.ee/video/eesti-nuud-siis-vabariik
+        # https://arhiiv.err.ee/video/terevisioon
+        # https://arhiiv.err.ee/video/liblikavorguga-kamerunis
+        # https://arhiiv.err.ee/video/ringvaade-suvel (monthly)
+        # https://arhiiv.err.ee/audio/paevakaja
+        # https://arhiiv.err.ee/audio/bestikad
 
 
         # Demangle title
@@ -1455,14 +1457,12 @@ class ERRArhiivIE(ERRTVIE):
             elif episode.upper().startswith(prefix):
                 episode = episode[len(prefix):]
 
-            if episode.startswith(': '):
-                episode = episode[len(': '):]
-            elif episode.startswith('. '):
-                episode = episode[len('. '):]
+            episode = episode.strip(':.').strip()
 
-            info['episode'] = episode.strip()
             if not episode:
                 self.report_warning("Episode name reduced to 'none'")
+            else:
+                info['episode'] = episode
 
             if 'episode' in info:
                 info['title'] = info['series'] + ' - ' + info['episode']
@@ -1573,7 +1573,7 @@ class ERRArhiivIE(ERRTVIE):
 
         info['uploader'] = 'ERR'
 
-        self._debug_json(info, msg='INFO\n', sort_keys=True)
+        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{video_id}')
 
         return info
 
