@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    str_or_none,
     parse_qs,
     unsmuggle_url,
     update_url_query,
@@ -113,6 +114,8 @@ class ThePlatformBaseIE(OnceIE):
             'timestamp': int_or_none(info.get('pubDate'), 1000) or None,
             'uploader': info.get('billingCode'),
             'chapters': chapters,
+            'creator': info.get('author', {str_or_none}),
+            'categories': ('categories', {lambda x: [x] if x else None}),
         }
 
     def _extract_theplatform_metadata(self, path, video_id):
