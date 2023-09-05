@@ -8,7 +8,8 @@ from ..utils import (
 class BildIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bild\.de/(?:[^/]+/)+(?P<display_id>[^/]+)-(?P<id>\d+)(?:,auto=true)?\.bild\.html?'
     IE_DESC = 'Bild.de'
-    _TEST = {
+    _TESTS = [{
+        'note': 'static MP4 only',
         'url': 'http://www.bild.de/video/clip/apple-ipad-air/das-koennen-die-neuen-ipads-38184146.bild.html',
         'md5': 'dd495cbd99f2413502a1713a1156ac8a',
         'info_dict': {
@@ -19,7 +20,19 @@ class BildIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 196,
         }
-    }
+    }, {
+        'note': 'static MP4 and HLS',
+        'url': 'https://www.bild.de/video/clip/news-ausland/deftiger-abgang-vom-10m-turm-bademeister-sorgt-fuer-skandal-85158620.bild.htm',
+        'md5': 'fb0ed4f09c495d4ba7ce2eee0bb90de1',
+        'info_dict': {
+            'id': '85158620',
+            'ext': 'mp4',
+            'title': 'Der Sprungturm-Skandal',
+            'description': 'md5:709b543c24dc31bbbffee73bccda34ad',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 69,
+        }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
