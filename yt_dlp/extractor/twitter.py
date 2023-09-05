@@ -1618,6 +1618,7 @@ class TwitterSpacesIE(TwitterBaseIE):
         is_live = live_status == 'is_live'
 
         formats = []
+        headers = {'Referer': 'https://twitter.com/'}
         if live_status == 'is_upcoming':
             self.raise_no_formats('Twitter Space not started yet', expected=True)
         elif not is_live and not metadata.get('is_space_available_for_replay'):
@@ -1628,7 +1629,7 @@ class TwitterSpacesIE(TwitterBaseIE):
                 ('source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}), get_all=False)
             formats = self._extract_m3u8_formats(  # XXX: Some Spaces need ffmpeg as downloader
                 source, metadata['media_key'], 'm4a', entry_protocol='m3u8', live=is_live,
-                headers={'Referer': 'https://twitter.com/'}, fatal=False) if source else []
+                headers=headers, fatal=False) if source else []
             for fmt in formats:
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
                 if not is_live:
@@ -1653,6 +1654,7 @@ class TwitterSpacesIE(TwitterBaseIE):
                 lambda: int_or_none(metadata['scheduled_start'], scale=1000)),
             'timestamp': int_or_none(metadata.get('created_at'), scale=1000),
             'formats': formats,
+            'http_headers': headers,
         }
 
 
