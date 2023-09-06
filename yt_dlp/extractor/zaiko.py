@@ -9,6 +9,7 @@ from ..utils import (
     traverse_obj,
     try_call,
     unescapeHTML,
+    url_basename,
     url_or_none,
 )
 
@@ -45,7 +46,13 @@ class ZaikoIE(ZaikoBaseIE):
             'uploader_id': '454',
             'uploader': 'ZAIKO ZERO',
             'release_timestamp': 1583809200,
-            'thumbnail': r're:https://[a-z0-9]+.cloudfront.net/[a-z0-9_]+/[a-z0-9_]+',
+            'thumbnails': [{
+                'id': r're:[a-z0-9_]+',
+                'url': r're:https://[a-z0-9]+.cloudfront.net/[a-z0-9_]+/[a-z0-9_]+',
+            }, {
+                'id': r're:[a-z0-9_]+',
+                'url': r're:https://media.zaiko.io/[a-z0-9_]+/[a-z0-9_]+',
+            }],
             'release_date': '20200310',
             'categories': ['Tech House'],
             'live_status': 'was_live',
@@ -83,6 +90,12 @@ class ZaikoIE(ZaikoBaseIE):
         if not formats:
             self.raise_no_formats(msg, expected=expected)
 
+        thumbnail_urls = [
+            traverse_obj(player_meta, ('initial_event_info', 'poster_url')),
+            self._og_search_thumbnail(self._download_webpage(
+                f'https://zaiko.io/event/{video_id}', video_id, 'Downloading event page', fatal=False)),
+        ]
+
         return {
             'id': video_id,
             'formats': formats,
@@ -96,8 +109,8 @@ class ZaikoIE(ZaikoBaseIE):
             }),
             **traverse_obj(player_meta, ('initial_event_info', {
                 'alt_title': ('title', {str}),
-                'thumbnail': ('poster_url', {url_or_none}),
             })),
+            'thumbnails': [{'url': url, 'id': url_basename(url)} for url in thumbnail_urls if url_or_none(url)]
         }
 
 
