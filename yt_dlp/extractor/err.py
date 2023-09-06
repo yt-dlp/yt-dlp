@@ -246,10 +246,7 @@ class ERRBaseIE(InfoExtractor):
         return formats, m3u8_subtitles
 
     def _extract_ids(self, url):
-        if '_VALID_URL_RE' not in type(self).__dict__:
-            type(self)._VALID_URL_RE = re.compile(type(self)._VALID_URL)
-
-        mobj = type(self)._VALID_URL_RE.match(url)
+        mobj = re.match(type(self)._VALID_URL,url)
         return mobj.groupdict()
 
     def _extract_html_metadata(self, webpage):
@@ -1006,6 +1003,7 @@ class ERRTVIE(ERRBaseIE):
                 else:
                     info.update(entry)
 
+        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{video_id}')
         return info
 
 
@@ -1437,12 +1435,24 @@ class ERRArhiivIE(ERRTVIE):
         # page['seriesList'] if available contains playlist items
         # Valid list urls
         # monthly lists need year attched to each separate title
+        # Both urls should work
         # https://arhiiv.err.ee/video/eesti-nuud-siis-vabariik
+        # https://arhiiv.err.ee/video/seeria/eesti-nuud-siis-vabariik
+
         # https://arhiiv.err.ee/video/terevisioon
+        # https://arhiiv.err.ee/video/seeria/terevisioon
+
         # https://arhiiv.err.ee/video/liblikavorguga-kamerunis
+        # https://arhiiv.err.ee/video/seeria/liblikavorguga-kamerunis
+
         # https://arhiiv.err.ee/video/ringvaade-suvel (monthly)
+        # https://arhiiv.err.ee/video/seeria/ringvaade-suvel (monthly)
+
         # https://arhiiv.err.ee/audio/paevakaja
+        # https://arhiiv.err.ee/audio/seeria/paevakaja
+
         # https://arhiiv.err.ee/audio/bestikad
+        # https://arhiiv.err.ee/audio/seeria/bestikad
 
 
         # Demangle title
