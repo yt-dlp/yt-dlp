@@ -851,7 +851,7 @@ class TestYoutubeDL(unittest.TestCase):
             ('1234.1024.info.json', '123.info.json'),
             info=dict(self.outtmpl_info, ext='info.json'), trim_file_name=3
         )
-        test('12 34.%(filesize)s.%(ext)s', ('12 34.1024.mp4', '12.mp4'), trim_file_name=3)
+        test('12 34.%(filesize)s.%(ext)s', ('12 34.1024.mp4', '12 .mp4'), trim_file_name=3)
 
         # Environment variable expansion for prepare_filename
         os.environ['__yt_dlp_var'] = 'expanded'
