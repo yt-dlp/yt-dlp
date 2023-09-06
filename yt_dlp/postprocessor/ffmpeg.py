@@ -556,7 +556,7 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
-        yield from FFmpegPostProcessor.stream_copy_opts(False)
+        yield from FFmpegPostProcessor.stream_copy_opts(True)
         if target_ext == 'avi':
             yield from ('-c:v', 'libxvid', '-vtag', 'XVID')
 

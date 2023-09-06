@@ -2217,6 +2217,7 @@ from .ustudio import (
     UstudioEmbedIE,
 )
 from .utreon import UtreonIE
+from .urn3 import URN3IE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veehd import VeeHDIE
