@@ -1106,6 +1106,25 @@ class TwitterIE(TwitterBaseIE):
         },
         'add_ie': ['TwitterBroadcast'],
     }, {
+        # Animated gif and quote tweet video, with syndication API
+        'url': 'https://twitter.com/BAKKOOONN/status/1696256659889565950',
+        'playlist_mincount': 2,
+        'info_dict': {
+            'id': '1696256659889565950',
+            'title': 'BAKOON - https://t.co/zom968d0a0',
+            'description': 'https://t.co/zom968d0a0',
+            'tags': [],
+            'uploader': 'BAKOON',
+            'uploader_id': 'BAKKOOONN',
+            'uploader_url': 'https://twitter.com/BAKKOOONN',
+            'age_limit': 18,
+            'timestamp': 1693254077.0,
+            'upload_date': '20230828',
+            'like_count': int,
+        },
+        'params': {'extractor_args': {'twitter': {'api': ['syndication']}}},
+        'expected_warnings': ['Not all metadata'],
+    }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
         'only_matching': True,
