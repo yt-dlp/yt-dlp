@@ -1,8 +1,10 @@
 import json
+import random
 import re
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_unquote,
@@ -146,10 +148,14 @@ class TwitterBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
+    @functools.cached_property
+    def _selected_api(self):
+        return self._configuration_arg('api', ['graphql'], ie_key='Twitter')[0]
+
     def _fetch_guest_token(self, display_id):
         guest_token = traverse_obj(self._download_json(
             f'{self._API_BASE}guest/activate.json', display_id, 'Downloading guest token', data=b'',
-            headers=self._set_base_headers(legacy=display_id and self._configuration_arg('legacy_api'))),
+            headers=self._set_base_headers(legacy=display_id and self._selected_api == 'legacy')),
             ('guest_token', {str}))
         if not guest_token:
             raise ExtractorError('Could not retrieve guest token')
@@ -294,7 +300,7 @@ class TwitterBaseIE(InfoExtractor):
         self.report_login()
 
     def _call_api(self, path, video_id, query={}, graphql=False):
-        headers = self._set_base_headers(legacy=not graphql and self._configuration_arg('legacy_api'))
+        headers = self._set_base_headers(legacy=not graphql and self._selected_api == 'legacy')
         headers.update({
             'x-twitter-auth-type': 'OAuth2Session',
             'x-twitter-client-language': 'en',
@@ -811,7 +817,7 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
         },
     }, {
-        # Adult content, fails if not logged in (GraphQL)
+        # Adult content, fails if not logged in
         'url': 'https://twitter.com/Rizdraws/status/1575199173472927762',
         'info_dict': {
             'id': '1575199163847000068',
@@ -834,7 +840,7 @@ class TwitterIE(TwitterBaseIE):
         'params': {'skip_download': True},  # XXX: HTTP Error 416 Requested Range Not Satisfiable
         'skip': 'Requires authentication',
     }, {
-        # Playlist result only with auth
+        # Playlist result only with graphql API
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
         'info_dict': {
@@ -1040,7 +1046,6 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
         },
-        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
         'skip': 'Protected tweet',
     }, {
         # retweeted_status
@@ -1066,7 +1071,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
         },
     }, {
-        # retweeted_status w/ legacy_api
+        # retweeted_status w/ legacy API
         'url': 'https://twitter.com/playstrumpcard/status/1695424220702888009',
         'info_dict': {
             'id': '1694928337846538240',
@@ -1086,7 +1091,7 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
         },
-        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
+        'params': {'extractor_args': {'twitter': {'api': ['legacy']}}},
     }, {
         # Broadcast embedded in tweet
         'url': 'https://twitter.com/JessicaDobsonWX/status/1693057346933600402',
@@ -1254,7 +1259,10 @@ class TwitterIE(TwitterBaseIE):
         }
 
     def _extract_status(self, twid):
-        if self._configuration_arg('legacy_api') and not self.is_logged_in:
+        if self.is_logged_in or self._selected_api == 'graphql':
+            status = self._graphql_to_legacy(self._call_graphql_api(self._GRAPHQL_ENDPOINT, twid), twid)
+
+        elif self._selected_api == 'legacy':
             status = self._call_api(f'statuses/show/{twid}.json', twid, {
                 'cards_platform': 'Web-12',
                 'include_cards': 1,
@@ -1262,8 +1270,29 @@ class TwitterIE(TwitterBaseIE):
                 'include_user_entities': 0,
                 'tweet_mode': 'extended',
             })
+
+        elif self._selected_api == 'syndication':
+            self.report_warning(
+                'Not all metadata or media is available via syndication endpoint', twid, only_once=True)
+            status = self._download_json(
+                'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+                headers={'User-Agent': 'Googlebot'}, query={
+                    'id': twid,
+                    'token': ''.join(random.choices('0123456789abcdef', k=11)),
+                })
+            if not status:
+                raise ExtractorError('Syndication endpoint returned empty JSON response')
+            # Transform the result so its structure matches that of legacy/graphql
+            media = []
+            for detail in traverse_obj(status, ((None, 'quoted_tweet'), 'mediaDetails', ..., {dict})):
+                detail['id_str'] = traverse_obj(detail, (
+                    'video_info', 'variants', ..., 'url',
+                    {functools.partial(re.search, r'_video/(\d+)/')}, 1), get_all=False) or twid
+                media.append(detail)
+            status['extended_entities'] = {'media': media}
+
         else:
-            status = self._graphql_to_legacy(self._call_graphql_api(self._GRAPHQL_ENDPOINT, twid), twid)
+            raise ExtractorError(f'"{self._selected_api}" is not a valid API selection', expected=True)
 
         return traverse_obj(status, 'retweeted_status', None, expected_type=dict) or {}
 
