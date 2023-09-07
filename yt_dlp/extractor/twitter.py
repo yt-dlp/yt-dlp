@@ -1162,6 +1162,8 @@ class TwitterIE(TwitterBaseIE):
         'only_matching': True,
     }]
 
+    _MEDIA_ID_RE = re.compile(r'_video/(\d+)/')
+
     @property
     def _GRAPHQL_ENDPOINT(self):
         if self.is_logged_in:
@@ -1306,8 +1308,7 @@ class TwitterIE(TwitterBaseIE):
             media = []
             for detail in traverse_obj(status, ((None, 'quoted_tweet'), 'mediaDetails', ..., {dict})):
                 detail['id_str'] = traverse_obj(detail, (
-                    'video_info', 'variants', ..., 'url',
-                    {functools.partial(re.search, r'_video/(\d+)/')}, 1), get_all=False) or twid
+                    'video_info', 'variants', ..., 'url', {self._MEDIA_ID_RE.search}, 1), get_all=False) or twid
                 media.append(detail)
             status['extended_entities'] = {'media': media}
 
