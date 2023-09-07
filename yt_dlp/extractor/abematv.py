@@ -37,7 +37,7 @@ def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
         return
     headers = ydl.params['http_headers'].copy()
     proxies = ydl.proxies.copy()
-    clean_proxies(proxies,headers)
+    clean_proxies(proxies, headers)
     opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=proxies)
     assert isinstance(opener, urllib.request.OpenerDirector)
     opener.add_handler(handler)
