@@ -80,9 +80,6 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
     # SOCKS5 username/password authentication https://tools.ietf.org/html/rfc1929
 
     def handle(self):
-        sleep = self.socks_kwargs.get('sleep')
-        if sleep:
-            time.sleep(sleep)
         version, nmethods = self.connection.recv(2)
         assert version == SOCKS5_VERSION
         methods = list(self.connection.recv(nmethods))
@@ -141,6 +138,10 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         self.connection.sendall(struct.pack(
             '!BBBBIH', SOCKS5_VERSION, self.socks_kwargs.get('reply', Socks5Reply.SUCCEEDED), 0x0, 0x1, 0x7f000001, 40000))
 
+        sleep = self.socks_kwargs.get('sleep')
+        if sleep:
+            time.sleep(sleep)
+
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
 
 
@@ -153,9 +154,6 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         return b''.join(iter(functools.partial(self.connection.recv, 1), b'\x00'))
 
     def handle(self):
-        sleep = self.socks_kwargs.get('sleep')
-        if sleep:
-            time.sleep(sleep)
         socks_info = {
             'version': SOCKS4_VERSION,
             'command': None,
@@ -191,7 +189,9 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
             struct.pack(
                 '!BBHI', SOCKS4_REPLY_VERSION,
                 self.socks_kwargs.get('cd_reply', Socks4CD.REQUEST_GRANTED), 40000, 0x7f000001))
-
+        sleep = self.socks_kwargs.get('sleep')
+        if sleep:
+            time.sleep(sleep)
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
 
 
@@ -302,10 +302,7 @@ class TestSocks4Proxy:
                 assert response['ipv4_address'] is None
                 assert response['domain_address'] == 'localhost'
 
-    @pytest.mark.parametrize('handler,ctx', [
-        pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
-            reason='source_address is not yet supported for socks4 proxies'))
-    ], indirect=True)
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_ipv4_client_source_address(self, handler, ctx):
         with ctx.socks_server(Socks4ProxyHandler) as server_address:
             source_address = f'127.0.0.{random.randint(5, 255)}'
@@ -327,10 +324,7 @@ class TestSocks4Proxy:
                 with pytest.raises(ProxyError):
                     ctx.socks_info_request(rh)
 
-    @pytest.mark.parametrize('handler,ctx', [
-        pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
-            reason='IPv6 socks4 proxies are not yet supported'))
-    ], indirect=True)
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_ipv6_socks4_proxy(self, handler, ctx):
         with ctx.socks_server(Socks4ProxyHandler, bind_ip='::1') as server_address:
             with handler(proxies={'all': f'socks4://{server_address}'}) as rh:
@@ -342,7 +336,7 @@ class TestSocks4Proxy:
     @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_timeout(self, handler, ctx):
         with ctx.socks_server(Socks4ProxyHandler, sleep=2) as server_address:
-            with handler(proxies={'all': f'socks4://{server_address}'}, timeout=1) as rh:
+            with handler(proxies={'all': f'socks4://{server_address}'}, timeout=0.5) as rh:
                 with pytest.raises(TransportError):
                     ctx.socks_info_request(rh)
 
@@ -416,10 +410,7 @@ class TestSocks5Proxy:
                 assert response['port'] == 80
                 assert response['version'] == 5
 
-    @pytest.mark.parametrize('handler,ctx', [
-        pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
-            reason='IPv6 socks5 proxies are not yet supported'))
-    ], indirect=True)
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_ipv6_socks5_proxy(self, handler, ctx):
         with ctx.socks_server(Socks5ProxyHandler, bind_ip='::1') as server_address:
             with handler(proxies={'all': f'socks5://{server_address}'}) as rh:
@@ -430,10 +421,7 @@ class TestSocks5Proxy:
 
     # XXX: is there any feasible way of testing IPv6 source addresses?
     # Same would go for non-proxy source_address test...
-    @pytest.mark.parametrize('handler,ctx', [
-        pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
-            reason='source_address is not yet supported for socks5 proxies'))
-    ], indirect=True)
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_ipv4_client_source_address(self, handler, ctx):
         with ctx.socks_server(Socks5ProxyHandler) as server_address:
             source_address = f'127.0.0.{random.randint(5, 255)}'

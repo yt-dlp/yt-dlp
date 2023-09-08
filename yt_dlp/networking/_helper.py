@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import socket
 import ssl
 import sys
 import typing
@@ -206,3 +207,47 @@ def wrap_request_errors(func):
                 e.handler = self
             raise
     return wrapper
+
+
+def _socket_connect(ip_addr, timeout, source_address):
+    af, socktype, proto, canonname, sa = ip_addr
+    sock = socket.socket(af, socktype, proto)
+    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+        sock.settimeout(timeout)
+    if source_address:
+        sock.bind(source_address)
+    sock.connect(sa)
+    return sock
+
+
+def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, _create_socket_func=_socket_connect):
+    # This is to workaround _create_connection() from socket where it will try all
+    # address data from getaddrinfo() including IPv6. This filters the result from
+    # getaddrinfo() based on the source_address value.
+    # This is based on the cpython socket.create_connection() function.
+    # https://github.com/python/cpython/blob/main/Lib/socket.py#L810
+    host, port = address
+    err = None
+    ip_addrs = addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    if source_address is not None:
+        af = socket.AF_INET if '.' in source_address[0] else socket.AF_INET6
+        ip_addrs = [addr for addr in addrs if addr[0] == af]
+        if addrs and not ip_addrs:
+            raise OSError(
+                f"No remote IPv{4 if af == socket.AF_INET else 6} addresses available for connect. "
+                f"Can't use '{source_address[0]}' as source address")
+
+    for ip_addr in ip_addrs:
+        sock = None
+        try:
+            sock = _create_socket_func(ip_addr, timeout, source_address)
+            err = None  # Explicitly break reference cycle
+            return sock
+        except OSError as _:
+            err = _
+            if sock is not None:
+                sock.close()
+    if err is not None:
+        raise err
+    else:
+        raise OSError('getaddrinfo returns an empty list')
