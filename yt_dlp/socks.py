@@ -153,7 +153,7 @@ class sockssocket(socket.socket):
         username = (self._proxy.username or '').encode()
         packet += username + b'\x00'
 
-        if is_4a and self._proxy.remote_dns:
+        if is_4a and self._proxy.remote_dns and ipaddr == SOCKS4_DEFAULT_DSTIP:
             packet += destaddr.encode() + b'\x00'
 
         self.sendall(packet)

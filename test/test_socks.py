@@ -281,10 +281,7 @@ class TestSocks4Proxy:
                     rh, proxies={'all': f'socks4://user:@{server_address}'})
                 assert response['version'] == 4
 
-    @pytest.mark.parametrize('handler,ctx', [
-        pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
-            reason='socks4a implementation currently broken when destination is not a domain name'))
-    ], indirect=True)
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_socks4a_ipv4_target(self, handler, ctx):
         with ctx.socks_server(Socks4ProxyHandler) as server_address:
             with handler(proxies={'all': f'socks4a://{server_address}'}) as rh:
