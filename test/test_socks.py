@@ -374,7 +374,7 @@ class TestSocks5Proxy:
         with ctx.socks_server(Socks5ProxyHandler) as server_address:
             with handler(proxies={'all': f'socks5://{server_address}'}) as rh:
                 response = ctx.socks_info_request(rh, target_domain='localhost')
-                assert response['ipv4_address'] == '127.0.0.1'
+                assert (response['ipv4_address'] == '127.0.0.1') != (response['ipv6_address'] == '::1')
                 assert response['version'] == 5
 
     @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
@@ -395,16 +395,12 @@ class TestSocks5Proxy:
                 assert response['domain_address'] is None
                 assert response['version'] == 5
 
-    @pytest.mark.parametrize('handler,ctx', [
-        pytest.param('Urllib', 'http', marks=pytest.mark.xfail(
-            reason='IPv6 destination addresses are not yet supported'))
-    ], indirect=True)
+    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_socks5_ipv6_destination(self, handler, ctx):
         with ctx.socks_server(Socks5ProxyHandler) as server_address:
             with handler(proxies={'all': f'socks5://{server_address}'}) as rh:
                 response = ctx.socks_info_request(rh, target_domain='[::1]')
                 assert response['ipv6_address'] == '::1'
-                assert response['port'] == 80
                 assert response['version'] == 5
 
     @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)

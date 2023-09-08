@@ -134,19 +134,24 @@ class sockssocket(socket.socket):
             self.close()
             raise InvalidVersionError(expected_version, got_version)
 
-    def _resolve_address(self, destaddr, default, use_remote_dns):
-        try:
-            return socket.inet_aton(destaddr)
-        except OSError:
-            if use_remote_dns and self._proxy.remote_dns:
-                return default
-            else:
-                return socket.inet_aton(socket.gethostbyname(destaddr))
+    def _resolve_address(self, destaddr, default, use_remote_dns, family=None):
+        for f in (family,) if family else (socket.AF_INET, socket.AF_INET6):
+            try:
+                return f, socket.inet_pton(f, destaddr)
+            except OSError:
+                continue
+
+        if use_remote_dns and self._proxy.remote_dns:
+            return 0, default
+        else:
+            res = socket.getaddrinfo(destaddr, None, family=family or 0)
+            f, _, _, _, ipaddr = res[0]
+            return f, socket.inet_pton(f, ipaddr[0])
 
     def _setup_socks4(self, address, is_4a=False):
         destaddr, port = address
 
-        ipaddr = self._resolve_address(destaddr, SOCKS4_DEFAULT_DSTIP, use_remote_dns=is_4a)
+        _, ipaddr = self._resolve_address(destaddr, SOCKS4_DEFAULT_DSTIP, use_remote_dns=is_4a, family=socket.AF_INET)
 
         packet = struct.pack('!BBH', SOCKS4_VERSION, Socks4Command.CMD_CONNECT, port) + ipaddr
 
@@ -210,7 +215,7 @@ class sockssocket(socket.socket):
     def _setup_socks5(self, address):
         destaddr, port = address
 
-        ipaddr = self._resolve_address(destaddr, None, use_remote_dns=True)
+        family, ipaddr = self._resolve_address(destaddr, None, use_remote_dns=True)
 
         self._socks5_auth()
 
@@ -220,8 +225,10 @@ class sockssocket(socket.socket):
             destaddr = destaddr.encode()
             packet += struct.pack('!B', Socks5AddressType.ATYP_DOMAINNAME)
             packet += self._len_and_data(destaddr)
-        else:
+        elif family == socket.AF_INET:
             packet += struct.pack('!B', Socks5AddressType.ATYP_IPV4) + ipaddr
+        elif family == socket.AF_INET6:
+            packet += struct.pack('!B', Socks5AddressType.ATYP_IPV6) + ipaddr
         packet += struct.pack('!H', port)
 
         self.sendall(packet)
