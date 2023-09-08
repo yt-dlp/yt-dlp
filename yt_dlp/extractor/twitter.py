@@ -1297,7 +1297,8 @@ class TwitterIE(TwitterBaseIE):
                 'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
                 headers={'User-Agent': 'Googlebot'}, query={
                     'id': twid,
-                    'token': ''.join(random.choices('0123456789abcdef', k=11)),
+                    # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
+                    'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
                 })
             if not status:
                 raise ExtractorError('Syndication endpoint returned empty JSON response')
