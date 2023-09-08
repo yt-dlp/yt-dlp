@@ -712,6 +712,7 @@ class TwitterIE(TwitterBaseIE):
             'tags': [],
             'age_limit': 0,
         },
+        'skip': 'This Tweet is unavailable',
     }, {
         # not available in Periscope
         'url': 'https://twitter.com/ViviEducation/status/1136534865145286656',
@@ -837,7 +838,7 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 18,
             'tags': []
         },
-        'params': {'skip_download': True},  # XXX: HTTP Error 416 Requested Range Not Satisfiable
+        'params': {'skip_download': 'The media could not be played'},
         'skip': 'Requires authentication',
     }, {
         # Playlist result only with graphql API
