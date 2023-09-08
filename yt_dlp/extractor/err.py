@@ -6,7 +6,7 @@ import locale
 import json
 
 from math import log10, floor, ceil
-from datetime import date
+from datetime import date, datetime
 from urllib.error import HTTPError
 
 from .common import InfoExtractor
@@ -27,7 +27,6 @@ from ..utils import (
 # TODO  Clean out all unnecessary debugging output.
 # TODO  Change so that ERR is not consistently the artist.
 # TODO  Fix all fixmes.
-
 
 def json_find_node(obj, criteria):
     '''Searches recursively depth first for a node that satisfies all
@@ -93,7 +92,6 @@ def json_get_value(obj, key):
         else:
             return None
     return j
-
 
 def padding_width(count):
     '''Returns number of positions needed to format indexes <= count.'''
@@ -971,7 +969,7 @@ class ERRTVIE(ERRBaseIE):
             url_dict['root_content_id'] = root_content_id
             info.update(self._fetch_playlist(
                 url_dict, playlist_id, include_root=True, extract_medias=False, extract_thumbnails=False))
-        else:
+        elif 'id' in info:
             video_id = info['id']
             jsonpage = self._api_get_content(url_dict, video_id)
 
@@ -1002,8 +1000,12 @@ class ERRTVIE(ERRBaseIE):
                     info['entries'].append(entry)
                 else:
                     info.update(entry)
+        else:
+            error_msg = 'No id available'
+            self.report_warning(error_msg)
+            raise ExtractorError(error_msg)
 
-        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{video_id}')
+        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
         return info
 
 
@@ -1312,13 +1314,14 @@ class ERRArhiivIE(ERRTVIE):
     IE_DESC = 'arhiiv.err.ee: archived TV and radio shows, movies and documentaries produced in ETV (Estonia)'
     _ERR_API_GET_CONTENT = '%(prefix)s/api/v1/content/%(channel)s/%(id)s'
     _ERR_API_GET_CONTENT_FOR_USER = _ERR_API_GET_CONTENT
-    _ERR_API_GET_PARENT_CONTENT = _ERR_API_GET_CONTENT
+    _ERR_API_GET_SERIES = '%(prefix)s/api/v1/series/%(channel)s/%(playlist_id)s'
     _ERR_API_LOGIN = '%(prefix)s/api/auth/login'
+    _ERR_API_EPISODE_URL = '%(prefix)s/%(channel)s/vaata/%(id)s'
     _ERR_LOGIN_DATA = {}
     _ERR_LOGIN_SUPPORTED = True
     _NETRC_MACHINE = 'err.ee'
     _ERR_CHANNELS = r'video|audio'
-    _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://arhiiv\.err\.ee)/(?P<channel>%(channels)s)/vaata/(?P<id>[^/#?]*)' % {
+    _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://arhiiv\.err\.ee)/(?P<channel>%(channels)s)/(?:(?:vaata/(?P<id>[^/#?]*))|(?:(?:seeria/)?(?P<playlist_id>[^/#?]*)))' % {
         'channels': _ERR_CHANNELS
     }
     _TESTS = [{
@@ -1376,7 +1379,7 @@ class ERRArhiivIE(ERRTVIE):
             'format': 'bestvideo',
         },
     }, {
-        # 1 an audio episode
+        # 2 an audio episode
         'url': 'https://arhiiv.err.ee/audio/vaata/linnulaul-linnulaul-34-rukkiraak',
         'md5': 'c156cdaf5883ef198e3152c71e463ffe',
         'info_dict': {
@@ -1403,7 +1406,103 @@ class ERRArhiivIE(ERRTVIE):
         'params': {
             'format': 'bestaudio',
         },
+    }, {
+        # 3 arhiiv.err.ee video playlist
+        '_type': 'playlist',
+        'url':
+        'https://arhiiv.err.ee/video/eesti-nuud-siis-vabariik',
+        'info_dict': {
+            'id': '1608156007',
+            'display_id': '4x4_tsukotka',
+            'title': '4x4. Tšukotka',
+            'series_type': 5,
+        },
+        'playlist_count': 10,
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        # 4 arhiiv.err.ee video playlist
+        '_type': 'playlist',
+        'url':
+        'https://arhiiv.err.ee/video/seeria/terevisioon',
+        'info_dict': {
+            'id': '1608156007',
+            'display_id': '4x4_tsukotka',
+            'title': '4x4. Tšukotka',
+            'series_type': 5,
+        },
+        'playlist_count': 10,
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        # 5 arhiiv.err.ee audio playlist
+        '_type': 'playlist',
+        'url':
+        'https://arhiiv.err.ee/audio/seeria/paevakaja',
+        'info_dict': {
+            'id': '1608156007',
+            'display_id': '4x4_tsukotka',
+            'title': '4x4. Tšukotka',
+            'series_type': 5,
+        },
+        'playlist_count': 10,
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        # 6 arhiiv.err.ee audio playlist
+        '_type': 'playlist',
+        'url':
+        'https://arhiiv.err.ee/audio/bestikad',
+        'info_dict': {
+            'id': '1608156007',
+            'display_id': '4x4_tsukotka',
+            'title': '4x4. Tšukotka',
+            'series_type': 5,
+        },
+        'playlist_count': 10,
+        'params': {
+            'format': 'bestvideo',
+        },
     }]
+
+    def _timestamp_from_date(self, date_str):
+        date_format = f'%d. %B %Y'
+        dt = datetime.strptime(date_str, date_format)
+        return datetime.timestamp(dt)
+
+
+    def _api_get_series(self, url_dict, playlist_id, limit=100, page=1, sort='old'):
+        # List data can be fetched by api/v1/series/video/series_id
+        # Posted form controls the returned list's size, slice, sort order.
+        #   limit = 24|100|500
+        #   page = 1|2|3 etc.
+        #   sort = new|old|abc
+        #   all = false|
+        self._debug_message('SERIES ' + self._ERR_API_GET_SERIES % url_dict)
+        headers = self._get_request_headers(self._ERR_API_GET_SERIES % url_dict,
+                                            ['Referer', 'Origin', 'x-srh', 'Cookie'])
+        return self._download_json(
+            self._ERR_API_GET_SERIES % url_dict, playlist_id,
+            headers=headers,
+            data = json.dumps({'limit': limit, 'page': page, 'sort': sort, 'all': 'true'}).encode())
+
+    def _extract_list_entry(self, list_data, url_dict):
+        info = dict()
+        info['id'] = json_get_value(list_data, 'url')
+        info['type'] = json_get_value(list_data, 'type')
+        info['title'] = json_get_value(list_data, 'heading')
+        info['description'] = json_get_value(list_data, 'lead')
+        if json_has_value(list_data, 'date'):
+            info['timestamp'] = self._timestamp_from_date(json_get_value(list_data, 'date'))
+
+        info['url'] = self._ERR_API_EPISODE_URL % {
+                'prefix': url_dict['prefix'],
+                'channel': url_dict['channel'],
+                'id': info['id']}
+        return info
 
     def _extract_entry(self, page):
         info = dict()
@@ -1552,12 +1651,9 @@ class ERRArhiivIE(ERRTVIE):
     def _real_extract(self, url):
         info = dict()
         url_dict = self._extract_ids(url)
-        video_id = url_dict['id']
         prefix = url_dict['prefix']
         scheme = url_dict['scheme']
 
-        info['id'] = video_id
-        info['display_id'] = url_dict['id']
         info['webpage_url'] = url
 
 
@@ -1566,148 +1662,68 @@ class ERRArhiivIE(ERRTVIE):
         #     self._login(url_dict, url_dict['id'])
         # self._set_headers(url_dict)
 
-        page = self._api_get_content(url_dict, video_id)
-        self._dump_json(page, msg='PAGE\n', sort_keys=True, filename=f'DEBUG-{video_id}')
+        if json_has_value(url_dict, 'playlist_id'):
+            playlist_id = url_dict['playlist_id']
+            self._debug_message('PLAYLIST: ' + playlist_id)
+            # activeList.totalCount - elements in a list
+            # activeList.countFrom  - current chunks start (included)
+            # activeList.countTo    - current chunks end (included)
+            # activeList.data       - list of elements
+            #       type            - video
+            #       date            - date
+            #       heading         - title
+            #       lead            - generic description
+            #       seriesId        - numeric series id
+            #       url             - episodes id and display_id
+            #                         e.g. 'terevisioon-89-417124'
 
-        info.update(self._extract_entry(page))
+            playlist_data = self._api_get_series(url_dict, playlist_id)
+            self._dump_json(playlist_data, msg='PLAYLIST', sort_keys=True, filename=f'DEBUG-{playlist_id}')
+            if json_has_value(playlist_data, 'activeList.seriesId'):
+                info['_type'] = 'playlist'
+                info['display_id'] = json_get_value(playlist_data,'activeList.url')
+                info['id'] = info['display_id']
+                info['title'] = json_get_value(playlist_data,'activeList.name')
+                info['playlist_count'] = json_get_value(playlist_data,'activeList.totalCount')
+            else:
+                error_msg = 'No playlist id available'
+                self.report_warning(error_msg)
+                raise ExtractorError(error_msg)
 
-        if json_has_value(page, 'media.src.hls'):
-            info['url'] = json_get_value(page, 'media.src.hls')
+            entries = []
+            # FIXME: make it download all possible pages
+            for item in self._get_playlist_items(url_dict, playlist_id, json_get_value(playlist_data, 'activeList')):
+                entry = self._extract_list_entry(item, url_dict)
+                entry['series_id'] = info['id']
+                entries.append(entry)
+            info['entries'] = entries
 
-        if 'url' in info:
-            headers = self._get_request_headers(info['url'], ['Referer', 'Origin'])
-            info['formats'], subtitles = self._extract_formats_and_subtitles(info['url'], video_id, headers=headers)
-            if subtitles:
-                # Only override when available
-                info['subtitles'] = subtitles
+        elif json_has_value(url_dict, 'id'):
+            info['id'] = url_dict['id']
+            info['display_id'] = url_dict['id']
+            video_id = url_dict['id']
 
-        info['uploader'] = 'ERR'
+            page = self._api_get_content(url_dict, video_id)
+            self._dump_json(page, msg='PAGE\n', sort_keys=True, filename=f'DEBUG-{video_id}')
 
-        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{video_id}')
+            info.update(self._extract_entry(page))
 
+            if json_has_value(page, 'media.src.hls'):
+                info['url'] = json_get_value(page, 'media.src.hls')
+
+            if 'url' in info:
+                headers = self._get_request_headers(info['url'], ['Referer', 'Origin'])
+                info['formats'], subtitles = self._extract_formats_and_subtitles(info['url'], video_id, headers=headers)
+                if subtitles:
+                    # Only override when available
+                    info['subtitles'] = subtitles
+
+            info['uploader'] = 'ERR'
+
+        else:
+            error_msg = 'No id available'
+            self.report_warning(error_msg)
+            raise ExtractorError(error_msg)
+
+        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
         return info
-
-class ERRArhiivPlaylistIE(ERRBaseIE):
-    # List data can be fetched by api/v1/series/vide/series_id
-    # Posted form controls the returned list's size, slice, sort order.
-    #   limit = 24|100|500
-    #   page = 1|2|3 etc.
-    #   sort = new|old|abc
-    #   all = false|
-    _ERR_API_GET_SERIES = '%(prefix)s/api/v1/series/%(channel)s/%(series_url)s'
-    IE_DESC = 'arhiiv.err.ee: playlists and search results'
-    _ERRARHIIV_SERVICES = 'seeria|samast-seeriast|sarnased|otsi|tapsem-otsing|show-category-single-files'
-    _VALID_URL = r'(?P<prefix>https?://arhiiv\.err\.ee)/(?P<service>%(services)s)[/?#]*(?P<id>[^/?#]*)' % {
-        'services': _ERRARHIIV_SERVICES
-    }
-    _TESTS = [{
-        'url': 'https://arhiiv.err.ee/seeria/linnuaabits/info/0/default/koik',
-        'info_dict': {
-            'id': 'linnuaabits',
-            'title': "Linnuaabits",
-        },
-        'playlist_mincount': 71,
-    }, {
-        'url': 'https://arhiiv.err.ee/seeria/linnulaul',
-        'info_dict': {
-            'id': 'linnulaul',
-            'title': "Linnulaul",
-        },
-        'playlist_mincount': 10,
-    }, {
-        'url':
-        'https://arhiiv.err.ee/seeria/eesti-aja-lood-okupatsioonid/info/0/default/koik',
-        'info_dict': {
-            'id': 'eesti-aja-lood-okupatsioonid',
-            'title': "Eesti aja lood - Okupatsioonid",
-        },
-        'playlist_mincount': 46,
-    }, {
-        'url':
-        'https://arhiiv.err.ee/samast-seeriast/ak-filmikroonika-1958-1991-linnuturg-keskturul/default/1',
-        'info_dict': {
-            'id': 'ak-filmikroonika-1958-1991',
-            'title': "AK filmikroonika 1958-1991",
-        },
-        'playlist_count': 10,
-    }, {
-        'url':
-        'https://arhiiv.err.ee/sarnased/ensv-ensv-kaadri-taga/default/1',
-        'info_dict': {
-            'id': 'ensv',
-            'title': "EnsV - Sarnased saated",
-        },
-        'playlist_count': 10,
-    }, {
-        'url': 'https://arhiiv.err.ee/otsi/reliikvia/default/koik',
-        'info_dict': {
-            'id': None,
-            'title': "Otsingutulemused reliikvia",
-        },
-        'playlist_mincount': 161,
-    }, {
-        'url': 'https://arhiiv.err.ee/otsi/reliikvia/default/3',
-        'info_dict': {
-            'id': None,
-            'title': "Otsingutulemused reliikvia",
-        },
-        'playlist_mincount': 10,
-    }, {
-        'url':
-        'https://arhiiv.err.ee/tapsem-otsing?searchphrase=kahur&searchfrom_video=video&searchfrom_audio=audio',
-        'info_dict': {
-            'id': None,
-            'title': "Otsingutulemused",
-        },
-        'playlist_mincount': 10,
-    }]
-
-    def _guess_id_from_title(self, title):
-        if not title:
-            return None
-        playlist_id = ' '.join(title.split())\
-                         .lower()\
-                         .replace('õ', 'o')\
-                         .replace('ö', 'o')\
-                         .replace('ä', 'a')\
-                         .replace('ü', 'u')\
-                         .replace(' ', '-')
-        playlist_id = re.sub(r'[,.:;+?!\'"*\\/|]', '', playlist_id)
-        return playlist_id
-
-    def _real_extract(self, url):
-        url_dict = self._extract_ids(url)
-        service = url_dict['service']
-        playlist_id = url_dict['id'] if service in [
-            'seeria', 'show-category-single-files'
-        ] else None
-        prefix = url_dict['prefix']
-        webpage = self._download_webpage(url, playlist_id)
-        title = self._html_search_regex(
-            r'<head>[^<]*<title>([^|]+)[^<]*?</title>',
-            webpage,
-            'title',
-            flags=re.DOTALL,
-            fatal=False)
-        if title:
-            title = title.strip().strip('.')
-
-        if title and not playlist_id and service not in [
-                'otsi', 'tapsem-otsing', 'show-category-single-files'
-        ]:
-            playlist_id = self._guess_id_from_title(title)
-
-        if title and service == 'sarnased':
-            title += ' - Sarnased saated'
-
-        title = sanitize_title(title)
-
-        res = re.findall(
-            r'<h2[^>]*>[^<]*<a\s+href=(["\'])(/vaata/[^"\']+)\1[^>]*>',
-            webpage, re.DOTALL)
-
-        url_list = orderedSet([prefix + match[1] for match in res])
-
-        entries = [self.url_result(item_url, ie='ERRArhiiv') for item_url in url_list]
-
-        return self.playlist_result(entries, playlist_id, title)
