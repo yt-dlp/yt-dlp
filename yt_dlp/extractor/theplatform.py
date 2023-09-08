@@ -104,6 +104,20 @@ class ThePlatformBaseIE(OnceIE):
             for chapter in tp_chapters[:-1]:
                 _add_chapter(chapter.get('startTime'), chapter.get('endTime'))
             _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
+        info_keywords_str = info.get('keywords', {str_or_none})
+        tags = []
+        if info_keywords_str is not None:
+            tags = info_keywords_str.split('-')
+        location = None
+        series = None
+        # for site-specific data in the metadata file
+        ownerId = info.get('ownerId', {str_or_none})
+        # only process the following if this is from the cbc
+        if ownerId == 'http://access.auth.theplatform.com/data/Account/2655402169':
+            location = info.get('cbc$region', {str_or_none})
+            # The following can be uncommented as soon as #7838 is merged
+            # media_type = info.get('cbc$type', {str_or_none})
+            series = info.get('cbc$show', {str_or_none})
 
         return {
             'title': info['title'],
@@ -116,6 +130,11 @@ class ThePlatformBaseIE(OnceIE):
             'chapters': chapters,
             'creator': info.get('author', {str_or_none}),
             'categories': ('categories', {lambda x: [x] if x else None}),
+            'tags': tags,
+            'location': location,
+            'series': series,
+            # The following can be uncommented as soon as #7838 is merged and the matching line above is uncommented
+            # 'media_type': info.get('cbc$type', {str_or_none}),
         }
 
     def _extract_theplatform_metadata(self, path, video_id):
