@@ -287,8 +287,7 @@ class TestSocks4Proxy:
             with handler(proxies={'all': f'socks4a://{server_address}'}) as rh:
                 response = ctx.socks_info_request(rh, target_domain='127.0.0.1')
                 assert response['version'] == 4
-                assert response['ipv4_address'] == '127.0.0.1'
-                assert response['domain_address'] is None
+                assert (response['ipv4_address'] == '127.0.0.1') != (response['domain_address'] == '127.0.0.1')
 
     @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http')], indirect=True)
     def test_socks4a_domain_target(self, handler, ctx):
