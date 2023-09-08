@@ -1710,7 +1710,10 @@ from .ruv import (
     RuvIE,
     RuvSpilaIE
 )
-from .s4c import S4CIE
+from .s4c import (
+    S4CIE,
+    S4CSeriesIE
+)
 from .safari import (
     SafariIE,
     SafariApiIE,
