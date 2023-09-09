@@ -62,7 +62,7 @@ class TwitchBaseIE(InfoExtractor):
 
     @property
     def _DEVICE_ID(self):
-        return self._configuration_arg('device_id', [None], ie_key='Twitch')[0]
+        return self._configuration_arg('device_id', [None], ie_key='Twitch', casesense=True)[0]
 
     @property
     def _CLIENT_INTEGRITY(self):
