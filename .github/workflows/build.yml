@@ -88,8 +88,8 @@ jobs:
           python-version: "3.10"
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          miniforge-variant: Mambaforge
-          use-mamba: true
+#          miniforge-variant: Mambaforge
+#          use-mamba: true
           channels: conda-forge
           auto-update-conda: true
           activate-environment: ""
@@ -97,7 +97,7 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt-get -y install zip pandoc man sed
-          mamba config --set pip_interop_enabled True
+          conda config --set pip_interop_enabled True
           python -m pip install -U pip setuptools wheel pip-tools
           python -m piptools compile  -o requirements-all.txt --extra curl_cffi setup.py
           python -m pip install -U Pyinstaller -r requirements-all.txt
@@ -109,7 +109,7 @@ jobs:
           brotli-python
           EOF
           sed '/^brotli.*/d' requirements-all.txt >> $reqs
-          mamba create -n build --file $reqs
+          conda create -n build --file $reqs
 
       - name: Prepare
         run: |
