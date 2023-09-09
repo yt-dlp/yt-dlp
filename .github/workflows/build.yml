@@ -97,7 +97,6 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt-get -y install zip pandoc man sed
-          python -m pip install -U pip setuptools wheel pip-tools
           conda config --set pip_interop_enabled True
           reqs=$(mktemp)
           cat > $reqs << EOF
@@ -118,6 +117,7 @@ jobs:
         run: |
           unset LD_LIBRARY_PATH  # Harmful; set by setup-python
           conda activate build
+          python -m pip install -U pip setuptools wheel pip-tools
           python -m piptools compile  -o requirements-all.txt --extra curl_cffi setup.py
           python -m pip install -U -r requirements-all.txt
           python pyinst.py --onedir
