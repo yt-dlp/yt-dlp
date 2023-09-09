@@ -1854,7 +1854,7 @@ The following extractors use this feature:
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
 #### twitter
-* `legacy_api`: Force usage of the legacy Twitter API instead of the GraphQL API for tweet extraction. Has no effect if login cookies are passed
+* `api`: Select one of `graphql` (default), `legacy` or `syndication` as the API for tweet extraction. Has no effect if logged in
 
 #### stacommu, wrestleuniverse
 * `device_id`: UUID value assigned by the website and used to enforce device limits for paid livestream content. Can be found in browser local storage
