@@ -639,12 +639,7 @@ class TwitchVodIE(TwitchBaseIE):
             info['start_time'] = parse_duration(query['t'][0])
 
         if info.get('timestamp'):
-            info['subtitles'] = {'rechat': [{
-                'url': update_url_query(f'https://api.twitch.tv/v5/videos/{vod_id}/comments',
-                                        {'client_id': self._CLIENT_ID}),
-                'ext': 'json',
-            }]}
-            info['__post_extractor'] = lambda: {'subtitles': self.extract_subtitles(vod_id)}
+            info['subtitles'] = self.extract_subtitles(vod_id)
 
         return info
 
