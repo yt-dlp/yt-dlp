@@ -107,7 +107,7 @@ jobs:
           cffi
           brotli-python
           EOF
-          sed '/^brotli.*/d' requirements.txt >> $reqs
+          sed '/^brotli.*/d' requirements-all.txt >> $reqs
           mamba create -n build --file $reqs
 
       - name: Prepare
