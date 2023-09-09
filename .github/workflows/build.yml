@@ -218,7 +218,7 @@ jobs:
           brew install coreutils
           python3 -m pip install -U --user pip setuptools wheel delocate
           # We need to ignore wheels otherwise we break universal2 builds
-          python3 -m pip install -U --user --no-binary :all: Pyinstaller -r requirements.txt
+          python3 -m pip install -U --user --no-binary :all: Pyinstaller cffi -r requirements.txt
           mkdir curl_cffi_whls curl_cffi_universal2
           python3 -m pip download --only-binary=:all: --platform macosx_11_0_arm64 curl_cffi --pre -d curl_cffi_whls
           python3 -m pip download --only-binary=:all: --platform macosx_11_0_x86_64 curl_cffi --pre -d curl_cffi_whls
