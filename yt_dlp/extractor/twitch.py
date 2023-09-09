@@ -639,7 +639,7 @@ class TwitchVodIE(TwitchBaseIE):
             info['start_time'] = parse_duration(query['t'][0])
 
         if info.get('timestamp'):
-            info['subtitles'] = self.extract_subtitles(vod_id)
+            info['__post_extractor'] = lambda: {'requested_subtitles': {'rechat': traverse_obj(self.extract_subtitles(vod_id), ['rechat', 0])}}
 
         return info
 
