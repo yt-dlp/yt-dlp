@@ -196,7 +196,7 @@ def make_socks_conn_class(base_class, socks_proxy):
                 connect_proxy_args = proxy_args.copy()
                 connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
                 sock.setproxy(**connect_proxy_args)
-                if type(timeout) in (int, float) and timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
+                if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
                     sock.settimeout(timeout)
                 if source_address:
                     sock.bind(source_address)
