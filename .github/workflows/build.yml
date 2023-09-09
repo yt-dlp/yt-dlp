@@ -97,18 +97,13 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt-get -y install zip pandoc man sed
-          conda config --set pip_interop_enabled True
           python -m pip install -U pip setuptools wheel pip-tools
-          python -m piptools compile  -o requirements-all.txt --extra curl_cffi setup.py
-          python -m pip install -U Pyinstaller -r requirements-all.txt
+          conda config --set pip_interop_enabled True
           reqs=$(mktemp)
           cat > $reqs << EOF
           python=3.10.*
           pyinstaller
-          cffi
-          brotli-python
           EOF
-          sed '/^brotli.*/d' requirements-all.txt >> $reqs
           conda create -n build --file $reqs
 
       - name: Prepare
@@ -123,6 +118,8 @@ jobs:
         run: |
           unset LD_LIBRARY_PATH  # Harmful; set by setup-python
           conda activate build
+          python -m piptools compile  -o requirements-all.txt --extra curl_cffi setup.py
+          python -m pip install -U -r requirements-all.txt
           python pyinst.py --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
           python pyinst.py
