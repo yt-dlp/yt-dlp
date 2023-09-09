@@ -22,8 +22,10 @@ def get_hidden_imports():
     yield from ('yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated')
     yield pycryptodome_module()
     yield from collect_submodules('websockets')
+    yield from ('_cffi_backend',)
+    yield from collect_submodules('curl_cffi')
     # These are auto-detected, but explicitly add them just in case
-    yield from ('mutagen', 'brotli', 'certifi', 'curl_cffi')
+    yield from ('mutagen', 'brotli', 'certifi')
 
 
 hiddenimports = list(get_hidden_imports())
