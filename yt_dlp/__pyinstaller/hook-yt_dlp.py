@@ -1,6 +1,6 @@
 import sys
 
-from PyInstaller.utils.hooks import collect_submodules, collect_all
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 
 def pycryptodome_module():
@@ -22,12 +22,13 @@ def get_hidden_imports():
     yield from ('yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated')
     yield pycryptodome_module()
     yield from collect_submodules('websockets')
-    yield from collect_all('curl_cffi')
     # These are auto-detected, but explicitly add them just in case
-    yield from ('mutagen', 'brotli', 'certifi')
+    yield from ('mutagen', 'brotli', 'certifi', 'curl_cffi')
 
 
 hiddenimports = list(get_hidden_imports())
 print(f'Adding imports: {hiddenimports}')
 
 excludedimports = ['youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins', 'devscripts']
+
+datas = collect_data_files('curl_cffi', includes=['cacert.pem'])
