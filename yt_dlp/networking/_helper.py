@@ -212,15 +212,19 @@ def wrap_request_errors(func):
 def _socket_connect(ip_addr, timeout, source_address):
     af, socktype, proto, canonname, sa = ip_addr
     sock = socket.socket(af, socktype, proto)
-    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
-        sock.settimeout(timeout)
-    if source_address:
-        sock.bind(source_address)
-    sock.connect(sa)
-    return sock
+    try:
+        if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+            sock.settimeout(timeout)
+        if source_address:
+            sock.bind(source_address)
+        sock.connect(sa)
+        return sock
+    except socket.error:
+        sock.close()
+        raise
 
 
-def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, _create_socket_func=_socket_connect):
+def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, *, _create_socket_func=_socket_connect):
     # This is to workaround _create_connection() from socket where it will try all
     # address data from getaddrinfo() including IPv6. This filters the result from
     # getaddrinfo() based on the source_address value.
@@ -238,16 +242,19 @@ def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_ad
                 f"Can't use '{source_address[0]}' as source address")
 
     for ip_addr in ip_addrs:
-        sock = None
         try:
             sock = _create_socket_func(ip_addr, timeout, source_address)
-            err = None  # Explicitly break reference cycle
+            # Break explicitly a reference cycle
+            err = None
             return sock
-        except OSError as _:
-            err = _
-            if sock is not None:
-                sock.close()
+        except socket.error as e:
+            err = e
+
     if err is not None:
-        raise err
+        try:
+            raise err
+        finally:
+            # Break explicitly a reference cycle
+            err = None
     else:
-        raise OSError('getaddrinfo returns an empty list')
+        raise socket.error("getaddrinfo returns an empty list")

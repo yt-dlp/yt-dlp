@@ -193,16 +193,19 @@ def make_socks_conn_class(base_class, socks_proxy):
             def sock_socket_connect(ip_addr, timeout, source_address):
                 af, socktype, proto, canonname, sa = ip_addr
                 sock = sockssocket(af, socktype, proto)
-                connect_proxy_args = proxy_args.copy()
-                connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
-                sock.setproxy(**connect_proxy_args)
-                if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
-                    sock.settimeout(timeout)
-                if source_address:
-                    sock.bind(source_address)
-                sock.connect((self.host, self.port))
-                return sock
-
+                try:
+                    connect_proxy_args = proxy_args.copy()
+                    connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
+                    sock.setproxy(**connect_proxy_args)
+                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
+                        sock.settimeout(timeout)
+                    if source_address:
+                        sock.bind(source_address)
+                    sock.connect((self.host, self.port))
+                    return sock
+                except socket.error:
+                    sock.close()
+                    raise
             self.sock = create_connection(
                 (proxy_args['addr'], proxy_args['port']), timeout=self.timeout,
                 source_address=self.source_address, _create_socket_func=sock_socket_connect)

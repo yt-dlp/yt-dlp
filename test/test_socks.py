@@ -80,6 +80,9 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
     # SOCKS5 username/password authentication https://tools.ietf.org/html/rfc1929
 
     def handle(self):
+        sleep = self.socks_kwargs.get('sleep')
+        if sleep:
+            time.sleep(sleep)
         version, nmethods = self.connection.recv(2)
         assert version == SOCKS5_VERSION
         methods = list(self.connection.recv(nmethods))
@@ -138,10 +141,6 @@ class Socks5ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         self.connection.sendall(struct.pack(
             '!BBBBIH', SOCKS5_VERSION, self.socks_kwargs.get('reply', Socks5Reply.SUCCEEDED), 0x0, 0x1, 0x7f000001, 40000))
 
-        sleep = self.socks_kwargs.get('sleep')
-        if sleep:
-            time.sleep(sleep)
-
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
 
 
@@ -154,6 +153,9 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
         return b''.join(iter(functools.partial(self.connection.recv, 1), b'\x00'))
 
     def handle(self):
+        sleep = self.socks_kwargs.get('sleep')
+        if sleep:
+            time.sleep(sleep)
         socks_info = {
             'version': SOCKS4_VERSION,
             'command': None,
@@ -189,9 +191,7 @@ class Socks4ProxyHandler(StreamRequestHandler, SocksProxyHandler):
             struct.pack(
                 '!BBHI', SOCKS4_REPLY_VERSION,
                 self.socks_kwargs.get('cd_reply', Socks4CD.REQUEST_GRANTED), 40000, 0x7f000001))
-        sleep = self.socks_kwargs.get('sleep')
-        if sleep:
-            time.sleep(sleep)
+
         self.request_handler_class(self.request, self.client_address, self.server, socks_info=socks_info)
 
 
