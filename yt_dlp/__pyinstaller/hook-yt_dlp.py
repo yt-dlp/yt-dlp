@@ -1,6 +1,6 @@
 import sys
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, collect_all
 
 
 def pycryptodome_module():
@@ -22,8 +22,7 @@ def get_hidden_imports():
     yield from ('yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated')
     yield pycryptodome_module()
     yield from collect_submodules('websockets')
-    yield from ('_cffi_backend',)
-    yield from collect_submodules('curl_cffi')
+    yield from collect_all('curl_cffi')
     # These are auto-detected, but explicitly add them just in case
     yield from ('mutagen', 'brotli', 'certifi')
 
