@@ -720,9 +720,9 @@ class FacebookIE(InfoExtractor):
                 for src_type in ('src', 'src_no_ratelimit'):
                     src = f[0].get('%s_%s' % (quality, src_type))
                     if src:
-                        preference = -10 if format_id == 'progressive' else -1
+                        preference = -10 if format_id == 'progressive' else 0
                         if quality == 'hd':
-                            preference += 5
+                            preference += 1
                         formats.append({
                             'format_id': '%s_%s_%s' % (format_id, quality, src_type),
                             'url': src,
