@@ -348,7 +348,7 @@ class RumbleIE(InfoExtractor):
             'url': url_info['url'],
             'release_timestamp': parse_iso8601(self._search_regex(
                 r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)', webpage, 'release date', default=None)),
-            'view_count': int(self._search_regex(
+            'view_count': int_or_none(self._search_regex(
                 r'"userInteractionCount"\s*:\s*(\d+)', webpage, 'view count', default=None)),
             'like_count': parse_count(self._search_regex(
                 r'<span data-js="rumbles_up_votes">\s*([\d,.KM]+)', webpage, 'like count', default=None)),
