@@ -1,12 +1,13 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    traverse_obj,
     unescapeHTML,
 )
 
 
 class BildIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bild\.de/(?:[^/]+/)+(?P<display_id>[^/]+)-(?P<id>\d+)(?:,auto=true)?\.bild\.html?'
+    _VALID_URL = r'https?://(?:www\.)?bild\.de/(?:[^/]+/)+(?P<display_id>[^/]+)-(?P<id>\d+)(?:,auto=true)?\.bild\.html'
     IE_DESC = 'Bild.de'
     _TESTS = [{
         'note': 'static MP4 only',
@@ -22,7 +23,7 @@ class BildIE(InfoExtractor):
         }
     }, {
         'note': 'static MP4 and HLS',
-        'url': 'https://www.bild.de/video/clip/news-ausland/deftiger-abgang-vom-10m-turm-bademeister-sorgt-fuer-skandal-85158620.bild.htm',
+        'url': 'https://www.bild.de/video/clip/news-ausland/deftiger-abgang-vom-10m-turm-bademeister-sorgt-fuer-skandal-85158620.bild.html',
         'md5': 'fb0ed4f09c495d4ba7ce2eee0bb90de1',
         'info_dict': {
             'id': '85158620',
@@ -41,14 +42,16 @@ class BildIE(InfoExtractor):
             url.split('.bild.html')[0] + ',view=json.bild.html', video_id)
 
         formats = []
-        for src in video_data['clipList'][0]['srces']:
-            if src['type'] == 'application/x-mpegURL':
+        for src in traverse_obj(video_data, ('clipList', 0, 'srces', lambda _, v: v['src'])):
+            src_type = src.get('type')
+            if src_type == 'application/x-mpegURL':
                 formats.extend(
                     self._extract_m3u8_formats(
-                        src['src'], video_id, 'mp4',
-                        entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
-            elif src['type'] == 'video/mp4':
+                        src['src'], video_id, 'mp4', m3u8_id='hls', fatal=False))
+            elif src_type == 'video/mp4':
                 formats.append({'url': src['src'], 'format_id': 'http-mp4'})
+            else:
+                self.report_warning(f'Skipping unsupported format type: "{src_type}"')
 
         return {
             'id': video_id,
