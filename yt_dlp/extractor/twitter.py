@@ -1,9 +1,10 @@
-import functools
 import json
+import random
 import re
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_unquote,
@@ -147,10 +148,14 @@ class TwitterBaseIE(InfoExtractor):
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
+    @functools.cached_property
+    def _selected_api(self):
+        return self._configuration_arg('api', ['graphql'], ie_key='Twitter')[0]
+
     def _fetch_guest_token(self, display_id):
         guest_token = traverse_obj(self._download_json(
             f'{self._API_BASE}guest/activate.json', display_id, 'Downloading guest token', data=b'',
-            headers=self._set_base_headers(legacy=display_id and self._configuration_arg('legacy_api'))),
+            headers=self._set_base_headers(legacy=display_id and self._selected_api == 'legacy')),
             ('guest_token', {str}))
         if not guest_token:
             raise ExtractorError('Could not retrieve guest token')
@@ -295,7 +300,7 @@ class TwitterBaseIE(InfoExtractor):
         self.report_login()
 
     def _call_api(self, path, video_id, query={}, graphql=False):
-        headers = self._set_base_headers(legacy=not graphql and self._configuration_arg('legacy_api'))
+        headers = self._set_base_headers(legacy=not graphql and self._selected_api == 'legacy')
         headers.update({
             'x-twitter-auth-type': 'OAuth2Session',
             'x-twitter-client-language': 'en',
@@ -707,6 +712,7 @@ class TwitterIE(TwitterBaseIE):
             'tags': [],
             'age_limit': 0,
         },
+        'skip': 'This Tweet is unavailable',
     }, {
         # not available in Periscope
         'url': 'https://twitter.com/ViviEducation/status/1136534865145286656',
@@ -721,6 +727,7 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
+        'skip': 'Broadcast no longer exists',
     }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
@@ -773,9 +780,9 @@ class TwitterIE(TwitterBaseIE):
         'url': 'https://twitter.com/UltimaShadowX/status/1577719286659006464',
         'info_dict': {
             'id': '1577719286659006464',
-            'title': 'Ultima📛 | #вʟм - Test',
+            'title': 'Ultima📛| New Era - Test',
             'description': 'Test https://t.co/Y3KEZD7Dad',
-            'uploader': 'Ultima📛 | #вʟм',
+            'uploader': 'Ultima📛| New Era',
             'uploader_id': 'UltimaShadowX',
             'uploader_url': 'https://twitter.com/UltimaShadowX',
             'upload_date': '20221005',
@@ -811,7 +818,7 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
         },
     }, {
-        # Adult content, fails if not logged in (GraphQL)
+        # Adult content, fails if not logged in
         'url': 'https://twitter.com/Rizdraws/status/1575199173472927762',
         'info_dict': {
             'id': '1575199163847000068',
@@ -831,9 +838,10 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 18,
             'tags': []
         },
+        'params': {'skip_download': 'The media could not be played'},
         'skip': 'Requires authentication',
     }, {
-        # Playlist result only with auth
+        # Playlist result only with graphql API
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
         'info_dict': {
@@ -898,7 +906,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
             'release_timestamp': 1658417414,
-            'description': 'md5:4dc8e972f1d8b3c6580376fabb02a3ad',
+            'description': 'md5:acce559345fd49f129c20dbcda3f1201',
             'timestamp': 1658407771,
             'release_date': '20220721',
             'upload_date': '20220721',
@@ -1007,10 +1015,10 @@ class TwitterIE(TwitterBaseIE):
             'view_count': int,
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
-            'uploader': 'Mün The Friend Of YWAP',
+            'uploader': 'Mün',
             'repost_count': int,
             'upload_date': '20221206',
-            'title': 'Mün The Friend Of YWAP - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'title': 'Mün - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
             'comment_count': int,
             'like_count': int,
             'tags': [],
@@ -1019,7 +1027,7 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1670306984.0,
         },
     }, {
-        # url to retweet id w/ legacy api
+        # retweeted_status (private)
         'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
         'info_dict': {
             'id': '1623274794488659969',
@@ -1039,32 +1047,84 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
         },
-        'params': {'extractor_args': {'twitter': {'legacy_api': ['']}}},
         'skip': 'Protected tweet',
     }, {
-        # orig tweet w/ graphql
-        'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
+        # retweeted_status
+        'url': 'https://twitter.com/playstrumpcard/status/1695424220702888009',
         'info_dict': {
-            'id': '1623274794488659969',
-            'display_id': '1623739803874349067',
+            'id': '1694928337846538240',
             'ext': 'mp4',
-            'title': '@selfisekai@hackerspace.pl 🐀 - RT @Johnnybull3ts: Me after going viral to over 30million people:    Whoopsie-daisy',
-            'description': 'md5:9258bdbb54793bdc124fe1cd47e96c6a',
-            'uploader': '@selfisekai@hackerspace.pl 🐀',
-            'uploader_id': 'liberdalau',
-            'uploader_url': 'https://twitter.com/liberdalau',
+            'display_id': '1695424220702888009',
+            'title': 'md5:e8daa9527bc2b947121395494f786d9d',
+            'description': 'md5:004f2d37fd58737724ec75bc7e679938',
+            'uploader': 'Benny Johnson',
+            'uploader_id': 'bennyjohnson',
+            'uploader_url': 'https://twitter.com/bennyjohnson',
             'age_limit': 0,
             'tags': [],
-            'duration': 8.033,
-            'timestamp': 1675964711.0,
-            'upload_date': '20230209',
-            'thumbnail': r're:https://pbs\.twimg\.com/ext_tw_video_thumb/.+',
+            'duration': 45.001,
+            'timestamp': 1692962814.0,
+            'upload_date': '20230825',
+            'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'like_count': int,
-            'view_count': int,
             'repost_count': int,
+            'view_count': int,
             'comment_count': int,
         },
-        'skip': 'Protected tweet',
+    }, {
+        # retweeted_status w/ legacy API
+        'url': 'https://twitter.com/playstrumpcard/status/1695424220702888009',
+        'info_dict': {
+            'id': '1694928337846538240',
+            'ext': 'mp4',
+            'display_id': '1695424220702888009',
+            'title': 'md5:e8daa9527bc2b947121395494f786d9d',
+            'description': 'md5:004f2d37fd58737724ec75bc7e679938',
+            'uploader': 'Benny Johnson',
+            'uploader_id': 'bennyjohnson',
+            'uploader_url': 'https://twitter.com/bennyjohnson',
+            'age_limit': 0,
+            'tags': [],
+            'duration': 45.001,
+            'timestamp': 1692962814.0,
+            'upload_date': '20230825',
+            'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
+            'like_count': int,
+            'repost_count': int,
+        },
+        'params': {'extractor_args': {'twitter': {'api': ['legacy']}}},
+    }, {
+        # Broadcast embedded in tweet
+        'url': 'https://twitter.com/JessicaDobsonWX/status/1693057346933600402',
+        'info_dict': {
+            'id': '1yNGaNLjEblJj',
+            'ext': 'mp4',
+            'title': 'Jessica Dobson - WAVE Weather Now - Saturday 8/19/23 Update',
+            'uploader': 'Jessica Dobson',
+            'uploader_id': '1DZEoDwDovRQa',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'view_count': int,
+        },
+        'add_ie': ['TwitterBroadcast'],
+    }, {
+        # Animated gif and quote tweet video, with syndication API
+        'url': 'https://twitter.com/BAKKOOONN/status/1696256659889565950',
+        'playlist_mincount': 2,
+        'info_dict': {
+            'id': '1696256659889565950',
+            'title': 'BAKOON - https://t.co/zom968d0a0',
+            'description': 'https://t.co/zom968d0a0',
+            'tags': [],
+            'uploader': 'BAKOON',
+            'uploader_id': 'BAKKOOONN',
+            'uploader_url': 'https://twitter.com/BAKKOOONN',
+            'age_limit': 18,
+            'timestamp': 1693254077.0,
+            'upload_date': '20230828',
+            'like_count': int,
+        },
+        'params': {'extractor_args': {'twitter': {'api': ['syndication']}}},
+        'expected_warnings': ['Not all metadata'],
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -1103,6 +1163,14 @@ class TwitterIE(TwitterBaseIE):
         'only_matching': True,
     }]
 
+    _MEDIA_ID_RE = re.compile(r'_video/(\d+)/')
+
+    @property
+    def _GRAPHQL_ENDPOINT(self):
+        if self.is_logged_in:
+            return 'zZXycP0V6H7m-2r0mOnFcA/TweetDetail'
+        return '2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId'
+
     def _graphql_to_legacy(self, data, twid):
         result = traverse_obj(data, (
             'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
@@ -1130,9 +1198,14 @@ class TwitterIE(TwitterBaseIE):
             'user': ('core', 'user_results', 'result', 'legacy'),
             'card': ('card', 'legacy'),
             'quoted_status': ('quoted_status_result', 'result', 'legacy'),
+            'retweeted_status': ('legacy', 'retweeted_status_result', 'result', 'legacy'),
         }, expected_type=dict, default={}))
 
-        # extra transformation is needed since result does not match legacy format
+        # extra transformations needed since result does not match legacy format
+        if status.get('retweeted_status'):
+            status['retweeted_status']['user'] = traverse_obj(status, (
+                'retweeted_status_result', 'result', 'core', 'user_results', 'result', 'legacy', {dict})) or {}
+
         binding_values = {
             binding_value.get('key'): binding_value.get('value')
             for binding_value in traverse_obj(status, ('card', 'binding_values', ..., {dict}))
@@ -1208,33 +1281,42 @@ class TwitterIE(TwitterBaseIE):
         }
 
     def _extract_status(self, twid):
-        if self.is_logged_in:
-            return self._graphql_to_legacy(
-                self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid), twid)
+        if self.is_logged_in or self._selected_api == 'graphql':
+            status = self._graphql_to_legacy(self._call_graphql_api(self._GRAPHQL_ENDPOINT, twid), twid)
 
-        try:
-            if not self._configuration_arg('legacy_api'):
-                return self._graphql_to_legacy(
-                    self._call_graphql_api('2ICDjqPd81tulZcYrtpTuQ/TweetResultByRestId', twid), twid)
-            return traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
+        elif self._selected_api == 'legacy':
+            status = self._call_api(f'statuses/show/{twid}.json', twid, {
                 'cards_platform': 'Web-12',
                 'include_cards': 1,
                 'include_reply_count': 1,
                 'include_user_entities': 0,
                 'tweet_mode': 'extended',
-            }), 'retweeted_status', None)
+            })
 
-        except ExtractorError as e:
-            if e.expected:
-                raise
+        elif self._selected_api == 'syndication':
             self.report_warning(
-                f'{e.orig_msg}. Falling back to syndication endpoint; some metadata may be missing', twid)
+                'Not all metadata or media is available via syndication endpoint', twid, only_once=True)
+            status = self._download_json(
+                'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+                headers={'User-Agent': 'Googlebot'}, query={
+                    'id': twid,
+                    # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
+                    'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
+                })
+            if not status:
+                raise ExtractorError('Syndication endpoint returned empty JSON response')
+            # Transform the result so its structure matches that of legacy/graphql
+            media = []
+            for detail in traverse_obj(status, ((None, 'quoted_tweet'), 'mediaDetails', ..., {dict})):
+                detail['id_str'] = traverse_obj(detail, (
+                    'video_info', 'variants', ..., 'url', {self._MEDIA_ID_RE.search}, 1), get_all=False) or twid
+                media.append(detail)
+            status['extended_entities'] = {'media': media}
 
-        status = self._download_json(
-            'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
-            headers={'User-Agent': 'Googlebot'}, query={'id': twid})
-        status['extended_entities'] = {'media': status.get('mediaDetails')}
-        return status
+        else:
+            raise ExtractorError(f'"{self._selected_api}" is not a valid API selection', expected=True)
+
+        return traverse_obj(status, 'retweeted_status', None, expected_type=dict) or {}
 
     def _real_extract(self, url):
         twid, selected_index = self._match_valid_url(url).group('id', 'index')
@@ -1266,10 +1348,7 @@ class TwitterIE(TwitterBaseIE):
         }
 
         def extract_from_video_info(media):
-            media_id = traverse_obj(media, 'id_str', 'id', (
-                'video_info', 'variants', ..., 'url',
-                {functools.partial(re.search, r'_video/(\d+)/')}, 1
-            ), get_all=False, expected_type=str_or_none) or twid
+            media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
             self.write_debug(f'Extracting from video info: {media_id}')
 
             formats = []
@@ -1503,6 +1582,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         broadcast = self._call_api(
             'broadcasts/show.json', broadcast_id,
             {'ids': broadcast_id})['broadcasts'][broadcast_id]
+        if not broadcast:
+            raise ExtractorError('Broadcast no longer exists', expected=True)
         info = self._parse_broadcast_data(broadcast, broadcast_id)
         media_key = broadcast['media_key']
         source = self._call_api(
