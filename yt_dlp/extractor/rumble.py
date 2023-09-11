@@ -238,7 +238,7 @@ class RumbleIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]+)[^/]*$'
     _EMBED_REGEX = [
         r'<a class=video-item--a href=(?P<url>/v[\w.-]+\.html)>',
-        r'<a\s+class="videostream__link link"\s+href=(?P<url>/v[\w.-]+\.html)\s+>']
+        r'<a[^>]+class="videostream__link link"[^>]+href=(?P<url>/v[\w.-]+\.html)[^>]*>']
     _TESTS = [{
         'add_ie': ['RumbleEmbed'],
         'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
@@ -342,27 +342,20 @@ class RumbleIE(InfoExtractor):
         if not url_info:
             raise UnsupportedError(url)
 
-        release_ts_str = self._search_regex(
-            r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)',
-            webpage, 'release date', fatal=False, default=None)
-        like_count_str = self._search_regex(
-            r'<span data-js="rumbles_up_votes">([\d,\.KM]+)<',
-            webpage, 'like count', fatal=False, default=None)
-        dislike_count_str = self._search_regex(
-            r'<span data-js="rumbles_down_votes">([\d,\.KM]+)<',
-            webpage, 'dislike count', fatal=False, default=None)
-        view_count_str = self._search_regex(
-            r'"userInteractionCount":([\d,]+)}',
-            webpage, 'view count', fatal=False, default=None)
-
-        return self.url_result(
-            url_info['url'], ie_key=url_info['ie_key'], url_transparent=True,
-            view_count=parse_count(view_count_str),
-            release_timestamp=parse_iso8601(release_ts_str),
-            like_count=parse_count(like_count_str),
-            dislike_count=parse_count(dislike_count_str),
-            description=clean_html(get_element_by_class('media-description', webpage)),
-        )
+        return {
+            '_type': 'url_transparent',
+            'ie_key': url_info['ie_key'],
+            'url': url_info['url'],
+            'release_timestamp': parse_iso8601(self._search_regex(
+                r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)', webpage, 'release date', default=None)),
+            'view_count': int(self._search_regex(
+                r'"userInteractionCount"\s*:\s*(\d+)', webpage, 'view count', default=None)),
+            'like_count': parse_count(self._search_regex(
+                r'<span data-js="rumbles_up_votes">\s*([\d,.KM]+)', webpage, 'like count', default=None)),
+            'dislike_count': parse_count(self._search_regex(
+                r'<span data-js="rumbles_down_votes">\s*([\d,.KM]+)', webpage, 'dislike count', default=None)),
+            'description': clean_html(get_element_by_class('media-description', webpage))
+        }
 
 
 class RumbleChannelIE(InfoExtractor):
