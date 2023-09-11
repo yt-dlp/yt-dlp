@@ -1,8 +1,14 @@
+from .brightcove import BrightcoveNewIE
+from .common import InfoExtractor
 from .theplatform import ThePlatformFeedIE
+from .youtube import YoutubeIE
 from ..utils import (
     ExtractorError,
+    extract_attributes,
+    get_element_html_by_id,
     int_or_none,
     find_xpath_attr,
+    smuggle_url,
     xpath_element,
     xpath_text,
     update_url_query,
@@ -162,3 +168,110 @@ class CBSIE(CBSBaseIE):
             'duration': int_or_none(xpath_text(video_data, 'videoLength'), 1000),
             'thumbnail': url_or_none(xpath_text(video_data, 'previewImageURL')),
         })
+
+
+class ParamountPressExpressIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?paramountpressexpress\.com(?:/[\w-]+)+/(?P<yt>yt-)?video/?\?watch=(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.paramountpressexpress.com/cbs-entertainment/shows/survivor/video/?watch=pnzew7e2hx',
+        'md5': '56631dbcadaab980d1fc47cb7b76cba4',
+        'info_dict': {
+            'id': '6322981580112',
+            'ext': 'mp4',
+            'title': 'I’m Felicia',
+            'description': 'md5:88fad93f8eede1c9c8f390239e4c6290',
+            'uploader_id': '6055873637001',
+            'upload_date': '20230320',
+            'timestamp': 1679334960,
+            'duration': 49.557,
+            'thumbnail': r're:^https://.+\.jpg',
+            'tags': [],
+        },
+    }, {
+        'url': 'https://www.paramountpressexpress.com/cbs-entertainment/video/?watch=2s5eh8kppc',
+        'md5': 'edcb03e3210b88a3e56c05aa863e0e5b',
+        'info_dict': {
+            'id': '6323036027112',
+            'ext': 'mp4',
+            'title': '‘Y&R’ Set Visit: Jerry O’Connell Quizzes Cast on Pre-Love Scene Rituals and More',
+            'description': 'md5:b929867a357aac5544b783d834c78383',
+            'uploader_id': '6055873637001',
+            'upload_date': '20230321',
+            'timestamp': 1679430180,
+            'duration': 132.032,
+            'thumbnail': r're:^https://.+\.jpg',
+            'tags': [],
+        },
+    }, {
+        'url': 'https://www.paramountpressexpress.com/paramount-plus/yt-video/?watch=OX9wJWOcqck',
+        'info_dict': {
+            'id': 'OX9wJWOcqck',
+            'ext': 'mp4',
+            'title': 'Rugrats | Season 2 Official Trailer | Paramount+',
+            'description': 'md5:1f7e26f5625a9f0d6564d9ad97a9f7de',
+            'uploader': 'Paramount Plus',
+            'uploader_id': '@paramountplus',
+            'uploader_url': 'http://www.youtube.com/@paramountplus',
+            'channel': 'Paramount Plus',
+            'channel_id': 'UCrRttZIypNTA1Mrfwo745Sg',
+            'channel_url': 'https://www.youtube.com/channel/UCrRttZIypNTA1Mrfwo745Sg',
+            'upload_date': '20230316',
+            'duration': 88,
+            'age_limit': 0,
+            'availability': 'public',
+            'live_status': 'not_live',
+            'playable_in_embed': True,
+            'view_count': int,
+            'like_count': int,
+            'channel_follower_count': int,
+            'thumbnail': 'https://i.ytimg.com/vi/OX9wJWOcqck/maxresdefault.jpg',
+            'categories': ['Entertainment'],
+            'tags': ['Rugrats'],
+        },
+    }, {
+        'url': 'https://www.paramountpressexpress.com/showtime/yt-video/?watch=_ljssSoDLkw',
+        'info_dict': {
+            'id': '_ljssSoDLkw',
+            'ext': 'mp4',
+            'title': 'Lavell Crawford: THEE Lavell Crawford Comedy Special Official Trailer | SHOWTIME',
+            'description': 'md5:39581bcc3fd810209b642609f448af70',
+            'uploader': 'SHOWTIME',
+            'uploader_id': '@Showtime',
+            'uploader_url': 'http://www.youtube.com/@Showtime',
+            'channel': 'SHOWTIME',
+            'channel_id': 'UCtwMWJr2BFPkuJTnSvCESSQ',
+            'channel_url': 'https://www.youtube.com/channel/UCtwMWJr2BFPkuJTnSvCESSQ',
+            'upload_date': '20230209',
+            'duration': 49,
+            'age_limit': 0,
+            'availability': 'public',
+            'live_status': 'not_live',
+            'playable_in_embed': True,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'channel_follower_count': int,
+            'thumbnail': 'https://i.ytimg.com/vi_webp/_ljssSoDLkw/maxresdefault.webp',
+            'categories': ['People & Blogs'],
+            'tags': 'count:27',
+        },
+    }]
+
+    def _real_extract(self, url):
+        display_id, is_youtube = self._match_valid_url(url).group('id', 'yt')
+        if is_youtube:
+            return self.url_result(display_id, YoutubeIE)
+
+        webpage = self._download_webpage(url, display_id)
+        video_id = self._search_regex(
+            r'\bvideo_id\s*=\s*["\'](\d+)["\']\s*,', webpage, 'Brightcove ID')
+        token = self._search_regex(r'\btoken\s*=\s*["\']([\w.-]+)["\']', webpage, 'token')
+
+        player = extract_attributes(get_element_html_by_id('vcbrightcoveplayer', webpage) or '')
+        account_id = player.get('data-account') or '6055873637001'
+        player_id = player.get('data-player') or 'OtLKgXlO9F'
+        embed = player.get('data-embed') or 'default'
+
+        return self.url_result(smuggle_url(
+            f'https://players.brightcove.net/{account_id}/{player_id}_{embed}/index.html?videoId={video_id}',
+            {'token': token}), BrightcoveNewIE)

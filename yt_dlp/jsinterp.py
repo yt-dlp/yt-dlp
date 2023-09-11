@@ -20,7 +20,12 @@ from .utils import (
 
 def _js_bit_op(op):
     def zeroise(x):
-        return 0 if x in (None, JS_Undefined) else x
+        if x in (None, JS_Undefined):
+            return 0
+        with contextlib.suppress(TypeError):
+            if math.isnan(x):  # NB: NaN cannot be checked by membership
+                return 0
+        return x
 
     def wrapped(a, b):
         return op(zeroise(a), zeroise(b)) & 0xffffffff
@@ -39,7 +44,7 @@ def _js_arith_op(op):
 
 
 def _js_div(a, b):
-    if JS_Undefined in (a, b) or not (a and b):
+    if JS_Undefined in (a, b) or not (a or b):
         return float('nan')
     return (a or 0) / b if b else float('inf')
 
@@ -258,9 +263,11 @@ class JSInterpreter:
                 elif in_quote == '/' and char in '[]':
                     in_regex_char_group = char == '['
             escaping = not escaping and in_quote and char == '\\'
-            after_op = not in_quote and char in OP_CHARS or (char.isspace() and after_op)
+            in_unary_op = (not in_quote and not in_regex_char_group
+                           and after_op not in (True, False) and char in '-+')
+            after_op = char if (not in_quote and char in OP_CHARS) else (char.isspace() and after_op)
 
-            if char != delim[pos] or any(counters.values()) or in_quote:
+            if char != delim[pos] or any(counters.values()) or in_quote or in_unary_op:
                 pos = 0
                 continue
             elif pos != delim_len:
@@ -345,8 +352,10 @@ class JSInterpreter:
             inner, outer = self._separate(expr, expr[0], 1)
             if expr[0] == '/':
                 flags, outer = self._regex_flags(outer)
+                # We don't support regex methods yet, so no point compiling it
+                inner = f'{inner}/{flags}'
                 # Avoid https://github.com/python/cpython/issues/74534
-                inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
+                # inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
             else:
                 inner = json.loads(js_to_json(f'{inner}{expr[0]}', strict=True))
             if not outer:
@@ -436,7 +445,7 @@ class JSInterpreter:
                 err = e
 
             pending = (None, False)
-            m = re.match(r'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{'.format(**globals()), expr)
+            m = re.match(fr'catch\s*(?P<err>\(\s*{_NAME_RE}\s*\))?\{{', expr)
             if m:
                 sub_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
                 if err:
@@ -770,7 +779,7 @@ class JSInterpreter:
         obj = {}
         obj_m = re.search(
             r'''(?x)
-                (?<!this\.)%s\s*=\s*{\s*
+                (?<!\.)%s\s*=\s*{\s*
                     (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
                 }\s*;
             ''' % (re.escape(objname), _FUNC_NAME_RE),
@@ -803,9 +812,9 @@ class JSInterpreter:
                 \((?P<args>[^)]*)\)\s*
                 (?P<code>{.+})''' % {'name': re.escape(funcname)},
             self.code)
-        code, _ = self._separate_at_paren(func_m.group('code'))
         if func_m is None:
             raise self.Exception(f'Could not find JS function "{funcname}"')
+        code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
     def extract_function(self, funcname):

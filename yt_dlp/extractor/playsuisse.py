@@ -5,10 +5,16 @@ from ..utils import int_or_none, traverse_obj
 
 
 class PlaySuisseIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?playsuisse\.ch/watch/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?playsuisse\.ch/(?:watch|detail)/(?:[^#]*[?&]episodeId=)?(?P<id>[0-9]+)'
     _TESTS = [
         {
+            # Old URL
             'url': 'https://www.playsuisse.ch/watch/763211/0',
+            'only_matching': True,
+        },
+        {
+            # episode in a series
+            'url': 'https://www.playsuisse.ch/watch/763182?episodeId=763211',
             'md5': '82df2a470b2dfa60c2d33772a8a60cf8',
             'info_dict': {
                 'id': '763211',
@@ -21,11 +27,11 @@ class PlaySuisseIE(InfoExtractor):
                 'season_number': 1,
                 'episode': 'Knochen',
                 'episode_number': 1,
-                'thumbnail': 'md5:9260abe0c0ec9b69914d0a10d54c5878'
+                'thumbnail': 're:https://playsuisse-img.akamaized.net/',
             }
-        },
-        {
-            'url': 'https://www.playsuisse.ch/watch/808675/0',
+        }, {
+            # film
+            'url': 'https://www.playsuisse.ch/watch/808675',
             'md5': '818b94c1d2d7c4beef953f12cb8f3e75',
             'info_dict': {
                 'id': '808675',
@@ -33,26 +39,60 @@ class PlaySuisseIE(InfoExtractor):
                 'title': 'Der Läufer',
                 'description': 'md5:9f61265c7e6dcc3e046137a792b275fd',
                 'duration': 5280,
-                'episode': 'Der Läufer',
-                'thumbnail': 'md5:44af7d65ee02bbba4576b131868bb783'
+                'thumbnail': 're:https://playsuisse-img.akamaized.net/',
             }
-        },
-        {
-            'url': 'https://www.playsuisse.ch/watch/817193/0',
-            'md5': '1d6c066f92cd7fffd8b28a53526d6b59',
+        }, {
+            # series (treated as a playlist)
+            'url': 'https://www.playsuisse.ch/detail/1115687',
             'info_dict': {
-                'id': '817193',
-                'ext': 'mp4',
-                'title': 'Die Einweihungsparty',
-                'description': 'md5:91ebf04d3a42cb3ab70666acf750a930',
-                'duration': 1380,
-                'series': 'Nr. 47',
-                'season': 'Season 1',
-                'season_number': 1,
-                'episode': 'Die Einweihungsparty',
-                'episode_number': 1,
-                'thumbnail': 'md5:637585fb106e3a4bcd991958924c7e44'
-            }
+                'description': 'md5:e4a2ae29a8895823045b5c3145a02aa3',
+                'id': '1115687',
+                'series': 'They all came out to Montreux',
+                'title': 'They all came out to Montreux',
+            },
+            'playlist': [{
+                'info_dict': {
+                    'description': 'md5:f2462744834b959a31adc6292380cda2',
+                    'duration': 3180,
+                    'episode': 'Folge 1',
+                    'episode_number': 1,
+                    'id': '1112663',
+                    'season': 'Season 1',
+                    'season_number': 1,
+                    'series': 'They all came out to Montreux',
+                    'thumbnail': 're:https://playsuisse-img.akamaized.net/',
+                    'title': 'Folge 1',
+                    'ext': 'mp4'
+                },
+            }, {
+                'info_dict': {
+                    'description': 'md5:9dfd308699fe850d3bce12dc1bad9b27',
+                    'duration': 2935,
+                    'episode': 'Folge 2',
+                    'episode_number': 2,
+                    'id': '1112661',
+                    'season': 'Season 1',
+                    'season_number': 1,
+                    'series': 'They all came out to Montreux',
+                    'thumbnail': 're:https://playsuisse-img.akamaized.net/',
+                    'title': 'Folge 2',
+                    'ext': 'mp4'
+                },
+            }, {
+                'info_dict': {
+                    'description': 'md5:14a93a3356b2492a8f786ab2227ef602',
+                    'duration': 2994,
+                    'episode': 'Folge 3',
+                    'episode_number': 3,
+                    'id': '1112664',
+                    'season': 'Season 1',
+                    'season_number': 1,
+                    'series': 'They all came out to Montreux',
+                    'thumbnail': 're:https://playsuisse-img.akamaized.net/',
+                    'title': 'Folge 3',
+                    'ext': 'mp4'
+                }
+            }],
         }
     ]
 
@@ -142,6 +182,6 @@ class PlaySuisseIE(InfoExtractor):
             'subtitles': subtitles,
             'series': media_data.get('seriesName'),
             'season_number': int_or_none(media_data.get('seasonNumber')),
-            'episode': media_data.get('name'),
+            'episode': media_data.get('name') if media_data.get('episodeNumber') else None,
             'episode_number': int_or_none(media_data.get('episodeNumber')),
         }

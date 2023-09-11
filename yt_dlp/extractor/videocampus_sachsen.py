@@ -2,7 +2,7 @@ import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import ExtractorError, OnDemandPagedList, urlencode_postdata
 
 
@@ -169,7 +169,7 @@ class VideocampusSachsenIE(InfoExtractor):
                 f'https://{host}/media/hlsMedium/key/{video_id}/format/auto/ext/mp4/learning/0/path/m3u8',
                 video_id, 'mp4', m3u8_id='hls', fatal=True)
         except ExtractorError as e:
-            if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (404, 500):
+            if not isinstance(e.cause, HTTPError) or e.cause.status not in (404, 500):
                 raise
 
         formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4'})

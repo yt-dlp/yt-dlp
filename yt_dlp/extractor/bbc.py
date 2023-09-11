@@ -2,11 +2,11 @@ import functools
 import itertools
 import json
 import re
-import urllib.error
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str, compat_urlparse
+from ..compat import compat_str, compat_urlparse
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -277,7 +277,7 @@ class BBCCoUkIE(InfoExtractor):
             post_url, None, 'Logging in', data=urlencode_postdata(login_form),
             headers={'Referer': self._LOGIN_URL})
 
-        if self._LOGIN_URL in urlh.geturl():
+        if self._LOGIN_URL in urlh.url:
             error = clean_html(get_element_by_class('form-message', response))
             if error:
                 raise ExtractorError(
@@ -388,8 +388,8 @@ class BBCCoUkIE(InfoExtractor):
                                 href, programme_id, ext='mp4', entry_protocol='m3u8_native',
                                 m3u8_id=format_id, fatal=False)
                         except ExtractorError as e:
-                            if not (isinstance(e.exc_info[1], urllib.error.HTTPError)
-                                    and e.exc_info[1].code in (403, 404)):
+                            if not (isinstance(e.exc_info[1], HTTPError)
+                                    and e.exc_info[1].status in (403, 404)):
                                 raise
                             fmts = []
                         formats.extend(fmts)
@@ -472,7 +472,7 @@ class BBCCoUkIE(InfoExtractor):
 
             return programme_id, title, description, duration, formats, subtitles
         except ExtractorError as ee:
-            if not (isinstance(ee.cause, compat_HTTPError) and ee.cause.code == 404):
+            if not (isinstance(ee.cause, HTTPError) and ee.cause.status == 404):
                 raise
 
         # fallback to legacy playlist
@@ -983,7 +983,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                                     # Some playlist URL may fail with 500, at the same time
                                     # the other one may work fine (e.g.
                                     # http://www.bbc.com/turkce/haberler/2015/06/150615_telabyad_kentin_cogu)
-                                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 500:
+                                    if isinstance(e.cause, HTTPError) and e.cause.status == 500:
                                         continue
                                     raise
                             if entry:
