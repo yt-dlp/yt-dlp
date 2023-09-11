@@ -38,6 +38,7 @@ class VideaIE(InfoExtractor):
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:^https?://.*',
             'duration': 21,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/videok/origo/jarmuvek/supercars-elozes-jAHDWfWSJH5XuFhH',
@@ -48,6 +49,7 @@ class VideaIE(InfoExtractor):
             'title': 'Supercars előzés',
             'thumbnail': r're:^https?://.*',
             'duration': 64,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/player?v=8YfIAjxwWGwT8HVQ',
@@ -58,6 +60,7 @@ class VideaIE(InfoExtractor):
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:^https?://.*',
             'duration': 21,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
