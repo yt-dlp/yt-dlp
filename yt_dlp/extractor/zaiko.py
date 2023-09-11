@@ -46,18 +46,14 @@ class ZaikoIE(ZaikoBaseIE):
             'uploader_id': '454',
             'uploader': 'ZAIKO ZERO',
             'release_timestamp': 1583809200,
-            'thumbnails': [{
-                'id': r're:[a-z0-9_]+',
-                'url': r're:https://[a-z0-9]+.cloudfront.net/[a-z0-9_]+/[a-z0-9_]+',
-            }, {
-                'id': r're:[a-z0-9_]+',
-                'url': r're:https://media.zaiko.io/[a-z0-9_]+/[a-z0-9_]+',
-            }],
+            'thumbnail': r're:^https://[\w.-]+/\w+/\w+',
+            'thumbnails': 'maxcount:2',
             'release_date': '20200310',
             'categories': ['Tech House'],
             'live_status': 'was_live',
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'Your account does not have tickets to this event',
     }]
 
     def _real_extract(self, url):
