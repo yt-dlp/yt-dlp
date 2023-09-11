@@ -93,7 +93,7 @@ class ZaikoIE(ZaikoBaseIE):
         thumbnail_urls = [
             traverse_obj(player_meta, ('initial_event_info', 'poster_url')),
             self._og_search_thumbnail(self._download_webpage(
-                f'https://zaiko.io/event/{video_id}', video_id, 'Downloading event page', fatal=False)),
+                f'https://zaiko.io/event/{video_id}', video_id, 'Downloading event page', fatal=False) or ''),
         ]
 
         return {
