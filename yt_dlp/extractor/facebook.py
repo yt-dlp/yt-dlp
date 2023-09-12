@@ -552,6 +552,7 @@ class FacebookIE(InfoExtractor):
                             formats.append({
                                 'format_id': format_id,
                                 # downgrade quality of old sd, hd formats to be lower than formats from DASH
+                                # since they are only up to 720p and no tech info can be extracted.
                                 'quality': q(format_id) - 3,
                                 'url': playable_url,
                             })
