@@ -504,8 +504,6 @@ class FacebookIE(InfoExtractor):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
             for f in info['formats']:
-                if 'quality' not in f:
-                    f['quality'] = 2
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
 
         def extract_relay_data(_filter):
@@ -553,7 +551,8 @@ class FacebookIE(InfoExtractor):
                         else:
                             formats.append({
                                 'format_id': format_id,
-                                'quality': q(format_id),
+                                # downgrade quality of old sd, hd formats to be lower than formats from DASH
+                                'quality': q(format_id) - 3,
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
@@ -720,7 +719,9 @@ class FacebookIE(InfoExtractor):
                 for src_type in ('src', 'src_no_ratelimit'):
                     src = f[0].get('%s_%s' % (quality, src_type))
                     if src:
-                        preference = -10 if format_id == 'progressive' else 0
+                        # downgrade quality of old sd, hd formats to be lower than formats from DASH
+                        # since they are only up to 720p and no tech info can be extracted.
+                        preference = -10 if format_id == 'progressive' else -3
                         if quality == 'hd':
                             preference += 1
                         formats.append({
