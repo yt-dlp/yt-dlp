@@ -20,13 +20,11 @@ from ..utils import (
     urlencode_postdata,
 )
 
-# TODO  Implement search 'https://etv.err.ee/otsing?phrase=4x4&page=3'
-#       'https://etv.err.ee/otsing?phrase=4x4-&from=02.06.2021&to=24.06.2021&page=1'
 # TODO  Try to resolve unknown languages in audio tracks.
-# TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
 # TODO  Clean out all unnecessary debugging output.
 # TODO  Change so that ERR is not consistently the artist.
 # TODO  Fix all fixmes.
+# TODO  Check coding conventions and flake8
 
 def json_find_node(obj, criteria):
     '''Searches recursively depth first for a node that satisfies all
@@ -104,9 +102,10 @@ def sanitize_title(title):
     """
     if not title:
         return None
-    title = re.sub(r'[*+"\'«»„",;`´]+', '', title)
+    title = re.sub(r'[*+"\'«»„"`´]+', '', title)
+    title = re.sub(r'[,;]+', ' ', title)
+    title = re.sub(r'\s+', ' ', title)
     title = title.replace(u'\u2014', '-')\
-                 .replace('\u00a0', ' ')\
                  .strip().strip('.?!')
     title = re.sub(r'[?!]+', '.', title)
     return ' - '.join(map(lambda s: s.strip(), re.split(r'[/|]+', title)))
@@ -474,8 +473,6 @@ class ERRNewsIE(ERRBaseIE):
         entries.extend(self._extract_entries(url_list, video_id))
 
         info.update(self._postprocess_entries(entries, info))
-
-        self._debug_json(info, msg='INFO\n', sort_keys=True)
 
         return info
 
@@ -1005,7 +1002,6 @@ class ERRTVIE(ERRBaseIE):
             self.report_warning(error_msg)
             raise ExtractorError(error_msg)
 
-        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
         return info
 
 
@@ -1315,6 +1311,7 @@ class ERRArhiivIE(ERRTVIE):
     _ERR_API_GET_CONTENT = '%(prefix)s/api/v1/content/%(channel)s/%(id)s'
     _ERR_API_GET_CONTENT_FOR_USER = _ERR_API_GET_CONTENT
     _ERR_API_GET_SERIES = '%(prefix)s/api/v1/series/%(channel)s/%(playlist_id)s'
+    _ERR_API_GET_SERIES_LIMIT = 500
     _ERR_API_LOGIN = '%(prefix)s/api/auth/login'
     _ERR_API_EPISODE_URL = '%(prefix)s/%(channel)s/vaata/%(id)s'
     _ERR_LOGIN_DATA = {}
@@ -1333,7 +1330,7 @@ class ERRArhiivIE(ERRTVIE):
             'id': 'eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
             'display_id': 'eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
             'ext': 'mp4',
-            'title': 'Eesti aja lood - Okupatsioonid: 68 - Muusad sõja varjus',
+            'title': 'Eesti aja lood. Okupatsioonid - 68 - Muusad sõja varjus',
             'thumbnail':
             'https://arhiiv-images.err.ee/public/thumbnails/2009-002267-0068_0001_D10_EESTI-AJA-LOOD-OKUPATSIOONID.jpg',
             'description': 'md5:36772936a0982571ce23aa0dad1f6231',
@@ -1353,6 +1350,7 @@ class ERRArhiivIE(ERRTVIE):
         },
         'params': {
             'format': 'bestvideo',
+            'noplaylist': True,
         },
     }, {
         # 1 a single video
@@ -1405,6 +1403,7 @@ class ERRArhiivIE(ERRTVIE):
         },
         'params': {
             'format': 'bestaudio',
+            'noplaylist': True,
         },
     }, {
         # 3 arhiiv.err.ee video playlist
@@ -1412,12 +1411,10 @@ class ERRArhiivIE(ERRTVIE):
         'url':
         'https://arhiiv.err.ee/video/eesti-nuud-siis-vabariik',
         'info_dict': {
-            'id': '1608156007',
-            'display_id': '4x4_tsukotka',
-            'title': '4x4. Tšukotka',
-            'series_type': 5,
+            'id': 'eesti-nuud-siis-vabariik',
+            'display_id': 'eesti-nuud-siis-vabariik',
         },
-        'playlist_count': 10,
+        'playlist_mincount': 39,
         'params': {
             'format': 'bestvideo',
         },
@@ -1427,12 +1424,10 @@ class ERRArhiivIE(ERRTVIE):
         'url':
         'https://arhiiv.err.ee/video/seeria/terevisioon',
         'info_dict': {
-            'id': '1608156007',
-            'display_id': '4x4_tsukotka',
-            'title': '4x4. Tšukotka',
-            'series_type': 5,
+            'id': 'terevisioon',
+            'display_id': 'terevisioon',
         },
-        'playlist_count': 10,
+        'playlist_mincount': 2247,
         'params': {
             'format': 'bestvideo',
         },
@@ -1442,14 +1437,12 @@ class ERRArhiivIE(ERRTVIE):
         'url':
         'https://arhiiv.err.ee/audio/seeria/paevakaja',
         'info_dict': {
-            'id': '1608156007',
-            'display_id': '4x4_tsukotka',
-            'title': '4x4. Tšukotka',
-            'series_type': 5,
+            'id': 'paevakaja',
+            'display_id': 'paevakaja',
         },
-        'playlist_count': 10,
+        'playlist_mincount': 9250,
         'params': {
-            'format': 'bestvideo',
+            'format': 'bestaudio',
         },
     }, {
         # 6 arhiiv.err.ee audio playlist
@@ -1457,16 +1450,41 @@ class ERRArhiivIE(ERRTVIE):
         'url':
         'https://arhiiv.err.ee/audio/bestikad',
         'info_dict': {
-            'id': '1608156007',
-            'display_id': '4x4_tsukotka',
-            'title': '4x4. Tšukotka',
-            'series_type': 5,
+            'id': 'bestikad',
+            'display_id': 'bestikad',
         },
-        'playlist_count': 10,
+        'playlist_mincount': 18,
+        'params': {
+            'format': 'bestaudio',
+        },
+    }, {
+        # 7 arhiiv.err.ee video playlist
+        '_type': 'playlist',
+        'url':
+        'https://arhiiv.err.ee/video/seeria/liblikavorguga-kamerunis',
+        'info_dict': {
+            'id': 'liblikavorguga-kamerunis',
+            'display_id': 'liblikavorguga-kamerunis',
+        },
+        'playlist_mincount': 5,
+        'params': {
+            'format': 'bestvideo',
+        },
+    }, {
+        # 8 arhiiv.err.ee video playlist
+        '_type': 'playlist',
+        'url':
+        'https://arhiiv.err.ee/video/ringvaade-suvel',
+        'info_dict': {
+            'id': 'ringvaade-suvel',
+            'display_id': 'ringvaade-suvel',
+        },
+        'playlist_mincount': 276,
         'params': {
             'format': 'bestvideo',
         },
     }]
+
 
     def _timestamp_from_date(self, date_str):
         date_format = f'%d. %B %Y'
@@ -1481,20 +1499,76 @@ class ERRArhiivIE(ERRTVIE):
         #   page = 1|2|3 etc.
         #   sort = new|old|abc
         #   all = false|
-        self._debug_message('SERIES ' + self._ERR_API_GET_SERIES % url_dict)
         headers = self._get_request_headers(self._ERR_API_GET_SERIES % url_dict,
                                             ['Referer', 'Origin', 'x-srh', 'Cookie'])
-        return self._download_json(
+        data = self._download_json(
             self._ERR_API_GET_SERIES % url_dict, playlist_id,
             headers=headers,
             data = json.dumps({'limit': limit, 'page': page, 'sort': sort, 'all': 'true'}).encode())
+        if json_has_value(data, 'activeList'):
+            data = json_get_value(data, 'activeList')
+        else:
+            error_msg = "Node 'activeList' not available"
+            self.report_warning(error_msg)
+            raise ExtractorError(error_msg)
+        return data
+
+    def _fetch_playlist(self, url_dict, playlist_id):
+        info = {}
+
+        limit = self._ERR_API_GET_SERIES_LIMIT
+        page = 1
+        sort = 'old'
+        list_data = self._api_get_series(url_dict, playlist_id, page=page, limit=limit, sort=sort)
+
+        self._dump_json(list_data, msg='PLAYLIST', sort_keys=True, filename=f'DEBUG-{playlist_id}')
+            # totalCount - elements in a list
+            # countFrom  - current chunks start (included)
+            # countTo    - current chunks end (included)
+            # data       - list of elements
+            #       type            - video
+            #       date            - date
+            #       heading         - title
+            #       lead            - generic description
+            #       seriesId        - numeric series id
+            #       url             - episodes id and display_id
+            #                         e.g. 'terevisioon-89-417124'
+
+        if json_has_value(list_data, 'seriesId'):
+            info['_type'] = 'playlist'
+            info['display_id'] = json_get_value(list_data,'url')
+            info['id'] = info['display_id']
+            info['playlist_count'] = json_get_value(list_data,'totalCount')
+        else:
+            error_msg = 'No playlist id available'
+            self.report_warning(error_msg)
+            raise ExtractorError(error_msg)
+
+        while True:
+            entries = []
+            for item in self._get_playlist_items(url_dict, playlist_id, list_data):
+                entry = self._extract_list_entry(item, url_dict)
+                entry['series_id'] = info['id']
+                self._ERR_URL_SET.add(entry['url'])
+                entries.append(entry)
+            if 'entries' not in info:
+                info['entries'] = []
+            info['entries'].extend(entries)
+            if page*limit < info['playlist_count']:
+                page += 1
+                list_data = self._api_get_series(url_dict, playlist_id, page=page, limit=limit, sort=sort)
+            else:
+                break
+
+        return info
 
     def _extract_list_entry(self, list_data, url_dict):
         info = dict()
+        info['_type'] = 'url'
         info['id'] = json_get_value(list_data, 'url')
-        info['type'] = json_get_value(list_data, 'type')
-        info['title'] = json_get_value(list_data, 'heading')
-        info['description'] = json_get_value(list_data, 'lead')
+        info['media_type'] = json_get_value(list_data, 'type')
+        # info['title'] = json_get_value(list_data, 'heading')
+        # info['description'] = json_get_value(list_data, 'lead')
         if json_has_value(list_data, 'date'):
             info['timestamp'] = self._timestamp_from_date(json_get_value(list_data, 'date'))
 
@@ -1517,7 +1591,7 @@ class ERRArhiivIE(ERRTVIE):
 
         if json_has_value(page, 'info.seriesTitle'):
             info['series'] = json_get_value(page, 'info.seriesTitle')
-            if json_has_value(page, 'seriesList.seriesTitle'):
+        elif json_has_value(page, 'seriesList.seriesTitle'):
                 info['series'] = json_get_value(page, 'seriesList.seriesTitle')
         if json_has_value(page, 'seriesList.seriesType'):
                 info['series_type'] = json_get_value(page, 'seriesList.seriesType')
@@ -1530,29 +1604,6 @@ class ERRArhiivIE(ERRTVIE):
             info['episode'] = json_get_value(page, 'info.episode')
             if info['episode'].isdigit():
                 info['episode_number'] = int(info['episode'])
-
-        # page['seriesList'] if available contains playlist items
-        # Valid list urls
-        # monthly lists need year attched to each separate title
-        # Both urls should work
-        # https://arhiiv.err.ee/video/eesti-nuud-siis-vabariik
-        # https://arhiiv.err.ee/video/seeria/eesti-nuud-siis-vabariik
-
-        # https://arhiiv.err.ee/video/terevisioon
-        # https://arhiiv.err.ee/video/seeria/terevisioon
-
-        # https://arhiiv.err.ee/video/liblikavorguga-kamerunis
-        # https://arhiiv.err.ee/video/seeria/liblikavorguga-kamerunis
-
-        # https://arhiiv.err.ee/video/ringvaade-suvel (monthly)
-        # https://arhiiv.err.ee/video/seeria/ringvaade-suvel (monthly)
-
-        # https://arhiiv.err.ee/audio/paevakaja
-        # https://arhiiv.err.ee/audio/seeria/paevakaja
-
-        # https://arhiiv.err.ee/audio/bestikad
-        # https://arhiiv.err.ee/audio/seeria/bestikad
-
 
         # Demangle title
         if 'series' in info:
@@ -1646,16 +1697,25 @@ class ERRArhiivIE(ERRTVIE):
             if chapters:
                 info['chapters'] = chapters
 
+        if json_has_value(page, 'media.src.hls'):
+            info['url'] = json_get_value(page, 'media.src.hls')
+
+        if 'url' in info and json_has_value(page, 'info.url'):
+            video_id = json_get_value(page, 'info.url')
+            headers = self._get_request_headers(info['url'], ['Referer', 'Origin'])
+            info['formats'], subtitles = self._extract_formats_and_subtitles(info['url'], video_id, headers=headers)
+            if subtitles:
+                # Only override when available
+                info['subtitles'] = subtitles
+
+        info['uploader'] = 'ERR'
+
         return info
 
     def _real_extract(self, url):
         info = dict()
         url_dict = self._extract_ids(url)
-        prefix = url_dict['prefix']
-        scheme = url_dict['scheme']
-
         info['webpage_url'] = url
-
 
         # TODO Research logging in.
         # if not self._is_logged_in():
@@ -1664,39 +1724,7 @@ class ERRArhiivIE(ERRTVIE):
 
         if json_has_value(url_dict, 'playlist_id'):
             playlist_id = url_dict['playlist_id']
-            self._debug_message('PLAYLIST: ' + playlist_id)
-            # activeList.totalCount - elements in a list
-            # activeList.countFrom  - current chunks start (included)
-            # activeList.countTo    - current chunks end (included)
-            # activeList.data       - list of elements
-            #       type            - video
-            #       date            - date
-            #       heading         - title
-            #       lead            - generic description
-            #       seriesId        - numeric series id
-            #       url             - episodes id and display_id
-            #                         e.g. 'terevisioon-89-417124'
-
-            playlist_data = self._api_get_series(url_dict, playlist_id)
-            self._dump_json(playlist_data, msg='PLAYLIST', sort_keys=True, filename=f'DEBUG-{playlist_id}')
-            if json_has_value(playlist_data, 'activeList.seriesId'):
-                info['_type'] = 'playlist'
-                info['display_id'] = json_get_value(playlist_data,'activeList.url')
-                info['id'] = info['display_id']
-                info['title'] = json_get_value(playlist_data,'activeList.name')
-                info['playlist_count'] = json_get_value(playlist_data,'activeList.totalCount')
-            else:
-                error_msg = 'No playlist id available'
-                self.report_warning(error_msg)
-                raise ExtractorError(error_msg)
-
-            entries = []
-            # FIXME: make it download all possible pages
-            for item in self._get_playlist_items(url_dict, playlist_id, json_get_value(playlist_data, 'activeList')):
-                entry = self._extract_list_entry(item, url_dict)
-                entry['series_id'] = info['id']
-                entries.append(entry)
-            info['entries'] = entries
+            info.update(self._fetch_playlist(url_dict, playlist_id))
 
         elif json_has_value(url_dict, 'id'):
             info['id'] = url_dict['id']
@@ -1704,22 +1732,22 @@ class ERRArhiivIE(ERRTVIE):
             video_id = url_dict['id']
 
             page = self._api_get_content(url_dict, video_id)
-            self._dump_json(page, msg='PAGE\n', sort_keys=True, filename=f'DEBUG-{video_id}')
+            # page['seriesList.seriesUrl'] allows to retrieve series the episode
+            # belongs to
+            if (url not in self._ERR_URL_SET
+                    and not self._downloader.params.get('noplaylist')
+                    and json_has_value(page, 'seriesList.seriesUrl')):
+                playlist_id = json_get_value(page, 'seriesList.seriesUrl')
+                url_dict['playlist_id'] = playlist_id
+                info.update(self._fetch_playlist(url_dict, playlist_id))
 
-            info.update(self._extract_entry(page))
-
-            if json_has_value(page, 'media.src.hls'):
-                info['url'] = json_get_value(page, 'media.src.hls')
-
-            if 'url' in info:
-                headers = self._get_request_headers(info['url'], ['Referer', 'Origin'])
-                info['formats'], subtitles = self._extract_formats_and_subtitles(info['url'], video_id, headers=headers)
-                if subtitles:
-                    # Only override when available
-                    info['subtitles'] = subtitles
-
-            info['uploader'] = 'ERR'
-
+            if (not json_has_value(info, 'entries')
+                    or len(list(filter(lambda x: x['id'] == video_id, info['entries']))) == 0):
+                entry = self._extract_entry(page)
+                if json_has_value(info, 'entries'):
+                    info['entries'].append(entry)
+                else:
+                    info.update(entry)
         else:
             error_msg = 'No id available'
             self.report_warning(error_msg)
