@@ -551,8 +551,7 @@ class FacebookIE(InfoExtractor):
                         else:
                             formats.append({
                                 'format_id': format_id,
-                                # downgrade quality of old sd, hd formats to be lower than formats from DASH
-                                # since they are only up to 720p and no tech info can be extracted.
+                                # sd, hd formats w/o resolution info should be deprioritized below DASH
                                 'quality': q(format_id) - 3,
                                 'url': playable_url,
                             })
@@ -720,8 +719,8 @@ class FacebookIE(InfoExtractor):
                 for src_type in ('src', 'src_no_ratelimit'):
                     src = f[0].get('%s_%s' % (quality, src_type))
                     if src:
-                        # downgrade quality of old sd, hd formats to be lower than formats from DASH
-                        # since they are only up to 720p and no tech info can be extracted.
+                        # sd, hd formats w/o resolution info should be deprioritized below DASH
+                        # TODO: investigate if progressive or src formats still exist
                         preference = -10 if format_id == 'progressive' else -3
                         if quality == 'hd':
                             preference += 1
