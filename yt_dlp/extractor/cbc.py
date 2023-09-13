@@ -2,6 +2,7 @@ import re
 import json
 import base64
 import time
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
@@ -226,6 +227,38 @@ class CBCPlayerIE(InfoExtractor):
             'id': video_id,
             '_format_sort_fields': ('res', 'proto')  # Prioritize direct http formats over HLS
         }
+
+
+class CBCPlayerPlaylistIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:player:playlist'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?:player/)(?!play/)(?P<id>[^?#]+)'
+    _TESTS = [{
+        'url': 'https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/tv shows/the national/latest broadcast',
+        }
+    }, {
+        'url': 'https://www.cbc.ca/player/news/Canada/North',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/canada/north',
+        }
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = urllib.parse.unquote(self._match_id(url)).lower()
+        webpage = self._download_webpage(url, playlist_id)
+        json_content = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', playlist_id)
+
+        def entries():
+            for video_id in traverse_obj(json_content, (
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id'
+            )):
+                yield self.url_result(f'https://www.cbc.ca/player/play/{video_id}', CBCPlayerIE)
+
+        return self.playlist_result(entries(), playlist_id)
 
 
 class CBCGemIE(InfoExtractor):
