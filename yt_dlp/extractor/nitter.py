@@ -266,7 +266,7 @@ class NitterIE(InfoExtractor):
                 'comment_count': int,
             }
         }, {  # test for OpenGraph patch #7575
-            'url': f'https://nitter.net/LocalBateman/status/1678455464038735895#m',
+            'url': f'https://{current_instance}/LocalBateman/status/1678455464038735895#m',
             'info_dict': {
                 'id': '1678455464038735895',
                 'ext': 'mp4',
@@ -275,7 +275,7 @@ class NitterIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'uploader': 'Your Typical Local Man',
                 'uploader_id': 'LocalBateman',
-                'uploader_url': f'https://nitter.net/LocalBateman',
+                'uploader_url': f'https://{current_instance}/LocalBateman',
                 'upload_date': '20230710',
                 'timestamp': 1689009900,
                 'view_count': int,
