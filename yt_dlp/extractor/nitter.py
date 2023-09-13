@@ -265,7 +265,7 @@ class NitterIE(InfoExtractor):
                 'repost_count': int,
                 'comment_count': int,
             }
-        }, {  # test for OpenGraph patch #7575
+        }, {  # no OpenGraph title
             'url': f'https://{current_instance}/LocalBateman/status/1678455464038735895#m',
             'info_dict': {
                 'id': '1678455464038735895',
