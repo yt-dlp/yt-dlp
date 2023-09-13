@@ -3,6 +3,7 @@ import functools
 import hashlib
 import itertools
 import math
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -38,6 +39,8 @@ from ..utils import (
 
 
 class BilibiliBaseIE(InfoExtractor):
+    _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
+
     def extract_formats(self, play_info):
         format_names = {
             r['quality']: traverse_obj(r, 'new_description', 'display_desc')
