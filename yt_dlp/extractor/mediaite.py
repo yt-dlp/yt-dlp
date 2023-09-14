@@ -81,10 +81,24 @@ class MediaiteIE(InfoExtractor):
             'upload_date': '20210930',
         },
         'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.mediaite.com/politics/i-cant-read-it-fast-enough-while-defending-trump-larry-kudlow-overwhelmed-by-volume-of-ex-presidents-legal-troubles/',
+        'info_dict': {
+            'id': 'E6EhDX5z',
+            'ext': 'mp4',
+            'title': 'Fox Business Network - 4:00 PM - 5:00 PM - 1:39:42 pm - 1:42:20 pm',
+            'description': '',
+            'thumbnail': 'https://cdn.jwplayer.com/v2/media/E6EhDX5z/poster.jpg?width=720',
+            'duration': 157,
+            'timestamp': 1691015535,
+            'upload_date': '20230802',
+        },
+        'params': {'skip_download': True}
     }]
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
-        id = self._search_regex(r'data-video-id\s?=\s?\"([^\"]+)\"', webpage, 'id')
-        data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{id}', id)
+        video_id = self._search_regex(
+            [r'"https://cdn\.jwplayer\.com/players/(\w+)', r'data-video-id\s*=\s*\"([^\"]+)\"'], webpage, 'id')
+        data_json = self._download_json(f'https://cdn.jwplayer.com/v2/media/{video_id}', video_id)
         return self._parse_jwplayer_data(data_json)

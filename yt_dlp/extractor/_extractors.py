@@ -1707,8 +1707,8 @@ from .megatvcom import (
     MegaTVComIE,
     MegaTVComEmbedIE,
 )
-from .ant1newsgr import (
-    Ant1NewsGrWatchIE,
+from .antenna import (
+    AntennaGrWatchIE,
     Ant1NewsGrArticleIE,
     Ant1NewsGrEmbedIE,
 )
@@ -1718,7 +1718,10 @@ from .ruv import (
     RuvIE,
     RuvSpilaIE
 )
-from .s4c import S4CIE
+from .s4c import (
+    S4CIE,
+    S4CSeriesIE
+)
 from .safari import (
     SafariIE,
     SafariApiIE,
