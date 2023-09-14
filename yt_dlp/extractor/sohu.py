@@ -223,7 +223,7 @@ class SohuIE(InfoExtractor):
 
         if mytv:
             publish_time = unified_timestamp(self._search_regex(
-                r"publishTime: '(\d+-\d+-\d+ \d+:\d+)'", webpage, 'publish time', fatal=False))
+                r'publishTime:\s*["\'](\d+-\d+-\d+ \d+:\d+)["\']', webpage, 'publish time', fatal=False))
         else:
             publish_time = unified_timestamp(traverse_obj(vid_data, ('tv_application_time', {str_or_none})))
 
