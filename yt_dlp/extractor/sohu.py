@@ -288,7 +288,5 @@ class SohuVIE(InfoExtractor):
     def _real_extract(self, url):
         encoded_id = self._match_id(url)
         path = base64.urlsafe_b64decode(encoded_id).decode()
-        if re.match(r'\d+/n\d+\.shtml', path):
-            return self.url_result(urljoin('http://tv.sohu.com/', path), SohuIE)
-        else:
-            return self.url_result(urljoin('http://my.tv.sohu.com/', path), SohuIE)
+        subdomain = 'tv' if re.match(r'\d+/n\d+\.shtml', path) else 'my.tv'
+        return self.url_result(urljoin(f'http://{subdomain}.sohu.com/', path), SohuIE)
