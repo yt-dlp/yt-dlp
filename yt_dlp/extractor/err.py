@@ -21,10 +21,8 @@ from ..utils import (
 )
 
 # TODO  Try to resolve unknown languages in audio tracks.
-# TODO  Clean out all unnecessary debugging output.
-# TODO  Change so that ERR is not consistently the artist.
-# TODO  Fix all fixmes.
-# TODO  Check coding conventions and flake8
+# TODO  Check login for ERRArhiiv based on ERRTV.
+
 
 def json_find_node(obj, criteria):
     '''Searches recursively depth first for a node that satisfies all
@@ -90,6 +88,7 @@ def json_get_value(obj, key):
         else:
             return None
     return j
+
 
 def padding_width(count):
     '''Returns number of positions needed to format indexes <= count.'''
@@ -182,8 +181,7 @@ class ERRBaseIE(InfoExtractor):
         return format_desc['format_id']
 
     def _extract_formats(self, master_url, video_id, headers=None):
-        # FIXME Why this is still used
-        formats, subtitles = self._extract_formats_and_subtitles(master_url, video_id, headers=None)
+        formats, _ = self._extract_formats_and_subtitles(master_url, video_id, headers=None)
         return formats
 
     def _extract_formats_and_subtitles(self, master_url, video_id, headers=None):
@@ -243,7 +241,7 @@ class ERRBaseIE(InfoExtractor):
         return formats, m3u8_subtitles
 
     def _extract_ids(self, url):
-        mobj = re.match(type(self)._VALID_URL,url)
+        mobj = re.match(type(self)._VALID_URL, url)
         return mobj.groupdict()
 
     def _extract_html_metadata(self, webpage):
@@ -303,7 +301,6 @@ class ERRBaseIE(InfoExtractor):
             self.to_screen('[debug] ' + (msg if msg else '') + json.dumps(obj, indent=4, sort_keys=sort_keys))
 
 
-
 class ERRNewsIE(ERRBaseIE):
     IE_DESC = 'err.ee: videos and audio material embedded in news articles'
     _ERR_CHANNELS = r'uudised|kultuur|sport|menu|novaator|news|rus|www'
@@ -346,7 +343,7 @@ class ERRNewsIE(ERRBaseIE):
             'categories': ['Kergejõustik'],
             'tags': ['kristjan rosenberg', 'maicel uibo', 'damian warner', 'götzise mitmevõistlus', 'risto lillemets'],
             'upload_date': '20210530',
-            },
+        },
         'playlist_count': 7,
         'params': {
             'format': 'bestaudio',
@@ -1485,12 +1482,10 @@ class ERRArhiivIE(ERRTVIE):
         },
     }]
 
-
     def _timestamp_from_date(self, date_str):
-        date_format = f'%d. %B %Y'
+        date_format = '%d. %B %Y'
         dt = datetime.strptime(date_str, date_format)
         return datetime.timestamp(dt)
-
 
     def _api_get_series(self, url_dict, playlist_id, limit=100, page=1, sort='old'):
         # List data can be fetched by api/v1/series/video/series_id
@@ -1504,7 +1499,7 @@ class ERRArhiivIE(ERRTVIE):
         data = self._download_json(
             self._ERR_API_GET_SERIES % url_dict, playlist_id,
             headers=headers,
-            data = json.dumps({'limit': limit, 'page': page, 'sort': sort, 'all': 'true'}).encode())
+            data=json.dumps({'limit': limit, 'page': page, 'sort': sort, 'all': 'true'}).encode())
         if json_has_value(data, 'activeList'):
             data = json_get_value(data, 'activeList')
         else:
@@ -1521,24 +1516,11 @@ class ERRArhiivIE(ERRTVIE):
         sort = 'old'
         list_data = self._api_get_series(url_dict, playlist_id, page=page, limit=limit, sort=sort)
 
-        self._dump_json(list_data, msg='PLAYLIST', sort_keys=True, filename=f'DEBUG-{playlist_id}')
-            # totalCount - elements in a list
-            # countFrom  - current chunks start (included)
-            # countTo    - current chunks end (included)
-            # data       - list of elements
-            #       type            - video
-            #       date            - date
-            #       heading         - title
-            #       lead            - generic description
-            #       seriesId        - numeric series id
-            #       url             - episodes id and display_id
-            #                         e.g. 'terevisioon-89-417124'
-
         if json_has_value(list_data, 'seriesId'):
             info['_type'] = 'playlist'
-            info['display_id'] = json_get_value(list_data,'url')
+            info['display_id'] = json_get_value(list_data, 'url')
             info['id'] = info['display_id']
-            info['playlist_count'] = json_get_value(list_data,'totalCount')
+            info['playlist_count'] = json_get_value(list_data, 'totalCount')
         else:
             error_msg = 'No playlist id available'
             self.report_warning(error_msg)
@@ -1554,7 +1536,7 @@ class ERRArhiivIE(ERRTVIE):
             if 'entries' not in info:
                 info['entries'] = []
             info['entries'].extend(entries)
-            if page*limit < info['playlist_count']:
+            if page * limit < info['playlist_count']:
                 page += 1
                 list_data = self._api_get_series(url_dict, playlist_id, page=page, limit=limit, sort=sort)
             else:
@@ -1573,9 +1555,9 @@ class ERRArhiivIE(ERRTVIE):
             info['timestamp'] = self._timestamp_from_date(json_get_value(list_data, 'date'))
 
         info['url'] = self._ERR_API_EPISODE_URL % {
-                'prefix': url_dict['prefix'],
-                'channel': url_dict['channel'],
-                'id': info['id']}
+            'prefix': url_dict['prefix'],
+            'channel': url_dict['channel'],
+            'id': info['id']}
         return info
 
     def _extract_entry(self, page):
@@ -1592,9 +1574,9 @@ class ERRArhiivIE(ERRTVIE):
         if json_has_value(page, 'info.seriesTitle'):
             info['series'] = json_get_value(page, 'info.seriesTitle')
         elif json_has_value(page, 'seriesList.seriesTitle'):
-                info['series'] = json_get_value(page, 'seriesList.seriesTitle')
+            info['series'] = json_get_value(page, 'seriesList.seriesTitle')
         if json_has_value(page, 'seriesList.seriesType'):
-                info['series_type'] = json_get_value(page, 'seriesList.seriesType')
+            info['series_type'] = json_get_value(page, 'seriesList.seriesType')
         if json_has_value(page, 'info.seriesId'):
             info['series_id'] = json_get_value(page, 'info.seriesId')
         if json_has_value(page, 'info.seriesUrl'):
@@ -1634,7 +1616,7 @@ class ERRArhiivIE(ERRTVIE):
 
         if json_has_value(page, 'metadata.data'):
             def traverse_metadata(data):
-                prefix = data['label'] + '.' if isinstance(data, dict) and  'label' in data else ''
+                prefix = data['label'] + '.' if isinstance(data, dict) and 'label' in data else ''
 
                 if isinstance(data, dict) and 'data' in data:
                     for x in traverse_metadata(data['data']):
@@ -1646,7 +1628,7 @@ class ERRArhiivIE(ERRTVIE):
                             yield y
                 if isinstance(data, dict):
                     if 'label' in data and 'value' in data:
-                        yield {'label' : data['label'], 'value': data['value']}
+                        yield {'label': data['label'], 'value': data['value']}
 
             for prop in traverse_metadata(json_get_value(page, 'metadata')):
                 label = prop['label'].strip()
@@ -1675,7 +1657,7 @@ class ERRArhiivIE(ERRTVIE):
                     if 'creator' not in info:
                         info['creator'] = list()
                     info['creator'].extend(
-                            map(lambda a: f'{a} (Esineja)', re.split(r'\s*,\s*', value)))
+                        map(lambda a: f'{a} (Esineja)', re.split(r'\s*,\s*', value)))
                 elif label.startswith('Info.Tegijad'):
                     op = label.split(sep='.')[-1]
                     if 'creator' not in info:
@@ -1688,8 +1670,8 @@ class ERRArhiivIE(ERRTVIE):
         if json_has_value(page, 'description.data'):
             chapters = list()
             for chapter in json_get_value(page, 'description.data'):
-                start_time = floor(chapter['beginTime']/1000)
-                end_time = ceil(chapter['endTime']/1000)
+                start_time = floor(chapter['beginTime'] / 1000)
+                end_time = ceil(chapter['endTime'] / 1000)
                 title = chapter['content'].strip()
                 chapters.append({'start_time': start_time,
                                  'end_time': end_time,
@@ -1716,11 +1698,6 @@ class ERRArhiivIE(ERRTVIE):
         info = dict()
         url_dict = self._extract_ids(url)
         info['webpage_url'] = url
-
-        # TODO Research logging in.
-        # if not self._is_logged_in():
-        #     self._login(url_dict, url_dict['id'])
-        # self._set_headers(url_dict)
 
         if json_has_value(url_dict, 'playlist_id'):
             playlist_id = url_dict['playlist_id']
@@ -1753,5 +1730,5 @@ class ERRArhiivIE(ERRTVIE):
             self.report_warning(error_msg)
             raise ExtractorError(error_msg)
 
-        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
+        # self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
         return info
