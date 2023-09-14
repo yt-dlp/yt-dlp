@@ -233,7 +233,7 @@ class SohuIE(InfoExtractor):
                 'alt_title': ('data', 'subName', {str_or_none}),
                 'uploader': ('wm_data', 'wm_username', {str_or_none}),
                 'thumbnail': ('data', 'coverImg', {url_or_none}),
-                'tags': ('data', 'tag', {str_or_none}, {lambda i: i.split() if i else None}),
+                'tags': ('data', 'tag', {str.split}),
             }),
             **info,
         }
