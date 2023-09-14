@@ -157,6 +157,8 @@ class SohuIE(InfoExtractor):
 
                 data = format_data['data']
                 clip_url = traverse_obj(data, (('clipsURL', 'mp4PlayUrl'), i, {url_or_none}), get_all=False)
+                if not clip_url:
+                    raise ExtractorError(f'Unable to extract url for clip {i}')
                 su = data['su']
 
                 video_url = 'newflv.sohu.ccgslb.net'
