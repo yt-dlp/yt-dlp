@@ -230,8 +230,8 @@ class SohuIE(InfoExtractor):
         return {
             'timestamp': publish_time - 8 * 3600 if publish_time else None,
             **traverse_obj(vid_data, {
-                'alt_title': ('data', 'subName', {str_or_none}),
-                'uploader': ('wm_data', 'wm_username', {str_or_none}),
+                'alt_title': ('data', 'subName', {str}),
+                'uploader': ('wm_data', 'wm_username', {str}),
                 'thumbnail': ('data', 'coverImg', {url_or_none}),
                 'tags': ('data', 'tag', {str.split}),
             }),
