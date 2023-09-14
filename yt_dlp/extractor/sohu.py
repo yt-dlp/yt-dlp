@@ -10,7 +10,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     float_or_none,
-    str_or_none,
     url_or_none,
     unified_timestamp,
     try_get,
