@@ -1,4 +1,5 @@
 import json
+
 from .common import InfoExtractor
 from ..utils import ExtractorError, int_or_none, traverse_obj, try_get
 
@@ -12,7 +13,6 @@ class AmazonMiniTVBaseIE(InfoExtractor):
 
     def _call_api(self, asin, data=None, note=None):
         device = {'clientId': 'ATVIN', 'deviceLocale': 'en_GB'}
-
         if data:
             data['variables'].update({
                 'contentType': 'VOD',
@@ -33,7 +33,7 @@ class AmazonMiniTVBaseIE(InfoExtractor):
         if resp.get('errors'):
             raise ExtractorError(f'MiniTV said: {resp["errors"][0]["message"]}')
         elif not data:
-            raise ExtractorError(f'Unable to {note or "NextJS data"}', expected=True)
+            return resp
         return resp['data'][data['operationName']]
 
 
