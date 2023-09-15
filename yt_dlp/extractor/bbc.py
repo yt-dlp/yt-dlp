@@ -833,16 +833,16 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         },
     }, {
         # BBC Sounds
-        'url': 'https://www.bbc.co.uk/sounds/play/m001p2jp',
+        'url': 'https://www.bbc.co.uk/sounds/play/m001q78b',
         'info_dict': {
-            'id': 'm001p2jn',
+            'id': 'm001q789',
             'ext': 'mp4',
-            'title': 'Late Junction - Bonjo Iyabinghi Noah and GAIKA in session',
-            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/raw/p0cgqwnb.jpg',
-            'duration': 7200,
-            'chapters': 'count:24',
-            'description': 'md5:36f16179df6ee9992e80fea912d97ea8',
+            'title': 'The Night Tracks Mix - Music for the darkling hour',
+            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/raw/p0c00hym.jpg',
+            'chapters': 'count:8',
+            'description': 'md5:815fb51cbdaa270040aab8145b3f1d67',
             'uploader': 'Radio 3',
+            'duration': 1800,
             'uploader_id': 'bbc_radio_three',
         },
     }, {  # onion routes
