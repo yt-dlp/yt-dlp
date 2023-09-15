@@ -2847,6 +2847,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'quicktime': 'mov',
         'webm': 'webm',
         'vp9': 'vp9',
+        'video/ogg': 'ogv',
         'x-flv': 'flv',
         'x-m4v': 'm4v',
         'x-matroska': 'mkv',
