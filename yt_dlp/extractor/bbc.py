@@ -1119,15 +1119,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                 image_url = current_programme.get('image_url')
                 if image_url:
                     thumbnail = image_url.replace('{recipe}', 'raw')
-                tracklist = []
-                for track in traverse_obj(preload_state, ("tracklist", "tracks")):
-                    tracklist.append({
-                        "title": join_nonempty("primary", "secondary", "tertiary", delim=" - ", from_dict=track.get("titles")),
-                        **traverse_obj(track, {
-                            "start_time": ("offset", "start"),
-                            "end_time": ("offset", "end"),
-                        }),
-                    })
                 return {
                     'id': programme_id,
                     'title': title,
@@ -1138,7 +1129,13 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'uploader_id': network.get('id'),
                     'formats': formats,
                     'subtitles': subtitles,
-                    'chapters': tracklist,
+                    'chapters': traverse_obj(preload_state, (
+                        'tracklist', 'tracks', lambda _, v: float_or_none(v['offset']['start']), {
+                            'title': ('titles', {lambda x: join_nonempty(
+                                'primary', 'secondary', 'tertiary', delim=' - ', from_dict=x)}),
+                            'start_time': ('offset', 'start', {float_or_none}),
+                            'end_time': ('offset', 'end', {float_or_none}),
+                        })) or None,
                 }
 
         bbc3_config = self._parse_json(
