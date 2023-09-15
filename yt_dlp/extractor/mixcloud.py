@@ -299,7 +299,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'info_dict': {
             'id': 'dholbach_uploads',
             'title': 'Daniel Holbach (uploads)',
-            'description': 'md5:b60d776f0bab534c5dabe0a34e47a789',
+            'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         'playlist_mincount': 36,
     }, {
@@ -307,7 +307,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'info_dict': {
             'id': 'dholbach_uploads',
             'title': 'Daniel Holbach (uploads)',
-            'description': 'md5:b60d776f0bab534c5dabe0a34e47a789',
+            'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         'playlist_mincount': 36,
     }, {
@@ -315,7 +315,7 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'info_dict': {
             'id': 'dholbach_favorites',
             'title': 'Daniel Holbach (favorites)',
-            'description': 'md5:b60d776f0bab534c5dabe0a34e47a789',
+            'description': 'md5:a3f468a60ac8c3e1f8616380fc469b2b',
         },
         # 'params': {
         #     'playlist_items': '1-100',
@@ -338,9 +338,9 @@ class MixcloudUserIE(MixcloudPlaylistBaseIE):
         'info_dict': {
             'id': 'FirstEar_stream',
             'title': 'First Ear (stream)',
-            'description': 'Curators of good music\r\n\r\nfirstearmusic.com',
+            'description': 'we maraud for ears',
         },
-        'playlist_mincount': 271,
+        'playlist_mincount': 269,
     }]
 
     _TITLE_KEY = 'displayName'
