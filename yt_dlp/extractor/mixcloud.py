@@ -20,7 +20,7 @@ class MixcloudBaseIE(InfoExtractor):
     def _call_api(self, object_type, object_fields, display_id, username, slug=None):
         lookup_key = object_type + 'Lookup'
         return self._download_json(
-            'https://www.mixcloud.com/graphql', display_id, query={
+            'https://app.mixcloud.com/graphql', display_id, query={
                 'query': '''{
   %s(lookup: {username: "%s"%s}) {
     %s
