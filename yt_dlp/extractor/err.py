@@ -399,7 +399,8 @@ class ERRNewsIE(ERRBaseIE):
             if not page:
                 self.report_warning('No video page available')
                 continue
-            mobj = re.search(r'(["\'])hls\1\s*:\s*(["\'])(?P<master_url>[^\2]+master.m3u8)\2', page)
+            # hls, hls2, hlsNew and hlsNoSub are available, only hlsNoSub seems to work.
+            mobj = re.search(r'(["\'])hlsNoSub\1\s*:\s*(["\'])(?P<master_url>[^\2]+master.m3u8)\2', page)
             if not mobj:
                 self.report_warning('No master url available')
                 raise ExtractorError('No master url available')
@@ -452,10 +453,10 @@ class ERRNewsIE(ERRBaseIE):
 
         url_list = []
         entries = []
-        mobj = re.findall(r'data-html-src=(["\'])(?P<url>/media/videoBlock/(\d+?))(?:\1|\?)', webpage)
+        mobj = re.findall(r'data-html-src=(["\'])(?P<url>/media/videoBlock/([0-9abcdefABCDEF]+?))(?:\1|\?)', webpage)
         for m in mobj:
             url_list.append((prefix + m[1], m[2]))
-        mobj = re.findall(r'<iframe.+?src=(["\'])(?P<url>//.*?/media/embed/(\d+?))\1', webpage, flags=re.DOTALL)
+        mobj = re.findall(r'<iframe.+?src=(["\'])(?P<url>//.*?/media/embed/([0-9abcdefABCDEF]+?))\1', webpage, flags=re.DOTALL)
         for m in mobj:
             url_list.append((scheme + ':' + m[1], m[2]))
         # Embedded Youtube/Soundcloud
