@@ -1384,7 +1384,7 @@ class ERRArhiivIE(ERRTVIE):
             'ext': 'm4a',
             'title': 'Linnulaul - 34. Rukkirääk',
             'thumbnail':
-            'https://arhiiv-images.err.ee/public/thumbnails/2022/557h4afd.jpg',
+            'https://arhiiv-images.err.ee/public/thumbnails/2022/557h4afd_thumb.jpg',
             'description': 'md5:d41739b0c8e250a3435216afc98c8741',
             'channel': '2002 EESTI RAADIO',
             'uploader': 'ERR',
