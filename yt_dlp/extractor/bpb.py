@@ -112,8 +112,7 @@ class BpbIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    BASE_URL = 'https://www.bpb.de'
-    _TITLE_RE = re.compile('(?P<title>.*?)<[^>]+>(?P<series>[^<]*)')
+    _TITLE_RE = re.compile('(?P<title>[^<]*)<[^>]+>(?P<series>[^<]*)')
 
     def _parse_vue_attributes(self, name, string, video_id):
         attributes = extract_attributes(self._search_regex(rf'(<{name}(?:"[^"]*?"|[^>])*>)', string, name))
@@ -132,10 +131,13 @@ class BpbIE(InfoExtractor):
 
         source_type = source.get('type', '')
         extension = mimetype2ext(source_type)
-        note = url.rpartition('.')[0].rpartition('_')[2] if source_type.startswith('video') else None
+        is_video = source_type.startswith('video')
+        note = url.rpartition('.')[0].rpartition('_')[2] if is_video else None
+
         return {
             'url': url,
             'ext': extension,
+            'vcodec': None if is_video else 'none',
             'quality': 10 if note == 'high' else 0,
             'format_note': note,
             'format_id': join_nonempty(extension, note),
@@ -163,6 +165,6 @@ class BpbIE(InfoExtractor):
             'tags': traverse_obj(json_lds, (..., 'keywords', {lambda x: x.split(',')}, ...)),
             **traverse_obj(self._parse_vue_attributes('bpb-player', webpage, video_id), {
                 'formats': (':sources', ..., {self._process_source}),
-                'thumbnail': ('poster', {lambda x: urljoin(self.BASE_URL, x)}),
+                'thumbnail': ('poster', {lambda x: urljoin(url, x)}),
             }),
         }
