@@ -2,6 +2,9 @@ import functools
 import json
 import time
 import urllib.parse
+##################
+import sys
+##################
 
 from .gigya import GigyaBaseIE
 from ..networking.exceptions import HTTPError
@@ -285,49 +288,121 @@ class VrtNUIE(VRTBaseIE):
     _NETRC_MACHINE = 'vrtnu'
     _authenticated = False
 
-    def _perform_login(self, username, password):
-        auth_info = self._gigya_login({
-            'APIKey': '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy',
-            'targetEnv': 'jssdk',
-            'loginID': username,
-            'password': password,
-            'authMode': 'cookie',
-        })
+    def _extract_cookies(self, res):
+        cookies_nvp = [header_value.split(';')[0] for header_value in res.headers.get_all('Set-Cookie')]
+        return {name: value for nvp in cookies_nvp for name, value in [nvp.split('=')]}
 
-        if auth_info.get('errorDetails'):
-            raise ExtractorError(f'Unable to login. VrtNU said: {auth_info["errorDetails"]}', expected=True)
+    def _create_cookie_header(self, cookies):
+        return { 'Cookie': '; '.join([f'{key}={value}' for key, value in cookies.items()]) }
+
+    def _perform_login(self, username, password):
+        # Step 1
+        # ------
+        res = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None)
+        session_cookies = self._extract_cookies(res)
+
+#         print("===================================")
+#         print(res.status)
+# #         print(res.headers)
+#         print(json.dumps(cookies))
+# #         print(self._make_cookie_header(cookies))
+#         print("===================================")
+
+
+        # ( Step 2 : already done in Step 1 through redir )
+
+        # Step 3
+        # ------
+        headers = {
+                'Content-Type': 'application/json',
+                'Oidcxsrf': f'{session_cookies["OIDCXSRF"]}',
+                **self._create_cookie_header(session_cookies)
+                }
+#         sys.exit(0)
+        post_data = { "loginID": f"{username}", "password": f"{password}", "clientId": "vrtnu-site" }
+        res = self._request_webpage('https://login.vrt.be/perform_login', None, note='Performing login', errnote='Login failed', fatal=True, data=json.dumps(post_data).encode(), headers=headers)
+
+#         print("===================================")
+#         print(res.status)
+#         print("===================================")
+#
+#         sys.exit(0)
+
+        # Step 4
+        # ------
+        headers = {
+                'Host': 'login.vrt.be',
+                **self._create_cookie_header(session_cookies)
+                }
+
+        query= {
+                'redirect_uri': 'https://www.vrt.be/vrtnu/sso/callback',
+                'response_type': 'code',
+                'client_id': 'vrtnu-site',
+#                 'scope': urllib.parse.quote('openid profile email address video accessibility subprofiles mid')
+#                 'scope': 'openid profile email address video accessibility subprofiles mid'
+                }
+        res = self._request_webpage('https://login.vrt.be/authorize', None, fatal=True, headers=headers, query=query)
+#         tokens = self._extract_cookies(res)
+
+        print("===================================")
+        print(res.headers)
+#         print(json.dumps(tokens))
+        print(res.status)
+        print("===================================")
+
+        sys.exit(0)
+
+
+
+#         auth_info = self._gigya_login({
+#             'APIKey': '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy',
+#             'targetEnv': 'jssdk',
+#             'loginID': username,
+#             'password': password,
+#             'authMode': 'cookie',
+#         })
+#
+#         if auth_info.get('errorDetails'):
+#             raise ExtractorError(f'Unable to login. VrtNU said: {auth_info["errorDetails"]}', expected=True)
+
+#         print("===================================")
+#         print(json.dumps(auth_info, indent=2))
+#         print("===================================")
+#         sys.exit(0)
 
         # Sometimes authentication fails for no good reason, retry
-        for retry in self.RetryManager():
-            if retry.attempt > 1:
-                self._sleep(1, None)
-            try:
-                self._request_webpage(
-                    'https://token.vrt.be/vrtnuinitlogin', None, note='Requesting XSRF Token',
-                    errnote='Could not get XSRF Token', query={
-                        'provider': 'site',
-                        'destination': 'https://www.vrt.be/vrtnu/',
-                    })
-                self._request_webpage(
-                    'https://login.vrt.be/perform_login', None,
-                    note='Performing login', errnote='Login failed',
-                    query={'client_id': 'vrtnu-site'}, data=urlencode_postdata({
-                        'UID': auth_info['UID'],
-                        'UIDSignature': auth_info['UIDSignature'],
-                        'signatureTimestamp': auth_info['signatureTimestamp'],
-                        '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-                    }))
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-                    retry.error = e
-                    continue
-                raise
+#         for retry in self.RetryManager():
+#             if retry.attempt > 1:
+#                 self._sleep(1, None)
+#             try:
+#                 self._request_webpage(
+#                     'https://token.vrt.be/vrtnuinitlogin', None, note='Requesting XSRF Token',
+#                     errnote='Could not get XSRF Token', query={
+#                         'provider': 'site',
+#                         'destination': 'https://www.vrt.be/vrtnu/',
+#                     })
+#                 self._request_webpage(
+#                     'https://login.vrt.be/perform_login', None,
+#                     note='Performing login', errnote='Login failed',
+#                     query={'client_id': 'vrtnu-site'}, data=urlencode_postdata({
+#                         'UID': auth_info['UID'],
+#                         'UIDSignature': auth_info['UIDSignature'],
+#                         'signatureTimestamp': auth_info['signatureTimestamp'],
+#                         '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+#                     }))
+#             except ExtractorError as e:
+#                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+#                     retry.error = e
+#                     continue
+#                 raise
 
         self._authenticated = True
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         parsed_url = urllib.parse.urlparse(url)
+        print(f'Model JSON URL:  {parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path.rstrip("/")}.model.json')
         details = self._download_json(
             f'{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path.rstrip("/")}.model.json',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON')['details']
@@ -339,9 +414,9 @@ class VrtNUIE(VRTBaseIE):
         if '$' not in video_id:
             raise ExtractorError('Unable to extract video ID')
 
-        vrtnutoken = self._download_json(
-            'https://token.vrt.be/refreshtoken', video_id, note='Retrieving vrtnutoken',
-            errnote='Token refresh failed')['vrtnutoken'] if self._authenticated else None
+#         vrtnutoken = self._download_json(
+#             'https://token.vrt.be/refreshtoken', video_id, note='Retrieving vrtnutoken',
+#             errnote='Token refresh failed')['vrtnutoken'] if self._authenticated else None
 
         video_info = self._call_api(video_id, 'vrtnu-web@PROD', vrtnutoken)
 
