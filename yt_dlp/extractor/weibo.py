@@ -89,6 +89,7 @@ class WeiboBaseIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': self._extract_formats(video_info),
+            'http_headers': {'Referer': 'https://weibo.com/'},
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
