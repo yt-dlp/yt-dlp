@@ -34,24 +34,17 @@ class CommitGroup(enum.Enum):
     MISC = 'Misc.'
 
     @classmethod
-    @property
-    def ignorable_prefixes(cls):
-        return ('core', 'downloader', 'extractor', 'misc', 'postprocessor', 'upstream')
-
-    @classmethod
     @lru_cache
-    def commit_lookup(cls):
+    def subgroup_lookup(cls):
         return {
             name: group
             for group, names in {
-                cls.PRIORITY: {'priority'},
                 cls.CORE: {
                     'aes',
                     'cache',
                     'compat_utils',
                     'compat',
                     'cookies',
-                    'core',
                     'dependencies',
                     'formats',
                     'jsinterp',
@@ -59,7 +52,6 @@ class CommitGroup(enum.Enum):
                     'outtmpl',
                     'plugins',
                     'update',
-                    'upstream',
                     'utils',
                 },
                 cls.MISC: {
@@ -67,22 +59,36 @@ class CommitGroup(enum.Enum):
                     'cleanup',
                     'devscripts',
                     'docs',
-                    'misc',
                     'test',
                 },
-                cls.EXTRACTOR: {'extractor', 'ie'},
-                cls.DOWNLOADER: {'downloader', 'fd'},
-                cls.POSTPROCESSOR: {'postprocessor', 'pp'},
             }.items()
             for name in names
         }
 
     @classmethod
-    def get(cls, value):
-        result = cls.commit_lookup().get(value)
-        if result:
-            logger.debug(f'Mapped {value!r} => {result.name}')
+    @lru_cache
+    def group_lookup(cls):
+        result = {
+            'fd': cls.DOWNLOADER,
+            'ie': cls.EXTRACTOR,
+            'pp': cls.POSTPROCESSOR,
+            'upstream': cls.CORE,
+        }
+        result.update({item.name.lower(): item for item in iter(cls)})
         return result
+
+    @classmethod
+    def get(cls, value: str) -> tuple[CommitGroup | None, str | None]:
+        group, _, subgroup = (group.strip().lower() for group in value.partition('/'))
+
+        result = cls.group_lookup().get(group)
+        if not result:
+            if subgroup:
+                return None, value
+            subgroup = group
+            result = cls.subgroup_lookup().get(subgroup)
+
+        return result, subgroup or None
 
 
 @dataclass
@@ -365,7 +371,7 @@ class CommitRange:
         for commit in self:
             upstream_re = self.UPSTREAM_MERGE_RE.search(commit.short)
             if upstream_re:
-                commit.short = f'[core/upstream] Merged with youtube-dl {upstream_re.group(1)}'
+                commit.short = f'[upstream] Merged with youtube-dl {upstream_re.group(1)}'
 
             match = self.MESSAGE_RE.fullmatch(commit.short)
             if not match:
@@ -410,25 +416,18 @@ class CommitRange:
         if not prefix:
             return CommitGroup.CORE, None, ()
 
-        prefix, _, details = prefix.partition('/')
-        prefix = prefix.strip()
-        details = details.strip()
+        prefix, *sub_details = prefix.split(':')
 
-        group = CommitGroup.get(prefix.lower())
-        if group is CommitGroup.PRIORITY:
-            prefix, _, details = details.partition('/')
+        group, details = CommitGroup.get(prefix)
+        if group is CommitGroup.PRIORITY and details:
+            details = details.partition('/')[2].strip()
 
-        if not details and prefix and prefix not in CommitGroup.ignorable_prefixes:
-            logger.debug(f'Replaced details with {prefix!r}')
-            details = prefix or None
+        if details and '/' in details:
+            logger.error(f'Prefix is overnested, using first part: {prefix}')
+            details = details.partition('/')[0].strip()
 
         if details == 'common':
             details = None
-
-        if details:
-            details, *sub_details = details.split(':')
-        else:
-            sub_details = []
 
         return group, details, sub_details
 
