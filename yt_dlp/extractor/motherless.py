@@ -151,7 +151,7 @@ class MotherlessIE(InfoExtractor):
                     'd': 'days',
                 }
                 kwargs = {_AGO_UNITS.get(uploaded_ago[-1]): delta}
-                upload_date = (datetime.datetime.utcnow() - datetime.timedelta(**kwargs)).strftime('%Y%m%d')
+                upload_date = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(**kwargs)).strftime('%Y%m%d')
 
         comment_count = len(re.findall(r'''class\s*=\s*['"]media-comment-contents\b''', webpage))
         uploader_id = self._html_search_regex(

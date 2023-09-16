@@ -1256,7 +1256,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.utcnow(), precision)
+    today = datetime_round(datetime.datetime.now(datetime.timezone.utc), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -1319,8 +1319,8 @@ def datetime_round(dt, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = calendar.timegm(dt.timetuple())
-    return datetime.datetime.utcfromtimestamp(roundto(timestamp, unit_seconds[precision]))
+    timestamp = roundto(calendar.timegm(dt.timetuple()), unit_seconds[precision])
+    return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
 
 
 def hyphenate_date(date_str):
