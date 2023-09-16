@@ -143,10 +143,10 @@ class sockssocket(socket.socket):
 
         if use_remote_dns and self._proxy.remote_dns:
             return 0, default
-
-        res = socket.getaddrinfo(destaddr, None, family=family or 0)
-        f, _, _, _, (ipaddr, _) = res[0]
-        return f, socket.inet_pton(f, ipaddr)
+        else:
+            res = socket.getaddrinfo(destaddr, None, family=family or 0)
+            f, _, _, _, ipaddr = res[0]
+            return f, socket.inet_pton(f, ipaddr[0])
 
     def _setup_socks4(self, address, is_4a=False):
         destaddr, port = address
