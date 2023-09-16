@@ -214,8 +214,11 @@ class Changelog:
         return sorted_items
 
     def format_single_change(self, info: CommitInfo):
-        message_line, sep, rest = info.message.partition('\n')
-        message = self._format_message_link(message_line, info.commit.hash)
+        message, sep, rest = info.message.partition('\n')
+        if '[' not in message:
+            # If the message doesn't already contain markdown links, try to add a link to the commit
+            message = self._format_message_link(message, info.commit.hash)
+
         if info.issues:
             message = f'{message} ({self._format_issues(info.issues)})'
 
