@@ -36,7 +36,6 @@ class NewsyIE(InfoExtractor):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(data_json['stream'], display_id)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
         return merge_dicts(ld_json, {
             'id': data_json['id'],
             'display_id': display_id,

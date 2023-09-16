@@ -1,5 +1,5 @@
-from ..utils import HEADRequest
 from .common import InfoExtractor
+from ..networking import HEADRequest
 
 
 class FujiTVFODPlus7IE(InfoExtractor):
@@ -45,7 +45,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         if token:
             json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token.value}'}, fatal=False)
         else:
-            self.report_warning(f'The token cookie is needed to extract video metadata. {self._LOGIN_HINTS["cookies"]}')
+            self.report_warning(f'The token cookie is needed to extract video metadata. {self._login_hint("cookies")}')
         formats, subtitles = [], {}
         src_json = self._download_json(f'{self._BASE_URL}abrjson_v2/tv_android/{video_id}', video_id)
         for src in src_json['video_selector']:
@@ -57,7 +57,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
                                   self._BITRATE_MAP.get(f.get('tbr'), ()))))
             formats.extend(fmt)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats, ['tbr'])
 
         return {
             'id': video_id,
@@ -68,4 +67,5 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': f'{self._BASE_URL}img/program/{series_id}/episode/{video_id}_a.jpg',
+            '_format_sort_fields': ('tbr', )
         }

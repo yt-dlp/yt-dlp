@@ -51,8 +51,6 @@ class Rule34VideoIE(InfoExtractor):
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,

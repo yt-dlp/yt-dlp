@@ -48,8 +48,6 @@ class BpbIE(InfoExtractor):
                 'format_id': '%s-%s' % (quality, determine_ext(video_url)),
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,

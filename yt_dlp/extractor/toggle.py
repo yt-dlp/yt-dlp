@@ -154,7 +154,6 @@ class ToggleIE(InfoExtractor):
                         and meta.get('Key') == 'Encryption' and meta.get('Value') == '1'):
                     self.report_drm(video_id)
             # Most likely because geo-blocked if no formats and no DRM
-        self._sort_formats(formats)
 
         thumbnails = []
         for picture in info.get('Pictures', []):

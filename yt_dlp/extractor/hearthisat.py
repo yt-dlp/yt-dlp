@@ -81,7 +81,6 @@ class HearThisAtIE(InfoExtractor):
                     'acodec': ext,
                     'quality': 2,  # Usually better quality
                 })
-        self._sort_formats(formats)
 
         return {
             'id': track_id,

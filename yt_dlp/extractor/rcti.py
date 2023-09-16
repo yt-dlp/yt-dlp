@@ -3,7 +3,7 @@ import random
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     dict_get,
     ExtractorError,
@@ -186,15 +186,13 @@ class RCTIPlusIE(RCTIPlusBaseIE):
         try:
             formats = self._extract_m3u8_formats(video_url, display_id, 'mp4', headers={'Referer': 'https://www.rctiplus.com/'})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self.raise_geo_restricted(countries=['ID'], metadata_available=True)
             else:
                 raise e
         for f in formats:
             if 'akamaized' in f['url'] or 'cloudfront' in f['url']:
                 f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai/cloudfront CDNs
-
-        self._sort_formats(formats)
 
         return {
             'id': video_meta.get('product_id') or video_json.get('product_id'),

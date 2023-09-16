@@ -68,7 +68,6 @@ class UtreonIE(InfoExtractor):
             'format_id': format_key.split('_')[1],
             'height': int(format_key.split('_')[1][:-1]),
         } for format_key, format_url in videos_json.items() if url_or_none(format_url)]
-        self._sort_formats(formats)
         thumbnail = url_or_none(dict_get(json_data, ('cover_image_url', 'preview_image_url')))
         return {
             'id': video_id,

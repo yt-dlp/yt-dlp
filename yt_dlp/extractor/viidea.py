@@ -2,10 +2,10 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str,
     compat_urlparse,
 )
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     js_to_json,
@@ -133,9 +133,9 @@ class ViideaIE(InfoExtractor):
                 '%s/site/api/lecture/%s?format=json' % (base_url, lecture_id),
                 lecture_id)['lecture'][0]
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 msg = self._parse_json(
-                    e.cause.read().decode('utf-8'), lecture_id)
+                    e.cause.response.read().decode('utf-8'), lecture_id)
                 raise ExtractorError(msg['detail'], expected=True)
             raise
 
@@ -158,7 +158,6 @@ class ViideaIE(InfoExtractor):
                 smil_url = '%s/%s/video/%s/smil.xml' % (base_url, lecture_slug, part_id)
                 smil = self._download_smil(smil_url, lecture_id)
                 info = self._parse_smil(smil, smil_url, lecture_id)
-                self._sort_formats(info['formats'])
                 info['id'] = lecture_id if not multipart else '%s_part%s' % (lecture_id, part_id)
                 info['display_id'] = lecture_slug if not multipart else '%s_part%s' % (lecture_slug, part_id)
                 if multipart:

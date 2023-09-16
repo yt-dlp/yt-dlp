@@ -34,7 +34,7 @@ class SouthParkIE(MTVServicesInfoExtractor):
         }
 
 
-class SouthParkEsIE(SouthParkIE):
+class SouthParkEsIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southpark.cc.com:español'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.cc\.com/es/episodios/(?P<id>.+?)(\?|#|$))'
     _LANG = 'es'
@@ -50,7 +50,7 @@ class SouthParkEsIE(SouthParkIE):
     }]
 
 
-class SouthParkDeIE(SouthParkIE):
+class SouthParkDeIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southpark.de'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.de/(?:(en/(videoclip|collections|episodes|video-clips))|(videoclip|collections|folgen))/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
     _TESTS = [{
@@ -109,7 +109,50 @@ class SouthParkDeIE(SouthParkIE):
         return
 
 
-class SouthParkNlIE(SouthParkIE):
+class SouthParkLatIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
+    IE_NAME = 'southpark.lat'
+    _VALID_URL = r'https?://(?:www\.)?southpark\.lat/(?:en/)?(?:video-?clips?|collections|episod(?:e|io)s)/(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://www.southpark.lat/en/video-clips/ct46op/south-park-tooth-fairy-cartman',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.southpark.lat/episodios/9h0qbg/south-park-orgia-gatuna-temporada-3-ep-7',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.southpark.lat/en/collections/29ve08/south-park-heating-up/lydbrc',
+        'only_matching': True,
+    }, {
+        # clip
+        'url': 'https://www.southpark.lat/en/video-clips/ct46op/south-park-tooth-fairy-cartman',
+        'info_dict': {
+            'id': 'e99d45ea-ed00-11e0-aca6-0026b9414f30',
+            'ext': 'mp4',
+            'title': 'Tooth Fairy Cartman',
+            'description': 'md5:db02e23818b4dc9cb5f0c5a7e8833a68',
+        },
+    }, {
+        # episode
+        'url': 'https://www.southpark.lat/episodios/9h0qbg/south-park-orgia-gatuna-temporada-3-ep-7',
+        'info_dict': {
+            'id': 'f5fbd823-04bc-11eb-9b1b-0e40cf2fc285',
+            'ext': 'mp4',
+            'title': 'South Park',
+            'description': 'md5:ae0d875eff169dcbed16b21531857ac1',
+        },
+    }]
+
+    def _get_feed_url(self, uri, url=None):
+        video_id = self._id_from_uri(uri)
+        config = self._download_json(
+            f'http://media.mtvnservices.com/pmt/e1/access/index.html?uri={uri}&configtype=edge&ref={url}',
+            video_id)
+        return self._remove_template_parameter(config['feedWithQueryParams'])
+
+    def _get_feed_query(self, uri):
+        return
+
+
+class SouthParkNlIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southpark.nl'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.nl/(?:clips|(?:full-)?episodes|collections)/(?P<id>.+?)(\?|#|$))'
     _FEED_URL = 'http://www.southpark.nl/feeds/video-player/mrss/'
@@ -124,7 +167,7 @@ class SouthParkNlIE(SouthParkIE):
     }]
 
 
-class SouthParkDkIE(SouthParkIE):
+class SouthParkDkIE(SouthParkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'southparkstudios.dk'
     _VALID_URL = r'https?://(?:www\.)?(?P<url>southparkstudios\.(?:dk|nu)/(?:clips|full-episodes|collections)/(?P<id>.+?)(\?|#|$))'
     _FEED_URL = 'http://www.southparkstudios.dk/feeds/video-player/mrss/'

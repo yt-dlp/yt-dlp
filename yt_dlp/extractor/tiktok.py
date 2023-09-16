@@ -1,51 +1,68 @@
 import itertools
+import json
 import random
+import re
 import string
 import time
-import json
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse
-)
+from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
+    LazyList,
     UnsupportedError,
+    UserNotLive,
+    determine_ext,
+    format_field,
+    get_element_by_id,
     get_first,
     int_or_none,
     join_nonempty,
-    LazyList,
+    merge_dicts,
+    qualities,
+    remove_start,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    try_call,
     try_get,
     url_or_none,
-    qualities,
 )
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSIONS = [('20.9.3', '293'), ('20.4.3', '243'), ('20.2.1', '221'), ('20.1.2', '212'), ('20.0.4', '204')]
+    _APP_VERSIONS = [('26.1.3', '260103'), ('26.1.2', '260102'), ('26.1.1', '260101'), ('25.6.2', '250602')]
     _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
-    _API_HOSTNAME = 'api-h2.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
+    @property
+    def _API_HOSTNAME(self):
+        return self._configuration_arg(
+            'api_hostname', ['api16-normal-c-useast1a.tiktokv.com'], ie_key=TikTokIE)[0]
+
+    @staticmethod
+    def _create_url(user_id, video_id):
+        return f'https://www.tiktok.com/@{user_id or "_"}/video/{video_id}'
+
+    def _get_sigi_state(self, webpage, display_id):
+        return self._parse_json(get_element_by_id(
+            'SIGI_STATE|sigi-persisted-data', webpage, escape_value=False), display_id)
+
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
-        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
+        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choices('0123456789abcdef', k=160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
         if webpage_cookies.get('sid_tt'):
             self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.trill/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 13; en_US; Pixel 7; Build/TD1A.220804.031; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
             }, query=query)
 
@@ -57,16 +74,16 @@ class TikTokBaseIE(InfoExtractor):
             'build_number': app_version,
             'manifest_version_code': manifest_app_version,
             'update_version_code': manifest_app_version,
-            'openudid': ''.join(random.choice('0123456789abcdef') for _ in range(16)),
-            'uuid': ''.join([random.choice(string.digits) for _ in range(16)]),
+            'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
+            'uuid': ''.join(random.choices(string.digits, k=16)),
             '_rticket': int(time.time() * 1000),
             'ts': int(time.time()),
             'device_brand': 'Google',
-            'device_type': 'Pixel 4',
+            'device_type': 'Pixel 7',
             'device_platform': 'android',
-            'resolution': '1080*1920',
+            'resolution': '1080*2400',
             'dpi': 420,
-            'os_version': '10',
+            'os_version': '13',
             'os_api': '29',
             'carrier_region': 'US',
             'sys_region': 'US',
@@ -120,11 +137,21 @@ class TikTokBaseIE(InfoExtractor):
                     continue
                 raise e
 
+    def _extract_aweme_app(self, aweme_id):
+        feed_list = self._call_api(
+            'feed', {'aweme_id': aweme_id}, aweme_id, note='Downloading video feed',
+            errnote='Unable to download video feed').get('aweme_list') or []
+        aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
+        if not aweme_detail:
+            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
+        return self._parse_aweme_video_app(aweme_detail)
+
     def _get_subtitles(self, aweme_detail, aweme_id):
         # TODO: Extract text positioning info
         subtitles = {}
+        # aweme/detail endpoint subs
         captions_info = traverse_obj(
-            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict)
         for caption in captions_info:
             caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
             if not caption_url:
@@ -139,6 +166,24 @@ class TikTokBaseIE(InfoExtractor):
                     f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
                     for i, line in enumerate(caption_json['utterances']) if line.get('text'))
             })
+        # feed endpoint subs
+        if not subtitles:
+            for caption in traverse_obj(aweme_detail, ('video', 'cla_info', 'caption_infos', ...), expected_type=dict):
+                if not caption.get('url'):
+                    continue
+                subtitles.setdefault(caption.get('lang') or 'en', []).append({
+                    'ext': remove_start(caption.get('caption_format'), 'web'),
+                    'url': caption['url'],
+                })
+        # webpage subs
+        if not subtitles:
+            for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', ...), expected_type=dict):
+                if not caption.get('Url'):
+                    continue
+                subtitles.setdefault(caption.get('LanguageCodeName') or 'en', []).append({
+                    'ext': remove_start(caption.get('Format'), 'web'),
+                    'url': caption['Url'],
+                })
         return subtitles
 
     def _parse_aweme_video_app(self, aweme_detail):
@@ -160,11 +205,22 @@ class TikTokBaseIE(InfoExtractor):
 
         known_resolutions = {}
 
+        def audio_meta(url):
+            ext = determine_ext(url, default_ext='m4a')
+            return {
+                'format_note': 'Music track',
+                'ext': ext,
+                'acodec': 'aac' if ext == 'm4a' else ext,
+                'vcodec': 'none',
+                'width': None,
+                'height': None,
+            } if ext == 'mp3' or '-music-' in url else {}
+
         def extract_addr(addr, add_meta={}):
             parsed_meta, res = parse_url_key(addr.get('url_key', ''))
             if res:
-                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height'))
-                known_resolutions[res].setdefault('width', add_meta.get('width'))
+                known_resolutions.setdefault(res, {}).setdefault('height', add_meta.get('height') or addr.get('height'))
+                known_resolutions[res].setdefault('width', add_meta.get('width') or addr.get('width'))
                 parsed_meta.update(known_resolutions.get(res, {}))
                 add_meta.setdefault('height', int_or_none(res[:-1]))
             return [{
@@ -175,7 +231,8 @@ class TikTokBaseIE(InfoExtractor):
                 'source_preference': -2 if 'aweme/v1' in url else -1,  # Downloads from API might get blocked
                 **add_meta, **parsed_meta,
                 'format_note': join_nonempty(
-                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' ')
+                    add_meta.get('format_note'), '(API)' if 'aweme/v1' in url else None, delim=' '),
+                **audio_meta(url),
             } for url in addr.get('url_list') or []]
 
         # Hack: Add direct video links first to prioritize them when removing duplicate formats
@@ -227,26 +284,23 @@ class TikTokBaseIE(InfoExtractor):
         if auth_cookie:
             for f in formats:
                 self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
-        self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
                          'origin_cover', 'dynamic_cover'):
-            cover = video_info.get(cover_id)
-            if cover:
-                for cover_url in cover['url_list']:
-                    thumbnails.append({
-                        'id': cover_id,
-                        'url': cover_url,
-                    })
+            for cover_url in traverse_obj(video_info, (cover_id, 'url_list', ...)):
+                thumbnails.append({
+                    'id': cover_id,
+                    'url': cover_url,
+                })
 
-        stats_info = aweme_detail.get('statistics', {})
-        author_info = aweme_detail.get('author', {})
-        music_info = aweme_detail.get('music', {})
+        stats_info = aweme_detail.get('statistics') or {}
+        author_info = aweme_detail.get('author') or {}
+        music_info = aweme_detail.get('music') or {}
         user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
                                                              'sec_uid', 'id', 'uid', 'unique_id',
                                                              expected_type=str_or_none, get_all=False))
-        labels = traverse_obj(aweme_detail, ('hybrid_label', ..., 'text'), expected_type=str, default=[])
+        labels = traverse_obj(aweme_detail, ('hybrid_label', ..., 'text'), expected_type=str)
 
         contained_music_track = traverse_obj(
             music_info, ('matched_song', 'title'), ('matched_pgc_sound', 'title'), expected_type=str)
@@ -261,20 +315,30 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': aweme_id,
-            'title': aweme_detail.get('desc'),
-            'description': aweme_detail.get('desc'),
-            'view_count': int_or_none(stats_info.get('play_count')),
-            'like_count': int_or_none(stats_info.get('digg_count')),
-            'repost_count': int_or_none(stats_info.get('share_count')),
-            'comment_count': int_or_none(stats_info.get('comment_count')),
-            'uploader': str_or_none(author_info.get('unique_id')),
-            'creator': str_or_none(author_info.get('nickname')),
-            'uploader_id': str_or_none(author_info.get('uid')),
+            'extractor_key': TikTokIE.ie_key(),
+            'extractor': TikTokIE.IE_NAME,
+            'webpage_url': self._create_url(author_info.get('uid'), aweme_id),
+            **traverse_obj(aweme_detail, {
+                'title': ('desc', {str}),
+                'description': ('desc', {str}),
+                'timestamp': ('create_time', {int_or_none}),
+            }),
+            **traverse_obj(stats_info, {
+                'view_count': 'play_count',
+                'like_count': 'digg_count',
+                'repost_count': 'share_count',
+                'comment_count': 'comment_count',
+            }, expected_type=int_or_none),
+            **traverse_obj(author_info, {
+                'uploader': 'unique_id',
+                'uploader_id': 'uid',
+                'creator': 'nickname',
+                'channel_id': 'sec_uid',
+            }, expected_type=str_or_none),
             'uploader_url': user_url,
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
-            'artist': music_author,
-            'timestamp': int_or_none(aweme_detail.get('create_time')),
+            'artist': music_author or None,
             'formats': formats,
             'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
             'thumbnails': thumbnails,
@@ -282,40 +346,31 @@ class TikTokBaseIE(InfoExtractor):
             'availability': self._availability(
                 is_private='Private' in labels,
                 needs_subscription='Friends only' in labels,
-                is_unlisted='Followers only' in labels)
+                is_unlisted='Followers only' in labels),
+            '_format_sort_fields': ('quality', 'codec', 'size', 'br'),
         }
 
-    def _parse_aweme_video_web(self, aweme_detail, webpage_url):
+    def _parse_aweme_video_web(self, aweme_detail, webpage_url, video_id):
         video_info = aweme_detail['video']
         author_info = traverse_obj(aweme_detail, 'authorInfo', 'author', expected_type=dict, default={})
         music_info = aweme_detail.get('music') or {}
         stats_info = aweme_detail.get('stats') or {}
-        user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
-                                                             'secUid', 'id', 'uid', 'uniqueId',
-                                                             expected_type=str_or_none, get_all=False)
-                                                or aweme_detail.get('authorSecId'))
+        channel_id = traverse_obj(author_info or aweme_detail, (('authorSecId', 'secUid'), {str}), get_all=False)
+        user_url = self._UPLOADER_URL_FORMAT % channel_id if channel_id else None
 
         formats = []
-        play_url = video_info.get('playAddr')
-        width = video_info.get('width')
-        height = video_info.get('height')
-        if isinstance(play_url, str):
-            formats = [{
+        width = int_or_none(video_info.get('width'))
+        height = int_or_none(video_info.get('height'))
+
+        for play_url in traverse_obj(video_info, ('playAddr', ((..., 'src'), None), {url_or_none})):
+            formats.append({
                 'url': self._proto_relative_url(play_url),
                 'ext': 'mp4',
                 'width': width,
                 'height': height,
-            }]
-        elif isinstance(play_url, list):
-            formats = [{
-                'url': self._proto_relative_url(url),
-                'ext': 'mp4',
-                'width': width,
-                'height': height,
-            } for url in traverse_obj(play_url, (..., 'src'), expected_type=url_or_none, default=[]) if url]
+            })
 
-        download_url = url_or_none(video_info.get('downloadAddr')) or traverse_obj(video_info, ('download', 'url'), expected_type=url_or_none)
-        if download_url:
+        for download_url in traverse_obj(video_info, (('downloadAddr', ('download', 'url')), {url_or_none})):
             formats.append({
                 'format_id': 'download',
                 'url': self._proto_relative_url(download_url),
@@ -323,45 +378,55 @@ class TikTokBaseIE(InfoExtractor):
                 'width': width,
                 'height': height,
             })
+
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         thumbnails = []
-        for thumbnail_name in ('thumbnail', 'cover', 'dynamicCover', 'originCover'):
-            if aweme_detail.get(thumbnail_name):
-                thumbnails = [{
-                    'url': self._proto_relative_url(aweme_detail[thumbnail_name]),
-                    'width': width,
-                    'height': height
-                }]
+        for thumb_url in traverse_obj(aweme_detail, (
+                (None, 'video'), ('thumbnail', 'cover', 'dynamicCover', 'originCover'), {url_or_none})):
+            thumbnails.append({
+                'url': self._proto_relative_url(thumb_url),
+                'width': width,
+                'height': height,
+            })
 
         return {
-            'id': traverse_obj(aweme_detail, 'id', 'awemeId', expected_type=str_or_none),
-            'title': aweme_detail.get('desc'),
-            'duration': try_get(aweme_detail, lambda x: x['video']['duration'], int),
-            'view_count': int_or_none(stats_info.get('playCount')),
-            'like_count': int_or_none(stats_info.get('diggCount')),
-            'repost_count': int_or_none(stats_info.get('shareCount')),
-            'comment_count': int_or_none(stats_info.get('commentCount')),
-            'timestamp': int_or_none(aweme_detail.get('createTime')),
-            'creator': str_or_none(author_info.get('nickname')),
-            'uploader': str_or_none(author_info.get('uniqueId') or aweme_detail.get('author')),
-            'uploader_id': str_or_none(author_info.get('id') or aweme_detail.get('authorId')),
+            'id': video_id,
+            **traverse_obj(aweme_detail, {
+                'title': ('desc', {str}),
+                'description': ('desc', {str}),
+                'duration': ('video', 'duration', {int_or_none}),
+                'timestamp': ('createTime', {int_or_none}),
+            }),
+            **traverse_obj(author_info or aweme_detail, {
+                'creator': ('nickname', {str}),
+                'uploader': (('uniqueId', 'author'), {str}),
+                'uploader_id': (('authorId', 'uid', 'id'), {str_or_none}),
+            }, get_all=False),
+            **traverse_obj(stats_info, {
+                'view_count': 'playCount',
+                'like_count': 'diggCount',
+                'repost_count': 'shareCount',
+                'comment_count': 'commentCount',
+            }, expected_type=int_or_none),
+            **traverse_obj(music_info, {
+                'track': 'title',
+                'album': ('album', {lambda x: x or None}),
+                'artist': 'authorName',
+            }, expected_type=str),
+            'channel_id': channel_id,
             'uploader_url': user_url,
-            'track': str_or_none(music_info.get('title')),
-            'album': str_or_none(music_info.get('album')) or None,
-            'artist': str_or_none(music_info.get('authorName')),
             'formats': formats,
             'thumbnails': thumbnails,
-            'description': str_or_none(aweme_detail.get('desc')),
             'http_headers': {
-                'Referer': webpage_url
+                'Referer': webpage_url,
             }
         }
 
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/@[\w\.-]+/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
+    _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
@@ -388,7 +453,8 @@ class TikTokIE(TikTokBaseIE):
             'artist': 'Ysrbeats',
             'album': 'Lehanga',
             'track': 'Lehanga',
-        }
+        },
+        'skip': '404 Not Found',
     }, {
         'url': 'https://www.tiktok.com/@patroxofficial/video/6742501081818877190?langCountry=en',
         'md5': '6f3cf8cdd9b28cb8363fe0a9a160695b',
@@ -403,6 +469,7 @@ class TikTokIE(TikTokBaseIE):
             'uploader': 'patrox',
             'uploader_id': '18702747',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAiFnldaILebi5heDoVU6bn4jBWWycX6-9U3xuNPqZ8Ws',
+            'channel_id': 'MS4wLjABAAAAiFnldaILebi5heDoVU6bn4jBWWycX6-9U3xuNPqZ8Ws',
             'creator': 'patroX',
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
             'upload_date': '20190930',
@@ -413,7 +480,7 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
             'artist': 'Evan Todd, Jessica Keenan Wynn, Alice Lee, Barrett Wilbert Weed & Jon Eidson',
             'track': 'Big Fun',
-        }
+        },
     }, {
         # Banned audio, only available on the app
         'url': 'https://www.tiktok.com/@barudakhb_/video/6984138651336838402',
@@ -426,6 +493,7 @@ class TikTokIE(TikTokBaseIE):
             'creator': 'md5:29f238c49bc0c176cb3cef1a9cea9fa6',
             'uploader_id': '6974687867511718913',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAbhBwQC-R1iKoix6jDFsF-vBdfx2ABoDjaZrM9fX6arU3w71q3cOWgWuTXn1soZ7d',
+            'channel_id': 'MS4wLjABAAAAbhBwQC-R1iKoix6jDFsF-vBdfx2ABoDjaZrM9fX6arU3w71q3cOWgWuTXn1soZ7d',
             'track': 'Boka Dance',
             'artist': 'md5:29f238c49bc0c176cb3cef1a9cea9fa6',
             'timestamp': 1626121503,
@@ -436,7 +504,7 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         # Sponsored video, only available with feed workaround
         'url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_/video/7042692929109986561',
@@ -449,6 +517,7 @@ class TikTokIE(TikTokBaseIE):
             'creator': 'Slap And Run',
             'uploader_id': '7036055384943690754',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
+            'channel_id': 'MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
             'track': 'Promoted Music',
             'timestamp': 1639754738,
             'duration': 30,
@@ -459,19 +528,20 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Video not available']
+        'params': {'skip_download': True},  # XXX: unable to download video data: HTTP Error 403: Forbidden
     }, {
         # Video without title and description
         'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
         'info_dict': {
             'id': '7059698374567611694',
             'ext': 'mp4',
-            'title': 'tiktok video #7059698374567611694',
+            'title': 'TikTok video #7059698374567611694',
             'description': '',
             'uploader': 'pokemonlife22',
             'creator': 'Pokemon',
             'uploader_id': '6820838815978423302',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
+            'channel_id': 'MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
             'track': 'original sound',
             'timestamp': 1643714123,
             'duration': 6,
@@ -483,54 +553,156 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Video not available', 'Creating a generic title']
+    }, {
+        # hydration JSON is sent in a <script> element
+        'url': 'https://www.tiktok.com/@denidil6/video/7065799023130643713',
+        'info_dict': {
+            'id': '7065799023130643713',
+            'ext': 'mp4',
+            'title': '#denidil#денидил',
+            'description': '#denidil#денидил',
+            'uploader': 'denidil6',
+            'uploader_id': '7046664115636405250',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAsvMSzFdQ4ikl3uR2TEJwMBbB2yZh2Zxwhx-WCo3rbDpAharE3GQCrFuJArI3C8QJ',
+            'artist': 'Holocron Music',
+            'album': 'Wolf Sounds (1 Hour) Enjoy the Company of the Animal That Is the Majestic King of the Night',
+            'track': 'Wolf Sounds (1 Hour) Enjoy the Company of the Animal That Is the Majestic King of the Night',
+            'timestamp': 1645134536,
+            'duration': 26,
+            'upload_date': '20220217',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+        'skip': 'This video is unavailable',
+    }, {
+        # slideshow audio-only mp3 format
+        'url': 'https://www.tiktok.com/@_le_cannibale_/video/7139980461132074283',
+        'info_dict': {
+            'id': '7139980461132074283',
+            'ext': 'mp3',
+            'title': 'TikTok video #7139980461132074283',
+            'description': '',
+            'creator': 'Antaura',
+            'uploader': '_le_cannibale_',
+            'uploader_id': '6604511138619654149',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAoShJqaw_5gvy48y3azFeFcT4jeyKWbB0VVYasOCt2tTLwjNFIaDcHAM4D-QGXFOP',
+            'channel_id': 'MS4wLjABAAAAoShJqaw_5gvy48y3azFeFcT4jeyKWbB0VVYasOCt2tTLwjNFIaDcHAM4D-QGXFOP',
+            'artist': 'nathan !',
+            'track': 'grahamscott canon',
+            'upload_date': '20220905',
+            'timestamp': 1662406249,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
+    }, {
+        # only available via web
+        'url': 'https://www.tiktok.com/@moxypatch/video/7206382937372134662',
+        'md5': '6aba7fad816e8709ff2c149679ace165',
+        'info_dict': {
+            'id': '7206382937372134662',
+            'ext': 'mp4',
+            'title': 'md5:1d95c0b96560ca0e8a231af4172b2c0a',
+            'description': 'md5:1d95c0b96560ca0e8a231af4172b2c0a',
+            'creator': 'MoxyPatch',
+            'uploader': 'moxypatch',
+            'uploader_id': '7039142049363379205',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAFhqKnngMHJSsifL0w1vFOP5kn3Ndo1ODp0XuIBkNMBCkALTvwILdpu12g3pTtL4V',
+            'channel_id': 'MS4wLjABAAAAFhqKnngMHJSsifL0w1vFOP5kn3Ndo1ODp0XuIBkNMBCkALTvwILdpu12g3pTtL4V',
+            'artist': 'your worst nightmare',
+            'track': 'original sound',
+            'upload_date': '20230303',
+            'timestamp': 1677866781,
+            'duration': 10,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https://.+',
+            'thumbnails': 'count:3',
+        },
+        'expected_warnings': ['Unable to find video in feed'],
+    }, {
+        # 1080p format
+        'url': 'https://www.tiktok.com/@tatemcrae/video/7107337212743830830',
+        'md5': '982512017a8a917124d5a08c8ae79621',
+        'info_dict': {
+            'id': '7107337212743830830',
+            'ext': 'mp4',
+            'title': 'new music video 4 don’t come backkkk🧸🖤 i hope u enjoy !! @musicontiktok',
+            'description': 'new music video 4 don’t come backkkk🧸🖤 i hope u enjoy !! @musicontiktok',
+            'uploader': 'tatemcrae',
+            'uploader_id': '86328792343818240',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
+            'channel_id': 'MS4wLjABAAAA-0bQT0CqebTRr6I4IkYvMDMKSRSJHLNPBo5HrSklJwyA2psXLSZG5FP-LMNpHnJd',
+            'creator': 'tate mcrae',
+            'artist': 'tate mcrae',
+            'track': 'original sound',
+            'upload_date': '20220609',
+            'timestamp': 1654805899,
+            'duration': 150,
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
+        'params': {'format': 'bytevc1_1080p_808907-0'},
+    }, {
+        # Slideshow, audio-only m4a format
+        'url': 'https://www.tiktok.com/@hara_yoimiya/video/7253412088251534594',
+        'md5': '2ff8fe0174db2dbf49c597a7bef4e47d',
+        'info_dict': {
+            'id': '7253412088251534594',
+            'ext': 'm4a',
+            'title': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'description': 'я ред флаг простите #переписка #щитпост #тревожныйтиппривязанности #рекомендации ',
+            'uploader': 'hara_yoimiya',
+            'uploader_id': '6582536342634676230',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
+            'channel_id': 'MS4wLjABAAAAIAlDxriiPWLE-p8p1R_0Bx8qWKfi-7zwmGhzU8Mv25W8sNxjfIKrol31qTczzuLB',
+            'creator': 'лампочка',
+            'artist': 'Øneheart',
+            'album': 'watching the stars',
+            'track': 'watching the stars',
+            'upload_date': '20230708',
+            'timestamp': 1688816612,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'repost_count': int,
+            'thumbnail': r're:^https://.+\.webp',
+        },
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
     }]
 
-    def _extract_aweme_app(self, aweme_id):
-        try:
-            aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
-                                          note='Downloading video details', errnote='Unable to download video details').get('aweme_detail')
-            if not aweme_detail:
-                raise ExtractorError('Video not available', video_id=aweme_id)
-        except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with feed workaround')
-            feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
-                                       note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-            aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
-            if not aweme_detail:
-                raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
-        return self._parse_aweme_video_app(aweme_detail)
-
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-
+        video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with webpage')
+            self.report_warning(f'{e}; trying with webpage')
 
-        # If we only call once, we get a 403 when downlaoding the video.
-        self._download_webpage(url, video_id)
-        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
+        url = self._create_url(user_id, video_id)
+        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'Mozilla/5.0'})
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
-
         if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
-            sigi_json = self._search_regex(
-                r'>\s*window\[[\'"]SIGI_STATE[\'"]\]\s*=\s*(?P<sigi_state>{.+});',
-                webpage, 'sigi data', group='sigi_state')
-            sigi_data = self._parse_json(sigi_json, video_id)
+            sigi_data = self._get_sigi_state(webpage, video_id)
             status = traverse_obj(sigi_data, ('VideoPage', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(sigi_data, ('ItemModule', video_id), expected_type=dict)
 
         if status == 0:
-            return self._parse_aweme_video_web(video_data, url)
+            return self._parse_aweme_video_web(video_data, url, video_id)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
         raise ExtractorError('Video not available', video_id=video_id)
@@ -539,6 +711,7 @@ class TikTokIE(TikTokBaseIE):
 class TikTokUserIE(TikTokBaseIE):
     IE_NAME = 'tiktok:user'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/?(?:$|[#?])'
+    _WORKING = False
     _TESTS = [{
         'url': 'https://tiktok.com/@corgibobaa?lang=en',
         'playlist_mincount': 45,
@@ -594,22 +767,20 @@ class TikTokUserIE(TikTokBaseIE):
             'max_cursor': 0,
             'min_cursor': 0,
             'retry_type': 'no_retry',
-            'device_id': ''.join(random.choice(string.digits) for _ in range(19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
+            'device_id': ''.join(random.choices(string.digits, k=19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api('aweme/post', query, username,
-                                               note='Downloading user video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download user video list')
+                    post_list = self._call_api(
+                        'aweme/post', query, username, note=f'Downloading user video list page {page}',
+                        errnote='Unable to download user video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             yield from post_list.get('aweme_list', [])
             if not post_list.get('has_more'):
                 break
@@ -637,29 +808,27 @@ class TikTokUserIE(TikTokBaseIE):
         return self.playlist_result(self._entries_api(user_id, videos), user_id, user_name, thumbnail=thumbnail)
 
 
-class TikTokBaseListIE(TikTokBaseIE):
+class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     def _entries(self, list_id, display_id):
         query = {
             self._QUERY_NAME: list_id,
             'cursor': 0,
             'count': 20,
             'type': 5,
-            'device_id': ''.join(random.choice(string.digits) for i in range(19))
+            'device_id': ''.join(random.choices(string.digits, k=19))
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api(self._API_ENDPOINT, query, display_id,
-                                               note='Downloading video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download video list')
+                    post_list = self._call_api(
+                        self._API_ENDPOINT, query, display_id, note=f'Downloading video list page {page}',
+                        errnote='Unable to download video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             for video in post_list.get('aweme_list', []):
                 yield {
                     **self._parse_aweme_video_app(video),
@@ -679,6 +848,7 @@ class TikTokBaseListIE(TikTokBaseIE):
 class TikTokSoundIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:sound'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/music/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _WORKING = False
     _QUERY_NAME = 'music_id'
     _API_ENDPOINT = 'music/aweme'
     _TESTS = [{
@@ -702,6 +872,7 @@ class TikTokSoundIE(TikTokBaseListIE):
 class TikTokEffectIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:effect'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/sticker/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _WORKING = False
     _QUERY_NAME = 'sticker_id'
     _API_ENDPOINT = 'sticker/aweme'
     _TESTS = [{
@@ -721,6 +892,7 @@ class TikTokEffectIE(TikTokBaseListIE):
 class TikTokTagIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:tag'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/tag/(?P<id>[^/?#&]+)'
+    _WORKING = False
     _QUERY_NAME = 'ch_id'
     _API_ENDPOINT = 'challenge/aweme'
     _TESTS = [{
@@ -745,56 +917,74 @@ class TikTokTagIE(TikTokBaseListIE):
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
 
 
-class DouyinIE(TikTokIE):
+class DouyinIE(TikTokBaseIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyin.com/video/6961737553342991651',
-        'md5': '10523312c8b8100f353620ac9dc8f067',
+        'md5': 'a97db7e3e67eb57bf40735c022ffa228',
         'info_dict': {
             'id': '6961737553342991651',
             'ext': 'mp4',
             'title': '#杨超越  小小水手带你去远航❤️',
-            'uploader': '杨超越',
-            'upload_date': '20210513',
-            'timestamp': 1620905839,
+            'description': '#杨超越  小小水手带你去远航❤️',
             'uploader_id': '110403406559',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'channel_id': 'MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'creator': '杨超越',
+            'duration': 19782,
+            'timestamp': 1620905839,
+            'upload_date': '20210513',
+            'track': '@杨超越创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+            'thumbnail': r're:https?://.+\.jpe?g',
+        },
     }, {
         'url': 'https://www.douyin.com/video/6982497745948921092',
-        'md5': 'd78408c984b9b5102904cf6b6bc2d712',
+        'md5': '34a87ebff3833357733da3fe17e37c0e',
         'info_dict': {
             'id': '6982497745948921092',
             'ext': 'mp4',
             'title': '这个夏日和小羊@杨超越 一起遇见白色幻想',
-            'uploader': '杨超越工作室',
-            'upload_date': '20210708',
-            'timestamp': 1625739481,
+            'description': '这个夏日和小羊@杨超越 一起遇见白色幻想',
             'uploader_id': '408654318141572',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAZJpnglcjW2f_CMVcnqA_6oVBXKWMpH0F8LIHuUu8-lA',
+            'channel_id': 'MS4wLjABAAAAZJpnglcjW2f_CMVcnqA_6oVBXKWMpH0F8LIHuUu8-lA',
+            'creator': '杨超越工作室',
+            'duration': 42479,
+            'timestamp': 1625739481,
+            'upload_date': '20210708',
+            'track': '@杨超越工作室创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+            'thumbnail': r're:https?://.+\.jpe?g',
+        },
     }, {
         'url': 'https://www.douyin.com/video/6953975910773099811',
-        'md5': '72e882e24f75064c218b76c8b713c185',
+        'md5': 'dde3302460f19db59c47060ff013b902',
         'info_dict': {
             'id': '6953975910773099811',
             'ext': 'mp4',
             'title': '#一起看海  出现在你的夏日里',
-            'uploader': '杨超越',
-            'upload_date': '20210422',
-            'timestamp': 1619098692,
+            'description': '#一起看海  出现在你的夏日里',
             'uploader_id': '110403406559',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'channel_id': 'MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'creator': '杨超越',
+            'duration': 17343,
+            'timestamp': 1619098692,
+            'upload_date': '20210422',
+            'track': '@杨超越创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+            'thumbnail': r're:https?://.+\.jpe?g',
+        },
     }, {
         'url': 'https://www.douyin.com/video/6950251282489675042',
         'md5': 'b4db86aec367ef810ddd38b1737d2fed',
@@ -810,25 +1000,32 @@ class DouyinIE(TikTokIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+        },
+        'skip': 'No longer available',
     }, {
         'url': 'https://www.douyin.com/video/6963263655114722595',
-        'md5': '1abe1c477d05ee62efb40bf2329957cf',
+        'md5': 'cf9f11f0ec45d131445ec2f06766e122',
         'info_dict': {
             'id': '6963263655114722595',
             'ext': 'mp4',
             'title': '#哪个爱豆的105度最甜 换个角度看看我哈哈',
-            'uploader': '杨超越',
-            'upload_date': '20210517',
-            'timestamp': 1621261163,
+            'description': '#哪个爱豆的105度最甜 换个角度看看我哈哈',
             'uploader_id': '110403406559',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'channel_id': 'MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'creator': '杨超越',
+            'duration': 15115,
+            'timestamp': 1621261163,
+            'upload_date': '20210517',
+            'track': '@杨超越创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+            'thumbnail': r're:https?://.+\.jpe?g',
+        },
     }]
-    _APP_VERSIONS = [('9.6.0', '960')]
+    _APP_VERSIONS = [('23.3.0', '230300')]
     _APP_NAME = 'aweme'
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'
@@ -841,47 +1038,72 @@ class DouyinIE(TikTokIE):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with webpage')
+            e.expected = True
+            self.to_screen(f'{e}; trying with webpage')
 
         webpage = self._download_webpage(url, video_id)
-        render_data_json = self._search_regex(
-            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>(%7B.+%7D)</script>',
-            webpage, 'render data', default=None)
-        if not render_data_json:
+        render_data = self._search_json(
+            r'<script [^>]*\bid=[\'"]RENDER_DATA[\'"][^>]*>', webpage, 'render data', video_id,
+            contains_pattern=r'%7B(?s:.+)%7D', fatal=False, transform_source=compat_urllib_parse_unquote)
+        if not render_data:
             # TODO: Run verification challenge code to generate signature cookies
-            raise ExtractorError('Fresh cookies (not necessarily logged in) are needed')
+            cookies = self._get_cookies(self._WEBPAGE_HOST)
+            expected = not cookies.get('s_v_web_id') or not cookies.get('ttwid')
+            raise ExtractorError(
+                'Fresh cookies (not necessarily logged in) are needed', expected=expected)
 
-        render_data = self._parse_json(
-            render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
-        return self._parse_aweme_video_web(get_first(render_data, ('aweme', 'detail')), url)
+        return self._parse_aweme_video_web(get_first(render_data, ('aweme', 'detail')), url, video_id)
 
 
 class TikTokVMIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:vm|vt)\.tiktok\.com/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:(?:vm|vt)\.tiktok\.com|(?:www\.)tiktok\.com/t)/(?P<id>\w+)'
     IE_NAME = 'vm.tiktok'
 
     _TESTS = [{
-        'url': 'https://vm.tiktok.com/ZSe4FqkKd',
+        'url': 'https://www.tiktok.com/t/ZTRC5xgJp',
         'info_dict': {
-            'id': '7023491746608712966',
+            'id': '7170520270497680683',
             'ext': 'mp4',
-            'title': 'md5:5607564db90271abbbf8294cca77eddd',
-            'description': 'md5:5607564db90271abbbf8294cca77eddd',
-            'duration': 11,
-            'upload_date': '20211026',
-            'uploader_id': '7007385080558846981',
-            'creator': 'Memes',
-            'artist': 'Memes',
-            'track': 'original sound',
-            'uploader': 'susmandem',
-            'timestamp': 1635284105,
-            'thumbnail': r're:https://.+\.webp.*',
-            'like_count': int,
+            'title': 'md5:c64f6152330c2efe98093ccc8597871c',
+            'uploader_id': '6687535061741700102',
+            'upload_date': '20221127',
             'view_count': int,
+            'like_count': int,
             'comment_count': int,
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAObqu3WCTXxmw2xwZ3iLEHnEecEIw7ks6rxWqOqOhaPja9BI7gqUQnjw8_5FSoDXX',
+            'album': 'Wave of Mutilation: Best of Pixies',
+            'thumbnail': r're:https://.+\.webp.*',
+            'duration': 5,
+            'timestamp': 1669516858,
             'repost_count': int,
-            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAXcNoOEOxVyBzuII_E--T0MeCrLP0ay1Sm6x_n3dluiWEoWZD0VlQOytwad4W0i0n',
-        }
+            'artist': 'Pixies',
+            'track': 'Where Is My Mind?',
+            'description': 'md5:c64f6152330c2efe98093ccc8597871c',
+            'uploader': 'sigmachaddeus',
+            'creator': 'SigmaChad',
+        },
+    }, {
+        'url': 'https://vm.tiktok.com/ZTR45GpSF/',
+        'info_dict': {
+            'id': '7106798200794926362',
+            'ext': 'mp4',
+            'title': 'md5:edc3e7ea587847f8537468f2fe51d074',
+            'uploader_id': '6997695878846268418',
+            'upload_date': '20220608',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:https://.+\.webp.*',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAdZ_NcPPgMneaGrW0hN8O_J_bwLshwNNERRF5DxOw2HKIzk0kdlLrR8RkVl1ksrMO',
+            'duration': 29,
+            'timestamp': 1654680400,
+            'repost_count': int,
+            'artist': 'Akihitoko',
+            'track': 'original sound',
+            'description': 'md5:edc3e7ea587847f8537468f2fe51d074',
+            'uploader': 'akihitoko1',
+            'creator': 'Akihitoko',
+        },
     }, {
         'url': 'https://vt.tiktok.com/ZSe4FqkKd',
         'only_matching': True,
@@ -889,7 +1111,179 @@ class TikTokVMIE(InfoExtractor):
 
     def _real_extract(self, url):
         new_url = self._request_webpage(
-            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).geturl()
+            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).url
         if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
             raise UnsupportedError(new_url)
         return self.url_result(new_url)
+
+
+class TikTokLiveIE(TikTokBaseIE):
+    _VALID_URL = r'''(?x)https?://(?:
+        (?:www\.)?tiktok\.com/@(?P<uploader>[\w.-]+)/live|
+        m\.tiktok\.com/share/live/(?P<id>\d+)
+    )'''
+    IE_NAME = 'tiktok:live'
+
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/@weathernewslive/live',
+        'info_dict': {
+            'id': '7210809319192726273',
+            'ext': 'mp4',
+            'title': r're:ウェザーニュースLiVE[\d\s:-]*',
+            'creator': 'ウェザーニュースLiVE',
+            'uploader': 'weathernewslive',
+            'uploader_id': '6621496731283095554',
+            'uploader_url': 'https://www.tiktok.com/@weathernewslive',
+            'live_status': 'is_live',
+            'concurrent_view_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.tiktok.com/@pilarmagenta/live',
+        'info_dict': {
+            'id': '7209423610325322522',
+            'ext': 'mp4',
+            'title': str,
+            'creator': 'Pilarmagenta',
+            'uploader': 'pilarmagenta',
+            'uploader_id': '6624846890674683909',
+            'uploader_url': 'https://www.tiktok.com/@pilarmagenta',
+            'live_status': 'is_live',
+            'concurrent_view_count': int,
+        },
+        'skip': 'Livestream',
+    }, {
+        'url': 'https://m.tiktok.com/share/live/7209423610325322522/?language=en',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktok.com/@iris04201/live',
+        'only_matching': True,
+    }]
+
+    def _call_api(self, url, param, room_id, uploader, key=None):
+        response = traverse_obj(self._download_json(
+            url, room_id, fatal=False, query={
+                'aid': '1988',
+                param: room_id,
+            }), (key, {dict}), default={})
+
+        # status == 2 if live else 4
+        if int_or_none(response.get('status')) == 2:
+            return response
+        # If room_id is obtained via mobile share URL and cannot be refreshed, do not wait for live
+        elif not uploader:
+            raise ExtractorError('This livestream has ended', expected=True)
+        raise UserNotLive(video_id=uploader)
+
+    def _real_extract(self, url):
+        uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
+        webpage = self._download_webpage(
+            url, uploader or room_id, headers={'User-Agent': 'Mozilla/5.0'}, fatal=not room_id)
+
+        if webpage:
+            data = try_call(lambda: self._get_sigi_state(webpage, uploader or room_id))
+            room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
+                       or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
+                       or room_id)
+            uploader = uploader or traverse_obj(
+                data, ('LiveRoom', 'liveRoomUserInfo', 'user', 'uniqueId'),
+                ('UserModule', 'users', ..., 'uniqueId'), get_all=False, expected_type=str)
+
+        if not room_id:
+            raise UserNotLive(video_id=uploader)
+
+        formats = []
+        live_info = self._call_api(
+            'https://webcast.tiktok.com/webcast/room/info', 'room_id', room_id, uploader, key='data')
+
+        get_quality = qualities(('SD1', 'ld', 'SD2', 'sd', 'HD1', 'hd', 'FULL_HD1', 'uhd', 'ORIGION', 'origin'))
+        parse_inner = lambda x: self._parse_json(x, None)
+
+        for quality, stream in traverse_obj(live_info, (
+                'stream_url', 'live_core_sdk_data', 'pull_data', 'stream_data',
+                {parse_inner}, 'data', {dict}), default={}).items():
+
+            sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
+                'vcodec': ('VCodec', {str}),
+                'tbr': ('vbitrate', {lambda x: int_or_none(x, 1000)}),
+                'resolution': ('resolution', {lambda x: re.match(r'(?i)\d+x\d+|\d+p', x).group().lower()}),
+            }))
+
+            flv_url = traverse_obj(stream, ('main', 'flv', {url_or_none}))
+            if flv_url:
+                formats.append({
+                    'url': flv_url,
+                    'ext': 'flv',
+                    'format_id': f'flv-{quality}',
+                    'quality': get_quality(quality),
+                    **sdk_params,
+                })
+
+            hls_url = traverse_obj(stream, ('main', 'hls', {url_or_none}))
+            if hls_url:
+                formats.append({
+                    'url': hls_url,
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'format_id': f'hls-{quality}',
+                    'quality': get_quality(quality),
+                    **sdk_params,
+                })
+
+        def get_vcodec(*keys):
+            return traverse_obj(live_info, (
+                'stream_url', *keys, {parse_inner}, 'VCodec', {str}))
+
+        for stream in ('hls', 'rtmp'):
+            stream_url = traverse_obj(live_info, ('stream_url', f'{stream}_pull_url', {url_or_none}))
+            if stream_url:
+                formats.append({
+                    'url': stream_url,
+                    'ext': 'mp4' if stream == 'hls' else 'flv',
+                    'protocol': 'm3u8_native' if stream == 'hls' else 'https',
+                    'format_id': f'{stream}-pull',
+                    'vcodec': get_vcodec(f'{stream}_pull_url_params'),
+                    'quality': get_quality('ORIGION'),
+                })
+
+        for f_id, f_url in traverse_obj(live_info, ('stream_url', 'flv_pull_url', {dict}), default={}).items():
+            if not url_or_none(f_url):
+                continue
+            formats.append({
+                'url': f_url,
+                'ext': 'flv',
+                'format_id': f'flv-{f_id}'.lower(),
+                'vcodec': get_vcodec('flv_pull_url_params', f_id),
+                'quality': get_quality(f_id),
+            })
+
+        # If uploader is a guest on another's livestream, primary endpoint will not have m3u8 URLs
+        if not traverse_obj(formats, lambda _, v: v['ext'] == 'mp4'):
+            live_info = merge_dicts(live_info, self._call_api(
+                'https://www.tiktok.com/api/live/detail/', 'roomID', room_id, uploader, key='LiveRoomInfo'))
+            if url_or_none(live_info.get('liveUrl')):
+                formats.append({
+                    'url': live_info['liveUrl'],
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'format_id': 'hls-fallback',
+                    'vcodec': 'h264',
+                    'quality': get_quality('origin'),
+                })
+
+        uploader = uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id'))
+
+        return {
+            'id': room_id,
+            'uploader': uploader,
+            'uploader_url': format_field(uploader, None, self._UPLOADER_URL_FORMAT) or None,
+            'is_live': True,
+            'formats': formats,
+            '_format_sort_fields': ('quality', 'ext'),
+            **traverse_obj(live_info, {
+                'title': 'title',
+                'uploader_id': (('ownerInfo', 'owner'), 'id', {str_or_none}),
+                'creator': (('ownerInfo', 'owner'), 'nickname'),
+                'concurrent_view_count': (('user_count', ('liveRoomStats', 'userCount')), {int_or_none}),
+            }, get_all=False),
+        }

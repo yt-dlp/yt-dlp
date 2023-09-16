@@ -1057,6 +1057,7 @@ class PeerTubeIE(InfoExtractor):
                     )
                     (?P<id>%s)
                     ''' % (_INSTANCES_RE, _UUID_RE)
+    _EMBED_REGEX = [r'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//{_INSTANCES_RE}/videos/embed/{cls._UUID_RE})''']
     _TESTS = [{
         'url': 'https://framatube.org/videos/watch/9c9de5e8-0a1e-484a-b099-e80766180a6d',
         'md5': '8563064d245a4be5705bddb22bb00a28',
@@ -1158,16 +1159,15 @@ class PeerTubeIE(InfoExtractor):
                 '>We are sorry but it seems that PeerTube is not compatible with your web browser.<')):
             return 'peertube:%s:%s' % mobj.group('host', 'id')
 
-    @staticmethod
-    def _extract_urls(webpage, source_url):
-        entries = re.findall(
-            r'''(?x)<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//%s/videos/embed/%s)'''
-            % (PeerTubeIE._INSTANCES_RE, PeerTubeIE._UUID_RE), webpage)
-        if not entries:
-            peertube_url = PeerTubeIE._extract_peertube_url(webpage, source_url)
-            if peertube_url:
-                entries = [peertube_url]
-        return entries
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        embeds = tuple(super()._extract_embed_urls(url, webpage))
+        if embeds:
+            return embeds
+
+        peertube_url = cls._extract_peertube_url(webpage, url)
+        if peertube_url:
+            return [peertube_url]
 
     def _call_api(self, host, video_id, path, note=None, errnote=None, fatal=True):
         return self._download_json(
@@ -1233,7 +1233,6 @@ class PeerTubeIE(InfoExtractor):
             else:
                 f['fps'] = int_or_none(file_.get('fps'))
             formats.append(f)
-        self._sort_formats(formats)
 
         description = video.get('description')
         if description and len(description) >= 250:

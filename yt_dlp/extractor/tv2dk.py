@@ -164,7 +164,6 @@ class TV2DKBornholmPlayIE(InfoExtractor):
                 formats.append({
                     'url': src,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

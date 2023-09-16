@@ -31,7 +31,7 @@ class WeiboIE(InfoExtractor):
         # to get Referer url for genvisitor
         webpage, urlh = self._download_webpage_handle(url, video_id)
 
-        visitor_url = urlh.geturl()
+        visitor_url = urlh.url
 
         if 'passport.weibo.com' in visitor_url:
             # first visit
@@ -87,8 +87,6 @@ class WeiboIE(InfoExtractor):
                 'url': vid_url,
                 'height': res,
             })
-
-        self._sort_formats(formats)
 
         uploader = self._og_search_property(
             'nick-name', webpage, 'uploader', default=None)

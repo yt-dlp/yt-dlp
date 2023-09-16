@@ -84,7 +84,6 @@ class PornHdIE(InfoExtractor):
             })
         if formats:
             info['formats'] = formats
-        self._sort_formats(info['formats'])
 
         description = self._html_search_regex(
             (r'(?s)<section[^>]+class=["\']video-description[^>]+>(?P<value>.+?)</section>',

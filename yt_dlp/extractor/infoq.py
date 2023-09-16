@@ -128,8 +128,6 @@ class InfoQIE(BokeCCBaseIE):
                 + self._extract_http_video(webpage)
                 + self._extract_http_audio(webpage, video_id))
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': video_title,

@@ -68,7 +68,6 @@ class MgoonIE(InfoExtractor):
                 'ext': fmt['format'],
 
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

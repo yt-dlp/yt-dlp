@@ -78,7 +78,6 @@ class FazIE(InfoExtractor):
                             'tbr': tbr or int(mobj.group(3)),
                         })
                     formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

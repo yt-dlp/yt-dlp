@@ -2,11 +2,8 @@ import json
 import random
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_b64decode, compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -75,9 +72,8 @@ class LinuxAcademyIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         def random_string():
-            return ''.join([
-                random.choice('0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._~')
-                for _ in range(32)])
+            return ''.join(random.choices(
+                '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._~', k=32))
 
         webpage, urlh = self._download_webpage_handle(
             self._AUTHORIZE_URL, None, 'Downloading authorize page', query={
@@ -108,7 +104,7 @@ class LinuxAcademyIE(InfoExtractor):
             'sso': 'true',
         })
 
-        login_state_url = urlh.geturl()
+        login_state_url = urlh.url
 
         try:
             login_page = self._download_webpage(
@@ -120,8 +116,8 @@ class LinuxAcademyIE(InfoExtractor):
                     'Referer': login_state_url,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                error = self._parse_json(e.cause.read(), None)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                error = self._parse_json(e.cause.response.read(), None)
                 message = error.get('description') or error['code']
                 raise ExtractorError(
                     '%s said: %s' % (self.IE_NAME, message), expected=True)
@@ -138,7 +134,7 @@ class LinuxAcademyIE(InfoExtractor):
             })
 
         access_token = self._search_regex(
-            r'access_token=([^=&]+)', urlh.geturl(),
+            r'access_token=([^=&]+)', urlh.url,
             'access token', default=None)
         if not access_token:
             access_token = self._parse_json(
@@ -218,7 +214,6 @@ class LinuxAcademyIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             m3u8_url, item_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls')
-        self._sort_formats(formats)
         info = {
             'id': item_id,
             'formats': formats,

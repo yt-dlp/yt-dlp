@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
-import optparse
+
+# Allow direct execution
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 import os.path
 import re
+
+from devscripts.utils import (
+    compose_functions,
+    get_filename_args,
+    read_file,
+    write_file,
+)
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 README_FILE = os.path.join(ROOT_DIR, 'README.md')
@@ -19,25 +33,6 @@ yt\-dlp \- A youtube-dl fork with additional features and patches
 # DESCRIPTION
 
 '''
-
-
-def main():
-    parser = optparse.OptionParser(usage='%prog OUTFILE.md')
-    options, args = parser.parse_args()
-    if len(args) != 1:
-        parser.error('Expected an output filename')
-
-    outfile, = args
-
-    with open(README_FILE, encoding='utf-8') as f:
-        readme = f.read()
-
-    readme = filter_excluded_sections(readme)
-    readme = move_sections(readme)
-    readme = filter_options(readme)
-
-    with open(outfile, 'w', encoding='utf-8') as outf:
-        outf.write(PREFIX + readme)
 
 
 def filter_excluded_sections(readme):
@@ -89,6 +84,13 @@ def filter_options(readme):
         continue
 
     return readme.replace(section, options, 1)
+
+
+TRANSFORM = compose_functions(filter_excluded_sections, move_sections, filter_options)
+
+
+def main():
+    write_file(get_filename_args(), PREFIX + TRANSFORM(read_file(README_FILE)))
 
 
 if __name__ == '__main__':

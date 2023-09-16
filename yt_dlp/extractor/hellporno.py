@@ -39,7 +39,6 @@ class HellPornoIE(InfoExtractor):
         title = remove_end(self._html_extract_title(webpage), ' - Hell Porno')
 
         info = self._parse_html5_media_entries(url, webpage, display_id)[0]
-        self._sort_formats(info['formats'])
 
         video_id = self._search_regex(
             (r'chs_object\s*=\s*["\'](\d+)',

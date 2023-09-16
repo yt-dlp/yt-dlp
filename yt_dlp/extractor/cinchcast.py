@@ -7,6 +7,8 @@ from ..utils import (
 
 class CinchcastIE(InfoExtractor):
     _VALID_URL = r'https?://player\.cinchcast\.com/.*?(?:assetId|show_id)=(?P<id>[0-9]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://player\.cinchcast\.com/.+?)\1']
+
     _TESTS = [{
         'url': 'http://player.cinchcast.com/?show_id=5258197&platformId=1&assetType=single',
         'info_dict': {
@@ -45,7 +47,6 @@ class CinchcastIE(InfoExtractor):
                 'format_id': 'backup',
                 'url': backup_url,
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

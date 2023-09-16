@@ -51,8 +51,6 @@ class FilmmoduIE(InfoExtractor):
             'protocol': 'm3u8_native',
         } for source in data['sources']]
 
-        self._sort_formats(formats)
-
         subtitles = {}
 
         if data.get('subtitle'):

@@ -49,7 +49,6 @@ class RTVNHIE(InfoExtractor):
             formats.extend(self._extract_f4m_formats(
                 http_base_url + '/manifest.f4m',
                 video_id, f4m_id='hds', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

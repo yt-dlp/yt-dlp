@@ -7,8 +7,9 @@ from ..utils import (
 from .keezmovies import KeezMoviesIE
 
 
-class Tube8IE(KeezMoviesIE):
+class Tube8IE(KeezMoviesIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?tube8\.com/(?:[^/]+/)+(?P<display_id>[^/]+)/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?tube8\.com/embed/(?:[^/]+/)+\d+)']
     _TESTS = [{
         'url': 'http://www.tube8.com/teen/kasia-music-video/229795/',
         'md5': '65e20c48e6abff62ed0c3965fff13a39',
@@ -28,12 +29,6 @@ class Tube8IE(KeezMoviesIE):
         'url': 'http://www.tube8.com/shemale/teen/blonde-cd-gets-kidnapped-by-two-blacks-and-punished-for-being-a-slutty-girl/19569151/',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+\bsrc=["\']((?:https?:)?//(?:www\.)?tube8\.com/embed/(?:[^/]+/)+\d+)',
-            webpage)
 
     def _real_extract(self, url):
         webpage, info = self._extract_info(url)
