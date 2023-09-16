@@ -67,13 +67,13 @@ class WeiboBaseIE(InfoExtractor):
         } for play_info in traverse_obj(media_info, ('playback_list', ..., 'play_info'))]
         formats = [i for i in formats if i.get('url')]
         if not formats:  # fallback, should be barely used
-            for url in set(traverse_obj(media_info, lambda _, i: url_or_none(i))):
+            for url in set(traverse_obj(media_info, (..., {url_or_none}))):
                 if 'label=' in url:
                     format_id, resolution = self._search_regex(
                         r'label=(\w+)&template=(\d+x\d+)', url, 'format info',
                         group=(1, 2), default=(None, None))
                     formats.append({
-                        'url': url_or_none(url),
+                        'url': url,
                         'format_id': format_id,
                         **parse_resolution(resolution),
                         **traverse_obj(media_info, (
