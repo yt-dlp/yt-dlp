@@ -99,13 +99,14 @@ class RTVSLOIE(InfoExtractor):
         media = self._download_json(self._API_BASE.format('getMedia', v_id), v_id, query={'jwt': jwt})['response']
 
         formats = []
+        skip_protocols = ['smil', 'f4m', 'dash']
         adaptive_url = traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=url_or_none)
         if adaptive_url:
-            formats = self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=['smil'])
+            formats = self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=skip_protocols)
 
         adaptive_url = traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec'), expected_type=url_or_none)
         if adaptive_url:
-            for f in self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=['smil']):
+            for f in self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=skip_protocols):
                 formats.append({
                     **f,
                     'format_id': 'sign-' + f['format_id'],
@@ -127,7 +128,7 @@ class RTVSLOIE(InfoExtractor):
 
         for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['hls_sec']))):
             formats.extend(self._extract_wowza_formats(
-                mediafile['streams']['hls_sec'], v_id, skip_protocols=['smil']))
+                mediafile['streams']['hls_sec'], v_id, skip_protocols=skip_protocols))
 
         if any('intermission.mp4' in x['url'] for x in formats):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
