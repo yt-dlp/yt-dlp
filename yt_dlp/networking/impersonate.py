@@ -36,6 +36,9 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
         super()._check_extensions(extensions)
         self._check_impersonate_target(extensions.get('impersonate'))
 
+    def get_supported_targets(self):
+        return tuple(self._SUPPORTED_IMPERSONATE_TARGETS)
+
     def _check_impersonate_target(self, target):
         assert isinstance(target, (str, NoneType))
         if self._SUPPORTED_IMPERSONATE_TARGETS is None or target is None:
@@ -62,6 +65,6 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
 @register_preference(ImpersonateRequestHandler)
 def impersonate_preference(rh, request):
-    if request.extensions.get('impersonate'):
+    if request.extensions.get('impersonate') or rh.impersonate:
         return 1000
     return 0

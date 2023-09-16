@@ -687,6 +687,22 @@ class YoutubeDL:
         self.params['http_headers'].pop('Cookie', None)
         self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
+        # FIXME: the director should make this easier to check (without it being tied to request handler subtypes).
+        impersonate_target = self.params.get('impersonate')
+        if impersonate_target:
+            # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
+            impersonate_handlers = list(
+                filter(lambda x: isinstance(x, ImpersonateRequestHandler), self._request_director.handlers.values()))
+
+            if not impersonate_handlers:
+                self.report_warning(f'Ignoring --impersonate as required dependencies are not installed. ')
+
+            supported_targets = list(
+                itertools.chain.from_iterable(rh.get_supported_targets() for rh in impersonate_handlers))
+            if impersonate_target not in supported_targets:
+                self.report_warning(f'Impersonate target "{self.params.get("impersonate")}" is not supported. '
+                                    f'Supported targets: {join_nonempty(*supported_targets, delim=", ")}')
+
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
@@ -4057,10 +4073,6 @@ class YoutubeDL:
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)
 
-        # --impersonate should be enforced for every request
-        if self.params.get('impersonate') and 'impersonate' not in req.extensions:
-            req.extensions['impersonate'] = self.params['impersonate']
-
         def _urlopen(req):
             try:
                 return self._request_director.send(req)
@@ -4128,6 +4140,7 @@ class YoutubeDL:
                     'timeout': 'socket_timeout',
                     'legacy_ssl_support': 'legacyserverconnect',
                     'enable_file_urls': 'enable_file_urls',
+                    'impersonate': 'impersonate',
                     'client_cert': {
                         'client_certificate': 'client_certificate',
                         'client_certificate_key': 'client_certificate_key',
