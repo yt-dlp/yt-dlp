@@ -1,9 +1,9 @@
 from abc import ABC
 
-from .exceptions import UnsupportedRequest
-from ..utils.networking import std_headers
 from .common import RequestHandler, register_preference
+from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
+from ..utils.networking import std_headers
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):

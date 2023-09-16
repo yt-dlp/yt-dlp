@@ -1,27 +1,35 @@
 import io
-import re
-from enum import IntEnum
 
-from .common import Features, Request, Response, register_rh, register_preference
+from ._helper import InstanceStoreMixin, select_proxy
+from .common import (
+    Features,
+    Request,
+    Response,
+    register_preference,
+    register_rh,
+)
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
     IncompleteRead,
+    ProxyError,
+    RequiredDependencyNotInstalled,
     SSLError,
     TransportError,
-    ProxyError,
-    RequiredDependencyNotInstalled
 )
 from .impersonate import ImpersonateRequestHandler
-from ._helper import InstanceStoreMixin, select_proxy
 from ..dependencies import curl_cffi
-from ..utils import int_or_none, traverse_obj
+from ..utils import int_or_none
 
 if curl_cffi is None:
     raise RequiredDependencyNotInstalled('curl_cffi is not installed')
 
 import curl_cffi.requests
-from curl_cffi.const import CurlInfo, CurlOpt, CurlECode
+from curl_cffi.const import CurlECode, CurlOpt
+
+# XXX: curl_cffi reads the whole response at once into memory
+# Streaming is not yet supported.
+# See: https://github.com/yifeikong/curl_cffi/issues/26
 
 
 @register_rh
@@ -42,9 +50,6 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         extensions.pop('timeout', None)
 
     def _send(self, request: Request):
-        # XXX: curl_cffi reads the whole response at once into memory
-        # Streaming is not yet supported.
-        # See: https://github.com/yifeikong/curl_cffi/issues/26
         max_redirects_exceeded = False
         cookiejar = request.extensions.get('cookiejar') or self.cookiejar
         session: curl_cffi.requests.Session = self._get_instance(
@@ -89,35 +94,22 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 interface=self.source_address,
             )
         except curl_cffi.requests.errors.RequestsError as e:
-            if e.code in (CurlECode.PEER_FAILED_VERIFICATION, CurlECode.OBSOLETE51):
-                # Error code 51 used to be this in curl <7.62.0
-                # See: https://curl.se/libcurl/c/libcurl-errors.html
+            if e.code == CurlECode.PEER_FAILED_VERIFICATION:
                 raise CertificateVerifyError(cause=e) from e
 
             elif e.code == CurlECode.SSL_CONNECT_ERROR:
                 raise SSLError(cause=e) from e
 
             elif e.code == CurlECode.TOO_MANY_REDIRECTS:
-                # The response isn't exposed on too many redirects.
-                # We are creating a dummy response here, but it's
-                # not ideal since it only contains initial request data
                 max_redirects_exceeded = True
-                curl_response = curl_cffi.requests.models.Response(
-                    curl=session.curl,
-                    request=curl_cffi.requests.models.Request(
-                        url=request.url,
-                        headers=curl_cffi.requests.headers.Headers(request.headers),
-                        method=request.method,
-                    ))
-
-                # We can try extract *some* data from curl
-                curl_response.url = session.curl.getinfo(CurlInfo.EFFECTIVE_URL).decode()
-                curl_response.status_code = session.curl.getinfo(CurlInfo.RESPONSE_CODE)
+                curl_response = e.response
 
             elif e.code == CurlECode.PARTIAL_FILE:
+                partial = e.response.content
+                content_length = int_or_none(e.response.headers.get('Content-Length'))
                 raise IncompleteRead(
-                    expected=int_or_none(
-                        re.search(r'(\d+) bytes remaining to read', str(e)).group(1)),
+                    partial=partial,
+                    expected=content_length - len(partial) if content_length is not None else None,
                     cause=e) from e
             elif e.code == CurlECode.PROXY:
                 raise ProxyError(cause=e) from e
@@ -139,4 +131,3 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 @register_preference(CurlCFFIRH)
 def curl_cffi_preference(rh, request):
     return -100
-
