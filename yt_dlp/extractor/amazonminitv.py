@@ -37,7 +37,7 @@ class AmazonMiniTVBaseIE(InfoExtractor):
         return resp['data'][data['operationName']]
 
 
-class AmazonMiniTVIE(InfoExtractor):
+class AmazonMiniTVIE(AmazonMiniTVBaseIE):
     _VALID_URL = r'(?:https?://(?:www\.)?amazon\.in/minitv/tp/|amazonminitv:(?:amzn1\.dv\.gti\.)?)(?P<id>[a-f0-9-]+)'
     _TESTS = [{
         'url': 'https://www.amazon.in/minitv/tp/75fe3a75-b8fe-4499-8100-5c9424344840?referrer=https%3A%2F%2Fwww.amazon.in%2Fminitv',
@@ -86,14 +86,56 @@ class AmazonMiniTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _GRAPHQL_QUERY_CONTENT = '''
+query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, $contentType: ContentType!, $clientId: String) {
+  content(
+    applicationContextInput: {deviceLocale: $deviceLocale, sessionIdToken: $sessionIdToken, clientId: $clientId}
+    contentId: $contentId
+    contentType: $contentType
+  ) {
+    contentId
+    name
+    ... on Episode {
+      contentId
+      vodType
+      name
+      images
+      description {
+        synopsis
+        contentLengthInSeconds
+      }
+      publicReleaseDateUTC
+      audioTracks
+      seasonId
+      seriesId
+      seriesName
+      seasonNumber
+      episodeNumber
+      timecode {
+        endCreditsTime
+      }
+    }
+    ... on MovieContent {
+      contentId
+      vodType
+      name
+      description {
+        synopsis
+        contentLengthInSeconds
+      }
+      images
+      publicReleaseDateUTC
+      audioTracks
+    }
+  }
+}'''
+
     def _real_extract(self, url):
-        video_uuid = self._match_id(url)
-        asin = f'amzn1.dv.gti.{video_uuid}'
-        webpage = self._download_webpage(f'https://www.amazon.in/minitv/tp/{video_uuid}', asin)
-        data = self._search_nextjs_data(webpage, asin)['props']['pageProps']['ssrProps']
+        asin = f'amzn1.dv.gti.{self._match_id(url)}'
+        prs = self._call_api(asin, note='Downloading playback info')
 
         formats, subtitles = [], {}
-        for type_, asset in traverse_obj(data, ('playbackData', 'playbackAssets', {dict.items}, ...)):
+        for type_, asset in prs['playbackAssets'].items():
             if not traverse_obj(asset, 'manifestUrl'):
                 continue
             if type_ == 'hls':
@@ -110,7 +152,12 @@ class AmazonMiniTVIE(InfoExtractor):
             else:
                 self.report_warning(f'Unknown asset type: {type_}')
 
-        title_info = traverse_obj(data, ('contentData', {dict})) or {}
+        title_info = self._call_api(
+            asin, note='Downloading title info', data={
+                'operationName': 'content',
+                'variables': {'contentId': asin},
+                'query': self._GRAPHQL_QUERY_CONTENT,
+            })
         credits_time = try_get(title_info, lambda x: x['timecode']['endCreditsTime'] / 1000)
         is_episode = title_info.get('vodType') == 'EPISODE'
 
@@ -145,7 +192,6 @@ class AmazonMiniTVSeasonIE(AmazonMiniTVBaseIE):
     IE_NAME = 'amazonminitv:season'
     _VALID_URL = r'amazonminitv:season:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
     IE_DESC = 'Amazon MiniTV Season, "minitv:season:" prefix'
-    _WORKING = False
     _TESTS = [{
         'url': 'amazonminitv:season:amzn1.dv.gti.0aa996eb-6a1b-4886-a342-387fbd2f1db0',
         'playlist_mincount': 6,
@@ -205,7 +251,6 @@ class AmazonMiniTVSeriesIE(AmazonMiniTVBaseIE):
     IE_NAME = 'amazonminitv:series'
     _VALID_URL = r'amazonminitv:series:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
     IE_DESC = 'Amazon MiniTV Series, "minitv:series:" prefix'
-    _WORKING = False
     _TESTS = [{
         'url': 'amazonminitv:series:amzn1.dv.gti.56521d46-b040-4fd5-872e-3e70476a04b0',
         'playlist_mincount': 3,
