@@ -1119,6 +1119,7 @@ from .mofosex import (
     MofosexEmbedIE,
 )
 from .mojvideo import MojvideoIE
+from .monstercat import MonstercatIE
 from .morningstar import MorningstarIE
 from .motherless import (
     MotherlessIE,
