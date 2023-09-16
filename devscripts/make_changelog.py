@@ -204,19 +204,20 @@ class Changelog:
         for commit_infos in cleanup_misc_items.values():
             sorted_items.append(CommitInfo(
                 'cleanup', ('Miscellaneous',), ', '.join(
-                    self._format_message_link(None, info.commit.hash).strip()
+                    self._format_message_link(None, info.commit.hash)
                     for info in sorted(commit_infos, key=lambda item: item.commit.hash or '')),
                 [], Commit(None, '', commit_infos[0].commit.authors), []))
 
         return sorted_items
 
-    def format_single_change(self, info):
-        message = self._format_message_link(info.message, info.commit.hash)
+    def format_single_change(self, info: CommitInfo):
+        message_line, sep, rest = info.message.partition('\n')
+        message = self._format_message_link(message_line, info.commit.hash)
         if info.issues:
-            message = message.replace('\n', f' ({self._format_issues(info.issues)})\n', 1)
+            message = f'{message} ({self._format_issues(info.issues)})'
 
         if info.commit.authors:
-            message = message.replace('\n', f' by {self._format_authors(info.commit.authors)}\n', 1)
+            message = f'{message} by {self._format_authors(info.commit.authors)}'
 
         if info.fixes:
             fix_message = ', '.join(f'{self._format_message_link(None, fix.hash)}' for fix in info.fixes)
@@ -225,16 +226,14 @@ class Changelog:
             if authors != info.commit.authors:
                 fix_message = f'{fix_message} by {self._format_authors(authors)}'
 
-            message = message.replace('\n', f' (With fixes in {fix_message})\n', 1)
+            message = f'{message} (With fixes in {fix_message})'
 
-        return message[:-1]
+        return message if not sep else f'{message}{sep}{rest}'
 
     def _format_message_link(self, message, hash):
         assert message or hash, 'Improperly defined commit message or override'
         message = message if message else hash[:HASH_LENGTH]
-        if not hash:
-            return f'{message}\n'
-        return f'[{message}\n'.replace('\n', f']({self.repo_url}/commit/{hash})\n', 1)
+        return f'[{message}]({self.repo_url}/commit/{hash})' if hash else message
 
     def _format_issues(self, issues):
         return ', '.join(f'[#{issue}]({self.repo_url}/issues/{issue})' for issue in issues)
@@ -343,7 +342,7 @@ class CommitRange:
         for override in overrides:
             when = override.get('when')
             if when and when not in self and when != self._start:
-                logger.debug(f'Ignored {when!r}, not in commits {self._start!r}')
+                logger.debug(f'Ignored {when!r}, not in commits')
                 continue
 
             override_hash = override.get('hash') or when
