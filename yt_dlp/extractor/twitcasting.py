@@ -22,7 +22,7 @@ from ..utils import (
 
 
 class TwitCastingIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/(?:movie|twplayer)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<uploader_id>[^/?#]+)/(?:movie|twplayer)/(?P<id>\d+)'
     _M3U8_HEADERS = {
         'Origin': 'https://twitcasting.tv',
         'Referer': 'https://twitcasting.tv/',
@@ -231,7 +231,7 @@ class TwitCastingIE(InfoExtractor):
 
 
 class TwitCastingLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://twitcasting.tv/ivetesangalo',
         'only_matching': True,
