@@ -1795,7 +1795,10 @@ from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
 from .smotrim import SmotrimIE
 from .snotr import SnotrIE
-from .sohu import SohuIE
+from .sohu import (
+    SohuIE,
+    SohuVIE,
+)
 from .sonyliv import (
     SonyLIVIE,
     SonyLIVSeriesIE,
