@@ -79,14 +79,8 @@
     },
     {
         "action": "change",
-        "when": "db7b054a6111ca387220d0eb87bf342f9c130eb8",
-        "short": "[rh] Add request handler preference framework (#7603)",
-        "authors": ["coletdjnz"]
-    },
-    {
-        "action": "change",
         "when": "59e92b1f1833440bb2190f847eb735cf0f90bc85",
-        "short": "[rh] `urllib`: Simplify gzip decoding (#7611)",
+        "short": "[rh:urllib] Simplify gzip decoding (#7611)",
         "authors": ["Grub4K"]
     }
 ]
