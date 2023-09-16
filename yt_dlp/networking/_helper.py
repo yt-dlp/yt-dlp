@@ -224,27 +224,32 @@ def _socket_connect(ip_addr, timeout, source_address):
         raise
 
 
-def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, *, _create_socket_func=_socket_connect):
-    # This is to workaround _create_connection() from socket where it will try all
-    # address data from getaddrinfo() including IPv6. This filters the result from
-    # getaddrinfo() based on the source_address value.
-    # This is based on the cpython socket.create_connection() function.
-    # https://github.com/python/cpython/blob/main/Lib/socket.py#L810
+def create_connection(
+    address,
+    timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+    source_address=None,
+    *,
+    _create_socket_func=_socket_connect
+):
+    # Work around socket.create_connection() which tries all addresses from getaddrinfo() including IPv6.
+    # This filters the addresses based on the given source_address.
+    # Based on: https://github.com/python/cpython/blob/main/Lib/socket.py#L810
     host, port = address
-    err = None
-    ip_addrs = addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    original_ip_addrs = ip_addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
     if source_address is not None:
-        af = socket.AF_INET if '.' in source_address[0] else socket.AF_INET6
-        ip_addrs = [addr for addr in addrs if addr[0] == af]
-        if addrs and not ip_addrs:
+        af = socket.AF_INET if ':' not in source_address[0] else socket.AF_INET6
+        ip_addrs = [addr for addr in ip_addrs if addr[0] == af]
+        if original_ip_addrs and not ip_addrs:
             raise OSError(
                 f"No remote IPv{4 if af == socket.AF_INET else 6} addresses available for connect. "
                 f"Can't use '{source_address[0]}' as source address")
 
+    err = None
     for ip_addr in ip_addrs:
         try:
             sock = _create_socket_func(ip_addr, timeout, source_address)
-            # Break explicitly a reference cycle
+            # Explicitly break __traceback__ reference cycle
+            # https://bugs.python.org/issue36820
             err = None
             return sock
         except socket.error as e:
@@ -254,7 +259,8 @@ def create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_ad
         try:
             raise err
         finally:
-            # Break explicitly a reference cycle
+            # Explicitly break __traceback__ reference cycle
+            # https://bugs.python.org/issue36820
             err = None
     else:
-        raise socket.error("getaddrinfo returns an empty list")
+        raise socket.error('getaddrinfo returns an empty list')
