@@ -235,14 +235,16 @@ def create_connection(
     # This filters the addresses based on the given source_address.
     # Based on: https://github.com/python/cpython/blob/main/Lib/socket.py#L810
     host, port = address
-    original_ip_addrs = ip_addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    ip_addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    if not ip_addrs:
+        raise socket.error('getaddrinfo returns an empty list')
     if source_address is not None:
         af = socket.AF_INET if ':' not in source_address[0] else socket.AF_INET6
         ip_addrs = [addr for addr in ip_addrs if addr[0] == af]
-        if original_ip_addrs and not ip_addrs:
+        if not ip_addrs:
             raise OSError(
-                f"No remote IPv{4 if af == socket.AF_INET else 6} addresses available for connect. "
-                f"Can't use '{source_address[0]}' as source address")
+                f'No remote IPv{4 if af == socket.AF_INET else 6} addresses available for connect. '
+                f'Can\'t use "{source_address[0]}" as source address')
 
     err = None
     for ip_addr in ip_addrs:
@@ -262,5 +264,3 @@ def create_connection(
             # Explicitly break __traceback__ reference cycle
             # https://bugs.python.org/issue36820
             err = None
-    else:
-        raise socket.error('getaddrinfo returns an empty list')
