@@ -326,7 +326,7 @@ class CommitRange:
         for commitish, revert_commit in reverts.items():
             reverted = commits.pop(commitish, None)
             if reverted:
-                logger.debug(f'{commit} fully reverted {reverted}')
+                logger.debug(f'{commitish} fully reverted {reverted}')
             else:
                 commits[revert_commit.hash] = revert_commit
 
@@ -345,7 +345,7 @@ class CommitRange:
         for override in overrides:
             when = override.get('when')
             if when and when not in self and when != self._start:
-                logger.debug(f'Ignored {when!r}, not in commits')
+                logger.debug(f'Ignored {when!r} override')
                 continue
 
             override_hash = override.get('hash') or when
