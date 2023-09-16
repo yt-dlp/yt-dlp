@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    int_or_none,
     parse_duration,
     traverse_obj,
     unified_timestamp,
@@ -114,19 +115,19 @@ class RTVSLOIE(InfoExtractor):
                         else f.get('language'))
                 })
 
-        formats.extend(
-            {
-                'url': f['streams'][strm],
-                'ext': traverse_obj(f, 'mediaType', expected_type=str.lower),
-                'width': f.get('width'),
-                'height': f.get('height'),
-                'tbr': f.get('bitrate'),
-                'filesize': f.get('filesize'),
-            }
-            for strm in ('http', 'https')
-            for f in media.get('mediaFiles') or []
-            if traverse_obj(f, ('streams', strm))
-        )
+        for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['https']))):
+            formats.append(traverse_obj(mediafile, {
+                'url': ('streams', 'https'),
+                'ext': ('mediaType', {str.lower}),
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+                'tbr': ('bitrate', {int_or_none}),
+                'filesize': ('filesize', {int_or_none}),
+            }))
+
+        for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['hls_sec']))):
+            formats.extend(self._extract_wowza_formats(
+                mediafile['streams']['hls_sec'], v_id, skip_protocols=['smil']))
 
         if any('intermission.mp4' in x['url'] for x in formats):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
