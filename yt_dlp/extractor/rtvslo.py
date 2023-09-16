@@ -26,7 +26,7 @@ class RTVSLOIE(InfoExtractor):
             'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
             'info_dict': {
                 'id': '174842550',
-                'ext': 'flv',
+                'ext': 'mp4',
                 'release_timestamp': 1643140032,
                 'upload_date': '20220125',
                 'series': 'Dnevnik',
@@ -70,7 +70,21 @@ class RTVSLOIE(InfoExtractor):
                 'tbr': 128000,
                 'release_date': '20220201',
             },
-
+        }, {
+            'url': 'https://365.rtvslo.si/arhiv/razred-zase/148350750',
+            'info_dict': {
+                'id': '148350750',
+                'ext': 'mp4',
+                'title': 'Prvi šolski dan, mozaična oddaja za mlade',
+                'series': 'Razred zase',
+                'series_id': '148185730',
+                'duration': 1481,
+                'upload_date': '20121019',
+                'timestamp': 1350672122,
+                'release_date': '20121019',
+                'release_timestamp': 1350672122,
+                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/148185730/razred_zase_2014_logo_4d_wide2.jpg',
+            },
         }, {
             'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
             'only_matching': True
