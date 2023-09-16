@@ -31,6 +31,7 @@ class CommitGroup(enum.Enum):
     EXTRACTOR = 'Extractor'
     DOWNLOADER = 'Downloader'
     POSTPROCESSOR = 'Postprocessor'
+    NETWORKING = 'Networking'
     MISC = 'Misc.'
 
     @classmethod
@@ -48,7 +49,6 @@ class CommitGroup(enum.Enum):
                     'dependencies',
                     'formats',
                     'jsinterp',
-                    'networking',
                     'outtmpl',
                     'plugins',
                     'update',
@@ -60,6 +60,9 @@ class CommitGroup(enum.Enum):
                     'devscripts',
                     'docs',
                     'test',
+                },
+                cls.NETWORKING: {
+                    'rh',
                 },
             }.items()
             for name in names
@@ -427,6 +430,8 @@ class CommitRange:
 
         if details == 'common':
             details = None
+        elif group is CommitGroup.NETWORKING and details == 'rh':
+            details = 'Request Handler'
 
         return group, details, sub_details
 
