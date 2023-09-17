@@ -36,7 +36,7 @@ class IndavideoEmbedIE(InfoExtractor):
             'tags': ['tánc', 'cica', 'cuki', 'cukiajanlo', 'newsroom'],
         },
     }, {
-        'url': 'https://indavideo.hu/video/Vicces_cica_1',
+        'url': 'https://embed.indavideo.hu/player/video/3b63bc219c?autostart=1',
         'md5': '8c82244ba85d2a2310275b318eb51eac',
         'info_dict': {
             'id': '1335611',
