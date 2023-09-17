@@ -257,10 +257,9 @@ def create_connection(
         except socket.error as e:
             err = e
 
-    if err is not None:
-        try:
-            raise err
-        finally:
-            # Explicitly break __traceback__ reference cycle
-            # https://bugs.python.org/issue36820
-            err = None
+    try:
+        raise err
+    finally:
+        # Explicitly break __traceback__ reference cycle
+        # https://bugs.python.org/issue36820
+        err = None
