@@ -4,7 +4,7 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -113,7 +113,7 @@ class CrackleIE(InfoExtractor):
                     errnote='Unable to download media JSON')
             except ExtractorError as e:
                 # 401 means geo restriction, trying next country
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     continue
                 raise
 

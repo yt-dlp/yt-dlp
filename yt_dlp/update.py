@@ -7,19 +7,18 @@ import platform
 import re
 import subprocess
 import sys
-import urllib.error
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath, compat_shlex_quote
+from .networking import Request
+from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
-    network_exceptions,
     remove_end,
     remove_start,
-    sanitized_Request,
     shell_quote,
     system_identifier,
     version_tuple,
@@ -149,7 +148,7 @@ class Updater:
                     f'You are switching to an {self.ydl._format_err("unofficial", "red")} executable '
                     f'from {self.ydl._format_err(self._target_repo, self.ydl.Styles.EMPHASIS)}. '
                     f'Run {self.ydl._format_err("at your own risk", "light red")}')
-                self.restart = self._blocked_restart
+                self._block_restart('Automatically restarting into custom builds is disabled for security reasons')
         else:
             self._target_repo = UPDATE_SOURCES.get(self.target_channel)
             if not self._target_repo:
@@ -190,7 +189,7 @@ class Updater:
     def _get_version_info(self, tag):
         url = f'{API_BASE_URL}/{self._target_repo}/releases/{tag}'
         self.ydl.write_debug(f'Fetching release info: {url}')
-        return json.loads(self.ydl.urlopen(sanitized_Request(url, headers={
+        return json.loads(self.ydl.urlopen(Request(url, headers={
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'yt-dlp',
             'X-GitHub-Api-Version': '2022-11-28',
@@ -294,6 +293,7 @@ class Updater:
         if (_VERSION_RE.fullmatch(self.target_tag[5:])
                 and version_tuple(self.target_tag[5:]) < (2023, 3, 2)):
             self.ydl.report_warning('You are downgrading to a version without --update-to')
+            self._block_restart('Cannot automatically restart to a version without --update-to')
 
         directory = os.path.dirname(self.filename)
         if not os.access(self.filename, os.W_OK):
@@ -314,7 +314,7 @@ class Updater:
         try:
             newcontent = self._download(self.release_name, self._tag)
         except network_exceptions as e:
-            if isinstance(e, urllib.error.HTTPError) and e.code == 404:
+            if isinstance(e, HTTPError) and e.status == 404:
                 return self._report_error(
                     f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
             return self._report_network_error(f'fetch updates: {e}')
@@ -381,11 +381,11 @@ class Updater:
         _, _, returncode = Popen.run(self.cmd)
         return returncode
 
-    def _blocked_restart(self):
-        self._report_error(
-            'Automatically restarting into custom builds is disabled for security reasons. '
-            'Restart yt-dlp to use the updated version', expected=True)
-        return self.ydl._download_retcode
+    def _block_restart(self, msg):
+        def wrapper():
+            self._report_error(f'{msg}. Restart yt-dlp to use the updated version', expected=True)
+            return self.ydl._download_retcode
+        self.restart = wrapper
 
 
 def run_update(ydl):

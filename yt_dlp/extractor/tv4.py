@@ -2,8 +2,11 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    bool_or_none,
     int_or_none,
     parse_iso8601,
+    traverse_obj,
+    url_or_none,
 )
 
 
@@ -20,19 +23,25 @@ class TV4IE(InfoExtractor):
                 sport/|
             )
         )(?P<id>[0-9]+)'''
-    _GEO_COUNTRIES = ['SE']
+    _GEO_BYPASS = False
     _TESTS = [
         {
+            # not geo-restricted
             'url': 'http://www.tv4.se/kalla-fakta/klipp/kalla-fakta-5-english-subtitles-2491650',
             'md5': 'cb837212f342d77cec06e6dad190e96d',
             'info_dict': {
                 'id': '2491650',
                 'ext': 'mp4',
                 'title': 'Kalla Fakta 5 (english subtitles)',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'timestamp': int,
+                'description': '2491650',
+                'series': 'Kalla fakta',
+                'duration': 1335,
+                'thumbnail': r're:^https?://[^/?#]+/api/v2/img/',
+                'timestamp': 1385373240,
                 'upload_date': '20131125',
             },
+            'params': {'skip_download': 'm3u8'},
+            'expected_warnings': ['Unable to download f4m manifest'],
         },
         {
             'url': 'http://www.tv4play.se/iframe/video/3054113',
@@ -46,6 +55,7 @@ class TV4IE(InfoExtractor):
                 'timestamp': int,
                 'upload_date': '20150130',
             },
+            'skip': '404 Not Found',
         },
         {
             'url': 'http://www.tv4play.se/sport/3060959',
@@ -69,29 +79,28 @@ class TV4IE(InfoExtractor):
         }
     ]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        info = self._download_json(
-            'https://playback-api.b17g.net/asset/%s' % video_id,
-            video_id, 'Downloading video info JSON', query={
-                'service': 'tv4',
-                'device': 'browser',
-                'protocol': 'hls,dash',
-                'drm': 'widevine',
-            })['metadata']
-
-        title = info['title']
-
-        manifest_url = self._download_json(
-            'https://playback-api.b17g.net/media/' + video_id,
-            video_id, query={
+    def _call_api(self, endpoint, video_id, headers=None, query={}):
+        return self._download_json(
+            f'https://playback2.a2d.tv/{endpoint}/{video_id}', video_id,
+            f'Downloading {endpoint} API JSON', headers=headers, query={
                 'service': 'tv4',
                 'device': 'browser',
                 'protocol': 'hls',
-            })['playbackItem']['manifestUrl']
-        formats = []
-        subtitles = {}
+                **query,
+            })
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        info = traverse_obj(self._call_api('asset', video_id, query={
+            'protocol': 'hls,dash',
+            'drm': 'widevine',
+        }), ('metadata', {dict})) or {}
+
+        manifest_url = self._call_api(
+            'play', video_id, headers=self.geo_verification_headers())['playbackItem']['manifestUrl']
+
+        formats, subtitles = [], {}
 
         fmts, subs = self._extract_m3u8_formats_and_subtitles(
             manifest_url, video_id, 'mp4',
@@ -117,20 +126,24 @@ class TV4IE(InfoExtractor):
         subtitles = self._merge_subtitles(subtitles, subs)
 
         if not formats and info.get('is_geo_restricted'):
-            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            self.raise_geo_restricted(
+                'This video is not available from your location due to geo-restriction, or not being authenticated',
+                countries=['SE'])
 
         return {
             'id': video_id,
-            'title': title,
             'formats': formats,
             'subtitles': subtitles,
-            'description': info.get('description'),
-            'timestamp': parse_iso8601(info.get('broadcast_date_time')),
-            'duration': int_or_none(info.get('duration')),
-            'thumbnail': info.get('image'),
-            'is_live': info.get('isLive') is True,
-            'series': info.get('seriesTitle'),
-            'season_number': int_or_none(info.get('seasonNumber')),
-            'episode': info.get('episodeTitle'),
-            'episode_number': int_or_none(info.get('episodeNumber')),
+            **traverse_obj(info, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': (('broadcast_date_time', 'broadcastDateTime'), {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+                'thumbnail': ('image', {url_or_none}),
+                'is_live': ('isLive', {bool_or_none}),
+                'series': ('seriesTitle', {str}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode': ('episodeTitle', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+            }, get_all=False),
         }
