@@ -79,6 +79,12 @@
     },
     {
         "action": "change",
+        "when": "4bf912282a34b58b6b35d8f7e6be535770c89c76",
+        "short": "[rh:urllib] Remove dot segments during URL normalization (#7662)",
+        "authors": ["coletdjnz"]
+    },
+    {
+        "action": "change",
         "when": "59e92b1f1833440bb2190f847eb735cf0f90bc85",
         "short": "[rh:urllib] Simplify gzip decoding (#7611)",
         "authors": ["Grub4K"]
