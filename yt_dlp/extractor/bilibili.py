@@ -63,6 +63,9 @@ class BilibiliBaseIE(InfoExtractor):
             'format_id': str_or_none(audio.get('id')),
         } for audio in audios]
 
+        # ref: https://github.com/SocialSisterYi/bilibili-API-collect/blob/92b30f354ab21b97fe52357161fd04e2ca687c97/docs/video/videostream_url.md
+        id_to_dr = {126: 'DV', 125: 'HDR10'}.get
+
         formats.extend({
             'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
             'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
@@ -71,6 +74,7 @@ class BilibiliBaseIE(InfoExtractor):
             'height': int_or_none(video.get('height')),
             'vcodec': video.get('codecs'),
             'acodec': 'none' if audios else None,
+            'dynamic_range': id_to_dr(video.get('id')) or 'SDR',
             'tbr': float_or_none(video.get('bandwidth'), scale=1000),
             'filesize': int_or_none(video.get('size')),
             'quality': int_or_none(video.get('id')),
