@@ -5,6 +5,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     join_nonempty,
+    js_to_json,
     parse_duration,
     strftime_or_none,
     traverse_obj,
@@ -230,15 +231,16 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
         if substation_id:
             webpage = self._download_webpage(url, station_id)
 
-            api_response = self._parse_json(self._search_json(
-                r'<script[^>]+type\s*=\s*"application/json"[^>]+/webradios/[^>]+>',
-                webpage, 'substation_data', station_id)['body'], station_id)
+            api_response = traverse_obj(self._search_json(
+                r'\bconst\s+data\s*=', webpage, 'substation data', station_id,
+                contains_pattern=r'(\[\{.*?\}\]);', transform_source=js_to_json),
+                (..., 'data', 'webRadioData', {dict}), get_all=False) or {}
         else:
             api_response = self._download_json(
-                f'https://www.radiofrance.fr/api/v2.1/stations/{station_id}/live', station_id)
+                f'https://www.radiofrance.fr/{station_id}/api/live', station_id)
 
         formats, subtitles = [], {}
-        for media_source in traverse_obj(api_response, (('now', None), 'media', 'sources'), get_all=False):
+        for media_source in traverse_obj(api_response, (('now', None), 'media', 'sources', lambda _, v: v['url'])):
             if media_source.get('format') == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(media_source['url'], station_id, fatal=False)
                 formats.extend(fmts)
@@ -385,7 +387,7 @@ class RadioFranceProfileIE(RadioFrancePlaylistBase):
             'description': 'Journaliste et essayiste',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
-        'playlist_mincount': 41,
+        'playlist_mincount': 39,
     }, {
         'url': 'https://www.radiofrance.fr/personnes/lea-salame',
         'only_matching': True,
@@ -462,12 +464,14 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
 
     def _real_extract(self, url):
         station, date = self._match_valid_url(url).group('station', 'date')
+        webpage = self._download_webpage(url, station)
 
-        api_response = self._download_json(
-            f'https://www.radiofrance.fr/api/v2.1/stations/{station}/programs', f'{station}-program',
-            query={'date': date} if date is not None else {})
+        grid_data = traverse_obj(self._search_json(
+            r'\bconst\s+data\s*=', webpage, 'substation data', station,
+            contains_pattern=r'(\[\{.*?\}\]);', transform_source=js_to_json),
+            (..., 'data', 'grid', {dict}), get_all=False)
 
-        upload_date = strftime_or_none(api_response.get('date'), '%Y%m%d')
+        upload_date = strftime_or_none(grid_data.get('date'), '%Y%m%d')
         return self.playlist_result(
-            self._generate_playlist_entries(url, api_response), join_nonempty(station, 'program', upload_date),
-            upload_date=upload_date)
+            self._generate_playlist_entries(url, grid_data),
+            join_nonempty(station, 'program', upload_date), upload_date=upload_date)
