@@ -1,7 +1,9 @@
 import functools
 import json
 import time
+from http.cookiejar import CookieJar
 import urllib.parse
+import urllib.request
 ##################
 import sys
 ##################
@@ -234,6 +236,11 @@ class VRTIE(VRTBaseIE):
         }
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class VrtNUIE(VRTBaseIE):
     IE_DESC = 'VRT MAX'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
@@ -296,59 +303,81 @@ class VrtNUIE(VRTBaseIE):
         return { 'Cookie': '; '.join([f'{key}={value}' for key, value in cookies.items()]) }
 
     def _perform_login(self, username, password):
-        # Step 1
-        # ------
-        res = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None)
-        session_cookies = self._extract_cookies(res)
-
-#         print("===================================")
-#         print(res.status)
-# #         print(res.headers)
-#         print(json.dumps(cookies))
-# #         print(self._make_cookie_header(cookies))
-#         print("===================================")
 
 
-        # ( Step 2 : already done in Step 1 through redir )
+        # 1. Get session cookies
+        # Using urllib directly to be able to grab all cookies while following redirect
+        cookie_jar = CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
+        urllib.request.install_opener(opener)
+        res = urllib.request.urlopen('https://www.vrt.be/vrtnu/sso/login', None)
+        cookies_dict = {cookie.name: cookie.value for cookie in cookie_jar}
+        session_cookies = f'OIDCXSRF={cookies_dict["OIDCXSRF"]}; SESSION={cookies_dict["SESSION"]}'
 
-        # Step 3
+#         ytdlp_cookies = self._get_cookies('https://www.vrt.be')
+#         session_cookies = self._extract_cookies(res)
+
+        print("===================================")
+        print(res.status)
+
+#         for cookie in cookie_jar:
+#             print(f'{cookie.name}={cookie.value}')
+
+        print(cookies_dict)
+        print("===================================")
+
+#         sys.exit(0)
+
+        # 2. 
         # ------
         headers = {
                 'Content-Type': 'application/json',
-                'Oidcxsrf': f'{session_cookies["OIDCXSRF"]}',
-                **self._create_cookie_header(session_cookies)
+#                 'Oidcxsrf': f'{cookies_dict["OIDCXSRF"]}',
+                'Oidcxsrf': cookies_dict["OIDCXSRF"],
+                'Cookie': session_cookies
                 }
 #         sys.exit(0)
         post_data = { "loginID": f"{username}", "password": f"{password}", "clientId": "vrtnu-site" }
         res = self._request_webpage('https://login.vrt.be/perform_login', None, note='Performing login', errnote='Login failed', fatal=True, data=json.dumps(post_data).encode(), headers=headers)
 
-#         print("===================================")
-#         print(res.status)
-#         print("===================================")
-#
+        print("===================================")
+        print(res.status)
+        print("===================================")
+
 #         sys.exit(0)
 
-        # Step 4
-        # ------
+        # 3.
+        opener = urllib.request.build_opener(NoRedirect)
+        urllib.request.install_opener(opener)
         headers = {
                 'Host': 'login.vrt.be',
-                **self._create_cookie_header(session_cookies)
+                'Cookie': session_cookies,
                 }
 
         query= {
-                'redirect_uri': 'https://www.vrt.be/vrtnu/sso/callback',
                 'response_type': 'code',
+                'access_type': 'offline',
                 'client_id': 'vrtnu-site',
+                'scope': 'openid%20profile%20email%20address%20video%20accessibility%20subprofiles%20mid',
+                'redirect_uri': 'https%3A%2F%2Fwww.vrt.be%2Fvrtnu%2Fsso%2Fcallback',
+                'state': cookies_dict["oidcstate"],
+                'code_challenge': 'cxsSoHdwPdr0yY8AwHnwfDWRSnImhlCTo4lWgbz7few',
+                'code_challenge_method': 'S256'
 #                 'scope': urllib.parse.quote('openid profile email address video accessibility subprofiles mid')
 #                 'scope': 'openid profile email address video accessibility subprofiles mid'
                 }
-        res = self._request_webpage('https://login.vrt.be/authorize', None, fatal=True, headers=headers, query=query)
+        request = urllib.request.Request('https://login.vrt.be/authorize?' + urllib.parse.urlencode(query), headers=headers)
+        res = urllib.request.urlopen(request, None)
+#         cookies_dict = {cookie.name: cookie.value for cookie in cookie_jar}
+#         res = self._request_webpage('https://login.vrt.be/authorize', None, fatal=True, headers=headers, query=query)
 #         tokens = self._extract_cookies(res)
 
         print("===================================")
-        print(res.headers)
-#         print(json.dumps(tokens))
+        print('https://login.vrt.be/authorize?' + urllib.parse.urlencode(query))
         print(res.status)
+        print(res.headers)
+#         print(cookies_dict)
+#         print(json.dumps(tokens))
         print("===================================")
 
         sys.exit(0)
