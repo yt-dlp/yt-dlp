@@ -4,8 +4,8 @@ from ..utils import (
     int_or_none,
     parse_age_limit,
     parse_iso8601,
-    update_url_query,
     time_seconds,
+    update_url_query,
 )
 
 
@@ -36,6 +36,23 @@ class IndavideoEmbedIE(InfoExtractor):
             'tags': ['tánc', 'cica', 'cuki', 'cukiajanlo', 'newsroom'],
         },
     }, {
+        'url': 'https://indavideo.hu/video/Vicces_cica_1',
+        'md5': '8c82244ba85d2a2310275b318eb51eac',
+        'info_dict': {
+            'id': '1335611',
+            'ext': 'mp4',
+            'title': 'Vicces cica',
+            'description': 'Játszik a tablettel. :D',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Jet_Pack',
+            'uploader_id': '491217',
+            'timestamp': 1390821212,
+            'upload_date': '20140127',
+            'duration': 7,
+            'age_limit': 0,
+            'tags': ['cica', 'Jet_Pack'],
+        },
+    }, {
         'url': 'https://embed.indavideo.hu/player/video/1bdc3c6d80?autostart=1&hide=1',
         'only_matching': True,
     }, {
@@ -47,8 +64,8 @@ class IndavideoEmbedIE(InfoExtractor):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/%s/?_=%d' % (video_id, time_seconds()),
-            video_id)['data']
+            f'https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/{video_id}/',
+            video_id, query={'_': time_seconds()})['data']
 
         video_urls = []
 
@@ -74,13 +91,12 @@ class IndavideoEmbedIE(InfoExtractor):
             height = int_or_none(self._search_regex(
                 r'\.(\d{3,4})\.mp4(?:\?|$)', video_url, 'height', default=None))
             if not height and len(filesh) == 1:
-                height = int(list(filesh.keys())[0])
-            token = filesh.get(compat_str(height))
+                height = int_or_none(list(filesh.keys())[0])
+            token = filesh.get(str(height))
             if token is None:
                 continue
-            video_url = update_url_query(video_url, {'token': token})
             formats.append({
-                'url': video_url,
+                'url': update_url_query(video_url, {'token': token}),
                 'height': height,
             })
 
