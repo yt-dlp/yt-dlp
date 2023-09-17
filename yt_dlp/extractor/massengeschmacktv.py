@@ -30,9 +30,6 @@ class MassengeschmackTVIE(InfoExtractor):
         episode = self._match_id(url)
 
         webpage = self._download_webpage(url, episode)
-        title = clean_html(self._html_search_regex(
-            '<[^>]+(?:id|ID)=["\']clip-title["\'][^>]*>([^<]+)', webpage, 'title'))
-        thumbnail = self._search_regex(r'POSTER\s*=\s*"([^"]+)', webpage, 'thumbnail', fatal=False)
         sources = self._parse_json(self._search_regex(r'(?s)MEDIA\s*=\s*(\[.+?\]);', webpage, 'media'), episode, js_to_json)
 
         formats = []
@@ -68,7 +65,8 @@ class MassengeschmackTVIE(InfoExtractor):
 
         return {
             'id': episode,
-            'title': title,
+            'title': clean_html(self._html_search_regex(
+                '<[^>]+\b(?:id|ID)=["\']clip-title["\'][^>]*>([^<]+)', webpage, 'title', fatal=False)),
             'formats': formats,
-            'thumbnail': thumbnail,
+            'thumbnail': self._search_regex(r'POSTER\s*=\s*"([^"]+)', webpage, 'thumbnail', fatal=False),
         }
