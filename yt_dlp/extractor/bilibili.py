@@ -56,7 +56,7 @@ class BilibiliBaseIE(InfoExtractor):
         formats = [{
             'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
             'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
-            'acodec': audio.get('codecs'),
+            'acodec': (audio.get('codecs') or '').lower() or None,
             'vcodec': 'none',
             'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
             'filesize': int_or_none(audio.get('size')),
