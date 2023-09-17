@@ -52,8 +52,6 @@ class Rule34VideoIE(InfoExtractor):
         title = self._html_extract_title(webpage)
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
-        tags = re.findall(r'<a class="tag_item"\s+href="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage)
-        tags = [unescapeHTML(t) for t in tags]
 
         return {
             'id': video_id,
@@ -62,5 +60,6 @@ class Rule34VideoIE(InfoExtractor):
             'thumbnail': thumbnail,
             'duration': parse_duration(duration),
             'age_limit': 18,
-            'tags': tags
+            'tags': list(map(unescapeHTML, re.findall(
+                r'<a class="tag_item"[^>]+\bhref="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage))),
         }
