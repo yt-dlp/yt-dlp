@@ -66,7 +66,7 @@ class MassengeschmackTVIE(InfoExtractor):
         return {
             'id': episode,
             'title': clean_html(self._html_search_regex(
-                '<[^>]+ (?:id|ID)=["\']clip-title["\'][^>]*>([^<]+)', webpage, 'title', fatal=False)),
+                r'<span[^>]+\bid=["\']clip-title["\'][^>]*>([^<]+)', webpage, 'title', fatal=False)),
             'formats': formats,
             'thumbnail': self._search_regex(r'POSTER\s*=\s*"([^"]+)', webpage, 'thumbnail', fatal=False),
         }
