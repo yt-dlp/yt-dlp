@@ -1,12 +1,12 @@
 from .common import InfoExtractor
 from ..compat import functools
 from ..utils import (
-    parse_duration,
-    traverse_obj,
-    str_or_none,
     int_or_none,
+    parse_duration,
     parse_iso8601,
     qualities,
+    str_or_none,
+    traverse_obj,
     url_or_none,
 )
 
@@ -64,7 +64,7 @@ class PornboxIE(InfoExtractor):
         subtitles = {country_code: [{
             'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
             'ext': 'srt'
-        }] for country_code in traverse_obj(public_data, ('subtitles', ...))}
+        }] for country_code in traverse_obj(public_data, ('subtitles', ..., {str}))}
 
         is_free_scene = traverse_obj(
             public_data, ('price', 'is_available_for_free', {bool}), default=False)
@@ -88,8 +88,8 @@ class PornboxIE(InfoExtractor):
         }
 
         if not public_data.get('is_purchased') or not is_free_scene:
-            self.raise_login_required('You are either not logged in or do not have access to this scene',
-                                      metadata_available=True, method='cookies')
+            self.raise_login_required(
+                'You are either not logged in or do not have access to this scene', metadata_available=True)
             return metadata
 
         media_id = traverse_obj(public_data, (
@@ -101,12 +101,12 @@ class PornboxIE(InfoExtractor):
             f'https://pornbox.com/media/{media_id}/stream', video_id=video_id, note='Getting manifest urls')
 
         get_quality = qualities(['web', 'vga', 'hd', '1080p', '4k', '8k'])
-        metadata['formats'] = [traverse_obj(q, {
+        metadata['formats'] = traverse_obj(stream_data, ('qualities', lambda _, v: v['src'], {
             'url': 'src',
             'vbr': ('bitrate', {functools.partial(int_or_none, scale=1000)}),
             'format_id': ('quality', {str_or_none}),
             'quality': ('quality', {get_quality}),
-            'width': ('size', {lambda x: int(x[:-1])})
-        }) for q in stream_data.get('qualities') or []]
+            'width': ('size', {lambda x: int(x[:-1])}),
+        }))
 
         return metadata
