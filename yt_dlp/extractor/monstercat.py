@@ -33,14 +33,14 @@ class MonstercatIE(InfoExtractor):
 
     def _extract_tracks(self, table, album_meta):
         for td in re.findall(r'<tr[^<]*>((?:(?!</tr>)[\w\W])+)', table):  # regex by chatgpt due to lack of get_elements_by_tag
-            title = traverse_obj(get_element_by_class('d-inline-flex flex-column', td).partition(" <span"), (0, {strip_or_none}))
-            ids = extract_attributes(get_element_html_by_class("btn-play cursor-pointer mr-small", td))
+            title = traverse_obj(get_element_by_class('d-inline-flex flex-column', td).partition(' <span'), (0, {strip_or_none}))
+            ids = traverse_obj(get_element_html_by_class('btn-play cursor-pointer mr-small', td), {extract_attributes})
             yield {
                 **album_meta,
                 'title': title,
                 'track': title,
-                'track_number': int_or_none(get_element_by_class('py-xsmall', td)),
-                'artist': get_element_by_class('d-block fs-xxsmall', td),
+                'track_number': traverse_obj(get_element_by_class('py-xsmall', td), {int_or_none}),
+                'artist': traverse_obj(td, {lambda td: get_element_by_class('d-block fs-xxsmall', td)}),
                 'url': self.TRACK_API.format(release_id=ids.get('data-release-id'),
                                              song_id=ids.get('data-track-id')),
                 'id': ids.get('data-track-id'),
@@ -50,18 +50,18 @@ class MonstercatIE(InfoExtractor):
     def _real_extract(self, url):
         url_id = self._match_id(url)
         html = self._download_webpage(url, url_id)
-        tracklist_table = get_element_by_class('table table-small', html)
+        tracklist_table = traverse_obj(html, {lambda html: get_element_by_class('table table-small', html)})
 
-        title = get_element_text_and_html_by_tag('h1', html)[0]
-        date = get_element_by_class('font-italic mb-medium d-tablet-none d-phone-block', html)
-        date = traverse_obj(date.partition('Released '), (2, {strip_or_none}, {unified_strdate}))
+        title = traverse_obj(get_element_text_and_html_by_tag('h1', html), 0)
+        date = traverse_obj(html, ({lambda html: get_element_by_class('font-italic mb-medium d-tablet-none d-phone-block',
+                            html).partition('Released ')}, 2, {strip_or_none}, {unified_strdate}))
 
         album_meta = {
             'title': title,
             'album': title,
             'thumbnail': url + '/cover',
-            'album_artist': get_element_by_class('h-normal text-uppercase mb-desktop-medium mb-smallish', html),
-            'release_year': int_or_none(date[:4]),
+            'album_artist': traverse_obj(html, {lambda html: get_element_by_class('h-normal text-uppercase mb-desktop-medium mb-smallish', html)}),
+            'release_year': traverse_obj(date, ({lambda x: date[:4]}, {int_or_none})),
             'release_date': date,
         }
 
