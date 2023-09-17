@@ -36,22 +36,23 @@ class VRTBaseIE(GigyaBaseIE):
     _PLAYER_INFO = {
         'platform': 'desktop',
         'app': {
-            'type': 'browser',
-            'name': 'Chrome',
-        },
+           'type': 'browser',
+           'name': 'Chrome'
+           },
         'device': 'undefined (undefined)',
         'os': {
-            'name': 'Windows',
-            'version': 'x86_64'
-        },
+           'name': 'Windows',
+           'version': 'x86_64'
+           },
         'player': {
-            'name': 'VRT web player',
-            'version': '2.7.4-prod-2023-04-19T06:05:45'
+           'name': 'VRT web player',
+           'version': '3.2.6-prod-2023-09-11T12:37:41'
+           }
         }
-    }
     # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.8cdb11341bcb79e4cd44.js
     _JWT_KEY_ID = '0-0Fp51UZykfaiCJrfTE3+oMI8zvDteYfPtR+2n1R+z8w='
-    _JWT_SIGNING_KEY = 'b5f500d55cb44715107249ccd8a5c0136cfb2788dbb71b90a4f142423bacaf38'  # -dev
+    _JWT_SIGNING_KEY = '2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae'
+#     _JWT_SIGNING_KEY = 'b5f500d55cb44715107249ccd8a5c0136cfb2788dbb71b90a4f142423bacaf38'  # -dev
     # player-stag.vrt.be key:    d23987504521ae6fbf2716caca6700a24bb1579477b43c84e146b279de5ca595
     # player.vrt.be key:         2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae
 
@@ -153,6 +154,7 @@ class VRTIE(VRTBaseIE):
     }
 
     _authenticated = False
+    _id_token = ''
 
     def _perform_login(self, username, password):
         auth_info = self._gigya_login({
@@ -311,12 +313,12 @@ class VrtNUIE(VRTBaseIE):
     _NETRC_MACHINE = 'vrtnu'
     _authenticated = False
 
-    def _extract_cookies(self, res):
-        cookies_nvp = [header_value.split(';')[0] for header_value in res.headers.get_all('Set-Cookie')]
-        return {name: value for nvp in cookies_nvp for name, value in [nvp.split('=')]}
-
-    def _create_cookie_header(self, cookies):
-        return { 'Cookie': '; '.join([f'{key}={value}' for key, value in cookies.items()]) }
+#     def _extract_cookies(self, res):
+#         cookies_nvp = [header_value.split(';')[0] for header_value in res.headers.get_all('Set-Cookie')]
+#         return {name: value for nvp in cookies_nvp for name, value in [nvp.split('=')]}
+#
+#     def _create_cookie_header(self, cookies):
+#         return { 'Cookie': '; '.join([f'{key}={value}' for key, value in cookies.items()]) }
 
     def _perform_login(self, username, password):
 
@@ -340,25 +342,24 @@ class VrtNUIE(VRTBaseIE):
         res = urllib.request.urlopen('https://www.vrt.be/vrtnu/sso/login', None)
         auth_url = res.headers.get_all('Location')[0]
 
-        print("===================================")
-        print('login')
-        print(res.status)
-        print(res.headers.get_all('Location')[0])
-#         for cookie in cookies:
-#             print(f'{cookie.name}={cookie.value}')
-        print("===================================")
+#         print("===================================")
+#         print('login')
+#         print(res.status)
+#         print(res.headers.get_all('Location')[0])
+# #         for cookie in cookies:
+# #             print(f'{cookie.name}={cookie.value}')
+#         print("===================================")
 
 
         # 1.b Follow redirection: visit 'authorize' URL. Get OIDCXSRF & SESSION cookies
         res = urllib.request.urlopen(auth_url, None)
-#         cookies = {cookie.name: cookie.value for cookie in cookies}
         cookies_header = f'OIDCXSRF={cookies["OIDCXSRF"]}; SESSION={cookies["SESSION"]}'
 
-        print("===================================")
-        print('authorize')
-        print(res.status)
-        print(cookies)
-        print("===================================")
+#         print("===================================")
+#         print('authorize')
+#         print(res.status)
+#         print(cookies)
+#         print("===================================")
 
 #         sys.exit(0)
 
@@ -371,14 +372,16 @@ class VrtNUIE(VRTBaseIE):
         post_data = { "loginID": f"{username}", "password": f"{password}", "clientId": "vrtnu-site" }
         res = self._request_webpage('https://login.vrt.be/perform_login', None, note='Performing login', errnote='Login failed', fatal=True, data=json.dumps(post_data).encode(), headers=headers)
 
-        print("===================================")
-        print('perform_login')
-        print(res.status)
-        print("===================================")
+#         print("===================================")
+#         print('perform_login')
+#         print(res.status)
+#         print("===================================")
 
 #         sys.exit(0)
 
-        # TODO: re-enable auto redir here and do step 3 in one urlopen() call?
+        # TODO:
+        #   . re-enable auto redir here and do step 3 in one urlopen() call?
+        #   . should this step be the new "refreshtoken" in _real_extract?
 
         # 3.a Visit 'authorize' again
         headers = {
@@ -389,13 +392,13 @@ class VrtNUIE(VRTBaseIE):
         res = urllib.request.urlopen(request, None)
         callback_url = res.headers.get_all('Location')[0]
 
-        print("===================================")
-        print('authorize')
-        print(res.status)
-        print(res.headers.get_all('Location')[0])
-#         print(cookies)
-#         print(json.dumps(tokens))
-        print("===================================")
+#         print("===================================")
+#         print('authorize')
+#         print(res.status)
+#         print(res.headers.get_all('Location')[0])
+# #         print(cookies)
+# #         print(json.dumps(tokens))
+#         print("===================================")
 
         # 3.b Visit 'callback'
         headers = {
@@ -404,62 +407,70 @@ class VrtNUIE(VRTBaseIE):
         request = urllib.request.Request(callback_url, headers=headers)
         res = urllib.request.urlopen(request, None)
 
-        print("===================================")
-        print('callback')
-        print(res.status)
-        print(res.headers)
-        print(cookies)
+        _id_token = cookies['vrtnu-site_profile_vt']
+
+#         print("===================================")
+#         print('callback')
+#         print(res.status)
+#         print(res.headers)
+#         print(cookies)
 #         print(json.dumps(tokens))
 
 #         for cookie in cookies:
 #             print(f'{cookie.name}={cookie.value}')
         print("===================================")
 
-        sys.exit(0)
-
-
-
-#         auth_info = self._gigya_login({
-#             'APIKey': '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy',
-#             'targetEnv': 'jssdk',
-#             'loginID': username,
-#             'password': password,
-#             'authMode': 'cookie',
-#         })
-#
-#         if auth_info.get('errorDetails'):
-#             raise ExtractorError(f'Unable to login. VrtNU said: {auth_info["errorDetails"]}', expected=True)
-
-#         print("===================================")
-#         print(json.dumps(auth_info, indent=2))
-#         print("===================================")
 #         sys.exit(0)
 
-        # Sometimes authentication fails for no good reason, retry
-#         for retry in self.RetryManager():
-#             if retry.attempt > 1:
-#                 self._sleep(1, None)
-#             try:
-#                 self._request_webpage(
-#                     'https://token.vrt.be/vrtnuinitlogin', None, note='Requesting XSRF Token',
-#                     errnote='Could not get XSRF Token', query={
-#                         'provider': 'site',
-#                         'destination': 'https://www.vrt.be/vrtnu/',
-#                     })
-#                 self._request_webpage(
-#                     'https://login.vrt.be/perform_login', None,
-#                     note='Performing login', errnote='Login failed',
-#                     query={'client_id': 'vrtnu-site'}, data=urlencode_postdata({
-#                         'UID': auth_info['UID'],
-#                         'UIDSignature': auth_info['UIDSignature'],
-#                         'signatureTimestamp': auth_info['signatureTimestamp'],
-#                         '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-#                     }))
-#             except ExtractorError as e:
-#                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
-#                     retry.error = e
-#                     continue
-#                 raise
+        # 4. Obtain vrtPlayerToken
+
+        # TODO: make this a constant at the top
+        #########################################
+        player_info_base = { 
+           'platform': 'desktop',
+           'app': {
+               'type': 'browser',
+               'name': 'Chrome'
+               },
+           'device': 'undefined (undefined)',
+           'os': {
+               'name': 'Windows',
+               'version': 'x86_64'
+               },
+           'player': {
+               'name': 'VRT web player',
+               'version': '3.2.6-prod-2023-09-11T12:37:41'
+               }
+           }
+
+        #########################################
+
+        # TODO: should move to _call_api()
+
+        player_info = {'exp': (round(time.time(), 3) + 900), **player_info_base}
+        player_info_jwt = jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
+                    'kid': self._JWT_KEY_ID
+                }).decode()
+
+        headers = {
+                    **self.geo_verification_headers(),
+                    'Content-Type': 'application/json',
+                    }
+
+        data = {
+                'identityToken': _id_token,
+                'playerInfo': player_info_jwt
+                }
+
+        json_response = self._download_json(
+            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
+           None, 'Downloading player token', headers=headers, data=json.dumps(data).encode())
+
+        print("===================================")
+        print(json.dumps(json_response))
+        print("===================================")
+
+        sys.exit(0)
 
         self._authenticated = True
 
