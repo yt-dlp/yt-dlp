@@ -429,7 +429,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 # Prevent file object from being closed when urllib.error.HTTPError is destroyed.
-                e._closer.file = None
+                e._closer.close_called = True
                 raise HTTPError(UrllibResponseAdapter(e.fp), redirect_loop='redirect error' in str(e)) from e
             raise  # unexpected
         except urllib.error.URLError as e:
