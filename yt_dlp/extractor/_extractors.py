@@ -138,10 +138,6 @@ from .arte import (
     ArteTVCategoryIE,
 )
 from .arnes import ArnesIE
-from .asiancrush import (
-    AsianCrushIE,
-    AsianCrushPlaylistIE,
-)
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
 from .atttechchannel import ATTTechChannelIE
@@ -352,6 +348,10 @@ from .chirbit import (
 from .cinchcast import CinchcastIE
 from .cinemax import CinemaxIE
 from .cinetecamilano import CinetecaMilanoIE
+from .cineverse import (
+    CineverseIE,
+    CineverseDetailsIE,
+)
 from .ciscolive import (
     CiscoLiveSessionIE,
     CiscoLiveSearchIE,
