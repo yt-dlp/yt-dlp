@@ -3,6 +3,7 @@ import functools
 import hashlib
 import itertools
 import math
+import re
 import time
 import urllib.parse
 
@@ -38,6 +39,8 @@ from ..utils import (
 
 
 class BilibiliBaseIE(InfoExtractor):
+    _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
+
     def extract_formats(self, play_info):
         format_names = {
             r['quality']: traverse_obj(r, 'new_description', 'display_desc')
@@ -54,7 +57,8 @@ class BilibiliBaseIE(InfoExtractor):
             'acodec': audio.get('codecs'),
             'vcodec': 'none',
             'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
-            'filesize': int_or_none(audio.get('size'))
+            'filesize': int_or_none(audio.get('size')),
+            'format_id': str_or_none(audio.get('id')),
         } for audio in audios]
 
         formats.extend({
@@ -68,6 +72,9 @@ class BilibiliBaseIE(InfoExtractor):
             'tbr': float_or_none(video.get('bandwidth'), scale=1000),
             'filesize': int_or_none(video.get('size')),
             'quality': int_or_none(video.get('id')),
+            'format_id': traverse_obj(
+                video, (('baseUrl', 'base_url'), {self._FORMAT_ID_RE.search}, 1),
+                ('id', {str_or_none}), get_all=False),
             'format': format_names.get(video.get('id')),
         } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 

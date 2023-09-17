@@ -2370,7 +2370,7 @@ class GenericIE(InfoExtractor):
             'id': flashvars['video_id'],
             'display_id': display_id,
             'title': title,
-            'thumbnail': thumbnail,
+            'thumbnail': urljoin(url, thumbnail),
             'formats': formats,
         }
 
