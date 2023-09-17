@@ -1,6 +1,5 @@
-import urllib.error
-
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import ExtractorError, merge_dicts
 
 
@@ -25,7 +24,7 @@ class RecurbateIE(InfoExtractor):
         try:
             webpage = self._download_webpage(url, video_id)
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                 self.raise_login_required(msg=SUBSCRIPTION_MISSING_MESSAGE, method='cookies')
             raise
         token = self._html_search_regex(r'data-token="([^"]+)"', webpage, 'token')

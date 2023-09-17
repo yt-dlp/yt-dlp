@@ -1,7 +1,7 @@
 import json
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     format_field,
@@ -43,7 +43,7 @@ class WykopBaseExtractor(InfoExtractor):
             try:
                 return self._do_call_api(path, video_id, note, headers={'Authorization': f'Bearer {token}'})
             except ExtractorError as e:
-                if not retrying and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                if not retrying and isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     token = self._get_token(True)
                     continue
                 raise

@@ -13,12 +13,15 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         # CPython 3.11 is in quick-test
-        python-version: ['3.8', '3.9', '3.10', pypy-3.7, pypy-3.8]
+        python-version: ['3.8', '3.9', '3.10', '3.12-dev', pypy-3.7, pypy-3.8, pypy-3.10]
         run-tests-ext: [sh]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
           python-version: '3.7'
+          run-tests-ext: bat
+        - os: windows-latest
+          python-version: '3.12-dev'
           run-tests-ext: bat
         - os: windows-latest
           python-version: pypy-3.9
