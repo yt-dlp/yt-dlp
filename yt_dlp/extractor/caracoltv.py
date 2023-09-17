@@ -5,6 +5,7 @@ import uuid
 
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
     js_to_json,
     traverse_obj,
     urljoin,
@@ -12,7 +13,7 @@ from ..utils import (
 
 
 class CaracolTvPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://play\.caracoltv\.com/videoDetails/(?P<id>[^/?]+)'
+    _VALID_URL = r'https?://play\.caracoltv\.com/videoDetails/(?P<id>[^/?#]+)'
     _NETRC_MACHINE = 'caracoltv-play'
 
     _TESTS = [{
@@ -48,7 +49,7 @@ class CaracolTvPlayIE(InfoExtractor):
 
     def _extract_app_token(self, webpage):
         config_js_path = self._search_regex(
-            r'<script[^>]+src\s*=\s*"([^"]+coreConfig.js[^"]+)', webpage, 'config_js_url', fatal=False)
+            r'<script[^>]+src\s*=\s*"([^"]+coreConfig.js[^"]+)', webpage, 'config js url', fatal=False)
 
         mediation_config = {} if not config_js_path else self._search_json(
             r'mediation\s*:', self._download_webpage(
@@ -62,7 +63,7 @@ class CaracolTvPlayIE(InfoExtractor):
 
         return base64.b64encode(f'{key}:{secret}'.encode()).decode()
 
-    def _login(self, email, password):
+    def _perform_login(self, email, password):
         webpage = self._download_webpage('https://play.caracoltv.com/', None, fatal=False)
         app_token = self._extract_app_token(webpage)
 
@@ -87,9 +88,6 @@ class CaracolTvPlayIE(InfoExtractor):
                 }
             }).encode())['user_token']
 
-    def _perform_login(self, username, password):
-        self._login(username, password)
-
     def _extract_video(self, video_data, series_id=None, season_id=None, season_number=None):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_data['stream_url'], series_id, 'mp4')
 
@@ -103,8 +101,8 @@ class CaracolTvPlayIE(InfoExtractor):
                 video_data, ('extra_thumbs', ..., {'url': 'thumb_url', 'height': 'height', 'width': 'width'})),
             'series_id': series_id,
             'season_id': season_id,
-            'season_number': season_number,
-            'episode_number': video_data.get('item_order'),
+            'season_number': int_or_none(season_number),
+            'episode_number': int_or_none(video_data.get('item_order')),
             'is_live': video_data.get('entry_type') == 3,
         }
 
@@ -120,7 +118,7 @@ class CaracolTvPlayIE(InfoExtractor):
         series_id = self._match_id(url)
 
         if self._USER_TOKEN is None:
-            self._login('guest@inmobly.com', 'Test@gus1')
+            self._perform_login('guest@inmobly.com', 'Test@gus1')
 
         api_response = self._download_json(
             'https://eu-gateway.inmobly.com/feed', series_id, query={'include_ids': series_id},

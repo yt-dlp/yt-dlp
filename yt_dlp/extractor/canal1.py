@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class Canal1IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.|noticias\.)?canal1\.com\.co/(?:[^?&])+/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.|noticias\.)?canal1\.com\.co/(?:[^?#&])+/(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://canal1.com.co/noticias/napa-i-una-cadena-de-produccion-de-arroz-que-se-quedo-en-veremos-y-abandonada-en-el-departamento-del-choco/',
@@ -35,5 +35,5 @@ class Canal1IE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         return self.url_result(
-            self._search_regex(r'"embedUrl"\s*:\s*"([^"]+)', webpage, "embedUrl"),
+            self._search_regex(r'"embedUrl"\s*:\s*"([^"]+)', webpage, "embed url"),
             display_id=display_id, url_transparent=True)
