@@ -237,11 +237,24 @@ class VRTIE(VRTBaseIE):
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
+
     def http_error_302(self, req, fp, code, msg, headers):
         result = urllib.error.HTTPError(req.get_full_url(), code, msg, headers, fp)
         return result
+
     http_error_301 = http_error_303 = http_error_307 = http_error_302
 
+
+class CookiePot(CookieJar):
+
+    def __getitem__(self, name):
+        for cookie in self:
+            if cookie.name == name:
+                return cookie.value
+        return None
+
+    def __str__(self):
+        return '\n'.join(f'{cookie.name}={cookie.value}' for cookie in self)
 
 
 class VrtNUIE(VRTBaseIE):
@@ -308,11 +321,19 @@ class VrtNUIE(VRTBaseIE):
     def _perform_login(self, username, password):
 
 
-        cookie_jar = CookieJar()
+        cookies = CookiePot()
+
+        # TODO:
+        # 1. Does the _request_webpage() respect this opener too?
+        # 2. If so:
+        #   a. modify (and rename) the class NoRedirect to store the 'Location:' header
+        #   b. Steps 1.a & 1.b become one call to  _request_webpage()
+        #
+        #   https://stackoverflow.com/questions/47002795/how-to-trace-or-to-check-history-of-redirected-urls-with-python-only-urllib-libr
 
         # Disable automatic redirection to be able to
         # grab necessary info in intermediate step
-        opener= urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(cookie_jar))
+        opener= urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(cookies))
         urllib.request.install_opener(opener)
 
         # 1.a Visit 'login' URL. Get 'authorize' location and 'oidcstate' cookie
@@ -323,28 +344,28 @@ class VrtNUIE(VRTBaseIE):
         print('login')
         print(res.status)
         print(res.headers.get_all('Location')[0])
-#         for cookie in cookie_jar:
+#         for cookie in cookies:
 #             print(f'{cookie.name}={cookie.value}')
         print("===================================")
 
 
         # 1.b Follow redirection: visit 'authorize' URL. Get OIDCXSRF & SESSION cookies
         res = urllib.request.urlopen(auth_url, None)
-        cookies_dict = {cookie.name: cookie.value for cookie in cookie_jar}
-        cookies_header = f'OIDCXSRF={cookies_dict["OIDCXSRF"]}; SESSION={cookies_dict["SESSION"]}'
+#         cookies = {cookie.name: cookie.value for cookie in cookies}
+        cookies_header = f'OIDCXSRF={cookies["OIDCXSRF"]}; SESSION={cookies["SESSION"]}'
 
         print("===================================")
         print('authorize')
         print(res.status)
-        print(cookies_dict)
+        print(cookies)
         print("===================================")
-        
+
 #         sys.exit(0)
 
         # 2. Perform login
         headers = {
                 'Content-Type': 'application/json',
-                'Oidcxsrf': cookies_dict["OIDCXSRF"],
+                'Oidcxsrf': cookies["OIDCXSRF"],
                 'Cookie': cookies_header
                 }
         post_data = { "loginID": f"{username}", "password": f"{password}", "clientId": "vrtnu-site" }
@@ -356,6 +377,8 @@ class VrtNUIE(VRTBaseIE):
         print("===================================")
 
 #         sys.exit(0)
+
+        # TODO: re-enable auto redir here and do step 3 in one urlopen() call?
 
         # 3.a Visit 'authorize' again
         headers = {
@@ -370,13 +393,13 @@ class VrtNUIE(VRTBaseIE):
         print('authorize')
         print(res.status)
         print(res.headers.get_all('Location')[0])
-#         print(cookies_dict)
+#         print(cookies)
 #         print(json.dumps(tokens))
         print("===================================")
 
         # 3.b Visit 'callback'
         headers = {
-                'Cookie': f'oidcstate={cookies_dict["oidcstate"]}'
+                'Cookie': f'oidcstate={cookies["oidcstate"]}'
                 }
         request = urllib.request.Request(callback_url, headers=headers)
         res = urllib.request.urlopen(request, None)
@@ -385,8 +408,11 @@ class VrtNUIE(VRTBaseIE):
         print('callback')
         print(res.status)
         print(res.headers)
-#         print(cookies_dict)
+        print(cookies)
 #         print(json.dumps(tokens))
+
+#         for cookie in cookies:
+#             print(f'{cookie.name}={cookie.value}')
         print("===================================")
 
         sys.exit(0)
