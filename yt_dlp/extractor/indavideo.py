@@ -35,8 +35,14 @@ class IndavideoEmbedIE(InfoExtractor):
             'tags': ['tánc', 'cica', 'cuki', 'cukiajanlo', 'newsroom'],
         },
     }, {
-        'url': 'https://embed.indavideo.hu/player/video/3b63bc219c?autostart=1',
-        'md5': '8c82244ba85d2a2310275b318eb51eac',
+        'url': 'https://embed.indavideo.hu/player/video/1bdc3c6d80?autostart=1&hide=1',
+        'only_matching': True,
+    }, {
+        'url': 'https://assets.indavideo.hu/swf/player.swf?v=fe25e500&vID=1bdc3c6d80&autostart=1&hide=1&i=1',
+        'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://indavideo.hu/video/Vicces_cica_1',
         'info_dict': {
             'id': '1335611',
             'ext': 'mp4',
@@ -51,12 +57,6 @@ class IndavideoEmbedIE(InfoExtractor):
             'age_limit': 0,
             'tags': ['cica', 'Jet_Pack'],
         },
-    }, {
-        'url': 'https://embed.indavideo.hu/player/video/1bdc3c6d80?autostart=1&hide=1',
-        'only_matching': True,
-    }, {
-        'url': 'https://assets.indavideo.hu/swf/player.swf?v=fe25e500&vID=1bdc3c6d80&autostart=1&hide=1&i=1',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
