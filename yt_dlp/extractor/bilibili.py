@@ -51,6 +51,8 @@ class BilibiliBaseIE(InfoExtractor):
         flac_audio = traverse_obj(play_info, ('dash', 'flac', 'audio'))
         if flac_audio:
             audios.append(flac_audio)
+        # dolby audio (if exists)
+        audios.extend(traverse_obj(play_info, ('dash', 'dolby', 'audio', ...)))
         formats = [{
             'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
             'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
