@@ -57,8 +57,8 @@ class LecturioIE(LecturioBaseIE):
     _VALID_URL = r'''(?x)
                     https://
                         (?:
-                            app\.lecturio\.com/([^/]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
-                            (?:www\.)?lecturio\.de/(?:[^/]+/)+(?P<nt_de>[^/?#&]+)\.vortrag
+                            app\.lecturio\.com/([^/?#]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
+                            (?:www\.)?lecturio\.de/(?:[^/?#]+/)+(?P<nt_de>[^/?#&]+)\.vortrag
                         )
                     '''
     _TESTS = [{
