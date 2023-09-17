@@ -68,7 +68,7 @@ class CaracolTvPlayIE(InfoExtractor):
         app_token = self._extract_app_token(webpage)
 
         bearer_token = self._download_json(
-            'https://eu-gateway.inmobly.com/applications/oauth', None, data={}, note='Retrieving bearer token',
+            'https://eu-gateway.inmobly.com/applications/oauth', None, data=b'', note='Retrieving bearer token',
             headers={'Authorization': f'Basic {app_token}'})['token']
 
         self._USER_TOKEN = self._download_json(
