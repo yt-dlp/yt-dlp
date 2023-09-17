@@ -4,9 +4,6 @@ import time
 from http.cookiejar import CookieJar
 import urllib.parse
 import urllib.request
-##################
-import sys
-##################
 
 from .gigya import GigyaBaseIE
 from ..networking.exceptions import HTTPError
@@ -33,6 +30,7 @@ from ..utils import (
 
 class VRTBaseIE(GigyaBaseIE):
     _GEO_BYPASS = False
+
     _PLAYER_INFO = {
         'platform': 'desktop',
         'app': {
@@ -49,6 +47,9 @@ class VRTBaseIE(GigyaBaseIE):
            'version': '3.2.6-prod-2023-09-11T12:37:41'
            }
         }
+
+    _VIDEOPAGE_QUERY = "query VideoPage($pageId: ID!) {\n  page(id: $pageId) {\n    ... on EpisodePage {\n      id\n      title\n      permalink\n      seo {\n        ...seoFragment\n        __typename\n      }\n      socialSharing {\n        ...socialSharingFragment\n        __typename\n      }\n      trackingData {\n        data\n        perTrigger {\n          trigger\n          data\n          template {\n            id\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      ldjson\n      components {\n        __typename\n        ... on IComponent {\n          componentType\n          __typename\n        }\n      }\n      episode {\n        id\n        title\n        available\n        whatsonId\n        brand\n        brandLogos {\n          type\n          width\n          height\n          primary\n          mono\n          __typename\n        }\n        logo\n        primaryMeta {\n          ...metaFragment\n          __typename\n        }\n        secondaryMeta {\n          ...metaFragment\n          __typename\n        }\n        image {\n          ...imageFragment\n          __typename\n        }\n        durationRaw\n        durationValue\n        durationSeconds\n        onTimeRaw\n        offTimeRaw\n        ageRaw\n        regionRaw\n        announcementValue\n        name\n        episodeNumberRaw\n        episodeNumberValue\n        subtitle\n        richDescription {\n          __typename\n          html\n        }\n        program {\n          id\n          link\n          title\n          __typename\n        }\n        watchAction {\n          streamId\n          videoId\n          episodeId\n          avodUrl\n          resumePoint\n          __typename\n        }\n        shareAction {\n          title\n          description\n          image {\n            templateUrl\n            __typename\n          }\n          url\n          __typename\n        }\n        favoriteAction {\n          id\n          title\n          favorite\n          programWhatsonId\n          programUrl\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\nfragment metaFragment on MetaDataItem {\n  __typename\n  type\n  value\n  shortValue\n  longValue\n}\nfragment imageFragment on Image {\n  objectId\n  id: objectId\n  alt\n  title\n  focalPoint\n  templateUrl\n}\nfragment seoFragment on SeoProperties {\n  __typename\n  title\n  description\n}\nfragment socialSharingFragment on SocialSharingProperties {\n  __typename\n  title\n  description\n  image {\n    __typename\n    id: objectId\n    templateUrl\n  }\n}"
+
     # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.8cdb11341bcb79e4cd44.js
     _JWT_KEY_ID = '0-0Fp51UZykfaiCJrfTE3+oMI8zvDteYfPtR+2n1R+z8w='
     _JWT_SIGNING_KEY = '2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae'
@@ -95,17 +96,24 @@ class VRTBaseIE(GigyaBaseIE):
 
     def _call_api(self, video_id, client='null', id_token=None, version='v2'):
         player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
-        player_token = self._download_json(
-            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
-            video_id, 'Downloading player token', headers={
-                **self.geo_verification_headers(),
-                'Content-Type': 'application/json',
-            }, data=json.dumps({
-                'identityToken': id_token or {},
-                'playerInfo': jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
+        player_info_jwt = jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
                     'kid': self._JWT_KEY_ID
                 }).decode()
-            }, separators=(',', ':')).encode())['vrtPlayerToken']
+
+        headers = {
+                    **self.geo_verification_headers(),
+                    'Content-Type': 'application/json',
+                    }
+
+        data = {
+                'identityToken': id_token or self._cookies['vrtnu-site_profile_vt'],
+                'playerInfo': player_info_jwt
+                }
+
+        json_response = self._download_json(
+            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
+           None, 'Downloading player token', headers=headers, data=json.dumps(data).encode())
+        player_token = json_response['vrtPlayerToken']
 
         return self._download_json(
             f'https://media-services-public.vrt.be/media-aggregator/{version}/media-items/{video_id}',
@@ -154,7 +162,6 @@ class VRTIE(VRTBaseIE):
     }
 
     _authenticated = False
-    _id_token = ''
 
     def _perform_login(self, username, password):
         auth_info = self._gigya_login({
@@ -312,18 +319,10 @@ class VrtNUIE(VRTBaseIE):
     }]
     _NETRC_MACHINE = 'vrtnu'
     _authenticated = False
-
-#     def _extract_cookies(self, res):
-#         cookies_nvp = [header_value.split(';')[0] for header_value in res.headers.get_all('Set-Cookie')]
-#         return {name: value for nvp in cookies_nvp for name, value in [nvp.split('=')]}
-#
-#     def _create_cookie_header(self, cookies):
-#         return { 'Cookie': '; '.join([f'{key}={value}' for key, value in cookies.items()]) }
+    _cookies = CookiePot()
 
     def _perform_login(self, username, password):
 
-
-        cookies = CookiePot()
 
         # TODO:
         # 1. Does the _request_webpage() respect this opener too?
@@ -335,49 +334,25 @@ class VrtNUIE(VRTBaseIE):
 
         # Disable automatic redirection to be able to
         # grab necessary info in intermediate step
-        opener= urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(cookies))
+        opener= urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(self._cookies))
         urllib.request.install_opener(opener)
 
         # 1.a Visit 'login' URL. Get 'authorize' location and 'oidcstate' cookie
         res = urllib.request.urlopen('https://www.vrt.be/vrtnu/sso/login', None)
         auth_url = res.headers.get_all('Location')[0]
 
-#         print("===================================")
-#         print('login')
-#         print(res.status)
-#         print(res.headers.get_all('Location')[0])
-# #         for cookie in cookies:
-# #             print(f'{cookie.name}={cookie.value}')
-#         print("===================================")
-
-
         # 1.b Follow redirection: visit 'authorize' URL. Get OIDCXSRF & SESSION cookies
         res = urllib.request.urlopen(auth_url, None)
-        cookies_header = f'OIDCXSRF={cookies["OIDCXSRF"]}; SESSION={cookies["SESSION"]}'
-
-#         print("===================================")
-#         print('authorize')
-#         print(res.status)
-#         print(cookies)
-#         print("===================================")
-
-#         sys.exit(0)
+        cookies_header = f'OIDCXSRF={self._cookies["OIDCXSRF"]}; SESSION={self._cookies["SESSION"]}'
 
         # 2. Perform login
         headers = {
                 'Content-Type': 'application/json',
-                'Oidcxsrf': cookies["OIDCXSRF"],
+                'Oidcxsrf': self._cookies["OIDCXSRF"],
                 'Cookie': cookies_header
                 }
         post_data = { "loginID": f"{username}", "password": f"{password}", "clientId": "vrtnu-site" }
         res = self._request_webpage('https://login.vrt.be/perform_login', None, note='Performing login', errnote='Login failed', fatal=True, data=json.dumps(post_data).encode(), headers=headers)
-
-#         print("===================================")
-#         print('perform_login')
-#         print(res.status)
-#         print("===================================")
-
-#         sys.exit(0)
 
         # TODO:
         #   . re-enable auto redir here and do step 3 in one urlopen() call?
@@ -392,144 +367,71 @@ class VrtNUIE(VRTBaseIE):
         res = urllib.request.urlopen(request, None)
         callback_url = res.headers.get_all('Location')[0]
 
-#         print("===================================")
-#         print('authorize')
-#         print(res.status)
-#         print(res.headers.get_all('Location')[0])
-# #         print(cookies)
-# #         print(json.dumps(tokens))
-#         print("===================================")
-
         # 3.b Visit 'callback'
         headers = {
-                'Cookie': f'oidcstate={cookies["oidcstate"]}'
+                'Cookie': f'oidcstate={self._cookies["oidcstate"]}'
                 }
         request = urllib.request.Request(callback_url, headers=headers)
         res = urllib.request.urlopen(request, None)
 
-        _id_token = cookies['vrtnu-site_profile_vt']
-
-#         print("===================================")
-#         print('callback')
-#         print(res.status)
-#         print(res.headers)
-#         print(cookies)
-#         print(json.dumps(tokens))
-
-#         for cookie in cookies:
-#             print(f'{cookie.name}={cookie.value}')
-        print("===================================")
-
-#         sys.exit(0)
-
-        # 4. Obtain vrtPlayerToken
-
-        # TODO: make this a constant at the top
-        #########################################
-        player_info_base = { 
-           'platform': 'desktop',
-           'app': {
-               'type': 'browser',
-               'name': 'Chrome'
-               },
-           'device': 'undefined (undefined)',
-           'os': {
-               'name': 'Windows',
-               'version': 'x86_64'
-               },
-           'player': {
-               'name': 'VRT web player',
-               'version': '3.2.6-prod-2023-09-11T12:37:41'
-               }
-           }
-
-        #########################################
-
-        # TODO: should move to _call_api()
-
-        player_info = {'exp': (round(time.time(), 3) + 900), **player_info_base}
-        player_info_jwt = jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
-                    'kid': self._JWT_KEY_ID
-                }).decode()
-
-        headers = {
-                    **self.geo_verification_headers(),
-                    'Content-Type': 'application/json',
-                    }
-
-        data = {
-                'identityToken': _id_token,
-                'playerInfo': player_info_jwt
-                }
-
-        json_response = self._download_json(
-            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
-           None, 'Downloading player token', headers=headers, data=json.dumps(data).encode())
-
-        print("===================================")
-        print(json.dumps(json_response))
-        print("===================================")
-
-        sys.exit(0)
-
         self._authenticated = True
+
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         parsed_url = urllib.parse.urlparse(url)
-        print(f'Model JSON URL:  {parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path.rstrip("/")}.model.json')
-        details = self._download_json(
-            f'{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path.rstrip("/")}.model.json',
-            display_id, 'Downloading asset JSON', 'Unable to download asset JSON')['details']
+        print(f'pageId:  {parsed_url.path.rstrip("/")}.model.json')
 
-        watch_info = traverse_obj(details, (
-            'actions', lambda _, v: v['type'] == 'watch-episode', {dict}), get_all=False) or {}
-        video_id = join_nonempty(
-            'episodePublicationId', 'episodeVideoId', delim='$', from_dict=watch_info)
-        if '$' not in video_id:
-            raise ExtractorError('Unable to extract video ID')
+        headers = {
+                'Origin': 'https://www.vrt.be',
+                'Referer': f'{url}',
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {self._cookies["vrtnu-site_profile_at"]}'
+                }
 
-#         vrtnutoken = self._download_json(
-#             'https://token.vrt.be/refreshtoken', video_id, note='Retrieving vrtnutoken',
-#             errnote='Token refresh failed')['vrtnutoken'] if self._authenticated else None
+        data = {
+                'operationName': 'VideoPage',
+                'query': self._VIDEOPAGE_QUERY ,
+                'variables': {
+                    'pageId': f'{parsed_url.path.rstrip("/")}.model.json'
+                    }
+                }
 
-        video_info = self._call_api(video_id, 'vrtnu-web@PROD', vrtnutoken)
+        model_json = self._download_json(
+            'https://www.vrt.be/vrtnu-api/graphql/v1',
+            display_id, 'Downloading asset JSON', 'Unable to download asset JSON', headers=headers, data=json.dumps(data).encode())['data']['page']
 
-        if 'title' not in video_info:
-            code = video_info.get('code')
-            if code in ('AUTHENTICATION_REQUIRED', 'CONTENT_IS_AGE_RESTRICTED'):
-                self.raise_login_required(code, method='password')
-            elif code in ('INVALID_LOCATION', 'CONTENT_AVAILABLE_ONLY_IN_BE'):
-                self.raise_geo_restricted(countries=['BE'])
-            elif code == 'CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS':
-                if not self._authenticated:
-                    self.raise_login_required(code, method='password')
-                self.raise_geo_restricted(countries=['BE'])
-            raise ExtractorError(code, expected=True)
+        video_id = model_json['episode']['watchAction']['streamId']
+        title =  model_json['seo']['title']
+        season_number = int(model_json['episode']['onTimeRaw'][:4])
+        ld_json = json.loads(model_json['ldjson'][1])
 
-        formats, subtitles = self._extract_formats_and_subtitles(video_info, video_id)
+        streaming_json = self._call_api(video_id, client='vrtnu-web@PROD')
+        formats, subtitles = self._extract_formats_and_subtitles(streaming_json, video_id)
 
         return {
-            **traverse_obj(details, {
-                'title': 'title',
-                'description': ('description', {clean_html}),
-                'timestamp': ('data', 'episode', 'onTime', 'raw', {parse_iso8601}),
-                'release_timestamp': ('data', 'episode', 'onTime', 'raw', {parse_iso8601}),
-                'series': ('data', 'program', 'title'),
-                'season': ('data', 'season', 'title', 'value'),
-                'season_number': ('data', 'season', 'title', 'raw', {int_or_none}),
-                'season_id': ('data', 'season', 'id', {str_or_none}),
-                'episode': ('data', 'episode', 'number', 'value', {str_or_none}),
-                'episode_number': ('data', 'episode', 'number', 'raw', {int_or_none}),
-                'episode_id': ('data', 'episode', 'id', {str_or_none}),
-                'age_limit': ('data', 'episode', 'age', 'raw', {parse_age_limit}),
+            **traverse_obj(model_json, {
+                'description': ('seo', 'description', {clean_html}),
+                'timestamp': ( 'episode', 'onTimeRaw', {parse_iso8601}),
+                'release_timestamp': ( 'episode', 'onTimeRaw', {parse_iso8601}),
+                'series': ('episode', 'program', 'title'),
+                'episode': ('episode', 'episodeNumberRaw', {str_or_none}),
+                'episode_number': ('episode', 'episodeNumberRaw', {int_or_none}),
+                'age_limit': ('episode', 'ageRaw', {parse_age_limit}),
+                'display_id': ('episode', 'name', {parse_age_limit}),
             }),
+            **traverse_obj(ld_json, {
+                'season': ('partOfSeason', 'name'),
+                'season_id': ('partOfSeason', '@id'),
+                'episode_id': ('@id', {str_or_none}),
+            }),
+            'title': title,
+            'season_number': season_number,
             'id': video_id,
-            'display_id': display_id,
             'channel': 'VRT',
             'formats': formats,
-            'duration': float_or_none(video_info.get('duration'), 1000),
-            'thumbnail': url_or_none(video_info.get('posterImageUrl')),
+            'duration': float_or_none(streaming_json.get('duration'), 1000),
+            'thumbnail': url_or_none(streaming_json.get('posterImageUrl')),
             'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
