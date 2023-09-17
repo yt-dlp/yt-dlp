@@ -37,9 +37,6 @@ class IndavideoEmbedIE(InfoExtractor):
     }, {
         'url': 'https://embed.indavideo.hu/player/video/1bdc3c6d80?autostart=1&hide=1',
         'only_matching': True,
-    }, {
-        'url': 'https://assets.indavideo.hu/swf/player.swf?v=fe25e500&vID=1bdc3c6d80&autostart=1&hide=1&i=1',
-        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://indavideo.hu/video/Vicces_cica_1',
@@ -75,13 +72,6 @@ class IndavideoEmbedIE(InfoExtractor):
             video_urls.extend(video_files.values())
 
         video_urls = list(set(video_urls))
-
-        video_prefix = video_urls[0].rsplit('/', 1)[0]
-
-        for flv_file in video.get('flv_files', []):
-            flv_url = '%s/%s' % (video_prefix, flv_file)
-            if flv_url not in video_urls:
-                video_urls.append(flv_url)
 
         filesh = video.get('filesh') or {}
 
