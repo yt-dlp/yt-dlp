@@ -83,7 +83,7 @@ class IndavideoEmbedIE(InfoExtractor):
             if flv_url not in video_urls:
                 video_urls.append(flv_url)
 
-        filesh = video.get('filesh')
+        filesh = video.get('filesh') or {}
 
         formats = []
         for video_url in video_urls:
