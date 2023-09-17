@@ -237,8 +237,11 @@ class VRTIE(VRTBaseIE):
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        return None
+    def http_error_302(self, req, fp, code, msg, headers):
+        result = urllib.error.HTTPError(req.get_full_url(), code, msg, headers, fp)
+        return result
+    http_error_301 = http_error_303 = http_error_307 = http_error_302
+
 
 
 class VrtNUIE(VRTBaseIE):
@@ -305,75 +308,81 @@ class VrtNUIE(VRTBaseIE):
     def _perform_login(self, username, password):
 
 
-        # 1. Get session cookies
-        # Using urllib directly to be able to grab all cookies while following redirect
         cookie_jar = CookieJar()
-        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
-        urllib.request.install_opener(opener)
-        res = urllib.request.urlopen('https://www.vrt.be/vrtnu/sso/login', None)
-        cookies_dict = {cookie.name: cookie.value for cookie in cookie_jar}
-        session_cookies = f'OIDCXSRF={cookies_dict["OIDCXSRF"]}; SESSION={cookies_dict["SESSION"]}'
 
-#         ytdlp_cookies = self._get_cookies('https://www.vrt.be')
-#         session_cookies = self._extract_cookies(res)
+        # Disable automatic redirection to be able to
+        # grab necessary info in intermediate step
+        opener= urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(cookie_jar))
+        urllib.request.install_opener(opener)
+
+        # 1.a Visit 'login' URL. Get 'authorize' location and 'oidcstate' cookie
+        res = urllib.request.urlopen('https://www.vrt.be/vrtnu/sso/login', None)
+        auth_url = res.headers.get_all('Location')[0]
 
         print("===================================")
+        print('login')
         print(res.status)
-
+        print(res.headers.get_all('Location')[0])
 #         for cookie in cookie_jar:
 #             print(f'{cookie.name}={cookie.value}')
-
-        print(cookies_dict)
         print("===================================")
 
+
+        # 1.b Follow redirection: visit 'authorize' URL. Get OIDCXSRF & SESSION cookies
+        res = urllib.request.urlopen(auth_url, None)
+        cookies_dict = {cookie.name: cookie.value for cookie in cookie_jar}
+        cookies_header = f'OIDCXSRF={cookies_dict["OIDCXSRF"]}; SESSION={cookies_dict["SESSION"]}'
+
+        print("===================================")
+        print('authorize')
+        print(res.status)
+        print(cookies_dict)
+        print("===================================")
+        
 #         sys.exit(0)
 
-        # 2. 
-        # ------
+        # 2. Perform login
         headers = {
                 'Content-Type': 'application/json',
-#                 'Oidcxsrf': f'{cookies_dict["OIDCXSRF"]}',
                 'Oidcxsrf': cookies_dict["OIDCXSRF"],
-                'Cookie': session_cookies
+                'Cookie': cookies_header
                 }
-#         sys.exit(0)
         post_data = { "loginID": f"{username}", "password": f"{password}", "clientId": "vrtnu-site" }
         res = self._request_webpage('https://login.vrt.be/perform_login', None, note='Performing login', errnote='Login failed', fatal=True, data=json.dumps(post_data).encode(), headers=headers)
 
         print("===================================")
+        print('perform_login')
         print(res.status)
         print("===================================")
 
 #         sys.exit(0)
 
-        # 3.
-        opener = urllib.request.build_opener(NoRedirect)
-        urllib.request.install_opener(opener)
+        # 3.a Visit 'authorize' again
         headers = {
                 'Host': 'login.vrt.be',
-                'Cookie': session_cookies,
+                'Cookie': cookies_header
                 }
-
-        query= {
-                'response_type': 'code',
-                'access_type': 'offline',
-                'client_id': 'vrtnu-site',
-                'scope': 'openid%20profile%20email%20address%20video%20accessibility%20subprofiles%20mid',
-                'redirect_uri': 'https%3A%2F%2Fwww.vrt.be%2Fvrtnu%2Fsso%2Fcallback',
-                'state': cookies_dict["oidcstate"],
-                'code_challenge': 'cxsSoHdwPdr0yY8AwHnwfDWRSnImhlCTo4lWgbz7few',
-                'code_challenge_method': 'S256'
-#                 'scope': urllib.parse.quote('openid profile email address video accessibility subprofiles mid')
-#                 'scope': 'openid profile email address video accessibility subprofiles mid'
-                }
-        request = urllib.request.Request('https://login.vrt.be/authorize?' + urllib.parse.urlencode(query), headers=headers)
+        request = urllib.request.Request(auth_url, headers=headers)
         res = urllib.request.urlopen(request, None)
-#         cookies_dict = {cookie.name: cookie.value for cookie in cookie_jar}
-#         res = self._request_webpage('https://login.vrt.be/authorize', None, fatal=True, headers=headers, query=query)
-#         tokens = self._extract_cookies(res)
+        callback_url = res.headers.get_all('Location')[0]
 
         print("===================================")
-        print('https://login.vrt.be/authorize?' + urllib.parse.urlencode(query))
+        print('authorize')
+        print(res.status)
+        print(res.headers.get_all('Location')[0])
+#         print(cookies_dict)
+#         print(json.dumps(tokens))
+        print("===================================")
+
+        # 3.b Visit 'callback'
+        headers = {
+                'Cookie': f'oidcstate={cookies_dict["oidcstate"]}'
+                }
+        request = urllib.request.Request(callback_url, headers=headers)
+        res = urllib.request.urlopen(request, None)
+
+        print("===================================")
+        print('callback')
         print(res.status)
         print(res.headers)
 #         print(cookies_dict)
