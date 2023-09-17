@@ -21,6 +21,9 @@ jobs:
           python-version: '3.7'
           run-tests-ext: bat
         - os: windows-latest
+          python-version: '3.12-dev'
+          run-tests-ext: bat
+        - os: windows-latest
           python-version: pypy-3.9
           run-tests-ext: bat
     steps:
