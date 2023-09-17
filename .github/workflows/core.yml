@@ -12,8 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        # CPython 3.11 is in quick-test
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.12-dev', pypy-3.7, pypy-3.8, pypy-3.9]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12-dev', pypy-3.7, pypy-3.8, pypy-3.9, pypy-3.10]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -21,7 +20,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install pytest
-      run: pip install pytest
+      run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: False
       run: |
