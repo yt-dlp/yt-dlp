@@ -33,7 +33,7 @@ class N1InfoAssetIE(InfoExtractor):
 
 class N1InfoIIE(InfoExtractor):
     IE_NAME = 'N1Info:article'
-    _VALID_URL = r'https?://(?:(?:\w+\.)?n1info\.\w+|nova\.rs)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:(?:\w+\.)?n1info\.\w+|nova\.rs)/(?:[^/?#]+/){1,2}(?P<id>[^/?#]+)'
     _TESTS = [{
         # Youtube embedded
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
@@ -127,7 +127,8 @@ class N1InfoIIE(InfoExtractor):
                     'timestamp': timestamp,
                     'thumbnail': self._html_search_meta('thumbnailURL', webpage),
                     'formats': self._extract_m3u8_formats(
-                        f'https://cdn-uc.brid.tv/live/partners/{site_id}/streaming/{video_id}/{video_id}.m3u8', video_id),
+                        f'https://cdn-uc.brid.tv/live/partners/{site_id}/streaming/{video_id}/{video_id}.m3u8',
+                        video_id, fatal=False),
                 })
         else:
             # Old player still present in older articles
@@ -141,8 +142,8 @@ class N1InfoIIE(InfoExtractor):
                     'title': title,
                     'thumbnail': video_data.get('data-thumbnail'),
                     'timestamp': timestamp,
-                    'ie_key': 'N1InfoAsset'}
-                )
+                    'ie_key': 'N1InfoAsset',
+                })
 
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for embedded_video in embedded_videos:
