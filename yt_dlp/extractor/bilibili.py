@@ -635,8 +635,8 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
-    def _get_entries(self, page_data, bvid_path=None):
-        for bvid in traverse_obj(page_data, bvid_path) or []:
+    def _get_entries(self, page_data, bvid_keys, ending_key='bvid'):
+        for bvid in traverse_obj(page_data, (*variadic(bvid_keys, (str, bytes, dict, set)), ..., ending_key, {str})):
             yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
 
     def _get_uploader(self, uid, playlist_id):
