@@ -5,13 +5,14 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    str_or_none,
-    url_or_none,
     mimetype2ext,
-    strip_jsonp,
-    urlencode_postdata,
     parse_resolution,
+    str_or_none,
+    strip_jsonp,
     traverse_obj,
+    url_or_none,
+    urlencode_postdata,
+    urljoin,
 )
 
 
