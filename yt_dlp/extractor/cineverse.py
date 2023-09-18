@@ -17,6 +17,7 @@ class CineverseIE(CineverseBaseIE):
     _VALID_URL = r'%s/watch/(?P<id>[A-Z0-9]+)' % CineverseBaseIE._VALID_URL_BASE
     _TESTS = [{
         'url': 'https://www.asiancrush.com/watch/DMR00018919/Women-Who-Flirt',
+        'skip': 'geo-blocked',
         'info_dict': {
             'title': 'Women Who Flirt',
             'ext': 'mp4',
@@ -29,6 +30,7 @@ class CineverseIE(CineverseBaseIE):
         }
     }, {
         'url': 'https://www.retrocrush.tv/watch/1000000023016/Archenemy! Crystal Bowie',
+        'skip': 'geo-blocked',
         'info_dict': {
             'title': 'Archenemy! Crystal Bowie',
             'ext': 'mp4',
