@@ -89,6 +89,8 @@ class WeiboBaseIE(InfoExtractor):
     def _parse_video_info(self, video_info, video_id=None):
         return {
             'id': video_id,
+            'extractor_key': WeiboIE.ie_key(),
+            'extractor': WeiboIE.IE_NAME,
             'formats': self._extract_formats(video_info),
             'http_headers': {'Referer': 'https://weibo.com/'},
             '_old_archive_ids': [make_archive_id('WeiboMobile', video_id)],
