@@ -139,7 +139,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -235,7 +235,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:afde2b7ba9025c01d9e3dde10de221e4',
             'duration': 313.557,
             'upload_date': '20220709',
-            'uploader': '小夫Tech',
+            'uploader': '小夫太渴',
             'timestamp': 1657347907,
             'uploader_id': '1326814124',
             'comment_count': int,
@@ -806,7 +806,7 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/watchlater/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/watchlater/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/watchlater/#/list',
         'info_dict': {'id': 'watchlater'},
@@ -825,7 +825,7 @@ class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/list/1958703906?sid=547718',
         'info_dict': {
@@ -928,7 +928,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
 class BilibiliCategoryIE(InfoExtractor):
     IE_NAME = 'Bilibili category extractor'
     _MAX_RESULTS = 1000000
-    _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
     _TESTS = [{
         'url': 'https://www.bilibili.com/v/kichiku/mad',
         'info_dict': {
