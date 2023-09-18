@@ -91,6 +91,7 @@ class WeiboBaseIE(InfoExtractor):
             'id': video_id,
             'formats': self._extract_formats(video_info),
             'http_headers': {'Referer': 'https://weibo.com/'},
+            '_old_archive_ids': [make_archive_id('WeiboMobile', video_id)],
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
