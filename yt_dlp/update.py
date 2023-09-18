@@ -7,19 +7,18 @@ import platform
 import re
 import subprocess
 import sys
-import urllib.error
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath, compat_shlex_quote
+from .networking import Request
+from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
-    network_exceptions,
     remove_end,
     remove_start,
-    sanitized_Request,
     shell_quote,
     system_identifier,
     version_tuple,
@@ -190,7 +189,7 @@ class Updater:
     def _get_version_info(self, tag):
         url = f'{API_BASE_URL}/{self._target_repo}/releases/{tag}'
         self.ydl.write_debug(f'Fetching release info: {url}')
-        return json.loads(self.ydl.urlopen(sanitized_Request(url, headers={
+        return json.loads(self.ydl.urlopen(Request(url, headers={
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'yt-dlp',
             'X-GitHub-Api-Version': '2022-11-28',
@@ -315,7 +314,7 @@ class Updater:
         try:
             newcontent = self._download(self.release_name, self._tag)
         except network_exceptions as e:
-            if isinstance(e, urllib.error.HTTPError) and e.code == 404:
+            if isinstance(e, HTTPError) and e.status == 404:
                 return self._report_error(
                     f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
             return self._report_network_error(f'fetch updates: {e}')

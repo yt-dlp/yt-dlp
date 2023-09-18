@@ -1,6 +1,7 @@
 import itertools
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
@@ -140,17 +141,15 @@ class MailRuIE(InfoExtractor):
                 'http://api.video.mail.ru/videos/%s.json?new=1' % video_id,
                 video_id, 'Downloading video JSON')
 
-        headers = {}
-
         video_key = self._get_cookies('https://my.mail.ru').get('video_key')
-        if video_key:
-            headers['Cookie'] = 'video_key=%s' % video_key.value
 
         formats = []
         for f in video_data['videos']:
             video_url = f.get('url')
             if not video_url:
                 continue
+            if video_key:
+                self._set_cookie(urllib.parse.urlparse(video_url).hostname, 'video_key', video_key.value)
             format_id = f.get('key')
             height = int_or_none(self._search_regex(
                 r'^(\d+)[pP]$', format_id, 'height', default=None)) if format_id else None
@@ -158,7 +157,6 @@ class MailRuIE(InfoExtractor):
                 'url': video_url,
                 'format_id': format_id,
                 'height': height,
-                'http_headers': headers,
             })
 
         meta_data = video_data['meta']

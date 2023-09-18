@@ -6,7 +6,8 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_str
+from ..compat import compat_str
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -83,7 +84,7 @@ class HotStarIE(HotStarBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?hotstar\.com(?:/in)?/(?!in/)
         (?:
-            (?P<type>movies|sports|episode|(?P<tv>tv|shows))/
+            (?P<type>movies|sports|clips|episode|(?P<tv>tv|shows))/
             (?(tv)(?:[^/?#]+/){2}|[^?#]*)
         )?
         [^/?#]+/
@@ -141,6 +142,51 @@ class HotStarIE(HotStarBaseIE):
             'duration': 1272,
             'channel_id': 3,
         },
+        'skip': 'HTTP Error 504: Gateway Time-out',  # XXX: Investigate 504 errors on some episodes
+    }, {
+        'url': 'https://www.hotstar.com/in/shows/kana-kaanum-kaalangal/1260097087/back-to-school/1260097320',
+        'info_dict': {
+            'id': '1260097320',
+            'ext': 'mp4',
+            'title': 'Back To School',
+            'season': 'Chapter 1',
+            'description': 'md5:b0d6a4c8a650681491e7405496fc7e13',
+            'timestamp': 1650564000,
+            'channel': 'Hotstar Specials',
+            'series': 'Kana Kaanum Kaalangal',
+            'season_number': 1,
+            'season_id': 9441,
+            'upload_date': '20220421',
+            'episode': 'Back To School',
+            'episode_number': 1,
+            'duration': 1810,
+            'channel_id': 54,
+        },
+    }, {
+        'url': 'https://www.hotstar.com/in/clips/e3-sairat-kahani-pyaar-ki/1000262286',
+        'info_dict': {
+            'id': '1000262286',
+            'ext': 'mp4',
+            'title': 'E3 - SaiRat, Kahani Pyaar Ki',
+            'description': 'md5:e3b4b3203bc0c5396fe7d0e4948a6385',
+            'episode': 'E3 - SaiRat, Kahani Pyaar Ki',
+            'upload_date': '20210606',
+            'timestamp': 1622943900,
+            'duration': 5395,
+        },
+    }, {
+        'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
+        'info_dict': {
+            'id': '1000091195',
+            'ext': 'mp4',
+            'title': 'Premam',
+            'release_year': 2015,
+            'description': 'md5:d833c654e4187b5e34757eafb5b72d7f',
+            'timestamp': 1462149000,
+            'upload_date': '20160502',
+            'episode': 'Premam',
+            'duration': 8994,
+        },
     }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
         'only_matching': True,
@@ -159,6 +205,7 @@ class HotStarIE(HotStarBaseIE):
         'episode': 'episode',
         'tv': 'episode',
         'shows': 'episode',
+        'clips': 'content',
         None: 'content',
     }
 
@@ -186,8 +233,10 @@ class HotStarIE(HotStarBaseIE):
         video_type = self._TYPE.get(video_type, video_type)
         cookies = self._get_cookies(url)  # Cookies before any request
 
-        video_data = self._call_api_v1(f'{video_type}/detail', video_id,
-                                       query={'tas': 10000, 'contentId': video_id})['body']['results']['item']
+        video_data = traverse_obj(
+            self._call_api_v1(
+                f'{video_type}/detail', video_id, fatal=False, query={'tas': 10000, 'contentId': video_id}),
+            ('body', 'results', 'item', {dict})) or {}
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
             self.report_drm(video_id)
 
@@ -233,7 +282,7 @@ class HotStarIE(HotStarBaseIE):
                         'height': int_or_none(playback_set.get('height')),
                     }]
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     geo_restricted = True
                 continue
 
@@ -272,6 +321,7 @@ class HotStarIE(HotStarBaseIE):
             'description': video_data.get('description'),
             'duration': int_or_none(video_data.get('duration')),
             'timestamp': int_or_none(traverse_obj(video_data, 'broadcastDate', 'startDate')),
+            'release_year': int_or_none(video_data.get('year')),
             'formats': formats,
             'subtitles': subs,
             'channel': video_data.get('channelName'),

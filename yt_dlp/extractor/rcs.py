@@ -1,9 +1,9 @@
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     base_url,
     clean_html,
     extract_attributes,

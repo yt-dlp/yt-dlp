@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import copy
 import json
 
-from test.helper import FakeYDL, assertRegexpMatches
+from test.helper import FakeYDL, assertRegexpMatches, try_rm
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_os_name
 from yt_dlp.extractor import YoutubeIE
@@ -24,6 +24,7 @@ from yt_dlp.utils import (
     int_or_none,
     match_filter_func,
 )
+from yt_dlp.utils.traversal import traverse_obj
 
 TEST_URL = 'http://localhost/sample.mp4'
 
@@ -684,7 +685,8 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s.%(ext)s', '1234.mp4')
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
-        test('%(playlist_index)s', '001')
+        test('%(playlist_index|)s', '001')
+        test('%(playlist_index&{}!)s', '1!')
         test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
@@ -829,6 +831,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id&hi {:>10} {}|)s', 'hi       1234 1234')
         test(R'%(id&{0} {}|)s', 'NA')
         test(R'%(id&{0.1}|)s', 'NA')
+        test('%(height&{:,d})S', '1,080')
 
         # Laziness
         def gen():
@@ -1212,6 +1215,129 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(downloaded['id'], '2')
         self.assertEqual(downloaded['extractor'], 'Video')
         self.assertEqual(downloaded['extractor_key'], 'Video')
+
+    def test_header_cookies(self):
+        from http.cookiejar import Cookie
+
+        ydl = FakeYDL()
+        ydl.report_warning = lambda *_, **__: None
+
+        def cookie(name, value, version=None, domain='', path='', secure=False, expires=None):
+            return Cookie(
+                version or 0, name, value, None, False,
+                domain, bool(domain), bool(domain), path, bool(path),
+                secure, expires, False, None, None, rest={})
+
+        _test_url = 'https://yt.dlp/test'
+
+        def test(encoded_cookies, cookies, *, headers=False, round_trip=None, error_re=None):
+            def _test():
+                ydl.cookiejar.clear()
+                ydl._load_cookies(encoded_cookies, autoscope=headers)
+                if headers:
+                    ydl._apply_header_cookies(_test_url)
+                data = {'url': _test_url}
+                ydl._calc_headers(data)
+                self.assertCountEqual(
+                    map(vars, ydl.cookiejar), map(vars, cookies),
+                    'Extracted cookiejar.Cookie is not the same')
+                if not headers:
+                    self.assertEqual(
+                        data.get('cookies'), round_trip or encoded_cookies,
+                        'Cookie is not the same as round trip')
+                ydl.__dict__['_YoutubeDL__header_cookies'] = []
+
+            with self.subTest(msg=encoded_cookies):
+                if not error_re:
+                    _test()
+                    return
+                with self.assertRaisesRegex(Exception, error_re):
+                    _test()
+
+        test('test=value; Domain=.yt.dlp', [cookie('test', 'value', domain='.yt.dlp')])
+        test('test=value', [cookie('test', 'value')], error_re=r'Unscoped cookies are not allowed')
+        test('cookie1=value1; Domain=.yt.dlp; Path=/test; cookie2=value2; Domain=.yt.dlp; Path=/', [
+            cookie('cookie1', 'value1', domain='.yt.dlp', path='/test'),
+            cookie('cookie2', 'value2', domain='.yt.dlp', path='/')])
+        test('test=value; Domain=.yt.dlp; Path=/test; Secure; Expires=9999999999', [
+            cookie('test', 'value', domain='.yt.dlp', path='/test', secure=True, expires=9999999999)])
+        test('test="value; "; path=/test; domain=.yt.dlp', [
+            cookie('test', 'value; ', domain='.yt.dlp', path='/test')],
+            round_trip='test="value\\073 "; Domain=.yt.dlp; Path=/test')
+        test('name=; Domain=.yt.dlp', [cookie('name', '', domain='.yt.dlp')],
+             round_trip='name=""; Domain=.yt.dlp')
+
+        test('test=value', [cookie('test', 'value', domain='.yt.dlp')], headers=True)
+        test('cookie1=value; Domain=.yt.dlp; cookie2=value', [], headers=True, error_re=r'Invalid syntax')
+        ydl.deprecated_feature = ydl.report_error
+        test('test=value', [], headers=True, error_re=r'Passing cookies as a header is a potential security risk')
+
+    def test_infojson_cookies(self):
+        TEST_FILE = 'test_infojson_cookies.info.json'
+        TEST_URL = 'https://example.com/example.mp4'
+        COOKIES = 'a=b; Domain=.example.com; c=d; Domain=.example.com'
+        COOKIE_HEADER = {'Cookie': 'a=b; c=d'}
+
+        ydl = FakeYDL()
+        ydl.process_info = lambda x: ydl._write_info_json('test', x, TEST_FILE)
+
+        def make_info(info_header_cookies=False, fmts_header_cookies=False, cookies_field=False):
+            fmt = {'url': TEST_URL}
+            if fmts_header_cookies:
+                fmt['http_headers'] = COOKIE_HEADER
+            if cookies_field:
+                fmt['cookies'] = COOKIES
+            return _make_result([fmt], http_headers=COOKIE_HEADER if info_header_cookies else None)
+
+        def test(initial_info, note):
+            result = {}
+            result['processed'] = ydl.process_ie_result(initial_info)
+            self.assertTrue(ydl.cookiejar.get_cookies_for_url(TEST_URL),
+                            msg=f'No cookies set in cookiejar after initial process when {note}')
+            ydl.cookiejar.clear()
+            with open(TEST_FILE) as infojson:
+                result['loaded'] = ydl.sanitize_info(json.load(infojson), True)
+            result['final'] = ydl.process_ie_result(result['loaded'].copy(), download=False)
+            self.assertTrue(ydl.cookiejar.get_cookies_for_url(TEST_URL),
+                            msg=f'No cookies set in cookiejar after final process when {note}')
+            ydl.cookiejar.clear()
+            for key in ('processed', 'loaded', 'final'):
+                info = result[key]
+                self.assertIsNone(
+                    traverse_obj(info, ((None, ('formats', 0)), 'http_headers', 'Cookie'), casesense=False, get_all=False),
+                    msg=f'Cookie header not removed in {key} result when {note}')
+                self.assertEqual(
+                    traverse_obj(info, ((None, ('formats', 0)), 'cookies'), get_all=False), COOKIES,
+                    msg=f'No cookies field found in {key} result when {note}')
+
+        test({'url': TEST_URL, 'http_headers': COOKIE_HEADER, 'id': '1', 'title': 'x'}, 'no formats field')
+        test(make_info(info_header_cookies=True), 'info_dict header cokies')
+        test(make_info(fmts_header_cookies=True), 'format header cookies')
+        test(make_info(info_header_cookies=True, fmts_header_cookies=True), 'info_dict and format header cookies')
+        test(make_info(info_header_cookies=True, fmts_header_cookies=True, cookies_field=True), 'all cookies fields')
+        test(make_info(cookies_field=True), 'cookies format field')
+        test({'url': TEST_URL, 'cookies': COOKIES, 'id': '1', 'title': 'x'}, 'info_dict cookies field only')
+
+        try_rm(TEST_FILE)
+
+    def test_add_headers_cookie(self):
+        def check_for_cookie_header(result):
+            return traverse_obj(result, ((None, ('formats', 0)), 'http_headers', 'Cookie'), casesense=False, get_all=False)
+
+        ydl = FakeYDL({'http_headers': {'Cookie': 'a=b'}})
+        ydl._apply_header_cookies(_make_result([])['webpage_url'])  # Scope to input webpage URL: .example.com
+
+        fmt = {'url': 'https://example.com/video.mp4'}
+        result = ydl.process_ie_result(_make_result([fmt]), download=False)
+        self.assertIsNone(check_for_cookie_header(result), msg='http_headers cookies in result info_dict')
+        self.assertEqual(result.get('cookies'), 'a=b; Domain=.example.com', msg='No cookies were set in cookies field')
+        self.assertIn('a=b', ydl.cookiejar.get_cookie_header(fmt['url']), msg='No cookies were set in cookiejar')
+
+        fmt = {'url': 'https://wrong.com/video.mp4'}
+        result = ydl.process_ie_result(_make_result([fmt]), download=False)
+        self.assertIsNone(check_for_cookie_header(result), msg='http_headers cookies for wrong domain')
+        self.assertFalse(result.get('cookies'), msg='Cookies set in cookies field for wrong domain')
+        self.assertFalse(ydl.cookiejar.get_cookie_header(fmt['url']), msg='Cookies set in cookiejar for wrong domain')
 
 
 if __name__ == '__main__':
