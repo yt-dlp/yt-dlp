@@ -178,6 +178,22 @@ class CBCPlayerIE(InfoExtractor):
             'thumbnail': 'http://thumbnails.cbc.ca/maven_legacy/thumbnails/sonali-karnick-220.jpg',
             'chapters': [],
             'duration': 494.811,
+            'author': '',
+            'categories': {
+                'name': 'AudioMobile/All in a Weekend Montreal',
+            },
+            'tags': [
+                'CBC',
+                'CBC Radio',
+                'Montreal',
+                'Quebec',
+                'All In A Weekend',
+                'Sonali Karnick',
+                'hackathon',
+                'listenmontreal',
+            ],
+            'location': 'Quebec',
+            'series': 'All in a Weekend Montreal',
         },
     }, {
         'url': 'http://www.cbc.ca/player/play/2164402062',
