@@ -14,20 +14,21 @@ from ..utils import (
 class PornboxIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?pornbox\.com/application/watch-page/(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'https://pornbox.com/application/watch-page/426095',
-        'md5': '0cc35f4d4300bc8e0496aef2a9ec20b9',
+        'url': 'https://pornbox.com/application/watch-page/212108',
+        'md5': '3ff6b6e206f263be4c5e987a3162ac6e',
         'info_dict': {
-            'id': '426095',
+            'id': '212108',
             'ext': 'mp4',
-            'title': 'md5:96b05922d74be2be939cf247294f26bd',
-            'uploader': 'Giorgio Grandi',
-            'timestamp': 1686088800,
-            'upload_date': '20230606',
+            'title': 'md5:ececc5c6e6c9dd35d290c45fed05fd49',
+            'uploader': 'Lily Strong',
+            'timestamp': 1665871200,
+            'upload_date': '20221015',
             'age_limit': 18,
             'availability': 'needs_auth',
-            'duration': 1767,
-            'cast': ['Tina Kay', 'Neeo', 'Mr. Anderson', 'Thomas Lee', 'Brian Ragnastone', 'Rycky Optimal'],
-            'tags': 'count:37',
+            'duration': 1505,
+            'cast': ['Lily Strong', 'John Strong'],
+            'tags': 'count:11',
+            'description': 'md5:589c7f33e183aa8aa939537300efb859',
             'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$'
         }
     }, {
