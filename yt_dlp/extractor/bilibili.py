@@ -822,7 +822,7 @@ class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
             'https://api.bilibili.com/x/v2/history/toview/web?jsonp=jsonp', list_id)
         if watchlater_info['code'] == -101:
             self.raise_login_required(msg='You need to login to access your watchlater list')
-        entries = self._get_entries(watchlater_info, ('data', 'list', ..., 'bvid', {str}))
+        entries = self._get_entries(watchlater_info, ('data', 'list'))
         return self.playlist_result(entries, id=list_id, title='稍后再看')
 
 
