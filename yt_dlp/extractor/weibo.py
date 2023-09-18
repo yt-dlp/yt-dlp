@@ -53,8 +53,8 @@ class WeiboBaseIE(InfoExtractor):
         formats = traverse_obj(media_info, (
             'playback_list', lambda _, v: url_or_none(v['play_info']['url']), 'play_info', {
                 'url': 'url',
-                'format': ('quality_desc', {str_or_none}),
-                'format_id': ('label', {str_or_none}),
+                'format': ('quality_desc', {str}),
+                'format_id': ('label', {str}),
                 'ext': ('mime', {mimetype2ext}),
                 'tbr': ('bitrate', {int_or_none}, {lambda x: x or None}),
                 'vcodec': ('video_codecs', {str}),
