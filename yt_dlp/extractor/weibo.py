@@ -77,7 +77,7 @@ class WeiboBaseIE(InfoExtractor):
                         'format_id': format_id,
                         **parse_resolution(resolution),
                         **traverse_obj(media_info, (
-                            'video_details', lambda _, i: i.get('label', '').startswith(format_id), {
+                            'video_details', lambda _, v: v['label'].startswith(format_id), {
                                 'size': ('size', {int_or_none}),
                                 'tbr': ('bitrate', {int_or_none}),
                             }
@@ -97,12 +97,10 @@ class WeiboBaseIE(InfoExtractor):
                 'description': ('text_raw', {str}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
-                'thumbnails': (
-                    'page_info', 'page_pic', {url_or_none},
-                    {lambda i: [{'url': i, 'http_headers': {'Referer': 'https://weibo.com/'}}] if i else None}),
-                'uploader': ('user', 'screen_name', {str_or_none}),
+                'thumbnail': ('page_info', 'page_pic', {url_or_none}),
+                'uploader': ('user', 'screen_name', {str}),
                 'uploader_id': ('user', ('id', 'id_str'), {str_or_none}),
-                'uploader_url': ('user', 'profile_url', {lambda i: f'https://weibo.com{i}' if i else None}),
+                'uploader_url': ('user', 'profile_url', {lambda x: urljoin('https://weibo.com/', x)}),
                 'view_count': ('page_info', 'media_info', 'online_users_number', {int_or_none}),
                 'like_count': ('attitudes_count', {int_or_none}),
                 'repost_count': ('reposts_count', {int_or_none}),
@@ -112,7 +110,7 @@ class WeiboBaseIE(InfoExtractor):
 
 
 class WeiboIE(WeiboBaseIE):
-    _VALID_URL = r'https?://(?:m\.weibo\.cn/status|(?:www\.)?weibo\.com/[0-9]+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:m\.weibo\.cn/status|(?:www\.)?weibo\.com/\d+)/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'https://weibo.com/7827771738/N4xlMvjhI',
         'info_dict': {
