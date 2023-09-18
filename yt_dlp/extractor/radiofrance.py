@@ -78,6 +78,12 @@ class RadioFranceBaseIE(InfoExtractor):
         'mouv',
     )))
 
+    def _extract_data_from_webpage(self, webpage, display_id, key):
+        return traverse_obj(self._search_json(
+            r'\bconst\s+data\s*=', webpage, key, display_id,
+            contains_pattern=r'(\[\{.*?\}\]);', transform_source=js_to_json),
+            (..., 'data', key, {dict}), get_all=False) or {}
+
 
 class FranceCultureIE(RadioFranceBaseIE):
     _VALID_URL = rf'''(?x)
@@ -230,11 +236,7 @@ class RadioFranceLiveIE(RadioFranceBaseIE):
 
         if substation_id:
             webpage = self._download_webpage(url, station_id)
-
-            api_response = traverse_obj(self._search_json(
-                r'\bconst\s+data\s*=', webpage, 'substation data', station_id,
-                contains_pattern=r'(\[\{.*?\}\]);', transform_source=js_to_json),
-                (..., 'data', 'webRadioData', {dict}), get_all=False) or {}
+            api_response = self._extract_data_from_webpage(webpage, station_id, 'webRadioData')
         else:
             api_response = self._download_json(
                 f'https://www.radiofrance.fr/{station_id}/api/live', station_id)
@@ -465,11 +467,7 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
     def _real_extract(self, url):
         station, date = self._match_valid_url(url).group('station', 'date')
         webpage = self._download_webpage(url, station)
-
-        grid_data = traverse_obj(self._search_json(
-            r'\bconst\s+data\s*=', webpage, 'substation data', station,
-            contains_pattern=r'(\[\{.*?\}\]);', transform_source=js_to_json),
-            (..., 'data', 'grid', {dict}), get_all=False)
+        grid_data = self._extract_data_from_webpage(webpage, station, 'grid')
 
         upload_date = strftime_or_none(grid_data.get('date'), '%Y%m%d')
         return self.playlist_result(
