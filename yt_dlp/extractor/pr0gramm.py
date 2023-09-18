@@ -1,7 +1,10 @@
+import json
 from datetime import date
+from urllib.parse import unquote
 
 from .common import InfoExtractor
-from ..utils import urljoin
+from ..compat import functools
+from ..utils import ExtractorError, urljoin
 from ..utils.traversal import traverse_obj
 
 
@@ -46,23 +49,65 @@ class Pr0grammIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    API_URL = 'https://pr0gramm.com/api/items/get'
+    BASE_URL = 'https://pr0gramm.com'
+    API_URL = 'https://pr0gramm.com/api/items'
     VIDEO_URL = 'https://img.pr0gramm.com'
     THUMB_URL = 'https://thumb.pr0gramm.com'
 
+    @functools.cached_property
+    def _is_logged_in(self):
+        return 'pp' in self._get_cookies(self.BASE_URL)
+
+    @functools.cached_property
+    def _maximum_flags(self):
+        # We need to guess the flags for the content otherwise the api will raise an error
+        # We can guess the maximum allowed flags for the account from the cookies
+        # Bitflags are (msbf): nsfp, nsfl, nsfw, sfw
+        flags = 0b0001
+        if self._is_logged_in:
+            flags |= 0b1000
+            cookies = self._get_cookies(self.BASE_URL)
+            if 'me' not in cookies:
+                self._download_webpage(self.BASE_URL, None, 'Refreshing verification information')
+            if traverse_obj(cookies, ('me', {lambda x: x.value}, {unquote}, {json.loads}, 'verified')):
+                flags |= 0b0110
+
+        return flags
+
+    def _call_api(self, endpoint, video_id, query={}, note='Downloading API json'):
+        data = self._download_json(f'{self.API_URL}/{endpoint}', video_id, query=query, note=note)
+        error = traverse_obj(data, ('error', {str}))
+        if error:
+            if error in ('nsfwRequired', 'nsflRequired', 'nsfpRequired'):
+                if self._is_logged_in:  # should only trigger for 'nsfwRequired', 'nsflRequired'
+                    raise ExtractorError(f'Unverified account cannot access NSFW/NSFL', expected=True)
+                else:
+                    self.raise_login_required(method='cookies')
+            raise ExtractorError(f'API returned: {error}', expected=True)
+
+        return data
+
     def _real_extract(self, url):
-        original_id = self._match_id(url)
-        video_id = int(original_id)
+        video_id = self._match_id(url)
         video_info = traverse_obj(
-            self._download_json(self.API_URL, video_id, query={'id': video_id}),
-            ('items', lambda _, v: v['id'] == video_id, {dict}), get_all=False) or {}
+            self._call_api('get', video_id, {'id': video_id, 'flags': self._maximum_flags}),
+            ('items', 0, {dict}))
 
         source = urljoin(self.VIDEO_URL, video_info.get('image'))
         if not source or not source.endswith('mp4'):
             self.raise_no_formats('Could not extract a video', expected=bool(source), video_id=video_id)
 
+        tags = None
+        if self._is_logged_in:
+            metadata = self._call_api('info', video_id, {'itemId': video_id})
+            tags = traverse_obj(metadata, ('tags', ..., 'tag', {str}))
+            # Sorted by "confidence", higher confidence = earlier in list
+            confidences = traverse_obj(metadata, ('tags', ..., 'confidence', ({int}, {float})))
+            if confidences:
+                tags = [tag for _, tag in sorted(zip(confidences, tags), reverse=True)]
+
         return {
-            'id': original_id,
+            'id': video_id,
             'title': f'pr0gramm-{video_id} by {video_info.get("user")}',
             'formats': [{
                 'url': source,
@@ -72,6 +117,8 @@ class Pr0grammIE(InfoExtractor):
                     'height': ('height', {int}),
                 }),
             }],
+            'tags': tags,
+            'age_limit': 18 if traverse_obj(video_info, ('flags', {0b110.__and__})) else 0,
             **traverse_obj(video_info, {
                 'uploader': ('user', {str}),
                 'uploader_id': ('userId', {int}),
