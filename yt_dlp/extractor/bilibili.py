@@ -694,7 +694,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
             }
 
         def get_entries(page_data):
-            return self._get_entries(page_data, ('archives', ..., 'bvid', {str}))
+            return self._get_entries(page_data, 'archives')
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, **metadata)
