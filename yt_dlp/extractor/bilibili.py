@@ -724,8 +724,8 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
         playlist_meta = traverse_obj(self._download_json(
             f'https://api.bilibili.com/x/series/series?series_id={sid}', playlist_id, fatal=False
         ), {
-            'title': ('data', 'meta', 'name', {str_or_none}),
-            'description': ('data', 'meta', 'description', {str_or_none}),
+            'title': ('data', 'meta', 'name', {str}),
+            'description': ('data', 'meta', 'description', {str}),
             'uploader_id': ('data', 'meta', 'mid', {str_or_none}),
             'timestamp': ('data', 'meta', 'ctime', {int_or_none}),
             'modified_timestamp': ('data', 'meta', 'mtime', {int_or_none}),
