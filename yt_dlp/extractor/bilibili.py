@@ -15,6 +15,7 @@ from ..utils import (
     GeoRestrictedError,
     InAdvancePagedList,
     OnDemandPagedList,
+    bool_or_none,
     filter_dict,
     float_or_none,
     format_field,
@@ -35,6 +36,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
+    variadic,
 )
 
 
@@ -156,7 +158,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -252,7 +254,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:afde2b7ba9025c01d9e3dde10de221e4',
             'duration': 313.557,
             'upload_date': '20220709',
-            'uploader': '小夫Tech',
+            'uploader': '小夫太渴',
             'timestamp': 1657347907,
             'uploader_id': '1326814124',
             'comment_count': int,
@@ -509,7 +511,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
 
 class BiliBiliBangumiMediaIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/bangumi/media/md(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/media/md(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/media/md24097891',
         'info_dict': {
@@ -528,7 +530,7 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
 
 
 class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
-    _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/ss(?P<id>\d+)'
+    _VALID_URL = r'(?x)https?://(?:www\.)?bilibili\.com/bangumi/play/ss(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/play/ss26801',
         'info_dict': {
@@ -679,13 +681,35 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
         return self.playlist_result(paged_list, playlist_id)
 
 
-class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail\?sid=(?P<sid>\d+)'
+class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
+    def _get_entries(self, page_data, bvid_keys, ending_key='bvid'):
+        for bvid in traverse_obj(page_data, (*variadic(bvid_keys, (str, bytes, dict, set)), ..., ending_key, {str})):
+            yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
+
+    def _get_uploader(self, uid, playlist_id):
+        webpage = self._download_webpage(f'https://space.bilibili.com/{uid}', playlist_id, fatal=False)
+        return self._search_regex(r'(?s)<title\b[^>]*>([^<]+)的个人空间-', webpage, 'uploader', fatal=False)
+
+    def _extract_playlist(self, fetch_page, get_metadata, get_entries):
+        metadata, page_list = super()._extract_playlist(fetch_page, get_metadata, get_entries)
+        metadata.pop('page_count', None)
+        metadata.pop('page_size', None)
+        return metadata, page_list
+
+
+class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'info_dict': {
             'id': '2142762_57445',
-            'title': '《底特律 变人》'
+            'title': '【完结】《底特律 变人》全结局流程解说',
+            'description': '',
+            'uploader': '老戴在此',
+            'uploader_id': '2142762',
+            'timestamp': int,
+            'upload_date': str,
+            'thumbnail': 'https://archive.biliimg.com/bfs/archive/e0e543ae35ad3df863ea7dea526bc32e70f4c091.jpg',
         },
         'playlist_mincount': 31,
     }]
@@ -706,22 +730,251 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'title': traverse_obj(page_data, ('meta', 'name'))
+                'uploader': self._get_uploader(mid, playlist_id),
+                **traverse_obj(page_data, {
+                    'title': ('meta', 'name', {str}),
+                    'description': ('meta', 'description', {str}),
+                    'uploader_id': ('meta', 'mid', {str_or_none}),
+                    'timestamp': ('meta', 'ptime', {int_or_none}),
+                    'thumbnail': ('meta', 'cover', {url_or_none}),
+                })
             }
 
         def get_entries(page_data):
-            for entry in page_data.get('archives', []):
-                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
-                                      BiliBiliIE, entry['bvid'])
+            return self._get_entries(page_data, 'archives')
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
-        return self.playlist_result(paged_list, playlist_id, metadata['title'])
+        return self.playlist_result(paged_list, playlist_id, **metadata)
+
+
+class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/1958703906/channel/seriesdetail?sid=547718&ctype=0',
+        'info_dict': {
+            'id': '1958703906_547718',
+            'title': '直播回放',
+            'description': '直播回放',
+            'uploader': '靡烟miya',
+            'uploader_id': '1958703906',
+            'timestamp': 1637985853,
+            'upload_date': '20211127',
+            'modified_timestamp': int,
+            'modified_date': str,
+        },
+        'playlist_mincount': 513,
+    }]
+
+    def _real_extract(self, url):
+        mid, sid = self._match_valid_url(url).group('mid', 'sid')
+        playlist_id = f'{mid}_{sid}'
+        playlist_meta = traverse_obj(self._download_json(
+            f'https://api.bilibili.com/x/series/series?series_id={sid}', playlist_id, fatal=False
+        ), {
+            'title': ('data', 'meta', 'name', {str}),
+            'description': ('data', 'meta', 'description', {str}),
+            'uploader_id': ('data', 'meta', 'mid', {str_or_none}),
+            'timestamp': ('data', 'meta', 'ctime', {int_or_none}),
+            'modified_timestamp': ('data', 'meta', 'mtime', {int_or_none}),
+        })
+
+        def fetch_page(page_idx):
+            return self._download_json(
+                'https://api.bilibili.com/x/series/archives',
+                playlist_id, note=f'Downloading page {page_idx}',
+                query={'mid': mid, 'series_id': sid, 'pn': page_idx + 1, 'ps': 30})['data']
+
+        def get_metadata(page_data):
+            page_size = page_data['page']['size']
+            entry_count = page_data['page']['total']
+            return {
+                'page_count': math.ceil(entry_count / page_size),
+                'page_size': page_size,
+                'uploader': self._get_uploader(mid, playlist_id),
+                **playlist_meta
+            }
+
+        def get_entries(page_data):
+            return self._get_entries(page_data, 'archives')
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, playlist_id, **metadata)
+
+
+class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://(?:space\.bilibili\.com/\d+/favlist/?\?fid=|(?:www\.)?bilibili\.com/medialist/detail/ml)(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/84912/favlist?fid=1103407912&ftype=create',
+        'info_dict': {
+            'id': '1103407912',
+            'title': '【V2】（旧）',
+            'description': '',
+            'uploader': '晓月春日',
+            'uploader_id': '84912',
+            'timestamp': 1604905176,
+            'upload_date': '20201109',
+            'modified_timestamp': int,
+            'modified_date': str,
+            'thumbnail': r"re:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg",
+            'view_count': int,
+            'like_count': int,
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/detail/ml1103407912',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        fid = self._match_id(url)
+
+        list_info = self._download_json(
+            f'https://api.bilibili.com/x/v3/fav/resource/list?media_id={fid}&pn=1&ps=20',
+            fid, note='Downloading favlist metadata')
+        if list_info['code'] == -403:
+            self.raise_login_required(msg='This is a private favorites list. You need to log in as its owner')
+
+        entries = self._get_entries(self._download_json(
+            f'https://api.bilibili.com/x/v3/fav/resource/ids?media_id={fid}',
+            fid, note='Download favlist entries'), 'data')
+
+        return self.playlist_result(entries, fid, **traverse_obj(list_info, ('data', 'info', {
+            'title': ('title', {str}),
+            'description': ('intro', {str}),
+            'uploader': ('upper', 'name', {str}),
+            'uploader_id': ('upper', 'mid', {str_or_none}),
+            'timestamp': ('ctime', {int_or_none}),
+            'modified_timestamp': ('mtime', {int_or_none}),
+            'thumbnail': ('cover', {url_or_none}),
+            'view_count': ('cnt_info', 'play', {int_or_none}),
+            'like_count': ('cnt_info', 'thumb_up', {int_or_none}),
+        })))
+
+
+class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/watchlater/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/watchlater/#/list',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }]
+
+    def _real_extract(self, url):
+        list_id = getattr(self._get_cookies(url).get('DedeUserID'), 'value', 'watchlater')
+        watchlater_info = self._download_json(
+            'https://api.bilibili.com/x/v2/history/toview/web?jsonp=jsonp', list_id)
+        if watchlater_info['code'] == -101:
+            self.raise_login_required(msg='You need to login to access your watchlater list')
+        entries = self._get_entries(watchlater_info, ('data', 'list'))
+        return self.playlist_result(entries, id=list_id, title='稍后再看')
+
+
+class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/list/1958703906?sid=547718',
+        'info_dict': {
+            'id': '5_547718',
+            'title': '直播回放',
+            'uploader': '靡烟miya',
+            'uploader_id': '1958703906',
+            'timestamp': 1637985853,
+            'upload_date': '20211127',
+        },
+        'playlist_mincount': 513,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/1958703906?business=space_series&business_id=547718&desc=1',
+        'info_dict': {
+            'id': '5_547718',
+        },
+        'playlist_mincount': 513,
+        'skip': 'redirect url',
+    }, {
+        'url': 'https://www.bilibili.com/list/ml1103407912',
+        'info_dict': {
+            'id': '3_1103407912',
+            'title': '【V2】（旧）',
+            'uploader': '晓月春日',
+            'uploader_id': '84912',
+            'timestamp': 1604905176,
+            'upload_date': '20201109',
+            'thumbnail': r"re:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg",
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/ml1103407912',
+        'info_dict': {
+            'id': '3_1103407912',
+        },
+        'playlist_mincount': 22,
+        'skip': 'redirect url',
+    }, {
+        'url': 'https://www.bilibili.com/list/watchlater',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/watchlater',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }]
+
+    def _extract_medialist(self, query, list_id):
+        for page_num in itertools.count(1):
+            page_data = self._download_json(
+                'https://api.bilibili.com/x/v2/medialist/resource/list',
+                list_id, query=query, note=f'getting playlist {query["biz_id"]} page {page_num}'
+            )['data']
+            yield from self._get_entries(page_data, 'media_list', ending_key='bv_id')
+            query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
+            if not page_data.get('has_more', False):
+                break
+
+    def _real_extract(self, url):
+        list_id = self._match_id(url)
+        webpage = self._download_webpage(url, list_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', list_id)
+        if traverse_obj(initial_state, ('error', 'code', {int_or_none})) != 200:
+            error_code = traverse_obj(initial_state, ('error', 'trueCode', {int_or_none}))
+            error_message = traverse_obj(initial_state, ('error', 'message', {str_or_none}))
+            if error_code == -400 and list_id == 'watchlater':
+                self.raise_login_required('You need to login to access your watchlater playlist')
+            elif error_code == -403:
+                self.raise_login_required('This is a private playlist. You need to login as its owner')
+            elif error_code == 11010:
+                raise ExtractorError('Playlist is no longer available', expected=True)
+            raise ExtractorError(f'Could not access playlist: {error_code} {error_message}')
+
+        query = {
+            'ps': 20,
+            'with_current': False,
+            **traverse_obj(initial_state, {
+                'type': ('playlist', 'type', {int_or_none}),
+                'biz_id': ('playlist', 'id', {int_or_none}),
+                'tid': ('tid', {int_or_none}),
+                'sort_field': ('sortFiled', {int_or_none}),
+                'desc': ('desc', {bool_or_none}, {str_or_none}, {str.lower}),
+            })
+        }
+        metadata = {
+            'id': f'{query["type"]}_{query["biz_id"]}',
+            **traverse_obj(initial_state, ('mediaListInfo', {
+                'title': ('title', {str}),
+                'uploader': ('upper', 'name', {str}),
+                'uploader_id': ('upper', 'mid', {str_or_none}),
+                'timestamp': ('ctime', {int_or_none}),
+                'thumbnail': ('cover', {url_or_none}),
+            })),
+        }
+        return self.playlist_result(self._extract_medialist(query, list_id), **metadata)
 
 
 class BilibiliCategoryIE(InfoExtractor):
     IE_NAME = 'Bilibili category extractor'
     _MAX_RESULTS = 1000000
-    _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
     _TESTS = [{
         'url': 'https://www.bilibili.com/v/kichiku/mad',
         'info_dict': {
@@ -1406,7 +1659,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
 
 class BiliLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://live.bilibili.com/(?:blanc/)?(?P<id>\d+)'
+    _VALID_URL = r'https?://live\.bilibili\.com/(?:blanc/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://live.bilibili.com/196',
