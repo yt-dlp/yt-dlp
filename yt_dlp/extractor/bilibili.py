@@ -34,6 +34,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
+    variadic,
 )
 
 
