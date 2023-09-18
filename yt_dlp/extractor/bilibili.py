@@ -651,7 +651,7 @@ class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
 
 
 class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'info_dict': {
