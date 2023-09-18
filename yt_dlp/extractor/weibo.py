@@ -68,7 +68,7 @@ class WeiboBaseIE(InfoExtractor):
         formats = [i for i in formats if i.get('url')]
         if not formats:  # fallback, should be barely used
             for url in set(traverse_obj(media_info, (..., {url_or_none}))):
-                if 'label=' in url:
+                if 'label=' in url:  # filter out non-video urls
                     format_id, resolution = self._search_regex(
                         r'label=(\w+)&template=(\d+x\d+)', url, 'format info',
                         group=(1, 2), default=(None, None))
