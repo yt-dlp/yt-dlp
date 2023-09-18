@@ -917,8 +917,8 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
         metadata = {
             'id': f'{query["type"]}_{query["biz_id"]}',
             **traverse_obj(initial_state, ('mediaListInfo', {
-                'title': ('title', {str_or_none}),
-                'uploader': ('upper', 'name', {str_or_none}),
+                'title': ('title', {str}),
+                'uploader': ('upper', 'name', {str}),
                 'uploader_id': ('upper', 'mid', {str_or_none}),
                 'timestamp': ('ctime', {int_or_none}),
                 'thumbnail': ('cover', {url_or_none}),
