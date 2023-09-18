@@ -909,7 +909,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
                 'biz_id': ('playlist', 'id', {int_or_none}),
                 'tid': ('tid', {int_or_none}),
                 'sort_field': ('sortFiled', {int_or_none}),
-                'desc': ('desc', {bool_or_none}),
+                'desc': ('desc', {bool_or_none}, {str_or_none}, {str.lower}),
             })
         }
         metadata = {
