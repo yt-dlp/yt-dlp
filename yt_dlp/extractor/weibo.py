@@ -219,7 +219,7 @@ class WeiboUserIE(WeiboBaseIE):
             query={'uid': uid, 'cursor': cursor})['data']
 
     def _entries(self, uid, first_page):
-        cursor = 0 
+        cursor = 0
         for page in itertools.count(1):
             response = first_page if page == 1 else self._fetch_page(uid, cursor, page)
             for video_info in traverse_obj(response, ('list', ..., {dict})):
@@ -231,10 +231,11 @@ class WeiboUserIE(WeiboBaseIE):
     def _real_extract(self, url):
         uid = self._match_id(url)
         first_page = self._fetch_page(uid)
+        uploader = traverse_obj(first_page, ('list', ..., 'user', 'screen_name', {str}), get_all=False)
+        metainfo = {
+            'title': f'{uploader}的视频',
+            'description': f'{uploader}的全部视频',
+            'uploader': uploader,
+        }
 
-        return self.playlist_result(
-            self._entries(uid, first_page), uid, **traverse_obj(first_page, {
-                'title': ('uploader', {lambda i: f'{i}的视频' if i else None}),
-                'description': ('uploader', {lambda i: f'{i}的全部视频' if i else None}),
-                'uploader': 'uploader',
-            }))
+        return self.playlist_result(self._entries(uid, first_page), uid, **metainfo)
