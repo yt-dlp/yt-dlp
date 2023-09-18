@@ -4,6 +4,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
     join_nonempty,
     js_to_json,
     parse_duration,
@@ -276,7 +277,7 @@ class RadioFrancePlaylistBase(RadioFranceBaseIE):
                     f'https://www.radiofrance.fr/{entry["path"]}', url_transparent=True, **traverse_obj(entry, {
                         'title': 'title',
                         'description': 'standFirst',
-                        'timestamp': 'publishedDate',
+                        'timestamp': ('publishedDate', {int_or_none}),
                         'thumbnail': ('visual', 'src'),
                     }))
 
@@ -450,16 +451,13 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
     }]
 
     def _generate_playlist_entries(self, webpage_url, api_response):
-        for entry in api_response['steps']:
-            path = traverse_obj(entry, ('expression', 'path'))
-            if path is None:
-                continue
-
+        for entry in traverse_obj(api_response, ('steps', lambda _, v: v['expression']['path'])):
             yield self.url_result(
-                urljoin(webpage_url, f'/{path}'), ie=FranceCultureIE, url_transparent=True, **traverse_obj(entry, {
+                urljoin(webpage_url, f'/{entry["expression"]["path"]}'), ie=FranceCultureIE,
+                url_transparent=True, **traverse_obj(entry, {
                     'title': ('expression', 'title'),
                     'thumbnail': ('expression', 'visual', 'src'),
-                    'timestamp': 'startTime',
+                    'timestamp': ('startTime', {int_or_none}),
                     'series_id': ('concept', 'id'),
                     'series': ('concept', 'title'),
                 }))
@@ -468,8 +466,8 @@ class RadioFranceProgramScheduleIE(RadioFranceBaseIE):
         station, date = self._match_valid_url(url).group('station', 'date')
         webpage = self._download_webpage(url, station)
         grid_data = self._extract_data_from_webpage(webpage, station, 'grid')
-
         upload_date = strftime_or_none(grid_data.get('date'), '%Y%m%d')
+
         return self.playlist_result(
             self._generate_playlist_entries(url, grid_data),
             join_nonempty(station, 'program', upload_date), upload_date=upload_date)
