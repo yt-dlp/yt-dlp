@@ -709,7 +709,7 @@ class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
             'uploader_id': '2142762',
             'timestamp': int,
             'upload_date': str,
-            'thumbnail': "https://archive.biliimg.com/bfs/archive/e0e543ae35ad3df863ea7dea526bc32e70f4c091.jpg",
+            'thumbnail': 'https://archive.biliimg.com/bfs/archive/e0e543ae35ad3df863ea7dea526bc32e70f4c091.jpg',
         },
         'playlist_mincount': 31,
     }]
