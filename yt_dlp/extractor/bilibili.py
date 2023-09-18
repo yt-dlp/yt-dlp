@@ -795,9 +795,9 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
         )
 
         return self.playlist_result(entries, fid, **traverse_obj(list_info, ('data', 'info', {
-            'title': ('title', {str_or_none}),
-            'description': ('intro', {str_or_none}),
-            'uploader': ('upper', 'name', {str_or_none}),
+            'title': ('title', {str}),
+            'description': ('intro', {str}),
+            'uploader': ('upper', 'name', {str}),
             'uploader_id': ('upper', 'mid', {str_or_none}),
             'timestamp': ('ctime', {int_or_none}),
             'modified_timestamp': ('mtime', {int_or_none}),
