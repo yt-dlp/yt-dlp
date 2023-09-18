@@ -23,6 +23,7 @@ from urllib.request import (
 from ._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
+    create_connection,
     get_redirect_method,
     make_socks_proxy_opts,
     select_proxy,
@@ -54,44 +55,10 @@ if brotli:
 def _create_http_connection(http_class, source_address, *args, **kwargs):
     hc = http_class(*args, **kwargs)
 
+    if hasattr(hc, '_create_connection'):
+        hc._create_connection = create_connection
+
     if source_address is not None:
-        # This is to workaround _create_connection() from socket where it will try all
-        # address data from getaddrinfo() including IPv6. This filters the result from
-        # getaddrinfo() based on the source_address value.
-        # This is based on the cpython socket.create_connection() function.
-        # https://github.com/python/cpython/blob/master/Lib/socket.py#L691
-        def _create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
-            host, port = address
-            err = None
-            addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
-            af = socket.AF_INET if '.' in source_address[0] else socket.AF_INET6
-            ip_addrs = [addr for addr in addrs if addr[0] == af]
-            if addrs and not ip_addrs:
-                ip_version = 'v4' if af == socket.AF_INET else 'v6'
-                raise OSError(
-                    "No remote IP%s addresses available for connect, can't use '%s' as source address"
-                    % (ip_version, source_address[0]))
-            for res in ip_addrs:
-                af, socktype, proto, canonname, sa = res
-                sock = None
-                try:
-                    sock = socket.socket(af, socktype, proto)
-                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
-                        sock.settimeout(timeout)
-                    sock.bind(source_address)
-                    sock.connect(sa)
-                    err = None  # Explicitly break reference cycle
-                    return sock
-                except OSError as _:
-                    err = _
-                    if sock is not None:
-                        sock.close()
-            if err is not None:
-                raise err
-            else:
-                raise OSError('getaddrinfo returns an empty list')
-        if hasattr(hc, '_create_connection'):
-            hc._create_connection = _create_connection
         hc.source_address = (source_address, 0)
 
     return hc
@@ -220,13 +187,28 @@ def make_socks_conn_class(base_class, socks_proxy):
     proxy_args = make_socks_proxy_opts(socks_proxy)
 
     class SocksConnection(base_class):
-        def connect(self):
-            self.sock = sockssocket()
-            self.sock.setproxy(**proxy_args)
-            if type(self.timeout) in (int, float):  # noqa: E721
-                self.sock.settimeout(self.timeout)
-            self.sock.connect((self.host, self.port))
+        _create_connection = create_connection
 
+        def connect(self):
+            def sock_socket_connect(ip_addr, timeout, source_address):
+                af, socktype, proto, canonname, sa = ip_addr
+                sock = sockssocket(af, socktype, proto)
+                try:
+                    connect_proxy_args = proxy_args.copy()
+                    connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
+                    sock.setproxy(**connect_proxy_args)
+                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
+                        sock.settimeout(timeout)
+                    if source_address:
+                        sock.bind(source_address)
+                    sock.connect((self.host, self.port))
+                    return sock
+                except socket.error:
+                    sock.close()
+                    raise
+            self.sock = create_connection(
+                (proxy_args['addr'], proxy_args['port']), timeout=self.timeout,
+                source_address=self.source_address, _create_socket_func=sock_socket_connect)
             if isinstance(self, http.client.HTTPSConnection):
                 self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
 
