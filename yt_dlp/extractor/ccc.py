@@ -90,6 +90,13 @@ class CCCPlaylistIE(InfoExtractor):
             'id': '30c3',
         },
         'playlist_count': 135,
+    },{
+        'url':"https://media.ccc.de/c/DS2023",
+        'info_dict':{
+            'title':'Datenspuren 2023',
+            'id':'DS2023',
+        },
+        'playlist_count':37
     }]
 
     def _real_extract(self, url):
