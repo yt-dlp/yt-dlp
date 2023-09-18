@@ -22,7 +22,7 @@ from ..utils import (
 
 
 class TwitCastingIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/(?:movie|twplayer)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<uploader_id>[^/?#]+)/(?:movie|twplayer)/(?P<id>\d+)'
     _M3U8_HEADERS = {
         'Origin': 'https://twitcasting.tv',
         'Referer': 'https://twitcasting.tv/',
@@ -231,7 +231,7 @@ class TwitCastingIE(InfoExtractor):
 
 
 class TwitCastingLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://twitcasting.tv/ivetesangalo',
         'only_matching': True,
@@ -265,8 +265,15 @@ class TwitCastingLiveIE(InfoExtractor):
 
 
 class TwitCastingUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/show/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/(:?show|archive)/?(?:[#?]|$)'
     _TESTS = [{
+        'url': 'https://twitcasting.tv/natsuiromatsuri/archive/',
+        'info_dict': {
+            'id': 'natsuiromatsuri',
+            'title': 'natsuiromatsuri - Live History',
+        },
+        'playlist_mincount': 235,
+    }, {
         'url': 'https://twitcasting.tv/noriyukicas/show',
         'only_matching': True,
     }]

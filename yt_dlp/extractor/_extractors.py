@@ -122,7 +122,6 @@ from .applepodcasts import ApplePodcastsIE
 from .archiveorg import (
     ArchiveOrgIE,
     YoutubeWebArchiveIE,
-    VLiveWebArchiveIE,
 )
 from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
@@ -165,6 +164,7 @@ from .awaan import (
     AWAANLiveIE,
     AWAANSeasonIE,
 )
+from .axs import AxsIE
 from .azmedien import AZMedienIE
 from .baidu import BaiduVideoIE
 from .banbye import (
@@ -1710,7 +1710,10 @@ from .ruv import (
     RuvIE,
     RuvSpilaIE
 )
-from .s4c import S4CIE
+from .s4c import (
+    S4CIE,
+    S4CSeriesIE
+)
 from .safari import (
     SafariIE,
     SafariApiIE,
@@ -1791,7 +1794,10 @@ from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
 from .smotrim import SmotrimIE
 from .snotr import SnotrIE
-from .sohu import SohuIE
+from .sohu import (
+    SohuIE,
+    SohuVIE,
+)
 from .sonyliv import (
     SonyLIVIE,
     SonyLIVSeriesIE,
