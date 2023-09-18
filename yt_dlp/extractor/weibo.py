@@ -93,9 +93,8 @@ class WeiboBaseIE(InfoExtractor):
             **traverse_obj(video_info, {
                 'id': (('id', 'id_str', 'mid'), {str_or_none}),
                 'display_id': ('mblogid', {str_or_none}),
-                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {
-                    lambda i: str_or_none(i) if i else None}),  # to avoid catching empty string
-                'description': ('text_raw', {str_or_none}),
+                'title': ('page_info', 'media_info', ('video_title', 'kol_title', 'name'), {str}, {lambda x: x or None}),
+                'description': ('text_raw', {str}),
                 'duration': ('page_info', 'media_info', 'duration', {int_or_none}),
                 'timestamp': ('page_info', 'media_info', 'video_publish_time', {int_or_none}),
                 'thumbnails': (
