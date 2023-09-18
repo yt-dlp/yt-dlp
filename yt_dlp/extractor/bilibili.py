@@ -827,7 +827,7 @@ class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://www.bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
+    _VALID_URL = r'https?://www\.bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/list/1958703906?sid=547718',
         'info_dict': {
