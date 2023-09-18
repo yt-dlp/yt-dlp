@@ -93,7 +93,7 @@ class CCCPlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url).lower()
+        playlist_id = self._match_id(url)
 
         conf = self._download_json(
             'https://media.ccc.de/public/conferences/' + playlist_id,
