@@ -755,7 +755,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
 
 
 class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
-    _VALID_URL = r'https?://(?:space.bilibili\.com/\d+/favlist/?\?fid=|(?:www\.)?bilibili\.com/medialist/detail/ml)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:space\.bilibili\.com/\d+/favlist/?\?fid=|(?:www\.)?bilibili\.com/medialist/detail/ml)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/84912/favlist?fid=1103407912&ftype=create',
         'info_dict': {
