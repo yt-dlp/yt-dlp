@@ -748,7 +748,7 @@ class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
             }
 
         def get_entries(page_data):
-            return self._get_entries(page_data, ('archives', ..., 'bvid', {str}))
+            return self._get_entries(page_data, 'archives')
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, **metadata)
@@ -787,12 +787,9 @@ class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
         if list_info['code'] == -403:
             self.raise_login_required(msg='This is a private favorites list. You need to log in as its owner')
 
-        entries = self._get_entries(
-            self._download_json(
-                f'https://api.bilibili.com/x/v3/fav/resource/ids?media_id={fid}',
-                fid, note='Download favlist entries'),
-            ('data', ..., 'bvid', {str}),
-        )
+        entries = self._get_entries(self._download_json(
+            f'https://api.bilibili.com/x/v3/fav/resource/ids?media_id={fid}',
+            fid, note='Download favlist entries'), 'data')
 
         return self.playlist_result(entries, fid, **traverse_obj(list_info, ('data', 'info', {
             'title': ('title', {str}),
@@ -883,7 +880,7 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
                 'https://api.bilibili.com/x/v2/medialist/resource/list',
                 list_id, query=query, note=f'getting playlist {query["biz_id"]} page {page_num}'
             )['data']
-            yield from self._get_entries(page_data, ('media_list', ..., 'bv_id'))
+            yield from self._get_entries(page_data, 'media_list', ending_key='bv_id')
             query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
             if not page_data.get('has_more', False):
                 break
