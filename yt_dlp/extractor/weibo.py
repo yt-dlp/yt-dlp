@@ -165,7 +165,7 @@ class WeiboIE(WeiboBaseIE):
 
 
 class WeiboVideoIE(WeiboBaseIE):
-    _VALID_URL = r'https?://(?:www\.)weibo\.com/tv/show/(?P<id>\d+:\d+)'
+    _VALID_URL = r'https?://(?:www\.)?weibo\.com/tv/show/(?P<id>\d+:\d+)'
     _TESTS = [{
         'url': 'https://weibo.com/tv/show/1034:4797699866951785?from=old_pc_videoshow',
         'info_dict': {
