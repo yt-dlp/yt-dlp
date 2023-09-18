@@ -108,9 +108,7 @@ class WeiboBaseIE(InfoExtractor):
                 'like_count': ('attitudes_count', {int_or_none}),
                 'repost_count': ('reposts_count', {int_or_none}),
             }, get_all=False),
-            **traverse_obj(video_info, {
-                'tags': ('topic_struct', ..., 'topic_title', {str_or_none}),
-            }, get_all=True),
+            'tags': traverse_obj(video_info, ('topic_struct', ..., 'topic_title', {str})),
         }
 
 
