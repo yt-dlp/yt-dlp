@@ -511,7 +511,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
 
 class BiliBiliBangumiMediaIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/bangumi/media/md(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/media/md(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/media/md24097891',
         'info_dict': {
@@ -530,7 +530,7 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
 
 
 class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
-    _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/ss(?P<id>\d+)'
+    _VALID_URL = r'(?x)https?://(?:www\.)?bilibili\.com/bangumi/play/ss(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/play/ss26801',
         'info_dict': {
@@ -1659,7 +1659,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
 
 class BiliLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://live.bilibili.com/(?:blanc/)?(?P<id>\d+)'
+    _VALID_URL = r'https?://live\.bilibili\.com/(?:blanc/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://live.bilibili.com/196',
