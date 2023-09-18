@@ -236,6 +236,6 @@ class WeiboUserIE(WeiboBaseIE):
             'title': f'{uploader}的视频',
             'description': f'{uploader}的全部视频',
             'uploader': uploader,
-        }
+        } if uploader else {}
 
         return self.playlist_result(self._entries(uid, first_page), uid, **metainfo)
