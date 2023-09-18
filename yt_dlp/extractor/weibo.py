@@ -50,24 +50,22 @@ class WeiboBaseIE(InfoExtractor):
 
     def _extract_formats(self, video_info):
         media_info = traverse_obj(video_info, ('page_info', 'media_info'))
-        formats = [{
-            **traverse_obj(play_info, {
-                'url': ('url', {url_or_none}),
+        formats = traverse_obj(media_info, (
+            'playback_list', lambda _, v: url_or_none(v['play_info']['url']), 'play_info', {
+                'url': 'url',
                 'format': ('quality_desc', {str_or_none}),
                 'format_id': ('label', {str_or_none}),
                 'ext': ('mime', {mimetype2ext}),
-                'tbr': ('bitrate', {int_or_none}, {lambda i: i if i else None}),
-                'vcodec': ('video_codecs', {str_or_none}),
+                'tbr': ('bitrate', {int_or_none}, {lambda x: x or None}),
+                'vcodec': ('video_codecs', {str}),
                 'fps': ('fps', {int_or_none}),
                 'width': ('width', {int_or_none}),
                 'height': ('height', {int_or_none}),
                 'filesize': ('size', {int_or_none}),
-                'acodec': ('audio_codecs', {str_or_none}),
+                'acodec': ('audio_codecs', {str}),
                 'asr': ('audio_sample_rate', {int_or_none}),
                 'audio_channels': ('audio_channels', {int_or_none}),
-            })
-        } for play_info in traverse_obj(media_info, ('playback_list', ..., 'play_info'))]
-        formats = [i for i in formats if i.get('url')]
+            }))
         if not formats:  # fallback, should be barely used
             for url in set(traverse_obj(media_info, (..., {url_or_none}))):
                 if 'label=' in url:  # filter out non-video urls
