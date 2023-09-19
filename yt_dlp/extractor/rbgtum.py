@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, parse_qs
+from ..utils import parse_qs, ExtractorError
 
 
 class RbgTumIE(InfoExtractor):
@@ -45,10 +45,10 @@ class RbgTumIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        m3u8 = self._html_search_regex(r'"(https://[^"]+\.m3u8[^"]*)', webpage, 'm3u8')
-        lecture_title = self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', fatal=False)
+        m3u8 = self._html_search_regex(r'(https://[^"]+\.m3u8[^"]*)', webpage, 'm3u8')
+        lecture_title = self._html_search_regex(r'(?si)<h1.*?>(.*)</h1>', webpage, 'title')
         lecture_series_title = self._html_search_regex(
-            r'<title>(?:TUM-Live \| )([^:<]+):?[^<]*</title>', webpage, 'series', fatal=false)
+            r'<title>(?:TUM-Live \| )([^:]+): .*</title>', webpage, 'series')
 
         formats = self._extract_m3u8_formats(m3u8, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
 
@@ -61,7 +61,7 @@ class RbgTumIE(InfoExtractor):
 
 
 class RbgTumCourseIE(InfoExtractor):
-    _VALID_URL = r'https://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>(?P<year>\d+)/(?P<term>\w+)/(?P<slug>[^/?#]+))'
+    _VALID_URL = r'(?P<hostname>https://(?:live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>(?P<year>[^/]+)/(?P<term>[^/]+)/(?P<slug>.+))'
     _TESTS = [{
         'url': 'https://live.rbg.tum.de/old/course/2022/S/fpv',
         'info_dict': {
@@ -89,24 +89,32 @@ class RbgTumCourseIE(InfoExtractor):
 
     def _real_extract(self, url):
         course_id, hostname, year, term, slug = self._match_valid_url(url).group('id', 'hostname', 'year', 'term', 'slug')
-        meta = self._download_json(
-            f'https://{hostname}/api/courses/{slug}/', course_id, fatal=False,
-            query={'year': year, 'term': term}) or {}
-        lecture_series_title = meta.get('Name')
-        lectures = [self.url_result(f'https://{hostname}/w/{slug}/{stream_id}', RbgTumIE)
-                    for stream_id in traverse_obj(meta, ('streams', ..., 'id'))]
-            
-        if not lectures:
-            webpage = self._download_webpage(url, course_id)
-            lecture_series_title = self._html_search_regex(
-                r'<title>(?:TUM-Live \| )([^:<]+):?[^<]*</title>', webpage, 'title')
-            lectures = [self.url_result(f'https://{hostname}/{lecture_path}', RbgTumIE)
-                        for lecture_path in re.findall(r'href="(/w/[^"]+)"', webpage)]
 
-        return self.playlist_result(lectures, course_id, lecture_series_title)
+        json = f'{hostname}/api/courses/{slug}/?year={year}&term={term}'
+        try:
+            meta = self._download_json(json, course_id)
+
+            lecture_series_title = meta.get('Name')
+            streams = meta.get('Streams') or []
+
+            lecture_urls = [self.url_result(f'{hostname}/w/{slug}/{stream["ID"]}', ie=RbgTumIE) for stream in streams if stream.get('ID')]
+
+            return self.playlist_result(lecture_urls, course_id, lecture_series_title)
+        except ExtractorError as e:
+            self.report_warning(f'Failed to download JSON: {e.cause}, falling back to HTML parsing')
+            webpage = self._download_webpage(url, course_id)
+
+            lecture_series_title = self._html_search_regex(r'<title>(?:TUM-Live \| )(.*)</title>', webpage, 'title')
+
+            lecture_urls = []
+            for lecture_url in re.findall(r'href="/w/([^/]+/[^/"]+)"', webpage):
+                lecture_urls.append(self.url_result(f'{hostname}/w/{lecture_url}', ie=RbgTumIE))
+
+            return self.playlist_result(lecture_urls, course_id, lecture_series_title)
+
 
 class RbgTumNewCourseIE(InfoExtractor):
-    _VALID_URL = r'https://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/\?'
+    _VALID_URL = r'(?P<hostname>https://(live\.rbg\.tum\.de|tum\.live))/\?'
     _TESTS = [{
         'url': 'https://live.rbg.tum.de/?year=2022&term=S&slug=fpv&view=3',
         'info_dict': {
@@ -130,14 +138,13 @@ class RbgTumNewCourseIE(InfoExtractor):
     }, {
         'url': 'https://tum.live/?year=2023&term=S&slug=linalginfo&view=3',
         'only_matching': True,
-    }]
+    }, ]
 
     def _real_extract(self, url):
         query = parse_qs(url)
-        errors = [key for key in ('year', 'term', 'slug') if not query.get(key)]
-        if errors:
-            raise ExtractorError(f'Input URL is missing query parameters: {", ".join(errors)}')
-        year, term, slug = query['year'][0], query['term'][0], query['slug'][0]
+        try:
+            year, term, slug = query['year'][0], query['term'][0], query['slug'][0]
+        except KeyError as e:
+            raise ExtractorError(f'Failed to parse URL, expected query parameters: {e}') from e
         hostname = self._match_valid_url(url).group('hostname')
-
-        return self.url_result(f'https://{hostname}/old/course/{year}/{term}/{slug}', RbgTumCourseIE)
+        return self.url_result(f'{hostname}/old/course/{year}/{term}/{slug}', ie=RbgTumCourseIE)
