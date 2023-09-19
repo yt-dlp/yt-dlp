@@ -125,6 +125,7 @@ class DouyuTVIE(DouyuBaseIE):
         'url': 'http://www.douyu.com/t/lpl',
         'only_matching': True,
     }]
+
     def _get_sign_func(self, room_id, video_id):
         return self._download_json(
             f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', video_id,
