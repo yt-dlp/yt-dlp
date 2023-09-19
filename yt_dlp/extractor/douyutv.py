@@ -8,15 +8,15 @@ from .openload import PhantomJSwrapper
 from ..utils import (
     ExtractorError,
     UserNotLive,
-    int_or_none,
-    str_or_none,
-    url_or_none,
-    traverse_obj,
     determine_ext,
-    parse_resolution,
-    urlencode_postdata,
-    unescapeHTML,
+    int_or_none,
     js_to_json,
+    parse_resolution,
+    str_or_none,
+    traverse_obj,
+    unescapeHTML,
+    url_or_none,
+    urlencode_postdata,
     urljoin,
 )
 
