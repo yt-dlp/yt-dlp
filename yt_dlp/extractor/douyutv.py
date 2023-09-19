@@ -37,7 +37,9 @@ class DouyuBaseIE(InfoExtractor):
     def _get_cryptojs_md5(self, video_id):
         return self.cache.load('douyu', 'crypto-js-md5') or self._download_cryptojs_md5(video_id)
 
-    def _calc_sign(self, sign_func, video_id, a, b=uuid.uuid4().hex, c=round(time.time())):
+    def _calc_sign(self, sign_func, video_id, a):
+        b = uuid.uuid4().hex
+        c = round(time.time())
         js_script = f'{self._get_cryptojs_md5(video_id)};{sign_func};console.log(ub98484234("{a}","{b}","{c}"))'
         phantom = PhantomJSwrapper(self)
         result = phantom.execute(js_script, video_id,
@@ -123,10 +125,6 @@ class DouyuTVIE(DouyuBaseIE):
         'url': 'http://www.douyu.com/t/lpl',
         'only_matching': True,
     }]
-
-    def _sign(self, js_sign_func, room_id, video_id):
-        return self._calc_sign(js_sign_func, video_id, room_id, uuid.uuid4().hex, round(time.time()))
-
     def _get_sign_func(self, room_id, video_id):
         return self._download_json(
             f'https://www.douyu.com/swf_api/homeH5Enc?rids={room_id}', video_id,
