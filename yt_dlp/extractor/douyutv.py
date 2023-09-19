@@ -274,12 +274,14 @@ class DouyuShowIE(DouyuBaseIE):
         for name, url in traverse_obj(url_info, ('data', 'thumb_video', {dict.items}, ...)):
             video_url = traverse_obj(url, ('url', {url_or_none}))
             if video_url:
+                ext = determine_ext(video_url)
                 formats.append({
                     'format': self._FORMATS.get(name),
                     'format_id': name,
                     'url': video_url,
                     'quality': self._QUALITIES.get(name),
-                    'ext': 'mp4' if '.m3u8' in video_url else determine_ext(video_url),
+                    'ext': 'mp4' if ext == 'm3u8' else ext,
+                    'protocol': 'm3u8_native' if ext == 'm3u8' else 'https',
                     **parse_resolution(self._RESOLUTIONS.get(name))
                 })
             else:
