@@ -170,12 +170,12 @@ class DouyuTVIE(DouyuBaseIE):
         }
         params['auth'] = hashlib.md5(
             f'room/{room_id}?{urllib.parse.urlencode(params)}zNzMV1y4EMxOHS6I5WKm'.encode()).hexdigest()
-        room = self._download_json(
+        room = traverse_obj(self._download_json(
             f'http://www.douyutv.com/api/v1/room/{room_id}', video_id,
-            note='Downloading room info', query=params)['data']
+            note='Downloading room info', query=params, fatal=False), 'data')
 
         # 1 = live, 2 = offline
-        if room.get('show_status') == '2':
+        if traverse_obj(room, 'show_status') == '2':
             raise UserNotLive(video_id=video_id)
 
         js_sign_func = self._search_js_sign_func(webpage, fatal=False) or self._get_sign_func(room_id, video_id)
