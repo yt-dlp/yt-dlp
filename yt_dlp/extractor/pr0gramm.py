@@ -81,7 +81,7 @@ class Pr0grammIE(InfoExtractor):
             if error in ('nsfwRequired', 'nsflRequired', 'nsfpRequired'):
                 if self._is_logged_in:
                     self.raise_login_required(method='cookies')
-                raise ExtractorError(f'Unverified account cannot access NSFW/NSFL', expected=True)
+                raise ExtractorError(f'Unverified account cannot access NSFW/NSFL ({error})', expected=True)
             raise ExtractorError(f'API returned: {error}', expected=True)
 
         return data
