@@ -11,31 +11,54 @@ from ..utils.traversal import traverse_obj
 class Pr0grammIE(InfoExtractor):
     _VALID_URL = r'https?://pr0gramm\.com\/(?:[^/?#]+/)+(?P<id>[\d]+)(?:[/?#:]|$)'
     _TESTS = [{
+        # Tags require account
         'url': 'https://pr0gramm.com/new/video/5466437',
         'info_dict': {
             'id': '5466437',
             'ext': 'mp4',
             'title': 'pr0gramm-5466437 by g11st',
+            'tags': ['Neon Genesis Evangelion', 'Touhou Project', 'Fly me to the Moon', 'Marisad', 'Marisa Kirisame', 'video', 'sound', 'Marisa', 'Anime'],
             'uploader': 'g11st',
             'uploader_id': 394718,
             'upload_timestamp': 1671590240,
             'upload_date': '20221221',
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 0,
             'thumbnail': r're:^https://thumb\.pr0gramm\.com/.*\.jpg',
         },
     }, {
+        # Tags require account
         'url': 'https://pr0gramm.com/new/3052805:comment28391322',
         'info_dict': {
             'id': '3052805',
             'ext': 'mp4',
             'title': 'pr0gramm-3052805 by Hansking1',
+            'tags': 'count:15',
             'uploader': 'Hansking1',
             'uploader_id': 385563,
             'upload_timestamp': 1552930408,
             'upload_date': '20190318',
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 0,
+            'thumbnail': r're:^https://thumb\.pr0gramm\.com/.*\.jpg',
+        },
+    }, {
+        # Requires verified account
+        'url': 'https://pr0gramm.com/new/Gianna%20Michaels/5848332',
+        'info_dict': {
+            'id': '5848332',
+            'ext': 'mp4',
+            'title': 'pr0gramm-5848332 by erd0pfel',
+            'tags': 'count:18',
+            'uploader': 'erd0pfel',
+            'uploader_id': 349094,
+            'upload_timestamp': 1694489652,
+            'upload_date': '20230912',
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
             'thumbnail': r're:^https://thumb\.pr0gramm\.com/.*\.jpg',
         },
     }, {
