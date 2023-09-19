@@ -60,7 +60,7 @@ class DouyuTVIE(DouyuBaseIE):
         'info_dict': {
             'id': '24422',
             'display_id': 'pigff',
-            'ext': 'ts',
+            'ext': 'mp4',
             'title': 're:^【PIGFF】.* [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'description': r'≥15级牌子看鱼吧置顶帖进粉丝vx群',
             'thumbnail': str,
@@ -142,7 +142,7 @@ class DouyuTVIE(DouyuBaseIE):
                 formats.append({
                     'url': stream_url,
                     'format_id': str_or_none(rate_id),
-                    'ext': 'ts' if '.m3u8' in stream_url else determine_ext(stream_url),
+                    'ext': 'mp4' if '.m3u8' in stream_url else determine_ext(stream_url),
                     'quality': rate_id % -10000 if rate_id is not None else None,
                     **traverse_obj(rate_info, {
                         'format': ('name', {str_or_none}),
@@ -217,7 +217,7 @@ class DouyuShowIE(DouyuBaseIE):
         'url': 'https://v.douyu.com/show/mPyq7oVNe5Yv1gLY',
         'info_dict': {
             'id': 'mPyq7oVNe5Yv1gLY',
-            'ext': 'ts',
+            'ext': 'mp4',
             'title': '四川人小时候的味道“蒜苗回锅肉”，传统菜不能丢，要常做来吃',
             'duration': 633,
             'thumbnail': str,
@@ -279,7 +279,7 @@ class DouyuShowIE(DouyuBaseIE):
                     'format_id': name,
                     'url': video_url,
                     'quality': self._QUALITIES.get(name),
-                    'ext': 'ts' if '.m3u8' in video_url else determine_ext(video_url),
+                    'ext': 'mp4' if '.m3u8' in video_url else determine_ext(video_url),
                     **parse_resolution(self._RESOLUTIONS.get(name))
                 })
             else:
