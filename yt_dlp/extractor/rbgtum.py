@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import parse_qs, traverse_obj, ExtractorError
+from ..utils import parse_qs, remove_start, traverse_obj, ExtractorError
 
 
 class RbgTumIE(InfoExtractor):
@@ -47,8 +47,7 @@ class RbgTumIE(InfoExtractor):
 
         m3u8 = self._html_search_regex(r'"(https://[^"]+\.m3u8[^"]*)', webpage, 'm3u8')
         lecture_title = self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', fatal=False)
-        lecture_series_title = self._html_search_regex(
-            r'<title>(?:TUM-Live \| )([^:<]+):?[^<]*</title>', webpage, 'series', fatal=False)
+        lecture_series_title = remove_start(self._html_extract_title(webpage), 'TUM-Live | ')
 
         formats = self._extract_m3u8_formats(m3u8, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
 
@@ -98,10 +97,9 @@ class RbgTumCourseIE(InfoExtractor):
 
         if not lectures:
             webpage = self._download_webpage(url, course_id)
-            lecture_series_title = self._html_search_regex(
-                r'<title>(?:TUM-Live \| )([^:<]+):?[^<]*</title>', webpage, 'title')
+            lecture_series_title = remove_start(self._html_extract_title(webpage), 'TUM-Live | ')
             lectures = [self.url_result(f'https://{hostname}{lecture_path}', RbgTumIE)
-                        for lecture_path in re.findall(r'href="(/w/[^/]+\/[^/"]+)"', webpage)]
+                        for lecture_path in re.findall(r'href="(/w/[^/"]+/[^/"]+)"', webpage)]
 
         return self.playlist_result(lectures, course_id, lecture_series_title)
 
