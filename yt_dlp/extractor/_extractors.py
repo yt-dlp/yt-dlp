@@ -223,7 +223,11 @@ from .bilibili import (
     BiliBiliPlayerIE,
     BilibiliSpaceVideoIE,
     BilibiliSpaceAudioIE,
-    BilibiliSpacePlaylistIE,
+    BilibiliCollectionListIE,
+    BilibiliSeriesListIE,
+    BilibiliFavoritesListIE,
+    BilibiliWatchlaterIE,
+    BilibiliPlaylistIE,
     BiliIntlIE,
     BiliIntlSeriesIE,
     BiliLiveIE,
@@ -1500,6 +1504,7 @@ from .polskieradio import (
 from .popcorntimes import PopcorntimesIE
 from .popcorntv import PopcornTVIE
 from .porn91 import Porn91IE
+from .pornbox import PornboxIE
 from .porncom import PornComIE
 from .pornflip import PornFlipIE
 from .pornhd import PornHdIE
@@ -1554,7 +1559,14 @@ from .radiocanada import (
 from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
-from .radiofrance import FranceCultureIE, RadioFranceIE
+from .radiofrance import (
+    FranceCultureIE,
+    RadioFranceIE,
+    RadioFranceLiveIE,
+    RadioFrancePodcastIE,
+    RadioFranceProfileIE,
+    RadioFranceProgramScheduleIE,
+)
 from .radiozet import RadioZetPodcastIE
 from .radiokapital import (
     RadioKapitalIE,
@@ -2359,7 +2371,8 @@ from .webofstories import (
 )
 from .weibo import (
     WeiboIE,
-    WeiboMobileIE
+    WeiboVideoIE,
+    WeiboUserIE,
 )
 from .weiqitv import WeiqiTVIE
 from .weverse import (
