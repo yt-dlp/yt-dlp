@@ -46,7 +46,7 @@ class RbgTumIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         m3u8 = self._html_search_regex(r'"(https://[^"]+\.m3u8[^"]*)', webpage, 'm3u8')
-        lecture_title = self._html_search_regex(r'(?si)<h1.*?>(.*)</h1>', webpage, 'title')
+        lecture_title = self._html_search_regex(r'<h1[^>]*>([^<]+)</h1>', webpage, 'title', fatal=False)
         lecture_series_title = self._html_search_regex(
             r'<title>(?:TUM-Live \| )([^:<]+):?[^<]*</title>', webpage, 'series', fatal=False)
 
