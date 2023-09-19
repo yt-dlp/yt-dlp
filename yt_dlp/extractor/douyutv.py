@@ -139,10 +139,12 @@ class DouyuTVIE(DouyuBaseIE):
             if stream_url:
                 rate_id = traverse_obj(stream_info, ('rate', {int_or_none}))
                 rate_info = traverse_obj(stream_info, ('multirates', lambda _, v: v['rate'] == rate_id), get_all=False)
+                ext = determine_ext(stream_url)
                 formats.append({
                     'url': stream_url,
                     'format_id': str_or_none(rate_id),
-                    'ext': 'mp4' if '.m3u8' in stream_url else determine_ext(stream_url),
+                    'ext': 'mp4' if ext == 'm3u8' else ext,
+                    'protocol': 'm3u8_native' if ext == 'm3u8' else 'https',
                     'quality': rate_id % -10000 if rate_id is not None else None,
                     **traverse_obj(rate_info, {
                         'format': ('name', {str_or_none}),
