@@ -95,14 +95,18 @@ class Pr0grammIE(InfoExtractor):
         return flags
 
     def _call_api(self, endpoint, video_id, query={}, note='Downloading API json'):
-        data = self._download_json(f'https://pr0gramm.com/api/items/{endpoint}', video_id, query=query, note=note)
+        data = self._download_json(
+            f'https://pr0gramm.com/api/items/{endpoint}',
+            video_id, note, query=query, expected_status=403)
+
         error = traverse_obj(data, ('error', {str}))
-        if error:
-            if error in ('nsfwRequired', 'nsflRequired', 'nsfpRequired'):
-                if not self._is_logged_in:
-                    self.raise_login_required()
-                raise ExtractorError(f'Unverified account cannot access NSFW/NSFL ({error})', expected=True)
-            raise ExtractorError(f'API returned: {error}', expected=True)
+        if error in ('nsfwRequired', 'nsflRequired', 'nsfpRequired', 'verificationRequired'):
+            if not self._is_logged_in:
+                self.raise_login_required()
+            raise ExtractorError(f'Unverified account cannot access NSFW/NSFL ({error})', expected=True)
+        elif error:
+            message = traverse_obj(data, ('msg', {str})) or error
+            raise ExtractorError(f'API returned error: {message}', expected=True)
 
         return data
 
