@@ -73,9 +73,6 @@ class Pr0grammIE(InfoExtractor):
     }]
 
     BASE_URL = 'https://pr0gramm.com'
-    API_URL = 'https://pr0gramm.com/api/items'
-    VIDEO_URL = 'https://img.pr0gramm.com'
-    THUMB_URL = 'https://thumb.pr0gramm.com'
 
     @functools.cached_property
     def _is_logged_in(self):
@@ -98,7 +95,7 @@ class Pr0grammIE(InfoExtractor):
         return flags
 
     def _call_api(self, endpoint, video_id, query={}, note='Downloading API json'):
-        data = self._download_json(f'{self.API_URL}/{endpoint}', video_id, query=query, note=note)
+        data = self._download_json(f'https://pr0gramm.com/api/items/{endpoint}', video_id, query=query, note=note)
         error = traverse_obj(data, ('error', {str}))
         if error:
             if error in ('nsfwRequired', 'nsflRequired', 'nsfpRequired'):
@@ -115,7 +112,7 @@ class Pr0grammIE(InfoExtractor):
             self._call_api('get', video_id, {'id': video_id, 'flags': self._maximum_flags}),
             ('items', 0, {dict}))
 
-        source = urljoin(self.VIDEO_URL, video_info.get('image'))
+        source = urljoin('https://img.pr0gramm.com', video_info.get('image'))
         if not source or not source.endswith('mp4'):
             self.raise_no_formats('Could not extract a video', expected=bool(source), video_id=video_id)
 
@@ -148,6 +145,6 @@ class Pr0grammIE(InfoExtractor):
                 'dislike_count': ('down', {int}),
                 'upload_timestamp': ('created', {int}),
                 'upload_date': ('created', {int}, {date.fromtimestamp}, {lambda x: x.strftime('%Y%m%d')}),
-                'thumbnail': ('thumb', {lambda x: urljoin(self.THUMB_URL, x)})
+                'thumbnail': ('thumb', {lambda x: urljoin('https://thumb.pr0gramm.com', x)})
             }),
         }
