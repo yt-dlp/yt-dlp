@@ -12,7 +12,8 @@ class MojevideoIE(InfoExtractor):
         'info_dict': {
             'id': '250236',
             'ext': 'mp4',
-            'title': 'Chlapci dobetónovali sme, máme hotovo!'
+            'title': 'Chlapci dobetónovali sme, máme hotovo!',
+            'description': 'Celodenná práca bola za pár sekúnd fuč. Betón stiekol k susedovi, kam aj zrútil celý plot, ktorý polámal aj tuje. Chlapom zostali iba oči pre plač.'
         }
     }]
 
@@ -22,7 +23,8 @@ class MojevideoIE(InfoExtractor):
         video_id = re.search(r'vId=(\d+)', webpage).group(1)
         video_expiration = re.search(r"vEx='(\d+)'", webpage).group(1)
         video_hash = re.search(r'vHash=\[([^\]]+)', webpage).group(1).split(",")[0].replace("'", "")
-        title = re.search(r'<h1>(.*?)</h1>', webpage).group(1)
+        video_title = re.search(r'<h1>(.*?)</h1>', webpage).group(1)
+        video_description = re.search(r'<div id="video-comment">.*?<p>(.*?)</p>', webpage, re.DOTALL).group(1)
 
         info = {}
         video_url = "https://cache01.mojevideo.sk/securevideos69/" + video_id + ".mp4?md5=" + video_hash + "&expires=" + video_expiration
@@ -31,7 +33,8 @@ class MojevideoIE(InfoExtractor):
             info = {
                 'id': video_id,
                 'url': video_url,
-                'title': title
+                'title': video_title,
+                'description': video_description
             }
         if not info:
             raise ExtractorError('No videos found on webpage', expected=True)
