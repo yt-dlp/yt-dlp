@@ -137,7 +137,7 @@ class DouyuTVIE(DouyuBaseIE):
                 traverse_obj(stream_info, 'rtmp_url'), traverse_obj(stream_info, 'rtmp_live'))
             if stream_url:
                 rate_id = traverse_obj(stream_info, ('rate', {int_or_none}))
-                rate_info = traverse_obj(stream_info, ('multirates', lambda _, v: v.get('rate') == rate_id), get_all=False)
+                rate_info = traverse_obj(stream_info, ('multirates', lambda _, v: v['rate'] == rate_id), get_all=False)
                 formats.append({
                     'url': stream_url,
                     'format_id': str_or_none(rate_id),
@@ -200,10 +200,10 @@ class DouyuTVIE(DouyuBaseIE):
             'formats': self._extract_stream_formats(stream_formats),
             'is_live': True,
             **traverse_obj(room, {
-                'display_id': ('url', {str_or_none}, {lambda i: i[1:] if i else None}),
-                'title': ('room_name', {str_or_none}, {unescapeHTML}),
-                'description': ('show_details', {str_or_none}),
-                'uploader': ('nickname', {str_or_none}),
+                'display_id': ('url', {str}, {lambda i: i[1:]}),
+                'title': ('room_name', {unescapeHTML}),
+                'description': ('show_details', {str}),
+                'uploader': ('nickname', {str}),
                 'thumbnail': ('room_src', {url_or_none}),
             })
         }
@@ -270,7 +270,7 @@ class DouyuShowIE(DouyuBaseIE):
             data=urlencode_postdata(form_data), note="Downloading video formats")
 
         formats = []
-        for name, url in traverse_obj(url_info, ('data', 'thumb_video')).items():
+        for name, url in traverse_obj(url_info, ('data', 'thumb_video', {dict.items}, ...)):
             video_url = traverse_obj(url, ('url', {url_or_none}))
             if video_url:
                 formats.append({
@@ -289,13 +289,13 @@ class DouyuShowIE(DouyuBaseIE):
             'id': video_id,
             'formats': formats,
             **traverse_obj(video_info, ('DATA', {
-                'title': ('content', 'title', {str_or_none}),
-                'uploader': ('content', 'author', {str_or_none}),
+                'title': ('content', 'title', {str}),
+                'uploader': ('content', 'author', {str}),
                 'uploader_id': ('content', 'up_id', {str_or_none}),
                 'duration': ('content', 'video_duration', {int_or_none}),
                 'thumbnail': ('content', 'video_pic', {url_or_none}),
                 'timestamp': ('content', 'create_time', {int_or_none}),
                 'view_count': ('content', 'view_num', {int_or_none}),
-                'tags': ('videoTag', ..., 'tagName', {str_or_none}),
+                'tags': ('videoTag', ..., 'tagName', {str}),
             }))
         }
