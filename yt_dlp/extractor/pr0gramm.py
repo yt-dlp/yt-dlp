@@ -4,7 +4,7 @@ from urllib.parse import unquote
 
 from .common import InfoExtractor
 from ..compat import functools
-from ..utils import ExtractorError, urljoin
+from ..utils import ExtractorError, make_archive_id, urljoin
 from ..utils.traversal import traverse_obj
 
 
@@ -100,7 +100,7 @@ class Pr0grammIE(InfoExtractor):
         if error:
             if error in ('nsfwRequired', 'nsflRequired', 'nsfpRequired'):
                 if not self._is_logged_in:
-                    self.raise_login_required(method='cookies')
+                    self.raise_login_required()
                 raise ExtractorError(f'Unverified account cannot access NSFW/NSFL ({error})', expected=True)
             raise ExtractorError(f'API returned: {error}', expected=True)
 
@@ -138,6 +138,7 @@ class Pr0grammIE(InfoExtractor):
             }],
             'tags': tags,
             'age_limit': 18 if traverse_obj(video_info, ('flags', {0b110.__and__})) else 0,
+            '_old_archive_ids': [make_archive_id('Pr0grammStatic', video_id)],
             **traverse_obj(video_info, {
                 'uploader': ('user', {str}),
                 'uploader_id': ('userId', {int}),
