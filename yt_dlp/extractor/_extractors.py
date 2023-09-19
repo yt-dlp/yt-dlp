@@ -1524,7 +1524,7 @@ from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
 )
-from .pr0gramm import Pr0grammStaticIE, Pr0grammIE
+from .pr0gramm import Pr0grammIE
 from .prankcast import PrankCastIE
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
