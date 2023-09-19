@@ -1123,6 +1123,7 @@ from .mofosex import (
     MofosexEmbedIE,
 )
 from .mojvideo import MojvideoIE
+from .mojevideo import MojevideoIE
 from .morningstar import MorningstarIE
 from .motherless import (
     MotherlessIE,
