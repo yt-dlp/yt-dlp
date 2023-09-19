@@ -10,6 +10,7 @@ class MojevideoIE(InfoExtractor):
     def _real_extract(self, url):
         webpage = self._download_webpage(url, 1)
 
+<<<<<<< HEAD
         video_id = re.search(r'vId=(\d+)', webpage).group(1)
         video_expiration = re.search(r"vEx='(\d+)'", webpage).group(1)
         video_hash = re.search(r'vHash=\[([^\]]+)', webpage).group(1).split(",")[0].replace("'", "")
@@ -23,6 +24,17 @@ class MojevideoIE(InfoExtractor):
                 'url': video_url,
 
             }
+=======
+        vId = re.search(r'vId=(\d+)', webpage).group(1)
+        vEx = re.search(r"vEx='(\d+)'", webpage).group(1)
+        vHash = re.search(r'vHash=\[([^\]]+)', webpage).group(1).split(",")[0].replace("'", "")
+
+
+        info = {}
+        video_url = ""
+        if video_url:
+            info = {url: video_url}
+>>>>>>> parent of 14ca868f2 (update mojevideo extractor)
         if not info:
             raise ExtractorError('No videos found on webpage', expected=True)
 
