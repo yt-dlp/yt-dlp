@@ -16,8 +16,6 @@ class EplusIbIE(InfoExtractor):
             'id': '354502-0001-002',
             'title': 'LoveLive!Series Presents COUNTDOWN LoveLive! 2021→2022～LIVE with a smile!～【Streaming+(配信)】',
             'live_status': 'was_live',
-            'upload_date': '20211231',
-            'timestamp': 1640952000,
             'release_date': '20211231',
             'release_timestamp': 1640952000,
             'description': str,
