@@ -156,9 +156,9 @@ class DouyuTVIE(DouyuBaseIE):
         webpage = self._download_webpage(url, video_id)
         room_id = self._search_regex(r'\$ROOM\.room_id\s*=\s*(\d+)', webpage, 'room id')
 
-        if '"videoLoop":1,' in webpage:
+        if self._search_regex(r'"videoLoop"\s*:\s*(\d+)', webpage, 'loop', default='') == '1':
             raise UserNotLive('The channel is auto-playing VODs', video_id=video_id)
-        if '$ROOM.show_status =2;' in webpage:
+        if self._search_regex(r'\$ROOM\.show_status\s*=\s*(\d+)', webpage, 'status', default='') == '2':
             raise UserNotLive(video_id=video_id)
 
         # Grab metadata from API
@@ -257,7 +257,7 @@ class DouyuShowIE(DouyuBaseIE):
         webpage = self._download_webpage(url, video_id)
 
         video_info = self._search_json(
-            r'<script>window\.\$DATA=', webpage,
+            r'<script>\s*window\.\$DATA\s*=', webpage,
             'video info', video_id, transform_source=js_to_json)
 
         js_sign_func = self._search_js_sign_func(webpage)
