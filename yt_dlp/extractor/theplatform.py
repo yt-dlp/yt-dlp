@@ -121,7 +121,7 @@ class ThePlatformBaseIE(OnceIE):
             # The following can be uncommented as soon as #7838 is merged
             # media_type = info.get('cbc$type', {str_or_none})
             series = info.get('cbc$show', {str_or_none})
-            
+
         if ownerId == 'http://access.auth.theplatform.com/data/Account/2410887629':
             season_number = info.get('nbcu$seasonNumber', {str_or_none})
             # The following can be uncommented as soon as #7838 is merged
