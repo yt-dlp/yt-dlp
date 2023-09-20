@@ -107,7 +107,7 @@ class ThePlatformBaseIE(OnceIE):
         info_keywords_str = info.get('keywords', {str_or_none})
         tags = []
         if info_keywords_str is not None:
-            tags = info_keywords_str.split(', ')
+            tags = info_keywords_str.split(', |; |-')
         location = None
         series = None
         season_number = None
