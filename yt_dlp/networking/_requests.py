@@ -30,7 +30,13 @@ from ._helper import (
     make_socks_proxy_opts,
     select_proxy,
 )
-from .common import Features, RequestHandler, Response, register_rh
+from .common import (
+    Features,
+    RequestHandler,
+    Response,
+    register_rh,
+    register_preference
+)
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -241,9 +247,9 @@ class Urllib3LoggingHandler(logging.Handler):
         try:
             msg = self.format(record)
             if record.levelno >= logging.ERROR:
-                self._logger.report_error(msg)
+                self._logger.error(msg)
             else:
-                self._logger.to_stdout(msg)
+                self._logger.stdout(msg)
 
         except Exception:
             self.handleError(record)
@@ -367,6 +373,11 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             raise HTTPError(requests_res, redirect_loop=max_redirects_exceeded)
 
         return requests_res
+
+
+@register_preference(RequestsRH)
+def requests_preference(rh, request):
+    return 500
 
 
 # Since we already have a socks proxy implementation,

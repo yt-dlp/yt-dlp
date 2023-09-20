@@ -3976,7 +3976,7 @@ class YoutubeDL:
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
-        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
+        write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
