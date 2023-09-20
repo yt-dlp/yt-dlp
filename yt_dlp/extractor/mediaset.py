@@ -73,6 +73,13 @@ class MediasetIE(ThePlatformBaseIE):
             'season_number': 5,
             'episode_number': 5,
             'chapters': [{'start_time': 0.0, 'end_time': 3409.08}, {'start_time': 3409.08, 'end_time': 6565.008}],
+            'creator': None,
+            'categories': {
+                'name': 'FrontEndVisible',
+                'label': 'visibility',
+                'scheme': 'visibility',
+            },
+            'tags': 'count:0',
         },
     }, {
         # DRM

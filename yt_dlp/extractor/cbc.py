@@ -194,6 +194,7 @@ class CBCPlayerIE(InfoExtractor):
             ],
             'location': 'Quebec',
             'series': 'All in a Weekend Montreal',
+            'creator': None,
         },
     }, {
         'url': 'http://www.cbc.ca/player/play/2164402062',
