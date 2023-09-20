@@ -669,6 +669,7 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
 
 def sanitize_path(s, force=False):
     """Sanitizes and normalizes path on Windows"""
+    # XXX: this handles drive relative paths (c:sth) incorrectly
     if sys.platform == 'win32':
         force = False
         drive_or_unc, _ = os.path.splitdrive(s)
@@ -687,7 +688,10 @@ def sanitize_path(s, force=False):
         sanitized_path.insert(0, drive_or_unc + os.path.sep)
     elif force and s and s[0] == os.path.sep:
         sanitized_path.insert(0, os.path.sep)
-    return os.path.join(*sanitized_path)
+    # TODO: Fix behavioral differences <3.12
+    # The workaround using `normpath` only superficially passes tests
+    # Ref: https://github.com/python/cpython/pull/100351
+    return os.path.normpath(os.path.join(*sanitized_path))
 
 
 def sanitize_url(url, *, scheme='http'):
@@ -1256,7 +1260,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.utcnow(), precision)
+    today = datetime_round(datetime.datetime.now(datetime.timezone.utc), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -1319,8 +1323,8 @@ def datetime_round(dt, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = calendar.timegm(dt.timetuple())
-    return datetime.datetime.utcfromtimestamp(roundto(timestamp, unit_seconds[precision]))
+    timestamp = roundto(calendar.timegm(dt.timetuple()), unit_seconds[precision])
+    return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
 
 
 def hyphenate_date(date_str):
@@ -2847,6 +2851,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'quicktime': 'mov',
         'webm': 'webm',
         'vp9': 'vp9',
+        'video/ogg': 'ogv',
         'x-flv': 'flv',
         'x-m4v': 'm4v',
         'x-matroska': 'mkv',

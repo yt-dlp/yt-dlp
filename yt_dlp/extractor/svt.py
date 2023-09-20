@@ -1,3 +1,4 @@
+import json
 import re
 
 from .common import InfoExtractor
@@ -6,10 +7,11 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
-    unified_timestamp,
     str_or_none,
     strip_or_none,
+    traverse_obj,
     try_get,
+    unified_timestamp,
 )
 
 
@@ -163,10 +165,46 @@ class SVTPlayIE(SVTPlayBaseIE):
             },
         },
         'params': {
-            # skip for now due to download test asserts that segment is > 10000 bytes and svt uses
-            # init segments that are smaller
-            # AssertionError: Expected test_SVTPlay_jNwpV9P.mp4 to be at least 9.77KiB, but it's only 864.00B
-            'skip_download': True,
+            'skip_download': 'm3u8',
+        },
+        'skip': 'Episode is no longer available',
+    }, {
+        'url': 'https://www.svtplay.se/video/emBxBQj',
+        'md5': '2382036fd6f8c994856c323fe51c426e',
+        'info_dict': {
+            'id': 'eyBd9aj',
+            'ext': 'mp4',
+            'title': '1. Farlig kryssning',
+            'timestamp': 1491019200,
+            'upload_date': '20170401',
+            'duration': 2566,
+            'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
+            'age_limit': 0,
+            'episode': '1. Farlig kryssning',
+            'series': 'Rederiet',
+            'subtitles': {
+                'sv': 'count:3'
+            },
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://www.svtplay.se/video/jz2rYz7/anders-hansen-moter/james-fallon?info=visa',
+        'info_dict': {
+            'id': 'jvXAGVb',
+            'ext': 'mp4',
+            'title': 'James Fallon',
+            'timestamp': 1673917200,
+            'upload_date': '20230117',
+            'duration': 1081,
+            'thumbnail': r're:^https?://(?:.*[\.-]jpg|www.svtstatic.se/image/.*)$',
+            'age_limit': 0,
+            'episode': 'James Fallon',
+            'series': 'Anders Hansen möter...',
+        },
+        'params': {
+            'skip_download': 'dash',
         },
     }, {
         'url': 'https://www.svtplay.se/video/30479064/husdrommar/husdrommar-sasong-8-designdrommar-i-stenungsund?modalId=8zVbDPA',
@@ -248,14 +286,15 @@ class SVTPlayIE(SVTPlayBaseIE):
                 compat_str)
 
         if not svt_id:
+            nextjs_data = self._search_nextjs_data(webpage, video_id, fatal=False)
+            svt_id = traverse_obj(nextjs_data, (
+                'props', 'urqlState', ..., 'data', {json.loads}, 'detailsPageByPath',
+                'video', 'svtId', {str}), get_all=False)
+
+        if not svt_id:
             svt_id = self._search_regex(
                 (r'<video[^>]+data-video-id=["\']([\da-zA-Z-]+)',
-                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/%s/[^"\']*\b(?:modalId|id)=([\da-zA-Z-]+)' % re.escape(video_id),
-                 r'["\']videoSvtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
-                 r'["\']videoSvtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)',
-                 r'"content"\s*:\s*{.*?"id"\s*:\s*"([\da-zA-Z-]+)"',
-                 r'["\']svtId["\']\s*:\s*["\']([\da-zA-Z-]+)',
-                 r'["\']svtId\\?["\']\s*:\s*\\?["\']([\da-zA-Z-]+)'),
+                 r'<[^>]+\bdata-rt=["\']top-area-play-button["\'][^>]+\bhref=["\'][^"\']*video/[\w-]+/[^"\']*\b(?:modalId|id)=([\w-]+)'),
                 webpage, 'video id')
 
         info_dict = self._extract_by_video_id(svt_id, webpage)

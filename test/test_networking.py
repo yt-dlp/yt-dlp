@@ -8,12 +8,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import functools
 import gzip
 import http.client
 import http.cookiejar
 import http.server
-import inspect
 import io
 import pathlib
 import random
@@ -29,6 +27,7 @@ from email.message import Message
 from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
+from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli
 from yt_dlp.networking import (
     HEADRequest,
@@ -39,7 +38,6 @@ from yt_dlp.networking import (
     Response,
 )
 from yt_dlp.networking._urllib import UrllibRH
-from yt_dlp.networking.common import _REQUEST_HANDLERS
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -306,19 +304,6 @@ class TestRequestHandlerBase:
         cls.https_server_thread.start()
 
 
-@pytest.fixture
-def handler(request):
-    RH_KEY = request.param
-    if inspect.isclass(RH_KEY) and issubclass(RH_KEY, RequestHandler):
-        handler = RH_KEY
-    elif RH_KEY in _REQUEST_HANDLERS:
-        handler = _REQUEST_HANDLERS[RH_KEY]
-    else:
-        pytest.skip(f'{RH_KEY} request handler is not available')
-
-    return functools.partial(handler, logger=FakeLogger)
-
-
 class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_verify_cert(self, handler):
@@ -478,7 +463,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert 'Cookie: test=test' not in res
 
         # Specified Cookie header should override global cookiejar for that request
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             version=0, name='test', value='ytdlp', port=None, port_specified=False,
             domain='127.0.0.1', domain_specified=True, domain_initial_dot=False, path='/',
@@ -505,7 +490,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests'], indirect=True)
     def test_cookies(self, handler):
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
             False, '/headers', True, False, None, False, None, None, {}))
@@ -919,7 +904,8 @@ class TestRequestHandlerValidation:
     EXTENSION_TESTS = [
         ('Urllib', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
-            ({'cookiejar': CookieJar()}, False),
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
+            ({'cookiejar': CookieJar()}, AssertionError),
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
@@ -1056,17 +1042,17 @@ class TestRequestDirector:
         assert isinstance(director.send(Request('http://')), FakeResponse)
 
     def test_unsupported_handlers(self):
-        director = RequestDirector(logger=FakeLogger())
-        director.add_handler(FakeRH(logger=FakeLogger()))
-
         class SupportedRH(RequestHandler):
             _SUPPORTED_URL_SCHEMES = ['http']
 
             def _send(self, request: Request):
                 return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
 
-        # This handler should by default take preference over FakeRH
+        director = RequestDirector(logger=FakeLogger())
         director.add_handler(SupportedRH(logger=FakeLogger()))
+        director.add_handler(FakeRH(logger=FakeLogger()))
+
+        # First should take preference
         assert director.send(Request('http://')).read() == b'supported'
         assert director.send(Request('any://')).read() == b''
 
@@ -1092,6 +1078,27 @@ class TestRequestDirector:
         director.add_handler(FakeRH(logger=FakeLogger()))
         director.add_handler(UnexpectedRH(logger=FakeLogger))
         assert director.send(Request('any://'))
+
+    def test_preference(self):
+        director = RequestDirector(logger=FakeLogger())
+        director.add_handler(FakeRH(logger=FakeLogger()))
+
+        class SomeRH(RequestHandler):
+            _SUPPORTED_URL_SCHEMES = ['http']
+
+            def _send(self, request: Request):
+                return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
+
+        def some_preference(rh, request):
+            return (0 if not isinstance(rh, SomeRH)
+                    else 100 if 'prefer' in request.headers
+                    else -1)
+
+        director.add_handler(SomeRH(logger=FakeLogger()))
+        director.preferences.add(some_preference)
+
+        assert director.send(Request('http://')).read() == b''
+        assert director.send(Request('http://', headers={'prefer': '1'})).read() == b'supported'
 
 
 # XXX: do we want to move this to test_YoutubeDL.py?

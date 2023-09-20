@@ -383,9 +383,9 @@ class AwsIdp:
         months = [None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-        time_now = datetime.datetime.utcnow()
+        time_now = datetime.datetime.now(datetime.timezone.utc)
         format_string = "{} {} {} %H:%M:%S UTC %Y".format(days[time_now.weekday()], months[time_now.month], time_now.day)
-        time_string = datetime.datetime.utcnow().strftime(format_string)
+        time_string = time_now.strftime(format_string)
         return time_string
 
     def __str__(self):
