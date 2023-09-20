@@ -1,5 +1,4 @@
 import base64
-import itertools
 import json
 import uuid
 
@@ -106,13 +105,15 @@ class CaracolTvPlayIE(InfoExtractor):
             'is_live': video_data.get('entry_type') == 3,
         }
 
-    def _extract_series_season(self, series_id, season_id, season_number):
-        api_response = self._download_json(
-            'https://eu-gateway.inmobly.com/feed', series_id, query={'season_id': season_id},
-            headers={'Authorization': 'Bearer ' + self._USER_TOKEN})
+    def _extract_series_seasons(self, seasons, series_id):
+        for season in seasons:
+            api_response = self._download_json(
+                'https://eu-gateway.inmobly.com/feed', series_id, query={'season_id': season['id']},
+                headers={'Authorization': 'Bearer ' + self._USER_TOKEN})
 
-        for episode in api_response['items']:
-            yield self._extract_video(episode, series_id, season_id, season_number)
+            season_number = season.get('order')
+            for episode in api_response['items']:
+                yield self._extract_video(episode, series_id, season['id'], season_number)
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
@@ -128,9 +129,7 @@ class CaracolTvPlayIE(InfoExtractor):
             return self._extract_video(api_response)
 
         return self.playlist_result(
-            itertools.chain.from_iterable(
-                self._extract_series_season(series_id, season['id'], season.get('order'))
-                for season in api_response['seasons']),
+            self._extract_series_seasons(api_response['seasons'], series_id),
             series_id, **traverse_obj(api_response, {
                 'title': 'name',
                 'description': 'description',
