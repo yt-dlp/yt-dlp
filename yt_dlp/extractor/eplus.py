@@ -52,9 +52,9 @@ class EplusIbIE(InfoExtractor):
             if archive_mode != 'ON':
                 raise ExtractorError(
                     'This event has ended and there is no archive for this event', expected=True)
-            live_status = 'is_upcoming'
+            live_status = 'post_live'
         elif delivery_status == 'WAIT_CONFIRM_ARCHIVED':
-            live_status = 'is_upcoming'
+            live_status = 'post_live'
         elif delivery_status == 'CONFIRMED_ARCHIVE':
             live_status = 'was_live'
         else:
@@ -73,10 +73,9 @@ class EplusIbIE(InfoExtractor):
                 self.raise_no_formats(
                     'Could not find the playlist URL. This event may not be accessible', expected=True)
         elif live_status == 'is_upcoming':
-            if delivery_status == 'PREPARING':
-                self.raise_no_formats(f'This live event will begin at {release_timestamp_str} JST', expected=True)
-            else:
-                self.raise_no_formats('This event has ended, and the archive will be available shortly', expected=True)
+            self.raise_no_formats(f'This live event will begin at {release_timestamp_str} JST', expected=True)
+        elif live_status == 'post_live':
+            self.raise_no_formats('This event has ended, and the archive will be available shortly', expected=True)
         else:
             for m3u8_playlist_url in m3u8_playlist_urls:
                 formats.extend(self._extract_m3u8_formats(m3u8_playlist_url, video_id))
