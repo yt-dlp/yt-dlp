@@ -505,7 +505,6 @@ class FacebookIE(InfoExtractor):
             # with non-browser User-Agent.
             for f in info['formats']:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-            info['_format_sort_fields'] = ('res', 'quality')
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -552,7 +551,8 @@ class FacebookIE(InfoExtractor):
                         else:
                             formats.append({
                                 'format_id': format_id,
-                                'quality': q(format_id),
+                                # sd, hd formats w/o resolution info should be deprioritized below DASH
+                                'quality': q(format_id) - 3,
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
@@ -719,9 +719,11 @@ class FacebookIE(InfoExtractor):
                 for src_type in ('src', 'src_no_ratelimit'):
                     src = f[0].get('%s_%s' % (quality, src_type))
                     if src:
-                        preference = -10 if format_id == 'progressive' else -1
+                        # sd, hd formats w/o resolution info should be deprioritized below DASH
+                        # TODO: investigate if progressive or src formats still exist
+                        preference = -10 if format_id == 'progressive' else -3
                         if quality == 'hd':
-                            preference += 5
+                            preference += 1
                         formats.append({
                             'format_id': '%s_%s_%s' % (format_id, quality, src_type),
                             'url': src,
