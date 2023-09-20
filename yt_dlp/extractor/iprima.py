@@ -139,11 +139,9 @@ class IPrimaIE(InfoExtractor):
                 nuxt_data, (..., 'content', 'additionals', 'videoPlayId', {str}), get_all=False)
 
         if not video_id:
-            nuxt_data = self._parse_json(
-                self._search_regex(
-                    r'(?s)<script[^>]+\bid=["\']__NUXT_DATA__["\'][^>]+>(.+?)</script>',
-                    webpage, 'nuxt data'),
-                'nuxt data')
+            nuxt_data = self._search_json(
+                r'<script[^>]+\bid=["\']__NUXT_DATA__["\'][^>]*>',
+                webpage, 'nuxt data', None, end_pattern=r'</script>', contains_pattern=r'(?s:.+?)')
 
             video_id = traverse_obj(nuxt_data, lambda _, v: re.fullmatch(r'p\d+', v), get_all=False)
 
