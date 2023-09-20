@@ -1,9 +1,9 @@
 import hashlib
 import re
 import time
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     classproperty,
@@ -105,7 +105,7 @@ class DacastVODIE(DacastBaseIE):
                 formats = self._extract_m3u8_formats(hls_url, video_id, 'mp4', m3u8_id='hls')
             except ExtractorError as e:
                 # CDN will randomly respond with 403
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                     retry.error = e
                     continue
                 raise

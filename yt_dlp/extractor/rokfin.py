@@ -245,7 +245,7 @@ class RokfinIE(InfoExtractor):
             f'{self._AUTH_BASE}/token', None,
             note='getting access credentials', errnote='error getting access credentials',
             data=urlencode_postdata({
-                'code': urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.geturl()).fragment).get('code')[0],
+                'code': urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.url).fragment).get('code')[0],
                 'client_id': 'web',
                 'grant_type': 'authorization_code',
                 'redirect_uri': 'https://rokfin.com/silent-check-sso.html'
@@ -269,7 +269,7 @@ class RokfinIE(InfoExtractor):
 
         json_string, urlh = self._download_webpage_handle(
             url_or_request, video_id, headers=headers, query=query, expected_status=401)
-        if not auth_token or urlh.code != 401 or refresh_token is None:
+        if not auth_token or urlh.status != 401 or refresh_token is None:
             return self._parse_json(json_string, video_id)
 
         self._access_mgmt_tokens = self._download_json(

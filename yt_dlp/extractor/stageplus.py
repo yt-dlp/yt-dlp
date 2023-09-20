@@ -484,18 +484,15 @@ fragment BannerFields on Banner {
             'url': 'url',
         })) or None
 
-        m3u8_headers = {'jwt': self._TOKEN}
-
         entries = []
         for idx, video in enumerate(traverse_obj(data, (
                 'performanceWorks', lambda _, v: v['id'] and url_or_none(v['stream']['url']))), 1):
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                video['stream']['url'], video['id'], 'mp4', m3u8_id='hls', headers=m3u8_headers)
+                video['stream']['url'], video['id'], 'mp4', m3u8_id='hls', query={'token': self._TOKEN})
             entries.append({
                 'id': video['id'],
                 'formats': formats,
                 'subtitles': subtitles,
-                'http_headers': m3u8_headers,
                 'album': metadata.get('title'),
                 'album_artist': metadata.get('artist'),
                 'track_number': idx,

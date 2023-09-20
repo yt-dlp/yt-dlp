@@ -11,6 +11,7 @@ from random import randint
 from .common import InfoExtractor
 from ..aes import aes_ecb_encrypt, pkcs7_padding
 from ..compat import compat_urllib_parse_urlencode
+from ..networking import Request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
@@ -18,7 +19,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     intlist_to_bytes,
-    sanitized_Request,
     try_get,
 )
 
@@ -146,8 +146,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
         return int(round(ms / 1000.0))
 
     def query_api(self, endpoint, video_id, note):
-        req = sanitized_Request('%s%s' % (self._API_BASE, endpoint))
-        req.add_header('Referer', self._API_BASE)
+        req = Request('%s%s' % (self._API_BASE, endpoint))
+        req.headers['Referer'] = self._API_BASE
         return self._download_json(req, video_id, note)
 
 

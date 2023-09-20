@@ -60,7 +60,7 @@ class TwitchBaseIE(InfoExtractor):
     @property
     def _CLIENT_ID(self):
         return self._configuration_arg(
-            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key=TwitchStreamIE, casesense=True)[0]
+            'client_id', ['ue6666qo983tsx6so1t0vnawi233wa'], ie_key='Twitch', casesense=True)[0]
 
     def _perform_login(self, username, password):
         def fail(message):
@@ -71,7 +71,7 @@ class TwitchBaseIE(InfoExtractor):
             form = self._hidden_inputs(page)
             form.update(data)
 
-            page_url = urlh.geturl()
+            page_url = urlh.url
             post_url = self._search_regex(
                 r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page,
                 'post url', default=self._LOGIN_POST_URL, group='url')

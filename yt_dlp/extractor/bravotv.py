@@ -1,6 +1,6 @@
 from .adobepass import AdobePassIE
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     extract_attributes,
     float_or_none,
     get_element_html_by_class,
@@ -155,7 +155,7 @@ class BravoTVIE(AdobePassIE):
             chapters = None
 
         m3u8_url = self._request_webpage(HEADRequest(
-            update_url_query(f'{tp_url}/stream.m3u8', query)), video_id, 'Checking m3u8 URL').geturl()
+            update_url_query(f'{tp_url}/stream.m3u8', query)), video_id, 'Checking m3u8 URL').url
         if 'mpeg_cenc' in m3u8_url:
             self.report_drm(video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
