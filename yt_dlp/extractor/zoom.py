@@ -127,6 +127,7 @@ class ZoomIE(InfoExtractor):
         return {
             'id': video_id,
             'title': str_or_none(traverse_obj(data, ('meet', 'topic'))),
+            'duration': int_or_none(data.get('duration')),
             'subtitles': subtitles,
             'formats': formats,
             'http_headers': {

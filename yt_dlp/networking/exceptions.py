@@ -115,7 +115,7 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
             hdrs=http_error.response.headers,
             fp=http_error.response
         )
-        self._closer.file = None  # Disable auto close
+        self._closer.close_called = True  # Disable auto close
         self._http_error = http_error
         HTTPError.__init__(self, http_error.response, redirect_loop=http_error.redirect_loop)
 

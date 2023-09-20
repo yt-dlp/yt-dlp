@@ -319,16 +319,20 @@ class RedditIE(InfoExtractor):
                 'format_id': 'fallback',
                 'format_note': 'DASH video, mp4_dash',
             }]
-            formats.extend(self._extract_m3u8_formats(
-                hls_playlist_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
-            formats.extend(self._extract_mpd_formats(
-                dash_playlist_url, display_id, mpd_id='dash', fatal=False))
+            hls_fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
+                hls_playlist_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(hls_fmts)
+            dash_fmts, dash_subs = self._extract_mpd_formats_and_subtitles(
+                dash_playlist_url, display_id, mpd_id='dash', fatal=False)
+            formats.extend(dash_fmts)
+            self._merge_subtitles(dash_subs, target=subtitles)
 
             return {
                 **info,
                 'id': video_id,
                 'display_id': display_id,
                 'formats': formats,
+                'subtitles': subtitles,
                 'duration': int_or_none(reddit_video.get('duration')),
             }
 
