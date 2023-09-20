@@ -31,22 +31,22 @@ from ..utils import (
 class VRTBaseIE(GigyaBaseIE):
     _GEO_BYPASS = False
 
-    _PLAYER_INFO = {
-        'platform': 'desktop',
-        'app': {
-           'type': 'browser',
-           'name': 'Chrome'
-           },
-        'device': 'undefined (undefined)',
-        'os': {
-           'name': 'Windows',
-           'version': 'x86_64'
-           },
-        'player': {
-           'name': 'VRT web player',
-           'version': '3.2.6-prod-2023-09-11T12:37:41'
-           }
-        }
+#     _PLAYER_INFO = {
+#         'platform': 'desktop',
+#         'app': {
+#            'type': 'browser',
+#            'name': 'Chrome'
+#            },
+#         'device': 'undefined (undefined)',
+#         'os': {
+#            'name': 'Windows',
+#            'version': 'x86_64'
+#            },
+#         'player': {
+#            'name': 'VRT web player',
+#            'version': '3.2.6-prod-2023-09-11T12:37:41'
+#            }
+#         }
 
     _VIDEOPAGE_QUERY = "query VideoPage($pageId: ID!) {\n  page(id: $pageId) {\n    ... on EpisodePage {\n      id\n      title\n      permalink\n      seo {\n        ...seoFragment\n        __typename\n      }\n      socialSharing {\n        ...socialSharingFragment\n        __typename\n      }\n      trackingData {\n        data\n        perTrigger {\n          trigger\n          data\n          template {\n            id\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      ldjson\n      components {\n        __typename\n        ... on IComponent {\n          componentType\n          __typename\n        }\n      }\n      episode {\n        id\n        title\n        available\n        whatsonId\n        brand\n        brandLogos {\n          type\n          width\n          height\n          primary\n          mono\n          __typename\n        }\n        logo\n        primaryMeta {\n          ...metaFragment\n          __typename\n        }\n        secondaryMeta {\n          ...metaFragment\n          __typename\n        }\n        image {\n          ...imageFragment\n          __typename\n        }\n        durationRaw\n        durationValue\n        durationSeconds\n        onTimeRaw\n        offTimeRaw\n        ageRaw\n        regionRaw\n        announcementValue\n        name\n        episodeNumberRaw\n        episodeNumberValue\n        subtitle\n        richDescription {\n          __typename\n          html\n        }\n        program {\n          id\n          link\n          title\n          __typename\n        }\n        watchAction {\n          streamId\n          videoId\n          episodeId\n          avodUrl\n          resumePoint\n          __typename\n        }\n        shareAction {\n          title\n          description\n          image {\n            templateUrl\n            __typename\n          }\n          url\n          __typename\n        }\n        favoriteAction {\n          id\n          title\n          favorite\n          programWhatsonId\n          programUrl\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\nfragment metaFragment on MetaDataItem {\n  __typename\n  type\n  value\n  shortValue\n  longValue\n}\nfragment imageFragment on Image {\n  objectId\n  id: objectId\n  alt\n  title\n  focalPoint\n  templateUrl\n}\nfragment seoFragment on SeoProperties {\n  __typename\n  title\n  description\n}\nfragment socialSharingFragment on SocialSharingProperties {\n  __typename\n  title\n  description\n  image {\n    __typename\n    id: objectId\n    templateUrl\n  }\n}"
 
@@ -95,32 +95,31 @@ class VRTBaseIE(GigyaBaseIE):
         return formats, subtitles
 
     def _call_api(self, video_id, client='null', id_token=None, version='v2'):
-        player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
-        player_info_jwt = jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
-                    'kid': self._JWT_KEY_ID
-                }).decode()
+#         player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
+#         player_info_jwt = jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
+#                     'kid': self._JWT_KEY_ID
+#                 }).decode()
 
         headers = {
-                    **self.geo_verification_headers(),
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                     }
 
         data = {
                 'identityToken': id_token or self._cookies['vrtnu-site_profile_vt'],
-                'playerInfo': player_info_jwt
+#                 'playerInfo': player_info_jwt
                 }
 
         json_response = self._download_json(
-            'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2/tokens',
+            f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
            None, 'Downloading player token', headers=headers, data=json.dumps(data).encode())
         player_token = json_response['vrtPlayerToken']
 
         return self._download_json(
-            f'https://media-services-public.vrt.be/media-aggregator/{version}/media-items/{video_id}',
+            f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/videos/{video_id}',
             video_id, 'Downloading API JSON', query={
                 'vrtPlayerToken': player_token,
                 'client': client,
-            }, expected_status=400)
+            })
 
 
 class VRTIE(VRTBaseIE):
@@ -268,7 +267,7 @@ class CookiePot(CookieJar):
 
 class VrtNUIE(VRTBaseIE):
     IE_DESC = 'VRT MAX'
-    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/(vrtmax|vrtnu)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
         # CONTENT_IS_AGE_RESTRICTED
         'url': 'https://www.vrt.be/vrtnu/a-z/de-ideale-wereld/2023-vj/de-ideale-wereld-d20230116/',
@@ -323,26 +322,16 @@ class VrtNUIE(VRTBaseIE):
 
     def _perform_login(self, username, password):
 
-
-        # TODO:
-        # 1. Does the _request_webpage() respect this opener too?
-        # 2. If so:
-        #   a. modify (and rename) the class NoRedirect to store the 'Location:' header
-        #   b. Steps 1.a & 1.b become one call to  _request_webpage()
-        #
-        #   https://stackoverflow.com/questions/47002795/how-to-trace-or-to-check-history-of-redirected-urls-with-python-only-urllib-libr
-
         # Disable automatic redirection to be able to
         # grab necessary info in intermediate step
-        opener= urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(self._cookies))
-        urllib.request.install_opener(opener)
+        opener = urllib.request.build_opener(NoRedirect,urllib.request.HTTPCookieProcessor(self._cookies))
 
         # 1.a Visit 'login' URL. Get 'authorize' location and 'oidcstate' cookie
-        res = urllib.request.urlopen('https://www.vrt.be/vrtnu/sso/login', None)
+        res = opener.open('https://www.vrt.be/vrtnu/sso/login', None)
         auth_url = res.headers.get_all('Location')[0]
 
         # 1.b Follow redirection: visit 'authorize' URL. Get OIDCXSRF & SESSION cookies
-        res = urllib.request.urlopen(auth_url, None)
+        res = opener.open(auth_url, None)
         cookies_header = f'OIDCXSRF={self._cookies["OIDCXSRF"]}; SESSION={self._cookies["SESSION"]}'
 
         # 2. Perform login
@@ -355,16 +344,14 @@ class VrtNUIE(VRTBaseIE):
         res = self._request_webpage('https://login.vrt.be/perform_login', None, note='Performing login', errnote='Login failed', fatal=True, data=json.dumps(post_data).encode(), headers=headers)
 
         # TODO:
-        #   . re-enable auto redir here and do step 3 in one urlopen() call?
         #   . should this step be the new "refreshtoken" in _real_extract?
 
         # 3.a Visit 'authorize' again
         headers = {
-                'Host': 'login.vrt.be',
                 'Cookie': cookies_header
                 }
         request = urllib.request.Request(auth_url, headers=headers)
-        res = urllib.request.urlopen(request, None)
+        res = opener.open(request, None)
         callback_url = res.headers.get_all('Location')[0]
 
         # 3.b Visit 'callback'
@@ -372,7 +359,7 @@ class VrtNUIE(VRTBaseIE):
                 'Cookie': f'oidcstate={self._cookies["oidcstate"]}'
                 }
         request = urllib.request.Request(callback_url, headers=headers)
-        res = urllib.request.urlopen(request, None)
+        res = opener.open(request, None)
 
         self._authenticated = True
 
@@ -380,11 +367,8 @@ class VrtNUIE(VRTBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         parsed_url = urllib.parse.urlparse(url)
-        print(f'pageId:  {parsed_url.path.rstrip("/")}.model.json')
 
         headers = {
-                'Origin': 'https://www.vrt.be',
-                'Referer': f'{url}',
                 'Content-Type': 'application/json',
                 'Authorization': f'Bearer {self._cookies["vrtnu-site_profile_at"]}'
                 }
