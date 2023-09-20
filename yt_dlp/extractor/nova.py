@@ -6,7 +6,6 @@ from ..utils import (
     determine_ext,
     int_or_none,
     js_to_json,
-    qualities,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -45,11 +44,12 @@ class NovaEmbedIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        drm_formats = []
+        has_drm = False
         duration = None
         formats = []
 
         def process_format_list(format_list, format_id=""):
+            nonlocal formats, has_drm
             if not isinstance(format_list, list):
                 format_list = [format_list]
             for format_dict in format_list:
@@ -57,7 +57,7 @@ class NovaEmbedIE(InfoExtractor):
                     continue
                 if (not self.get_param('allow_unplayable_formats')
                         and traverse_obj(format_dict, ('drm', 'keySystem'))):
-                    drm_formats.append(format_dict)
+                    has_drm = True
                     continue
                 format_url = url_or_none(format_dict.get('src'))
                 format_type = format_dict.get('type')
@@ -77,15 +77,14 @@ class NovaEmbedIE(InfoExtractor):
                         'url': format_url,
                     })
 
-        player = self._parse_json(
-            self._search_regex(
-                r'player:\s*(?P<json>.*?)}\s*;?\s*</script>',
-                webpage, 'player', default='{}', flags=re.DOTALL, group='json'), video_id, fatal=False)
+        player = self._search_json(
+            r'player:', webpage, 'player', video_id, fatal=False, end_pattern=r';\s*</script>')
         if player:
-            for src in traverse_obj(player, ('lib', 'source', 'sources'), default=[]):
+            for src in traverse_obj(player, ('lib', 'source', 'sources', ...)):
                 process_format_list(src)
-            duration = int_or_none(traverse_obj(player, ('sourceInfo', 'duration')))
-        if not formats and not drm_formats:
+            duration = traverse_obj(player, ('sourceInfo', 'duration', {int_or_none}))
+        if not formats and not has_drm:
+            # older code path, in use before August 2023
             player = self._parse_json(
                 self._search_regex(
                     (r'(?:(?:replacePlaceholders|processAdTagModifier).*?:\s*)?(?:replacePlaceholders|processAdTagModifier)\s*\(\s*(?P<json>{.*?})\s*\)(?:\s*\))?\s*,',
@@ -95,45 +94,8 @@ class NovaEmbedIE(InfoExtractor):
                 for format_id, format_list in player['tracks'].items():
                     process_format_list(format_list, format_id)
                 duration = int_or_none(player.get('duration'))
-            else:
-                # Old path, not actual as of 08.04.2020
-                bitrates = self._parse_json(
-                    self._search_regex(
-                        r'(?s)(?:src|bitrates)\s*=\s*({.+?})\s*;', webpage, 'formats'),
-                    video_id, transform_source=js_to_json)
 
-                QUALITIES = ('lq', 'mq', 'hq', 'hd')
-                quality_key = qualities(QUALITIES)
-
-                for format_id, format_list in bitrates.items():
-                    if not isinstance(format_list, list):
-                        format_list = [format_list]
-                    for format_url in format_list:
-                        format_url = url_or_none(format_url)
-                        if not format_url:
-                            continue
-                        if format_id == 'hls':
-                            formats.extend(self._extract_m3u8_formats(
-                                format_url, video_id, ext='mp4',
-                                entry_protocol='m3u8_native', m3u8_id='hls',
-                                fatal=False))
-                            continue
-                        f = {
-                            'url': format_url,
-                        }
-                        f_id = format_id
-                        for quality in QUALITIES:
-                            if '%s.mp4' % quality in format_url:
-                                f_id += '-%s' % quality
-                                f.update({
-                                    'quality': quality_key(quality),
-                                    'format_note': quality.upper(),
-                                })
-                                break
-                        f['format_id'] = f_id
-                        formats.append(f)
-
-        if not formats and drm_formats:
+        if not formats and has_drm:
             self.report_drm(video_id)
 
         title = self._og_search_title(
