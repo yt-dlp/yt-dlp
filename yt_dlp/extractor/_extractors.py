@@ -1,4 +1,8 @@
 # flake8: noqa: F401
+from .tudou import(TudouIE,
+
+
+    )
 
 from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeIE,
