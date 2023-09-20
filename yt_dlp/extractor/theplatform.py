@@ -110,6 +110,9 @@ class ThePlatformBaseIE(OnceIE):
             tags = info_keywords_str.split(', ')
         location = None
         series = None
+        season_number = None
+        # The following can be uncommented as soon as #7838 is merged
+        # media_type = None
         # for site-specific data in the metadata file
         ownerId = info.get('ownerId', {str_or_none})
         # only process the following if this is from the cbc
@@ -138,8 +141,9 @@ class ThePlatformBaseIE(OnceIE):
             'tags': tags,
             'location': location,
             'series': series,
+            'season_number': season_number,
             # The following can be uncommented as soon as #7838 is merged and the matching line above is uncommented
-            # 'media_type': info.get('cbc$type', {str_or_none}),
+            # 'media_type': media_type
         }
 
     def _extract_theplatform_metadata(self, path, video_id):
