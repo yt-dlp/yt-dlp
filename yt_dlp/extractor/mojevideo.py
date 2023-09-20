@@ -29,7 +29,6 @@ class MojevideoIE(InfoExtractor):
         info = {}
         video_url = "https://cache01.mojevideo.sk/securevideos69/" + video_id + ".mp4?md5=" + video_hash + "&expires=" + video_expiration
         if video_url:
-            print(video_id)
             info = {
                 'id': video_id,
                 'url': video_url,
