@@ -89,7 +89,7 @@ class NovaEmbedIE(InfoExtractor):
                 self._search_regex(
                     (r'(?:(?:replacePlaceholders|processAdTagModifier).*?:\s*)?(?:replacePlaceholders|processAdTagModifier)\s*\(\s*(?P<json>{.*?})\s*\)(?:\s*\))?\s*,',
                      r'Player\.init\s*\([^,]+,(?P<cndn>\s*\w+\s*\?)?\s*(?P<json>{(?(cndn).+?|.+)})\s*(?(cndn):|,\s*{.+?}\s*\)\s*;)'),
-                    webpage, 'player', default='{}', group='json'), video_id, fatal=False)
+                    webpage, 'player', group='json'), video_id)
             if player:
                 for format_id, format_list in player['tracks'].items():
                     process_format_list(format_list, format_id)
