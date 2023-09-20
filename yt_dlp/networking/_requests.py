@@ -21,24 +21,26 @@ import requests.utils
 import urllib3.connection
 import urllib3.exceptions
 
+from ._helper import (
+    InstanceStoreMixin,
+    add_accept_encoding_header,
+    create_connection,
+    create_socks_proxy_socket,
+    get_redirect_method,
+    make_socks_proxy_opts,
+    select_proxy,
+)
 from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
+    CertificateVerifyError,
     HTTPError,
     IncompleteRead,
     ProxyError,
     RequestError,
     SSLError,
-    TransportError, CertificateVerifyError,
-)
-from ._helper import (
-    InstanceStoreMixin,
-    add_accept_encoding_header,
-    get_redirect_method,
-    make_socks_proxy_opts,
-    select_proxy,
+    TransportError,
 )
 from ..socks import ProxyError as SocksProxyError
-from ..socks import sockssocket
 from ..utils import int_or_none
 
 SUPPORTED_ENCODINGS = [
@@ -375,20 +377,19 @@ class SocksHTTPConnection(urllib3.connection.HTTPConnection):
         super().__init__(*args, **kwargs)
 
     def _new_conn(self):
-        sock = sockssocket()
-        sock.setproxy(**self._proxy_args)
-        if isinstance(self.timeout, (int, float)):
-            sock.settimeout(self.timeout)
         try:
-            sock.connect((self.host, self.port))
+            return create_connection(
+                address=(self._proxy_args['addr'], self._proxy_args['port']),
+                timeout=self.timeout,
+                source_address=self.source_address,
+                _create_socket_func=functools.partial(
+                    create_socks_proxy_socket, (self.host, self.port), self._proxy_args))
         except (socket.timeout, TimeoutError) as e:
             raise urllib3.exceptions.ConnectTimeoutError(self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
         except SocksProxyError as e:
             raise urllib3.exceptions.ProxyError(str(e), e) from e
         except (OSError, socket.error) as e:
             raise urllib3.exceptions.NewConnectionError(self, f'Failed to establish a new connection: {e}') from e
-
-        return sock
 
 
 class SocksHTTPSConnection(SocksHTTPConnection, urllib3.connection.HTTPSConnection):

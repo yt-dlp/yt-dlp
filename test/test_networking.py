@@ -912,7 +912,7 @@ class TestRequestHandlerValidation:
         ]),
         ('Requests', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
-            ({'cookiejar': CookieJar()}, False),
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
