@@ -73,7 +73,7 @@ class CaracolTvPlayIE(InfoExtractor):
         self._USER_TOKEN = self._download_json(
             'https://eu-gateway.inmobly.com/user/login', None, note='Performing login', headers={
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer' + bearer_token
+                'Authorization': f'Bearer {bearer_token}',
             }, data=json.dumps({
                 'device_data': {
                     'device_id': str(uuid.uuid4()),
@@ -109,7 +109,7 @@ class CaracolTvPlayIE(InfoExtractor):
         for season in seasons:
             api_response = self._download_json(
                 'https://eu-gateway.inmobly.com/feed', series_id, query={'season_id': season['id']},
-                headers={'Authorization': 'Bearer ' + self._USER_TOKEN})
+                headers={'Authorization': f'Bearer {self._USER_TOKEN}'})
 
             season_number = season.get('order')
             for episode in api_response['items']:
@@ -123,7 +123,7 @@ class CaracolTvPlayIE(InfoExtractor):
 
         api_response = self._download_json(
             'https://eu-gateway.inmobly.com/feed', series_id, query={'include_ids': series_id},
-            headers={'Authorization': 'Bearer ' + self._USER_TOKEN})['items'][0]
+            headers={'Authorization': f'Bearer {self._USER_TOKEN}'})['items'][0]
 
         if not api_response.get('seasons'):
             return self._extract_video(api_response)

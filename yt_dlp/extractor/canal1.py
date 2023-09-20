@@ -35,5 +35,5 @@ class Canal1IE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         return self.url_result(
-            self._search_regex(r'"embedUrl"\s*:\s*"([^"]+)', webpage, "embed url"),
+            self._search_regex(r'"embedUrl"\s*:\s*"([^"]+)', webpage, 'embed url'),
             display_id=display_id, url_transparent=True)
