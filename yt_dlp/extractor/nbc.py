@@ -52,6 +52,10 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'chapters': 'count:1',
                 'tags': 'count:4',
                 'thumbnail': r're:https?://.+\.jpg',
+                'categories': {
+                    'name': 'Series/The Tonight Show Starring Jimmy Fallon'
+                },
+                'creator': None,
             },
             'params': {
                 'skip_download': 'm3u8',
