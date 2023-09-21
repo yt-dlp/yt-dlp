@@ -2,11 +2,11 @@ import functools
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     clean_html,
     determine_ext,
     float_or_none,
-    HEADRequest,
     InAdvancePagedList,
     int_or_none,
     join_nonempty,

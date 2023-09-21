@@ -1,13 +1,8 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    HEADRequest,
-    int_or_none,
-    parse_duration,
-    unified_strdate,
-)
+from ..networking import HEADRequest
+from ..utils import float_or_none, int_or_none, parse_duration, unified_strdate
 
 
 class LA7IE(InfoExtractor):

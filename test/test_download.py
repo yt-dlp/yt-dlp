@@ -10,10 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import collections
 import hashlib
-import http.client
 import json
-import socket
-import urllib.error
 
 from test.helper import (
     assertGreaterEqual,
@@ -29,6 +26,7 @@ from test.helper import (
 
 import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
+from yt_dlp.networking.exceptions import HTTPError, TransportError
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
@@ -162,8 +160,7 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if (err.exc_info[0] not in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine)
-                            or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503)):
+                    if not isinstance(err.exc_info[1], (TransportError, UnavailableVideoError)) or (isinstance(err.exc_info[1], HTTPError) and err.exc_info[1].status == 503):
                         err.msg = f'{getattr(err, "msg", err)} ({tname})'
                         raise
 
@@ -249,7 +246,7 @@ def generator(test_case, tname):
                 # extractor returns full results even with extract_flat
                 res_tcs = [{'info_dict': e} for e in res_dict['entries']]
                 try_rm_tcs_files(res_tcs)
-
+            ydl.close()
     return test_template
 
 

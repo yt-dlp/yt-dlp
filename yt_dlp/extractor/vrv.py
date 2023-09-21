@@ -8,7 +8,8 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError, compat_urllib_parse_urlencode
+from ..compat import compat_urllib_parse_urlencode
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -54,8 +55,8 @@ class VRVBaseIE(InfoExtractor):
                 '?'.join([base_url, encoded_query]), video_id,
                 note='Downloading %s JSON metadata' % note, headers=headers, data=data)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                raise ExtractorError(json.loads(e.cause.read().decode())['message'], expected=True)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                raise ExtractorError(json.loads(e.cause.response.read().decode())['message'], expected=True)
             raise
 
     def _call_cms(self, path, video_id, note):

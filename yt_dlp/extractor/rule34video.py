@@ -1,6 +1,6 @@
 import re
 
-from ..utils import parse_duration
+from ..utils import parse_duration, unescapeHTML
 from .common import InfoExtractor
 
 
@@ -16,7 +16,8 @@ class Rule34VideoIE(InfoExtractor):
                 'title': 'Shot It-(mmd hmv)',
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065157/preview.jpg',
                 'duration': 347.0,
-                'age_limit': 18
+                'age_limit': 18,
+                'tags': 'count:14'
             }
         },
         {
@@ -28,7 +29,8 @@ class Rule34VideoIE(InfoExtractor):
                 'title': 'Lara in Trouble Ep. 7 [WildeerStudio]',
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'duration': 938.0,
-                'age_limit': 18
+                'age_limit': 18,
+                'tags': 'count:50'
             }
         },
     ]
@@ -57,5 +59,7 @@ class Rule34VideoIE(InfoExtractor):
             'title': title,
             'thumbnail': thumbnail,
             'duration': parse_duration(duration),
-            'age_limit': 18
+            'age_limit': 18,
+            'tags': list(map(unescapeHTML, re.findall(
+                r'<a class="tag_item"[^>]+\bhref="https://rule34video\.com/tags/\d+/"[^>]*>(?P<tag>[^>]*)</a>', webpage))),
         }

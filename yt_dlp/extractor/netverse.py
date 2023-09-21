@@ -160,7 +160,7 @@ class NetverseIE(NetverseBaseIE):
             'uploader': 'Net Prime',
             'comment_count': int,
         },
-        'params':{
+        'params': {
             'getcomments': True
         }
     }, {
@@ -187,7 +187,7 @@ class NetverseIE(NetverseBaseIE):
             'season': 'Season 1',
             'comment_count': int,
         },
-        'params':{
+        'params': {
             'getcomments': True
         }
     }]

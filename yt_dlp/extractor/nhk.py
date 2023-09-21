@@ -2,12 +2,15 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    int_or_none,
+    join_nonempty,
     parse_duration,
     traverse_obj,
     unescapeHTML,
     unified_timestamp,
+    url_or_none,
     urljoin,
-    url_or_none
 )
 
 
@@ -492,3 +495,73 @@ class NhkRadioNewsPageIE(InfoExtractor):
 
     def _real_extract(self, url):
         return self.url_result('https://www.nhk.or.jp/radio/ondemand/detail.html?p=F261_01', NhkRadiruIE)
+
+
+class NhkRadiruLiveIE(InfoExtractor):
+    _GEO_COUNTRIES = ['JP']
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/radio/player/\?ch=(?P<id>r[12]|fm)'
+    _TESTS = [{
+        # radio 1, no area specified
+        'url': 'https://www.nhk.or.jp/radio/player/?ch=r1',
+        'info_dict': {
+            'id': 'r1-tokyo',
+            'title': 're:^ＮＨＫネットラジオ第1 東京.+$',
+            'ext': 'm4a',
+            'thumbnail': 'https://www.nhk.or.jp/common/img/media/r1-200x200.png',
+            'live_status': 'is_live',
+        },
+    }, {
+        # radio 2, area specified
+        # (the area doesnt actually matter, r2 is national)
+        'url': 'https://www.nhk.or.jp/radio/player/?ch=r2',
+        'params': {'extractor_args': {'nhkradirulive': {'area': ['fukuoka']}}},
+        'info_dict': {
+            'id': 'r2-fukuoka',
+            'title': 're:^ＮＨＫネットラジオ第2 福岡.+$',
+            'ext': 'm4a',
+            'thumbnail': 'https://www.nhk.or.jp/common/img/media/r2-200x200.png',
+            'live_status': 'is_live',
+        },
+    }, {
+        # fm, area specified
+        'url': 'https://www.nhk.or.jp/radio/player/?ch=fm',
+        'params': {'extractor_args': {'nhkradirulive': {'area': ['sapporo']}}},
+        'info_dict': {
+            'id': 'fm-sapporo',
+            'title': 're:^ＮＨＫネットラジオＦＭ 札幌.+$',
+            'ext': 'm4a',
+            'thumbnail': 'https://www.nhk.or.jp/common/img/media/fm-200x200.png',
+            'live_status': 'is_live',
+        }
+    }]
+
+    _NOA_STATION_IDS = {'r1': 'n1', 'r2': 'n2', 'fm': 'n3'}
+
+    def _real_extract(self, url):
+        station = self._match_id(url)
+        area = self._configuration_arg('area', ['tokyo'])[0]
+
+        config = self._download_xml(
+            'https://www.nhk.or.jp/radio/config/config_web.xml', station, 'Downloading area information')
+        data = config.find(f'.//data//area[.="{area}"]/..')
+
+        if not data:
+            raise ExtractorError('Invalid area. Valid areas are: %s' % ', '.join(
+                [i.text for i in config.findall('.//data//area')]), expected=True)
+
+        noa_info = self._download_json(
+            f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),
+            station, note=f'Downloading {area} station metadata')
+        present_info = traverse_obj(noa_info, ('nowonair_list', self._NOA_STATION_IDS.get(station), 'present'))
+
+        return {
+            'title': ' '.join(traverse_obj(present_info, (('service', 'area',), 'name', {str}))),
+            'id': join_nonempty(station, area),
+            'thumbnails': traverse_obj(present_info, ('service', 'images', ..., {
+                'url': 'url',
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+            })),
+            'formats': self._extract_m3u8_formats(data.find(f'{station}hls').text, station),
+            'is_live': True,
+        }

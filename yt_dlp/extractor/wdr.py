@@ -173,6 +173,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'skip': 'HTTP Error 404: Not Found',
         },
         {
+            # FIXME: Asset JSON is directly embedded in webpage
             'url': 'http://www1.wdr.de/mediathek/video/live/index.html',
             'info_dict': {
                 'id': 'mdb-2296252',
@@ -221,6 +222,8 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'id': 'mdb-869971',
                 'ext': 'mp4',
                 'title': r're:^COSMO Livestream [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+                'alt_title': 'COSMO Livestream',
+                'live_status': 'is_live',
                 'upload_date': '20160101',
             },
             'params': {
@@ -248,6 +251,16 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'url': 'https://kinder.wdr.de/tv/die-sendung-mit-dem-elefanten/av/video-folge---astronaut-100.html',
             'only_matching': True,
         },
+        {
+            'url': 'https://www1.wdr.de/mediathek/video/sendungen/rockpalast/video-baroness---freak-valley-festival--100.html',
+            'info_dict': {
+                'id': 'mdb-2741028',
+                'ext': 'mp4',
+                'title': 'Baroness - Freak Valley Festival 2022',
+                'alt_title': 'Rockpalast',
+                'upload_date': '20220725',
+            },
+        }
     ]
 
     def _real_extract(self, url):
@@ -259,7 +272,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
 
         # Article with several videos
 
-        # for wdr.de the data-extension is in a tag with the class "mediaLink"
+        # for wdr.de the data-extension-ard is in a tag with the class "mediaLink"
         # for wdr.de radio players, in a tag with the class "wdrrPlayerPlayBtn"
         # for wdrmaus, in a tag with the class "videoButton" (previously a link
         # to the page in a multiline "videoLink"-tag)
@@ -268,7 +281,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                     (?:
                         (["\'])(?:mediaLink|wdrrPlayerPlayBtn|videoButton)\b.*?\1[^>]+|
                         (["\'])videoLink\b.*?\2[\s]*>\n[^\n]*
-                    )data-extension=(["\'])(?P<data>(?:(?!\3).)+)\3
+                    )data-extension(?:-ard)?=(["\'])(?P<data>(?:(?!\3).)+)\3
                     ''', webpage):
             media_link_obj = self._parse_json(
                 mobj.group('data'), display_id, transform_source=js_to_json,
@@ -295,7 +308,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                     compat_urlparse.urljoin(url, mobj.group('href')),
                     ie=WDRPageIE.ie_key())
                 for mobj in re.finditer(
-                    r'<a[^>]+\bhref=(["\'])(?P<href>(?:(?!\1).)+)\1[^>]+\bdata-extension=',
+                    r'<a[^>]+\bhref=(["\'])(?P<href>(?:(?!\1).)+)\1[^>]+\bdata-extension(?:-ard)?=',
                     webpage) if re.match(self._PAGE_REGEX, mobj.group('href'))
             ]
 

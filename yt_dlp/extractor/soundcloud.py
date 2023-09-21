@@ -7,15 +7,13 @@ from .common import (
     InfoExtractor,
     SearchInfoExtractor
 )
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_str
+from ..networking import HEADRequest, Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
     error_to_compat_str,
     ExtractorError,
     float_or_none,
-    HEADRequest,
     int_or_none,
     KNOWN_EXTENSIONS,
     mimetype2ext,
@@ -26,7 +24,6 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlhandle_detect_ext,
-    sanitized_Request,
 )
 
 
@@ -103,7 +100,7 @@ class SoundcloudBaseIE(InfoExtractor):
             try:
                 return super()._download_json(*args, **kwargs)
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
+                if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
                     self._store_client_id(None)
                     self._update_client_id()
                     continue
@@ -123,7 +120,7 @@ class SoundcloudBaseIE(InfoExtractor):
         self._access_token = password
         query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
         payload = {'session': {'access_token': self._access_token}}
-        token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
+        token_verification = Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
         response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
         if response is not False:
             self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
@@ -212,7 +209,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 urlh = self._request_webpage(
                     HEADRequest(redirect_url), track_id, fatal=False)
                 if urlh:
-                    format_url = urlh.geturl()
+                    format_url = urlh.url
                     format_urls.add(format_url)
                     formats.append({
                         'format_id': 'download',
@@ -669,7 +666,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error
                     # See https://github.com/yt-dlp/yt-dlp/issues/872
-                    if not isinstance(e.cause, compat_HTTPError) or e.cause.code != 502:
+                    if not isinstance(e.cause, HTTPError) or e.cause.status != 502:
                         raise
                     retry.error = e
                     continue
