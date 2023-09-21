@@ -296,9 +296,11 @@ from .cammodels import CamModelsIE
 from .camsoda import CamsodaIE
 from .camtasia import CamtasiaEmbedIE
 from .camwithher import CamWithHerIE
+from .canal1 import Canal1IE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
+from .caracoltv import CaracolTvPlayIE
 from .carambatv import (
     CarambaTVIE,
     CarambaTVPageIE,
