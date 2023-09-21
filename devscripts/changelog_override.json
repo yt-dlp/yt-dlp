@@ -68,6 +68,25 @@
     {
         "action": "change",
         "when": "b03fa7834579a01cc5fba48c0e73488a16683d48",
-        "short": "[ie/twitter] Revert 92315c03774cfabb3a921884326beb4b981f786b"
+        "short": "[ie/twitter] Revert 92315c03774cfabb3a921884326beb4b981f786b",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "change",
+        "when": "fcd6a76adc49d5cd8783985c7ce35384b72e545f",
+        "short": "[test] Add tests for socks proxies (#7908)",
+        "authors": ["coletdjnz"]
+    },
+    {
+        "action": "change",
+        "when": "4bf912282a34b58b6b35d8f7e6be535770c89c76",
+        "short": "[rh:urllib] Remove dot segments during URL normalization (#7662)",
+        "authors": ["coletdjnz"]
+    },
+    {
+        "action": "change",
+        "when": "59e92b1f1833440bb2190f847eb735cf0f90bc85",
+        "short": "[rh:urllib] Simplify gzip decoding (#7611)",
+        "authors": ["Grub4K"]
     }
 ]
