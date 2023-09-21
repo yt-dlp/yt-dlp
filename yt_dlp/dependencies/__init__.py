@@ -44,10 +44,7 @@ except Exception as _err:
 try:
     import sqlite3
     # `sqlite3.version` is deprecated in py3.12, see https://github.com/yt-dlp/yt-dlp/issues/8152
-    import warnings as _warnings
-    with _warnings.catch_warnings():
-        _warnings.simplefilter('ignore', DeprecationWarning)
-        sqlite3._yt_dlp__version = getattr(sqlite3, 'version', '2.6.0+')
+    sqlite3._yt_dlp__version = sqlite3.sqlite_version
 except ImportError:
     # although sqlite3 is part of the standard library, it is possible to compile python without
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
