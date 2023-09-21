@@ -33,17 +33,17 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
         return fanclub_id
 
     def _get_channel_base_info(self, fanclub_site_id):
-        return self._call_api(
+        return traverse_obj(self._call_api(
             f'fanclub_sites/{fanclub_site_id}/page_base_info', item_id=f'fanclub_sites/{fanclub_site_id}',
-            note='Fetching channel base info', errnote='Unable to fetch channel base info',
-        )['data']['fanclub_site']
+            note='Fetching channel base info', errnote='Unable to fetch channel base info', fatal=False,
+        ), ('data', 'fanclub_site', {dict})) or {}
 
     def _get_channel_user_info(self, fanclub_site_id):
-        return self._call_api(
+        return traverse_obj(self._call_api(
             f'fanclub_sites/{fanclub_site_id}/user_info', item_id=f'fanclub_sites/{fanclub_site_id}',
-            note='Fetching channel user info', errnote='Unable to fetch channel user info',
+            note='Fetching channel user info', errnote='Unable to fetch channel user info', fatal=False,
             data=json.dumps('null').encode('ascii'),
-        )['data']['fanclub_site']
+        ), ('data', 'fanclub_site', {dict})) or {}
 
 
 class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
