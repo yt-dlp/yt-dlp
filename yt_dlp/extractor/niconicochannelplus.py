@@ -113,13 +113,10 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
         if live_status == 'is_upcoming':
             if release_timestamp_str:
-                self.raise_no_formats(
-                    f'This live event will begin at {release_timestamp_str} UTC', expected=True,
-                    video_id=content_code)
+                msg = f'This live event will begin at {release_timestamp_str} UTC'
             else:
-                # has not encountered this situation, but still give it a chance.
-                self.raise_no_formats(
-                    'This event has not started yet', expected=True, video_id=content_code)
+                msg = 'This event has not started yet'
+            self.raise_no_formats(msg, expected=True, video_id=content_code)
         else:
             formats = self._extract_m3u8_formats(
                 # "authenticated_url" is a format string contains "{session_id}".
