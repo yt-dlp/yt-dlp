@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_class,
@@ -10,6 +11,7 @@ from ..utils import (
     unified_strdate,
     strip_or_none,
     traverse_obj,
+    try_call,
 )
 
 
@@ -29,39 +31,48 @@ class MonstercatIE(InfoExtractor):
         }
     }]
 
-    TRACK_API = 'https://www.monstercat.com/api/release/{release_id}/track-stream/{song_id}'
-
     def _extract_tracks(self, table, album_meta):
         for td in re.findall(r'<tr[^<]*>((?:(?!</tr>)[\w\W])+)', table):  # regex by chatgpt due to lack of get_elements_by_tag
-            title = traverse_obj(get_element_by_class('d-inline-flex flex-column', td).partition(' <span'), (0, {strip_or_none}))
-            ids = traverse_obj(get_element_html_by_class('btn-play cursor-pointer mr-small', td), {extract_attributes})
+            title = clean_html(try_call(
+                lambda: get_element_by_class('d-inline-flex flex-column', td).partition(' <span')[0]))
+            ids = extract_attributes(try_call(lambda: get_element_html_by_class('btn-play cursor-pointer mr-small', td)) or '')
+            track_id = ids.get('data-track-id')
+            release_id = ids.get('data-release-id')
+
+            track_number = int_or_none(try_call(lambda: get_element_by_class('py-xsmall', td)))
+            if not track_id or not release_id:
+                self.report_warning(f'ID not found for track {track_number}')
+                self.write_debug(f'release id: {release_id}')
+                self.write_debug(f'track id: {track_id}')
+                continue
             yield {
                 **album_meta,
                 'title': title,
                 'track': title,
-                'track_number': traverse_obj(get_element_by_class('py-xsmall', td), {int_or_none}),
-                'artist': traverse_obj(td, {lambda td: get_element_by_class('d-block fs-xxsmall', td)}),
-                'url': self.TRACK_API.format(release_id=ids.get('data-release-id'),
-                                             song_id=ids.get('data-track-id')),
-                'id': ids.get('data-track-id'),
+                'track_number': track_number,
+                'artist': clean_html(try_call(lambda: get_element_by_class('d-block fs-xxsmall', td))),
+                'url': f'https://www.monstercat.com/api/release/{release_id}/track-stream/{track_id}',
+                'id': track_id,
                 'ext': 'mp3'
             }
 
     def _real_extract(self, url):
         url_id = self._match_id(url)
         html = self._download_webpage(url, url_id)
-        tracklist_table = traverse_obj(html, {lambda html: get_element_by_class('table table-small', html)})
+        # wrap all `get_elements` in `try_call`, HTMLParser has problems with site's html
+        tracklist_table = try_call(lambda: get_element_by_class('table table-small', html)) or ''
 
-        title = traverse_obj(get_element_text_and_html_by_tag('h1', html), 0)
+        title = try_call(lambda: get_element_text_and_html_by_tag('h1', html)[0])
         date = traverse_obj(html, ({lambda html: get_element_by_class('font-italic mb-medium d-tablet-none d-phone-block',
                             html).partition('Released ')}, 2, {strip_or_none}, {unified_strdate}))
 
         album_meta = {
             'title': title,
             'album': title,
-            'thumbnail': url + '/cover',
-            'album_artist': traverse_obj(html, {lambda html: get_element_by_class('h-normal text-uppercase mb-desktop-medium mb-smallish', html)}),
-            'release_year': traverse_obj(date, ({lambda x: date[:4]}, {int_or_none})),
+            'thumbnail': f'https://www.monstercat.com/release/{url_id}/cover',
+            'album_artist': try_call(
+                lambda: get_element_by_class('h-normal text-uppercase mb-desktop-medium mb-smallish', html)),
+            'release_year': int_or_none(date[:4]) if date else None,
             'release_date': date,
         }
 
