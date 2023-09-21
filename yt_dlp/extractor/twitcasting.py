@@ -5,8 +5,9 @@ import re
 from .common import InfoExtractor
 from ..dependencies import websockets
 from ..utils import (
-    clean_html,
     ExtractorError,
+    UserNotLive,
+    clean_html,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
@@ -235,6 +236,9 @@ class TwitCastingLiveIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://twitcasting.tv/ivetesangalo',
         'only_matching': True,
+    }, {
+        'url': 'https://twitcasting.tv/c:unusedlive',
+        'expected_exception': 'UserNotLive',
     }]
 
     def _real_extract(self, url):
@@ -260,7 +264,7 @@ class TwitCastingLiveIE(InfoExtractor):
                     r'(?s)<a\s+class="tw-movie-thumbnail"\s*href="/[^/]+/movie/(?P<video_id>\d+)"\s*>.+?</a>',
                     webpage, 'current live ID 2', default=None, group='video_id')
         if not current_live:
-            raise ExtractorError('The user is not currently live')
+            raise UserNotLive(video_id=uploader_id)
         return self.url_result('https://twitcasting.tv/%s/movie/%s' % (uploader_id, current_live))
 
 
