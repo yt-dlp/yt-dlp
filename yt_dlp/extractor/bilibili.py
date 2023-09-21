@@ -69,7 +69,7 @@ class BilibiliBaseIE(InfoExtractor):
             'height': int_or_none(video.get('height')),
             'vcodec': video.get('codecs'),
             'acodec': 'none' if audios else None,
-            'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(video.get('id')),
+            'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(int_or_none(video.get('id'))),
             'tbr': float_or_none(video.get('bandwidth'), scale=1000),
             'filesize': int_or_none(video.get('size')),
             'quality': int_or_none(video.get('id')),
