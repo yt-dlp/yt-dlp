@@ -5,9 +5,9 @@ import re
 from .common import InfoExtractor
 from ..dependencies import websockets
 from ..utils import (
-    clean_html,
     ExtractorError,
     UserNotLive,
+    clean_html,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
