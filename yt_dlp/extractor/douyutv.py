@@ -47,7 +47,7 @@ class DouyuBaseIE(InfoExtractor):
         return {i: v[0] for i, v in urllib.parse.parse_qs(result).items()}
 
     def _search_js_sign_func(self, webpage, fatal=True):
-        # use preceeding greedy non-capture to achieve non-greedy in backward direction
+        # The greedy look-behind ensures last possible script tag is matched
         return self._search_regex(
             r'(?:<script.*)?<script[^>]*>(.*?ub98484234.*?)</script>', webpage, 'JS sign func', fatal=fatal)
 
