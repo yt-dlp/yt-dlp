@@ -143,7 +143,7 @@ def generator(test_case, tname):
         res_dict = None
 
         def match_exception(err):
-            expected_exception = test_case.get('expected_exception', None)
+            expected_exception = test_case.get('expected_exception')
             if not expected_exception:
                 return False
             if err.__class__.__name__ == expected_exception:
