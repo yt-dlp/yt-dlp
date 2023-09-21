@@ -26,7 +26,6 @@ from yt_dlp.utils import (
 )
 from yt_dlp.utils.traversal import traverse_obj
 
-
 TEST_URL = 'http://localhost/sample.mp4'
 
 
@@ -669,7 +668,6 @@ class TestYoutubeDL(unittest.TestCase):
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
             template = OutputTemplate.from_string(tmpl)
-            print(info)
             out = template % info
 
             if not isinstance(expected, (list, tuple)):
