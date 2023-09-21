@@ -101,7 +101,7 @@ def generator(test_case, tname):
             print_skipping('IE marked as not _WORKING')
 
         for tc in test_cases:
-            if tc.get('expected_exception', None):
+            if tc.get('expected_exception'):
                 continue
             info_dict = tc.get('info_dict', {})
             params = tc.get('params', {})
@@ -142,7 +142,7 @@ def generator(test_case, tname):
 
         res_dict = None
 
-        def match_exception(self, err):
+        def match_exception(err):
             expected_exception = test_case.get('expected_exception', None)
             if not expected_exception:
                 return False
@@ -175,7 +175,7 @@ def generator(test_case, tname):
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
                     if not isinstance(err.exc_info[1], (TransportError, UnavailableVideoError)) or (isinstance(err.exc_info[1], HTTPError) and err.exc_info[1].status == 503):
-                        if match_exception(self, err):
+                        if match_exception(err):
                             return
                         err.msg = f'{getattr(err, "msg", err)} ({tname})'
                         raise
@@ -188,7 +188,7 @@ def generator(test_case, tname):
 
                     try_num += 1
                 except YoutubeDLError as err:
-                    if match_exception(self, err):
+                    if match_exception(err):
                         return
                     raise
                 else:
