@@ -1,16 +1,28 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
+    filter_dict,
     int_or_none,
     iri_to_uri,
     parse_age_limit,
     smuggle_url,
     traverse_obj,
     unsmuggle_url,
+    url_or_none,
 )
 
 
 class CineverseBaseIE(InfoExtractor):
-    _VALID_URL_BASE = r'https://www\.(?P<host>(?:cineverse|asiancrush|dovechannel|screambox|midnightpulp|fandor).com|retrocrush\.tv)'
+        _VALID_URL_BASE = r'https://www\.(?P<host>%s)' % '|'.join(map(re.escape, (
+        'cineverse.com',
+        'asiancrush.com',
+        'dovechannel.com',
+        'screambox.com',
+        'midnightpulp.com',
+        'fandor.com',
+        'retrocrush.tv',
+    )))
 
 
 class CineverseIE(CineverseBaseIE):
@@ -57,15 +69,15 @@ class CineverseIE(CineverseBaseIE):
         idetails = self._search_nextjs_data(html, video_id)['props']['pageProps']['idetails']
 
         if idetails.get('err_code') == 1200:
-            self.raise_geo_restricted(msg='This video is not available from your location due to geo restriction.\nYou may be able to bypass it by using the /details/ page instead of the /watch/ page.',
-                                      countries=smuggled_data.get('geo_countries'))
-            # x-forwarded-for should bypass it, but we can still throw a useful error if it doesn't
-
-        subs = [{'url': i} for i in [idetails.get('cc_url_vtt'), idetails.get('subtitle_url')]
-                if i != '' and i is not None]
+            self.raise_geo_restricted(
+                'This video is not available from your location due to geo restriction. '
+                'You may be able to bypass it by using the /details/ page instead of the /watch/ page',
+                countries=smuggled_data.get('geo_countries'))
 
         return {
-            'subtitles': {'en': subs} if len(subs) > 0 else None,
+            'subtitles': filter_dict({
+                'en': traverse_obj(idetails, (('cc_url_vtt', 'subtitle_url'), {'url': {url_or_none}})) or None,
+            }),
             'formats': self._extract_m3u8_formats(idetails['url'], video_id),
             **traverse_obj(idetails, {
                 'title': 'title',
@@ -109,20 +121,17 @@ class CineverseDetailsIE(CineverseBaseIE):
         pageprops = self._search_nextjs_data(html, series_id)['props']['pageProps']
 
         geo_countries = traverse_obj(pageprops, ('itemDetailsData', 'geo_country', {lambda x: x.split(', ')}))
-        geoblocked = traverse_obj(pageprops, ('itemDetailsData', 'playback_err_msg')) == 'This title is not available in your location.'
+        geoblocked = traverse_obj(pageprops, (
+            'itemDetailsData', 'playback_err_msg')) == 'This title is not available in your location.'
 
-        if pageprops.get('seasonEpisodes') != []:
-            entries = []
-            for ep in traverse_obj(pageprops, ('seasonEpisodes', ..., 'episodes', ...)):
-                item_url = iri_to_uri(f'https://www.{host}/watch/{ep["item_id"]}/{ep["title"]}')
-                if geoblocked:
-                    item_url = smuggle_url(item_url, {'geo_countries': geo_countries})
-                entries.append(self.url_result(item_url, CineverseIE))
-            return self.playlist_result(entries, playlist_id=series_id,
+        def item_result(item):
+          item_url = iri_to_uri(f'https://www.{host}/watch/{item["item_id"]}/{item["title"]}')
+          if geoblocked:
+              item_url = smuggle_url(item_url, {'geo_countries': geo_countries})
+          return self.url_result(item_url, CineverseIE)
+
+        season = traverse_obj(pageprops, ('seasonEpisodes', ..., 'episodes', lambda _, v: v['item_id'] and v['title']))
+        if season:
+            return self.playlist_result([item_result(ep) for ep in season], playlist_id=series_id,
                                         playlist_title=traverse_obj(pageprops, ('itemDetailsData', 'title')))
-        else:
-            item = pageprops.get('itemDetailsData')
-            item_url = iri_to_uri(f'https://www.{host}/watch/{item["item_id"]}/{item["title"]}')
-            if geoblocked:
-                item_url = smuggle_url(item_url, {'geo_countries': geo_countries})
-            return self.url_result(item_url, CineverseIE)
+        return item_result(pageprops['itemDetailsData'])
