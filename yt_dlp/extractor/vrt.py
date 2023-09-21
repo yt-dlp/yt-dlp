@@ -262,6 +262,9 @@ class CookiePot(CookieJar):
     def __str__(self):
         return '\n'.join(f'{cookie.name}={cookie.value}' for cookie in self)
 
+    def header(self, cookie_names):
+        return '; '.join(f'{name}={self[name]}' for name in cookie_names)
+
 
 class VrtNUIE(VRTBaseIE):
     IE_DESC = 'VRT MAX'
@@ -317,50 +320,30 @@ class VrtNUIE(VRTBaseIE):
     _NETRC_MACHINE = 'vrtnu'
     _authenticated = False
     _cookies = CookiePot()
+    _auth_url = ''
+
+    # Perform some requests with automatic redirection disabled
+    # to be able to grab necessary info in intermediate step
+    _opener = urllib.request.build_opener(NoRedirect, urllib.request.HTTPCookieProcessor(_cookies))
 
     def _perform_login(self, username, password):
 
-        # Disable automatic redirection to be able to
-        # grab necessary info in intermediate step
-        opener = urllib.request.build_opener(NoRedirect, urllib.request.HTTPCookieProcessor(self._cookies))
-
+        # 1. Obtain session cookies
         # 1.a Visit 'login' URL. Get 'authorize' location and 'oidcstate' cookie
-        res = opener.open('https://www.vrt.be/vrtnu/sso/login', None)
-        auth_url = res.headers.get_all('Location')[0]
+        res = self._opener.open('https://www.vrt.be/vrtnu/sso/login', None)
+        self._auth_url = res.headers.get_all('Location')[0]
 
         # 1.b Follow redirection: visit 'authorize' URL. Get OIDCXSRF & SESSION cookies
-        res = opener.open(auth_url, None)
-
-        # TODO: make this a method of CookiePot: get_header(c) with c an array of cookie names
-        cookies_header = f'OIDCXSRF={self._cookies["OIDCXSRF"]}; SESSION={self._cookies["SESSION"]}'
+        res = self._opener.open(self._auth_url, None)
 
         # 2. Perform login
         headers = {
             'Content-Type': 'application/json',
             'Oidcxsrf': self._cookies["OIDCXSRF"],
-            'Cookie': cookies_header
+            'Cookie': self._cookies.header(['OIDCXSRF', 'SESSION'])
         }
         post_data = {"loginID": f"{username}", "password": f"{password}", "clientId": "vrtnu-site"}
         res = self._request_webpage('https://login.vrt.be/perform_login', None, note='Performing login', errnote='Login failed', fatal=True, data=json.dumps(post_data).encode(), headers=headers)
-
-        # TODO:
-        #   . should this step be the new "refreshtoken" in _real_extract?
-
-        # 3.a Visit 'authorize' again
-        headers = {
-            'Cookie': cookies_header
-        }
-        request = urllib.request.Request(auth_url, headers=headers)
-        res = opener.open(request, None)
-        callback_url = res.headers.get_all('Location')[0]
-
-        # 3.b Visit 'callback'
-        headers = {
-            # TODO: use get_header()
-            'Cookie': f'oidcstate={self._cookies["oidcstate"]}'
-        }
-        request = urllib.request.Request(callback_url, headers=headers)
-        res = opener.open(request, None)
 
         self._authenticated = True
 
@@ -368,6 +351,23 @@ class VrtNUIE(VRTBaseIE):
         display_id = self._match_id(url)
         parsed_url = urllib.parse.urlparse(url)
 
+        # 1. Obtain/refresh 'vrtnu-site_profile' tokens
+        # 1.a Visit 'authorize' URL again
+        headers = {
+            'Cookie': self._cookies.header(['OIDCXSRF', 'SESSION'])
+        }
+        request = urllib.request.Request(self._auth_url, headers=headers)
+        res = self._opener.open(request, None)
+        callback_url = res.headers.get_all('Location')[0]
+
+        # 1.b Follow redirection: visit 'callback' URL
+        headers = {
+            'Cookie': self._cookies.header(['oidcstate'])
+        }
+        request = urllib.request.Request(callback_url, headers=headers)
+        res = self._opener.open(request, None)
+
+        # 2. Perform GraphQL query to obtain video metadata
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {self._cookies["vrtnu-site_profile_at"]}'
@@ -381,20 +381,21 @@ class VrtNUIE(VRTBaseIE):
             }
         }
 
-        model_json = self._download_json(
+        metadata = self._download_json(
             'https://www.vrt.be/vrtnu-api/graphql/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON', headers=headers, data=json.dumps(data).encode())['data']['page']
 
-        video_id = model_json['episode']['watchAction']['streamId']
-        title = model_json['seo']['title']
-        season_number = int(model_json['episode']['onTimeRaw'][:4])
-        ld_json = json.loads(model_json['ldjson'][1])
+        video_id = metadata['episode']['watchAction']['streamId']
+        title = metadata['seo']['title']
+        season_number = int(metadata['episode']['onTimeRaw'][:4])
+        ld_json = json.loads(metadata['ldjson'][1])
 
-        streaming_json = self._call_api(video_id, client='vrtnu-web@PROD')
-        formats, subtitles = self._extract_formats_and_subtitles(streaming_json, video_id)
+        # 3. Obtain streaming info
+        streaming_info = self._call_api(video_id, client='vrtnu-web@PROD')
+        formats, subtitles = self._extract_formats_and_subtitles(streaming_info, video_id)
 
         return {
-            **traverse_obj(model_json, {
+            **traverse_obj(metadata, {
                 'description': ('seo', 'description', {clean_html}),
                 'timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
                 'release_timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
@@ -414,8 +415,8 @@ class VrtNUIE(VRTBaseIE):
             'id': video_id,
             'channel': 'VRT',
             'formats': formats,
-            'duration': float_or_none(streaming_json.get('duration'), 1000),
-            'thumbnail': url_or_none(streaming_json.get('posterImageUrl')),
+            'duration': float_or_none(streaming_info.get('duration'), 1000),
+            'thumbnail': url_or_none(streaming_info.get('posterImageUrl')),
             'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('Canvas', video_id)],
         }
