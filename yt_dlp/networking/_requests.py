@@ -1,4 +1,3 @@
-import contextlib
 import functools
 import http.client
 import logging
@@ -7,12 +6,25 @@ import socket
 import warnings
 
 from ..dependencies import OptionalDependencyWarning, brotli, requests, urllib3
+from ..utils import int_or_none
 
 if requests is None:
     raise ImportError('requests module is not installed')
 
 if urllib3 is None:
     raise ImportError('urllib3 module is not installed')
+
+urllib3_version = urllib3.__version__.split('.')
+if len(urllib3_version) == 2:
+    urllib3_version.append('0')
+
+urllib3_version = tuple(map(functools.partial(int_or_none, default=0), urllib3_version[:3]))
+
+if urllib3_version < (1, 26, 0):
+    raise ImportError('Only urllib3 >= 1.26.0 is supported')
+
+if requests.__build__ < 0x023100:
+    raise ImportError('Only requests >= 2.31.0 is supported')
 
 from http.client import HTTPConnection
 
@@ -34,8 +46,8 @@ from .common import (
     Features,
     RequestHandler,
     Response,
+    register_preference,
     register_rh,
-    register_preference
 )
 from .exceptions import (
     CertificateVerifyError,
@@ -47,34 +59,17 @@ from .exceptions import (
     TransportError,
 )
 from ..socks import ProxyError as SocksProxyError
-from ..utils import int_or_none
 
 SUPPORTED_ENCODINGS = [
     'gzip', 'deflate'
 ]
 
 
-urllib3_version = urllib3.__version__.split('.')
-if len(urllib3_version) == 2:
-    urllib3_version.append('0')
-
-urllib3_version = tuple(map(functools.partial(int_or_none, default=0), urllib3_version[:3]))
-
-# urllib3 does not support brotlicffi on versions < 1.26.9 [1], and brotli on < 1.25.1 [2]
+# urllib3 does not support brotlicffi on versions < 1.26.9 [1]
 # 1: https://github.com/urllib3/urllib3/blob/1.26.x/CHANGES.rst#1269-2022-03-16
-# 2: https://github.com/urllib3/urllib3/blob/main/CHANGES.rst#1251-2019-04-24
 if (brotli is not None
-        and not (brotli.__name__ == 'brotlicffi' and urllib3_version < (1, 26, 9))
-        and not (brotli.__name__ == 'brotli' and urllib3_version < (1, 25, 1))):
+        and not (brotli.__name__ == 'brotlicffi' and urllib3_version < (1, 26, 9))):
     SUPPORTED_ENCODINGS.append('br')
-
-# requests < 2.24.0 always uses pyopenssl by default if installed.
-# We do not support pyopenssl's SSLContext, so we need to revert this.
-# See: https://github.com/psf/requests/pull/5443
-if requests.__build__ < 0x022400:
-    with contextlib.suppress(ImportError, AttributeError):
-        from urllib3.contrib import pyopenssl
-        pyopenssl.extract_from_urllib3()
 
 """
 Override urllib3's behavior to not convert lower-case percent-encoded characters
@@ -105,28 +100,17 @@ class _Urllib3PercentREOverride:
     def subn(self, repl, string, *args, **kwargs):
         return string, self.re.subn(repl, string, *args, **kwargs)[1]
 
-    def findall(self, component, *args, **kwargs):
-        return [c.upper() for c in self.re.findall(component, *args, **kwargs)]
 
+# urllib3 >= 1.25.8 uses subn:
+# https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
+import urllib3.util.url  # noqa: E305
 
-if urllib3_version >= (1, 25, 4):
-    # urllib3 >= 1.25.8 uses subn:
-    # https://github.com/urllib3/urllib3/commit/a2697e7c6b275f05879b60f593c5854a816489f0
-    # 1.25.4 <= urllib3 < 1.25.8 uses findall:
-    # https://github.com/urllib3/urllib3/commit/5b047b645f5f93900d5e2fc31230848c25eb1f5f
-    import urllib3.util.url
-    if hasattr(urllib3.util.url, 'PERCENT_RE'):
-        urllib3.util.url.PERCENT_RE = _Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
-    elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
-        urllib3.util.url._PERCENT_RE = _Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
-    else:
-        warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)', OptionalDependencyWarning)
-elif (1, 25, 0) <= urllib3_version < (1, 25, 4):
-    # 1.25.0 <= urllib3 < 1.25.4 uses rfc3986 normalizers package:
-    # https://github.com/urllib3/urllib3/commit/a74c9cfbaed9f811e7563cfc3dce894928e0221a
-    # https://github.com/urllib3/urllib3/commit/0aa3e24fcd75f1bb59ab159e9f8adb44055b2271
-    import urllib3.packages.rfc3986.normalizers as normalizers
-    normalizers.PERCENT_MATCHER = _Urllib3PercentREOverride(normalizers.PERCENT_MATCHER)
+if hasattr(urllib3.util.url, 'PERCENT_RE'):
+    urllib3.util.url.PERCENT_RE = _Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
+elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
+    urllib3.util.url._PERCENT_RE = _Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
+else:
+    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)', OptionalDependencyWarning)
 
 """
 Workaround for issue in urllib.util.ssl_.py. ssl_wrap_context does not pass
@@ -146,7 +130,12 @@ if urllib3_version < (2, 0, 0):
         pass
 
 
-class RequestsResponse(Response):
+# Requests will not automatically handle no_proxy by default due to buggy no_proxy handling with proxy dict [1].
+# 1. https://github.com/psf/requests/issues/5000
+requests.adapters.select_proxy = select_proxy
+
+
+class RequestsResponseAdapter(Response):
     def __init__(self, res: requests.models.Response):
         super().__init__(
             fp=res.raw, headers=res.headers, url=res.url,
@@ -196,7 +185,7 @@ class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
 
     def proxy_manager_for(self, proxy, **proxy_kwargs):
         extra_kwargs = {}
-        if not proxy.lower().startswith('socks') and self._proxy_ssl_context and urllib3_version >= (1, 26, 0):
+        if not proxy.lower().startswith('socks') and self._proxy_ssl_context:
             extra_kwargs['proxy_ssl_context'] = self._proxy_ssl_context
         return super().proxy_manager_for(proxy, **proxy_kwargs, **self._pm_args, **extra_kwargs)
 
@@ -261,14 +250,12 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
     """Requests RequestHandler
     Params:
 
-    @param max_pools: Max number of urllib3 connection pools to cache.
-    @param pool_maxsize: Max number of connections per pool.
+    @param max_conn_pools: Max number of urllib3 connection pools to cache.
+    @param conn_pool_maxsize: Max number of connections per pool.
     """
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
     _SUPPORTED_ENCODINGS = tuple(SUPPORTED_ENCODINGS)
-    _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')
-    if urllib3_version >= (1, 26, 0):
-        _SUPPORTED_PROXY_SCHEMES = (*_SUPPORTED_PROXY_SCHEMES, 'https')
+    _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     RH_NAME = 'requests'
 
@@ -342,7 +329,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
                 headers=headers,
                 timeout=float(request.extensions.get('timeout') or self.timeout),
                 proxies=request.proxies or self.proxies,
-                allow_redirects=True,  # TODO(future): add extension to enable/disable redirects
+                allow_redirects=True,
                 stream=True
             )
 
@@ -367,7 +354,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         except requests.exceptions.RequestException as e:
             raise RequestError(cause=e) from e
 
-        requests_res = RequestsResponse(res)
+        requests_res = RequestsResponseAdapter(res)
 
         if not 200 <= requests_res.status < 300:
             raise HTTPError(requests_res, redirect_loop=max_redirects_exceeded)
@@ -427,6 +414,3 @@ class SocksProxyManager(urllib3.PoolManager):
 
 
 requests.adapters.SOCKSProxyManager = SocksProxyManager
-
-# XXX: Requests will not automatically handle no_proxy by default due to buggy no_proxy handling with proxy dict [1].
-requests.adapters.select_proxy = select_proxy
