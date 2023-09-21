@@ -339,12 +339,12 @@ class CBCGemIE(InfoExtractor):
         data = json.dumps({'jwt': sig}).encode()
         headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
-                                   None, data=data, headers=headers)
+                                   None, data=data, headers=headers, expected_status=426)
         cbc_access_token = resp['accessToken']
 
         headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
-                                   None, headers=headers)
+                                   None, headers=headers, expected_status=426)
         return resp['claimsToken']
 
     def _get_claims_token_expiry(self):
