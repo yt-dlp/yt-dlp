@@ -14,6 +14,7 @@ from ..networking import Request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
+    clean_html,
     float_or_none,
     int_or_none,
     intlist_to_bytes,
@@ -21,6 +22,8 @@ from ..utils import (
     strftime_or_none,
     traverse_obj,
     try_get,
+    unified_strdate,
+    url_or_none,
     urljoin,
 )
 
@@ -69,7 +72,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
             'requestId': f'{int(time.time() * 1000)}_{randint(0, 1000):04}',
         }
         headers = {
-            'User-Agent': self.get_param('http_headers', {}).get('User-Agent'),
             'Content-Type': 'application/x-www-form-urlencoded',
             'Referer': 'https://music.163.com',
             'Cookie': '; '.join([f'{k}={v if v is not None else "undefined"}' for [k, v] in cookies.items()]),
@@ -144,6 +146,47 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
     IE_DESC = '网易云音乐'
     _VALID_URL = r'https?://(y\.)?music\.163\.com/(?:[#m]/)?song\?.*?\bid=(?P<id>[0-9]+)'
     _TESTS = [{
+        'url': 'https://music.163.com/#/song?id=548648087',
+        'info_dict': {
+            'id': '548648087',
+            'ext': 'mp3',
+            'title': '戒烟 (Live)',
+            'creator': '李荣浩 / 朱正廷 / 陈立农 / 尤长靖 / ONER灵超 / ONER木子洋 / 杨非同 / 陆定昊',
+            'timestamp': 1522944000,
+            'upload_date': '20180405',
+            'description': 'md5:3650af9ee22c87e8637cb2dde22a765c',
+            "duration": 256,
+            'thumbnail': r're:^http.*\.jpg',
+        },
+    }, {
+        'note': 'No lyrics.',
+        'url': 'http://music.163.com/song?id=17241424',
+        'info_dict': {
+            'id': '17241424',
+            'ext': 'mp3',
+            'title': 'Opus 28',
+            'creator': 'Dustin O\'Halloran',
+            'upload_date': '20080211',
+            'timestamp': 1202745600,
+            'description': 'md5:f12945b0f6e0365e3b73c5032e1b0ff4',
+            'duration': 263,
+            'thumbnail': r're:^http.*\.jpg',
+        },
+    }, {
+        'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
+        'md5': '95826c73ea50b1c288b22180ec9e754d',
+        'info_dict': {
+            'id': '95670',
+            'ext': 'mp3',
+            'title': '国际歌',
+            'creator': '马备',
+            'upload_date': '19911130',
+            'timestamp': 691516800,
+            'description': 'md5:1ba2f911a2b0aa398479f595224f2141',
+            'duration': 268,
+            'thumbnail': r're:^http.*\.jpg',
+        },
+    }, {
         'url': 'http://music.163.com/#/song?id=32102397',
         'md5': '3e909614ce09b1ccef4a3eb205441190',
         'info_dict': {
@@ -157,18 +200,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'duration': 199,
             'thumbnail': r're:^http.*\.jpg',
         },
-    }, {
-        'note': 'No lyrics.',
-        'url': 'http://music.163.com/song?id=17241424',
-        'info_dict': {
-            'id': '17241424',
-            'ext': 'mp3',
-            'title': 'Opus 28',
-            'creator': 'Dustin O\'Halloran',
-            'upload_date': '20080211',
-            'description': 'md5:f12945b0f6e0365e3b73c5032e1b0ff4',
-            'timestamp': 1202745600,
-        },
+        'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'Has translated name.',
         'url': 'http://music.163.com/#/song?id=22735043',
@@ -177,23 +209,14 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'ext': 'mp3',
             'title': '소원을 말해봐 (Genie)',
             'creator': '少女时代',
-            'description': 'md5:79d99cc560e4ca97e0c4d86800ee4184',
             'upload_date': '20100127',
             'timestamp': 1264608000,
+            'description': 'md5:79d99cc560e4ca97e0c4d86800ee4184',
+            'duration': 229,
             'alt_title': '说出愿望吧(Genie)',
+            'thumbnail': r're:^http.*\.jpg',
         },
-    }, {
-        'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
-        'md5': '95826c73ea50b1c288b22180ec9e754d',
-        'info_dict': {
-            'id': '95670',
-            'ext': 'mp3',
-            'title': '国际歌',
-            'creator': '马备',
-            'upload_date': '19911130',
-            'timestamp': 691516800,
-            'description': 'md5:1ba2f911a2b0aa398479f595224f2141',
-        },
+        'skip': 'Blocked outside Mainland China',
     }]
 
     def _process_lyrics(self, lyrics_info):
@@ -253,31 +276,49 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:album'
     IE_DESC = '网易云音乐 - 专辑'
     _VALID_URL = r'https?://music\.163\.com/(#/)?album\?id=(?P<id>[0-9]+)'
-    _TEST = {
+    _TESTS = [{
+        'url': 'https://music.163.com/#/album?id=133153666',
+        'info_dict': {
+            'id': '133153666',
+            'title': '桃几的翻唱',
+            'upload_date': '20210913',
+            'description': '桃几2021年翻唱合集',
+            'thumbnail': r're:^http.*\.jpg',
+        },
+        'playlist_mincount': 13,
+    }, {
         'url': 'http://music.163.com/#/album?id=220780',
         'info_dict': {
             'id': '220780',
             'title': 'B\'Day',
+            'upload_date': '20060904',
+            'description': 'md5:71a74e1d8f392d88cf1bbe48879ad0b0',
+            'thumbnail': r're:^http.*\.jpg',
         },
         'playlist_count': 23,
-        'skip': 'Blocked outside Mainland China',
-    }
+    }]
 
     def _real_extract(self, url):
         album_id = self._match_id(url)
+        webpage = self._download_webpage(f'https://music.163.com/album?id={album_id}', album_id)
 
-        info = self.query_api(
-            'album/%s?id=%s' % (album_id, album_id),
-            album_id, 'Downloading album data')['album']
-
-        name = info['name']
-        desc = info.get('description') or None
+        songs = self._search_json(
+            r'<textarea id="song-list-pre-data" style="display:none;">', webpage, 'metainfo', album_id,
+            end_pattern=r'</textarea>', contains_pattern=r'\[(?s:.+)\]')
+        metainfo = {
+            'title': self._og_search_property('title', webpage, 'title', fatal=False),
+            'description': clean_html(self._search_regex(
+                r'(?:<div id="album-desc-dot".*)?<div id="album-desc-(?:dot|more)"[^>]*>(.*?)</div>', webpage,
+                'description', flags=re.S, fatal=False)),  # match album-desc-more or fallback to album-desc-dot
+            'thumbnail': self._og_search_property('image', webpage, 'thumbnail', fatal=False),
+            'upload_date': unified_strdate(self._html_search_meta('music:release_date', webpage, 'date', fatal=False)),
+        }
         entries = [
-            self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
-                            'NetEaseMusic', song['id'])
-            for song in info['songs']
+            self.url_result(
+                f"http://music.163.com/#/song?id={song['id']}", NetEaseMusicIE, song['id'], song.get('name'))
+            for song in songs
         ]
-        return self.playlist_result(entries, album_id, name, desc)
+        return self.playlist_result(entries, album_id, **metainfo)
 
 
 class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
@@ -292,7 +333,6 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
             'title': '张惠妹 - aMEI;阿妹;阿密特',
         },
         'playlist_count': 50,
-        'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'Singer has translated name.',
         'url': 'http://music.163.com/#/artist?id=124098',
@@ -301,7 +341,6 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
             'title': '李昇基 - 이승기',
         },
         'playlist_count': 50,
-        'skip': 'Blocked outside Mainland China',
     }]
 
     def _real_extract(self, url):
@@ -338,9 +377,24 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             'tags': ['欧美'],
             'uploader': '浑然破灭',
             'uploader_id': '67549805',
+            'timestamp': int,
+            'upload_date': r're:\d{8}',
         },
         'playlist_mincount': 95,
-        'skip': 'Blocked outside Mainland China',
+    }, {
+        'note': 'Toplist/Charts sample',
+        'url': 'https://music.163.com/#/discover/toplist?id=60198',
+        'info_dict': {
+            'id': '60198',
+            'title': 're:美国Billboard榜 [0-9]{4}-[0-9]{2}-[0-9]{2}',
+            'description': '美国Billboard排行榜',
+            'tags': ['流行', '欧美', '榜单'],
+            'uploader': 'Billboard公告牌',
+            'uploader_id': '48171',
+            'timestamp': int,
+            'upload_date': r're:\d{8}',
+        },
+        'playlist_count': 100,
     }, {
         'note': 'Toplist/Charts sample',
         'url': 'http://music.163.com/#/discover/toplist?id=3733003',
@@ -367,11 +421,10 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             'tags': ('tags', ..., {str_or_none}),
             'uploader': ('creator', 'nickname', {str_or_none}),
             'uploader_id': ('creator', 'userId', {str_or_none}),
-            'timestamp': ('creator', 'updateTime', {lambda i: int_or_none(i, scale=1000)}),
+            'timestamp': ('updateTime', {lambda i: int_or_none(i, scale=1000)}),
         }))
         if traverse_obj(info, ('playlist', 'specialType')) == 10:
             meta['title'] = f'{meta.get("title")} {strftime_or_none(meta.get("timestamp"), "%Y-%m-%d")}'
-
         entries = [
             self.url_result(f'http://music.163.com/#/song?id={song_id}',
                             NetEaseMusicIE, song_id)
@@ -383,7 +436,22 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:mv'
     IE_DESC = '网易云音乐 - MV'
     _VALID_URL = r'https?://music\.163\.com/(#/)?mv\?id=(?P<id>[0-9]+)'
-    _TEST = {
+    _TESTS = [{
+        'url': 'https://music.163.com/#/mv?id=10958064',
+        'info_dict': {
+            'id': '10958064',
+            'ext': 'mp4',
+            'title': '交换余生',
+            'description': 'md5:e845872cff28820642a2b02eda428fea',
+            'creator': '林俊杰',
+            'upload_date': '20200916',
+            'thumbnail': r're:http.*\.jpg',
+            'duration': 364,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+        },
+    }, {
         'url': 'http://music.163.com/#/mv?id=415350',
         'info_dict': {
             'id': '415350',
@@ -393,10 +461,12 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'creator': '白娥娟',
             'upload_date': '20150520',
             'thumbnail': r're:http.*\.jpg',
-            'duration': 217,
+            'duration': 216,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
         },
-        'skip': 'Blocked outside Mainland China',
-    }
+    }]
 
     def _real_extract(self, url):
         mv_id = self._match_id(url)
@@ -412,13 +482,18 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
 
         return {
             'id': mv_id,
-            'title': info['name'],
-            'description': info.get('desc') or info.get('briefDesc'),
-            'creator': info['artistName'],
-            'upload_date': info['publishTime'].replace('-', ''),
             'formats': formats,
-            'thumbnail': info.get('cover'),
-            'duration': self.convert_milliseconds(info.get('duration', 0)),
+            **traverse_obj(info, {
+                'title': ('name', {str}),
+                'description': (('desc', 'briefDesc'), {str}, {lambda i: i if i else None}),
+                'creator': ('artistName', {str}),
+                'upload_date': ('publishTime', {unified_strdate}),
+                'thumbnail': ('cover', {url_or_none}),
+                'duration': ('duration', {lambda i: int_or_none(i, scale=1000)}),
+                'view_count': ('playCount', {int_or_none}),
+                'like_count': ('likeCount', {int_or_none}),
+                'comment_count': ('commentCount', {int_or_none}),
+            }, get_all=False),
         }
 
 
