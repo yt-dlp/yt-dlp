@@ -4,7 +4,6 @@ import re
 import time
 from base64 import b64encode
 from binascii import hexlify
-from datetime import datetime
 from hashlib import md5
 from random import randint
 
@@ -15,10 +14,13 @@ from ..networking import Request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
-    error_to_compat_str,
+    strftime_or_none,
     float_or_none,
     int_or_none,
+    str_or_none,
+    traverse_obj,
     intlist_to_bytes,
+    urljoin,
     try_get,
 )
 
@@ -40,12 +42,20 @@ class NetEaseMusicBaseIE(InfoExtractor):
         result = b64encode(m.digest()).decode('ascii')
         return result.replace('/', '_').replace('+', '-')
 
-    def make_player_api_request_data_and_headers(self, song_id, bitrate):
+    def _create_eapi_cipher(self, api_path, query, cookies):
         KEY = b'e82ckenh8dichen8'
-        URL = '/api/song/enhance/player/url'
-        now = int(time.time() * 1000)
-        rand = randint(0, 1000)
-        cookie = {
+        request_text = json.dumps({**query, 'header': cookies}, separators=(',', ':'))
+
+        message = f'nobody{api_path}use{request_text}md5forencrypt'.encode('latin1')
+        msg_digest = md5(message).hexdigest()
+
+        data = pkcs7_padding(bytes_to_intlist(
+            f'{api_path}-36cd479b6b5-{request_text}-36cd479b6b5-{msg_digest}'))
+        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, bytes_to_intlist(KEY)))
+        return b'params=' + hexlify(encrypted).upper()
+
+    def _download_eapi_json(self, path, song_id, query, headers={}, **kwargs):
+        cookies = {
             'osver': None,
             'deviceId': None,
             'appver': '8.0.0',
@@ -56,51 +66,24 @@ class NetEaseMusicBaseIE(InfoExtractor):
             '__csrf': '',
             'os': 'pc',
             'channel': None,
-            'requestId': '{0}_{1:04}'.format(now, rand),
+            'requestId': f'{int(time.time() * 1000)}_{randint(0, 1000):04}',
         }
-        request_text = json.dumps(
-            {'ids': '[{0}]'.format(song_id), 'br': bitrate, 'header': cookie},
-            separators=(',', ':'))
-        message = 'nobody{0}use{1}md5forencrypt'.format(
-            URL, request_text).encode('latin1')
-        msg_digest = md5(message).hexdigest()
-
-        data = '{0}-36cd479b6b5-{1}-36cd479b6b5-{2}'.format(
-            URL, request_text, msg_digest)
-        data = pkcs7_padding(bytes_to_intlist(data))
-        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, bytes_to_intlist(KEY)))
-        encrypted_params = hexlify(encrypted).decode('ascii').upper()
-
-        cookie = '; '.join(
-            ['{0}={1}'.format(k, v if v is not None else 'undefined')
-             for [k, v] in cookie.items()])
-
         headers = {
-            'User-Agent': self.extractor.get_param('http_headers')['User-Agent'],
+            'User-Agent': self.get_param('http_headers', {}).get('User-Agent'),
             'Content-Type': 'application/x-www-form-urlencoded',
             'Referer': 'https://music.163.com',
-            'Cookie': cookie,
+            'Cookie': '; '.join([f'{k}={v if v is not None else "undefined"}' for [k, v] in cookies.items()]),
+            **headers,
         }
-        return ('params={0}'.format(encrypted_params), headers)
+        url = urljoin('https://interface3.music.163.com/', f'/eapi{path}')
+        data = self._create_eapi_cipher(f'/api{path}', query, cookies)
+        return self._download_json(url, song_id, data=data, headers=headers, **kwargs)
 
     def _call_player_api(self, song_id, bitrate):
-        url = 'https://interface3.music.163.com/eapi/song/enhance/player/url'
-        data, headers = self.make_player_api_request_data_and_headers(song_id, bitrate)
-        try:
-            msg = 'empty result'
-            result = self._download_json(
-                url, song_id, data=data.encode('ascii'), headers=headers)
-            if result:
-                return result
-        except ExtractorError as e:
-            if type(e.cause) in (ValueError, TypeError):
-                # JSON load failure
-                raise
-        except Exception as e:
-            msg = error_to_compat_str(e)
-            self.report_warning('%s API call (%s) failed: %s' % (
-                song_id, bitrate, msg))
-        return {}
+        return self._download_eapi_json(
+            '/song/enhance/player/url', song_id,
+            {'ids': f'[{song_id}]', 'br': bitrate},
+            note=f'Downloading song URL info: bitrate {bitrate}')
 
     def extract_formats(self, info):
         err = 0
@@ -148,7 +131,12 @@ class NetEaseMusicBaseIE(InfoExtractor):
     def query_api(self, endpoint, video_id, note):
         req = Request('%s%s' % (self._API_BASE, endpoint))
         req.headers['Referer'] = self._API_BASE
-        return self._download_json(req, video_id, note)
+        result = self._download_json(req, video_id, note)
+        if result['code'] == -462:
+            self.raise_login_required(f'Login required to download: {result["message"]}')
+        elif result['code'] != 200:
+            raise ExtractorError(f'Failed to get meta info: {result["code"]} {result}')
+        return result
 
 
 class NetEaseMusicIE(NetEaseMusicBaseIE):
@@ -166,6 +154,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'upload_date': '20150516',
             'timestamp': 1431792000,
             'description': 'md5:25fc5f27e47aad975aa6d36382c7833c',
+            'duration': 199,
+            'thumbnail': r're:^http.*\.jpg',
         },
     }, {
         'note': 'No lyrics.',
@@ -267,7 +257,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
         'url': 'http://music.163.com/#/album?id=220780',
         'info_dict': {
             'id': '220780',
-            'title': 'B\'day',
+            'title': 'B\'Day',
         },
         'playlist_count': 23,
         'skip': 'Blocked outside Mainland China',
@@ -281,7 +271,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
             album_id, 'Downloading album data')['album']
 
         name = info['name']
-        desc = info.get('description')
+        desc = info.get('description') or None
         entries = [
             self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
                             'NetEaseMusic', song['id'])
@@ -299,7 +289,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
         'url': 'http://music.163.com/#/artist?id=10559',
         'info_dict': {
             'id': '10559',
-            'title': '张惠妹 - aMEI;阿密特',
+            'title': '张惠妹 - aMEI;阿妹;阿密特',
         },
         'playlist_count': 50,
         'skip': 'Blocked outside Mainland China',
@@ -344,9 +334,12 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
         'info_dict': {
             'id': '79177352',
             'title': 'Billboard 2007 Top 100',
-            'description': 'md5:12fd0819cab2965b9583ace0f8b7b022'
+            'description': 'md5:12fd0819cab2965b9583ace0f8b7b022',
+            'tags': ['欧美'],
+            'uploader': '浑然破灭',
+            'uploader_id': '67549805',
         },
-        'playlist_count': 99,
+        'playlist_mincount': 95,
         'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'Toplist/Charts sample',
@@ -363,24 +356,27 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         list_id = self._match_id(url)
 
-        info = self.query_api(
-            'playlist/detail?id=%s&lv=-1&tv=-1' % list_id,
-            list_id, 'Downloading playlist data')['result']
+        info = self._download_eapi_json(
+            '/v3/playlist/detail', list_id,
+            {'id': list_id, 't': '-1', 'n': '500', 's': '0'},
+            note="Downloading playlist info")
 
-        name = info['name']
-        desc = info.get('description')
-
-        if info.get('specialType') == 10:  # is a chart/toplist
-            datestamp = datetime.fromtimestamp(
-                self.convert_milliseconds(info['updateTime'])).strftime('%Y-%m-%d')
-            name = '%s %s' % (name, datestamp)
+        meta = traverse_obj(info, ('playlist', {
+            'title': ('name', {str_or_none}),
+            'description': ('description', {str_or_none}),
+            'tags': ('tags', ..., {str_or_none}),
+            'uploader': ('creator', 'nickname', {str_or_none}),
+            'uploader_id': ('creator', 'userId', {str_or_none}),
+            'timestamp': ('creator', 'updateTime', {lambda i: int_or_none(i, scale=1000)}),
+        }))
+        if traverse_obj(info, ('playlist', 'specialType')) == 10:
+            meta['title'] = f'{meta.get("title")} {strftime_or_none(meta.get("timestamp"), "%Y-%m-%d")}'
 
         entries = [
-            self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
-                            'NetEaseMusic', song['id'])
-            for song in info['tracks']
-        ]
-        return self.playlist_result(entries, list_id, name, desc)
+            self.url_result(f'http://music.163.com/#/song?id={song_id}',
+                            NetEaseMusicIE, song_id)
+            for song_id in traverse_obj(info, ('playlist', 'tracks', ..., 'id'))]
+        return self.playlist_result(entries, list_id, **meta)
 
 
 class NetEaseMusicMvIE(NetEaseMusicBaseIE):
@@ -394,8 +390,10 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'ext': 'mp4',
             'title': '이럴거면 그러지말지',
             'description': '白雅言自作曲唱甜蜜爱情',
-            'creator': '白雅言',
+            'creator': '白娥娟',
             'upload_date': '20150520',
+            'thumbnail': r're:http.*\.jpg',
+            'duration': 217,
         },
         'skip': 'Blocked outside Mainland China',
     }
@@ -431,41 +429,42 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     _TESTS = [{
         'url': 'http://music.163.com/#/program?id=10109055',
         'info_dict': {
-            'id': '10109055',
+            'id': '32593346',
             'ext': 'mp3',
             'title': '不丹足球背后的故事',
             'description': '喜马拉雅人的足球梦 ...',
             'creator': '大话西藏',
-            'timestamp': 1434179342,
+            'timestamp': 1434179287,
             'upload_date': '20150613',
+            'thumbnail': r're:http.*\.jpg',
             'duration': 900,
         },
-        'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'This program has accompanying songs.',
         'url': 'http://music.163.com/#/program?id=10141022',
         'info_dict': {
             'id': '10141022',
-            'title': '25岁，你是自在如风的少年<27°C>',
+            'title': '滚滚电台的有声节目',
             'description': 'md5:8d594db46cc3e6509107ede70a4aaa3b',
         },
         'playlist_count': 4,
-        'skip': 'Blocked outside Mainland China',
     }, {
         'note': 'This program has accompanying songs.',
         'url': 'http://music.163.com/#/program?id=10141022',
         'info_dict': {
-            'id': '10141022',
+            'id': '32647209',
             'ext': 'mp3',
-            'title': '25岁，你是自在如风的少年<27°C>',
+            'title': '滚滚电台的有声节目',
             'description': 'md5:8d594db46cc3e6509107ede70a4aaa3b',
-            'timestamp': 1434450841,
+            'creator': '滚滚电台ORZ',
+            'timestamp': 1434450733,
             'upload_date': '20150616',
+            'thumbnail': r're:http.*\.jpg',
+            'duration': 1104,
         },
         'params': {
             'noplaylist': True
         },
-        'skip': 'Blocked outside Mainland China',
     }]
 
     def _real_extract(self, url):
@@ -482,7 +481,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             formats = self.extract_formats(info['mainSong'])
 
             return {
-                'id': info['mainSong']['id'],
+                'id': str(info['mainSong']['id']),
                 'title': name,
                 'description': description,
                 'creator': info['dj']['brand'],
@@ -511,10 +510,9 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         'info_dict': {
             'id': '42',
             'title': '声音蔓延',
-            'description': 'md5:766220985cbd16fdd552f64c578a6b15'
+            'description': 'md5:c7381ebd7989f9f367668a5aee7d5f08'
         },
         'playlist_mincount': 40,
-        'skip': 'Blocked outside Mainland China',
     }
     _PAGE_SIZE = 1000
 
