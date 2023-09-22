@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class CineverseBaseIE(InfoExtractor):
-        _VALID_URL_BASE = r'https://www\.(?P<host>%s)' % '|'.join(map(re.escape, (
+    _VALID_URL_BASE = r'https://www\.(?P<host>%s)' % '|'.join(map(re.escape, (
         'cineverse.com',
         'asiancrush.com',
         'dovechannel.com',
@@ -125,10 +125,10 @@ class CineverseDetailsIE(CineverseBaseIE):
             'itemDetailsData', 'playback_err_msg')) == 'This title is not available in your location.'
 
         def item_result(item):
-          item_url = iri_to_uri(f'https://www.{host}/watch/{item["item_id"]}/{item["title"]}')
-          if geoblocked:
-              item_url = smuggle_url(item_url, {'geo_countries': geo_countries})
-          return self.url_result(item_url, CineverseIE)
+            item_url = iri_to_uri(f'https://www.{host}/watch/{item["item_id"]}/{item["title"]}')
+            if geoblocked:
+                item_url = smuggle_url(item_url, {'geo_countries': geo_countries})
+            return self.url_result(item_url, CineverseIE)
 
         season = traverse_obj(pageprops, ('seasonEpisodes', ..., 'episodes', lambda _, v: v['item_id'] and v['title']))
         if season:
