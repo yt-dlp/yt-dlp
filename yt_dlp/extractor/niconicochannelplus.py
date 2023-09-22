@@ -8,6 +8,7 @@ from ..utils import (
     filter_dict,
     int_or_none,
     parse_qs,
+    str_or_none,
     traverse_obj,
     unified_timestamp,
     url_or_none,
@@ -173,15 +174,15 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 'group_id': comment_group_id,
             }).encode('ascii'))
 
-        for comment in comment_list:
-            yield {
-                'author': comment.get('nickname'),
-                'author_id': comment.get('sender_id'),
-                'id': comment.get('id'),
-                'text': comment.get('message'),
-                'timestamp': int_or_none(traverse_obj(comment, 'updated_at', 'sent_at', 'created_at')),
-                'author_is_uploader': comment.get('sender_id') == '-1',
-            }
+        for comment in traverse_obj(comment_list, ...):
+            yield traverse_obj(comment, {
+                'author': ('nickname', {str}),
+                'author_id': ('sender_id', {str_or_none}),
+                'id': ('id', {str_or_none}),
+                'text': ('message', {str}),
+                'timestamp': (('updated_at', 'sent_at', 'created_at'), {unified_timestamp}),
+                'author_is_uploader': ('sender_id', {lambda x: x == '-1'}),
+            }, get_all=False)
 
     def _get_live_status_and_session_id(self, content_code, data_json):
         video_type = data_json.get('type')
