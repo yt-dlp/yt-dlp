@@ -239,9 +239,9 @@ class YoutubeDL:
                        'selected' (check selected formats),
                        or None (check only if requested by extractor)
     paths:             Dictionary of output paths. The allowed keys are 'home'
-                       'temp' and the keys of OUTTMPL_TYPES (in utils.py)
+                       'temp' and the keys of OUTTMPL_TYPES (in utils/_utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
-                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils/_utils.py).
                        For compatibility with youtube-dl, a single string can also be used
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
@@ -422,7 +422,7 @@ class YoutubeDL:
                          asked whether to download the video.
                        - Raise utils.DownloadCancelled(msg) to abort remaining
                          downloads when a video is rejected.
-                       match_filter_func in utils.py is one example for this.
+                       match_filter_func in utils/_utils.py is one example for this.
     color:             A Dictionary with output stream names as keys
                        and their respective color policy as values.
                        Can also just be a single color policy,
