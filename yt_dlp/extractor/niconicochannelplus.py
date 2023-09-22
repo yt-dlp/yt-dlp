@@ -191,22 +191,20 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     def _get_live_status_and_session_id(self, content_code, data_json):
         video_type = data_json.get('type')
-        live_started_at = data_json.get('live_started_at')
         live_finished_at = data_json.get('live_finished_at')
 
+        payload = {}
         if video_type == 'vod':
-            payload = {}
             if live_finished_at:
                 live_status = 'was_live'
             else:
                 live_status = 'not_live'
         elif video_type == 'live':
-            if not live_started_at:
+            if not data_json.get('live_started_at'):
                 return 'is_upcoming', ''
 
             if not live_finished_at:
                 live_status = 'is_live'
-                payload = {}
             else:
                 live_status = 'was_live'
                 payload = {'broadcast_type': 'dvr'}
