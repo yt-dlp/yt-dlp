@@ -241,7 +241,7 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
     _PAGE_SIZE = 12
 
     def _fetch_paged_channel_video_list(self, path, query, channel_name, item_id, page):
-        item_list = self._call_api(
+        response = self._call_api(
             path, item_id, query={
                 **query,
                 'page': (page + 1),
@@ -249,12 +249,9 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
             },
             headers={'fc_use_device': 'null'},
             note=f'Getting channel info (page {page + 1})',
-            errnote=f'Unable to get channel info (page {page + 1})',
-        )['data']['video_pages']['list']
+            errnote=f'Unable to get channel info (page {page + 1})')
 
-        for item in item_list:
-            content_code = item['content_code']
-
+        for content_code in traverse_obj(response, ('data', 'video_pages', 'list', ..., 'content_code')):
             # "video/{code}" works for both VoD and live, but "live/{code}" doesn't work for VoD.
             yield self.url_result(
                 f'{self._WEBPAGE_BASE_URL}/{channel_name}/video/{content_code}', NiconicoChannelPlusIE)
