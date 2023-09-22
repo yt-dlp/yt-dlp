@@ -367,7 +367,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
 @register_preference(RequestsRH)
 def requests_preference(rh, request):
-    return 500
+    return 100
 
 
 # Since we already have a socks proxy implementation,
