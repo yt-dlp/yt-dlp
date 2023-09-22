@@ -337,7 +337,7 @@ def handle_sslerror(e: ssl.SSLError):
 
 def handle_response_read_exceptions(e):
     if isinstance(e, http.client.IncompleteRead):
-        raise IncompleteRead(partial=e.partial, cause=e, expected=e.expected) from e
+        raise IncompleteRead(partial=len(e.partial), cause=e, expected=e.expected) from e
     elif isinstance(e, ssl.SSLError):
         handle_sslerror(e)
     elif isinstance(e, (OSError, EOFError, http.client.HTTPException, *CONTENT_DECODE_ERRORS)):
