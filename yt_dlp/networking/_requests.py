@@ -5,7 +5,7 @@ import re
 import socket
 import warnings
 
-from ..dependencies import OptionalDependencyWarning, brotli, requests, urllib3
+from ..dependencies import brotli, requests, urllib3
 from ..utils import int_or_none, variadic
 
 if requests is None:
@@ -21,9 +21,11 @@ if len(urllib3_version) == 2:
 urllib3_version = tuple(map(functools.partial(int_or_none, default=0), urllib3_version[:3]))
 
 if urllib3_version < (1, 26, 0):
+    warnings.warn('Unsupported version of `urllib3` installed. urllib3 >= 1.26.0 is required for `requests` support.')
     raise ImportError('Only urllib3 >= 1.26.0 is supported')
 
 if requests.__build__ < 0x023100:
+    warnings.warn('Unsupported version of `requests` installed. requests >= 2.31.0 is required for `requests` support.')
     raise ImportError('Only requests >= 2.31.0 is supported')
 
 from http.client import HTTPConnection
@@ -110,7 +112,7 @@ if hasattr(urllib3.util.url, 'PERCENT_RE'):
 elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
     urllib3.util.url._PERCENT_RE = _Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
 else:
-    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)', OptionalDependencyWarning)
+    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)')
 
 """
 Workaround for issue in urllib.util.ssl_.py. ssl_wrap_context does not pass

@@ -83,10 +83,6 @@ all_dependencies = {k: v for k, v in globals().items() if not k.startswith('_')}
 available_dependencies = {k: v for k, v in all_dependencies.items() if v}
 
 
-class OptionalDependencyWarning(Warning):
-    pass
-
-
 # Deprecated
 Cryptodome_AES = Cryptodome.AES
 
