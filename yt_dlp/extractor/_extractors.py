@@ -296,9 +296,11 @@ from .cammodels import CamModelsIE
 from .camsoda import CamsodaIE
 from .camtasia import CamtasiaEmbedIE
 from .camwithher import CamWithHerIE
+from .canal1 import Canal1IE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
+from .caracoltv import CaracolTvPlayIE
 from .carambatv import (
     CarambaTVIE,
     CarambaTVPageIE,
@@ -565,6 +567,7 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
+from .eplus import EplusIbIE
 from .epoch import EpochIE
 from .eporner import EpornerIE
 from .eroprofile import (
@@ -1598,6 +1601,7 @@ from .rbmaradio import RBMARadioIE
 from .rbgtum import (
     RbgTumIE,
     RbgTumCourseIE,
+    RbgTumNewCourseIE,
 )
 from .rcs import (
     RCSIE,

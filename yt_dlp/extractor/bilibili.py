@@ -49,14 +49,14 @@ class BilibiliBaseIE(InfoExtractor):
             for r in traverse_obj(play_info, ('support_formats', lambda _, v: v['quality']))
         }
 
-        audios = traverse_obj(play_info, ('dash', 'audio', ...))
+        audios = traverse_obj(play_info, ('dash', (None, 'dolby'), 'audio', ..., {dict}))
         flac_audio = traverse_obj(play_info, ('dash', 'flac', 'audio'))
         if flac_audio:
             audios.append(flac_audio)
         formats = [{
             'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
             'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
-            'acodec': audio.get('codecs'),
+            'acodec': traverse_obj(audio, ('codecs', {str.lower})),
             'vcodec': 'none',
             'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
             'filesize': int_or_none(audio.get('size')),
@@ -71,6 +71,7 @@ class BilibiliBaseIE(InfoExtractor):
             'height': int_or_none(video.get('height')),
             'vcodec': video.get('codecs'),
             'acodec': 'none' if audios else None,
+            'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(int_or_none(video.get('id'))),
             'tbr': float_or_none(video.get('bandwidth'), scale=1000),
             'filesize': int_or_none(video.get('size')),
             'quality': int_or_none(video.get('id')),
