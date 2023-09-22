@@ -251,10 +251,7 @@ class Urllib3LoggingHandler(logging.Handler):
 class RequestsRH(RequestHandler, InstanceStoreMixin):
 
     """Requests RequestHandler
-    Params:
-
-    @param max_conn_pools: Max number of urllib3 connection pools to cache.
-    @param conn_pool_maxsize: Max number of connections per pool.
+    https://github.com/psf/requests
     """
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
     _SUPPORTED_ENCODINGS = tuple(SUPPORTED_ENCODINGS)
@@ -262,13 +259,8 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     RH_NAME = 'requests'
 
-    DEFAULT_POOLSIZE = requests.adapters.DEFAULT_POOLSIZE
-
-    def __init__(self, max_conn_pools: int = None, conn_pool_maxsize: int = None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.max_conn_pools = max_conn_pools or self.DEFAULT_POOLSIZE  # default from urllib3
-        self.conn_pool_maxsize = conn_pool_maxsize or self.DEFAULT_POOLSIZE
 
         # Forward urllib3 debug messages to our logger
         logger = logging.getLogger('urllib3')
@@ -301,9 +293,6 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             ssl_context=self._make_sslcontext(),
             source_address=self.source_address,
             max_retries=urllib3.util.retry.Retry(False),
-            pool_maxsize=self.conn_pool_maxsize,
-            pool_connections=self.max_conn_pools,
-            pool_block=False,
         )
         session.adapters.clear()
         session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})

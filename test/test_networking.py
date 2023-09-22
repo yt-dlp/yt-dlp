@@ -1326,16 +1326,6 @@ class TestYoutubeDLNetworking:
             rh = self.build_handler(ydl, UrllibRH)
             assert rh.enable_file_urls is True
 
-    @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
-    def test_requests_concurrent_conns(self, handler):
-        handler_class = type(handler())
-        with FakeYDL({'concurrent_fragment_downloads': 4}) as ydl:
-            rh = self.build_handler(ydl, handler_class)
-            assert rh.conn_pool_maxsize == 10
-        with FakeYDL({'concurrent_fragment_downloads': 11}) as ydl:
-            rh = self.build_handler(ydl, handler_class)
-            assert rh.conn_pool_maxsize == 11
-
 
 class TestRequest:
 
