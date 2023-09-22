@@ -7,9 +7,10 @@ from ..utils import (
     OnDemandPagedList,
     filter_dict,
     int_or_none,
-    parse_iso8601,
     parse_qs,
     traverse_obj,
+    unified_timestamp,
+    url_or_none,
 )
 
 
@@ -124,32 +125,25 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 video_id=content_code)
 
         return {
-            # mandatory metafields
-
             'id': content_code,
-            'title': data_json['title'],
             'formats': formats,
-
-            # optional metafields
-
             '_format_sort_fields': ('tbr', 'vcodec', 'acodec'),
-
             'channel': self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name'),
             'channel_id': channel_id,
             'channel_url': f'{self._WEBPAGE_BASE_URL}/{channel_id}',
-
             'age_limit': traverse_obj(self._get_channel_user_info(fanclub_site_id), ('content_provider', 'age_limit')),
             'live_status': live_status,
-
-            'thumbnail': data_json.get('thumbnail_url'),
-            'description': data_json.get('description'),
-            'timestamp': parse_iso8601(data_json.get('released_at'), delimiter=' '),
-            'release_timestamp': parse_iso8601(release_timestamp_str, delimiter=' '),
-            'duration': int_or_none(traverse_obj(data_json, ('active_video_filename', 'length'))),
-            'comment_count': int_or_none(traverse_obj(data_json, ('video_aggregate_info', 'number_of_comments'))),
-            'view_count': int_or_none(traverse_obj(data_json, ('video_aggregate_info', 'total_views'))),
-            'tags': traverse_obj(data_json, ('video_tags', ..., 'tag')),
-
+            'release_timestamp': unified_timestamp(release_timestamp_str),
+            **traverse_obj(data_json, {
+                'title': ('title', {str}),
+                'thumbnail': ('thumbnail_url', {url_or_none}),
+                'description': ('description', {str}),
+                'timestamp': ('released_at', {unified_timestamp}),
+                'duration': ('active_video_filename', 'length', {int_or_none}),
+                'comment_count': ('video_aggregate_info', 'number_of_comments', {int_or_none}),
+                'view_count': ('video_aggregate_info', 'total_views', {int_or_none}),
+                'tags': ('video_tags', ..., 'tag', {str}),
+            }),
             '__post_extractor': self.extract_comments(
                 content_code=content_code,
                 comment_group_id=traverse_obj(data_json, ('video_comment_setting', 'comment_group_id'))),
