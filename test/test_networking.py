@@ -823,7 +823,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 class TestRequestsRequestHandler(TestRequestHandlerBase):
     # TODO: Test poolsize adjustments
     # TODO: Test verbose output
-    # TODO: go through these for all supported urllib3 versions and request
+
     @pytest.mark.parametrize('raised,expected', [
         (lambda: requests.exceptions.ConnectTimeout(), TransportError),
         (lambda: requests.exceptions.ReadTimeout(), TransportError),
@@ -838,6 +838,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         # catch-all: https://github.com/psf/requests/blob/main/src/requests/adapters.py#L535
         (lambda: urllib3.exceptions.HTTPError(), TransportError),
         (lambda: requests.exceptions.RequestException(), RequestError)
+        #  (lambda: requests.exceptions.TooManyRedirects(), HTTPError) - Needs a response object
     ])
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
@@ -856,11 +857,11 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('raised,expected', [
         (lambda: urllib3.exceptions.SSLError(), SSLError),
         (lambda: urllib3.exceptions.TimeoutError(), TransportError),
-        (lambda: urllib3.exceptions.ReadTimeoutError(None,None,None), TransportError),
+        (lambda: urllib3.exceptions.ReadTimeoutError(None, None, None), TransportError),
         (lambda: urllib3.exceptions.ProtocolError(), TransportError),
         (lambda: urllib3.exceptions.ProtocolError(
             'error', http.client.IncompleteRead(partial=b'')), IncompleteRead),
-        (lambda: urllib3.exceptions.IncompleteRead(partial=b'', expected=5), IncompleteRead),
+        (lambda: urllib3.exceptions.IncompleteRead(partial=3, expected=5), IncompleteRead),
         (lambda: urllib3.exceptions.DecodeError(), TransportError),
         (lambda: urllib3.exceptions.HTTPError(), TransportError)  # catch-all
     ])

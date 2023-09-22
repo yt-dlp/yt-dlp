@@ -6,7 +6,7 @@ import socket
 import warnings
 
 from ..dependencies import OptionalDependencyWarning, brotli, requests, urllib3
-from ..utils import int_or_none
+from ..utils import int_or_none, variadic
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -147,29 +147,28 @@ class RequestsResponseAdapter(Response):
         try:
             # Interact with urllib3 response directly.
             return self.fp.read(amt, decode_content=True)
-        # raw is an urllib3 HTTPResponse, so exceptions will be from urllib3
-        # See raised error in urllib3.response.HTTPResponse.read()
-        except urllib3.exceptions.HTTPError as e:
-            handle_urllib3_read_exceptions(e)
+
+        # See urllib3.response.HTTPResponse.read() for exceptions raised on read
+        except urllib3.exceptions.SSLError as e:
+            raise SSLError(cause=e) from e
+
+        except urllib3.exceptions.IncompleteRead as e:
+            # urllib3 IncompleteRead.partial is always an integer
+            raise IncompleteRead(partial=e.partial, expected=e.expected) from e
+
+        except urllib3.exceptions.ProtocolError as e:
+            # http.client.IncompleteRead may be contained within ProtocolError
+            # See urllib3.response.HTTPResponse._error_catcher()
+            ir_err = next(
+                (err for err in (e.__context__, e.__cause__, *variadic(e.args))
+                 if isinstance(err, http.client.IncompleteRead)), None)
+            if ir_err is not None:
+                raise IncompleteRead(partial=len(ir_err.partial), expected=ir_err.expected) from e
             raise TransportError(cause=e) from e
 
-
-def find_original_error(e, err_types):
-    if not isinstance(e, Exception):
-        return
-    return next(
-        (err for err in (e, e.__cause__, *(e.args or [])) if
-         isinstance(err, err_types)), None)
-
-
-def handle_urllib3_read_exceptions(e):
-    # Sometimes IncompleteRead is wrapped by urllib3.exceptions.ProtocolError, so we have to check the args
-    # TODO: check the above statement and what versions of urllib3 it impacts
-    ic_read_err = find_original_error(e, (http.client.IncompleteRead, urllib3.exceptions.IncompleteRead))
-    if ic_read_err is not None:
-        raise IncompleteRead(partial=ic_read_err.partial, expected=ic_read_err.expected)
-    if isinstance(e, urllib3.exceptions.SSLError):
-        raise SSLError(cause=e) from e
+        except urllib3.exceptions.HTTPError as e:
+            # catch-all for any other urllib3 response exceptions
+            raise TransportError(cause=e) from e
 
 
 class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
@@ -338,24 +337,24 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         except requests.exceptions.TooManyRedirects as e:
             max_redirects_exceeded = True
             res = e.response
+
         except requests.exceptions.SSLError as e:
             if 'CERTIFICATE_VERIFY_FAILED' in str(e):
                 raise CertificateVerifyError(cause=e) from e
             raise SSLError(cause=e) from e
+
         except requests.exceptions.ProxyError as e:
             raise ProxyError(cause=e) from e
+
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            # Some urllib3 exceptions such as IncompleteRead are wrapped by ConnectionError on request
-            # TOOD: check the above
-            handle_urllib3_read_exceptions(find_original_error(e, (urllib3.exceptions.HTTPError,)))
             raise TransportError(cause=e) from e
+
         except urllib3.exceptions.HTTPError as e:
             # Catch any urllib3 exceptions that may leak through
-            # TODO: check this
-            handle_urllib3_read_exceptions(e)
             raise TransportError(cause=e) from e
-        # Any misc Requests exception. May not necessary be network related e.g. InvalidURL
+
         except requests.exceptions.RequestException as e:
+            # Miscellaneous Requests exceptions. May not necessary be network related e.g. InvalidURL
             raise RequestError(cause=e) from e
 
         requests_res = RequestsResponseAdapter(res)
