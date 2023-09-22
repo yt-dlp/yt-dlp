@@ -5,8 +5,9 @@ import re
 from .common import InfoExtractor
 from ..dependencies import websockets
 from ..utils import (
-    clean_html,
     ExtractorError,
+    UserNotLive,
+    clean_html,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
@@ -22,7 +23,7 @@ from ..utils import (
 
 
 class TwitCastingIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/(?:movie|twplayer)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<uploader_id>[^/?#]+)/(?:movie|twplayer)/(?P<id>\d+)'
     _M3U8_HEADERS = {
         'Origin': 'https://twitcasting.tv',
         'Referer': 'https://twitcasting.tv/',
@@ -107,9 +108,9 @@ class TwitCastingIE(InfoExtractor):
                 url, video_id, data=request_data,
                 headers={'Origin': 'https://twitcasting.tv'},
                 note='Trying video password')
-        if urlh.geturl() != url and request_data:
+        if urlh.url != url and request_data:
             webpage = self._download_webpage(
-                urlh.geturl(), video_id, data=request_data,
+                urlh.url, video_id, data=request_data,
                 headers={'Origin': 'https://twitcasting.tv'},
                 note='Retrying authentication')
         # has to check here as the first request can contain password input form even if the password is correct
@@ -231,10 +232,13 @@ class TwitCastingIE(InfoExtractor):
 
 
 class TwitCastingLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://twitcasting.tv/ivetesangalo',
         'only_matching': True,
+    }, {
+        'url': 'https://twitcasting.tv/c:unusedlive',
+        'expected_exception': 'UserNotLive',
     }]
 
     def _real_extract(self, url):
@@ -260,13 +264,20 @@ class TwitCastingLiveIE(InfoExtractor):
                     r'(?s)<a\s+class="tw-movie-thumbnail"\s*href="/[^/]+/movie/(?P<video_id>\d+)"\s*>.+?</a>',
                     webpage, 'current live ID 2', default=None, group='video_id')
         if not current_live:
-            raise ExtractorError('The user is not currently live')
+            raise UserNotLive(video_id=uploader_id)
         return self.url_result('https://twitcasting.tv/%s/movie/%s' % (uploader_id, current_live))
 
 
 class TwitCastingUserIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<id>[^/]+)/show/?(?:[#?]|$)'
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?twitcasting\.tv/(?P<id>[^/?#]+)/(:?show|archive)/?(?:[#?]|$)'
     _TESTS = [{
+        'url': 'https://twitcasting.tv/natsuiromatsuri/archive/',
+        'info_dict': {
+            'id': 'natsuiromatsuri',
+            'title': 'natsuiromatsuri - Live History',
+        },
+        'playlist_mincount': 235,
+    }, {
         'url': 'https://twitcasting.tv/noriyukicas/show',
         'only_matching': True,
     }]

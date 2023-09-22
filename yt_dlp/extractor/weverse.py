@@ -5,13 +5,13 @@ import itertools
 import json
 import re
 import time
-import urllib.error
 import urllib.parse
 import uuid
 
 from .common import InfoExtractor
 from .naver import NaverBaseIE
 from .youtube import YoutubeIE
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -59,7 +59,7 @@ class WeverseBaseIE(InfoExtractor):
                     'password': password,
                 }, separators=(',', ':')).encode(), headers=headers, note='Logging in')
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 raise ExtractorError('Invalid password provided', expected=True)
             raise
 
@@ -70,10 +70,8 @@ class WeverseBaseIE(InfoExtractor):
             return
 
         token = try_call(lambda: self._get_cookies('https://weverse.io/')['we2_access_token'].value)
-        if not token:
-            self.raise_login_required()
-
-        WeverseBaseIE._API_HEADERS['Authorization'] = f'Bearer {token}'
+        if token:
+            WeverseBaseIE._API_HEADERS['Authorization'] = f'Bearer {token}'
 
     def _call_api(self, ep, video_id, data=None, note='Downloading API JSON'):
         # Ref: https://ssl.pstatic.net/static/wevweb/2_3_2_11101725/public/static/js/2488.a09b41ff.chunk.js
@@ -97,15 +95,18 @@ class WeverseBaseIE(InfoExtractor):
                     'wmd': wmd,
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 self.raise_login_required(
                     'Session token has expired. Log in again or refresh cookies in browser')
-            elif isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
-                raise ExtractorError('Your account does not have access to this content', expected=True)
+            elif isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                if 'Authorization' in self._API_HEADERS:
+                    raise ExtractorError('Your account does not have access to this content', expected=True)
+                self.raise_login_required()
             raise
 
     def _call_post_api(self, video_id):
-        return self._call_api(f'/post/v1.0/post-{video_id}?fieldSet=postV1', video_id)
+        path = '' if 'Authorization' in self._API_HEADERS else '/preview'
+        return self._call_api(f'/post/v1.0/post-{video_id}{path}?fieldSet=postV1', video_id)
 
     def _get_community_id(self, channel):
         return str(self._call_api(

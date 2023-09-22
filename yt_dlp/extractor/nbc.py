@@ -6,9 +6,9 @@ from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
 from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     RegexNotFoundError,
     UserNotLive,
     clean_html,
@@ -131,7 +131,6 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'age_limit': 0,
                 'thumbnail': r're:https?://.+\.jpg',
             },
-            'expected_warnings': ['Ignoring subtitle tracks'],
             'params': {
                 'skip_download': 'm3u8',
             },
