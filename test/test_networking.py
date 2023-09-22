@@ -825,18 +825,17 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
     # TODO: Test verbose output
     # TODO: go through these for all supported urllib3 versions and request
     @pytest.mark.parametrize('raised,expected', [
+        (lambda: requests.exceptions.ConnectTimeout(), TransportError),
+        (lambda: requests.exceptions.ReadTimeout(), TransportError),
+        (lambda: requests.exceptions.Timeout(), TransportError),
+        (lambda: requests.exceptions.ConnectionError(), TransportError),
+        (lambda: requests.exceptions.ProxyError(), ProxyError),
         (lambda: requests.exceptions.SSLError(
             'something [CERTIFICATE_VERIFY_FAILED] something'), CertificateVerifyError),
         (lambda: requests.exceptions.SSLError(), SSLError),
-        (lambda: requests.exceptions.ProxyError(), ProxyError),
-        # TODO: Exceptions wrapped by ConnectionError
-        (lambda: requests.exceptions.ConnectionError(), TransportError),
-        (lambda: requests.exceptions.ReadTimeout(), TransportError),
-        (lambda: requests.exceptions.ConnectTimeout(), TransportError),
-        (lambda: requests.exceptions.ContentDecodingError(), TransportError),
-        (lambda: requests.exceptions.Timeout(), TransportError),
         (lambda: requests.exceptions.InvalidURL(), RequestError),
         (lambda: requests.exceptions.InvalidHeader(), RequestError),
+        # catch-all: https://github.com/psf/requests/blob/main/src/requests/adapters.py#L535
         (lambda: urllib3.exceptions.HTTPError(), TransportError),
         (lambda: requests.exceptions.RequestException(), RequestError)
     ])
