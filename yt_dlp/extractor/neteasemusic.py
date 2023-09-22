@@ -14,14 +14,14 @@ from ..networking import Request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
-    strftime_or_none,
     float_or_none,
     int_or_none,
-    str_or_none,
-    traverse_obj,
     intlist_to_bytes,
-    urljoin,
+    str_or_none,
+    strftime_or_none,
+    traverse_obj,
     try_get,
+    urljoin,
 )
 
 
