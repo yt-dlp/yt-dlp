@@ -20,11 +20,12 @@ class BrilliantpalaIE(InfoExtractor):
         self._CONTENT_API = f'{self._HOMEPAGE}/api/v2.4/contents/{{content_id}}/'
         self._HLS_AES_URI = f'{self._HOMEPAGE}/api/v2.5/video_contents/{{content_id}}/key/'
 
-    def _get_logged_in_username(self, webpage):
-        if self._LOGIN_API == self._og_search_property('url', webpage):
+    def _get_logged_in_username(self, url, video_id):
+        webpage, urlh = self._download_webpage_handle(url, video_id)
+        if self._LOGIN_API == urlh.url:
             self.raise_login_required()
         return self._html_search_regex(
-            r'"username":\s*"(?P<username>[^"]+)"', webpage, 'stream page info', 'username')
+            r'"username"\s*:\s*"(?P<username>[^"]+)"', webpage, 'stream page info', 'username')
 
     def _perform_login(self, username, password):
         login_form = self._hidden_inputs(self._download_webpage(
@@ -56,7 +57,7 @@ class BrilliantpalaIE(InfoExtractor):
         course_id, content_id = self._match_valid_url(url).group('course_id', 'content_id')
         video_id = f'{course_id}-{content_id}'
 
-        username = self._get_logged_in_username(self._download_webpage(url, video_id))
+        username = self._get_logged_in_username(url, video_id)
 
         content_json = self._download_json(
             self._CONTENT_API.format(content_id=content_id), video_id,
