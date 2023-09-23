@@ -1845,6 +1845,9 @@ The following extractors use this feature:
 * `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
+#### niconicochannelplus
+* `max_comments`: Maximum number of comments to extract - default is `120`
+
 #### tiktok
 * `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
