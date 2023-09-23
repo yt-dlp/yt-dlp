@@ -121,7 +121,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             self.raise_no_formats(msg, expected=True, video_id=content_code)
         else:
             formats = self._extract_m3u8_formats(
-                # "authenticated_url" is a format string contains "{session_id}".
+                # "authenticated_url" is a format string that contains "{session_id}".
                 m3u8_url=data_json['video_stream']['authenticated_url'].format(session_id=session_id),
                 video_id=content_code)
 
@@ -213,10 +213,8 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                     raise ExtractorError(
                         'Live was ended, there is no video for download.', video_id=content_code, expected=True)
         else:
-            # new type appears, we will handle it soon.
             raise ExtractorError(f'Unknown type: {video_type}', video_id=content_code, expected=False)
 
-        # help us to analyze when error occurs
         self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
 
         session_id = self._call_api(
@@ -247,7 +245,7 @@ class NiconicoChannelPlusChannelBaseIE(NiconicoChannelPlusBaseIE):
             errnote=f'Unable to get channel info (page {page + 1})')
 
         for content_code in traverse_obj(response, ('data', 'video_pages', 'list', ..., 'content_code')):
-            # "video/{code}" works for both VoD and live, but "live/{code}" doesn't work for VoD.
+            # "video/{content_code}" works for both VOD and live, but "live/{content_code}" doesn't work for VOD
             yield self.url_result(
                 f'{self._WEBPAGE_BASE_URL}/{channel_name}/video/{content_code}', NiconicoChannelPlusIE)
 
