@@ -123,6 +123,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'timestamp': 1522944000,
             'upload_date': '20180405',
             'description': 'md5:3650af9ee22c87e8637cb2dde22a765c',
+            'subtitles': {'lyric': [{'ext': 'lrc'}]},
             "duration": 256,
             'thumbnail': r're:^http.*\.jpg',
         },
@@ -136,7 +137,6 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'creator': 'Dustin O\'Halloran',
             'upload_date': '20080211',
             'timestamp': 1202745600,
-            'description': 'md5:f12945b0f6e0365e3b73c5032e1b0ff4',
             'duration': 263,
             'thumbnail': r're:^http.*\.jpg',
         },
@@ -151,6 +151,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'upload_date': '19911130',
             'timestamp': 691516800,
             'description': 'md5:1ba2f911a2b0aa398479f595224f2141',
+            'subtitles': {'lyric': [{'ext': 'lrc'}]},
             'duration': 268,
             'alt_title': '伴唱:现代人乐队 合唱:总政歌舞团',
             'thumbnail': r're:^http.*\.jpg',
@@ -165,7 +166,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'creator': 'Taylor Swift / Kendrick Lamar',
             'upload_date': '20150516',
             'timestamp': 1431792000,
-            'description': 'md5:25fc5f27e47aad975aa6d36382c7833c',
+            'description': 'md5:21535156efb73d6d1c355f95616e285a',
+            'subtitles': {'lyric': [{'ext': 'lrc'}]},
             'duration': 199,
             'thumbnail': r're:^http.*\.jpg',
         },
@@ -181,6 +183,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'upload_date': '20100127',
             'timestamp': 1264608000,
             'description': 'md5:79d99cc560e4ca97e0c4d86800ee4184',
+            'subtitles': {'lyric': [{'ext': 'lrc'}]},
             'duration': 229,
             'alt_title': '说出愿望吧(Genie)',
             'thumbnail': r're:^http.*\.jpg',
@@ -192,18 +195,23 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         original = traverse_obj(lyrics_info, ('lrc', 'lyric', {str}))
         translated = traverse_obj(lyrics_info, ('tlyric', 'lyric', {str}))
 
+        if original.strip() == '[99:00.00]纯音乐，请欣赏':
+            return None
+
         if not translated or not original:
             return original
 
         lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
         original_ts_texts = re.findall(lyrics_expr, original)
-        translation_ts_dict = dict(
-            (time_stamp, text) for time_stamp, text in re.findall(lyrics_expr, translated)
-        )
-        lyrics = '\n'.join([
-            '%s%s / %s' % (time_stamp, text, translation_ts_dict.get(time_stamp, ''))
-            for time_stamp, text in original_ts_texts
-        ])
+        translation_ts_dict = {
+            timestamp: text for timestamp, text in re.findall(lyrics_expr, translated)
+        }
+
+        for i in range(len(original_ts_texts)):
+            timestamp, text = original_ts_texts[i]
+            if translation_ts_dict.get(timestamp):
+                original_ts_texts[i] = timestamp, f'{text} / {translation_ts_dict[timestamp]}'
+        lyrics = '\n'.join([''.join(i) for i in original_ts_texts])
         return lyrics
 
     def _real_extract(self, url):
@@ -216,13 +224,22 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
 
         lyrics = self._process_lyrics(self.query_api(
             f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
+        lyric_data = {
+            'description': lyrics,
+            'subtitles': {
+                'lyric': [{
+                    'data': lyrics,
+                    'ext': 'lrc',
+                }]
+            }
+        } if lyrics else {}
 
         return {
             'id': song_id,
-            'description': lyrics,
             'formats': formats,
             'alt_title': '/'.join(traverse_obj(info, (('transNames', 'alias'), ...))) or None,
             'creator': ' / '.join(traverse_obj(info, ('artists', ..., 'name'))),
+            **lyric_data,
             **traverse_obj(info, {
                 'title': ('name', {str}),
                 'timestamp': ('album', 'publishTime', {lambda i: int_or_none(i, scale=1000)}),
