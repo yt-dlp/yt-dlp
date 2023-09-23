@@ -26,7 +26,7 @@ class CineverseBaseIE(InfoExtractor):
 
 
 class CineverseIE(CineverseBaseIE):
-    _VALID_URL = r'%s/watch/(?P<id>[A-Z0-9]+)' % CineverseBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{CineverseBaseIE._VALID_URL_BASE}/watch/(?P<id>[A-Z0-9]+)'
     _TESTS = [{
         'url': 'https://www.asiancrush.com/watch/DMR00018919/Women-Who-Flirt',
         'skip': 'geo-blocked',
@@ -95,7 +95,7 @@ class CineverseIE(CineverseBaseIE):
 
 
 class CineverseDetailsIE(CineverseBaseIE):
-    _VALID_URL = r'%s/details/(?P<id>[A-Z0-9]+)' % CineverseBaseIE._VALID_URL_BASE
+    _VALID_URL = rf'{CineverseBaseIE._VALID_URL_BASE}/details/(?P<id>[A-Z0-9]+)'
     _TESTS = [{
         'url': 'https://www.retrocrush.tv/details/1000000023012/Space-Adventure-COBRA-(Original-Japanese)',
         'playlist_mincount': 30,
