@@ -4106,6 +4106,8 @@ class YoutubeDL:
                     },
                 })))
         director.preferences.update(preferences or [])
+        if 'prefer-legacy-http-handler' in self.params['compat_opts']:
+            director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
         return director
 
     def encode(self, s):

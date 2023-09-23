@@ -1324,6 +1324,13 @@ class TestYoutubeDLNetworking:
             rh = self.build_handler(ydl, UrllibRH)
             assert rh.enable_file_urls is True
 
+    def test_compat_opt_prefer_urllib(self):
+        # This assumes urllib only has a preference when this compat opt is given
+        with FakeYDL({'compat_opts': ['prefer-legacy-http-handler']}) as ydl:
+            director = ydl.build_request_director([UrllibRH])
+            assert len(director.preferences) == 1
+            assert director.preferences.pop()(UrllibRH, None)
+
 
 class TestRequest:
 
