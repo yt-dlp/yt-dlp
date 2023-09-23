@@ -167,7 +167,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             headers={'Content-Type': 'application/json'},
             query={
                 'sort_direction': 'asc',
-                'limit': traverse_obj(self._configuration_arg('max_comments', [120]), (0, )),
+                'limit': int_or_none(self._configuration_arg('max_comments', [''])[0]) or 120,
             },
             data=json.dumps({
                 'token': comment_access_token,
