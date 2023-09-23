@@ -58,8 +58,7 @@ class PIAULIZAPortalIE(InfoExtractor):
             video_id, fatal=False)
 
         m3u8_type = self._search_regex(
-            r'https://.+?\.cloudfront\.net/hls/(?P<type>dvr|video)/.+\.m3u8',
-            traverse_obj(formats, (0, 'url')), 'm3u8 playlist url', group=('type'), fatal=False, default=None)
+            r'/hls/(dvr|video)/', traverse_obj(formats, (0, 'url')), 'm3u8 type', default=None)
         if m3u8_type == 'video':
             live_status = 'is_live'
         elif m3u8_type == 'dvr':
