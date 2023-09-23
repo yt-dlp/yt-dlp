@@ -10,7 +10,7 @@ from ..utils import (
 
 class PIAULIZAPortalIE(InfoExtractor):
     IE_DESC = 'ulizaportal.jp - PIA LIVE STREAM'
-    _VALID_URL = r'https?://ulizaportal\.jp/pages/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+    _VALID_URL = r'https?://(?:www\.)?ulizaportal\.jp/pages/(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})'
     _TESTS = [{
         'url': 'https://ulizaportal.jp/pages/005f18b7-e810-5618-cb82-0987c5755d44',
         'info_dict': {
@@ -46,7 +46,7 @@ class PIAULIZAPortalIE(InfoExtractor):
 
         player_data = self._download_webpage(
             self._search_regex(
-                r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/(?:[^"]*))"[^>]*>',
+                r'<script [^>]*\bsrc="(https://player-api\.p\.uliza\.jp/v1/players/[^"]+)"',
                 webpage, 'player data url'),
             video_id, headers={'Referer': 'https://ulizaportal.jp/'},
             note='Fetching player data', errnote='Unable to fetch player data')
