@@ -4065,6 +4065,9 @@ class YoutubeDL:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
+                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                    raise RequestError(
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
