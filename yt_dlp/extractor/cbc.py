@@ -2,6 +2,7 @@ import re
 import json
 import base64
 import time
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
@@ -228,6 +229,38 @@ class CBCPlayerIE(InfoExtractor):
         }
 
 
+class CBCPlayerPlaylistIE(InfoExtractor):
+    IE_NAME = 'cbc.ca:player:playlist'
+    _VALID_URL = r'https?://(?:www\.)?cbc\.ca/(?:player/)(?!play/)(?P<id>[^?#]+)'
+    _TESTS = [{
+        'url': 'https://www.cbc.ca/player/news/TV%20Shows/The%20National/Latest%20Broadcast',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/tv shows/the national/latest broadcast',
+        }
+    }, {
+        'url': 'https://www.cbc.ca/player/news/Canada/North',
+        'playlist_mincount': 25,
+        'info_dict': {
+            'id': 'news/canada/north',
+        }
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = urllib.parse.unquote(self._match_id(url)).lower()
+        webpage = self._download_webpage(url, playlist_id)
+        json_content = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', playlist_id)
+
+        def entries():
+            for video_id in traverse_obj(json_content, (
+                'video', 'clipsByCategory', lambda k, _: k.lower() == playlist_id, 'items', ..., 'id'
+            )):
+                yield self.url_result(f'https://www.cbc.ca/player/play/{video_id}', CBCPlayerIE)
+
+        return self.playlist_result(entries(), playlist_id)
+
+
 class CBCGemIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca'
     _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
@@ -306,12 +339,12 @@ class CBCGemIE(InfoExtractor):
         data = json.dumps({'jwt': sig}).encode()
         headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
-                                   None, data=data, headers=headers)
+                                   None, data=data, headers=headers, expected_status=426)
         cbc_access_token = resp['accessToken']
 
         headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
-                                   None, headers=headers)
+                                   None, headers=headers, expected_status=426)
         return resp['claimsToken']
 
     def _get_claims_token_expiry(self):

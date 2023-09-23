@@ -10,14 +10,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 import contextlib
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 from devscripts.utils import read_version, run_process, write_file
 
 
 def get_new_version(version, revision):
     if not version:
-        version = datetime.utcnow().strftime('%Y.%m.%d')
+        version = datetime.now(timezone.utc).strftime('%Y.%m.%d')
 
     if revision:
         assert revision.isdigit(), 'Revision must be a number'
