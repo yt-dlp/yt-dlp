@@ -56,7 +56,6 @@ class PIAULIZAPortalIE(InfoExtractor):
                 r'["\'](https://vms-api\.p\.uliza\.jp/v1/prog-index\.m3u8[^"\']+)', player_data,
                 'm3u8 url', default=None),
             video_id, fatal=False)
-
         m3u8_type = self._search_regex(
             r'/hls/(dvr|video)/', traverse_obj(formats, (0, 'url')), 'm3u8 type', default=None)
 
@@ -67,5 +66,5 @@ class PIAULIZAPortalIE(InfoExtractor):
             'live_status': {
                 'video': 'is_live',
                 'dvr': 'was_live',  # short-term archives
-            }.get(m3u8_type, 'not_live'),  # VOD or long-term archives,
+            }.get(m3u8_type, 'not_live'),  # VOD or long-term archives
         }
