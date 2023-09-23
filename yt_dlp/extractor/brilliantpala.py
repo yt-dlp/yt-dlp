@@ -104,11 +104,7 @@ class BrilliantpalaElearnIE(BrilliantpalaIE):
         },
     }]
 
-    _SUBDOMIAN = 'elearn'
-
-    def _initialize_pre_login(self):
-        self._DOMAIN = super()._DOMAIN.format(subdomain=self._SUBDOMIAN)
-        super()._initialize_pre_login()
+    _DOMAIN = BrilliantpalaIE._DOMAIN.format(subdomain='elearn')
 
 
 class BrilliantpalaClassesIE(BrilliantpalaIE):
@@ -132,8 +128,4 @@ class BrilliantpalaClassesIE(BrilliantpalaIE):
         },
     }]
 
-    _SUBDOMIAN = 'classes'
-
-    def _initialize_pre_login(self):
-        self._DOMAIN = super()._DOMAIN.format(subdomain=self._SUBDOMIAN)
-        super()._initialize_pre_login()
+    _DOMAIN = BrilliantpalaIE._DOMAIN.format(subdomain='classes')
