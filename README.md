@@ -1318,7 +1318,6 @@ The available fields are:
  - `was_live` (boolean): Whether this video was originally a live stream
  - `playable_in_embed` (string): Whether this video is allowed to play in embedded players on other sites
  - `availability` (string): Whether the video is "private", "premium_only", "subscriber_only", "needs_auth", "unlisted" or "public"
- - `media_type` (string): The type of video as defined by the site, e.g. "clip", "episode", "trailer"
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
  - `extractor` (string): Name of the extractor
@@ -1865,6 +1864,9 @@ The following extractors use this feature:
 
 #### nhkradirulive (NHK らじる★らじる LIVE)
 * `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`
+
+#### nflplusreplay
+* `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
