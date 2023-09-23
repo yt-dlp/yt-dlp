@@ -7,8 +7,6 @@ from random import randint
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_encrypt, pkcs7_padding
-from ..compat import compat_urllib_parse_urlencode
-from ..networking import Request
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -24,12 +22,12 @@ from ..utils import (
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
-    _FORMATS = ['bMusic', 'mMusic', 'hMusic', 'sqMusic', 'hrMusic']
+    _FORMATS = ['bMusic', 'mMusic', 'hMusic']
     _NETEASE_SALT = '3go8&$8*3*3h0k(2)2'
     _API_BASE = 'http://music.163.com/api/'
 
-    def _create_eapi_cipher(self, api_path, query, cookies):
-        request_text = json.dumps({**query, 'header': cookies}, separators=(',', ':'))
+    def _create_eapi_cipher(self, api_path, query_body, cookies):
+        request_text = json.dumps({**query_body, 'header': cookies}, separators=(',', ':'))
 
         message = f'nobody{api_path}use{request_text}md5forencrypt'.encode('latin1')
         msg_digest = md5(message).hexdigest()
@@ -39,7 +37,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
         encrypted = bytes(aes_ecb_encrypt(data, list(b'e82ckenh8dichen8')))
         return f'params={encrypted.hex().upper()}'.encode()
 
-    def _download_eapi_json(self, path, song_id, query, headers={}, **kwargs):
+    def _download_eapi_json(self, path, video_id, query_body, headers={}, **kwargs):
         cookies = {
             'osver': 'undefined',
             'deviceId': 'undefined',
@@ -60,8 +58,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
             **headers,
         }
         url = urljoin('https://interface3.music.163.com/', f'/eapi{path}')
-        data = self._create_eapi_cipher(f'/api{path}', query, cookies)
-        return self._download_json(url, song_id, data=data, headers=headers, **kwargs)
+        data = self._create_eapi_cipher(f'/api{path}', query_body, cookies)
+        return self._download_json(url, video_id, data=data, headers=headers, **kwargs)
 
     def _call_player_api(self, song_id, bitrate):
         return self._download_eapi_json(
@@ -113,9 +111,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
         return formats
 
     def query_api(self, endpoint, video_id, note):
-        req = Request('%s%s' % (self._API_BASE, endpoint))
-        req.headers['Referer'] = self._API_BASE
-        result = self._download_json(req, video_id, note)
+        result = self._download_json(
+            f'{self._API_BASE}{endpoint}', video_id, note, headers={'Referer': self._API_BASE})
         if result['code'] == -462:
             self.raise_login_required(f'Login required to download: {result["message"]}')
         elif result['code'] != 200:
@@ -223,13 +220,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         song_id = self._match_id(url)
 
-        params = {
-            'id': song_id,
-            'ids': '[%s]' % song_id
-        }
         info = self.query_api(
-            'song/detail?' + compat_urllib_parse_urlencode(params),
-            song_id, 'Downloading song info')['songs'][0]
+            f'song/detail?id={song_id}&ids=%5B{song_id}%5D', song_id, 'Downloading song info')['songs'][0]
 
         formats = self.extract_formats(info)
 
@@ -328,8 +320,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
         singer_id = self._match_id(url)
 
         info = self.query_api(
-            'artist/%s?id=%s' % (singer_id, singer_id),
-            singer_id, 'Downloading singer data')
+            f'artist/{singer_id}?id={singer_id}', singer_id, note='Downloading singer data')
 
         artist_info = info.get('artist', {})
         name = artist_info.get('name', '')
@@ -454,8 +445,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
         mv_id = self._match_id(url)
 
         info = self.query_api(
-            'mv/detail?id=%s&type=mp4' % mv_id,
-            mv_id, 'Downloading mv info')['data']
+            f'mv/detail?id={mv_id}&type=mp4', mv_id, 'Downloading mv info')['data']
 
         formats = [
             {'url': mv_url, 'ext': 'mp4', 'format_id': '%sp' % brs, 'height': int(brs)}
@@ -532,8 +522,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
         program_id = self._match_id(url)
 
         info = self.query_api(
-            'dj/program/detail?id=%s' % program_id,
-            program_id, 'Downloading program info')['program']
+            f'dj/program/detail?id={program_id}', program_id, note='Downloading program info')['program']
 
         metainfo = traverse_obj(info, {
             'title': ('name', {str}),
@@ -584,9 +573,8 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         entries = []
         for offset in itertools.count(start=0, step=self._PAGE_SIZE):
             info = self.query_api(
-                'dj/program/byradio?asc=false&limit=%d&radioId=%s&offset=%d'
-                % (self._PAGE_SIZE, dj_id, offset),
-                dj_id, 'Downloading dj programs - %d' % offset)
+                f'dj/program/byradio?asc=false&limit={self._PAGE_SIZE}&radioId={dj_id}&offset={offset}',
+                dj_id, note=f'Downloading dj programs - {offset}')
 
             entries.extend([
                 self.url_result(
