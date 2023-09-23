@@ -33,7 +33,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install pytest
-      run: pip install pytest
+      run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: False
       run: |
