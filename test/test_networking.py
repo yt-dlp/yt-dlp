@@ -867,6 +867,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         with handler() as rh:
             # FIXME: monkey patch a fake response
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers'))
+            res.read()  # close the socket to avoid warnings
 
             def mock_read(*args, **kwargs):
                 raise raised()
