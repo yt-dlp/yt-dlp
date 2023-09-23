@@ -8,7 +8,7 @@ from ..utils import (
 )
 
 
-class BrilliantpalaIE(InfoExtractor):
+class BrilliantpalaBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'brilliantpala'
     _DOMAIN = '{subdomain}.brilliantpala.org'
 
@@ -78,7 +78,7 @@ class BrilliantpalaIE(InfoExtractor):
             entries, playlist_id=video_id, playlist_title=content_json.get('title'))
 
 
-class BrilliantpalaElearnIE(BrilliantpalaIE):
+class BrilliantpalaElearnIE(BrilliantpalaBaseIE):
     IE_NAME = 'Brilliantpala:Elearn'
     IE_DESC = 'VoD on elearn.brilliantpala.org'
     _VALID_URL = r'https?://elearn\.brilliantpala\.org/courses/(?P<course_id>\d+)/contents/(?P<content_id>\d+)/?'
@@ -99,10 +99,10 @@ class BrilliantpalaElearnIE(BrilliantpalaIE):
         },
     }]
 
-    _DOMAIN = BrilliantpalaIE._DOMAIN.format(subdomain='elearn')
+    _DOMAIN = BrilliantpalaBaseIE._DOMAIN.format(subdomain='elearn')
 
 
-class BrilliantpalaClassesIE(BrilliantpalaIE):
+class BrilliantpalaClassesIE(BrilliantpalaBaseIE):
     IE_NAME = 'Brilliantpala:Classes'
     IE_DESC = 'VoD on classes.brilliantpala.org'
     _VALID_URL = r'https?://classes\.brilliantpala\.org/courses/(?P<course_id>\d+)/contents/(?P<content_id>\d+)/?'
@@ -123,4 +123,4 @@ class BrilliantpalaClassesIE(BrilliantpalaIE):
         },
     }]
 
-    _DOMAIN = BrilliantpalaIE._DOMAIN.format(subdomain='classes')
+    _DOMAIN = BrilliantpalaBaseIE._DOMAIN.format(subdomain='classes')
