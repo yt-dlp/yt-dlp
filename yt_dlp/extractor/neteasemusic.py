@@ -339,7 +339,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
         if len(name_and_aliases) > 1:
             name = f'{name_and_aliases[0]} - {";".join(name_and_aliases[1:])}'
         else:
-            name = name_and_aliases[0]
+            name = traverse_obj(name_and_aliases, 0)
 
         entries = [
             self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
