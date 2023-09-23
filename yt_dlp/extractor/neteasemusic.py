@@ -23,7 +23,6 @@ from ..utils import (
 
 class NetEaseMusicBaseIE(InfoExtractor):
     _FORMATS = ['bMusic', 'mMusic', 'hMusic']
-    _NETEASE_SALT = '3go8&$8*3*3h0k(2)2'
     _API_BASE = 'http://music.163.com/api/'
 
     def _create_eapi_cipher(self, api_path, query_body, cookies):
@@ -63,8 +62,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
 
     def _call_player_api(self, song_id, bitrate):
         return self._download_eapi_json(
-            '/song/enhance/player/url', song_id,
-            {'ids': f'[{song_id}]', 'br': bitrate},
+            '/song/enhance/player/url', song_id, {'ids': f'[{song_id}]', 'br': bitrate},
             note=f'Downloading song URL info: bitrate {bitrate}')
 
     def extract_formats(self, info):
@@ -75,10 +73,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
             details = info.get(song_format)
             if not details:
                 continue
-
             bitrate = int_or_none(details.get('bitrate')) or 999000
-            data = self._call_player_api(song_id, bitrate)
-            for song in traverse_obj(data, ('data', ...)):
+            for song in traverse_obj(self._call_player_api(song_id, bitrate), ('data', ...)):
                 song_url = traverse_obj(song, ('url', {url_or_none}))
                 if not song_url:
                     continue
@@ -86,28 +82,21 @@ class NetEaseMusicBaseIE(InfoExtractor):
                     formats.append({
                         'url': song_url,
                         'format_id': song_format,
+                        'asr': traverse_obj(details, ('sr', {int_or_none})),
                         **traverse_obj(song, {
                             'ext': ('type', {str}),
                             'abr': ('br', {lambda i: int_or_none(i, scale=1000)}),
                             'filesize': ('size', {int_or_none}),
-                        }),
-                        **traverse_obj(details, {
-                            'asr': ('sr', {int_or_none}),
                         }),
                     })
                 elif err == 0:
                     err = try_get(song, lambda x: x['code'], int)
 
         if not formats:
-            msg = 'No media links found'
             if err != 0 and (err < 200 or err >= 400):
-                raise ExtractorError(
-                    '%s (site code %d)' % (msg, err, ), expected=True)
+                raise ExtractorError(f'No media links found (site code {err})', expected=True)
             else:
-                self.raise_geo_restricted(
-                    msg + ': probably this video is not available from your location due to geo restriction.',
-                    countries=['CN'])
-
+                self.raise_geo_restricted('No media links found: probably due to geo restriction.')
         return formats
 
     def query_api(self, endpoint, video_id, note):
@@ -200,10 +189,10 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
     }]
 
     def _process_lyrics(self, lyrics_info):
-        original = lyrics_info.get('lrc', {}).get('lyric')
-        translated = lyrics_info.get('tlyric', {}).get('lyric')
+        original = traverse_obj(lyrics_info, ('lrc', 'lyric', {str}))
+        translated = traverse_obj(lyrics_info, ('tlyric', 'lyric', {str}))
 
-        if not translated:
+        if not translated or not original:
             return original
 
         lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
@@ -225,10 +214,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
 
         formats = self.extract_formats(info)
 
-        lyrics_info = self.query_api(
-            'song/lyric?id=%s&lv=-1&tv=-1' % song_id,
-            song_id, 'Downloading lyrics data')
-        lyrics = self._process_lyrics(lyrics_info)
+        lyrics = self._process_lyrics(self.query_api(
+            f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
 
         return {
             'id': song_id,
@@ -448,7 +435,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             f'mv/detail?id={mv_id}&type=mp4', mv_id, 'Downloading mv info')['data']
 
         formats = [
-            {'url': mv_url, 'ext': 'mp4', 'format_id': '%sp' % brs, 'height': int(brs)}
+            {'url': mv_url, 'ext': 'mp4', 'format_id': f'{brs}p', 'height': int_or_none(brs)}
             for brs, mv_url in info['brs'].items()
         ]
 
