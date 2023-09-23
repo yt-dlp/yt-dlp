@@ -92,6 +92,6 @@
     {
         "action": "add",
         "when": "c1d71d0d9f41db5e4306c86af232f5f6220a130b",
-        "short": "[priority] **The minimum *recommended* Python version has been raised to 3.8**\nSince Python 3.7 has reached end-of-life, it has been decided to drop support for it soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/7803)"
+        "short": "[priority] **The minimum *recommended* Python version has been raised to 3.8**\nSince Python 3.7 has reached end-of-life, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/7803)"
     }
 ]
