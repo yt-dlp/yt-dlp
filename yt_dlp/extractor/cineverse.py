@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..utils import (
     filter_dict,
     int_or_none,
-    iri_to_uri,
     parse_age_limit,
     smuggle_url,
     traverse_obj,
@@ -125,7 +124,7 @@ class CineverseDetailsIE(CineverseBaseIE):
             'itemDetailsData', 'playback_err_msg')) == 'This title is not available in your location.'
 
         def item_result(item):
-            item_url = iri_to_uri(f'https://www.{host}/watch/{item["item_id"]}/{item["title"]}')
+            item_url = f'https://www.{host}/watch/{item["item_id"]}/{item["title"]}'
             if geoblocked:
                 item_url = smuggle_url(item_url, {'geo_countries': geo_countries})
             return self.url_result(item_url, CineverseIE)
