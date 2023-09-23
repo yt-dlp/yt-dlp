@@ -301,6 +301,14 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
             'title': '李昇基 - 이승기',
         },
         'playlist_count': 50,
+    }, {
+        'note': 'Singer with both translated and alias',
+        'url': 'https://music.163.com/#/artist?id=159692',
+        'info_dict': {
+            'id': '159692',
+            'title': '初音ミク - 初音未来;Hatsune Miku',
+        },
+        'playlist_count': 50,
     }]
 
     def _real_extract(self, url):
@@ -309,12 +317,12 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
         info = self.query_api(
             f'artist/{singer_id}?id={singer_id}', singer_id, note='Downloading singer data')
 
-        artist_info = info.get('artist', {})
-        name = artist_info.get('name', '')
-        if artist_info.get('trans'):
-            name = '%s - %s' % (name, info['artist']['trans'])
-        if artist_info.get('alias'):
-            name = '%s - %s' % (name, ';'.join(map(str, info['artist']['alias'])))
+        name_and_aliases = traverse_obj(info, (
+            'artist', ('name', 'trans', ('alias', ...)), {str}, {lambda i: i or None}))
+        if len(name_and_aliases) > 1:
+            name = f'{name_and_aliases[0]} - {";".join(name_and_aliases[1:])}'
+        else:
+            name = name_and_aliases[0]
 
         entries = [
             self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
