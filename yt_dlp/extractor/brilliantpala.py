@@ -3,7 +3,6 @@ import hashlib
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    dict_get,
     traverse_obj,
     urlencode_postdata,
 )
@@ -64,21 +63,18 @@ class BrilliantpalaIE(InfoExtractor):
             note='Fetching content info', errnote='Unable to fetch content info')
 
         entries = []
-        for stream in traverse_obj(content_json, ('video', 'streams')):
-            formats = self._extract_m3u8_formats(
-                m3u8_url=stream['url'], video_id=video_id)
-            for format in formats:
-                format['hls_aes'] = {
-                    'uri': self._HLS_AES_URI.format(content_id=content_id)}
-            entry = {
+        for stream in traverse_obj(content_json, ('video', 'streams', lambda _, v: v['id'] and v['url'])):
+            formats = self._extract_m3u8_formats(stream['url'], video_id, fatal=False)
+            if not formats:
+                continue
+            entries.append({
                 'id': str(stream['id']),
-                'title': dict_get(content_json, 'title', ''),
+                'title': content_json.get('title'),
                 'formats': formats,
+                'hls_aes': {'uri': self._HLS_AES_URI.format(content_id=content_id)},
                 'http_headers': {'X-Key': hashlib.sha256(username.encode('ascii')).hexdigest()},
                 'thumbnail': content_json.get('cover_image'),
-                'live_status': 'not_live',
-            }
-            entries.append(entry)
+            })
 
         return self.playlist_result(
             entries, playlist_id=video_id, playlist_title=content_json.get('title'))
