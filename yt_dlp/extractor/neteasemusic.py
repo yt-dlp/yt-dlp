@@ -2,8 +2,6 @@ import itertools
 import json
 import re
 import time
-from base64 import b64encode
-from binascii import hexlify
 from hashlib import md5
 from random import randint
 
@@ -13,11 +11,8 @@ from ..compat import compat_urllib_parse_urlencode
 from ..networking import Request
 from ..utils import (
     ExtractorError,
-    bytes_to_intlist,
     clean_html,
-    float_or_none,
     int_or_none,
-    intlist_to_bytes,
     str_or_none,
     strftime_or_none,
     traverse_obj,
@@ -29,52 +24,39 @@ from ..utils import (
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
-    _FORMATS = ['bMusic', 'mMusic', 'hMusic']
+    _FORMATS = ['bMusic', 'mMusic', 'hMusic', 'sqMusic', 'hrMusic']
     _NETEASE_SALT = '3go8&$8*3*3h0k(2)2'
     _API_BASE = 'http://music.163.com/api/'
 
-    @classmethod
-    def _encrypt(cls, dfsid):
-        salt_bytes = bytearray(cls._NETEASE_SALT.encode('utf-8'))
-        string_bytes = bytearray(str(dfsid).encode('ascii'))
-        salt_len = len(salt_bytes)
-        for i in range(len(string_bytes)):
-            string_bytes[i] = string_bytes[i] ^ salt_bytes[i % salt_len]
-        m = md5()
-        m.update(bytes(string_bytes))
-        result = b64encode(m.digest()).decode('ascii')
-        return result.replace('/', '_').replace('+', '-')
-
     def _create_eapi_cipher(self, api_path, query, cookies):
-        KEY = b'e82ckenh8dichen8'
         request_text = json.dumps({**query, 'header': cookies}, separators=(',', ':'))
 
         message = f'nobody{api_path}use{request_text}md5forencrypt'.encode('latin1')
         msg_digest = md5(message).hexdigest()
 
-        data = pkcs7_padding(bytes_to_intlist(
-            f'{api_path}-36cd479b6b5-{request_text}-36cd479b6b5-{msg_digest}'))
-        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, bytes_to_intlist(KEY)))
-        return b'params=' + hexlify(encrypted).upper()
+        data = pkcs7_padding(list(str.encode(
+            f'{api_path}-36cd479b6b5-{request_text}-36cd479b6b5-{msg_digest}')))
+        encrypted = bytes(aes_ecb_encrypt(data, list(b'e82ckenh8dichen8')))
+        return f'params={encrypted.hex().upper()}'.encode()
 
     def _download_eapi_json(self, path, song_id, query, headers={}, **kwargs):
         cookies = {
-            'osver': None,
-            'deviceId': None,
+            'osver': 'undefined',
+            'deviceId': 'undefined',
             'appver': '8.0.0',
             'versioncode': '140',
-            'mobilename': None,
+            'mobilename': 'undefined',
             'buildver': '1623435496',
             'resolution': '1920x1080',
             '__csrf': '',
             'os': 'pc',
-            'channel': None,
+            'channel': 'undefined',
             'requestId': f'{int(time.time() * 1000)}_{randint(0, 1000):04}',
         }
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Referer': 'https://music.163.com',
-            'Cookie': '; '.join([f'{k}={v if v is not None else "undefined"}' for [k, v] in cookies.items()]),
+            'Cookie': '; '.join([f'{k}={v}' for k, v in cookies.items()]),
             **headers,
         }
         url = urljoin('https://interface3.music.163.com/', f'/eapi{path}')
@@ -98,18 +80,22 @@ class NetEaseMusicBaseIE(InfoExtractor):
 
             bitrate = int_or_none(details.get('bitrate')) or 999000
             data = self._call_player_api(song_id, bitrate)
-            for song in try_get(data, lambda x: x['data'], list) or []:
-                song_url = try_get(song, lambda x: x['url'])
+            for song in traverse_obj(data, ('data', ...)):
+                song_url = traverse_obj(song, ('url', {url_or_none}))
                 if not song_url:
                     continue
                 if self._is_valid_url(song_url, info['id'], 'song'):
                     formats.append({
                         'url': song_url,
-                        'ext': details.get('extension'),
-                        'abr': float_or_none(song.get('br'), scale=1000),
                         'format_id': song_format,
-                        'filesize': int_or_none(song.get('size')),
-                        'asr': int_or_none(details.get('sr')),
+                        **traverse_obj(song, {
+                            'ext': ('type', {str}),
+                            'abr': ('br', {lambda i: int_or_none(i, scale=1000)}),
+                            'filesize': ('size', {int_or_none}),
+                        }),
+                        **traverse_obj(details, {
+                            'asr': ('sr', {int_or_none}),
+                        }),
                     })
                 elif err == 0:
                     err = try_get(song, lambda x: x['code'], int)
