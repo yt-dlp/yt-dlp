@@ -112,10 +112,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
 
         return formats
 
-    @classmethod
-    def convert_milliseconds(cls, ms):
-        return int(round(ms / 1000.0))
-
     def query_api(self, endpoint, video_id, note):
         req = Request('%s%s' % (self._API_BASE, endpoint))
         req.headers['Referer'] = self._API_BASE
@@ -170,6 +166,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'timestamp': 691516800,
             'description': 'md5:1ba2f911a2b0aa398479f595224f2141',
             'duration': 268,
+            'alt_title': '伴唱:现代人乐队 合唱:总政歌舞团',
             'thumbnail': r're:^http.*\.jpg',
         },
     }, {
@@ -241,20 +238,18 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             song_id, 'Downloading lyrics data')
         lyrics = self._process_lyrics(lyrics_info)
 
-        alt_title = None
-        if info.get('transNames'):
-            alt_title = '/'.join(info.get('transNames'))
-
         return {
             'id': song_id,
-            'title': info['name'],
-            'alt_title': alt_title,
-            'creator': ' / '.join([artist['name'] for artist in info.get('artists', [])]),
-            'timestamp': self.convert_milliseconds(info.get('album', {}).get('publishTime')),
-            'thumbnail': info.get('album', {}).get('picUrl'),
-            'duration': self.convert_milliseconds(info.get('duration', 0)),
             'description': lyrics,
             'formats': formats,
+            'alt_title': '/'.join(traverse_obj(info, (('transNames', 'alias'), ...))) or None,
+            'creator': ' / '.join(traverse_obj(info, ('artists', ..., 'name'))),
+            **traverse_obj(info, {
+                'title': ('name', {str}),
+                'timestamp': ('album', 'publishTime', {lambda i: int_or_none(i, scale=1000)}),
+                'thumbnail': ('album', 'picUrl', {url_or_none}),
+                'duration': ('duration', {lambda i: int_or_none(i, scale=1000)}),
+            }),
         }
 
 
@@ -336,11 +331,12 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
             'artist/%s?id=%s' % (singer_id, singer_id),
             singer_id, 'Downloading singer data')
 
-        name = info['artist']['name']
-        if info['artist']['trans']:
+        artist_info = info.get('artist', {})
+        name = artist_info.get('name', '')
+        if artist_info.get('trans'):
             name = '%s - %s' % (name, info['artist']['trans'])
-        if info['artist']['alias']:
-            name = '%s - %s' % (name, ';'.join(info['artist']['alias']))
+        if artist_info.get('alias'):
+            name = '%s - %s' % (name, ';'.join(map(str, info['artist']['alias'])))
 
         entries = [
             self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
@@ -507,6 +503,10 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'id': '10141022',
             'title': '滚滚电台的有声节目',
             'description': 'md5:8d594db46cc3e6509107ede70a4aaa3b',
+            'creator': '滚滚电台ORZ',
+            'timestamp': 1434450733,
+            'upload_date': '20150616',
+            'thumbnail': r're:http.*\.jpg',
         },
         'playlist_count': 4,
     }, {
@@ -535,31 +535,31 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'dj/program/detail?id=%s' % program_id,
             program_id, 'Downloading program info')['program']
 
-        name = info['name']
-        description = info['description']
+        metainfo = traverse_obj(info, {
+            'title': ('name', {str}),
+            'description': ('description', {str}),
+            'creator': ('dj', 'brand', {str}),
+            'thumbnail': ('coverUrl', {url_or_none}),
+            'timestamp': ('createTime', {lambda i: int_or_none(i, scale=1000)}),
+        })
 
         if not self._yes_playlist(info['songs'] and program_id, info['mainSong']['id']):
             formats = self.extract_formats(info['mainSong'])
 
             return {
                 'id': str(info['mainSong']['id']),
-                'title': name,
-                'description': description,
-                'creator': info['dj']['brand'],
-                'timestamp': self.convert_milliseconds(info['createTime']),
-                'thumbnail': info['coverUrl'],
-                'duration': self.convert_milliseconds(info.get('duration', 0)),
                 'formats': formats,
+                'duration': traverse_obj(info, ('mainSong', 'duration', {lambda i: int_or_none(i, scale=1000)})),
+                **metainfo,
             }
 
-        song_ids = [info['mainSong']['id']]
-        song_ids.extend([song['id'] for song in info['songs']])
+        song_ids = traverse_obj(info, ((('mainSong', 'id'), ('songs', ..., 'id')), {int_or_none}))
         entries = [
             self.url_result('http://music.163.com/#/song?id=%s' % song_id,
                             'NetEaseMusic', song_id)
             for song_id in song_ids
         ]
-        return self.playlist_result(entries, program_id, name, description)
+        return self.playlist_result(entries, program_id, **metainfo)
 
 
 class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
@@ -580,8 +580,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
     def _real_extract(self, url):
         dj_id = self._match_id(url)
 
-        name = None
-        desc = None
+        metainfo = {}
         entries = []
         for offset in itertools.count(start=0, step=self._PAGE_SIZE):
             info = self.query_api(
@@ -595,13 +594,13 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
                     'NetEaseMusicProgram', program['id'])
                 for program in info['programs']
             ])
-
-            if name is None:
-                radio = info['programs'][0]['radio']
-                name = radio['name']
-                desc = radio['desc']
+            if not metainfo:
+                metainfo = traverse_obj(info, ('programs', 0, 'radio', {
+                    'title': ('name', {str}),
+                    'description': ('desc', {str}),
+                }))
 
             if not info['more']:
                 break
 
-        return self.playlist_result(entries, dj_id, name, desc)
+        return self.playlist_result(entries, dj_id, **metainfo)
