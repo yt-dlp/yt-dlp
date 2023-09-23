@@ -75,5 +75,5 @@ class MonstercatIE(InfoExtractor):
             'release_date': date,
         }
 
-        return self.playlist_result(self._extract_tracks(tracklist_table, album_meta),
-                                    playlist_id=url_id, **album_meta)
+        return self.playlist_result(
+            self._extract_tracks(tracklist_table, album_meta), playlist_id=url_id, **album_meta)
