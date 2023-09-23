@@ -217,7 +217,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             raise ExtractorError(f'Unknown type: {video_type}', video_id=content_code, expected=False)
 
         # help us to analyze when error occurs
-        self.to_screen(f'{content_code}: video_type={video_type}, live_status={live_status}')
+        self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
 
         session_id = self._call_api(
             f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
