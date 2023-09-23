@@ -59,18 +59,13 @@ class PIAULIZAPortalIE(InfoExtractor):
 
         m3u8_type = self._search_regex(
             r'/hls/(dvr|video)/', traverse_obj(formats, (0, 'url')), 'm3u8 type', default=None)
-        if m3u8_type == 'video':
-            live_status = 'is_live'
-        elif m3u8_type == 'dvr':
-            # short-term archives.
-            live_status = 'was_live'
-        else:
-            # VoD or long-term archives.
-            live_status = 'not_live'
 
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage),
             'formats': formats,
-            'live_status': live_status,
+            'live_status': {
+                'video': 'is_live',
+                'dvr': 'was_live',  # short-term archives
+            }.get(m3u8_type, 'not_live'),  # VOD or long-term archives,
         }
