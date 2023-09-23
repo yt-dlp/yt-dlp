@@ -43,6 +43,7 @@ class BrilliantpalaBaseIE(InfoExtractor):
                 r'(Your username / email and password)', logged_page, 'auth fail', default=None):
             raise ExtractorError('wrong username or password', expected=True)
 
+        # the maximum number of logins is one
         if self._html_search_regex(
                 r'(Logout Other Devices)', logged_page, 'logout devices button', default=None):
             logout_device_form = self._hidden_inputs(logged_page)
