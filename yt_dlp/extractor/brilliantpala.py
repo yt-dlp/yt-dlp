@@ -40,13 +40,11 @@ class BrilliantpalaIE(InfoExtractor):
             data=urlencode_postdata(login_form))
 
         if self._html_search_regex(
-            r'(?P<warning>Your username / email and password)', logged_page,
-                'authentication failure warning', group='warning', fatal=False, default=''):
+            r'(Your username / email and password)', logged_page, 'auth fail', default=None):
             raise ExtractorError('wrong username or password', expected=True)
 
         if self._html_search_regex(
-            r'(?P<button_text>Logout Other Devices)', logged_page, 'logout device button',
-                group='button_text', fatal=False, default=''):
+            r'(Logout Other Devices)', logged_page, 'logout devices button', default=None):
             logout_device_form = self._hidden_inputs(logged_page)
             self._download_webpage(
                 self._LOGOUT_DEVICES_API, None, headers={'Referer': self._LOGIN_API},
