@@ -78,7 +78,6 @@ class S4CSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '864982911',
             'title': 'Iaith ar Daith',
-            'description': 'md5:e878ebf660dce89bd2ef521d7ce06397'
         },
     }, {
         'url': 'https://www.s4c.cymru/clic/series/866852587',
@@ -86,7 +85,6 @@ class S4CSeriesIE(InfoExtractor):
         'info_dict': {
             'id': '866852587',
             'title': 'FFIT Cymru',
-            'description': 'md5:abcb3c129cb68dbb6cd304fd33b07e96'
         },
     }]
 

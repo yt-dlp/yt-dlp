@@ -632,7 +632,6 @@ class TestYoutubeDL(unittest.TestCase):
 
     outtmpl_info = {
         'id': '1234',
-        'id': '1234',
         'ext': 'mp4',
         'width': None,
         'height': 1080,
