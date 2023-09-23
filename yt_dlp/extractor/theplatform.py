@@ -137,7 +137,7 @@ class ThePlatformBaseIE(OnceIE):
             'uploader': info.get('billingCode'),
             'chapters': chapters,
             'creator': info.get('author', {str_or_none}),
-            'categories': ('categories', {lambda x: [x] if x else None}),
+            'categories': info.get('categories'),
             'tags': tags,
             'location': location,
             'series': series,
