@@ -1452,6 +1452,7 @@ from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
 from .piapro import PiaproIE
+from .piaulizaportal import PIAULIZAPortalIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
