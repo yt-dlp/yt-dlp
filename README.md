@@ -1846,7 +1846,7 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### niconicochannelplus
-* `max_comments`: Limit the amount of comments to gather (default: `120`)
+* `max_comments`: Maximum number of comments to extract - default is `120`
 
 #### tiktok
 * `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
