@@ -69,8 +69,10 @@ SUPPORTED_ENCODINGS = [
 
 # urllib3 does not support brotlicffi on versions < 1.26.9 [1]
 # 1: https://github.com/urllib3/urllib3/blob/1.26.x/CHANGES.rst#1269-2022-03-16
-if (brotli is not None
-        and not (brotli.__name__ == 'brotlicffi' and urllib3_version < (1, 26, 9))):
+if (
+    brotli is not None
+    and not (brotli.__name__ == 'brotlicffi' and urllib3_version < (1, 26, 9))
+):
     SUPPORTED_ENCODINGS.append('br')
 
 """
@@ -84,7 +86,7 @@ However, some sites may have an incorrect implementation where they provide
 a percent-encoded url that is then compared case-sensitively.[2]
 
 While this is a very rare case, since urllib does not do this normalization step, it
-is best to avoid it here too for compatability reasons.
+is best to avoid it in requests too for compatability reasons.
 
 1: https://tools.ietf.org/html/rfc3986#section-2.1
 2: https://github.com/streamlink/streamlink/pull/4003
@@ -115,13 +117,13 @@ else:
     warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)')
 
 """
-Workaround for issue in urllib.util.ssl_.py. ssl_wrap_context does not pass
+Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
 server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
 however this is an issue because we set check_hostname to True in our SSLContext.
 
 Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostname regardless.
 
-This has been fixed in urllib3 2.0.
+This has been fixed in urllib3 2.0+.
 See: https://github.com/urllib3/urllib3/issues/517
 """
 
@@ -132,7 +134,8 @@ if urllib3_version < (2, 0, 0):
         pass
 
 
-# Requests will not automatically handle no_proxy by default due to buggy no_proxy handling with proxy dict [1].
+# Requests will not automatically handle no_proxy by default
+# due to buggy no_proxy handling with proxy dict [1].
 # 1. https://github.com/psf/requests/issues/5000
 requests.adapters.select_proxy = select_proxy
 
@@ -143,7 +146,7 @@ class RequestsResponseAdapter(Response):
             fp=res.raw, headers=res.headers, url=res.url,
             status=res.status_code, reason=res.reason)
 
-        self.requests_response = res
+        self._requests_response = res
 
     def read(self, amt: int = None):
         try:
@@ -310,11 +313,10 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         max_redirects_exceeded = False
 
         session = self._get_instance(
-            cookiejar=request.extensions.get('cookiejar') or self.cookiejar
-        )
+            cookiejar=request.extensions.get('cookiejar') or self.cookiejar)
 
         try:
-            res = session.request(
+            requests_res = session.request(
                 method=request.method,
                 url=request.url,
                 data=request.data,
@@ -327,7 +329,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
         except requests.exceptions.TooManyRedirects as e:
             max_redirects_exceeded = True
-            res = e.response
+            requests_res = e.response
 
         except requests.exceptions.SSLError as e:
             if 'CERTIFICATE_VERIFY_FAILED' in str(e):
@@ -348,12 +350,12 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             # Miscellaneous Requests exceptions. May not necessary be network related e.g. InvalidURL
             raise RequestError(cause=e) from e
 
-        requests_res = RequestsResponseAdapter(res)
+        res = RequestsResponseAdapter(requests_res)
 
-        if not 200 <= requests_res.status < 300:
-            raise HTTPError(requests_res, redirect_loop=max_redirects_exceeded)
+        if not 200 <= res.status < 300:
+            raise HTTPError(res, redirect_loop=max_redirects_exceeded)
 
-        return requests_res
+        return res
 
 
 @register_preference(RequestsRH)
@@ -361,8 +363,7 @@ def requests_preference(rh, request):
     return 100
 
 
-# Since we already have a socks proxy implementation,
-# we can use that with urllib3 instead of requiring an extra dependency.
+# Use our socks proxy implementation with requests to avoid an extra dependency.
 class SocksHTTPConnection(urllib3.connection.HTTPConnection):
     def __init__(self, _socks_options, *args, **kwargs):  # must use _socks_options to pass PoolKey checks
         self._proxy_args = _socks_options
@@ -377,11 +378,13 @@ class SocksHTTPConnection(urllib3.connection.HTTPConnection):
                 _create_socket_func=functools.partial(
                     create_socks_proxy_socket, (self.host, self.port), self._proxy_args))
         except (socket.timeout, TimeoutError) as e:
-            raise urllib3.exceptions.ConnectTimeoutError(self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
+            raise urllib3.exceptions.ConnectTimeoutError(
+                self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
         except SocksProxyError as e:
             raise urllib3.exceptions.ProxyError(str(e), e) from e
         except (OSError, socket.error) as e:
-            raise urllib3.exceptions.NewConnectionError(self, f'Failed to establish a new connection: {e}') from e
+            raise urllib3.exceptions.NewConnectionError(
+                self, f'Failed to establish a new connection: {e}') from e
 
 
 class SocksHTTPSConnection(SocksHTTPConnection, urllib3.connection.HTTPSConnection):

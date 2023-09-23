@@ -28,7 +28,7 @@ from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.dependencies import brotli, urllib3, requests
+from yt_dlp.dependencies import brotli, requests, urllib3
 from yt_dlp.networking import (
     HEADRequest,
     PUTRequest,
@@ -43,10 +43,11 @@ from yt_dlp.networking.exceptions import (
     HTTPError,
     IncompleteRead,
     NoSupportingHandlers,
+    ProxyError,
     RequestError,
     SSLError,
     TransportError,
-    UnsupportedRequest, ProxyError,
+    UnsupportedRequest,
 )
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict
@@ -821,17 +822,13 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
 
 @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
 class TestRequestsRequestHandler(TestRequestHandlerBase):
-    # TODO: Test poolsize adjustments
-    # TODO: Test verbose output
-
     @pytest.mark.parametrize('raised,expected', [
         (lambda: requests.exceptions.ConnectTimeout(), TransportError),
         (lambda: requests.exceptions.ReadTimeout(), TransportError),
         (lambda: requests.exceptions.Timeout(), TransportError),
         (lambda: requests.exceptions.ConnectionError(), TransportError),
         (lambda: requests.exceptions.ProxyError(), ProxyError),
-        (lambda: requests.exceptions.SSLError(
-            'something [CERTIFICATE_VERIFY_FAILED] something'), CertificateVerifyError),
+        (lambda: requests.exceptions.SSLError('12[CERTIFICATE_VERIFY_FAILED]34'), CertificateVerifyError),
         (lambda: requests.exceptions.SSLError(), SSLError),
         (lambda: requests.exceptions.InvalidURL(), RequestError),
         (lambda: requests.exceptions.InvalidHeader(), RequestError),
@@ -852,7 +849,8 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
             with pytest.raises(expected) as exc_info:
                 rh.send(Request('http://fake'))
-            assert type(exc_info.value) == expected
+
+            assert exc_info.type is expected
 
     @pytest.mark.parametrize('raised,expected', [
         (lambda: urllib3.exceptions.SSLError(), SSLError),
@@ -865,9 +863,9 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         (lambda: urllib3.exceptions.DecodeError(), TransportError),
         (lambda: urllib3.exceptions.HTTPError(), TransportError)  # catch-all
     ])
-    # FIXME: monkey patch a fake response
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
+            # FIXME: monkey patch a fake response
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers'))
 
             def mock_read(*args, **kwargs):
@@ -877,7 +875,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             with pytest.raises(expected) as exc_info:
                 res.read()
 
-            assert type(exc_info.value) == expected
+            assert exc_info.type is expected
 
 
 def run_validation(handler, error, req, **handler_kwargs):
