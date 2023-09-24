@@ -514,10 +514,17 @@ class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
 
     def _real_extract(self, url):
         lang, internal_id = self._match_valid_url(url).group('lang', 'id')
+        requested_languages = set(self._configuration_arg('language'))
+        if 'all' in requested_languages:
+            requested_languages = set()
 
         def entries():
             seasons_response = self._call_cms_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
             for season in traverse_obj(seasons_response, ('items', ..., {dict})):
+                if requested_languages:
+                    season_languages = traverse_obj(season, ((('audio_locales', ...), 'audio_locale'), {str.lower}))
+                    if season_languages and not requested_languages.intersection(season_languages):
+                        continue
                 episodes_response = self._call_cms_api_signed(
                     f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
                 for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):

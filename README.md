@@ -1791,6 +1791,9 @@ The following extractors use this feature:
 #### crunchyrollbeta (Crunchyroll)
 * `hardsub`: One or more hardsub versions to extract (in order of preference), or `all` (default: `None` = no hardsubs will be extracted), e.g. `crunchyrollbeta:hardsub=en-US,de-DE`
 
+#### crunchyrollbetashow (Crunchyroll)
+* `language`: The language variants to extract, or `all` (default: `all`)
+
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
