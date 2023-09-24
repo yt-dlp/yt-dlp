@@ -14,17 +14,17 @@ class BrilliantpalaBaseIE(InfoExtractor):
 
     def _initialize_pre_login(self):
         self._HOMEPAGE = f'https://{self._DOMAIN}'
-        self._LOGIN_API = f'{self._HOMEPAGE}/login/'
+        self._LOGIN_API = f'{self._HOMEPAGE}/login/?next='
         self._LOGOUT_DEVICES_API = f'{self._HOMEPAGE}/logout_devices/?next=/'
         self._CONTENT_API = f'{self._HOMEPAGE}/api/v2.4/contents/{{content_id}}/'
         self._HLS_AES_URI = f'{self._HOMEPAGE}/api/v2.5/video_contents/{{content_id}}/key/'
 
     def _get_logged_in_username(self, url, video_id):
         webpage, urlh = self._download_webpage_handle(url, video_id)
-        if self._LOGIN_API == urlh.url:
+        if urlh.url.startswith(self._LOGIN_API):
             self.raise_login_required()
         return self._html_search_regex(
-            r'"username"\s*:\s*"(?P<username>[^"]+)"', webpage, 'stream page info', 'username')
+            r'"username"\s*:\s*"(?P<username>[^"]+)"', webpage, 'logged-in username')
 
     def _perform_login(self, username, password):
         login_form = self._hidden_inputs(self._download_webpage(
