@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class XAttrMetadataPP(PostProcessor):
-    """Set extended attributes on downloaded file (if xattr support is found)
+    """Set extended attributes on downloaded file
 
     More info about extended attributes for media:
         http://freedesktop.org/wiki/CommonExtendedAttributes/
