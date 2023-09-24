@@ -49,6 +49,9 @@ class NetEaseMusicBaseIE(InfoExtractor):
             'os': 'pc',
             'channel': 'undefined',
             'requestId': f'{int(time.time() * 1000)}_{randint(0, 1000):04}',
+            **traverse_obj(self._get_cookies(self._API_BASE), {
+                'MUSIC_U': ('MUSIC_U', {lambda i: i.value}),
+            })
         }
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -195,10 +198,10 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         original = traverse_obj(lyrics_info, ('lrc', 'lyric', {str}))
         translated = traverse_obj(lyrics_info, ('tlyric', 'lyric', {str}))
 
-        if original.strip() == '[99:00.00]纯音乐，请欣赏':
+        if not original or original == '[99:00.00]纯音乐，请欣赏\n':
             return None
 
-        if not translated or not original:
+        if not translated:
             return original
 
         lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
