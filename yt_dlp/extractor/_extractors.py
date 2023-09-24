@@ -137,10 +137,6 @@ from .arte import (
     ArteTVCategoryIE,
 )
 from .arnes import ArnesIE
-from .asiancrush import (
-    AsianCrushIE,
-    AsianCrushPlaylistIE,
-)
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
 from .atttechchannel import ATTTechChannelIE
@@ -275,6 +271,10 @@ from .brightcove import (
     BrightcoveLegacyIE,
     BrightcoveNewIE,
 )
+from .brilliantpala import (
+    BrilliantpalaElearnIE,
+    BrilliantpalaClassesIE,
+)
 from .businessinsider import BusinessInsiderIE
 from .bundesliga import BundesligaIE
 from .buzzfeed import BuzzFeedIE
@@ -296,9 +296,11 @@ from .cammodels import CamModelsIE
 from .camsoda import CamsodaIE
 from .camtasia import CamtasiaEmbedIE
 from .camwithher import CamWithHerIE
+from .canal1 import Canal1IE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
+from .caracoltv import CaracolTvPlayIE
 from .carambatv import (
     CarambaTVIE,
     CarambaTVPageIE,
@@ -356,6 +358,10 @@ from .chirbit import (
 from .cinchcast import CinchcastIE
 from .cinemax import CinemaxIE
 from .cinetecamilano import CinetecaMilanoIE
+from .cineverse import (
+    CineverseIE,
+    CineverseDetailsIE,
+)
 from .ciscolive import (
     CiscoLiveSessionIE,
     CiscoLiveSearchIE,
@@ -565,6 +571,7 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
+from .eplus import EplusIbIE
 from .epoch import EpochIE
 from .eporner import EpornerIE
 from .eroprofile import (
@@ -1123,6 +1130,7 @@ from .mofosex import (
     MofosexEmbedIE,
 )
 from .mojvideo import MojvideoIE
+from .monstercat import MonstercatIE
 from .morningstar import MorningstarIE
 from .motherless import (
     MotherlessIE,
@@ -1295,6 +1303,11 @@ from .ninecninemedia import (
     NineCNineMediaIE,
     CPTwentyFourIE,
 )
+from .niconicochannelplus import (
+    NiconicoChannelPlusIE,
+    NiconicoChannelPlusChannelVideosIE,
+    NiconicoChannelPlusChannelLivesIE,
+)
 from .ninegag import NineGagIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
@@ -1448,6 +1461,7 @@ from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
 from .piapro import PiaproIE
+from .piaulizaportal import PIAULIZAPortalIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
@@ -1598,6 +1612,7 @@ from .rbmaradio import RBMARadioIE
 from .rbgtum import (
     RbgTumIE,
     RbgTumCourseIE,
+    RbgTumNewCourseIE,
 )
 from .rcs import (
     RCSIE,

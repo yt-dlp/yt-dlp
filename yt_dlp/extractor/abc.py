@@ -180,7 +180,6 @@ class ABCIViewIE(InfoExtractor):
     _VALID_URL = r'https?://iview\.abc\.net\.au/(?:[^/]+/)*video/(?P<id>[^/?#]+)'
     _GEO_COUNTRIES = ['AU']
 
-    # ABC iview programs are normally available for 14 days only.
     _TESTS = [{
         'url': 'https://iview.abc.net.au/show/gruen/series/11/video/LE1927H001S00',
         'md5': '67715ce3c78426b11ba167d875ac6abf',

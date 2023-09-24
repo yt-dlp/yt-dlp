@@ -30,7 +30,7 @@ compat_os_name = os._name if os.name == 'java' else os.name
 if compat_os_name == 'nt':
     def compat_shlex_quote(s):
         import re
-        return s if re.match(r'^[-_\w./]+$', s) else '"%s"' % s.replace('"', '\\"')
+        return s if re.match(r'^[-_\w./]+$', s) else s.replace('"', '""').join('""')
 else:
     from shlex import quote as compat_shlex_quote  # noqa: F401
 
