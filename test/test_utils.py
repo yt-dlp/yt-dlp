@@ -2405,5 +2405,6 @@ Line 1
         assert run_shell(['echo', '^!']) == '"^!"\n'
         assert run_shell('echo "^!"') == '"^!"\n'
 
+
 if __name__ == '__main__':
     unittest.main()
