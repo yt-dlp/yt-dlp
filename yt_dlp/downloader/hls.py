@@ -157,7 +157,6 @@ class HlsFD(FragmentFD):
         else:
             self._prepare_and_start_frag_download(ctx, info_dict)
 
-
         extra_state = ctx.setdefault('extra_state', {})
 
         format_index = info_dict.get('format_index')
