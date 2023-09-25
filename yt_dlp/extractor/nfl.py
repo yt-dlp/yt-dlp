@@ -64,6 +64,85 @@ class NFLBaseIE(InfoExtractor):
     _VIDEO_CONFIG_REGEX = r'<script[^>]+id="[^"]*video-config-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}[^"]*"[^>]*>\s*({.+});?\s*</script>'
     _ANVATO_PREFIX = 'anvato:GXvEgwyJeWem8KCYXfeoHWknwP48Mboj:'
 
+    _CLIENT_DATA = {
+        'clientKey': '4cFUW6DmwJpzT9L7LrG3qRAcABG5s04g',
+        'clientSecret': 'CZuvCL49d9OwfGsR',
+        'deviceId': str(uuid.uuid4()),
+        'deviceInfo': base64.b64encode(json.dumps({
+            'model': 'desktop',
+            'version': 'Chrome',
+            'osName': 'Windows',
+            'osVersion': '10.0',
+        }, separators=(',', ':')).encode()).decode(),
+        'networkType': 'other',
+        'nflClaimGroupsToAdd': [],
+        'nflClaimGroupsToRemove': [],
+    }
+    _ACCOUNT_INFO = {}
+    _API_KEY = None
+
+    _TOKEN = None
+    _TOKEN_EXPIRY = 0
+
+    def _get_account_info(self, url, slug):
+        if not self._API_KEY:
+            webpage = self._download_webpage(url, slug, fatal=False) or ''
+            self._API_KEY = self._search_regex(
+                r'window\.gigyaApiKey\s*=\s*["\'](\w+)["\'];', webpage, 'API key',
+                fatal=False) or '3_Qa8TkWpIB8ESCBT8tY2TukbVKgO5F6BJVc7N1oComdwFzI7H2L9NOWdm11i_BY9f'
+
+        cookies = self._get_cookies('https://auth-id.nfl.com/')
+        login_token = traverse_obj(cookies, (
+            (f'glt_{self._API_KEY}', lambda k, _: k.startswith('glt_')), {lambda x: x.value}), get_all=False)
+        if not login_token:
+            self.raise_login_required()
+        if 'ucid' not in cookies:
+            raise ExtractorError(
+                'Required cookies for the auth-id.nfl.com domain were not found among passed cookies. '
+                'If using --cookies, these cookies must be exported along with .nfl.com cookies, '
+                'or else try using --cookies-from-browser instead', expected=True)
+
+        account = self._download_json(
+            'https://auth-id.nfl.com/accounts.getAccountInfo', slug,
+            note='Downloading account info', data=urlencode_postdata({
+                'include': 'profile,data',
+                'lang': 'en',
+                'APIKey': self._API_KEY,
+                'sdk': 'js_latest',
+                'login_token': login_token,
+                'authMode': 'cookie',
+                'pageURL': url,
+                'sdkBuild': traverse_obj(cookies, (
+                    'gig_canary_ver', {lambda x: x.value.partition('-')[0]}), default='15170'),
+                'format': 'json',
+            }), headers={'Content-Type': 'application/x-www-form-urlencoded'})
+
+        self._ACCOUNT_INFO = traverse_obj(account, {
+            'signatureTimestamp': 'signatureTimestamp',
+            'uid': 'UID',
+            'uidSignature': 'UIDSignature',
+        })
+
+        if len(self._ACCOUNT_INFO) != 3:
+            raise ExtractorError('Failed to retrieve account info with provided cookies', expected=True)
+
+    def _get_auth_token(self, url, slug):
+        if self._TOKEN and self._TOKEN_EXPIRY > int(time.time() + 30):
+            return
+
+        if not self._ACCOUNT_INFO:
+            self._get_account_info(url, slug)
+
+        token = self._download_json(
+            'https://api.nfl.com/identity/v3/token%s' % (
+                '/refresh' if self._ACCOUNT_INFO.get('refreshToken') else ''),
+            slug, headers={'Content-Type': 'application/json'}, note='Downloading access token',
+            data=json.dumps({**self._CLIENT_DATA, **self._ACCOUNT_INFO}, separators=(',', ':')).encode())
+
+        self._TOKEN = token['accessToken']
+        self._TOKEN_EXPIRY = token['expiresIn']
+        self._ACCOUNT_INFO['refreshToken'] = token['refreshToken']
+
     def _parse_video_config(self, video_config, display_id):
         video_config = self._parse_json(video_config, display_id)
         item = video_config['playlist'][0]
@@ -168,7 +247,7 @@ class NFLArticleIE(NFLBaseIE):
 
 class NFLPlusReplayIE(NFLBaseIE):
     IE_NAME = 'nfl.com:plus:replay'
-    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/games/[\w-]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/games/(?P<slug>[\w-]+)(?:/(?P<id>\d+))?'
     _TESTS = [{
         'url': 'https://www.nfl.com/plus/games/giants-at-vikings-2022-post-1/1572108',
         'info_dict': {
@@ -185,23 +264,92 @@ class NFLPlusReplayIE(NFLBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'note': 'Subscription required',
+        'url': 'https://www.nfl.com/plus/games/giants-at-vikings-2022-post-1',
+        'playlist_count': 4,
+        'info_dict': {
+            'id': 'giants-at-vikings-2022-post-1',
+        },
+    }, {
+        'note': 'Subscription required',
+        'url': 'https://www.nfl.com/plus/games/giants-at-patriots-2011-pre-4',
+        'playlist_count': 2,
+        'info_dict': {
+            'id': 'giants-at-patriots-2011-pre-4',
+        },
+    }, {
+        'note': 'Subscription required',
+        'url': 'https://www.nfl.com/plus/games/giants-at-patriots-2011-pre-4',
+        'info_dict': {
+            'id': '950701',
+            'ext': 'mp4',
+            'title': 'Giants @ Patriots',
+            'description': 'Giants at Patriots on September 01, 2011',
+            'uploader': 'NFL',
+            'upload_date': '20210724',
+            'timestamp': 1627085874,
+            'duration': 1532,
+            'categories': ['Game Highlights'],
+            'tags': ['play-by-play'],
+            'thumbnail': r're:^https?://.*\.jpg',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'extractor_args': {'nflplusreplay': {'type': ['condensed_game']}},
+        },
     }]
 
+    _REPLAY_TYPES = {
+        'full_game': 'Full Game',
+        'full_game_spanish': 'Full Game - Spanish',
+        'condensed_game': 'Condensed Game',
+        'all_22': 'All-22',
+    }
+
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        return self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)
+        slug, video_id = self._match_valid_url(url).group('slug', 'id')
+        requested_types = self._configuration_arg('type', ['all'])
+        if 'all' in requested_types:
+            requested_types = list(self._REPLAY_TYPES.keys())
+        requested_types = traverse_obj(self._REPLAY_TYPES, (None, requested_types))
+
+        if not video_id:
+            self._get_auth_token(url, slug)
+            headers = {'Authorization': f'Bearer {self._TOKEN}'}
+            game_id = self._download_json(
+                f'https://api.nfl.com/football/v2/games/externalId/slug/{slug}', slug,
+                'Downloading game ID', query={'withExternalIds': 'true'}, headers=headers)['id']
+            replays = self._download_json(
+                'https://api.nfl.com/content/v1/videos/replays', slug, 'Downloading replays JSON',
+                query={'gameId': game_id}, headers=headers)
+            if len(requested_types) == 1:
+                video_id = traverse_obj(replays, (
+                    'items', lambda _, v: v['subType'] == requested_types[0], 'mcpPlaybackId'), get_all=False)
+
+        if video_id:
+            return self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)
+
+        def entries():
+            for replay in traverse_obj(
+                replays, ('items', lambda _, v: v['mcpPlaybackId'] and v['subType'] in requested_types)
+            ):
+                video_id = replay['mcpPlaybackId']
+                yield self.url_result(f'{self._ANVATO_PREFIX}{video_id}', AnvatoIE, video_id)
+
+        return self.playlist_result(entries(), slug)
 
 
 class NFLPlusEpisodeIE(NFLBaseIE):
     IE_NAME = 'nfl.com:plus:episode'
     _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/episodes/(?P<id>[\w-]+)'
     _TESTS = [{
-        'note': 'premium content',
+        'note': 'Subscription required',
         'url': 'https://www.nfl.com/plus/episodes/kurt-s-qb-insider-conference-championships',
         'info_dict': {
             'id': '1576832',
             'ext': 'mp4',
-            'title': 'Kurt\'s QB Insider: Conference Championships',
+            'title': 'Conference Championships',
             'description': 'md5:944f7fab56f7a37430bf8473f5473857',
             'uploader': 'NFL',
             'upload_date': '20230127',
@@ -214,85 +362,9 @@ class NFLPlusEpisodeIE(NFLBaseIE):
         'params': {'skip_download': 'm3u8'},
     }]
 
-    _CLIENT_DATA = {
-        'clientKey': '4cFUW6DmwJpzT9L7LrG3qRAcABG5s04g',
-        'clientSecret': 'CZuvCL49d9OwfGsR',
-        'deviceId': str(uuid.uuid4()),
-        'deviceInfo': base64.b64encode(json.dumps({
-            'model': 'desktop',
-            'version': 'Chrome',
-            'osName': 'Windows',
-            'osVersion': '10.0',
-        }, separators=(',', ':')).encode()).decode(),
-        'networkType': 'other',
-        'nflClaimGroupsToAdd': [],
-        'nflClaimGroupsToRemove': [],
-    }
-    _ACCOUNT_INFO = {}
-    _API_KEY = None
-
-    _TOKEN = None
-    _TOKEN_EXPIRY = 0
-
-    def _get_account_info(self, url, video_id):
-        cookies = self._get_cookies('https://www.nfl.com/')
-        login_token = traverse_obj(cookies, (
-            (f'glt_{self._API_KEY}', f'gig_loginToken_{self._API_KEY}',
-             lambda k, _: k.startswith('glt_') or k.startswith('gig_loginToken_')),
-            {lambda x: x.value}), get_all=False)
-        if not login_token:
-            self.raise_login_required()
-
-        account = self._download_json(
-            'https://auth-id.nfl.com/accounts.getAccountInfo', video_id,
-            note='Downloading account info', data=urlencode_postdata({
-                'include': 'profile,data',
-                'lang': 'en',
-                'APIKey': self._API_KEY,
-                'sdk': 'js_latest',
-                'login_token': login_token,
-                'authMode': 'cookie',
-                'pageURL': url,
-                'sdkBuild': traverse_obj(cookies, (
-                    'gig_canary_ver', {lambda x: x.value.partition('-')[0]}), default='13642'),
-                'format': 'json',
-            }), headers={'Content-Type': 'application/x-www-form-urlencoded'})
-
-        self._ACCOUNT_INFO = traverse_obj(account, {
-            'signatureTimestamp': 'signatureTimestamp',
-            'uid': 'UID',
-            'uidSignature': 'UIDSignature',
-        })
-
-        if len(self._ACCOUNT_INFO) != 3:
-            raise ExtractorError('Failed to retrieve account info with provided cookies', expected=True)
-
-    def _get_auth_token(self, url, video_id):
-        if not self._ACCOUNT_INFO:
-            self._get_account_info(url, video_id)
-
-        token = self._download_json(
-            'https://api.nfl.com/identity/v3/token%s' % (
-                '/refresh' if self._ACCOUNT_INFO.get('refreshToken') else ''),
-            video_id, headers={'Content-Type': 'application/json'}, note='Downloading access token',
-            data=json.dumps({**self._CLIENT_DATA, **self._ACCOUNT_INFO}, separators=(',', ':')).encode())
-
-        self._TOKEN = token['accessToken']
-        self._TOKEN_EXPIRY = token['expiresIn']
-        self._ACCOUNT_INFO['refreshToken'] = token['refreshToken']
-
     def _real_extract(self, url):
         slug = self._match_id(url)
-
-        if not self._API_KEY:
-            webpage = self._download_webpage(url, slug, fatal=False) or ''
-            self._API_KEY = self._search_regex(
-                r'window\.gigyaApiKey=["\'](\w+)["\'];', webpage, 'API key',
-                default='3_Qa8TkWpIB8ESCBT8tY2TukbVKgO5F6BJVc7N1oComdwFzI7H2L9NOWdm11i_BY9f')
-
-        if not self._TOKEN or self._TOKEN_EXPIRY <= int(time.time()):
-            self._get_auth_token(url, slug)
-
+        self._get_auth_token(url, slug)
         video_id = self._download_json(
             f'https://api.nfl.com/content/v1/videos/episodes/{slug}', slug, headers={
                 'Authorization': f'Bearer {self._TOKEN}',

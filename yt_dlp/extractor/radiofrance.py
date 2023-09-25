@@ -82,7 +82,7 @@ class RadioFranceBaseIE(InfoExtractor):
     def _extract_data_from_webpage(self, webpage, display_id, key):
         return traverse_obj(self._search_json(
             r'\bconst\s+data\s*=', webpage, key, display_id,
-            contains_pattern=r'(\[\{.*?\}\]);', transform_source=js_to_json),
+            contains_pattern=r'\[\{(?s:.+)\}\]', transform_source=js_to_json),
             (..., 'data', key, {dict}), get_all=False) or {}
 
 

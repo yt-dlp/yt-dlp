@@ -260,7 +260,7 @@ class CommitRange:
     AUTHOR_INDICATOR_RE = re.compile(r'Authored by:? ', re.IGNORECASE)
     MESSAGE_RE = re.compile(r'''
         (?:\[(?P<prefix>[^\]]+)\]\ )?
-        (?:(?P<sub_details>`?[^:`]+`?): )?
+        (?:(?P<sub_details>`?[\w.-]+`?): )?
         (?P<message>.+?)
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE | re.DOTALL)
