@@ -41,9 +41,6 @@ class LiTVIE(InfoExtractor):
     }]
 
     def _extract_playlist(self, playlist_data, content_type):
-        episode_title = playlist_data['title']
-        content_id = playlist_data['contentId']
-
         all_episodes = [
             self.url_result(smuggle_url(
                 self._URL_TEMPLATE % (content_type, episode['contentId']),
@@ -51,7 +48,7 @@ class LiTVIE(InfoExtractor):
             for season in playlist_data['seasons']
             for episode in season['episode']]
 
-        return self.playlist_result(all_episodes, content_id, episode_title)
+        return self.playlist_result(all_episodes, playlist_data['contentId'], playlist_data['title'])
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
