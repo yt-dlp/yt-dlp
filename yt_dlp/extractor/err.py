@@ -21,7 +21,6 @@ from ..utils import (
 )
 
 # TODO  Try to resolve unknown languages in audio tracks.
-# TODO  Check login for ERRArhiiv based on ERRTV.
 
 
 def json_find_node(obj, criteria):
@@ -1710,8 +1709,6 @@ class ERRArhiivIE(ERRTVIE):
             video_id = url_dict['id']
 
             page = self._api_get_content(url_dict, video_id)
-            # page['seriesList.seriesUrl'] allows to retrieve series the episode
-            # belongs to
             if (url not in self._ERR_URL_SET
                     and not self._downloader.params.get('noplaylist')
                     and json_has_value(page, 'seriesList.seriesUrl')):
