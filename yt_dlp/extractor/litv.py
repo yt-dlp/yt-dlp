@@ -6,6 +6,7 @@ from ..utils import (
     int_or_none,
     smuggle_url,
     unsmuggle_url,
+    traverse_obj,
 )
 
 
@@ -45,8 +46,7 @@ class LiTVIE(InfoExtractor):
             self.url_result(smuggle_url(
                 self._URL_TEMPLATE % (content_type, episode['contentId']),
                 {'force_noplaylist': True}))  # To prevent infinite recursion
-            for season in playlist_data['seasons']
-            for episode in season['episode']]
+            for episode in traverse_obj(playlist_data, ('seasons', ..., 'episode', lambda _, v: v['contentId']))]
 
         return self.playlist_result(all_episodes, playlist_data['contentId'], playlist_data['title'])
 
