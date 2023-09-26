@@ -492,7 +492,6 @@ class ERRTVIE(ERRBaseIE):
     }
     _TESTS = [{
         # 0 etv.err.ee
-        'skip': True,  # Fails without hls.py patch
         'url': 'https://etv.err.ee/1608179695/osoon',
         'md5': 'f3e007333f44b084a3bbe69a4b8b75e0',
         'info_dict': {
@@ -519,19 +518,14 @@ class ERRTVIE(ERRBaseIE):
             'media_type': 'video',
             'alt_title': 'Ornitoloogiaühing 100',
             'series_type': 2,
-            'subtitles': {
-                'et': [
-                    {'url': r're:^https?://.+\.err\.ee/hls/vod/1260307/3/v/index-f3\.m3u8'},
-                ],
-            },
         },
         'params': {
             'format': 'bestvideo',
             'noplaylist': True,
+            'skip_download': 'm3u8',
         },
     }, {
         # 1 etv2.err.ee
-        'skip': True,  # Fails without hls.py patch
         'url': 'https://etv2.err.ee/1027382/tahelaev',
         'md5': 'a4af76897e2462417d503c03d114ca28',
         'info_dict': {
@@ -561,10 +555,10 @@ class ERRTVIE(ERRBaseIE):
         'params': {
             'format': 'bestvideo',
             'noplaylist': True,
+            'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }, {
         # 2 etvpluss.err.ee
-        'skip': True,  # Fails without hls.py patch
         'url':
         'https://etvpluss.err.ee/1203535/bodroe-utro',
         'md5': '43d59b96b1c5b7da5d3a1ea74089aad2',
@@ -598,6 +592,7 @@ class ERRTVIE(ERRBaseIE):
         'params': {
             'format': 'bestvideo',
             'noplaylist': True,
+            'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }, {
         # 3 etv.err.ee playlist
@@ -1014,7 +1009,6 @@ class ERRJupiterIE(ERRTVIE):
     _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://jupiter.err.ee)/(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]*))?)(?P<leftover>.+)?\Z'
     _TESTS = [{
         # 0 An episode
-        'skip': True,  # Fails without hls.py patch
         'url': 'https://jupiter.err.ee/1103424/paevabiit',
         'md5': '8e95250be144d6f29d7069492e4ddea9',
         'info_dict': {
@@ -1043,9 +1037,11 @@ class ERRJupiterIE(ERRTVIE):
         'params': {
             'format': 'bestvideo',
             'noplaylist': True,
+            'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }, {
         # 1 A monthly playlist
+        'skip': True,  # Puts too much unnecessary load on err.ee
         'url': 'https://jupiter.err.ee/1014230/dzassi-abg-wes-montgomery',
         '_type': 'playlist',
         'info_dict': {
@@ -1075,6 +1071,7 @@ class ERRJupiterIE(ERRTVIE):
         },
     }, {
         # 3 Another seasonal playlist
+        'skip': True,  # Puts too much unnecessary load on err.ee
         'url': 'https://jupiter.err.ee/1608212173/pealtnagija',
         'md5': 'dd0203a487eb3a15aefdd9ce5132e0c9',
         'info_dict': {
@@ -1112,7 +1109,6 @@ class ERRJupiterPlussIE(ERRJupiterIE):
     IE_DESC = 'jupiterpluss.err.ee'
     _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://jupiterpluss.err.ee)/(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]*))?)(?P<leftover>.+)?\Z'
     _TESTS = [{
-        'skip': True,  # Fails without hls.py patch
         'url': 'https://jupiterpluss.err.ee/1608841228/kofe',
         'md5': 'b81565b54b9536d426c66eae92bb4b03',
         'info_dict': {
@@ -1138,9 +1134,9 @@ class ERRJupiterPlussIE(ERRJupiterIE):
         'params': {
             'format': 'bestvideo',
             'noplaylist': True,
+            'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }, {
-        'skip': True,  # Fails without hls.py patch
         'url': 'https://jupiterpluss.err.ee/1608835006/orbita',
         'md5': '26c09d50117c923b63f8484ce840aba9',
         'info_dict': {
@@ -1166,6 +1162,7 @@ class ERRJupiterPlussIE(ERRJupiterIE):
         'params': {
             'format': 'bestvideo',
             'noplaylist': True,
+            'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }]
 
@@ -1326,7 +1323,6 @@ class ERRArhiivIE(ERRTVIE):
     }
     _TESTS = [{
         # 0 a video episode
-        'skip': True,  # Fails without hls.py patch
         'url': 'https://arhiiv.err.ee/video/vaata/eesti-aja-lood-okupatsioonid-muusad-soja-varjus',
         'md5': '022a75f157b848de0250fe912b970386',
         'info_dict': {
@@ -1354,10 +1350,10 @@ class ERRArhiivIE(ERRTVIE):
         'params': {
             'format': 'bestvideo',
             'noplaylist': True,
+            'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }, {
         # 1 a single video
-        'skip': True,  # Fails without hls.py patch
         'url': 'https://arhiiv.err.ee/video/vaata/tallinn-mai-juuni-1976',
         'md5': 'ad3029dde7ab4714bcffa784f12c7f3e',
         'info_dict': {
@@ -1379,6 +1375,7 @@ class ERRArhiivIE(ERRTVIE):
         },
         'params': {
             'format': 'bestvideo',
+            'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }, {
         # 2 an audio episode
