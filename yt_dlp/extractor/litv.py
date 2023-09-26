@@ -39,6 +39,16 @@ class LiTVIE(InfoExtractor):
             'noplaylist': True,
         },
         'skip': 'Georestricted to Taiwan',
+    }, {
+        'url': 'https://www.litv.tv/promo/miyuezhuan/?content_id=VOD00044841&',
+        'md5': '88322ea132f848d6e3e18b32a832b918',
+        'info_dict': {
+            'id': 'VOD00044841',
+            'ext': 'mp4',
+            'title': '芈月傳第1集　霸星芈月降世楚國',
+            'description': '楚威王二年，太史令唐昧夜觀星象，發現霸星即將現世。王后得知霸星的預言後，想盡辦法不讓孩子順利出生，幸得莒姬相護化解危機。沒想到眾人期待下出生的霸星卻是位公主，楚威王對此失望至極。楚王后命人將女嬰丟棄河中，居然奇蹟似的被少司命像攔下，楚威王認為此女非同凡響，為她取名芈月。',
+        },
+        'skip': 'No longer exists',
     }]
 
     def _extract_playlist(self, playlist_data, content_type):
