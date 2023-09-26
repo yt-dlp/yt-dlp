@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 
+
 class TudouIE(InfoExtractor):
     _VALID_URL = r'https?://(?:play\.)?tudou\.com/v_show/(?P<id>id_[\w=.]+)'
     _TESTS = [{
@@ -18,18 +19,17 @@ class TudouIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        
         data = self._search_json(r'window\.__INITIAL_DATA__\s*=', webpage, 'initial data', video_id)
         # print('==========')
         # print(webpage)
         # print(data)
-
+        
         # The json file produced same results as the regex did, but it's much cleaner, thanks for the guide
         video_id = data['data']['data']['data']['extra']['videoId']
         videoLongId = str(data['data']['data']['data']['extra']['videoLongId'])
         title = data['data']['data']['data']['extra']['videoTitle']
         show_name = data['data']['data']['data']['extra']['showName']
-        
+
         video_url = 'https://play.tudou.com' + data['config']['url']
         # About video_url
         # The video url is not stored in the json file above, instead, the website uses m3u8 scheme
@@ -43,10 +43,10 @@ class TudouIE(InfoExtractor):
         # Tudou.com is a bit similar to Youku.com(already available in yt-dlp), Tudou.com is acquired by Youku.com many years ago, they're probably sharing some servers and I do find similar domains in these 2 sites
         # Therefore I also checked the Youku extractor, but don't know how they get to things like, line 119 'https://log.mmstat.com/eg.js'
         # I also searched the internet and found another code for Youku.com, in that code there're token settings, appKey, sign, etc..
-        
+
         # So I'm guessing, for Tudou.com, there might be something to do with the token too pass the authentication ... 
         # I'll keep looking into it, but if you can come up with any tips it'll be appreciated.
-        
+
         print('==========')
         print(f'videoId = {video_id}')
         print(f'videoLongId = {videoLongId}')
@@ -60,5 +60,5 @@ class TudouIE(InfoExtractor):
             'title': title,
             'ext': 'mp4',
             'url': video_url,
-            'show_name':show_name,
+            'show_name': show_name,
         }
