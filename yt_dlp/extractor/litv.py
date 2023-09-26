@@ -40,15 +40,15 @@ class LiTVIE(InfoExtractor):
         'skip': 'Georestricted to Taiwan',
     }]
 
-    def _extract_playlist(self, seasons_list, content_type):
-        episode_title = seasons_list['title']
-        content_id = seasons_list['contentId']
+    def _extract_playlist(self, playlist_data, content_type):
+        episode_title = playlist_data['title']
+        content_id = playlist_data['contentId']
 
         all_episodes = [
             self.url_result(smuggle_url(
                 self._URL_TEMPLATE % (content_type, episode['contentId']),
                 {'force_noplaylist': True}))  # To prevent infinite recursion
-            for season in seasons_list['seasons']
+            for season in playlist_data['seasons']
             for episode in season['episode']]
 
         return self.playlist_result(all_episodes, content_id, episode_title)
