@@ -23,7 +23,7 @@ class TudouIE(InfoExtractor):
         # print('==========')
         # print(webpage)
         # print(data)
-        
+
         # The json file produced same results as the regex did, but it's much cleaner, thanks for the guide
         video_id = data['data']['data']['data']['extra']['videoId']
         videoLongId = str(data['data']['data']['data']['extra']['videoLongId'])
@@ -44,7 +44,7 @@ class TudouIE(InfoExtractor):
         # Therefore I also checked the Youku extractor, but don't know how they get to things like, line 119 'https://log.mmstat.com/eg.js'
         # I also searched the internet and found another code for Youku.com, in that code there're token settings, appKey, sign, etc..
 
-        # So I'm guessing, for Tudou.com, there might be something to do with the token too pass the authentication ... 
+        # So I'm guessing, for Tudou.com, there might be something to do with the token too pass the authentication...
         # I'll keep looking into it, but if you can come up with any tips it'll be appreciated.
 
         print('==========')
