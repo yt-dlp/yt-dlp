@@ -74,8 +74,7 @@ class LiTVIE(InfoExtractor):
             program_info = self._download_json(
                 'https://www.litv.tv/vod/ajax/getProgramInfo', video_id,
                 query={'contentId': video_id},
-                headers={'Content-Type': 'application/json',
-                         'Accept': 'application/json'})
+                headers={'Accept': 'application/json'})
 
         series_id = program_info['seriesId']
         if self._yes_playlist(series_id, video_id, smuggled_data):
@@ -83,8 +82,7 @@ class LiTVIE(InfoExtractor):
                 'https://www.litv.tv/vod/ajax/getSeriesTree',
                 video_id,
                 query={'seriesId': series_id},
-                headers={'Content-Type': 'application/json',
-                         'Accept': 'application/json'})
+                headers={'Accept': 'application/json'})
             return self._extract_playlist(playlist_data, program_info['contentType'])
 
         video_data = self._parse_json(self._search_regex(
