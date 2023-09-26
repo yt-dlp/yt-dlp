@@ -67,7 +67,9 @@ class LiTVIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        if '<meta http-equiv="refresh" content="1;url=https://www.litv.tv/"' in webpage:
+        if self._search_regex(
+                r'(?i)<meta\s[^>]*http-equiv="refresh"\s[^>]*content="[0-9]+;\s*url=https://www\.litv\.tv/"',
+                webpage, 'meta refresh redirect', default=False, group=0):
             raise ExtractorError('No such content', expected=True)
 
         program_info = self._parse_json(self._search_regex(
