@@ -339,7 +339,7 @@ class ABCIViewIE(InfoExtractor):
                 r'\bEp\s+(\d+)\b', title, 'episode number', default=None)),
             'episode_id': house_number,
             'episode': self._search_regex(
-                r'^(?:Series\s+\d+)?\s*(?:Ep\s+\d+)?\s*(.*)$', title, 'episode') or None,
+                r'^(?:Series\s+\d+)?\s*(?:Ep\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
             'uploader_id': video_params.get('channel'),
             'formats': formats,
             'subtitles': subtitles,
