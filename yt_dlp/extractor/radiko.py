@@ -14,6 +14,7 @@ from ..utils import (
 
 
 class RadikoBaseIE(InfoExtractor):
+    _GEO_BYPASS = False
     _FULL_KEY = None
     _HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED = (
         'https://c-rpaa.smartstream.ne.jp',
@@ -58,6 +59,9 @@ class RadikoBaseIE(InfoExtractor):
                 'x-radiko-authtoken': auth_token,
                 'x-radiko-partialkey': partial_key,
             }).split(',')[0]
+
+        if area_id == 'OUT':
+            self.raise_geo_restricted(countries=['JP'])
 
         auth_data = (auth_token, area_id)
         self.cache.store('radiko', 'auth_data', auth_data)
