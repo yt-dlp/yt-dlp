@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 import json
-import requests
 
 class TudouIE(InfoExtractor):
     _VALID_URL = r'https?://(?:play\.)?tudou\.com/v_show/(?P<id>id_[\w=.]+)'
@@ -28,7 +27,6 @@ class TudouIE(InfoExtractor):
         title = data['data']['data']['data']['extra']['videoTitle']
         show_name = data['data']['data']['data']['extra']['showName']
 
-        url_for_m3u8 = "https://ups.youku.com/ups/get.json"
         params1 = {"vid":"XNjAwMjk3Nzk1Mg==",
                 "play_ability":"16782592",
                 "current_showid":"590457",
@@ -86,10 +84,11 @@ class TudouIE(InfoExtractor):
         # Maybe I can just leave it, it works anyway.
         # But I still want to simplify it, it's a bit too long.
 
-        r = requests.request("GET", url_for_m3u8, headers = headers1, params = params1)
-        print(r.status_code)
-        data_m3u8 = json.loads(r.text[:])
-
+        data_m3u8 = self._download_json(
+            'https://ups.youku.com/ups/get.json', video_id,
+            'Downloading JSON metadata',
+            query = params1, headers = headers1)
+        
         list_of_url = []
         for item in data_m3u8['data']['stream']:
             item_of_url = {
@@ -106,6 +105,6 @@ class TudouIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'ext': 'mp4',
-            'url': sorted_list_of_url[0],
+            'url': sorted_list_of_url[0]['cdn_url'],
             'show_name': show_name,
         }
