@@ -26,7 +26,8 @@ class TudouIE(InfoExtractor):
         title = data['data']['data']['data']['extra']['videoTitle']
         show_name = data['data']['data']['data']['extra']['showName']
 
-        params1 = { "vid": "XNjAwMjk3Nzk1Mg==",
+        params1 = {
+                    "vid": "XNjAwMjk3Nzk1Mg==",
                     "play_ability": "16782592",
                     "current_showid": "590457",
                     "preferClarity": "2",
@@ -63,13 +64,13 @@ class TudouIE(InfoExtractor):
                     "avs": "1.0",
                     "callback": "",  # youkuPlayer_call_1695807088862
                     "_t": "08847696931775378"
-                    }
+                  }
 
         headers1 = {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0",
                     "cookie": "_m_h5_tk=da6bb02219fb5a5f223d967490e4cb67_1695744613439; _m_h5_tk_enc=8c8b786a476dbcc04fd0e19c70a5317d",
                     "Referer": "https://play.tudou.com/"
-                    }
+                   }
 
         # About video_url
         # The video url is not stored in the json file above, instead, the website uses m3u8 scheme
