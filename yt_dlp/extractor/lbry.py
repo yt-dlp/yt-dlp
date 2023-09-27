@@ -358,7 +358,8 @@ class LBRYChannelIE(LBRYBaseIE):
         return self._call_api_proxy('claim_search', claim_id, page_params, 'playlist')
 
     def _real_extract(self, url):
-        if playlist_id := self._match_valid_url(url).group('id2'):
+        playlist_id = self._match_valid_url(url).group('id2')
+        if playlist_id:
             is_playlist = True
             r = self._fetch_playlist_items(playlist_id)
             result = r.get('items', [])[0]
