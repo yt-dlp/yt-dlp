@@ -334,7 +334,7 @@ class LBRYChannelIE(LBRYBaseIE):
         }
         page_params.update(params)
         result = self._call_api_proxy(
-            'claim_search', claim_ids, page_params, 'page %d' % page)
+            'claim_search', claim_ids, page_params, f'page {page}')
         for item in (result.get('items') or []):
             stream_claim_name = item.get('name')
             stream_claim_id = item.get('claim_id')
