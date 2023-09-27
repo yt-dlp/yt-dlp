@@ -116,7 +116,7 @@ class RadikoBaseIE(InfoExtractor):
 
     def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
         m3u8_playlist_data = self._download_xml(
-            f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
+            f'https://radiko.jp/v3/station/stream/aSmartPhone7a/{station}.xml', video_id,
             note='Downloading stream information')
 
         formats = []
@@ -143,7 +143,7 @@ class RadikoBaseIE(InfoExtractor):
             domain = urllib.parse.urlparse(playlist_url).netloc
             subformats = self._extract_m3u8_formats(
                 playlist_url, video_id, ext='m4a',
-                live=True, fatal=False, m3u8_id=domain,
+                fatal=False, m3u8_id=domain,
                 note=f'Downloading m3u8 information from {domain}',
                 headers={
                     'X-Radiko-AreaId': area_id,
@@ -190,7 +190,7 @@ class RadikoIE(RadikoBaseIE):
             'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
             'timestamp': vid_int,
-            'is_live': True,
+            'live_status': 'was_live',
             'formats': self._extract_formats(
                 video_id=video_id, station=station, is_onair=False,
                 ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
