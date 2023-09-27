@@ -50,7 +50,7 @@ class SubstackIE(InfoExtractor):
         if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):
             return
 
-        mobj = re.search(r'{[^}]*["\']subdomain["\']\s*:\s*["\'](?P<subdomain>[^"]+)', webpage)
+        mobj = re.search(r'{[^}]*\\?["\']subdomain\\?["\']\s*:\s*\\?["\'](?P<subdomain>[^\\"]+)', webpage)
         if mobj:
             parsed = urllib.parse.urlparse(url)
             yield parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
