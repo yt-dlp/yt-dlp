@@ -299,7 +299,7 @@ class LBRYIE(LBRYBaseIE):
 
 class LBRYChannelIE(LBRYBaseIE):
     IE_NAME = 'lbry:channel'
-    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?P<id>@%s)/?(?:[?&]|$)' % LBRYBaseIE._OPT_CLAIM_ID
+    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?:(?P<id>@%s)|\$/playlist/(?P<id2>[0-9a-f]+))/?(?:[?&]|$)' % LBRYBaseIE._OPT_CLAIM_ID
     _TESTS = [{
         'url': 'https://lbry.tv/@LBRYFoundation:0',
         'info_dict': {
@@ -309,6 +309,14 @@ class LBRYChannelIE(LBRYBaseIE):
         },
         'playlist_mincount': 29,
     }, {
+        'url': 'https://odysee.com/$/playlist/ffef782f27486f0ac138bde8777f72ebdd0548c2',
+        'info_dict': {
+            "id": "7f614a383d0663da1ade80d2962e91e94d1d91b6",
+            "title": "Théâtre Classique",
+            "description": "Théâtre Classique",
+            "_type": "playlist",
+        }
+    }, {
         'url': 'https://lbry.tv/@LBRYFoundation',
         'only_matching': True,
     }, {
@@ -317,18 +325,16 @@ class LBRYChannelIE(LBRYBaseIE):
     }]
     _PAGE_SIZE = 50
 
-    def _fetch_page(self, claim_id, url, params, page):
+    def _fetch_page(self, claim_ids, url, params, page):
         page += 1
         page_params = {
-            'channel_ids': [claim_id],
-            'claim_type': 'stream',
             'no_totals': True,
             'page': page,
             'page_size': self._PAGE_SIZE,
         }
         page_params.update(params)
         result = self._call_api_proxy(
-            'claim_search', claim_id, page_params, 'page %d' % page)
+            'claim_search', claim_ids, page_params, 'page %d' % page)
         for item in (result.get('items') or []):
             stream_claim_name = item.get('name')
             stream_claim_id = item.get('claim_id')
@@ -342,11 +348,27 @@ class LBRYChannelIE(LBRYBaseIE):
                 'url': self._permanent_url(url, stream_claim_name, stream_claim_id),
             }
 
+    def _fetch_playlist_items(self, claim_id):
+        page_params = {
+            'claim_ids': [claim_id],
+            'no_totals': True,
+            'page': 1,
+            'page_size': self._PAGE_SIZE,
+        }
+        return self._call_api_proxy('claim_search', claim_id, page_params, 'playlist')
+
     def _real_extract(self, url):
-        display_id = self._match_id(url).replace(':', '#')
-        result = self._resolve_url(
-            'lbry://' + display_id, display_id, 'channel')
-        claim_id = result['claim_id']
+        if playlist_id := self._match_valid_url(url).group('id2'):
+            is_playlist = True
+            r = self._fetch_playlist_items(playlist_id)
+            result = r.get('items', [])[0]
+            claim_ids = result.get('value', {}).get('claims', [])
+        else:
+            is_playlist = False
+            display_id = self._match_id(url).replace(':', '#')
+            result = self._resolve_url(
+                'lbry://' + display_id, display_id, 'channel')
+            claim_ids = [result['claim_id']]
         qs = parse_qs(url)
         content = qs.get('content', [None])[0]
         params = {
@@ -356,6 +378,8 @@ class LBRYChannelIE(LBRYBaseIE):
                 'top': ['effective_amount'],
                 'trending': ['trending_group', 'trending_mixed'],
             }[qs.get('order', ['new'])[0]],
+            'claim_type': 'stream',
+            'claim_ids' if is_playlist else 'channel_ids': claim_ids,
             'stream_types': [content] if content in ['audio', 'video'] else self._SUPPORTED_STREAM_TYPES,
         }
         duration = qs.get('duration', [None])[0]
@@ -370,10 +394,11 @@ class LBRYChannelIE(LBRYBaseIE):
             if language == 'en':
                 languages.append('none')
             params['any_languages'] = languages
+
         entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, claim_id, url, params),
+            functools.partial(self._fetch_page, claim_ids, url, params),
             self._PAGE_SIZE)
         result_value = result.get('value') or {}
         return self.playlist_result(
-            entries, claim_id, result_value.get('title'),
+            entries, claim_ids[0], result_value.get('title'),
             result_value.get('description'))
