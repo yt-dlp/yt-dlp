@@ -1041,7 +1041,7 @@ class ERRJupiterIE(ERRTVIE):
         },
     }, {
         # 1 A monthly playlist
-        'skip': True,  # Puts too much unnecessary load on err.ee
+        'skip': True,  # Spare err.ee
         'url': 'https://jupiter.err.ee/1014230/dzassi-abg-wes-montgomery',
         '_type': 'playlist',
         'info_dict': {
@@ -1071,7 +1071,7 @@ class ERRJupiterIE(ERRTVIE):
         },
     }, {
         # 3 Another seasonal playlist
-        'skip': True,  # Puts too much unnecessary load on err.ee
+        'skip': True,  # Spare err.ee
         'url': 'https://jupiter.err.ee/1608212173/pealtnagija',
         'md5': 'dd0203a487eb3a15aefdd9ce5132e0c9',
         'info_dict': {
@@ -1109,6 +1109,7 @@ class ERRJupiterPlussIE(ERRJupiterIE):
     IE_DESC = 'jupiterpluss.err.ee'
     _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://jupiterpluss.err.ee)/(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]*))?)(?P<leftover>.+)?\Z'
     _TESTS = [{
+        # 0 An episode
         'url': 'https://jupiterpluss.err.ee/1608841228/kofe',
         'md5': 'b81565b54b9536d426c66eae92bb4b03',
         'info_dict': {
@@ -1137,6 +1138,7 @@ class ERRJupiterPlussIE(ERRJupiterIE):
             'skip_download': 'm3u8',  # Otherwise fails as fragment too short
         },
     }, {
+        # 1 An episode
         'url': 'https://jupiterpluss.err.ee/1608835006/orbita',
         'md5': '26c09d50117c923b63f8484ce840aba9',
         'info_dict': {
@@ -1355,7 +1357,7 @@ class ERRArhiivIE(ERRTVIE):
     }, {
         # 1 a single video
         'url': 'https://arhiiv.err.ee/video/vaata/tallinn-mai-juuni-1976',
-        'md5': 'ad3029dde7ab4714bcffa784f12c7f3e',
+        'md5': '95465d45dff2e413a2e19a24eb5c1cc8',
         'info_dict': {
             'id': 'tallinn-mai-juuni-1976',
             'display_id': 'tallinn-mai-juuni-1976',
@@ -1421,7 +1423,7 @@ class ERRArhiivIE(ERRTVIE):
         },
     }, {
         # 4 arhiiv.err.ee video playlist
-        'skip': True,  # Puts too much unnecessary load on err.ee
+        'skip': True,  # Spare err.ee
         '_type': 'playlist',
         'url':
         'https://arhiiv.err.ee/video/seeria/terevisioon',
@@ -1435,7 +1437,7 @@ class ERRArhiivIE(ERRTVIE):
         },
     }, {
         # 5 arhiiv.err.ee audio playlist
-        'skip': True,  # Puts too much unnecessary load on err.ee
+        'skip': True,  # Spare err.ee
         '_type': 'playlist',
         'url':
         'https://arhiiv.err.ee/audio/seeria/paevakaja',
@@ -1475,7 +1477,7 @@ class ERRArhiivIE(ERRTVIE):
         },
     }, {
         # 8 arhiiv.err.ee video playlist
-        'skip': True,  # Puts too much unnecessary load on err.ee
+        'skip': True,  # Spare err.ee
         '_type': 'playlist',
         'url':
         'https://arhiiv.err.ee/video/ringvaade-suvel',
