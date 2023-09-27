@@ -76,7 +76,7 @@ class RadikoBaseIE(InfoExtractor):
 
         if full_key:
             full_key = full_key.encode()
-        else:  # use full key ever known
+        else:  # use only full key ever known
             full_key = b'bcd151073c03b352e1ef2fd66c32209da9ca0afa'
 
         self._FULL_KEY = full_key
