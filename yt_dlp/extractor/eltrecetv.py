@@ -6,7 +6,7 @@ from .common import InfoExtractor
 
 class ElTreceTVIE(InfoExtractor):
     IE_DESC = 'El Trece TV (Argentina)'
-    _VALID_URL = r'https?://(?:www\.)?eltrecetv.com.ar/([\w\-]+)/capitulos/temporada-(\d+)/(?P<id>[\w\-]+)/?'
+    _VALID_URL = r'https?://(?:www\.)?eltrecetv.com.ar/(?:[\w\-]+)/capitulos/temporada-(?:\d+)/(?P<id>[\w\-]+)/?'
     _TESTS = [
         {
             'url': 'https://www.eltrecetv.com.ar/ahora-caigo/capitulos/temporada-2023/programa-del-280823/',
