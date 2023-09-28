@@ -1,4 +1,5 @@
 import base64
+import secrets
 import urllib.parse
 
 from .common import InfoExtractor
@@ -114,7 +115,7 @@ class RadikoBaseIE(InfoExtractor):
                 'station_id': station,
                 **query,
                 'l': '15',
-                'lsid': '88ecea37e968c1f17d5413312d9f8003',
+                'lsid': secrets.token_hex(16),
                 'type': 'b',
             })
             if playlist_url in found:
