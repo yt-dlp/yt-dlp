@@ -34,7 +34,7 @@ class RadikoBaseIE(InfoExtractor):
         'https://c-radiko.smartstream.ne.jp',
     )
 
-    def _auth_client(self):
+    def _negotiate_token(self):
         _, auth1_handle = self._download_webpage_handle(
             'https://radiko.jp/v2/api/auth1', None, 'Downloading authentication page',
             headers={
@@ -66,6 +66,16 @@ class RadikoBaseIE(InfoExtractor):
         auth_data = (auth_token, area_id)
         self.cache.store('radiko', 'auth_data', auth_data)
         return auth_data
+
+    def _auth_client(self):
+        cachedata = self.cache.load('radiko', 'auth_data')
+        if cachedata is not None:
+            response = self._download_webpage('https://radiko.jp/v2/api/auth_check', None,
+                                              'Checking cached token', expected_status=401,
+                                              headers={'X-Radiko-AuthToken': cachedata[0], 'X-Radiko-AreaId': cachedata[1]})
+            if response == 'OK':
+                return cachedata
+        return self._negotiate_token()
 
     def _extract_full_key(self):
         if self._FULL_KEY:
@@ -172,22 +182,7 @@ class RadikoIE(RadikoBaseIE):
         vid_int = unified_timestamp(video_id, False)
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
-        auth_cache = self.cache.load('radiko', 'auth_data')
-        for attempt in range(2):
-            auth_token, area_id = (not attempt and auth_cache) or self._auth_client()
-            formats = self._extract_formats(
-                video_id=video_id, station=station, is_onair=False,
-                ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
-                query={
-                    'start_at': radio_begin,
-                    'ft': radio_begin,
-                    'end_at': radio_end,
-                    'to': radio_end,
-                    'seek': video_id,
-                })
-            if formats:
-                break
-
+        auth_token, area_id = self._auth_client()
         return {
             'id': video_id,
             'title': try_call(lambda: prog.find('title').text),
@@ -195,8 +190,18 @@ class RadikoIE(RadikoBaseIE):
             'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
             'timestamp': vid_int,
-            'formats': formats,
             'is_live': True,
+            'formats': self._extract_formats(
+                video_id=video_id, station=station, is_onair=False,
+                ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
+                query={
+                    'start_at': radio_begin,
+                    'ft': radio_begin,
+                    'end_at': radio_end,
+                    'to': radio_end,
+                    'seek': video_id
+                }
+            ),
         }
 
 
