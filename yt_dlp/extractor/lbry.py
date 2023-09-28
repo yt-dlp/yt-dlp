@@ -348,21 +348,16 @@ class LBRYChannelIE(LBRYBaseIE):
                 'url': self._permanent_url(url, stream_claim_name, stream_claim_id),
             }
 
-    def _fetch_playlist_items(self, claim_id):
-        page_params = {
-            'claim_ids': [claim_id],
-            'no_totals': True,
-            'page': 1,
-            'page_size': self._PAGE_SIZE,
-        }
-        return self._call_api_proxy('claim_search', claim_id, page_params, 'playlist')
-
     def _real_extract(self, url):
         playlist_id = self._match_valid_url(url).group('id2')
         if playlist_id:
             is_playlist = True
-            r = self._fetch_playlist_items(playlist_id)
-            result = r.get('items', [])[0]
+            result = traverse_obj(self._call_api_proxy('claim_search', playlist_id, {
+                'claim_ids': [playlist_id],
+                'no_totals': True,
+                'page': 1,
+                'page_size': self._PAGE_SIZE,
+            }, 'playlist'), ('items', 0))
             claim_ids = result.get('value', {}).get('claims', [])
         else:
             is_playlist = False
