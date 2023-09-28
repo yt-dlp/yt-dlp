@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 
@@ -15,7 +12,7 @@ class ElTreceTVIE(InfoExtractor):
                 'id': 'AHCA25082023145927244603575',
                 'ext': 'mp4',
                 'title': 'AHORA CAIGO - Programa 28/08/23',
-                'thumbnail': 'https://thumbs.vodgc.net/AHCA25082023145927244603575.jpg',
+                'thumbnail': 'https://thumbs.vodgc.net/AHCA25082023145927244603575.jpg?377333',
             }
         },
         {
@@ -25,7 +22,7 @@ class ElTreceTVIE(InfoExtractor):
                 'id': '804C6158638F598B4903394E9707B6EB129',
                 'ext': 'mp4',
                 'title': 'POCO CORRECTOS - Programa 25/09/23',
-                'thumbnail': 'https://thumbs.vodgc.net/804C6158638F598B4903394E9707B6EB129.jpg',
+                'thumbnail': 'https://thumbs.vodgc.net/804C6158638F598B4903394E9707B6EB129.jpg?194429',
             }
         },
         {
@@ -50,12 +47,18 @@ class ElTreceTVIE(InfoExtractor):
         slug = self._match_id(url)
         webpage = self._download_webpage(url, slug)
 
-        video_id = self._search_regex(r'https://vod\.vodgc\.net/manifest/([A-Z0-9]+)\.m3u8', webpage, 'video_id')
-        title = self._search_regex(r',"title":"(.+?)",', webpage, 'title')
+        json_all = self._search_json(r'Fusion.globalContent\s*=', webpage, 'content', slug)
+        config = json_all.get('promo_items').get('basic').get('embed').get('config')
+
+        title = config.get('title')
+        thumbnail = config.get('thumbnail')
+
+        video_id = self._search_regex(r'/([A-Z0-9]+).jpg', thumbnail, 'video_id')
+        url = 'https://vod.vodgc.net/gid1/vod/Artear/Eltrece/75/%s_720P.mp4' % video_id
 
         return {
             'id': video_id,
             'title': title,
-            'url': 'https://vod.vodgc.net/gid1/vod/Artear/Eltrece/75/%s_720P.mp4' % video_id,
-            'thumbnail': 'https://thumbs.vodgc.net/%s.jpg' % video_id,
+            'url': url,
+            'thumbnail': thumbnail,
         }
