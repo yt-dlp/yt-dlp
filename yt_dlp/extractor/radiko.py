@@ -104,13 +104,18 @@ class RadikoBaseIE(InfoExtractor):
         m3u8_playlist_data = self._download_xml(
             f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
             note='Downloading stream information')
-        m3u8_urls = m3u8_playlist_data.findall('.//url')
 
         formats = []
         found = set()
-        for url_tag in m3u8_urls:
-            pcu = url_tag.find('playlist_create_url').text
-            url_attrib = url_tag.attrib
+
+        timefree_int = 0 if is_onair else 1
+
+        for element in m3u8_playlist_data.findall(f'.//url[@timefree="{timefree_int}"]/playlist_create_url'):
+            pcu = element.text
+            if pcu in found:
+                continue
+            else:
+                found.add(pcu)
             playlist_url = update_url_query(pcu, {
                 'station_id': station,
                 **query,
@@ -118,10 +123,6 @@ class RadikoBaseIE(InfoExtractor):
                 'lsid': secrets.token_hex(16),
                 'type': 'b',
             })
-            if playlist_url in found:
-                continue
-            else:
-                found.add(playlist_url)
 
             time_to_skip = None if is_onair else cursor - ft
 
@@ -139,7 +140,7 @@ class RadikoBaseIE(InfoExtractor):
                         not is_onair and pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED)):
                     sf['preference'] = -100
                     sf['format_note'] = 'not preferred'
-                if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
+                if not is_onair and timefree_int == 1 and time_to_skip:
                     sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
             formats.extend(subformats)
 
