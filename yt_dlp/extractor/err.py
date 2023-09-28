@@ -20,7 +20,11 @@ from ..utils import (
     urlencode_postdata,
 )
 
-# TODO  Try to resolve unknown languages in audio tracks.
+#   jupiter.err.ee sometimes gives strange languages for audio streams and
+#   extractor labels them as 'unknown'. To remedy the situation a little bit,
+#   use extractor argument 'errjupiter:unknown' to substitute a language for
+#   'unknown', e.g.
+#       --extractor-args errjupiter:unknown=en
 
 
 def json_find_node(obj, criteria):
@@ -218,6 +222,10 @@ class ERRBaseIE(InfoExtractor):
                 elif m3u8_format.get('language', '') == 'nl':
                     m3u8_format['language'] = 'et'
                     m3u8_format['format_note'] = 'Estonian'
+
+                lst = self._configuration_arg('unknown')
+                if len(lst) > 0:
+                    m3u8_format['language'] = str(lst[0]) if m3u8_format['language'] == 'unknown' else m3u8_format['language']
 
                 lang_idx = (languages[m3u8_format['language']] + 1) if (
                     m3u8_format['language'] in languages) else 0
@@ -1175,6 +1183,7 @@ class ERRRadioIE(ERRTVIE):
     _ERR_API_SHOWDATA_KEY = 'pageControlData.mainContent'
     _ERR_CHANNELS = r'vikerraadio|klassikaraadio|r2|r4'
     _ERR_LOGIN_SUPPORTED = False
+    _NETRC_MACHINE = None
     _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://(?P<channel>%(channels)s).err.ee)/(?:(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]+))?)|(?P<playlist_id>[^/#?]*))(?P<leftover>[/?#].+)?\Z' % {
         'channels': _ERR_CHANNELS
     }
@@ -1314,11 +1323,9 @@ class ERRArhiivIE(ERRTVIE):
     _ERR_API_GET_CONTENT_FOR_USER = _ERR_API_GET_CONTENT
     _ERR_API_GET_SERIES = '%(prefix)s/api/v1/series/%(channel)s/%(playlist_id)s'
     _ERR_API_GET_SERIES_LIMIT = 500
-    _ERR_API_LOGIN = '%(prefix)s/api/auth/login'
     _ERR_API_EPISODE_URL = '%(prefix)s/%(channel)s/vaata/%(id)s'
-    _ERR_LOGIN_DATA = {}
-    _ERR_LOGIN_SUPPORTED = True
-    _NETRC_MACHINE = 'err.ee'
+    _ERR_LOGIN_SUPPORTED = False
+    _NETRC_MACHINE = None
     _ERR_CHANNELS = r'video|audio'
     _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://arhiiv\.err\.ee)/(?P<channel>%(channels)s)/(?:(?:vaata/(?P<id>[^/#?]*))|(?:(?:seeria/)?(?P<playlist_id>[^/#?]*)))' % {
         'channels': _ERR_CHANNELS
