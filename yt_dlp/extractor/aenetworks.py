@@ -338,7 +338,7 @@ class BiographyIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
-        'skip': 'page returns 404. I haven"t been able to find the video anywhere else on the site. Possibly also geo-restricted for all I can tell, AE network seems to be odd here.'
+        'skip': '404 Not Found',
     }]
 
     def _real_extract(self, url):
