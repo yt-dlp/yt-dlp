@@ -264,7 +264,6 @@ class AENetworksShowIE(AENetworksListBaseIE):
             'description': 'md5:3f6d74daf2672ff3ae29ed732e37ea7f',
         },
         'playlist_mincount': 150,
-        'skip': 'possibly geo-restricted, redirects to history.de here',
     }]
     _RESOURCE = 'series'
     _ITEMS_KEY = 'episodes'
