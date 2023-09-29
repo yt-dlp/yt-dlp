@@ -1753,5 +1753,4 @@ class ERRArhiivIE(ERRTVIE):
             self.report_warning(error_msg)
             raise ExtractorError(error_msg)
 
-        # self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
         return info
