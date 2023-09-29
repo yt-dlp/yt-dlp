@@ -227,7 +227,6 @@ class AENetworksCollectionIE(AENetworksListBaseIE):
             'title': 'America The Story of Us',
         },
         'playlist_mincount': 12,
-        'skip': 'probably geo-restricted, redirects to aenetworks.tv for me',
     }, {
         'url': 'https://watch.historyvault.com/shows/america-the-story-of-us-2/season-1/list/america-the-story-of-us',
         'only_matching': True
