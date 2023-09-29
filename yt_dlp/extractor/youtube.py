@@ -941,7 +941,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='web'):
-        for icr_retry in self.RetryManager(
+        for icd_retry in self.RetryManager(
             fatal=self._configuration_arg('raise_incomplete_data', [False], ie_key=YoutubeIE)[0] is not False
         ):
             for retry in self.RetryManager():
@@ -988,7 +988,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # Youtube sometimes sends incomplete data
                 # See: https://github.com/ytdl-org/youtube-dl/issues/28194
                 if not traverse_obj(response, *variadic(check_get_keys)):
-                    icr_retry.error = ExtractorError('Incomplete data received', expected=True)
+                    icd_retry.error = ExtractorError('Incomplete data received', expected=True)
                     continue
 
                 return response
