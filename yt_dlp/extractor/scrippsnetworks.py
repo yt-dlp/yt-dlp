@@ -39,7 +39,7 @@ class ScrippsNetworksWatchIE(AWSIE):
             'skip_download': True,
         },
         'add_ie': [AnvatoIE.ie_key()],
-        'skip': 'geniuskitchen.com doesn"t seem to have anything anymore. This link returns a 404.',
+        'skip': '404 Not Found',
     }]
 
     _SNI_TABLE = {
