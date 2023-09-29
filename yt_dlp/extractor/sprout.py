@@ -22,7 +22,6 @@ class SproutIE(AdobePassIE):
         'params': {
             'skip_download': True,
         },
-        'skip': 'site returns access denied. Possibly geo-restricted?',
     }, {
         'url': 'http://www.sproutonline.com/watch/cowboy-adventure',
         'only_matching': True,
