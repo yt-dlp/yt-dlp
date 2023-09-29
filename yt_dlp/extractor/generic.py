@@ -137,7 +137,7 @@ class GenericIE(InfoExtractor):
                     'upload_date': '20201204',
                 },
             }],
-            'skip': 'url does not seem to exist anymore. the enclosed feed still does, though.',
+            'skip': 'Dead link',
         },
         # RSS feed with item with description and thumbnails
         {
@@ -272,7 +272,7 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             },
-            'skip': 'returns 404, and the link from the comment redirects to telegraaf.nl/video. Unfortunately I understand too little dutch to find an alternative link for testing.'
+            'skip': '404 Not Found',
         },
         # MPD from http://dash-mse-test.appspot.com/media.html
         {

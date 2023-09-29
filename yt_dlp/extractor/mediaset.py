@@ -53,7 +53,6 @@ class MediasetIE(ThePlatformBaseIE):
             'episode_number': 1,
             'chapters': [{'start_time': 0.0, 'end_time': 439.88}, {'start_time': 439.88, 'end_time': 1685.84}, {'start_time': 1685.84, 'end_time': 2682.0}],
         },
-        'skip': 'geo-restricted to italy',
     }, {
         'url': 'https://mediasetinfinity.mediaset.it/video/matrix/puntata-del-25-maggio_F309013801000501',
         'md5': '1276f966ac423d16ba255ce867de073e',
@@ -129,7 +128,7 @@ class MediasetIE(ThePlatformBaseIE):
         'params': {
             'skip_download': True,
         },
-        'skip': 'there is no video on this page (anymore)',
+        'skip': 'Dead link',
     }, {
         # WittyTV embed
         'url': 'https://www.wittytv.it/mauriziocostanzoshow/ultima-puntata-venerdi-25-novembre/',

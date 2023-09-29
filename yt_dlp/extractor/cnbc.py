@@ -19,7 +19,7 @@ class CNBCIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
-        'skip': 'web site doesn"t play the video either, returns error 232011. Possibly geo-restricted to US, seeing that this happens to every video on my end here? Test fails at downloading the m3u8 file.',
+        'skip': 'Dead link',
     }
 
     def _real_extract(self, url):
@@ -50,7 +50,7 @@ class CNBCVideoIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'skip': 'web site doesn"t play the video either, returns error 232011. Possibly geo-restricted to US, seeing that this happens to every video on my end here? Test fails at downloading the m3u8 file.',
+        'skip': 'Dead link',
     }
 
     def _real_extract(self, url):

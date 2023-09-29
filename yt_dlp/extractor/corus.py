@@ -54,8 +54,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             'skip_download': True,
         },
         'expected_warnings': ['Failed to parse JSON'],
-        # this needs to be fixed. I can access the page and play the video without any issues,
-        # but yt-dlp tells me the video is geo-restricted. Something is wrong here.
+        # FIXME: yt-dlp wrongly raises for geo restriction
     }, {
         'url': 'http://www.foodnetwork.ca/shows/chopped/video/episode/chocolate-obsession/video.html?v=872683587753',
         'only_matching': True,

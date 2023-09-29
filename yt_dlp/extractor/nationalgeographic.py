@@ -24,7 +24,7 @@ class NationalGeographicVideoIE(InfoExtractor):
                 'uploader': 'NAGS',
             },
             'add_ie': ['ThePlatform'],
-            'skip': 'website doesn"t seem to exist',
+            'skip': 'Redirects to main page',
         },
         {
             'url': 'http://video.nationalgeographic.com/wild/when-sharks-attack/the-real-jaws',
@@ -39,7 +39,7 @@ class NationalGeographicVideoIE(InfoExtractor):
                 'uploader': 'NAGS',
             },
             'add_ie': ['ThePlatform'],
-            'skip': 'website doesn"t seem to exist',
+            'skip': 'Redirects to main page',
         },
     ]
 
@@ -77,7 +77,7 @@ class NationalGeographicTVIE(FOXIE):  # XXX: Do not subclass from concrete IE
         'params': {
             'skip_download': True,
         },
-        'skip': 'redirects. possibly geo-restricted?',
+        'skip': 'Content not available',
     }]
     _HOME_PAGE_URL = 'https://www.nationalgeographic.com/tv/'
     _API_KEY = '238bb0a0c2aba67922c48709ce0c06fd'

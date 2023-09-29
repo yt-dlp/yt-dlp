@@ -108,7 +108,6 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             'params': {
                 'skip_download': 'm3u8',
             },
-            'skip': 'geo-restricted',
         },
         {
             # new video_id format
@@ -545,7 +544,7 @@ class NBCOlympicsIE(InfoExtractor):
             'upload_date': '20160815',
             'uploader': 'NBCU-SPORTS',
         },
-        'skip': 'geo-restricted, and also now returns 404. Other videos seem to be restricted as well (error 232403)',
+        'skip': '404 Not Found',
     }
 
     def _real_extract(self, url):
@@ -601,7 +600,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
             'params': {
                 'skip_download': 'm3u8',
             },
-            'skip': 'redirects to nbcolympics.com. Possibly geo-restricted?',
+            'skip': 'Livestream',
         },
     ]
 

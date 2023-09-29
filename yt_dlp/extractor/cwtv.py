@@ -51,7 +51,6 @@ class CWTVIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
-        'skip': 'just gives message "you have been blocked". Not sure what"s going on here',
     }, {
         'url': 'http://cwtv.com/thecw/chroniclesofcisco/?play=8adebe35-f447-465f-ab52-e863506ff6d6',
         'only_matching': True,
