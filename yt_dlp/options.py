@@ -476,7 +476,7 @@ def create_parser():
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress', 'playlist-match-filter'],
+                '2022': ['no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
