@@ -191,7 +191,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'upload_date': '20150701',
             'uploader': 'NBCU-NEWS',
         },
-        'skip': 'Error: Player PID "nbcNewsOffsite" is disabled. Again, no clue where this comes from, someone please fix.'
+        'skip': 'Error: Player PID "nbcNewsOffsite" is disabled',
     }, {
         # From http://www.nbc.com/the-blacklist/video/sir-crispin-crandall/2928790?onid=137781#vc137781=1
         # geo-restricted (US), HLS encrypted with AES-128
