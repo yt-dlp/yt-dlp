@@ -3281,15 +3281,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for contents in content_list)), [])
 
     def _extract_heatmap_from_player_overlay(self, data):
-        content_list = traverse_obj(data, (
-            'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
-            'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
-        return next(filter(None, (
-            traverse_obj(contents, (..., 'heatMarkerRenderer', {
-                'start_time': ('timeRangeStartMillis', {functools.partial(float_or_none, scale=1000)}),
-                'end_time': {lambda x: (x['timeRangeStartMillis'] + x['markerDurationMillis']) / 1000},
-                'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
-            })) for contents in content_list)), None)
+        return traverse_obj(data, (
+            'frameworkUpdates', 'entityBatchUpdate', 'mutations', ..., 'payload',
+            'macroMarkersListEntity', 'markersList', 'markers', ..., {
+                'start_time': ('startMillis', {functools.partial(float_or_none, scale=1000)}),
+                'end_time': {lambda x: (int(x['startMillis']) + int(x['durationMillis'])) / 1000},
+                'value': ('intensityScoreNormalized', {float_or_none}),
+            })) or None
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
