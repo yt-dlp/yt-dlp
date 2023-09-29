@@ -173,7 +173,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'title': 'HIGHLIGHTS: USA bag first ever series Cup win',
             'uploader': 'EGSM',
         },
-        'skip': 'no clue where this comes from, and doesnt work anymore. If someone knows, please fix.',
+        'skip': 'Dead link',
     }, {
         'url': 'http://player.theplatform.com/p/NnzsPC/widget/select/media/4Y0TlYUr_ZT7',
         'only_matching': True,
