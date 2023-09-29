@@ -20,11 +20,12 @@ from ..utils import (
     urlencode_postdata,
 )
 
-#   jupiter.err.ee sometimes gives strange languages for audio streams and
-#   extractor labels them as 'unknown'. To remedy the situation a little bit,
-#   use extractor argument 'errjupiter:unknown' to substitute a language for
-#   'unknown', e.g.
-#       --extractor-args errjupiter:unknown=en
+#   jupiter.err.ee sometimes gives strange languages for audio streams, and
+#   extractor labels them as 'unknown'. Unrecognized subtitles language gets
+#   labeled 'und'. To remedy the situation a little bit and to avoid fixing it
+#   later, use extractor arguments 'unknown' and 'und' to substitute a valid
+#   language for 'unknown' and/or 'und', e.g.
+#       --extractor-args 'errjupiter:unknown=en;und=de'
 
 
 def json_find_node(obj, criteria):
@@ -189,7 +190,7 @@ class ERRBaseIE(InfoExtractor):
 
     def _extract_formats_and_subtitles(self, master_url, video_id, headers=None):
         m3u8_formats = []
-        m3u8_subtitles = []
+        m3u8_subtitles = {}
         try:
             m3u8_formats, m3u8_subtitles = self._extract_m3u8_formats_and_subtitles(master_url, video_id, headers=headers)
         except ExtractorError as ex:
@@ -245,7 +246,15 @@ class ERRBaseIE(InfoExtractor):
                 m3u8_format['format_note'] = '%dp' % m3u8_format['height']
                 m3u8_format['format'] = '%(format_id)s - %(width)dx%(height)d (%(format_note)s)' % m3u8_format
             formats.append(m3u8_format)
-        return formats, m3u8_subtitles
+
+        subtitles = {}
+        for lang, m3u8_subtitle in m3u8_subtitles.items():
+            lst = self._configuration_arg('und')
+            if len(lst) > 0 and lang.lower() == 'und':
+                lang = lst[0]
+            subtitles[lang] = m3u8_subtitle
+
+        return formats, subtitles
 
     def _extract_ids(self, url):
         mobj = re.match(type(self)._VALID_URL, url)
