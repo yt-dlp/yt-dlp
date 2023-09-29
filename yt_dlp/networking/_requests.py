@@ -21,11 +21,9 @@ if len(urllib3_version) == 2:
 urllib3_version = tuple(map(functools.partial(int_or_none, default=0), urllib3_version[:3]))
 
 if urllib3_version < (1, 26, 0):
-    warnings.warn('Unsupported version of `urllib3` installed. urllib3 >= 1.26.0 is required for `requests` support.')
     raise ImportError('Only urllib3 >= 1.26.0 is supported')
 
 if requests.__build__ < 0x023100:
-    warnings.warn('Unsupported version of `requests` installed. requests >= 2.31.0 is required for `requests` support.')
     raise ImportError('Only requests >= 2.31.0 is supported')
 
 from http.client import HTTPConnection
