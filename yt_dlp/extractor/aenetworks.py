@@ -301,7 +301,6 @@ class HistoryTopicIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
-        'skip': 'Test says geo-restricted. Loading the page gives an error message that an error 403 was encountered while trying to download the hls document.'
     }]
 
     def _real_extract(self, url):
