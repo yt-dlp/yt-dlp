@@ -119,6 +119,7 @@ class ScrippsNetworksIE(InfoExtractor):
             'thumbnail': 'https://images.dds.discovery.com/up/tp/Scripps_-_Food_Category_Prod/122/987/0260338_630x355.jpg',
         },
         'add_ie': ['ThePlatform'],
+        'expected_warnings': ['No HLS formats found'],
     }, {
         'url': 'https://www.diynetwork.com/videos/diy-barnwood-tablet-stand-0265790',
         'only_matching': True,

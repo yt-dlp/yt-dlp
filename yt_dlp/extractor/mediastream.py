@@ -14,7 +14,7 @@ class MediaStreamBaseIE(InfoExtractor):
     _BASE_URL_RE = r'https?://mdstrm\.com/(?:embed|live-stream)'
 
     def _extract_mediastream_urls(self, webpage):
-        yield from traverse_obj(list(self._yield_json_ld(webpage, None)), (
+        yield from traverse_obj(list(self._yield_json_ld(webpage, None, fatal=False)), (
             lambda _, v: v['@type'] == 'VideoObject', ('embedUrl', 'contentUrl'),
             {lambda x: x if re.match(rf'{self._BASE_URL_RE}/\w+', x) else None}))
 
@@ -106,8 +106,12 @@ class MediaStreamIE(MediaStreamBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        if 'Debido a tu ubicación no puedes ver el contenido' in webpage:
-            self.raise_geo_restricted()
+        for message in [
+            'Debido a tu ubicación no puedes ver el contenido',
+            'You are not allowed to watch this video: Geo Fencing Restriction'
+        ]:
+            if message in webpage:
+                self.raise_geo_restricted()
 
         player_config = self._search_json(r'window\.MDSTRM\.OPTIONS\s*=', webpage, 'metadata', video_id)
 

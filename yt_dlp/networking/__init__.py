@@ -1,4 +1,4 @@
-# flake8: noqa: 401
+# flake8: noqa: F401
 from .common import (
     HEADRequest,
     PUTRequest,

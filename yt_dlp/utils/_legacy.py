@@ -8,6 +8,8 @@ import urllib.request
 import zlib
 
 from ._utils import Popen, decode_base_n, preferredencoding
+from .networking import escape_rfc3986  # noqa: F401
+from .networking import normalize_url as escape_url  # noqa: F401
 from .traversal import traverse_obj
 from ..dependencies import certifi, websockets
 from ..networking._helper import make_ssl_context
@@ -197,7 +199,7 @@ def request_to_url(req):
 
 
 def sanitized_Request(url, *args, **kwargs):
-    from ..utils import escape_url, extract_basic_auth, sanitize_url
+    from ..utils import extract_basic_auth, sanitize_url
     url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
     if auth_header is not None:
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})

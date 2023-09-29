@@ -76,7 +76,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'title': 'Arma 3 - Zeus Games #5',
                 'uploader': 'SovietWomble',
                 'thumbnail': r're:^https?://.*\.b-cdn\.net/c0e5e76f-3a93-40b4-bf01-12343c2eec5d/thumbnail\.jpg$',
-                'uploader': 'SovietWomble',
                 'creator': 'SovietWomble',
                 'release_timestamp': 1461157200,
                 'release_date': '20160420',

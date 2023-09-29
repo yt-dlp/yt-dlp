@@ -34,7 +34,7 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
-from .networking.common import _REQUEST_HANDLERS
+from .networking.common import _REQUEST_HANDLERS, _RH_PREFERENCES
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
@@ -60,7 +60,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, current_git_head, detect_variant
+from .update import REPOSITORY, _get_system_deprecation, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -239,9 +239,9 @@ class YoutubeDL:
                        'selected' (check selected formats),
                        or None (check only if requested by extractor)
     paths:             Dictionary of output paths. The allowed keys are 'home'
-                       'temp' and the keys of OUTTMPL_TYPES (in utils.py)
+                       'temp' and the keys of OUTTMPL_TYPES (in utils/_utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
-                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils/_utils.py).
                        For compatibility with youtube-dl, a single string can also be used
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
@@ -256,8 +256,6 @@ class YoutubeDL:
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
                        and don't overwrite any file if False
-                       For compatibility with youtube-dl,
-                       "nooverwrites" may also be used instead
     playlist_items:    Specific indices of playlist to download.
     playlistrandom:    Download playlist items in random order.
     lazy_playlist:     Process playlist entries as they are received.
@@ -424,7 +422,7 @@ class YoutubeDL:
                          asked whether to download the video.
                        - Raise utils.DownloadCancelled(msg) to abort remaining
                          downloads when a video is rejected.
-                       match_filter_func in utils.py is one example for this.
+                       match_filter_func in utils/_utils.py is one example for this.
     color:             A Dictionary with output stream names as keys
                        and their respective color policy as values.
                        Can also just be a single color policy,
@@ -553,6 +551,7 @@ class YoutubeDL:
                        You can reduce network I/O by disabling it if you don't
                        care about HLS. (only for youtube)
     no_color:          Same as `color='no_color'`
+    no_overwrites:     Same as `overwrites=False`
     """
 
     _NUMERIC_FIELDS = {
@@ -604,6 +603,7 @@ class YoutubeDL:
         self._playlist_level = 0
         self._playlist_urls = set()
         self.cache = Cache(self)
+        self.__header_cookies = []
 
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
@@ -632,7 +632,7 @@ class YoutubeDL:
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
                 return term_allow_color and supports_terminal_sequences(stream)
-            assert policy in ('always', 'never', 'no_color')
+            assert policy in ('always', 'never', 'no_color'), policy
             return {'always': True, 'never': False}.get(policy, policy)
 
         self._allow_colors = Namespace(**{
@@ -640,17 +640,9 @@ class YoutubeDL:
             for name, stream in self._out_files.items_ if name != 'console'
         })
 
-        # The code is left like this to be reused for future deprecations
-        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
-        current_version = sys.version_info[:2]
-        if current_version < MIN_RECOMMENDED:
-            msg = ('Support for Python version %d.%d has been deprecated. '
-                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details.'
-                   '\n                    You will no longer receive updates on this version')
-            if current_version < MIN_SUPPORTED:
-                msg = 'Python version %d.%d is no longer supported'
-            self.deprecated_feature(
-                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
+        system_deprecation = _get_system_deprecation()
+        if system_deprecation:
+            self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
@@ -681,12 +673,10 @@ class YoutubeDL:
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
-        self.__header_cookies = []
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
         self.params['http_headers'].pop('Cookie', None)
+        self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
-        self._request_director = self.build_request_director(
-            sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
@@ -2339,12 +2329,12 @@ class YoutubeDL:
             return new_dict
 
         def _check_formats(formats):
-            if (self.params.get('check_formats') is not None
+            if self.params.get('check_formats') == 'selected':
+                yield from self._check_formats(formats)
+                return
+            elif (self.params.get('check_formats') is not None
                     or self.params.get('allow_unplayable_formats')):
                 yield from formats
-                return
-            elif self.params.get('check_formats') == 'selected':
-                yield from self._check_formats(formats)
                 return
 
             for f in formats:
@@ -2593,7 +2583,7 @@ class YoutubeDL:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
                 # see http://bugs.python.org/issue1646728)
                 with contextlib.suppress(ValueError, OverflowError, OSError):
-                    upload_date = datetime.datetime.utcfromtimestamp(info_dict[ts_key])
+                    upload_date = datetime.datetime.fromtimestamp(info_dict[ts_key], datetime.timezone.utc)
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
 
         live_keys = ('is_live', 'was_live')
@@ -3452,10 +3442,11 @@ class YoutubeDL:
                     postprocessed_by_ffmpeg = info_dict.get('requested_formats') or any((
                         isinstance(pp, FFmpegVideoConvertorPP)
                         and resolve_recode_mapping(ext, pp.mapping)[0] not in (ext, None)
-                    ) for pp in self._pps['post_process']) or fd == FFmpegFD
+                    ) for pp in self._pps['post_process'])
 
                     if not postprocessed_by_ffmpeg:
-                        ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
+                        ffmpeg_fixup(fd != FFmpegFD and ext == 'm4a'
+                                     and info_dict.get('container') == 'm4a_dash',
                                      'writing DASH m4a. Only some players support this container',
                                      FFmpegFixupM4aPP)
                         ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
@@ -3977,7 +3968,7 @@ class YoutubeDL:
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
-        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers)}')
+        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
@@ -4078,9 +4069,9 @@ class YoutubeDL:
         except HTTPError as e:  # TODO: Remove in a future release
             raise _CompatHTTPError(e) from e
 
-    def build_request_director(self, handlers):
+    def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)
-        headers = self.params.get('http_headers').copy()
+        headers = self.params['http_headers'].copy()
         proxies = self.proxies.copy()
         clean_headers(headers)
         clean_proxies(proxies, headers)
@@ -4107,6 +4098,7 @@ class YoutubeDL:
                     },
                 }),
             ))
+        director.preferences.update(preferences or [])
         return director
 
     def encode(self, s):

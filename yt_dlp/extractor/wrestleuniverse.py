@@ -300,7 +300,7 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
             info['hls_aes'] = {
                 'key': hls_aes_key,
                 'iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
-            },
+            }
         elif traverse_obj(video_data, ('hls', 'encryptType', {int})):
             self.report_warning('HLS AES-128 key was not found in API response')
 

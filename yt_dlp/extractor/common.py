@@ -729,7 +729,7 @@ class InfoExtractor:
         except UnsupportedError:
             raise
         except ExtractorError as e:
-            e.video_id = e.video_id or self.get_temp_id(url),
+            e.video_id = e.video_id or self.get_temp_id(url)
             e.ie = e.ie or self.IE_NAME,
             e.traceback = e.traceback or sys.exc_info()[2]
             raise
@@ -1687,7 +1687,7 @@ class InfoExtractor:
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
         """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
         rectx = re.escape(context_name)
-        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){return\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
+        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){(?:.*?)return\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
         js, arg_keys, arg_vals = self._search_regex(
             (rf'<script>\s*window\.{rectx}={FUNCTION_RE}\s*\)\s*;?\s*</script>', rf'{rectx}\(.*?{FUNCTION_RE}'),
             webpage, context_name, group=('js', 'arg_keys', 'arg_vals'),

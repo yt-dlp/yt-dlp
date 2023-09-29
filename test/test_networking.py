@@ -8,12 +8,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import functools
 import gzip
 import http.client
 import http.cookiejar
 import http.server
-import inspect
 import io
 import pathlib
 import random
@@ -29,6 +27,7 @@ from email.message import Message
 from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
+from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli
 from yt_dlp.networking import (
     HEADRequest,
@@ -39,7 +38,6 @@ from yt_dlp.networking import (
     Response,
 )
 from yt_dlp.networking._urllib import UrllibRH
-from yt_dlp.networking.common import _REQUEST_HANDLERS
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -173,6 +171,12 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Location', self.path)
             self.send_header('Content-Length', '0')
             self.end_headers()
+        elif self.path == '/redirect_dotsegments':
+            self.send_response(301)
+            # redirect to /headers but with dot segments before
+            self.send_header('Location', '/a/b/./../../headers')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         elif self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -300,19 +304,6 @@ class TestRequestHandlerBase:
         cls.https_server_thread.start()
 
 
-@pytest.fixture
-def handler(request):
-    RH_KEY = request.param
-    if inspect.isclass(RH_KEY) and issubclass(RH_KEY, RequestHandler):
-        handler = RH_KEY
-    elif RH_KEY in _REQUEST_HANDLERS:
-        handler = _REQUEST_HANDLERS[RH_KEY]
-    else:
-        pytest.skip(f'{RH_KEY} request handler is not available')
-
-    return functools.partial(handler, logger=FakeLogger)
-
-
 class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_verify_cert(self, handler):
@@ -353,6 +344,21 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             # don't normalize existing percent encodings
             res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
             assert res.status == 200
+            res.close()
+
+    @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
+    def test_remove_dot_segments(self, handler):
+        with handler() as rh:
+            # This isn't a comprehensive test,
+            # but it should be enough to check whether the handler is removing dot segments
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/a/b/./../../headers'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
+            res.close()
+
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_dotsegments'))
+            assert res.status == 200
+            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
             res.close()
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
@@ -457,7 +463,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert 'Cookie: test=test' not in res
 
         # Specified Cookie header should override global cookiejar for that request
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             version=0, name='test', value='ytdlp', port=None, port_specified=False,
             domain='127.0.0.1', domain_specified=True, domain_initial_dot=False, path='/',
@@ -484,7 +490,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_cookies(self, handler):
-        cookiejar = http.cookiejar.CookieJar()
+        cookiejar = YoutubeDLCookieJar()
         cookiejar.set_cookie(http.cookiejar.Cookie(
             0, 'test', 'ytdlp', None, False, '127.0.0.1', True,
             False, '/headers', True, False, None, False, None, None, {}))
@@ -882,7 +888,8 @@ class TestRequestHandlerValidation:
     EXTENSION_TESTS = [
         ('Urllib', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
-            ({'cookiejar': CookieJar()}, False),
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
+            ({'cookiejar': CookieJar()}, AssertionError),
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
@@ -930,10 +937,10 @@ class TestRequestHandlerValidation:
         run_validation(handler, False, Request('http://', proxies={'http': None}))
         run_validation(handler, False, Request('http://'), proxies={'http': None})
 
-    @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1'])
+    @pytest.mark.parametrize('proxy_url', ['//example.com', 'example.com', '127.0.0.1', '/a/b/c'])
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
-    def test_missing_proxy_scheme(self, handler, proxy_url):
-        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': 'example.com'}))
+    def test_invalid_proxy_url(self, handler, proxy_url):
+        run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': proxy_url}))
 
     @pytest.mark.parametrize('handler,extensions,fail', [
         (handler_tests[0], extensions, fail)
@@ -1012,17 +1019,17 @@ class TestRequestDirector:
         assert isinstance(director.send(Request('http://')), FakeResponse)
 
     def test_unsupported_handlers(self):
-        director = RequestDirector(logger=FakeLogger())
-        director.add_handler(FakeRH(logger=FakeLogger()))
-
         class SupportedRH(RequestHandler):
             _SUPPORTED_URL_SCHEMES = ['http']
 
             def _send(self, request: Request):
                 return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
 
-        # This handler should by default take preference over FakeRH
+        director = RequestDirector(logger=FakeLogger())
         director.add_handler(SupportedRH(logger=FakeLogger()))
+        director.add_handler(FakeRH(logger=FakeLogger()))
+
+        # First should take preference
         assert director.send(Request('http://')).read() == b'supported'
         assert director.send(Request('any://')).read() == b''
 
@@ -1048,6 +1055,27 @@ class TestRequestDirector:
         director.add_handler(FakeRH(logger=FakeLogger()))
         director.add_handler(UnexpectedRH(logger=FakeLogger))
         assert director.send(Request('any://'))
+
+    def test_preference(self):
+        director = RequestDirector(logger=FakeLogger())
+        director.add_handler(FakeRH(logger=FakeLogger()))
+
+        class SomeRH(RequestHandler):
+            _SUPPORTED_URL_SCHEMES = ['http']
+
+            def _send(self, request: Request):
+                return Response(fp=io.BytesIO(b'supported'), headers={}, url=request.url)
+
+        def some_preference(rh, request):
+            return (0 if not isinstance(rh, SomeRH)
+                    else 100 if 'prefer' in request.headers
+                    else -1)
+
+        director.add_handler(SomeRH(logger=FakeLogger()))
+        director.preferences.add(some_preference)
+
+        assert director.send(Request('http://')).read() == b''
+        assert director.send(Request('http://', headers={'prefer': '1'})).read() == b'supported'
 
 
 # XXX: do we want to move this to test_YoutubeDL.py?
@@ -1126,9 +1154,11 @@ class TestYoutubeDLNetworking:
         ('http', '__noproxy__', None),
         ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
         ('https', 'example.com', 'http://example.com'),
+        ('https', '//example.com', 'http://example.com'),
         ('https', 'socks5://example.com', 'socks5h://example.com'),
         ('http', 'socks://example.com', 'socks4://example.com'),
         ('http', 'socks4://example.com', 'socks4://example.com'),
+        ('unrelated', '/bad/proxy', '/bad/proxy'),  # clean_proxies should ignore bad proxies
     ])
     def test_clean_proxy(self, proxy_key, proxy_url, expected):
         # proxies should be cleaned in urlopen()
