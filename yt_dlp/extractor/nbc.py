@@ -589,7 +589,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
             'params': {
                 'skip_download': 'm3u8',
             },
-            'skip': 'redirects to nbcolympics.com. Possibly geo-restricted?',
+            'skip': 'Livestream',
         }, {
             'note': 'Plain m3u8 source URL',
             'url': 'https://stream.nbcolympics.com/gymnastics-event-finals-mens-floor-pommel-horse-womens-vault-bars',
