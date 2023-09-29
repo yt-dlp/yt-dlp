@@ -380,7 +380,7 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _TESTS = [
         {
             'url': 'http://www.nbcnews.com/watch/nbcnews-com/how-twitter-reacted-to-the-snowden-interview-269389891880',
-            'md5': 'fb3dcd2d7b1dd9804305fa2fc95ab610',  # note: for some reason, downloading this video with the --test command doesn't give the same md5. Seems to be the right video though.
+            'md5': 'fb3dcd2d7b1dd9804305fa2fc95ab610',  # md5 tends to fluctuate
             'info_dict': {
                 'id': '269389891880',
                 'ext': 'mp4',
