@@ -6,6 +6,16 @@ class ElTreceTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?eltrecetv.com.ar/(?:[\w\-]+)/capitulos/temporada-(?:\d+)/(?P<id>[\w\-]+)/?'
     _TESTS = [
         {
+            'url': 'https://www.eltrecetv.com.ar/ahora-caigo/capitulos/temporada-2023/programa-del-260923/',
+            'md5': '255436bcb48de9ef5cafda999acab437',
+            'info_dict': {
+                'id': 'AHCA25092023173459249708796',
+                'ext': 'mp4',
+                'title': 'AHORA CAIGO - Programa 26/09/23',
+                'thumbnail': 'https://thumbs.vodgc.net/AHCA25092023173459249708796.png?793338',
+            }
+        },
+        {
             'url': 'https://www.eltrecetv.com.ar/ahora-caigo/capitulos/temporada-2023/programa-del-280823/',
             'md5': 'e0a2033e020f423c0e620ec8471b54f3',
             'info_dict': {
@@ -52,13 +62,22 @@ class ElTreceTVIE(InfoExtractor):
 
         title = config.get('title')
         thumbnail = config.get('thumbnail')
+        url = config.get('m3u8')
 
-        video_id = self._search_regex(r'/([A-Z0-9]+).jpg', thumbnail, 'video_id')
-        url = 'https://vod.vodgc.net/gid1/vod/Artear/Eltrece/75/%s_720P.mp4' % video_id
+        video_id = self._search_regex(r'/([A-Z0-9]+).(?:jpg|png)', thumbnail, 'video_id')
+
+        formats = self._extract_m3u8_formats(url, video_id, ext='mp4', entry_protocol='http')
+
+        for f in formats:
+            # Edit url if points to a segment playlist to point to actual video
+            f['url'] = f['url'].replace('/tracks-v1a1/index.m3u8', '')
+
+        # hide 1080p format because it's not really available
+        formats = [f for f in formats if f['height'] != 1080]
 
         return {
             'id': video_id,
             'title': title,
-            'url': url,
             'thumbnail': thumbnail,
+            'formats': formats,
         }
