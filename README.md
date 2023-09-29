@@ -1846,6 +1846,9 @@ The following extractors use this feature:
 * `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
+#### niconicochannelplus
+* `max_comments`: Maximum number of comments to extract - default is `120`
+
 #### tiktok
 * `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
@@ -1865,6 +1868,9 @@ The following extractors use this feature:
 
 #### nhkradirulive (NHK らじる★らじる LIVE)
 * `area`: Which regional variation to extract. Valid areas are: `sapporo`, `sendai`, `tokyo`, `nagoya`, `osaka`, `hiroshima`, `matsuyama`, `fukuoka`. Defaults to `tokyo`
+
+#### nflplusreplay
+* `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

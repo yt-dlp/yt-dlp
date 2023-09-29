@@ -784,9 +784,9 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title4)#S', 'foo_bar_test')
         test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if compat_os_name == 'nt' else ' ')))
         if compat_os_name == 'nt':
-            test('%(title4)q', ('"foo \\"bar\\" test"', "＂foo ⧹＂bar⧹＂ test＂"))
-            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', '＂id 1＂ ＂id 2＂ ＂id 3＂'))
-            test('%(formats.0.id)#q', ('"id 1"', '＂id 1＂'))
+            test('%(title4)q', ('"foo ""bar"" test"', None))
+            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', None))
+            test('%(formats.0.id)#q', ('"id 1"', None))
         else:
             test('%(title4)q', ('\'foo "bar" test\'', '\'foo ＂bar＂ test\''))
             test('%(formats.:.id)#q', "'id 1' 'id 2' 'id 3'")

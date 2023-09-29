@@ -88,5 +88,15 @@
         "when": "59e92b1f1833440bb2190f847eb735cf0f90bc85",
         "short": "[rh:urllib] Simplify gzip decoding (#7611)",
         "authors": ["Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "c1d71d0d9f41db5e4306c86af232f5f6220a130b",
+        "short": "[priority] **The minimum *recommended* Python version has been raised to 3.8**\nSince Python 3.7 has reached end-of-life, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/7803)"
+    },
+    {
+        "action": "add",
+        "when": "61bdf15fc7400601c3da1aa7a43917310a5bf391",
+        "short": "[priority] Security: [[CVE-2023-40581](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-40581)] [Prevent RCE when using `--exec` with `%q` on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-42h4-v29r-42qg)\n    - The shell escape function is now using `\"\"` instead of `\\\"`.\n    - `utils.Popen` has been patched to properly quote commands."
     }
 ]

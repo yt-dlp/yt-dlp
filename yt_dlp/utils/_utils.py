@@ -825,7 +825,7 @@ class Popen(subprocess.Popen):
         _fix('LD_LIBRARY_PATH')  # Linux
         _fix('DYLD_LIBRARY_PATH')  # macOS
 
-    def __init__(self, *args, env=None, text=False, **kwargs):
+    def __init__(self, args, *remaining, env=None, text=False, shell=False, **kwargs):
         if env is None:
             env = os.environ.copy()
         self._fix_pyinstaller_ld_path(env)
@@ -835,7 +835,21 @@ class Popen(subprocess.Popen):
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        super().__init__(*args, env=env, **kwargs, startupinfo=self._startupinfo)
+
+        if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
+            if not isinstance(args, str):
+                args = ' '.join(compat_shlex_quote(a) for a in args)
+            shell = False
+            args = f'{self.__comspec()} /Q /S /D /V:OFF /C "{args}"'
+
+        super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
+
+    def __comspec(self):
+        comspec = os.environ.get('ComSpec') or os.path.join(
+            os.environ.get('SystemRoot', ''), 'System32', 'cmd.exe')
+        if os.path.isabs(comspec):
+            return comspec
+        raise FileNotFoundError('shell not found: neither %ComSpec% nor %SystemRoot% is set')
 
     def communicate_or_kill(self, *args, **kwargs):
         try:

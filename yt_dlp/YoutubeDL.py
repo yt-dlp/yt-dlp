@@ -60,7 +60,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, current_git_head, detect_variant
+from .update import REPOSITORY, _get_system_deprecation, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -640,17 +640,9 @@ class YoutubeDL:
             for name, stream in self._out_files.items_ if name != 'console'
         })
 
-        # The code is left like this to be reused for future deprecations
-        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
-        current_version = sys.version_info[:2]
-        if current_version < MIN_RECOMMENDED:
-            msg = ('Support for Python version %d.%d has been deprecated. '
-                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details.'
-                   '\n                    You will no longer receive updates on this version')
-            if current_version < MIN_SUPPORTED:
-                msg = 'Python version %d.%d is no longer supported'
-            self.deprecated_feature(
-                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
+        system_deprecation = _get_system_deprecation()
+        if system_deprecation:
+            self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
