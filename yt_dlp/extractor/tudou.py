@@ -43,7 +43,7 @@ class TudouIE(InfoExtractor):
 
         headers1 = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0",
-            "cookie": "_m_h5_tk=da6bb02219fb5a5f223d967490e4cb67_1695744613439; _m_h5_tk_enc=8c8b786a476dbcc04fd0e19c70a5317d",  # !
+            # "cookie": "",
             "Referer": "https://play.tudou.com/"
         }
 
