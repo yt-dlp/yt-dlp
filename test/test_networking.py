@@ -820,7 +820,6 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             assert not isinstance(exc_info.value, TransportError)
 
 
-@pytest.mark.parametrize('handler', ['Requests'], indirect=True)
 class TestRequestsRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('raised,expected', [
         (lambda: requests.exceptions.ConnectTimeout(), TransportError),
@@ -837,6 +836,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         (lambda: requests.exceptions.RequestException(), RequestError)
         #  (lambda: requests.exceptions.TooManyRedirects(), HTTPError) - Needs a response object
     ])
+    @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
             def mock_get_instance(*args, **kwargs):
@@ -863,20 +863,24 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         (lambda: urllib3.exceptions.DecodeError(), TransportError),
         (lambda: urllib3.exceptions.HTTPError(), TransportError)  # catch-all
     ])
-    def test_response_error_mapping(self, handler, monkeypatch, raised, expected):
-        with handler() as rh:
-            # FIXME: monkey patch a fake response
-            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/headers'))
-            res.read()  # close the socket to avoid warnings
+    @pytest.mark.skipif(requests is None, reason='requests is not installed')
+    @pytest.mark.skipif(urllib3 is None, reason='urllib3 is not installed')
+    def test_response_error_mapping(self, monkeypatch, raised, expected):
+        from urllib3.response import HTTPResponse as Urllib3Response
+        from requests.models import Response as RequestsResponse
+        from yt_dlp.networking._requests import RequestsResponseAdapter
+        requests_res = RequestsResponse()
+        requests_res.raw = Urllib3Response(body=b'', status=200)
+        res = RequestsResponseAdapter(requests_res)
 
-            def mock_read(*args, **kwargs):
-                raise raised()
-            monkeypatch.setattr(res.fp, "read", mock_read)
+        def mock_read(*args, **kwargs):
+            raise raised()
+        monkeypatch.setattr(res.fp, "read", mock_read)
 
-            with pytest.raises(expected) as exc_info:
-                res.read()
+        with pytest.raises(expected) as exc_info:
+            res.read()
 
-            assert exc_info.type is expected
+        assert exc_info.type is expected
 
 
 def run_validation(handler, error, req, **handler_kwargs):
