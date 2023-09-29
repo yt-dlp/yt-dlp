@@ -20,12 +20,21 @@ from ..utils import (
     urlencode_postdata,
 )
 
+#   ## Authentication options
+#
+#   etv, etv2, etvpluss, jupiter an jupiterpluss support username/password and
+#   .netrc authentication data, netrc machine should be err.ee.
+#
+#   ## Known problems
+#
 #   jupiter.err.ee sometimes gives strange languages for audio streams, and
-#   extractor labels them as 'unknown'. Unrecognized subtitles language gets
-#   labeled 'und'. To remedy the situation a little bit and to avoid fixing it
-#   later, use extractor arguments 'unknown' and 'und' to substitute a valid
-#   language for 'unknown' and/or 'und', e.g.
-#       --extractor-args 'errjupiter:unknown=en;und=de'
+#   extractor labels them as 'unknown' or 'original'. Unrecognized subtitles
+#   language gets labeled 'und' (undetermined). To avoid fixing them later in
+#   some other software, one may use extractor arguments 'unknown', 'original'
+#   and 'und' to substitute valid language codes for 'unknown', 'original'
+#   and/or 'und', e.g.
+#
+#       --extractor-args 'err:unknown=en;original=et;und=de'
 
 
 def json_find_node(obj, criteria):
@@ -119,6 +128,7 @@ class ERRBaseIE(InfoExtractor):
     _GEO_BYPASS = False
     _ERR_CHANNELS = ''
     _ERR_HEADERS = {}
+    _ERR_EXTRACTOR_ARG_PREFIX = 'err'
     _VALID_URL = r'(?P<prefix>(?P<protocol>https?)://(?P<channel>%(channels)s).err.ee)/(?P<id>[^/]*)/(?P<display_id>[^/#?]*)' % {
         'channels': _ERR_CHANNELS
     }
@@ -201,9 +211,6 @@ class ERRBaseIE(InfoExtractor):
             raise ex
 
         formats = []
-        # Strange audio languages Chamoru [ch], Nederlands [nl], both quite
-        # unlikely, seem to mean 'original', whatever it may be, and 'estonian',
-        # respectively.
         languages = dict()
         for m3u8_format in m3u8_formats:
             if not m3u8_format.get('ext', None):
@@ -217,16 +224,23 @@ class ERRBaseIE(InfoExtractor):
                     and m3u8_format.get('acodec', 'none') == 'none'
                     and m3u8_format.get('format_id', '').startswith('audio')):
                 m3u8_format['ext'] = 'm4a'
-                if m3u8_format.get('language', 'ch') == 'ch' or m3u8_format.get('language', None) is None:
+                if m3u8_format.get('language', 'ch') == 'ch':
+                    # Chamoru [ch] extremely unlikely, seems to mean
+                    # 'original'.
+                    m3u8_format['language'] = 'original'
+                    m3u8_format['format_note'] = 'Original'
+                elif m3u8_format.get('language', None) is None:
                     m3u8_format['language'] = 'unknown'
                     m3u8_format['format_note'] = 'Unknown'
                 elif m3u8_format.get('language', '') == 'nl':
-                    m3u8_format['language'] = 'et'
-                    m3u8_format['format_note'] = 'Estonian'
+                    # Nederlands [nl] seems to mean consistently
+                    # 'et for visually impaired'.
+                    m3u8_format['language'] = 'et visually impaired'
+                    m3u8_format['format_note'] = 'Eesti vaegnägijatele'
 
-                lst = self._configuration_arg('unknown')
+                lst = self._configuration_arg(m3u8_format['language'], ie_key=self._ERR_EXTRACTOR_ARG_PREFIX)
                 if len(lst) > 0:
-                    m3u8_format['language'] = str(lst[0]) if m3u8_format['language'] == 'unknown' else m3u8_format['language']
+                    m3u8_format['language'] = str(lst[0])
 
                 lang_idx = (languages[m3u8_format['language']] + 1) if (
                     m3u8_format['language'] in languages) else 0
@@ -249,9 +263,9 @@ class ERRBaseIE(InfoExtractor):
 
         subtitles = {}
         for lang, m3u8_subtitle in m3u8_subtitles.items():
-            lst = self._configuration_arg('und')
-            if len(lst) > 0 and lang.lower() == 'und':
-                lang = lst[0]
+            lang = 'et_hearing_impaired' if lang == 'und' else lang
+            lst = self._configuration_arg(lang.lower(), ie_key=self._ERR_EXTRACTOR_ARG_PREFIX)
+            lang = lst[0] if len(lst) > 0 else lang
             subtitles[lang] = m3u8_subtitle
 
         return formats, subtitles
