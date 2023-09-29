@@ -16,6 +16,7 @@ from ..utils import (
 class ArteTVBaseIE(InfoExtractor):
     _ARTE_LANGUAGES = 'fr|de|en|es|it|pl'
     _API_BASE = 'https://api.arte.tv/api/player/v2'
+    _ARTE_ACCESSIBLE_SUBS_SUFFIX = '-MAL.m3u8'
 
 
 class ArteTVIE(ArteTVBaseIE):
@@ -121,6 +122,24 @@ class ArteTVIE(ArteTVBaseIE):
         ),
     }
 
+    def _contvert_accessible_subs_locale(self, subs):
+        """Gives a different locale code to accessible subttiles.
+
+        Some videos have multiple subtitles for the same language. A normal
+        subtitle and some accessible subtitles. This method will transform
+        the language code for accessible subtitles by appending a '-acc' suffix
+        to its language code.
+        """
+        extracted_subs = {}
+
+        for locale, sub_content in subs.items():
+            if any(item.get('url', '').endswith(self._ARTE_ACCESSIBLE_SUBS_SUFFIX) for item in sub_content):
+                locale += '-acc'
+
+            extracted_subs[locale] = sub_content
+
+        return extracted_subs
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
@@ -165,6 +184,7 @@ class ArteTVIE(ArteTVBaseIE):
             if 'HLS' in stream['protocol']:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
+                subs = self._contvert_accessible_subs_locale(subs)
                 for fmt in fmts:
                     fmt.update({
                         'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
