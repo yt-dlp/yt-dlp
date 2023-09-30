@@ -407,7 +407,7 @@ class XHamsterEmbedIE(InfoExtractor):
 
 
 class XHamsterUserIE(InfoExtractor):
-    _VALID_URL = rf'https?://(?:.+?\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|creators)/(?P<id>[^/?#&]+)'
+    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|creators)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
