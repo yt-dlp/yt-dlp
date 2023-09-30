@@ -22,7 +22,7 @@ class ProgressCalculator:
     WINDOW_SIZE = 2.0
     # Minimum time before we add another datapoint (in seconds)
     # This is *NOT* the same as the time between a progress change
-    UPDATE_TIME = 0.2
+    UPDATE_TIME = 0.1
 
     def __init__(self, initial):
         self.downloaded = initial if initial else 0
@@ -34,6 +34,7 @@ class ProgressCalculator:
 
         self._start_time = time.monotonic()
         self._thread_infos: dict[int, ThreadInfo] = {}
+        self._lock = threading.Lock()
 
     @property
     def total(self):
@@ -41,14 +42,19 @@ class ProgressCalculator:
 
     @total.setter
     def total(self, value):
-        if not value or value <= 0.01:
-            value = None
-        elif value < self.downloaded:
-            value = self.downloaded
+        with self._lock:
+            if not value or value <= 0.01:
+                value = None
+            elif value < self.downloaded:
+                value = self.downloaded
 
-        self._total = value
+            self._total = value
 
     def update(self, size):
+        with self._lock:
+            return self._update(size)
+
+    def _update(self, size):
         current_thread = threading.get_ident()
         thread_info = self._thread_infos.get(current_thread)
         if not thread_info:
