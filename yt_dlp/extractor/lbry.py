@@ -67,11 +67,12 @@ class LBRYBaseIE(InfoExtractor):
             'release_timestamp': ('value', 'release_time', {int_or_none}),
             'tags': ('value', 'tags', ..., {lambda x: x or None}),
             'duration': ('value', stream_type, 'duration', {int_or_none}),
-            'channel': ('signing_channel', 'value', 'title', {str}),
             'channel_id': ('signing_channel', 'claim_id', {str}),
         })
 
-        channel_name = traverse_obj(stream, ('signing_channel', 'name', {str}))
+        info['uploader_id'] = traverse_obj(stream, ('signing_channel', 'normalized_name', {str}))
+        channel_name = traverse_obj(stream, ('signing_channel', (('value', 'title'), 'name'), {str}), get_all=False)
+        info['channel'] = channel_name
         if channel_name and info.get('channel_id'):
             info['channel_url'] = self._permanent_url(url, channel_name, info['channel_id'])
 
