@@ -1960,10 +1960,6 @@ from .theplatform import (
 )
 from .thestar import TheStarIE
 from .thesun import TheSunIE
-from .theta import (
-    ThetaVideoIE,
-    ThetaStreamIE,
-)
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
