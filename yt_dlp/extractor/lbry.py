@@ -80,7 +80,7 @@ class LBRYBaseIE(InfoExtractor):
 
 class LBRYIE(LBRYBaseIE):
     IE_NAME = 'lbry'
-    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?P<id>\$/[^/]+/[^/]+/{1}|@{0}/{0}|(?!@){0})'.format(LBRYBaseIE._OPT_CLAIM_ID, LBRYBaseIE._CLAIM_ID_REGEX)
+    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?P<id>\$/(?!playlist)[^/]+/[^/]+/{1}|@{0}/{0}|(?!@|\$){0})'.format(LBRYBaseIE._OPT_CLAIM_ID, LBRYBaseIE._CLAIM_ID_REGEX)
     _TESTS = [{
         # Video
         'url': 'https://lbry.tv/@Mantega:1/First-day-LBRY:1',
