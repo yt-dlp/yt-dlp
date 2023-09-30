@@ -1228,6 +1228,10 @@ from .nebula import (
 )
 from .nekohacker import NekoHackerIE
 from .nerdcubed import NerdCubedFeedIE
+from .netflix import (
+    NetflixIE,
+    NetflixPageIE,
+)
 from .netzkino import NetzkinoIE
 from .neteasemusic import (
     NetEaseMusicIE,
