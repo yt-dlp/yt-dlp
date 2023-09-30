@@ -28,6 +28,15 @@ class NhkBaseIE(InfoExtractor):
                 m_id, lang, '/all' if is_video else ''),
             m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
 
+    def _get_vod_api(self, vod_id):
+        movie_player_js = self._download_webpage('https://movie-a.nhk.or.jp/world/player/js/movie-player.js',
+                                                 vod_id, note='Downloading stream API information')
+        api_url = self._search_regex(r'prod:[^;]+apiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js,
+                                     vod_id, 'stream API url')
+        api_token = self._search_regex(r'prod:[^;]+token:\s*[\'"]([^\'"]+)[\'"]', movie_player_js,
+                                       vod_id, 'stream API token')
+        return api_url, api_token
+
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
         lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
@@ -67,12 +76,23 @@ class NhkBaseIE(InfoExtractor):
         }
         if is_video:
             vod_id = episode['vod_id']
+            api_url, api_token = self._get_vod_api(vod_id)
+            streams_json = self._download_json(api_url, vod_id, query={
+                'token': api_token,
+                'type': 'json',
+                'optional_id': vod_id,
+                'active_flg': 1,  # dont know what this is but site sends it
+            }, note='Downloading stream information')
+            stream_urls = traverse_obj(streams_json, ('meta', 0, 'movie_url'))
+            formats, subs = self._extract_m3u8_formats_and_subtitles(
+                stream_urls.get('mb_auto') or stream_urls.get('auto_sp') or stream_urls.get('auto_pc'),
+                vod_id)
+
             info.update({
-                '_type': 'url_transparent',
-                'ie_key': 'Piksel',
-                'url': 'https://movie-s.nhk.or.jp/v/refid/nhkworld/prefid/' + vod_id,
-                'id': vod_id,
+                'formats': formats,
+                'subtitles': subs,
             })
+
         else:
             if fetch_episode:
                 audio_path = episode['audio']['audio']
