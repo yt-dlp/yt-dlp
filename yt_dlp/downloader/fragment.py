@@ -262,13 +262,14 @@ class FragmentFD(FileDownloader):
                     (ctx['complete_frags_downloaded_bytes'] + frag_total_bytes)
                     / (state['fragment_index'] + 1) * total_frags)
                 progress.total = estimated_size
-                progress.update(s['downloaded_bytes'])
+                progress.update(s.get('downloaded_bytes'))
                 state['total_bytes_estimate'] = progress.total
             else:
-                progress.update(s['downloaded_bytes'])
+                progress.update(s.get('downloaded_bytes'))
 
             if s['status'] == 'finished':
                 state['fragment_index'] += 1
+                progress.thread_reset()
                 ctx['fragment_index'] = state['fragment_index']
                 state['downloaded_bytes'] = ctx['complete_frags_downloaded_bytes'] = progress.downloaded
                 ctx['speed'] = state['speed'] = progress.speed

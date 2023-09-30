@@ -1,22 +1,14 @@
 from __future__ import annotations
 
 import bisect
-# import operator
-import statistics
 import threading
 import time
-from dataclasses import dataclass
+
+# FIXME: monotonic has terrible resolution on Windows
+TIME_PROVIDER = time.perf_counter
 
 
-@dataclass
-class ThreadInfo:
-    speed: float
-    last_update: float
-    last_size: int
-    times: list[float]
-    speeds: list[float]
-
-
+# XXX: Fragment resume is not accounted for here
 class ProgressCalculator:
     # Time to calculate the average over (in seconds)
     WINDOW_SIZE = 2.0
@@ -32,9 +24,15 @@ class ProgressCalculator:
         self.eta = None
         self._total = None
 
-        self._start_time = time.monotonic()
-        self._thread_infos: dict[int, ThreadInfo] = {}
         self._lock = threading.Lock()
+        self._start_time = TIME_PROVIDER()
+        self._last_update = self._start_time
+
+        self._times: list[float] = []
+        self._speeds: list[int] = []
+
+        self._thread_updates: dict[int, float] = {}
+        self._thread_sizes: dict[int, int] = {}
 
     @property
     def total(self):
@@ -50,48 +48,50 @@ class ProgressCalculator:
 
             self._total = value
 
-    def update(self, size):
-        with self._lock:
-            return self._update(size)
-
-    def _update(self, size):
+    def thread_reset(self):
         current_thread = threading.get_ident()
-        thread_info = self._thread_infos.get(current_thread)
-        if not thread_info:
-            thread_info = ThreadInfo(self._start_time, 0, 0, [], [])
-            self._thread_infos[current_thread] = thread_info
+        with self._lock:
+            self._thread_sizes[current_thread] = 0
+            self._thread_updates[current_thread] = TIME_PROVIDER()
 
-        last_size = thread_info.last_size
-        if size < last_size:
-            chunk = size
-        elif size > last_size:
-            chunk = size - last_size
-        else:
+    def update(self, size: int | None):
+        if not size:
             return
-        self.downloaded += chunk
-        if self.total and self.downloaded > self.total:
-            self._total = self.downloaded
-        thread_info.last_size = size
 
-        current_time = time.monotonic()
+        current_thread = threading.get_ident()
+
+        with self._lock:
+            current_time = TIME_PROVIDER()
+            last_size = self._thread_sizes.get(current_thread) or 0
+            last_update = self._thread_updates.get(current_thread) or self._start_time
+            chunk = size - last_size
+            print(f'    [{threading.get_ident()}] {last_update} -> {current_time} ({chunk}B)')
+
+            update_time = self._update(chunk, current_time, last_update)
+            if update_time:
+                self._thread_updates[current_thread] = current_time
+            self._thread_sizes[current_thread] = size
+
+    def _update(self, size, current_time, last_update):
+        self.downloaded += size
         self.elapsed = current_time - self._start_time
+        if self.total is not None and self.downloaded > self.total:
+            self._total = self.downloaded
 
-        last_update = thread_info.last_update
+        self._times.append(current_time)
+        self._speeds.append(size / (current_time - last_update))
+
         if current_time - self.UPDATE_TIME <= last_update:
             return
-        thread_info.last_update = current_time
+        self._last_update = current_time
 
-        offset = bisect.bisect_left(thread_info.times, current_time - self.WINDOW_SIZE)
-        del thread_info.times[:offset]
-        del thread_info.speeds[:offset]
-        thread_info.times.append(current_time)
-        thread_info.speeds.append(size / (current_time - last_update))
+        offset = bisect.bisect_left(self._times, current_time - self.WINDOW_SIZE)
+        del self._times[:offset]
+        del self._speeds[:offset]
 
-        # weights = tuple(1 + (point - current_time) / self.WINDOW_SIZE for point in thread_info.times)
+        weights = tuple(1 + (point - current_time) / self.WINDOW_SIZE for point in self._times)
         # Same as `statistics.fmean(self.data_points, weights)`, but weights is >=3.11
-        # thread_info.speed = sum(map(operator.mul, thread_info.speeds, weights)) / sum(weights)
-        thread_info.speed = statistics.fmean(thread_info.speeds)
-        self.speed = sum(info.speed for info in self._thread_infos.values())
+        self.speed = sum(map(float.__mul__, self._speeds, weights)) / sum(weights)
 
         if not self.total:
             self.eta = None
