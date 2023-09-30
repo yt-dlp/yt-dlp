@@ -53,6 +53,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Notes about environment variables](#notes-about-environment-variables)
 * [OUTPUT TEMPLATE](#output-template)
     * [Output template examples](#output-template-examples)
+    * [Choice control flow. Logical code examples (IF, OR, ELSEIF, ELSE)](#choice-control-flow-logical-code-examples-if-or-elseif-else)
 * [FORMAT SELECTION](#format-selection)
     * [Filtering Formats](#filtering-formats)
     * [Sorting Formats](#sorting-formats)
@@ -1243,7 +1244,7 @@ yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch
 The `-o` option is used to indicate a template for the output file names while `-P` option is used to specify the path each type of file should be saved to.
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
-**tl;dr:** [navigate me to examples](#output-template-examples).
+**tl;dr:** [navigate me to examples](#output-template-examples) and show [how to control the flow (IF, OR, ELSEIF, ELSE) with code examples](#choice-control-flow-logical-code-examples-if-or-elseif-else)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
@@ -1275,7 +1276,7 @@ To summarize, the general syntax for a field is:
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
-## Logical code examples (IF, OR, ELSEIF, ELSE)
+## Choice control flow. Logical code examples (IF, OR, ELSEIF, ELSE)
 
 ### Example 1: IF, ELSE
 Template `%(webpage_url_domain)s%(id&:)s%(id|)s` will have the following logic:
