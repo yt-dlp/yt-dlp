@@ -1248,7 +1248,7 @@ The `-o` option is used to indicate a template for the output file names while `
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
 
-It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [Python string formatting operations](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), e.g. `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
+It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [Python string formatting operations](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), e.g. `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations (`s` = string, `d` = decimal).
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 
@@ -1258,11 +1258,11 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. E.g. `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
 
-1. **Alternatives**: Alternate fields can be specified separated with a `,`. E.g. `%(release_date>%Y,upload_date>%Y|Unknown)s`
+1. **Alternatives, Priorities** (logical `OR`): Alternate fields can be specified separated with a `,`. E.g. `%(release_date>%Y,upload_date>%Y|Unknown)s`
 
-1. **Replacement**: A replacement value can be specified using a `&` separator according to the [`str.format` mini-language](https://docs.python.org/3/library/string.html#format-specification-mini-language). If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty. E.g. `%(chapters&has chapters|no chapters)s`, `%(title&TITLE={:>20}|NO TITLE)s`
+1. **Replacement** (logical `IF`): A replacement value can be specified using a `&` separator according to the [`str.format` mini-language](https://docs.python.org/3/library/string.html#format-specification-mini-language). If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty. E.g. `%(chapters&has chapters|no chapters)s`, `%(title&TITLE={:>20}|NO TITLE)s`
 
-1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
+1. **Default** (logical `ELSE`): A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
 1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing, `+` for Unicode), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
@@ -1274,6 +1274,96 @@ To summarize, the general syntax for a field is:
 ```
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
+
+## Logical code examples (IF, OR, ELSEIF, ELSE)
+
+### Example 1: IF, ELSE
+Template `%(webpage_url_domain)s%(id&:)s%(id|)s` will have the following logic:
+```
+if (webpage_url_domain == EXISTS):            # %(webpage_url_domain)s
+   result.append(webpage_url_domain)
+else:
+   result.append("NA")                        # The default value unless you overwrite --output-na-placeholder
+endif
+
+if (id == EXISTS):                            # %(id&:)s
+   result.append(":")
+endif
+
+if (id == EXISTS):                            # %(id|)s
+   result.append(id)
+else:
+   continue          # otherwise, you will get the "NA" default missing value unless you overwrite --output-na-placeholder
+endif
+```
+or shortened:
+```
+if (webpage_url_domain == EXISTS):            # %(webpage_url_domain)s
+   result.append(webpage_url_domain)
+else:
+   result.append("NA")                        # The default value unless you overwrite --output-na-placeholder
+endif
+
+if (id == EXISTS):
+   result.append(":")
+   result.append(id)
+else:
+   continue         # otherwise, you will get the "NA" default missing value unless you overwrite --output-na-placeholder
+endif
+```
+
+### Example 2: IF, OR, ELSE
+The template `%(uploader,channel&[|)s%(uploader,channel|)s%(uploader,channel&]|)s` will have the following logic:
+```
+if (uploader == EXISTS OR channel == EXISTS):            # %(uploader,channel& [|)s
+   result.append("[")
+else:
+   continue                            # otherwise, you will get the "NA" default
+endif
+
+if (uploader == EXISTS):               # %(uploader,channel|)s
+   result.append(uploader)
+elseif (channel == EXISTS):
+   result.append(channel)
+else:
+   continue                            # otherwise, you will get the "NA" default
+endif
+
+if (uploader == EXISTS OR channel == EXISTS):            # %(uploader,channel&]|)s
+   result.append("]")
+else:
+   continue                            # otherwise, you will get the "NA" default
+endif
+```
+or shortened:
+```
+if (uploader == EXISTS OR channel == EXISTS):
+   result.append("[")
+   result.append(uploader OR channel)         # append only the first existing one
+   result.append("]")
+else:
+   continue
+endif
+```
+
+### Example 3: IF, ELSE, conversions
+The template `%(title|).160B%(title.161B&…|)s` will have the following logic:
+```
+if (title == EXISTS):                              # %(title|).160B
+   result.append(title.limitLengthBytes(160))      # append only the maximum of 160 bytes
+else:
+   continue                                        # otherwise, you will get the "NA" default
+endif
+
+if (title.checkPositionBytes(161) == EXISTS):      # %(title.161B&…|)s
+   result.append("…")
+else:
+   continue                                        # otherwise, you will get the "NA" default
+endif
+```
+Therefore you get the maximum of 160 bytes of the title, and if any more exist you also get the "…" character indicating that the title was shortened. This is very useful because of the limit on the length of file names in various File Systems (Windows's NTFS's limit is 255 UTF-16 (2 bytes each), but the length limit is for the whole PATH, not the individual file name; Linux's Ext4's max individual filename length is 255 bytes). This is also the reason why it's recommended to use the consistent `B` (Bytes) restriction instead of the restriction based on the number of characters (which can take 1, 2 or even 4 bytes each).
+
+---
 
 <a id="outtmpl-postprocess-note"/>
 
