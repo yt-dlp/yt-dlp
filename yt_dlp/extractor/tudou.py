@@ -6,7 +6,7 @@ import re
 class TudouIE(InfoExtractor):
     _VALID_URL = r'https?://(?:play\.)?tudou\.com/v_show/(?P<id>id_[\w=]+).html[\w\W]+'
     _TESTS = [{
-        'url': 'https://play.tudou.com/v_show/id_XNjAxNjI2OTU3Ng',
+        'url': 'https://play.tudou.com/v_show/id_XNjAxNjI2OTU3Ng.html?',
         'md5': 'to be updated',
         'info_dict': {
             'id': 'XNjAxNjI2OTU3Ng==',
