@@ -62,19 +62,19 @@ class TudouIE(InfoExtractor):
         list_of_video_data = []
         for item in data_m3u8['data']['stream']:
             item_of_video_data = {
-                'url' : item['segs'][0]['cdn_url'].replace('http://','https://'),
+                'url': item['segs'][0]['cdn_url'].replace('http://', 'https://'),
                 'ext': 'mp4',
-                'filesize' : item['size'],
-                'width' : item['width'],
-                'height' : item['height'],
+                'filesize': item['size'],
+                'width': item['width'],
+                'height': item['height'],
             }
             list_of_video_data.append(item_of_video_data)
-        sorted_list_of_video_data = sorted(list_of_video_data, key = lambda d : d ['filesize'], reverse = False )
+        sorted_list_of_video_data = sorted(list_of_video_data, key= lambda d: d ['filesize'], reverse= False)
 
         return {
             'id': video_id,
             'title': title,
-            'show_name':show_name,
+            'show_name': show_name,
             'ext': 'mp4',
             'formats': sorted_list_of_video_data,
         }
