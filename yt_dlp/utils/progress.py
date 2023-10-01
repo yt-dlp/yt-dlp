@@ -8,16 +8,16 @@ import time
 
 class ProgressCalculator:
     # Time to calculate the speed over (in nanoseconds)
-    WINDOW_SIZE = 2_000_000_000
+    SAMPLING_WINDOW = 1_000_000_000
     # Time to smooth the speed over (in nanoseconds)
-    SPEED_WINDOW = 100_000_000
+    SMOOTHING_WINDOW = 100_000_000
 
-    def __init__(self, initial):
+    def __init__(self, initial: int):
         self.downloaded = initial or 0
 
-        self.elapsed = 0
-        self.speed = None
-        self.eta = None
+        self.elapsed: float = 0
+        self.speed: int | None = None
+        self.eta: float | None = None
 
         self._total = None
         self._start_time = time.monotonic_ns()
@@ -35,7 +35,7 @@ class ProgressCalculator:
         return self._total
 
     @total.setter
-    def total(self, value):
+    def total(self, value: int | None):
         with self._lock:
             if not value:
                 value = None
@@ -60,11 +60,11 @@ class ProgressCalculator:
             self._thread_sizes[current_thread] = size
             self._update(size - last_size)
 
-    def _update(self, size):
+    def _update(self, size: int):
         current_time = time.monotonic_ns()
 
         self.downloaded += size
-        self.elapsed = current_time - self._start_time
+        self.elapsed = (current_time - self._start_time) / 1_000_000_000
         if self.total is not None and self.downloaded > self.total:
             self._total = self.downloaded
 
@@ -74,14 +74,14 @@ class ProgressCalculator:
             return
         self._last_update = current_time
 
-        self._downloaded.trim(current_time - self.WINDOW_SIZE)
+        self._downloaded.trim(current_time - self.SAMPLING_WINDOW)
         download_time, download_bytes = self._downloaded.ranges()
         if not download_time:
             return
         speed = round(download_bytes * 1_000_000_000 / download_time)
 
         self._speeds.add_point(current_time, speed)
-        self._speeds.trim(current_time - self.SPEED_WINDOW)
+        self._speeds.trim(current_time - self.SMOOTHING_WINDOW)
         speed_time = self._speeds.ranges()[0] or 1
 
         weights = tuple(1 + (point - current_time) / speed_time for point in self._speeds.times)
