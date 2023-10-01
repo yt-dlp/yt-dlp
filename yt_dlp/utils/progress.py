@@ -23,7 +23,7 @@ class ProgressCalculator:
         self.eta: float | None = None
         self.smooth_eta: int | None = None
 
-        self._total = None
+        self._total = 0
         self._start_time = time.monotonic_ns()
 
         self._lock = threading.Lock()
@@ -39,9 +39,7 @@ class ProgressCalculator:
     @total.setter
     def total(self, value: int | None):
         with self._lock:
-            if not value:
-                value = None
-            elif value < self.downloaded:
+            if value is not None and value < self.downloaded:
                 value = self.downloaded
 
             self._total = value
