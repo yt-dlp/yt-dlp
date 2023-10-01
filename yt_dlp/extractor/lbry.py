@@ -67,7 +67,9 @@ class LBRYBaseIE(InfoExtractor):
             'release_timestamp': ('value', 'release_time', {int_or_none}),
             'tags': ('value', 'tags', ..., {lambda x: x or None}),
             'duration': ('value', stream_type, 'duration', {int_or_none}),
+            'channel': ('signing_channel', 'value', 'title', {str}),
             'channel_id': ('signing_channel', 'claim_id', {str}),
+            'uploader_id': ('signing_channel', 'name', {str}),
         })
 
         info['uploader_id'] = traverse_obj(stream, ('signing_channel', 'normalized_name', {str}))
