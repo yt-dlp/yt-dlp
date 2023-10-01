@@ -77,6 +77,10 @@ class ProgressCalculator:
         offset = bisect.bisect_left(self._times, current_time - self.SAMPLING_WINDOW)
         del self._times[:offset]
         del self._downloaded[:offset]
+        if len(self._times) < 2:
+            self.speed = self.smooth_speed = 0
+            self.eta = self.smooth_eta = None
+            return
 
         download_time = current_time - self._times[0]
         if not download_time:
