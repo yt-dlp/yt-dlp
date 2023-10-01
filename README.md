@@ -52,8 +52,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Authentication with netrc](#authentication-with-netrc)
     * [Notes about environment variables](#notes-about-environment-variables)
 * [OUTPUT TEMPLATE](#output-template)
-    * [Output template examples](#output-template-examples)
     * [Choice control flow. Logical code examples (IF, OR, ELSEIF, ELSE)](#choice-control-flow-logical-code-examples-if-or-elseif-else)
+    * [Output template examples](#output-template-examples)
 * [FORMAT SELECTION](#format-selection)
     * [Filtering Formats](#filtering-formats)
     * [Sorting Formats](#sorting-formats)
@@ -1244,7 +1244,7 @@ yt-dlp --netrc-cmd 'gpg --decrypt ~/.authinfo.gpg' https://www.youtube.com/watch
 The `-o` option is used to indicate a template for the output file names while `-P` option is used to specify the path each type of file should be saved to.
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
-**tl;dr:** [navigate me to examples](#output-template-examples) and show [how to control the flow (IF, OR, ELSEIF, ELSE) with code examples](#choice-control-flow-logical-code-examples-if-or-elseif-else)
+**tl;dr:** [navigate me to examples](#output-template-examples) and show [how to control the flow (IF, OR, ELSEIF, ELSE) with code examples](#choice-control-flow-logical-code-examples-if-or-elseif-else).
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
