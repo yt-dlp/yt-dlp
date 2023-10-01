@@ -1,36 +1,33 @@
 from __future__ import annotations
 
 import bisect
+import operator
 import threading
 import time
 
-# FIXME: monotonic has terrible resolution on Windows
-TIME_PROVIDER = time.perf_counter
 
-
-# XXX: Fragment resume is not accounted for here
 class ProgressCalculator:
-    # Time to calculate the average over (in seconds)
-    WINDOW_SIZE = 2.0
-    # Minimum time before we add another datapoint (in seconds)
-    # This is *NOT* the same as the time between a progress change
-    UPDATE_TIME = 0.1
+    # Time to calculate the speed over (in nanoseconds)
+    WINDOW_SIZE = 1_000_000_000
+    # Time to smooth the speed over (in nanoseconds)
+    SPEED_WINDOW = 1_000_000_000
 
     def __init__(self, initial):
-        self.downloaded = initial if initial else 0
+        self.downloaded = initial or 0
 
         self.elapsed = 0
         self.speed = None
         self.eta = None
-        self._total = None
 
-        self._lock = threading.Lock()
-        self._start_time = TIME_PROVIDER()
+        self._total = None
+        self._start_time = time.monotonic_ns()
         self._last_update = self._start_time
 
-        self._times: list[float] = []
-        self._downloaded: list[int] = []
+        self._lock = threading.Lock()
         self._thread_sizes: dict[int, int] = {}
+
+        self._downloaded = _DataPoints()
+        self._speeds = _DataPoints()
 
     @property
     def total(self):
@@ -63,40 +60,63 @@ class ProgressCalculator:
             self._update(size - last_size)
 
     def _update(self, size):
-        current_time = TIME_PROVIDER()
+        current_time = time.monotonic_ns()
 
         self.downloaded += size
         self.elapsed = current_time - self._start_time
         if self.total is not None and self.downloaded > self.total:
             self._total = self.downloaded
 
-        self._times.append(current_time)
-        self._downloaded.append(self.downloaded)
+        self._downloaded.add_point(current_time, self.downloaded)
 
-        if current_time - self.UPDATE_TIME <= self._last_update:
+        if current_time <= self._last_update:
             return
         self._last_update = current_time
 
-        offset = bisect.bisect_left(self._times, current_time - self.WINDOW_SIZE)
-        del self._times[:offset]
-        del self._downloaded[:offset]
-        assert self._times, "A current entry should have been added above"
-        assert self._downloaded, "A current entry should have been added above"
-
-        time_delta = self._times[-1] - self._times[0]
-        if not time_delta:
+        self._downloaded.trim(current_time - self.WINDOW_SIZE)
+        download_time, download_bytes = self._downloaded.ranges()
+        if not download_time:
             return
+        speed = round(download_bytes * 1_000_000_000 / download_time)
 
-        downloaded_bytes = self._downloaded[-1] - self._downloaded[0]
-        speed = downloaded_bytes / time_delta
+        self._speeds.add_point(current_time, speed)
+        self._speeds.trim(current_time - self.SPEED_WINDOW)
+        speed_time = self._speeds.ranges()[0] or 1
 
-        # TODO: Add linear moving average
-        # weights = tuple(1 + (point - current_time) / self.WINDOW_SIZE for point in self._times)
-        # # Same as `statistics.fmean(self.data_points, weights)`, but weights is >=3.11
-        # self.speed = sum(map(float.__mul__, self._downloaded, weights)) / sum(weights)
-        self.speed = speed
+        weights = tuple(1 + (point - current_time) / speed_time for point in self._speeds.times)
+        # Same as `statistics.fmean(self.data_points, weights)`, but weights is >=3.11
+        self.speed = int(sum(map(operator.mul, self._speeds.values, weights)) / sum(weights))
 
         if not self.total:
             self.eta = None
         elif self.speed:
             self.eta = (self.total - self.downloaded) / self.speed
+
+
+class _DataPoints:
+    def __init__(self):
+        self.times: list[int] = []
+        self.values: list[int] = []
+
+    def add_point(self, time: int, value: int):
+        """Add a point to the dataset"""
+        self.times.append(time)
+        self.values.append(value)
+
+    def trim(self, start_time: int):
+        """Remove expired data points"""
+        offset = bisect.bisect_left(self.times, start_time)
+        del self.times[:offset]
+        del self.values[:offset]
+
+        return offset
+
+    def ranges(self):
+        """Return the range of both the time and data"""
+        if not self.times:
+            return 0, 0
+
+        return self.times[-1] - self.times[0], self.values[-1] - self.values[0]
+
+    def __len__(self):
+        return len(self.times)

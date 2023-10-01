@@ -257,6 +257,7 @@ class FragmentFD(FileDownloader):
             frag_total_bytes = s.get('total_bytes') or 0
             s['fragment_info_dict'] = s.pop('info_dict', {})
 
+            # XXX: Fragment resume is not accounted for here
             if not ctx['live']:
                 estimated_size = (
                     (ctx['complete_frags_downloaded_bytes'] + frag_total_bytes)
