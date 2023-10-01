@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
-
+from ..utils.networking import clean_proxies
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..utils import (
@@ -35,7 +35,10 @@ def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
     rh = ydl._request_director.handlers['Urllib']
     if 'abematv-license' in rh._SUPPORTED_URL_SCHEMES:
         return
-    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=ydl.proxies)
+    headers = ydl.params['http_headers'].copy()
+    proxies = ydl.proxies.copy()
+    clean_proxies(proxies, headers)
+    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=proxies)
     assert isinstance(opener, urllib.request.OpenerDirector)
     opener.add_handler(handler)
     rh._SUPPORTED_URL_SCHEMES = (*rh._SUPPORTED_URL_SCHEMES, 'abematv-license')

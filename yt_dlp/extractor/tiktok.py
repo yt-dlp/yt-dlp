@@ -15,7 +15,6 @@ from ..utils import (
     UserNotLive,
     determine_ext,
     format_field,
-    get_element_by_id,
     get_first,
     int_or_none,
     join_nonempty,
@@ -50,8 +49,9 @@ class TikTokBaseIE(InfoExtractor):
         return f'https://www.tiktok.com/@{user_id or "_"}/video/{video_id}'
 
     def _get_sigi_state(self, webpage, display_id):
-        return self._parse_json(get_element_by_id(
-            'SIGI_STATE|sigi-persisted-data', webpage, escape_value=False), display_id)
+        return self._search_json(
+            r'<script[^>]+\bid="(?:SIGI_STATE|sigi-persisted-data)"[^>]*>', webpage,
+            'sigi state', display_id, end_pattern=r'</script>')
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
