@@ -6,13 +6,16 @@ import time
 
 
 class ProgressCalculator:
-    # Time to calculate the speed over (in nanoseconds)
-    SAMPLING_WINDOW = 1_000_000_000
+    # Time to calculate the speed over (nanoseconds)
+    SAMPLING_WINDOW = 3_000_000_000
+    # Time until we show smoothed speed and eta (nanoseconds)
+    GRACE_PERIOD = 1_000_000_000
     # Factor for the exponential moving average (from 0 = prev to 1 = current)
-    SMOOTHING_FACTOR = 0.3
+    SMOOTHING = 0.1
 
     def __init__(self, initial: int):
-        self.downloaded = initial or 0
+        self._initial = initial or 0
+        self.downloaded = self._initial
 
         self.elapsed: float = 0
         self.speed: float = 0
@@ -62,7 +65,8 @@ class ProgressCalculator:
         current_time = time.monotonic_ns()
 
         self.downloaded += size
-        self.elapsed = (current_time - self._start_time) / 1_000_000_000
+        _elapsed_ns = current_time - self._start_time
+        self.elapsed = _elapsed_ns / 1_000_000_000
         if self.total is not None and self.downloaded > self.total:
             self._total = self.downloaded
 
@@ -79,7 +83,11 @@ class ProgressCalculator:
         downloaded_bytes = self.downloaded - self._downloaded[0]
 
         self.speed = downloaded_bytes * 1_000_000_000 / download_time
-        self.smooth_speed = int(self.SMOOTHING_FACTOR * self.speed + (1 - self.SMOOTHING_FACTOR) * self.smooth_speed)
+        if _elapsed_ns < self.GRACE_PERIOD:
+            self.smooth_speed = int(self.speed)
+            return
+
+        self.smooth_speed = int(self.SMOOTHING * self.speed + (1 - self.SMOOTHING) * self.smooth_speed)
 
         if not self.total:
             self.eta = None
