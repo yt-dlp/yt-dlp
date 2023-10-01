@@ -8,6 +8,8 @@ import time
 class ProgressCalculator:
     # Time to calculate the speed over (nanoseconds)
     SAMPLING_WINDOW = 3_000_000_000
+    # Minimum timeframe before to sample next downloaded bytes (nanoseconds)
+    SAMPLING_RATE = 50_000_000
     # Time until we show smoothed speed and eta (nanoseconds)
     GRACE_PERIOD = 1_000_000_000
     # Factor for the exponential moving average (from 0 = prev to 1 = current)
@@ -25,6 +27,7 @@ class ProgressCalculator:
 
         self._total = 0
         self._start_time = time.monotonic_ns()
+        self._last_update = self._start_time
 
         self._lock = threading.Lock()
         self._thread_sizes: dict[int, int] = {}
@@ -68,6 +71,10 @@ class ProgressCalculator:
         self.elapsed = _elapsed_ns / 1_000_000_000
         if self.total is not None and self.downloaded > self.total:
             self._total = self.downloaded
+
+        if self._last_update + self.SAMPLING_RATE > current_time:
+            return
+        self._last_update = current_time
 
         self._times.append(current_time)
         self._downloaded.append(self.downloaded)
