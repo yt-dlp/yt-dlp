@@ -10,22 +10,16 @@ class ProgressCalculator:
     SAMPLING_WINDOW = 3
     # Minimum timeframe before to sample next downloaded bytes (seconds)
     SAMPLING_RATE = 0.05
-    # Time until we show smoothed speed and eta (seconds)
+    # Time before showing eta (seconds)
     GRACE_PERIOD = 1
-    # Smoothing factor for the speed EMA (from 0 = prev to 1 = current)
-    SPEED_SMOOTHING = 0.3
-    # Smoothing factor for the ETA EMA (from 0 = prev to 1 = current)
-    ETA_SMOOTHING = 0.1
 
     def __init__(self, initial: int):
         self._initial = initial or 0
         self.downloaded = self._initial
 
         self.elapsed: float = 0
-        self.speed: float = 0
-        self.smooth_speed: float = 0
-        self.eta: float | None = None
-        self.smooth_eta: float | None = None
+        self.speed = SmoothValue(0, smoothing=0.7)
+        self.eta = SmoothValue(None, smoothing=0.9)
 
         self._total = 0
         self._start_time = time.monotonic()
@@ -84,27 +78,32 @@ class ProgressCalculator:
         del self._times[:offset]
         del self._downloaded[:offset]
         if len(self._times) < 2:
-            self.speed = self.smooth_speed = 0
-            self.eta = self.smooth_eta = None
+            self.speed.reset()
+            self.eta.reset()
             return
 
         download_time = current_time - self._times[0]
         if not download_time:
             return
 
-        self.speed = (self.downloaded - self._downloaded[0]) / download_time
-        if self.elapsed < self.GRACE_PERIOD:
-            self.smooth_speed = self.speed
-            return
-
-        self.smooth_speed = self.SPEED_SMOOTHING * self.speed + (1 - self.SPEED_SMOOTHING) * self.smooth_speed
-
-        if self.total and self.speed:
-            self.eta = (self.total - self.downloaded) / self.speed
-            if not self.smooth_eta:
-                self.smooth_eta = self.eta
-            else:
-                self.smooth_eta = self.ETA_SMOOTHING * self.eta + (1 - self.ETA_SMOOTHING) * self.smooth_eta
+        self.speed.set((self.downloaded - self._downloaded[0]) / download_time)
+        if self.total and self.speed.value and self.elapsed > self.GRACE_PERIOD:
+            self.eta.set((self.total - self.downloaded) / self.speed.value)
         else:
-            self.eta = None
-            self.smooth_eta = None
+            self.eta.reset()
+
+
+class SmoothValue:
+    def __init__(self, initial: float | None, smoothing: float):
+        self.value = self.smooth = self._initial = initial
+        self._smoothing = smoothing
+
+    def set(self, value: float):
+        self.value = value
+        if self.smooth is None:
+            self.smooth = self.value
+        else:
+            self.smooth = (1 - self._smoothing) * value + self._smoothing * self.smooth
+
+    def reset(self):
+        self.value = self.smooth = self._initial
