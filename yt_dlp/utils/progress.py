@@ -12,8 +12,10 @@ class ProgressCalculator:
     SAMPLING_RATE = 50_000_000
     # Time until we show smoothed speed and eta (nanoseconds)
     GRACE_PERIOD = 1_000_000_000
-    # Factor for the exponential moving average (from 0 = prev to 1 = current)
-    SMOOTHING = 0.1
+    # Smoothing factor for the speed EMA (from 0 = prev to 1 = current)
+    SPEED_SMOOTHING = 0.3
+    # Smoothing factor for the ETA EMA (from 0 = prev to 1 = current)
+    ETA_SMOOTHING = 0.05
 
     def __init__(self, initial: int):
         self._initial = initial or 0
@@ -97,13 +99,13 @@ class ProgressCalculator:
             self.smooth_speed = int(self.speed)
             return
 
-        self.smooth_speed = int(self.SMOOTHING * self.speed + (1 - self.SMOOTHING) * self.smooth_speed)
+        self.smooth_speed = int(self.SPEED_SMOOTHING * self.speed + (1 - self.SPEED_SMOOTHING) * self.smooth_speed)
 
         if self.total and self.speed:
             self.eta = (self.total - self.downloaded) / self.speed
             if not self.smooth_eta:
                 self.smooth_eta = self.eta  # type: ignore
-            self.smooth_eta = int(self.SMOOTHING * self.eta + (1 - self.SMOOTHING) * self.smooth_eta)
+            self.smooth_eta = int(self.ETA_SMOOTHING * self.eta + (1 - self.ETA_SMOOTHING) * self.smooth_eta)
         else:
             self.eta = None
             self.smooth_eta = None
