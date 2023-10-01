@@ -6,16 +6,16 @@ import time
 
 
 class ProgressCalculator:
-    # Time to calculate the speed over (nanoseconds)
-    SAMPLING_WINDOW = 3_000_000_000
-    # Minimum timeframe before to sample next downloaded bytes (nanoseconds)
-    SAMPLING_RATE = 50_000_000
-    # Time until we show smoothed speed and eta (nanoseconds)
-    GRACE_PERIOD = 1_000_000_000
+    # Time to calculate the speed over (seconds)
+    SAMPLING_WINDOW = 3
+    # Minimum timeframe before to sample next downloaded bytes (seconds)
+    SAMPLING_RATE = 0.05
+    # Time until we show smoothed speed and eta (seconds)
+    GRACE_PERIOD = 1
     # Smoothing factor for the speed EMA (from 0 = prev to 1 = current)
     SPEED_SMOOTHING = 0.3
     # Smoothing factor for the ETA EMA (from 0 = prev to 1 = current)
-    ETA_SMOOTHING = 0.05
+    ETA_SMOOTHING = 0.1
 
     def __init__(self, initial: int):
         self._initial = initial or 0
@@ -23,12 +23,12 @@ class ProgressCalculator:
 
         self.elapsed: float = 0
         self.speed: float = 0
-        self.smooth_speed: int = 0
+        self.smooth_speed: float = 0
         self.eta: float | None = None
-        self.smooth_eta: int | None = None
+        self.smooth_eta: float | None = None
 
         self._total = 0
-        self._start_time = time.monotonic_ns()
+        self._start_time = time.monotonic()
         self._last_update = self._start_time
 
         self._lock = threading.Lock()
@@ -66,11 +66,10 @@ class ProgressCalculator:
             self._update(size - last_size)
 
     def _update(self, size: int):
-        current_time = time.monotonic_ns()
+        current_time = time.monotonic()
 
         self.downloaded += size
-        _elapsed_ns = current_time - self._start_time
-        self.elapsed = _elapsed_ns / 1_000_000_000
+        self.elapsed = current_time - self._start_time
         if self.total is not None and self.downloaded > self.total:
             self._total = self.downloaded
 
@@ -92,20 +91,20 @@ class ProgressCalculator:
         download_time = current_time - self._times[0]
         if not download_time:
             return
-        downloaded_bytes = self.downloaded - self._downloaded[0]
 
-        self.speed = downloaded_bytes * 1_000_000_000 / download_time
-        if _elapsed_ns < self.GRACE_PERIOD:
-            self.smooth_speed = int(self.speed)
+        self.speed = (self.downloaded - self._downloaded[0]) / download_time
+        if self.elapsed < self.GRACE_PERIOD:
+            self.smooth_speed = self.speed
             return
 
-        self.smooth_speed = int(self.SPEED_SMOOTHING * self.speed + (1 - self.SPEED_SMOOTHING) * self.smooth_speed)
+        self.smooth_speed = self.SPEED_SMOOTHING * self.speed + (1 - self.SPEED_SMOOTHING) * self.smooth_speed
 
         if self.total and self.speed:
             self.eta = (self.total - self.downloaded) / self.speed
             if not self.smooth_eta:
-                self.smooth_eta = self.eta  # type: ignore
-            self.smooth_eta = int(self.ETA_SMOOTHING * self.eta + (1 - self.ETA_SMOOTHING) * self.smooth_eta)
+                self.smooth_eta = self.eta
+            else:
+                self.smooth_eta = self.ETA_SMOOTHING * self.eta + (1 - self.ETA_SMOOTHING) * self.smooth_eta
         else:
             self.eta = None
             self.smooth_eta = None
