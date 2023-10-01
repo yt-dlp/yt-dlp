@@ -499,9 +499,10 @@ class IqIE(InfoExtractor):
                     'tm': tm,
                     'qdy': 'a',
                     'qds': 0,
-                    'k_ft1': 141287244169348,
-                    'k_ft4': 34359746564,
-                    'k_ft5': 1,
+                    'k_ft1': '143486267424900',
+                    'k_ft4': '1572868',
+                    'k_ft7': '4',
+                    'k_ft5': '1',
                     'bop': JSON.stringify({
                         'version': '10.0',
                         'dfp': dfp
