@@ -21,6 +21,7 @@ class ProgressCalculator:
         self.speed: float = 0
         self.smooth_speed: int = 0
         self.eta: float | None = None
+        self.smooth_eta: int | None = None
 
         self._total = None
         self._start_time = time.monotonic_ns()
@@ -89,7 +90,11 @@ class ProgressCalculator:
 
         self.smooth_speed = int(self.SMOOTHING * self.speed + (1 - self.SMOOTHING) * self.smooth_speed)
 
-        if not self.total:
-            self.eta = None
-        elif self.speed:
+        if self.total and self.speed:
             self.eta = (self.total - self.downloaded) / self.speed
+            if not self.smooth_eta:
+                self.smooth_eta = self.eta  # type: ignore
+            self.smooth_eta = int(self.SMOOTHING * self.eta + (1 - self.SMOOTHING) * self.smooth_eta)
+        else:
+            self.eta = None
+            self.smooth_eta = None

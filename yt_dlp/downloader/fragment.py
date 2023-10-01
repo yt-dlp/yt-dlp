@@ -275,7 +275,7 @@ class FragmentFD(FileDownloader):
 
             state['downloaded_bytes'] = ctx['complete_frags_downloaded_bytes'] = progress.downloaded
             ctx['speed'] = state['speed'] = progress.smooth_speed
-            state['eta'] = progress.eta
+            state['eta'] = progress.smooth_eta
 
             self._hook_progress(state, info_dict)
 
