@@ -69,7 +69,7 @@ class TudouIE(InfoExtractor):
                 'height': item['height'],
             }
             list_of_video_data.append(item_of_video_data)
-        sorted_list_of_video_data = sorted(list_of_video_data, key= lambda d: d ['filesize'], reverse= False)
+        sorted_list_of_video_data = sorted(list_of_video_data, key=lambda d: d['filesize'], reverse=False)
 
         return {
             'id': video_id,
