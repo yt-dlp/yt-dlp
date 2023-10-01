@@ -15,12 +15,12 @@ class ProgressCalculator:
         self.downloaded = initial or 0
 
         self.elapsed: float = 0
-        self.speed: int = 0
+        self.speed: float = 0
+        self.smooth_speed: int = 0
         self.eta: float | None = None
 
         self._total = None
         self._start_time = time.monotonic_ns()
-        self._last_update = self._start_time
 
         self._lock = threading.Lock()
         self._thread_sizes: dict[int, int] = {}
@@ -69,20 +69,17 @@ class ProgressCalculator:
         self._times.append(current_time)
         self._downloaded.append(self.downloaded)
 
-        if current_time <= self._last_update:
-            return
-        self._last_update = current_time
-
         offset = bisect.bisect_left(self._times, current_time - self.SAMPLING_WINDOW)
         del self._times[:offset]
         del self._downloaded[:offset]
+
         download_time = current_time - self._times[0]
         if not download_time:
             return
         downloaded_bytes = self.downloaded - self._downloaded[0]
-        speed = round(downloaded_bytes * 1_000_000_000 / download_time)
 
-        self.speed = int(self.SMOOTHING_FACTOR * speed + (1 - self.SMOOTHING_FACTOR) * self.speed)
+        self.speed = downloaded_bytes * 1_000_000_000 / download_time
+        self.smooth_speed = int(self.SMOOTHING_FACTOR * self.speed + (1 - self.SMOOTHING_FACTOR) * self.smooth_speed)
 
         if not self.total:
             self.eta = None
