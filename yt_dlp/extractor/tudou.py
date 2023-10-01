@@ -29,7 +29,7 @@ class TudouIE(InfoExtractor):
         show_name = data['data']['data']['data']['extra']['showName']
 
         _, urlh = self._download_webpage_handle(
-               "https://log.mmstat.com/yt.gif", video_id, 'Retrieving cna info'
+            "https://log.mmstat.com/yt.gif", video_id, 'Retrieving cna info'
         )
         re_cna = re.compile(r'cna=([\w\W]+; expires)')
         cna = re.findall(re_cna, urlh.headers['set-cookie'])[0].replace("; expires", "")
