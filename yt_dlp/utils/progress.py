@@ -8,9 +8,9 @@ import time
 
 class ProgressCalculator:
     # Time to calculate the speed over (in nanoseconds)
-    WINDOW_SIZE = 1_000_000_000
+    WINDOW_SIZE = 2_000_000_000
     # Time to smooth the speed over (in nanoseconds)
-    SPEED_WINDOW = 1_000_000_000
+    SPEED_WINDOW = 100_000_000
 
     def __init__(self, initial):
         self.downloaded = initial or 0
@@ -27,6 +27,7 @@ class ProgressCalculator:
         self._thread_sizes: dict[int, int] = {}
 
         self._downloaded = _DataPoints()
+        self._downloaded.add_point(self._start_time, self.downloaded)
         self._speeds = _DataPoints()
 
     @property
@@ -36,7 +37,7 @@ class ProgressCalculator:
     @total.setter
     def total(self, value):
         with self._lock:
-            if not value or value <= 0.01:
+            if not value:
                 value = None
             elif value < self.downloaded:
                 value = self.downloaded
