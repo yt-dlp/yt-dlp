@@ -1697,6 +1697,8 @@ $ yt-dlp -S "codec:h264"
 # or the best video with best codec if there is no such video
 $ yt-dlp -S "+codec:h264"
 
+# Download the best audio with "main" audio role
+$ yt-dlp -f "ba[role=main]"
 
 
 # More complex examples

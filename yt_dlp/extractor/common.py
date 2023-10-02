@@ -247,6 +247,7 @@ class InfoExtractor:
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader
+                    * role      Role value
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -2643,6 +2644,8 @@ class InfoExtractor:
                 'timescale': 1,
             })
             for adaptation_set in period.findall(_add_ns('AdaptationSet')):
+                role_node = adaptation_set.find(_add_ns('Role'))
+
                 adaption_set_ms_info = extract_multisegment_info(adaptation_set, period_ms_info)
                 for representation in adaptation_set.findall(_add_ns('Representation')):
                     representation_attrib = adaptation_set.attrib.copy()
@@ -2710,13 +2713,15 @@ class InfoExtractor:
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
-                            **codecs
+                            **codecs,
+                            'role': role_node.attrib.get('value') if role_node is not None else None,
                         }
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
                             'manifest_url': mpd_url,
                             'filesize': filesize,
+                            'role': role_node.attrib.get('value') if role_node is not None else None,
                         }
                     elif content_type == 'image/jpeg':
                         # See test case in VikiIE
