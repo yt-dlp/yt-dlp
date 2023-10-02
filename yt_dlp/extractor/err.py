@@ -20,10 +20,16 @@ from ..utils import (
     urlencode_postdata,
 )
 
+#   ## Supported features
+#
+#   All provided audio, video and subtitle streams.
+#   Series are handled as playlists.
+#   Thumbnails and chapters if available.
+#
 #   ## Authentication options
 #
-#   etv, etv2, etvpluss, jupiter an jupiterpluss support username/password and
-#   .netrc authentication data, netrc machine should be err.ee.
+#   etv, jupiter an jupiterpluss support username/password and
+#   netrc based authentication, netrc machine should be err.ee.
 #
 #   ## Known problems
 #
@@ -38,9 +44,8 @@ from ..utils import (
 
 
 def json_find_node(obj, criteria):
-    '''Searches recursively depth first for a node that satisfies all
-    criteria and returns it. None if nothing is found.
-    '''
+    """Searches recursively depth first for a node that satisfies all
+    criteria and returns it. None if nothing is found."""
     if not isinstance(criteria, dict):
         raise TypeError('Should be dictionary, but is %s' % type(criteria))
     if isinstance(obj, (tuple, list)):
@@ -63,9 +68,8 @@ def json_find_node(obj, criteria):
 
 
 def json_find_value(obj, key):
-    '''Searches recursively depth first for a key (key1.key2...keyn) in json
-    structure and returns it's value, i.e. that what it points to, or None.
-    '''
+    """Searches recursively depth first for a key (key1.key2...keyn) in json
+    structure and returns it's value, i.e. that what it points to, or None."""
     if isinstance(obj, (tuple, list)):
         for element in obj:
             val = json_find_value(element, key)
@@ -82,7 +86,7 @@ def json_find_value(obj, key):
 
 
 def json_has_value(obj, key):
-    '''Checks for existence of key1.key2...keyn etc'''
+    """Checks for existence of key1.key2...keyn etc"""
     j = obj
     for k in key.split('.'):
         if isinstance(j, dict) and (k in j) and j[k]:
@@ -93,7 +97,7 @@ def json_has_value(obj, key):
 
 
 def json_get_value(obj, key):
-    '''Gets value of key1.key2...keyn etc, or None'''
+    """Gets value of key1.key2...keyn etc, or None"""
     j = obj
     for k in key.split('.'):
         if isinstance(j, dict) and (k in j) and j[k]:
@@ -104,14 +108,13 @@ def json_get_value(obj, key):
 
 
 def padding_width(count):
-    '''Returns number of positions needed to format indexes <= count.'''
+    """Returns number of positions needed to format indexes <= count."""
     return floor(log10(count)) + 1 if count else 1
 
 
 def sanitize_title(title):
     """Replaces [/.?!:|] with '-', strips dots and spaces, suppresses '*', all
-    sorts of quotes and fancy characters.
-    """
+    sorts of quotes and fancy characters. """
     if not title:
         return None
     title = re.sub(r'[*+"\'«»„"`´]+', '', title)
@@ -668,8 +671,7 @@ class ERRTVIE(ERRBaseIE):
 
     def _rewrite_url(self, url):
         """Rewrites geoblocked url to contain login token and to always use
-        https protocol.
-        """
+        https protocol."""
         if self._is_logged_in():
             return re.sub(r'https?:(//[^/]+/)', r'https:\g<1>%(atlId)s/' % self._ERR_LOGIN_DATA['user'], url)
         return url
@@ -987,7 +989,7 @@ class ERRTVIE(ERRBaseIE):
                 r'.*?window.rootContentId\s+=\s+(?P<root_content_id>\d+;).*?</script>',
                 webpage, flags=re.DOTALL)
             if not mobj:
-                raise ExtractorError("Unable to find playlist's numerical id 'rootContentId'")
+                raise ExtractorError('Unable to find playlist\'s numerical id \'rootContentId\'')
             root_content_id = mobj.group('root_content_id')
             url_dict['root_content_id'] = root_content_id
             info.update(self._fetch_playlist(
@@ -1542,7 +1544,7 @@ class ERRArhiivIE(ERRTVIE):
         if json_has_value(data, 'activeList'):
             data = json_get_value(data, 'activeList')
         else:
-            error_msg = "Node 'activeList' not available"
+            error_msg = 'Node \'activeList\' not available'
             self.report_warning(error_msg)
             raise ExtractorError(error_msg)
         return data
@@ -1641,7 +1643,7 @@ class ERRArhiivIE(ERRTVIE):
             episode = episode.strip(':.').strip()
 
             if not episode:
-                self.report_warning("Episode name reduced to 'none'")
+                self.report_warning('Episode name reduced to \'none\'')
             else:
                 info['episode'] = episode
 
