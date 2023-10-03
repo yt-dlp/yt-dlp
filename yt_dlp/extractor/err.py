@@ -793,7 +793,6 @@ class ERRTVIE(ERRBaseIE):
             if json_has_value(obj, 'year'):
                 info['description'] = info['description'] + '\n' + clean_html(obj['year'])
 
-
         if extract_thumbnails:
             info.update(self._merge_thumbnails(self._extract_thumbnails(obj, 'photos')))
 
@@ -1021,7 +1020,6 @@ class ERRTVIE(ERRBaseIE):
             jsonpage = self._api_get_content(url_dict, video_id)
 
             show_data = json_find_value(jsonpage, self._ERR_API_SHOWDATA_KEY)
-            self._dump_json(show_data, msg="SHOW_DATA", sort_keys=True, filename=f'DEBUG-{video_id}.txt')
 
             if (url not in self._ERR_URL_SET
                     and not self._downloader.params.get('noplaylist')
@@ -1640,6 +1638,11 @@ class ERRArhiivIE(ERRTVIE):
         info['title'] = json_get_value(page, 'info.title')
         info['media_type'] = json_get_value(page, 'info.archiveType')
         info['description'] = json_get_value(page, 'info.synopsis')
+        if json_get_value(page, 'info.description'):
+            if info['description']:
+                info['description'] = info['description'] + '\n\n' +\
+                        json_get_value(page, 'info.description')
+
         info['webpage_url'] = json_get_value(page, 'info.fullUrl')
 
         if json_has_value(page, 'info.date'):
