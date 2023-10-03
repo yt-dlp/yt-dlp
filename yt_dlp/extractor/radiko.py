@@ -1,4 +1,5 @@
 import base64
+import random
 import urllib.parse
 
 from .common import InfoExtractor
