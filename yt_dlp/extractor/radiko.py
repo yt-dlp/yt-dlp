@@ -127,7 +127,7 @@ class RadikoBaseIE(InfoExtractor):
             pcu = element.text
             if pcu in found:
                 continue
-           found.add(pcu)
+            found.add(pcu)
             playlist_url = update_url_query(pcu, {
                 'station_id': station,
                 **query,
