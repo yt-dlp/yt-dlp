@@ -1,5 +1,4 @@
 import base64
-import secrets
 import urllib.parse
 
 from .common import InfoExtractor
@@ -70,9 +69,9 @@ class RadikoBaseIE(InfoExtractor):
     def _auth_client(self):
         cachedata = self.cache.load('radiko', 'auth_data')
         if cachedata is not None:
-            response = self._download_webpage('https://radiko.jp/v2/api/auth_check', None,
-                                              'Checking cached token', expected_status=401,
-                                              headers={'X-Radiko-AuthToken': cachedata[0], 'X-Radiko-AreaId': cachedata[1]})
+            response = self._download_webpage(
+                'https://radiko.jp/v2/api/auth_check', None, 'Checking cached token', expected_status=401,
+                headers={'X-Radiko-AuthToken': cachedata[0], 'X-Radiko-AreaId': cachedata[1]})
             if response == 'OK':
                 return cachedata
         return self._negotiate_token()
@@ -128,13 +127,12 @@ class RadikoBaseIE(InfoExtractor):
             pcu = element.text
             if pcu in found:
                 continue
-            else:
-                found.add(pcu)
+           found.add(pcu)
             playlist_url = update_url_query(pcu, {
                 'station_id': station,
                 **query,
                 'l': '15',
-                'lsid': secrets.token_hex(16),
+                'lsid': ''.join(random.choices('0123456789abcdef', k=32)),
                 'type': 'b',
             })
 
@@ -183,6 +181,7 @@ class RadikoIE(RadikoBaseIE):
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
         auth_token, area_id = self._auth_client()
+
         return {
             'id': video_id,
             'title': try_call(lambda: prog.find('title').text),
