@@ -20,18 +20,23 @@ from ..utils import (
     urlencode_postdata,
 )
 
-#   ## Supported features
+#   ## Supported Features
 #
 #   All provided audio, video and subtitle streams.
-#   Series are handled as playlists.
 #   Thumbnails and chapters if available.
+#   Series are handled as playlists.
 #
-#   ## Authentication options
+#   ## Authentication Options
 #
 #   etv, jupiter an jupiterpluss support username/password and
 #   netrc based authentication, netrc machine should be err.ee.
 #
-#   ## Known problems
+#   ## Usage Terms and Rights of Downloaded Material
+#
+#   Usage terms and rights are explained in
+#   (https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine)
+#
+#   ## Known Problems
 #
 #   jupiter.err.ee sometimes gives strange languages for audio streams, and
 #   extractor labels them as 'unknown' or 'original'. Unrecognized subtitles
@@ -132,6 +137,7 @@ class ERRBaseIE(InfoExtractor):
     _ERR_CHANNELS = ''
     _ERR_HEADERS = {}
     _ERR_EXTRACTOR_ARG_PREFIX = 'err'
+    _ERR_TERMS_AND_CONDITIONS_URL = 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine'
     _VALID_URL = r'(?P<prefix>(?P<protocol>https?)://(?P<channel>%(channels)s).err.ee)/(?P<id>[^/]*)/(?P<display_id>[^/#?]*)' % {
         'channels': _ERR_CHANNELS
     }
@@ -539,7 +545,7 @@ class ERRTVIE(ERRBaseIE):
             'episode_number': 1044,
             'thumbnail':
             'https://s.err.ee/photo/crop/2019/09/06/681521h8760t8.jpg',
-            'description': 'md5:58e0ab835234dc6f10b64aa986f2ce82',
+            'description': 'md5:15f239cbbc45900e345850aff2679ddc',
             'upload_date': '20210415',
             'uploader': 'ETV - ERR',
             'timestamp': 1618518000,
@@ -551,6 +557,7 @@ class ERRTVIE(ERRBaseIE):
             'release_date': '20230805',
             'media_type': 'video',
             'alt_title': 'Ornitoloogiaühing 100',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
             'series_type': 2,
         },
         'params': {
@@ -573,7 +580,7 @@ class ERRTVIE(ERRBaseIE):
             'episode_id': '20200123',
             'thumbnail':
             'https://s.err.ee/photo/crop/2014/01/03/260872hb306t8.jpg',
-            'description': 'md5:38f312bb5146aad7f82725c3ee803fa4',
+            'description': 'md5:363344e5ff4a1834fac32fd2b11b3487',
             'upload_date': '20200123',
             'uploader': 'ETV2 - ERR',
             'timestamp': 1579788000,
@@ -581,6 +588,7 @@ class ERRTVIE(ERRBaseIE):
             'drm': False,
             'content_type': 'episode',
             'alt_title': 'Ilon Wikland',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
             'release_timestamp': 1581276300,
             'release_date': '20200209',
             'geoblocked': False,
@@ -607,13 +615,14 @@ class ERRTVIE(ERRBaseIE):
             'episode_id': '20201210',
             'thumbnail':
             'https://s.err.ee/photo/crop/2019/08/26/676848h2901t8.jpg',
-            'description': 'md5:a7c4c787156cd7e11201249cf0ad9c1c',
+            'description': 'md5:0ff25a30bab46810bafa7c97950de69f',
             'upload_date': '20201210',
             'uploader': 'ETVPLUSS - ERR',
             'timestamp': 1607605201,
             'content_type': 'episode',
             'release_timestamp': 1660624200,
             'release_date': '20220816',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
             'geoblocked': False,
             'drm': False,
             'media_type': 'video',
@@ -773,6 +782,17 @@ class ERRTVIE(ERRBaseIE):
 
         if json_has_value(obj, 'lead'):
             info['description'] = clean_html(obj['lead'])
+            if json_has_value(obj, 'body'):
+                info['description'] = info['description'] + '\n\n' + clean_html(obj['body'])
+            if json_has_value(obj, 'originalTitle') or json_has_value(obj, 'country') or json_has_value(obj, 'year'):
+                info['description'] = info['description'] + '\n'
+            if json_has_value(obj, 'originalTitle'):
+                info['description'] = info['description'] + '\n' + clean_html(obj['originalTitle'])
+            if json_has_value(obj, 'country'):
+                info['description'] = info['description'] + '\n' + clean_html(obj['country'])
+            if json_has_value(obj, 'year'):
+                info['description'] = info['description'] + '\n' + clean_html(obj['year'])
+
 
         if extract_thumbnails:
             info.update(self._merge_thumbnails(self._extract_thumbnails(obj, 'photos')))
@@ -786,6 +806,8 @@ class ERRTVIE(ERRBaseIE):
             info['uploader'] = '%s - ERR' % channel.upper()
         else:
             info['uploader'] = 'ERR'
+
+        info['license'] = self._ERR_TERMS_AND_CONDITIONS_URL
 
         if info['content_type'] == 'episode':
             if 'headingFull' in obj:
@@ -999,6 +1021,7 @@ class ERRTVIE(ERRBaseIE):
             jsonpage = self._api_get_content(url_dict, video_id)
 
             show_data = json_find_value(jsonpage, self._ERR_API_SHOWDATA_KEY)
+            self._dump_json(show_data, msg="SHOW_DATA", sort_keys=True, filename=f'DEBUG-{video_id}.txt')
 
             if (url not in self._ERR_URL_SET
                     and not self._downloader.params.get('noplaylist')
@@ -1054,7 +1077,7 @@ class ERRJupiterIE(ERRTVIE):
             'series': 'Retrodisko',
             'thumbnail':
             'https://s.err.ee/photo/crop/2020/06/17/789134h64bct8.jpg',
-            'description': 'md5:3c046120981d3c75e595201398e98044',
+            'description': 'md5:1ab9e28debff8d61062b5f64a68a5cf1',
             'upload_date': '20200618',
             'timestamp': 1592474400,
             'uploader': 'ERR',
@@ -1066,6 +1089,7 @@ class ERRJupiterIE(ERRTVIE):
             'geoblocked': False,
             'media_type': 'video',
             'content_type': 'episode',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
         'params': {
             'format': 'bestvideo',
@@ -1153,7 +1177,7 @@ class ERRJupiterPlussIE(ERRJupiterIE):
             'content_type': 'episode',
             'uploader': 'ERR',
             'upload_date': '20230105',
-            'description': 'md5:76d6311ac807d7a03a93c61f7222cfb9',
+            'description': 'md5:b4fca3536262bbe717bf0956a7b66825',
             'series_type': 1,
             'geoblocked': False,
             'series': 'Кофе+',
@@ -1164,6 +1188,7 @@ class ERRJupiterPlussIE(ERRJupiterIE):
             'thumbnail': 'https://s.err.ee/photo/crop/2023/01/20/1755467he7d9t8.jpg',
             'timestamp': 1672936800,
             'episode_id': '20230105',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
         'params': {
             'format': 'bestvideo',
@@ -1188,11 +1213,12 @@ class ERRJupiterPlussIE(ERRJupiterIE):
             'season': '202212',
             'series': 'Орбита',
             'drm': False,
-            'description': 'md5:a0c5d97e29a2ade260511472fa6cad9b',
+            'description': 'md5:89daaaa0c594d29b231638d6c893c7e3',
             'series_type': 1,
             'timestamp': 1672332000,
             'uploader': 'ERR',
             'media_type': 'video',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
         'params': {
             'format': 'bestvideo',
@@ -1226,7 +1252,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Linnu- ja loomakool',
             'thumbnail':
             'https://s.err.ee/photo/crop/2013/11/14/88329hb0f6t8.jpg',
-            'description': 'md5:8b23b696c7cb4b07de566701a87a7851',
+            'description': 'md5:0d313f7f2439d70271c50b77cccb88df',
             'upload_date': '20150601',
             'uploader': 'Vikerraadio - ERR',
             'timestamp': 1433149200,
@@ -1237,6 +1263,7 @@ class ERRRadioIE(ERRTVIE):
             'geoblocked': False,
             'media_type': 'audio',
             'release_date': '20150601',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
             'drm': False,
         },
         'params': {
@@ -1258,7 +1285,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Miraaž',
             'thumbnail':
             'https://s.err.ee/photo/crop/2021/06/11/1037268h5e4et8.jpg',
-            'description': 'md5:a13968c3dc13cef6b850e3e4d83c1faf',
+            'description': 'md5:c231a018f0398b7d20d211b2a3770789',
             'upload_date': '20210609',
             'uploader': 'Klassikaraadio - ERR',
             'timestamp': 1623243600,
@@ -1269,6 +1296,7 @@ class ERRRadioIE(ERRTVIE):
             'release_timestamp': 1624205100,
             'season': '202106',
             'media_type': 'audio',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
             'drm': False,
 
         },
@@ -1291,7 +1319,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Kuuldemäng',
             'thumbnail':
             'https://s.err.ee/photo/crop/2014/06/28/439219h8c05t8.jpg',
-            'description': 'md5:27ba4d2e78e0e70d988d5c59e4bc55f6',
+            'description': 'md5:74387160bea9b8f032103f1515f42eda',
             'upload_date': '20210615',
             'uploader': 'Raadio 2 - ERR',
             'timestamp': 1623744000,
@@ -1301,6 +1329,7 @@ class ERRRadioIE(ERRTVIE):
             'season': '202106',
             'release_date': '20210620',
             'drm': False,
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
             'media_type': 'audio',
             'release_timestamp': 1624161600,
         },
@@ -1321,7 +1350,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Разбор полетов',
             'thumbnail':
             'https://s.err.ee/photo/crop/2020/05/17/779446h5ecct8.jpg',
-            'description': 'md5:e19d38deae4f38f5c0076dd7ac185892',
+            'description': 'md5:0c5b368877854f1b5212b4cac2b62a84',
             'upload_date': '20210531',
             'uploader': 'raadio 4 - радио 4 - ERR',
             'timestamp': 1622460600,
@@ -1334,6 +1363,7 @@ class ERRRadioIE(ERRTVIE):
             'series_type': 1,
             'season': '202105',
             'release_timestamp': 1622631900,
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
         'params': {
             'format': 'bestaudio',
@@ -1380,6 +1410,7 @@ class ERRArhiivIE(ERRTVIE):
             'episode': 'Muusad sõja varjus',
             'series': 'Eesti aja lood. Okupatsioonid',
             'chapters': 'count:35',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
         'params': {
             'format': 'bestvideo',
@@ -1406,6 +1437,7 @@ class ERRArhiivIE(ERRTVIE):
             'duration': 857.0,
             'description': 'md5:0c38f25160ad06f066254325de829694',
             'chapters': 'count:12',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
         'params': {
             'format': 'bestvideo',
@@ -1435,6 +1467,7 @@ class ERRArhiivIE(ERRTVIE):
             'duration': 69.0,
             'series_url': 'linnulaul',
             'series_type': 'yearly',
+            'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
         'params': {
             'format': 'bestaudio',
@@ -1731,6 +1764,7 @@ class ERRArhiivIE(ERRTVIE):
                 # Only override when available
                 info['subtitles'] = subtitles
 
+        info['license'] = self._ERR_TERMS_AND_CONDITIONS_URL
         info['uploader'] = 'ERR'
 
         return info
