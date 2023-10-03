@@ -942,6 +942,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='web'):
         raise_for_incomplete = bool(self._configuration_arg('raise_incomplete_data', ie_key=YoutubeIE))
+        # Incomplete Data should be a warning by default when retries are exhausted, while other errors should be fatal.
         icd_retries = iter(self.RetryManager(fatal=raise_for_incomplete))
         icd_rm = next(icd_retries)
         main_retries = iter(self.RetryManager())
@@ -971,7 +972,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     if yt_error:
                         self._report_alerts([('ERROR', yt_error)], fatal=False)
                 # Downloading page may result in intermittent 5xx HTTP error
-                # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                # Sometimes a 404 is also received. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                 # We also want to catch all other network exceptions since errors in later pages can be troublesome
                 # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
                 if e.cause.status not in (403, 429):
@@ -983,7 +984,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             try:
                 self._extract_and_report_alerts(response, only_once=True)
             except ExtractorError as e:
-                # YouTube servers may return errors we want to retry on in a 200 OK response
+                # YouTube's servers may return errors we want to retry on in a 200 OK response
                 # See: https://github.com/yt-dlp/yt-dlp/issues/839
                 if 'unknown error' in e.msg.lower():
                     main_rm.error = e
