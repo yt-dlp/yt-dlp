@@ -82,8 +82,8 @@ class SubstackIE(InfoExtractor):
             display_id, transform_source=js_to_json, contains_pattern=r'"{(?s:.+)}"'), display_id)
 
         canonical_url = url
-        domain = traverse_obj(webpage_info, ('domainInfo', 'customDomain'))
-        if domain is not None:
+        domain = traverse_obj(webpage_info, ('domainInfo', 'customDomain', {str}))
+        if domain:
             canonical_url = urllib.parse.urlparse(url)._replace(netloc=domain).geturl()
 
         post_type = webpage_info['post']['type']
@@ -105,5 +105,4 @@ class SubstackIE(InfoExtractor):
             'uploader': traverse_obj(webpage_info, ('pub', 'name')),
             'uploader_id': str_or_none(traverse_obj(webpage_info, ('post', 'publication_id'))),
             'webpage_url': canonical_url,
-            'original_url': canonical_url,
         }
