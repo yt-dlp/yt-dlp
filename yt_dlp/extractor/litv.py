@@ -58,7 +58,7 @@ class LiTVIE(InfoExtractor):
                 {'force_noplaylist': True}))  # To prevent infinite recursion
             for episode in traverse_obj(playlist_data, ('seasons', ..., 'episode', lambda _, v: v['contentId']))]
 
-        return self.playlist_result(all_episodes, playlist_data['contentId'], playlist_data['title'])
+        return self.playlist_result(all_episodes, playlist_data['contentId'], playlist_data.get('title'))
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -70,7 +70,7 @@ class LiTVIE(InfoExtractor):
         if self._search_regex(
                 r'(?i)<meta\s[^>]*http-equiv="refresh"\s[^>]*content="[0-9]+;\s*url=https://www\.litv\.tv/"',
                 webpage, 'meta refresh redirect', default=False, group=0):
-            raise ExtractorError('No such content', expected=True)
+            raise ExtractorError('No such content found', expected=True)
 
         program_info = self._parse_json(self._search_regex(
             r'var\s+programInfo\s*=\s*([^;]+)', webpage, 'VOD data', default='{}'),
@@ -88,10 +88,8 @@ class LiTVIE(InfoExtractor):
         series_id = program_info['seriesId']
         if self._yes_playlist(series_id, video_id, smuggled_data):
             playlist_data = self._download_json(
-                'https://www.litv.tv/vod/ajax/getSeriesTree',
-                video_id,
-                query={'seriesId': series_id},
-                headers={'Accept': 'application/json'})
+                'https://www.litv.tv/vod/ajax/getSeriesTree', video_id,
+                query={'seriesId': series_id}, headers={'Accept': 'application/json'})
             return self._extract_playlist(playlist_data, program_info['contentType'])
 
         video_data = self._parse_json(self._search_regex(
