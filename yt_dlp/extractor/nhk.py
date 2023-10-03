@@ -29,12 +29,13 @@ class NhkBaseIE(InfoExtractor):
             m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
 
     def _get_vod_api(self, vod_id):
-        movie_player_js = self._download_webpage('https://movie-a.nhk.or.jp/world/player/js/movie-player.js',
-                                                 vod_id, note='Downloading stream API information')
-        api_url = self._search_regex(r'prod:[^;]+apiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js,
-                                     vod_id, 'stream API url')
-        api_token = self._search_regex(r'prod:[^;]+token:\s*[\'"]([^\'"]+)[\'"]', movie_player_js,
-                                       vod_id, 'stream API token')
+        movie_player_js = self._download_webpage(
+            'https://movie-a.nhk.or.jp/world/player/js/movie-player.js', vod_id,
+            note='Downloading stream API information')
+        api_url = self._search_regex(
+            r'prod:[^;]+apiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, vod_id, 'stream API url')
+        api_token = self._search_regex(
+            r'prod:[^;]+token:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, vod_id, 'stream API token')
         return api_url, api_token
 
     def _extract_episode_info(self, url, episode=None):
@@ -81,14 +82,14 @@ class NhkBaseIE(InfoExtractor):
                 'token': api_token,
                 'type': 'json',
                 'optional_id': vod_id,
-                'active_flg': 1,  # dont know what this is but site sends it
+                'active_flg': 1,
             }, note='Downloading stream information')
-            stream_urls = traverse_obj(streams_json, ('meta', 0, 'movie_url'))
-            formats, subs = self._extract_m3u8_formats_and_subtitles(
-                stream_urls.get('mb_auto') or stream_urls.get('auto_sp') or stream_urls.get('auto_pc'),
-                vod_id)
+            stream_url = traverse_obj(streams_json, (
+                'meta', 0, 'movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
+            formats, subs = self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
 
             info.update({
+                'id': vod_id,
                 'formats': formats,
                 'subtitles': subs,
             })
