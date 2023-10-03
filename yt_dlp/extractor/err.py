@@ -1641,7 +1641,7 @@ class ERRArhiivIE(ERRTVIE):
         if json_get_value(page, 'info.description'):
             if info['description']:
                 info['description'] = info['description'] + '\n\n' +\
-                        json_get_value(page, 'info.description')
+                    json_get_value(page, 'info.description')
 
         info['webpage_url'] = json_get_value(page, 'info.fullUrl')
 
