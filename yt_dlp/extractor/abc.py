@@ -210,8 +210,8 @@ class ABCIViewIE(InfoExtractor):
         'info_dict': {
             'id': 'LE1927H001S00',
             'ext': 'mp4',
-            'title': "Series 11 Ep 1",
-            'series': "Gruen",
+            'title': 'Series 11 Ep 1',
+            'series': 'Gruen',
             'description': 'md5:52cc744ad35045baf6aded2ce7287f67',
             'upload_date': '20190925',
             'uploader_id': 'abc1',
