@@ -1462,11 +1462,11 @@ from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
 from .piapro import PiaproIE
 from .piaulizaportal import PIAULIZAPortalIE
-from .pietsmiet import PietsmietIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
 )
+from .pietsmiet import PietsmietIE
 from .piksel import PikselIE
 from .pinkbike import PinkbikeIE
 from .pinterest import (
