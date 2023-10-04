@@ -106,6 +106,10 @@ from .angel import AngelIE
 from .anvato import AnvatoIE
 from .aol import AolIE
 from .allocine import AllocineIE
+from .allstar import (
+    AllstarIE,
+    AllstarProfileIE
+)
 from .aliexpress import AliExpressLiveIE
 from .alsace20tv import (
     Alsace20TVIE,
