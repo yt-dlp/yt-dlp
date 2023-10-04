@@ -88,6 +88,14 @@ def _parse_video_data(video_data):
     })
 
 
+def _set_webpage_url(info_dict):
+    video_id = info_dict.get('id')
+    base_name = 'clip' if '/clips/' in info_dict.get('url') else 'montage'
+    info_dict['webpage_url'] = f'https://allstar.gg/{base_name}?{base_name}={video_id}'
+    info_dict['webpage_url_basename'] = base_name
+    return info_dict
+
+
 class AllstarBase(InfoExtractor):
     def _send_query(self, query, variables={}, path=(), video_id=None):
         response = self._download_json(
@@ -221,7 +229,7 @@ class AllstarProfileIE(AllstarBase):
                     'page': page_num,
                     'game': int_or_none(game),
                 }, ('data', 'videos', 'data'), f'{user_id} page {page_num}'):
-            yield _parse_video_data(video_data)
+            yield _set_webpage_url(_parse_video_data(video_data))
 
     def _get_user_data(self, user_id, path=()):
         return traverse_obj(
