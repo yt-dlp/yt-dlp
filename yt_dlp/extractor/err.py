@@ -722,7 +722,7 @@ class ERRTVIE(ERRBaseIE):
                 info['drm'] = False
             if info['drm']:
                 raise ExtractorError('This video is DRM protected.',
-                    video_id=video_id, expected=True)
+                                     video_id=video_id, expected=True)
             if json_has_value(media, 'src.hls'):
                 info['url'] = sanitize_url(media['src']['hls'])
                 if info['geoblocked']:
