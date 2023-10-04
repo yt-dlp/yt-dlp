@@ -121,11 +121,36 @@ class AllstarIE(AllstarBase):
             'view_count': int,
         }
     }, {
-        'url': 'https://allstar.gg/clip?clip=8LGC6T86Z',
-        'only_matching': True
+        'url': 'https://allstar.gg/clip?clip=8LJLY4JKB',
+        'info_dict': {
+            "id": "64a1ec6b887f4c0008dc50b8",
+            "display_id": "8LJLY4JKB",
+            "title": "AK-47 3K on Mirage",
+            'url': 'md5:dde224fd12f035c0e2529a4ae34c4283',
+            'ext': 'mp4',
+            'thumbnail': 'md5:90564b121f5fd7a4924920ef45614634',
+            "categories": "730",
+            "duration": 16,
+            "filesize": 30175859,
+            "timestamp": 1688333419392,
+            "uploader": "cherokee",
+            "uploader_id": "62b8bdfc9021052f7905882d",
+            'view_count': int,
+        }
     }, {
         'url': 'https://allstar.gg/montage?montage=643e64089da7e9363e1fa66c',
-        'only_matching': True
+        'info_dict': {
+            "id": "643e64089da7e9363e1fa66c",
+            "display_id": "APQLGM2IMXW",
+            "title": "cherokee Rapid Fire Snipers Montage",
+            "url": "md5:a3ee356022115db2b27c81321d195945",
+            "thumbnail": "md5:f1a5e811864e173f180b738d956356f4",
+            'ext': 'mp4',
+            "timestamp": 1681810448040,
+            "uploader": "cherokee",
+            "uploader_id": "62b8bdfc9021052f7905882d",
+            "view_count": int,
+        }
     }, {
         'url': 'https://allstar.gg/montage?montage=RILJMH6QOS',
         'info_dict': {
