@@ -305,7 +305,6 @@ class ERRBaseIE(InfoExtractor):
         # Sometimes description too would still contain suffixes ' | Vikerraadio | ERR '
         info['description'] = info['description'].split('|')[0].strip()
         info['thumbnail'] = self._og_search_thumbnail(webpage)
-        info['uploader'] = sanitize_title(self._og_search_property('site_name', webpage))
 
         info['creator'] = sanitize_title(self._html_search_meta('author', webpage))
         info['tags'] = self._html_search_meta('keywords', webpage, default=None)
@@ -359,7 +358,6 @@ class ERRNewsIE(ERRBaseIE):
             'https://s.err.ee/photo/crop/2020/05/01/775316hc459t24.jpg',
             'description': 'md5:de38c3349a81c988326cc90f38c26f74',
             'upload_date': '20210610',
-            'uploader': 'ERR',
             'timestamp': 1623322980,
             'categories': ['Kergejõustik'],
             'creator': 'Juhan Kilumets - ERR',
@@ -376,7 +374,6 @@ class ERRNewsIE(ERRBaseIE):
             'thumbnail':
             'https://s.err.ee/photo/crop/2021/05/30/1024863h097et24.jpg',
             'description': 'md5:62eb6e3ffc51ce68a3c0c060e26f4c0e',
-            'uploader': 'ERR',
             'timestamp': 1622376000,
             'creator': 'ERR',
             'categories': ['Kergejõustik'],
@@ -396,7 +393,6 @@ class ERRNewsIE(ERRBaseIE):
             'display_id': 'iggy-pop-annab-tallinnas-kontserdi',
             'title': 'Iggy Pop annab Tallinnas kontserdi',
             'description': 'md5:1635e54e66d7e6ad92d1d74185068791',
-            'uploader': 'ERR',
             'timestamp': 1623658200,
             'tags': ['iggy pop'],
             'creator': 'ERR',
@@ -417,7 +413,6 @@ class ERRNewsIE(ERRBaseIE):
             'display_id': 'jaak-heinrich-jagor-tervisemuredest-treeningutel-on-ule-treenitud',
             'title': 'Jaak-Heinrich Jagor tervisemuredest: treeningutel on üle treenitud',
             'description': 'md5:c4566d404a363836031c9585e8907f0f',
-            'uploader': 'ERR',
             'timestamp': 1623394980,
             'tags': ['jaak heinrich jagor', 'staadionijutud'],
             'categories': ['Kergejõustik'],
@@ -469,7 +464,6 @@ class ERRNewsIE(ERRBaseIE):
             p = padding_width(err_count)
             for (idx, entry) in enumerate(filter(lambda d: 'id' in d, entries), start=1):
                 entry['title'] = info['title'] + (' - %0' + str(p) + 'd') % idx
-                entry['uploader'] = info['uploader']
                 entry['timestamp'] = info['timestamp']
                 if (idx == 0) and not entry.get('thumbnail'):
                     entry['thumbnail'] = info.get('thumbnail')
@@ -547,7 +541,6 @@ class ERRTVIE(ERRBaseIE):
             'https://s.err.ee/photo/crop/2019/09/06/681521h8760t8.jpg',
             'description': 'md5:15f239cbbc45900e345850aff2679ddc',
             'upload_date': '20210415',
-            'uploader': 'ETV - ERR',
             'timestamp': 1618518000,
             'season': 'Season 28',
             'content_type': 'episode',
@@ -582,7 +575,6 @@ class ERRTVIE(ERRBaseIE):
             'https://s.err.ee/photo/crop/2014/01/03/260872hb306t8.jpg',
             'description': 'md5:363344e5ff4a1834fac32fd2b11b3487',
             'upload_date': '20200123',
-            'uploader': 'ETV2 - ERR',
             'timestamp': 1579788000,
             'series_type': 1,
             'drm': False,
@@ -617,7 +609,6 @@ class ERRTVIE(ERRBaseIE):
             'https://s.err.ee/photo/crop/2019/08/26/676848h2901t8.jpg',
             'description': 'md5:0ff25a30bab46810bafa7c97950de69f',
             'upload_date': '20201210',
-            'uploader': 'ETVPLUSS - ERR',
             'timestamp': 1607605201,
             'content_type': 'episode',
             'release_timestamp': 1660624200,
@@ -671,7 +662,7 @@ class ERRTVIE(ERRBaseIE):
             self._set_cookie('.err.ee', 'atlId', login_data['user']['atlId'])
             self._set_cookie('.err.ee', 'allowCookiesV2', 'true')
         else:
-            self.report_warning('Login failed')
+            raise ExtractorError('Login failed.', video_id=video_id, expected=True)
 
     def _set_headers(self, url_dict):
         self._ERR_HEADERS['Origin'] = '%(prefix)s' % url_dict
@@ -681,9 +672,10 @@ class ERRTVIE(ERRBaseIE):
     def _rewrite_url(self, url):
         """Rewrites geoblocked url to contain login token and to always use
         https protocol."""
-        if self._is_logged_in():
-            return re.sub(r'https?:(//[^/]+/)', r'https:\g<1>%(atlId)s/' % self._ERR_LOGIN_DATA['user'], url)
-        return url
+
+        if not self._is_logged_in():
+            raise ExtractorError('This video is geoblocked, login required.', expected=True)
+        return re.sub(r'https?:(//[^/]+/)', r'https:\g<1>%(atlId)s/' % self._ERR_LOGIN_DATA['user'], url)
 
     def _extract_thumbnails(self, show_data, key, max_side=400, min_side=0):
         """Generator for extracting images from a json structure"""
@@ -729,7 +721,8 @@ class ERRTVIE(ERRBaseIE):
             else:
                 info['drm'] = False
             if info['drm']:
-                raise ExtractorError('This video is DRM protected.', expected=True)
+                raise ExtractorError('This video is DRM protected.',
+                    video_id=video_id, expected=True)
             if json_has_value(media, 'src.hls'):
                 info['url'] = sanitize_url(media['src']['hls'])
                 if info['geoblocked']:
@@ -801,11 +794,6 @@ class ERRTVIE(ERRBaseIE):
         else:
             info['url'] = obj['canonicalUrl']
 
-        if channel:
-            info['uploader'] = '%s - ERR' % channel.upper()
-        else:
-            info['uploader'] = 'ERR'
-
         info['license'] = self._ERR_TERMS_AND_CONDITIONS_URL
 
         if info['content_type'] == 'episode':
@@ -864,8 +852,6 @@ class ERRTVIE(ERRBaseIE):
         publisher_data = json_find_value(obj, 'newsArticleStruct')
         if json_has_value(publisher_data, 'datePublished'):
             info['release_timestamp'] = parse_iso8601(publisher_data['datePublished'])
-        if json_has_value(publisher_data, 'publisher.name'):
-            info['uploader'] = sanitize_title(publisher_data['publisher']['name'])
 
         makers_data = json_find_value(obj, 'makers')
         if json_has_value(makers_data, 'makers'):
@@ -1078,7 +1064,6 @@ class ERRJupiterIE(ERRTVIE):
             'description': 'md5:1ab9e28debff8d61062b5f64a68a5cf1',
             'upload_date': '20200618',
             'timestamp': 1592474400,
-            'uploader': 'ERR',
             'drm': False,
             'season_number': 1,
             'series_type': 5,
@@ -1173,7 +1158,6 @@ class ERRJupiterPlussIE(ERRJupiterIE):
             'drm': False,
             'season': '202301',
             'content_type': 'episode',
-            'uploader': 'ERR',
             'upload_date': '20230105',
             'description': 'md5:b4fca3536262bbe717bf0956a7b66825',
             'series_type': 1,
@@ -1214,7 +1198,6 @@ class ERRJupiterPlussIE(ERRJupiterIE):
             'description': 'md5:89daaaa0c594d29b231638d6c893c7e3',
             'series_type': 1,
             'timestamp': 1672332000,
-            'uploader': 'ERR',
             'media_type': 'video',
             'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
@@ -1252,7 +1235,6 @@ class ERRRadioIE(ERRTVIE):
             'https://s.err.ee/photo/crop/2013/11/14/88329hb0f6t8.jpg',
             'description': 'md5:0d313f7f2439d70271c50b77cccb88df',
             'upload_date': '20150601',
-            'uploader': 'Vikerraadio - ERR',
             'timestamp': 1433149200,
             'content_type': 'episode',
             'series_type': 1,
@@ -1285,7 +1267,6 @@ class ERRRadioIE(ERRTVIE):
             'https://s.err.ee/photo/crop/2021/06/11/1037268h5e4et8.jpg',
             'description': 'md5:c231a018f0398b7d20d211b2a3770789',
             'upload_date': '20210609',
-            'uploader': 'Klassikaraadio - ERR',
             'timestamp': 1623243600,
             'content_type': 'episode',
             'series_type': 1,
@@ -1319,7 +1300,6 @@ class ERRRadioIE(ERRTVIE):
             'https://s.err.ee/photo/crop/2014/06/28/439219h8c05t8.jpg',
             'description': 'md5:74387160bea9b8f032103f1515f42eda',
             'upload_date': '20210615',
-            'uploader': 'Raadio 2 - ERR',
             'timestamp': 1623744000,
             'content_type': 'episode',
             'series_type': 1,
@@ -1350,7 +1330,6 @@ class ERRRadioIE(ERRTVIE):
             'https://s.err.ee/photo/crop/2020/05/17/779446h5ecct8.jpg',
             'description': 'md5:0c5b368877854f1b5212b4cac2b62a84',
             'upload_date': '20210531',
-            'uploader': 'raadio 4 - радио 4 - ERR',
             'timestamp': 1622460600,
             'episode_id': '20210531',
             'media_type': 'audio',
@@ -1396,7 +1375,6 @@ class ERRArhiivIE(ERRTVIE):
             'https://arhiiv-images.err.ee/public/thumbnails/2009-002267-0068_0001_D10_EESTI-AJA-LOOD-OKUPATSIOONID.jpg',
             'description': 'md5:36772936a0982571ce23aa0dad1f6231',
             'upload_date': '20091025',
-            'uploader': 'ERR',
             'timestamp': 1256428800,
             'series_id': 169,
             'duration': 1642.0,
@@ -1427,7 +1405,6 @@ class ERRArhiivIE(ERRTVIE):
             'thumbnail':
             'https://arhiiv-images.err.ee/public/thumbnails/1976-085466-0001_0002_D10_TALLINN-MAI-JUUNI-1976.jpg',
             'upload_date': '19760917',
-            'uploader': 'ERR',
             'timestamp': 211766400,
             'episode': 'Tallinn. Mai-juuni 1976',
             'media_type': 'video',
@@ -1454,7 +1431,6 @@ class ERRArhiivIE(ERRTVIE):
             'https://arhiiv-images.err.ee/public/thumbnails/2022/557h4afd_thumb.jpg',
             'description': 'md5:d41739b0c8e250a3435216afc98c8741',
             'channel': '2002 EESTI RAADIO',
-            'uploader': 'ERR',
             'timestamp': 1022716800,
             'media_type': 'audio',
             'series': 'Linnulaul',
@@ -1768,7 +1744,6 @@ class ERRArhiivIE(ERRTVIE):
                 info['subtitles'] = subtitles
 
         info['license'] = self._ERR_TERMS_AND_CONDITIONS_URL
-        info['uploader'] = 'ERR'
 
         return info
 
