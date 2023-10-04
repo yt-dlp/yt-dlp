@@ -95,7 +95,8 @@ class AllstarBase(InfoExtractor):
             headers={'content-type': 'application/json'},
             data=json.dumps({'variables': variables, 'query': query}).encode())
 
-        if errors := response.get('errors'):
+        errors = response.get('errors')
+        if errors:
             raise ExtractorError(errors, expected=True)
 
         return traverse_obj(response, path)
