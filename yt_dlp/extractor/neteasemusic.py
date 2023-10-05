@@ -77,10 +77,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
             if not details:
                 continue
             bitrate = int_or_none(details.get('bitrate')) or 999000
-            for song in traverse_obj(self._call_player_api(song_id, bitrate), ('data', ...)):
-                song_url = traverse_obj(song, ('url', {url_or_none}))
-                if not song_url:
-                    continue
+            for song in traverse_obj(self._call_player_api(song_id, bitrate), ('data', lambda _, v: url_or_none(v['url']))):
+                song_url = song['url']
                 if self._is_valid_url(song_url, info['id'], 'song'):
                     formats.append({
                         'url': song_url,
@@ -88,12 +86,12 @@ class NetEaseMusicBaseIE(InfoExtractor):
                         'asr': traverse_obj(details, ('sr', {int_or_none})),
                         **traverse_obj(song, {
                             'ext': ('type', {str}),
-                            'abr': ('br', {lambda i: int_or_none(i, scale=1000)}),
+                            'abr': ('br', {kilo_or_none}),
                             'filesize': ('size', {int_or_none}),
                         }),
                     })
                 elif err == 0:
-                    err = try_get(song, lambda x: x['code'], int)
+                    err = traverse_obj(song, ('code', {int})) or 0
 
         if not formats:
             if err != 0 and (err < 200 or err >= 400):
@@ -214,8 +212,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             timestamp, text = original_ts_texts[i]
             if translation_ts_dict.get(timestamp):
                 original_ts_texts[i] = timestamp, f'{text} / {translation_ts_dict[timestamp]}'
-        lyrics = '\n'.join([''.join(i) for i in original_ts_texts])
-        return lyrics
+        return '\n'.join([''.join(parts) for parts in original_ts_texts])
 
     def _real_extract(self, url):
         song_id = self._match_id(url)
@@ -241,13 +238,13 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'id': song_id,
             'formats': formats,
             'alt_title': '/'.join(traverse_obj(info, (('transNames', 'alias'), ...))) or None,
-            'creator': ' / '.join(traverse_obj(info, ('artists', ..., 'name'))),
+            'creator': ' / '.join(traverse_obj(info, ('artists', ..., 'name'))) or None,
             **lyric_data,
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'timestamp': ('album', 'publishTime', {lambda i: int_or_none(i, scale=1000)}),
+                'timestamp': ('album', 'publishTime', {kilo_or_none}),
                 'thumbnail': ('album', 'picUrl', {url_or_none}),
-                'duration': ('duration', {lambda i: int_or_none(i, scale=1000)}),
+                'duration': ('duration', {kilo_or_none}),
             }),
         }
 
@@ -404,12 +401,12 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             note="Downloading playlist info")
 
         meta = traverse_obj(info, ('playlist', {
-            'title': ('name', {str_or_none}),
-            'description': ('description', {str_or_none}),
-            'tags': ('tags', ..., {str_or_none}),
-            'uploader': ('creator', 'nickname', {str_or_none}),
+            'title': ('name', {str}),
+            'description': ('description', {str}),
+            'tags': ('tags', ..., {str}),
+            'uploader': ('creator', 'nickname', {str}),
             'uploader_id': ('creator', 'userId', {str_or_none}),
-            'timestamp': ('updateTime', {lambda i: int_or_none(i, scale=1000)}),
+            'timestamp': ('updateTime', {kilo_or_none}),
         }))
         if traverse_obj(info, ('playlist', 'specialType')) == 10:
             meta['title'] = f'{meta.get("title")} {strftime_or_none(meta.get("timestamp"), "%Y-%m-%d")}'
@@ -472,11 +469,11 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'formats': formats,
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'description': (('desc', 'briefDesc'), {str}, {lambda i: i if i else None}),
+                'description': (('desc', 'briefDesc'), {str}, {lambda x: x or None}),
                 'creator': ('artistName', {str}),
                 'upload_date': ('publishTime', {unified_strdate}),
                 'thumbnail': ('cover', {url_or_none}),
-                'duration': ('duration', {lambda i: int_or_none(i, scale=1000)}),
+                'duration': ('duration', {kilo_or_none}),
                 'view_count': ('playCount', {int_or_none}),
                 'like_count': ('likeCount', {int_or_none}),
                 'comment_count': ('commentCount', {int_or_none}),
@@ -544,7 +541,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'description': ('description', {str}),
             'creator': ('dj', 'brand', {str}),
             'thumbnail': ('coverUrl', {url_or_none}),
-            'timestamp': ('createTime', {lambda i: int_or_none(i, scale=1000)}),
+            'timestamp': ('createTime', {kilo_or_none}),
         })
 
         if not self._yes_playlist(info['songs'] and program_id, info['mainSong']['id']):
@@ -553,7 +550,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             return {
                 'id': str(info['mainSong']['id']),
                 'formats': formats,
-                'duration': traverse_obj(info, ('mainSong', 'duration', {lambda i: int_or_none(i, scale=1000)})),
+                'duration': traverse_obj(info, ('mainSong', 'duration', {kilo_or_none})),
                 **metainfo,
             }
 
