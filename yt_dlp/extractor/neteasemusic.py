@@ -57,15 +57,13 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'MUSIC_U': ('MUSIC_U', {lambda i: i.value}),
             })
         }
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': 'https://music.163.com',
-            'Cookie': '; '.join([f'{k}={v}' for k, v in cookies.items()]),
-            **headers,
-        }
-        url = urljoin('https://interface3.music.163.com/', f'/eapi{path}')
-        data = self._create_eapi_cipher(f'/api{path}', query_body, cookies)
-        return self._download_json(url, video_id, data=data, headers=headers, **kwargs)
+        return self._download_json(
+            urljoin('https://interface3.music.163.com/', f'/eapi{path}'), video_id,
+            data=self._create_eapi_cipher(f'/api{path}', query_body, cookies), headers={
+                'Referer': 'https://music.163.com',
+                'Cookie': '; '.join([f'{k}={v}' for k, v in cookies.items()]),
+                **headers,
+            }, **kwargs)
 
     def _call_player_api(self, song_id, bitrate):
         return self._download_eapi_json(
