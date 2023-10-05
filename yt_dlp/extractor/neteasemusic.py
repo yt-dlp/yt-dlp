@@ -16,6 +16,7 @@ from ..utils import (
     unified_strdate,
     url_or_none,
     urljoin,
+    variadic,
 )
 
 
@@ -112,6 +113,13 @@ class NetEaseMusicBaseIE(InfoExtractor):
         elif code != 200:
             raise ExtractorError(f'Failed to get meta info: {code} {message}')
         return result
+
+    def _get_entries(self, songs_data, entry_keys=None, id_key='id', name_key='name', ie='NetEaseMusic'):
+        for song in traverse_obj(songs_data, (*variadic(entry_keys, (str, bytes, dict, set)), ...)):
+            song_id = traverse_obj(song, (id_key, {int_or_none}))
+            song_name = traverse_obj(song, (name_key, {str})) if name_key else None
+            if song_id:
+                yield self.url_result(f'http://music.163.com/#/song?id={song_id}', ie, str(song_id), song_name)
 
 
 class NetEaseMusicIE(NetEaseMusicBaseIE):
@@ -294,12 +302,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
             'thumbnail': self._og_search_property('image', webpage, 'thumbnail', fatal=False),
             'upload_date': unified_strdate(self._html_search_meta('music:release_date', webpage, 'date', fatal=False)),
         }
-        entries = [
-            self.url_result(
-                f"http://music.163.com/#/song?id={song['id']}", NetEaseMusicIE, song['id'], song.get('name'))
-            for song in songs
-        ]
-        return self.playlist_result(entries, album_id, **metainfo)
+        return self.playlist_result(self._get_entries(songs), album_id, **metainfo)
 
 
 class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
@@ -345,12 +348,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
         else:
             name = traverse_obj(name_and_aliases, 0)
 
-        entries = [
-            self.url_result('http://music.163.com/#/song?id=%s' % song['id'],
-                            'NetEaseMusic', song['id'])
-            for song in info['hotSongs']
-        ]
-        return self.playlist_result(entries, singer_id, name)
+        return self.playlist_result(self._get_entries(info, 'hotSongs'), singer_id, name)
 
 
 class NetEaseMusicListIE(NetEaseMusicBaseIE):
@@ -404,7 +402,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             {'id': list_id, 't': '-1', 'n': '500', 's': '0'},
             note="Downloading playlist info")
 
-        meta = traverse_obj(info, ('playlist', {
+        metainfo = traverse_obj(info, ('playlist', {
             'title': ('name', {str}),
             'description': ('description', {str}),
             'tags': ('tags', ..., {str}),
@@ -413,12 +411,9 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             'timestamp': ('updateTime', {self.kilo_or_none}),
         }))
         if traverse_obj(info, ('playlist', 'specialType')) == 10:
-            meta['title'] = f'{meta.get("title")} {strftime_or_none(meta.get("timestamp"), "%Y-%m-%d")}'
-        entries = [
-            self.url_result(f'http://music.163.com/#/song?id={song_id}',
-                            NetEaseMusicIE, song_id)
-            for song_id in traverse_obj(info, ('playlist', 'tracks', ..., 'id'))]
-        return self.playlist_result(entries, list_id, **meta)
+            metainfo['title'] = f'{metainfo.get("title")} {strftime_or_none(metainfo.get("timestamp"), "%Y-%m-%d")}'
+
+        return self.playlist_result(self._get_entries(info, ('playlist', 'tracks')), list_id, **metainfo)
 
 
 class NetEaseMusicMvIE(NetEaseMusicBaseIE):
@@ -558,13 +553,8 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
                 **metainfo,
             }
 
-        song_ids = traverse_obj(info, ((('mainSong', 'id'), ('songs', ..., 'id')), {int_or_none}))
-        entries = [
-            self.url_result('http://music.163.com/#/song?id=%s' % song_id,
-                            'NetEaseMusic', song_id)
-            for song_id in song_ids
-        ]
-        return self.playlist_result(entries, program_id, **metainfo)
+        songs = traverse_obj(info, (('mainSong', ('songs', ...)),))
+        return self.playlist_result(self._get_entries(songs), program_id, **metainfo)
 
 
 class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
@@ -592,12 +582,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
                 f'dj/program/byradio?asc=false&limit={self._PAGE_SIZE}&radioId={dj_id}&offset={offset}',
                 dj_id, note=f'Downloading dj programs - {offset}')
 
-            entries.extend([
-                self.url_result(
-                    'http://music.163.com/#/program?id=%s' % program['id'],
-                    'NetEaseMusicProgram', program['id'])
-                for program in info['programs']
-            ])
+            entries.extend(self._get_entries(info, 'programs'))
             if not metainfo:
                 metainfo = traverse_obj(info, ('programs', 0, 'radio', {
                     'title': ('name', {str}),
