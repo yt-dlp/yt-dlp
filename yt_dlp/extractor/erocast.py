@@ -43,11 +43,10 @@ class ErocastIE(InfoExtractor):
         data = self._search_json(
             rf'<script>\s*var song_data_{video_id}\s*=', webpage, 'data', video_id, end_pattern=r'</script>')
 
-        media_url = data.get('file_url') or data['stream_url']
-
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(media_url, video_id, 'm4a', m3u8_id='hls'),
+            'formats': self._extract_m3u8_formats(
+                data.get('file_url') or data['stream_url'], video_id, 'm4a', m3u8_id='hls'),
             'age_limit': 18,
             **traverse_obj(data, {
                 'title': ('title', {str}),
