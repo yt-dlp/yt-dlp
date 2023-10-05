@@ -23,6 +23,7 @@ from ..utils import (
 class NetEaseMusicBaseIE(InfoExtractor):
     _FORMATS = ['bMusic', 'mMusic', 'hMusic']
     _API_BASE = 'http://music.163.com/api/'
+    _GEO_BYPASS = False
 
     @staticmethod
     def kilo_or_none(value):
@@ -100,7 +101,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
             if err != 0 and (err < 200 or err >= 400):
                 raise ExtractorError(f'No media links found (site code {err})', expected=True)
             else:
-                self.raise_geo_restricted('No media links found: probably due to geo restriction.')
+                self.raise_geo_restricted(
+                    'No media links found: probably due to geo restriction.', countries=['CN'])
         return formats
 
     def query_api(self, endpoint, video_id, note):
