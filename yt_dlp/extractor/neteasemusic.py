@@ -106,10 +106,12 @@ class NetEaseMusicBaseIE(InfoExtractor):
     def query_api(self, endpoint, video_id, note):
         result = self._download_json(
             f'{self._API_BASE}{endpoint}', video_id, note, headers={'Referer': self._API_BASE})
-        if result['code'] == -462:
-            self.raise_login_required(f'Login required to download: {result["message"]}')
-        elif result['code'] != 200:
-            raise ExtractorError(f'Failed to get meta info: {result["code"]} {result}')
+        code = traverse_obj(result, ('code', {int}))
+        message = traverse_obj(result, ('message', {str})) or ''
+        if code == -462:
+            self.raise_login_required(f'Login required to download: {message}')
+        elif code != 200:
+            raise ExtractorError(f'Failed to get meta info: {code} {message}')
         return result
 
 
