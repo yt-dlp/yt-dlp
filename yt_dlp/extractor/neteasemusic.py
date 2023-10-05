@@ -283,7 +283,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
         webpage = self._download_webpage(f'https://music.163.com/album?id={album_id}', album_id)
 
         songs = self._search_json(
-            r'<textarea id="song-list-pre-data" style="display:none;">', webpage, 'metainfo', album_id,
+            r'<textarea[^>]+\bid="song-list-pre-data"[^>]*>', webpage, 'metainfo', album_id,
             end_pattern=r'</textarea>', contains_pattern=r'\[(?s:.+)\]')
         metainfo = {
             'title': self._og_search_property('title', webpage, 'title', fatal=False),
