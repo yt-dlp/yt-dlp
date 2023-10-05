@@ -90,9 +90,15 @@ def _parse_video_data(video_data):
 
 def _set_webpage_url(info_dict):
     video_id = info_dict.get('id')
-    base_name = 'clip' if '/clips/' in info_dict.get('url') else 'montage'
+    video_url = info_dict.get('url')
+
+    if video_url is None or video_id is None:
+        return info_dict
+
+    base_name = 'clip' if '/clips/' in video_url else 'montage'
     info_dict['webpage_url'] = f'https://allstar.gg/{base_name}?{base_name}={video_id}'
     info_dict['webpage_url_basename'] = base_name
+
     return info_dict
 
 
