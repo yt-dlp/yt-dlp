@@ -9,7 +9,6 @@ from .common import InfoExtractor
 from ..aes import aes_ecb_encrypt, pkcs7_padding
 from ..utils import (
     ExtractorError,
-    clean_html,
     int_or_none,
     str_or_none,
     strftime_or_none,
