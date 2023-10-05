@@ -297,7 +297,7 @@ class NetEaseMusicAlbumIE(NetEaseMusicBaseIE):
         metainfo = {
             'title': self._og_search_property('title', webpage, 'title', fatal=False),
             'description': self._html_search_regex(
-                (f'<div[^>]+\\bid="album-desc-{i}"[^>]*>(.*?)</div>' for i in ['more', 'dot']),
+                (rf'<div[^>]+\bid="album-desc-{suffix}"[^>]*>(.*?)</div>' for suffix in ('more', 'dot')),
                 webpage, 'description', flags=re.S, fatal=False),
             'thumbnail': self._og_search_property('image', webpage, 'thumbnail', fatal=False),
             'upload_date': unified_strdate(self._html_search_meta('music:release_date', webpage, 'date', fatal=False)),
