@@ -341,12 +341,10 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
         info = self.query_api(
             f'artist/{singer_id}?id={singer_id}', singer_id, note='Downloading singer data')
 
-        name_and_aliases = traverse_obj(info, (
-            'artist', ('name', 'trans', ('alias', ...)), {str}, {lambda i: i or None}))
-        if len(name_and_aliases) > 1:
-            name = f'{name_and_aliases[0]} - {";".join(name_and_aliases[1:])}'
-        else:
-            name = traverse_obj(name_and_aliases, 0)
+        name = join_nonempty(
+            traverse_obj(info, ('artist', 'name', {str})),
+            ';'.join(traverse_obj(info, ('artist', ('trans', ('alias', ...)), {str}))),
+            delim=' - ')
 
         return self.playlist_result(self._get_entries(info, 'hotSongs'), singer_id, name)
 
