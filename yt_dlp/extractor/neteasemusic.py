@@ -10,6 +10,7 @@ from ..aes import aes_ecb_encrypt, pkcs7_padding
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     str_or_none,
     strftime_or_none,
     traverse_obj,
@@ -343,7 +344,7 @@ class NetEaseMusicSingerIE(NetEaseMusicBaseIE):
 
         name = join_nonempty(
             traverse_obj(info, ('artist', 'name', {str})),
-            ';'.join(traverse_obj(info, ('artist', ('trans', ('alias', ...)), {str}))),
+            join_nonempty(*traverse_obj(info, ('artist', ('trans', ('alias', ...)), {str})), delim=';'),
             delim=' - ')
 
         return self.playlist_result(self._get_entries(info, 'hotSongs'), singer_id, name)
