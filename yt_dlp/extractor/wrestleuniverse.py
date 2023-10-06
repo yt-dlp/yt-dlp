@@ -190,10 +190,7 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
         metadata = self._download_metadata(url, video_id, lang, 'videoEpisodeFallbackData')
-        video_data = self._call_api(video_id, ':watch', 'watch', data={
-            # 'deviceId' is required if ignoreDeviceRestriction is False
-            'ignoreDeviceRestriction': True,
-        })
+        video_data = self._call_api(video_id, ':watch', 'watch', data={'deviceId': self._DEVICE_ID})
 
         return {
             'id': video_id,
