@@ -39,6 +39,7 @@ class AltCensoredIE(InfoExtractor):
         # into underlying archive.org info json
         return res
 
+
 class AltCensoredChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)altcensored\.com/channel/(?P<id>[^/?#]+)'
     _PAGE_SIZE = 24
@@ -50,7 +51,6 @@ class AltCensoredChannelIE(InfoExtractor):
         },
         'playlist_count': 91
     }]
-
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
