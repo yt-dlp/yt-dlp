@@ -28,30 +28,43 @@ class NhkBaseIE(InfoExtractor):
                 m_id, lang, '/all' if is_video else ''),
             m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
 
-    def _extract_vod_api(self):
+    def _get_api_info(self, refresh=True):
+        if not refresh:
+            return self.cache.load('nhk', 'api_info')
+
+        self.cache.store('nhk', 'api_info', {})
         movie_player_js = self._download_webpage(
             'https://movie-a.nhk.or.jp/world/player/js/movie-player.js', None,
             note='Downloading stream API information')
-        api_url = self._search_regex(
-            r'prod:[^;]+apiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API url')
-        api_token = self._search_regex(
-            r'prod:[^;]+token:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API token')
-        self.cache.store('nhkworld', 'vod_api', {'url': api_url, 'token': api_token})
-        return api_url, api_token
+        api_info = {
+            'url': self._search_regex(
+                r'prod:[^;]+\bapiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API url'),
+            'token': self._search_regex(
+                r'prod:[^;]+\btoken:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API token'),
+        }
+        self.cache.store('nhk', 'api_info', api_info)
+        return api_info
 
-    def _load_vod_api(self):
-        cachedata = self.cache.load('nhkworld', 'vod_api')
-        if cachedata is not None and url_or_none(cachedata.get('url')) is not None:
-            return cachedata['url'], cachedata.get('token')
-        return self._extract_vod_api()
+    def _extract_formats_and_subtitles(self, vod_id):
+        for refresh in (False, True):
+            api_info = self._get_api_info(refresh)
+            if not api_info:
+                continue
 
-    def _extract_stream_info(self, api_url, api_token, vod_id):
-        return self._download_json(api_url, vod_id, query={
-            'token': api_token,
-            'type': 'json',
-            'optional_id': vod_id,
-            'active_flg': 1,
-        }, note='Downloading stream information')
+            api_url = api_info.pop('url')
+            stream_url = traverse_obj(
+                self._download_json(
+                    api_url, vod_id, 'Downloading stream information', fatal=False, query={
+                        **api_info,
+                        'type': 'json',
+                        'optional_id': vod_id,
+                        'active_flg': 1,
+                    }),
+                ('meta', 0, 'movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
+            if stream_url:
+                return self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
+
+        raise ExtractorError('Unable to extract stream url')
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
@@ -92,16 +105,7 @@ class NhkBaseIE(InfoExtractor):
         }
         if is_video:
             vod_id = episode['vod_id']
-            api_url, api_token = self._load_vod_api()
-            streams_json = self._extract_stream_info(api_url, api_token, vod_id)
-            if streams_json.get('response_status') != '2000':
-                self.to_screen('Getting stream information failed, trying again with fresh API details')
-                api_url, api_token = self._extract_vod_api()
-                streams_json = self._extract_stream_info(api_url, api_token, vod_id)
-
-            stream_url = traverse_obj(streams_json, (
-                'meta', 0, 'movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
-            formats, subs = self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
+            formats, subs = self._extract_formats_and_subtitles(vod_id)
 
             info.update({
                 'id': vod_id,
