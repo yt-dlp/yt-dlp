@@ -14,6 +14,7 @@ import contextlib
 import io
 import itertools
 import json
+import subprocess
 import xml.etree.ElementTree
 
 from yt_dlp.compat import (
@@ -28,6 +29,7 @@ from yt_dlp.utils import (
     InAdvancePagedList,
     LazyList,
     OnDemandPagedList,
+    Popen,
     age_restricted,
     args_to_str,
     base_url,
@@ -1218,6 +1220,12 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
         self.assertEqual(js_to_json('`${name}`', {}), '"name"')
 
+    def test_js_to_json_map_array_constructors(self):
+        self.assertEqual(json.loads(js_to_json('new Map([["a", 5]])')), {'a': 5})
+        self.assertEqual(json.loads(js_to_json('Array(5, 10)')), [5, 10])
+        self.assertEqual(json.loads(js_to_json('new Array(15,5)')), [15, 5])
+        self.assertEqual(json.loads(js_to_json('new Map([Array(5, 10),new Array(15,5)])')), {'5': 10, '15': 5})
+
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
         self.assertEqual(extract_attributes("<e x='y'>"), {'x': 'y'})
@@ -2381,6 +2389,21 @@ Line 1
         assert extract_basic_auth('http://:pass@foo.bar') == ('http://foo.bar', 'Basic OnBhc3M=')
         assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
+
+    @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
+    def test_Popen_windows_escaping(self):
+        def run_shell(args):
+            stdout, stderr, error = Popen.run(
+                args, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            assert not stderr
+            assert not error
+            return stdout
+
+        # Test escaping
+        assert run_shell(['echo', 'test"&']) == '"test""&"\n'
+        # Test if delayed expansion is disabled
+        assert run_shell(['echo', '^!']) == '"^!"\n'
+        assert run_shell('echo "^!"') == '"^!"\n'
 
 
 if __name__ == '__main__':

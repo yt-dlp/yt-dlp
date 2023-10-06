@@ -45,6 +45,9 @@ class TestExecution(unittest.TestCase):
             self.assertTrue(os.path.exists(LAZY_EXTRACTORS))
 
             _, stderr = self.run_yt_dlp(opts=('-s', 'test:'))
+            # `MIN_RECOMMENDED` emits a deprecated feature warning for deprecated python versions
+            if stderr and stderr.startswith('Deprecated Feature: Support for Python'):
+                stderr = ''
             self.assertFalse(stderr)
 
             subprocess.check_call([sys.executable, 'test/test_all_urls.py'], cwd=rootDir, stdout=subprocess.DEVNULL)
