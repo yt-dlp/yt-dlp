@@ -213,7 +213,10 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             return None
 
         if not translated:
-            return original
+            return {
+                'lyrics': [{'data': original, 'ext': 'lrc'}],
+                'lyrics_original': [{'data': original, 'ext': 'lrc'}],
+            }
 
         lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
         original_ts_texts = re.findall(lyrics_expr, original)
@@ -225,7 +228,12 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             timestamp, text = original_ts_texts[i]
             if translation_ts_dict.get(timestamp):
                 original_ts_texts[i] = timestamp, f'{text} / {translation_ts_dict[timestamp]}'
-        return '\n'.join([''.join(parts) for parts in original_ts_texts])
+        merged = '\n'.join([''.join(parts) for parts in original_ts_texts])
+        return {
+            'lyrics': [{'data': merged, 'ext': 'lrc'}],
+            'lyrics_original': [{'data': original, 'ext': 'lrc'}],
+            'lyrics_translated': [{'data': translated, 'ext': 'lrc'}],
+        }
 
     def _real_extract(self, url):
         song_id = self._match_id(url)
@@ -238,13 +246,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         lyrics = self._process_lyrics(self.query_api(
             f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
         lyric_data = {
-            'description': lyrics,
-            'subtitles': {
-                'lyric': [{
-                    'data': lyrics,
-                    'ext': 'lrc',
-                }]
-            }
+            'description': lyrics['lyrics']['data'],
+            'subtitles': lyrics,
         } if lyrics else {}
 
         return {
