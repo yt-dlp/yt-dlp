@@ -531,15 +531,16 @@ class IqIE(InfoExtractor):
             r'<script src="((?:https?:)?//stc\.iqiyipic\.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
         webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
 
-        webpack_map_module = self._search_json(
-            r'["\']\s*\+\(\s*', webpack_js, 'JS locations', video_id,
-            contains_pattern=r'{\s*(?:\d+\s*:\s*"[^"]+",?\s*)+\}',
-            end_pattern=r'\[e\]\|\|e\)', transform_source=js_to_json)
-
-        webpack_map_hash = self._search_json(
+        webpack_map = self._search_json(
             r'["\']\s*\+\s*', webpack_js, 'JS locations', video_id,
             contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\da-f]+["\']\s*,?\s*)+}',
             end_pattern=r'\[\w+\]\+["\']\.js', transform_source=js_to_json)
+
+        replacement_map = self._search_json(
+            r'["\']\s*\+\(\s*', webpack_js, 'replacement map', video_id,
+            contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\w-]+["\']\s*,?\s*)+}',
+            end_pattern=r'\[\w+\]\|\|\w+\)\+["\']\.', transform_source=js_to_json,
+            fatal=False) or {}
 
         webpack_map = {}
         for key, value in webpack_map_hash.items():
