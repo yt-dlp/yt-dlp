@@ -433,8 +433,8 @@ class FacebookIE(InfoExtractor):
                         'ext': 'srt',
                         'url': c['captions_url'],
                         'name': (c['localized_language']
-                                + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
-                                + (' (' + c['localized_creation_method'] + ')' if c['localized_creation_method'] else '')),
+                                 + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
+                                 + (' (' + c['localized_creation_method'] + ')' if c['localized_creation_method'] else '')),
                     }]
                 lang = list(subtitles.keys())
                 lang.sort()
