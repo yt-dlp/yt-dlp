@@ -98,6 +98,7 @@ class LBRYIE(LBRYBaseIE):
             'height': 720,
             'thumbnail': 'https://spee.ch/7/67f2d809c263288c.png',
             'license': 'None',
+            'uploader_id': '@Mantega',
             'duration': 346,
             'channel': 'LBRY/Odysee rats united!!!',
             'channel_id': '1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
@@ -131,6 +132,7 @@ class LBRYIE(LBRYBaseIE):
             'vcodec': 'none',
             'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
             'license': 'None',
+            'uploader_id': '@LBRYFoundation',
         }
     }, {
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
@@ -174,6 +176,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': 'mincount:1',
             'thumbnail': 'startswith:https://thumb',
             'license': 'None',
+            'uploader_id': '@RT',
         },
         'params': {'skip_download': True}
     }, {
