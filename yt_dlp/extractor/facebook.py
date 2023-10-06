@@ -420,8 +420,7 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
-            snippet = traverse_obj(post, (
-                ..., 'video', ..., 'attachments', ..., lambda k, v: (
+            snippet = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict) or {}
             locale = self._html_search_regex((self._meta_regex('og:locale'), self._meta_regex('twitter:locale')), webpage, 'locale', group='content')
             captions = get_first(snippet, ('video_available_captions_locales')) or get_first(snippet, ('captions_url')) or None
@@ -431,8 +430,8 @@ class FacebookIE(InfoExtractor):
             elif captions:
                 for c in captions:
                     subtitles[c['locale']] = [{
-                        'ext':  'srt',
-                        'url':  c['captions_url'],
+                        'ext': 'srt',
+                        'url': c['captions_url'],
                         'name': (c['localized_language']
                             + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
                             + (' (' + c['localized_creation_method'] + ')' if c['localized_creation_method'] else '')),
