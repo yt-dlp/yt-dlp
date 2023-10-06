@@ -538,7 +538,7 @@ class IqIE(InfoExtractor):
 
         replacement_map = self._search_json(
             r'["\']\s*\+\(\s*', webpack_js, 'replacement map', video_id,
-            contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\w-]+["\']\s*,?\s*)+}',
+            contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\w.-]+["\']\s*,?\s*)+}',
             end_pattern=r'\[\w+\]\|\|\w+\)\+["\']\.', transform_source=js_to_json,
             fatal=False) or {}
 
