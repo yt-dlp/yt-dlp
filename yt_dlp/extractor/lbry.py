@@ -84,18 +84,16 @@ class LBRYBaseIE(InfoExtractor):
             'no_totals': True,
             'page': page,
             'page_size': self._PAGE_SIZE,
+            **params,
         }
-        page_params.update(params)
         result = self._call_api_proxy(
             'claim_search', display_id, page_params, f'page {page}')
         for item in traverse_obj(result, ('items', lambda _, v: v['name'] and v['claim_id'])):
-            stream_claim_id = item['claim_id']
-
             yield {
                 **self._parse_stream(item, url),
                 '_type': 'url',
-                'id': stream_claim_id,
-                'url': self._permanent_url(url, item['name'], stream_claim_id),
+                'id': item['claim_id'],
+                'url': self._permanent_url(url, item['name'], item['claim_id']),
             }
 
     def _playlist_entries(self, url, display_id, claim_param, metadata):
