@@ -951,6 +951,7 @@ from .lastfm import (
 from .lbry import (
     LBRYIE,
     LBRYChannelIE,
+    LBRYPlaylistIE,
 )
 from .lci import LCIIE
 from .lcp import (
