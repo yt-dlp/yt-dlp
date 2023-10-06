@@ -215,7 +215,6 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         if not translated:
             return {
                 'lyrics': [{'data': original, 'ext': 'lrc'}],
-                'lyrics_original': [{'data': original, 'ext': 'lrc'}],
             }
 
         lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
@@ -227,8 +226,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             for timestamp, text in original_ts_texts)
 
         return {
-            'lyrics': [{'data': merged, 'ext': 'lrc'}],
-            'lyrics_original': [{'data': original, 'ext': 'lrc'}],
+            'lyrics_merged': [{'data': merged, 'ext': 'lrc'}],
+            'lyrics': [{'data': original, 'ext': 'lrc'}],
             'lyrics_translated': [{'data': translated, 'ext': 'lrc'}],
         }
 
@@ -243,7 +242,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         lyrics = self._process_lyrics(self.query_api(
             f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
         lyric_data = {
-            'description': lyrics['lyrics'][0]['data'],
+            'description': traverse_obj(lyrics, (('lyrics_merged', 'lyrics'), 0, 'data'), get_all=False),
             'subtitles': lyrics,
         } if lyrics else {}
 
