@@ -115,12 +115,14 @@ class NetEaseMusicBaseIE(InfoExtractor):
             raise ExtractorError(f'Failed to get meta info: {code} {message}')
         return result
 
-    def _get_entries(self, songs_data, entry_keys=None, id_key='id', name_key='name', ie='NetEaseMusic'):
-        for song in traverse_obj(songs_data, (*variadic(entry_keys, (str, bytes, dict, set)), ...)):
-            song_id = traverse_obj(song, (id_key, {int_or_none}))
-            song_name = traverse_obj(song, (name_key, {str})) if name_key else None
-            if song_id:
-                yield self.url_result(f'http://music.163.com/#/song?id={song_id}', ie, str(song_id), song_name)
+    def _get_entries(self, songs_data, entry_keys=None, id_key='id', name_key='name'):
+        for song in traverse_obj(songs_data, (
+                *variadic(entry_keys, (str, bytes, dict, set)),
+                lambda _, v: int_or_none(v[id_key]) is not None)):
+            song_id = str(song[id_key])
+            yield self.url_result(
+                f'http://music.163.com/#/song?id={song_id}', NetEaseMusicIE,
+                song_id, traverse_obj(song, (name_key, {str})))
 
 
 class NetEaseMusicIE(NetEaseMusicBaseIE):
