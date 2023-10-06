@@ -137,7 +137,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'timestamp': 1522944000,
             'upload_date': '20180405',
             'description': 'md5:3650af9ee22c87e8637cb2dde22a765c',
-            'subtitles': {'lyric': [{'ext': 'lrc'}]},
+            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
             "duration": 256,
             'thumbnail': r're:^http.*\.jpg',
         },
@@ -165,7 +165,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'upload_date': '19911130',
             'timestamp': 691516800,
             'description': 'md5:1ba2f911a2b0aa398479f595224f2141',
-            'subtitles': {'lyric': [{'ext': 'lrc'}]},
+            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
             'duration': 268,
             'alt_title': '伴唱:现代人乐队 合唱:总政歌舞团',
             'thumbnail': r're:^http.*\.jpg',
@@ -181,7 +181,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'upload_date': '20150516',
             'timestamp': 1431792000,
             'description': 'md5:21535156efb73d6d1c355f95616e285a',
-            'subtitles': {'lyric': [{'ext': 'lrc'}]},
+            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
             'duration': 199,
             'thumbnail': r're:^http.*\.jpg',
         },
@@ -196,8 +196,8 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'creator': '少女时代',
             'upload_date': '20100127',
             'timestamp': 1264608000,
-            'description': 'md5:79d99cc560e4ca97e0c4d86800ee4184',
-            'subtitles': {'lyric': [{'ext': 'lrc'}]},
+            'description': 'md5:03d1ffebec3139aa4bafe302369269c5',
+            'subtitles': {'lyrics': [{'ext': 'lrc'}]},
             'duration': 229,
             'alt_title': '说出愿望吧(Genie)',
             'thumbnail': r're:^http.*\.jpg',
@@ -246,7 +246,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         lyrics = self._process_lyrics(self.query_api(
             f'song/lyric?id={song_id}&lv=-1&tv=-1', song_id, 'Downloading lyrics data'))
         lyric_data = {
-            'description': lyrics['lyrics']['data'],
+            'description': lyrics['lyrics'][0]['data'],
             'subtitles': lyrics,
         } if lyrics else {}
 
