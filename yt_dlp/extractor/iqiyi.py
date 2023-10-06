@@ -542,17 +542,10 @@ class IqIE(InfoExtractor):
             end_pattern=r'\[\w+\]\|\|\w+\)\+["\']\.', transform_source=js_to_json,
             fatal=False) or {}
 
-        webpack_map = {}
-        for key, value in webpack_map_hash.items():
-            if key in webpack_map_module:
-                new_key = webpack_map_module[key]
-                webpack_map[new_key] = value
-            else:
-                webpack_map[key] = value
-
         for module_index in reversed(webpack_map):
+            real_module = replacement_map.get(module_index) or module_index 
             module_js = self._download_webpage(
-                f'https://stc.iqiyipic.com/_next/static/chunks/{module_index}.{webpack_map[module_index]}.js',
+                f'https://stc.iqiyipic.com/_next/static/chunks/{real_module}.{webpack_map[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
             if 'vms request' in module_js:
                 self.cache.store('iq', 'player_js', module_js)
