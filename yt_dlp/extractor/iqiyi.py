@@ -543,7 +543,7 @@ class IqIE(InfoExtractor):
             fatal=False) or {}
 
         for module_index in reversed(webpack_map):
-            real_module = replacement_map.get(module_index) or module_index 
+            real_module = replacement_map.get(module_index) or module_index
             module_js = self._download_webpage(
                 f'https://stc.iqiyipic.com/_next/static/chunks/{real_module}.{webpack_map[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
