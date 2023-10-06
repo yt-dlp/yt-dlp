@@ -212,7 +212,8 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'Gardening In Canada',
             'channel_id': 'b8be0e93b423dad221abe29545fbe8ec36e806bc',
             'channel_url': 'https://odysee.com/@gardeningincanada:b8be0e93b423dad221abe29545fbe8ec36e806bc',
-            'formats': 'mincount:3',  # FIXME
+            'uploader_id': '@gardeningincanada',
+            'formats': 'mincount:3',
             'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
             'license': 'Copyrighted (contact publisher)',
         }
@@ -252,6 +253,7 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'Wicked Truths',
             'channel_id': '23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
             'channel_url': 'https://odysee.com/@wickedtruths:23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
+            'uploader_id': '@wickedtruths',
             'timestamp': 1695114347,
             'upload_date': '20230919',
             'release_timestamp': 1685617473,
