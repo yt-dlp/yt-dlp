@@ -28,7 +28,7 @@ class NhkBaseIE(InfoExtractor):
                 m_id, lang, '/all' if is_video else ''),
             m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
 
-    def _get_vod_api(self):
+    def _extract_vod_api(self):
         movie_player_js = self._download_webpage(
             'https://movie-a.nhk.or.jp/world/player/js/movie-player.js', None,
             note='Downloading stream API information')
@@ -36,7 +36,22 @@ class NhkBaseIE(InfoExtractor):
             r'prod:[^;]+apiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API url')
         api_token = self._search_regex(
             r'prod:[^;]+token:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API token')
+        self.cache.store('nhkworld', 'vod_api', {'url': api_url, 'token': api_token})
         return api_url, api_token
+
+    def _load_vod_api(self):
+        cachedata = self.cache.load('nhkworld', 'vod_api')
+        if cachedata is not None and url_or_none(cachedata.get('url')) is not None:
+            return cachedata['url'], cachedata.get('token')
+        return self._extract_vod_api()
+
+    def _extract_stream_info(self, api_url, api_token, vod_id):
+        return self._download_json(api_url, vod_id, query={
+                'token': api_token,
+                'type': 'json',
+                'optional_id': vod_id,
+                'active_flg': 1,
+            }, note='Downloading stream information')
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
@@ -77,13 +92,13 @@ class NhkBaseIE(InfoExtractor):
         }
         if is_video:
             vod_id = episode['vod_id']
-            api_url, api_token = self._get_vod_api()
-            streams_json = self._download_json(api_url, vod_id, query={
-                'token': api_token,
-                'type': 'json',
-                'optional_id': vod_id,
-                'active_flg': 1,
-            }, note='Downloading stream information')
+            api_url, api_token = self._load_vod_api()
+            streams_json = self._extract_stream_info(api_url, api_token, vod_id)
+            if streams_json.get('response_status') != '2000':
+                self.to_screen('Getting stream information failed, trying again with fresh API details')
+                api_url, api_token = self._extract_vod_api()
+                streams_json = self._extract_stream_info(api_url, api_token, vod_id)
+
             stream_url = traverse_obj(streams_json, (
                 'meta', 0, 'movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
             formats, subs = self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
