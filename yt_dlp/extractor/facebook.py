@@ -420,6 +420,28 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+            snippet = traverse_obj(post, (
+                ..., 'video', ..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict) or {}
+            locale = self._html_search_regex((self._meta_regex('og:locale'), self._meta_regex('twitter:locale')), webpage, 'locale', group='content')
+            captions = get_first(snippet, ('video_available_captions_locales')) or get_first(snippet, ('captions_url')) or None
+            subtitles = {}
+            if isinstance(captions, str):
+                subtitles[locale] = [{'ext': 'srt', 'url': captions}]
+            elif captions:
+                for c in captions:
+                    subtitles[c['locale']] = [{
+                        'ext':  'srt',
+                        'url':  c['captions_url'],
+                        'name': (c['localized_language']
+                            + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
+                            + (' (' + c['localized_creation_method'] + ')' if c['localized_creation_method'] else '')),
+                    }]
+                lang = list(subtitles.keys())
+                lang.sort()
+                if lang.index(locale):
+                    lang.insert(0, lang.pop(lang.index(locale)))
+                subtitles = {i: subtitles[i] for i in lang}
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -463,6 +485,7 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'subtitles': subtitles,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -708,7 +731,6 @@ class FacebookIE(InfoExtractor):
         video_data = video_data[0]
 
         formats = []
-        subtitles = {}
         for f in video_data:
             format_id = f['stream_type']
             if f and isinstance(f, dict):
@@ -731,14 +753,10 @@ class FacebookIE(InfoExtractor):
                             'height': 720 if quality == 'hd' else None
                         })
             extract_dash_manifest(f[0], formats)
-            subtitles_src = f[0].get('subtitles_src')
-            if subtitles_src:
-                subtitles.setdefault('en', []).append({'url': subtitles_src})
 
         info_dict = {
             'id': video_id,
             'formats': formats,
-            'subtitles': subtitles,
         }
         process_formats(info_dict)
         info_dict.update(extract_metadata(webpage))
