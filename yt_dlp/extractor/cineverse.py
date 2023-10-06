@@ -87,6 +87,7 @@ class CineverseIE(CineverseBaseIE):
                 'modified_timestamp': ('details', 'updated_by', 0, 'update_time', 'time', {int_or_none}),
                 'season_number': ('details', 'season', {int_or_none}),
                 'episode_number': ('details', 'episode', {int_or_none}),
+                'episode': 'title',
                 'age_limit': ('details', 'rating_code', {parse_age_limit}),
                 'series': ('details', 'series_details', 'title'),
             }),
