@@ -70,11 +70,11 @@ class LBRYBaseIE(InfoExtractor):
             'duration': ('value', stream_type, 'duration', {int_or_none}),
             'channel': ('signing_channel', 'value', 'title', {str}),
             'channel_id': ('signing_channel', 'claim_id', {str}),
+            'uploader_id': ('signing_channel', 'name', {str}),
         })
 
-        channel_name = traverse_obj(stream, ('signing_channel', 'name', {str}))
-        if channel_name and info.get('channel_id'):
-            info['channel_url'] = self._permanent_url(url, channel_name, info['channel_id'])
+        if info.get('uploader_id') and info.get('channel_id'):
+            info['channel_url'] = self._permanent_url(url, info['uploader_id'], info['channel_id'])
 
         return info
 
@@ -159,6 +159,7 @@ class LBRYIE(LBRYBaseIE):
             'height': 720,
             'thumbnail': 'https://spee.ch/7/67f2d809c263288c.png',
             'license': 'None',
+            'uploader_id': '@Mantega',
             'duration': 346,
             'channel': 'LBRY/Odysee rats united!!!',
             'channel_id': '1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
@@ -192,6 +193,7 @@ class LBRYIE(LBRYBaseIE):
             'vcodec': 'none',
             'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
             'license': 'None',
+            'uploader_id': '@LBRYFoundation',
         }
     }, {
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
@@ -210,7 +212,8 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'Gardening In Canada',
             'channel_id': 'b8be0e93b423dad221abe29545fbe8ec36e806bc',
             'channel_url': 'https://odysee.com/@gardeningincanada:b8be0e93b423dad221abe29545fbe8ec36e806bc',
-            'formats': 'mincount:3',  # FIXME
+            'uploader_id': '@gardeningincanada',
+            'formats': 'mincount:3',
             'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
             'license': 'Copyrighted (contact publisher)',
         }
@@ -235,6 +238,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': 'mincount:1',
             'thumbnail': 'startswith:https://thumb',
             'license': 'None',
+            'uploader_id': '@RT',
         },
         'params': {'skip_download': True}
     }, {
@@ -249,6 +253,7 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'Wicked Truths',
             'channel_id': '23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
             'channel_url': 'https://odysee.com/@wickedtruths:23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
+            'uploader_id': '@wickedtruths',
             'timestamp': 1695114347,
             'upload_date': '20230919',
             'release_timestamp': 1685617473,
