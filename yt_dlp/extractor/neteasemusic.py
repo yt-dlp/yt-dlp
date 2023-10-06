@@ -228,7 +228,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             timestamp, text = original_ts_texts[i]
             if translation_ts_dict.get(timestamp):
                 original_ts_texts[i] = timestamp, f'{text} / {translation_ts_dict[timestamp]}'
-        merged = '\n'.join([''.join(parts) for parts in original_ts_texts])
+        merged = '\n'.join(map(''.join, original_ts_texts))
         return {
             'lyrics': [{'data': merged, 'ext': 'lrc'}],
             'lyrics_original': [{'data': original, 'ext': 'lrc'}],
