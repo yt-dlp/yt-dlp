@@ -222,11 +222,10 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
         original_ts_texts = re.findall(lyrics_expr, original)
         translation_ts_dict = dict(re.findall(lyrics_expr, translated))
 
-        for i in range(len(original_ts_texts)):
-            timestamp, text = original_ts_texts[i]
-            if translation_ts_dict.get(timestamp):
-                original_ts_texts[i] = timestamp, f'{text} / {translation_ts_dict[timestamp]}'
-        merged = '\n'.join(map(''.join, original_ts_texts))
+        merged = '\n'.join(
+            join_nonempty(f'{timestamp}{text}', translation_ts_dict.get(timestamp, ''), delim=' / ')
+            for timestamp, text in original_ts_texts)
+
         return {
             'lyrics': [{'data': merged, 'ext': 'lrc'}],
             'lyrics_original': [{'data': original, 'ext': 'lrc'}],
