@@ -47,11 +47,11 @@ class NhkBaseIE(InfoExtractor):
 
     def _extract_stream_info(self, api_url, api_token, vod_id):
         return self._download_json(api_url, vod_id, query={
-                'token': api_token,
-                'type': 'json',
-                'optional_id': vod_id,
-                'active_flg': 1,
-            }, note='Downloading stream information')
+            'token': api_token,
+            'type': 'json',
+            'optional_id': vod_id,
+            'active_flg': 1,
+        }, note='Downloading stream information')
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
