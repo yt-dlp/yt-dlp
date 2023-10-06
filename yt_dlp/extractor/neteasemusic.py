@@ -220,9 +220,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
 
         lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
         original_ts_texts = re.findall(lyrics_expr, original)
-        translation_ts_dict = {
-            timestamp: text for timestamp, text in re.findall(lyrics_expr, translated)
-        }
+        translation_ts_dict = dict(re.findall(lyrics_expr, translated))
 
         for i in range(len(original_ts_texts)):
             timestamp, text = original_ts_texts[i]
