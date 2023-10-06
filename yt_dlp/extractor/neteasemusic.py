@@ -582,7 +582,9 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
                 f'dj/program/byradio?asc=false&limit={self._PAGE_SIZE}&radioId={dj_id}&offset={offset}',
                 dj_id, note=f'Downloading dj programs - {offset}')
 
-            entries.extend(self._get_entries(info, 'programs'))
+            entries.extend(self.url_result(
+                f'http://music.163.com/#/program?id={program["id"]}', NetEaseMusicProgramIE,
+                program['id'], program.get('name')) for program in info['programs'])
             if not metainfo:
                 metainfo = traverse_obj(info, ('programs', 0, 'radio', {
                     'title': ('name', {str}),
