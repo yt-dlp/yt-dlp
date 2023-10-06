@@ -54,7 +54,7 @@ class NhkBaseIE(InfoExtractor):
             api_url = api_info.pop('url')
             stream_url = traverse_obj(
                 self._download_json(
-                    api_url, vod_id, 'Downloading stream information', fatal=False, query={
+                    api_url, vod_id, 'Downloading stream url info', fatal=False, query={
                         **api_info,
                         'type': 'json',
                         'optional_id': vod_id,
