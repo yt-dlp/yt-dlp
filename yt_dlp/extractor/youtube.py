@@ -3282,8 +3282,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_heatmap_from_player_overlay(self, data):
         return traverse_obj(data, (
-            'frameworkUpdates', 'entityBatchUpdate', 'mutations', ..., 'payload',
-            'macroMarkersListEntity', 'markersList', 'markers', ..., {
+            'frameworkUpdates', 'entityBatchUpdate', 'mutations',
+            lambda _, v: v['payload']['macroMarkersListEntity']['markersList']['markerType'] == 'MARKER_TYPE_HEATMAP',
+            'payload', 'macroMarkersListEntity', 'markersList', 'markers', ..., {
                 'start_time': ('startMillis', {functools.partial(float_or_none, scale=1000)}),
                 'end_time': {lambda x: (int(x['startMillis']) + int(x['durationMillis'])) / 1000},
                 'value': ('intensityScoreNormalized', {float_or_none}),
