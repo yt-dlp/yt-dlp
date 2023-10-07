@@ -88,12 +88,17 @@ class YoukuIE(InfoExtractor):
             'tags': list,
         },
     }, {
-        'url': 'https://play.tudou.com/v_show/id_XNjAxNjI2OTU3Ng.html?',
+        'url': 'https://play.tudou.com/v_show/id_XNjAxNjI2OTU3Ng==.html?',
         'info_dict': {
-            'id': 'XNjAxNjI2OTU3Ng==',
+            'id': 'XNjAxNjI2OTU3Ng',
             'ext': 'mp4',
             'title': '阿斯塔意识到哈里杀了人，自己被骗了',
-            'show_name': '外星居民 第一季',
+            'thumbnail': 'https://m.ykimg.com/0541010164F732752794D4D7B70331D1',
+            'uploader_id': '88758207',
+            'tags': [],
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UMzU1MDMyODI4',
+            'uploader': '英美剧场',
+            'duration': 72.91,
         },
     }]
 
