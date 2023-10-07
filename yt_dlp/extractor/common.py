@@ -2644,8 +2644,7 @@ class InfoExtractor:
                 'timescale': 1,
             })
             for adaptation_set in period.findall(_add_ns('AdaptationSet')):
-                role_node = adaptation_set.find(_add_ns('Role'))
-
+                role = try_call(lambda: adaptation_set.find(_add_ns('Role')).attrib['value'])
                 adaption_set_ms_info = extract_multisegment_info(adaptation_set, period_ms_info)
                 for representation in adaptation_set.findall(_add_ns('Representation')):
                     representation_attrib = adaptation_set.attrib.copy()
