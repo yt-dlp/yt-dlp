@@ -23,6 +23,7 @@ class MovieClipsIE(InfoExtractor):
             'uploader': 'Movieclips',
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'redirects to YouTube',
     }
 
     def _real_extract(self, url):
