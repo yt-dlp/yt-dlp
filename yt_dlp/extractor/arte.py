@@ -59,6 +59,7 @@ class ArteTVIE(ArteTVBaseIE):
         'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
         'only_matching': True,
     }, {
+        'note': 'age-restricted',
         'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
         'info_dict': {
             'id': '006785-000-A',
