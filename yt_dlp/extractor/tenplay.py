@@ -140,22 +140,20 @@ class TenPlaySeasonIE(InfoExtractor):
         }
     }]
 
-    def _entries(self, show, season, load_more_url):
+    def _entries(self, load_more_url, display_id=None):
         skip_ids = []
-        has_more = True
-
-        base_url = f'https://10play.com.au/{show}/episodes/{season}'
-
-        while has_more:
+        for page in itertools.count(1):
             episodes_carousel = self._download_json(
-                load_more_url, f'{show}/{season}', query={'skipIds[]': skip_ids},
-                note=f'Fetching episodes {len(skip_ids)}+')
+                load_more_url, display_id, query={'skipIds[]': skip_ids},
+                note=f'Fetching episodes page {page}')
 
-            has_more = episodes_carousel['hasMore']
             episodes_chunk = episodes_carousel['items']
-            skip_ids += [ep['id'] for ep in episodes_chunk]
+            skip_ids.extend(ep['id'] for ep in episodes_chunk)
 
-            yield from [urljoin(base_url, ep['cardLink']) for ep in episodes_chunk]
+            for ep in episodes_chunk:
+                yield ep['cardLink']
+            if not episodes_carousel['hasMore']:
+                break
 
     def _real_extract(self, url):
         show, season = self._match_valid_url(url).group('show', 'season')
@@ -163,13 +161,15 @@ class TenPlaySeasonIE(InfoExtractor):
         season_info = self._download_json(
             f'https://10play.com.au/api/shows/{show}/episodes/{season}', f'{show}/{season}')
 
-        episodes_carousel = traverse_obj(season_info, ('content', 0, 'components', (
-            lambda _, v: v['title'].lower() == 'episodes', (..., {dict}))), get_all=False) or {}
+        episodes_carousel = traverse_obj(season_info, (
+            'content', 0, 'components', (
+                lambda _, v: v['title'].lower() == 'episodes',
+                (..., {dict}),
+            )), get_all=False) or {}
 
         playlist_id = episodes_carousel['tpId']
-        playlist_title = traverse_obj(season_info, ('content', 0, 'title', {str}))
-
-        load_more_url = urljoin(url, episodes_carousel['loadMoreUrl'])
 
         return self.playlist_from_matches(
-            self._entries(show, season, load_more_url), playlist_id, playlist_title)
+            self._entries(urljoin(url, episodes_carousel['loadMoreUrl']), playlist_id),
+            playlist_id, traverse_obj(season_info, ('content', 0, 'title', {str})),
+            getter=functools.partial(urljoin, url))
