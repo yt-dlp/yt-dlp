@@ -2347,6 +2347,10 @@ from .vshare import VShareIE
 from .vtm import VTMIE
 from .medialaan import MedialaanIE
 from .vuclip import VuClipIE
+from .vueschool import (
+    VueSchoolLessonIE,
+    VueSchoolCourseIE
+)
 from .vupload import VuploadIE
 from .vvvvid import (
     VVVVIDIE,
