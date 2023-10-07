@@ -58,6 +58,18 @@ class ArteTVIE(ArteTVBaseIE):
     }, {
         'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
+        'info_dict': {
+            'id': '006785-000-A',
+            'description': 'md5:c2f94fdfefc8a280e4dab68ab96ab0ba',
+            'title': 'The Element of Crime',
+            'timestamp': 1696111200,
+            'duration': 5849,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
+            'upload_date': '20230930',
+            'ext': 'mp4',
+        }
     }]
 
     _GEO_BYPASS = True
