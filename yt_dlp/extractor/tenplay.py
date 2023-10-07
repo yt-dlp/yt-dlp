@@ -1,5 +1,7 @@
 from datetime import datetime
 import base64
+import functools
+import itertools
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
