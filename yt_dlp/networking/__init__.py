@@ -20,4 +20,4 @@ try:
 except ImportError:
     pass
 except Exception as e:
-    warnings.warn(f'Unable to import requests handler: {e}' + bug_reports_message())
+    warnings.warn(f'Failed to import "requests" request handler: {e}' + bug_reports_message())
