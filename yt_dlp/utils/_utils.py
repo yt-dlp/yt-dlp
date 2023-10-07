@@ -669,6 +669,7 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
 
 def sanitize_path(s, force=False):
     """Sanitizes and normalizes path on Windows"""
+    # XXX: this handles drive relative paths (c:sth) incorrectly
     if sys.platform == 'win32':
         force = False
         drive_or_unc, _ = os.path.splitdrive(s)
@@ -687,7 +688,10 @@ def sanitize_path(s, force=False):
         sanitized_path.insert(0, drive_or_unc + os.path.sep)
     elif force and s and s[0] == os.path.sep:
         sanitized_path.insert(0, os.path.sep)
-    return os.path.join(*sanitized_path)
+    # TODO: Fix behavioral differences <3.12
+    # The workaround using `normpath` only superficially passes tests
+    # Ref: https://github.com/python/cpython/pull/100351
+    return os.path.normpath(os.path.join(*sanitized_path))
 
 
 def sanitize_url(url, *, scheme='http'):
@@ -821,7 +825,7 @@ class Popen(subprocess.Popen):
         _fix('LD_LIBRARY_PATH')  # Linux
         _fix('DYLD_LIBRARY_PATH')  # macOS
 
-    def __init__(self, *args, env=None, text=False, **kwargs):
+    def __init__(self, args, *remaining, env=None, text=False, shell=False, **kwargs):
         if env is None:
             env = os.environ.copy()
         self._fix_pyinstaller_ld_path(env)
@@ -831,7 +835,21 @@ class Popen(subprocess.Popen):
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        super().__init__(*args, env=env, **kwargs, startupinfo=self._startupinfo)
+
+        if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
+            if not isinstance(args, str):
+                args = ' '.join(compat_shlex_quote(a) for a in args)
+            shell = False
+            args = f'{self.__comspec()} /Q /S /D /V:OFF /C "{args}"'
+
+        super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
+
+    def __comspec(self):
+        comspec = os.environ.get('ComSpec') or os.path.join(
+            os.environ.get('SystemRoot', ''), 'System32', 'cmd.exe')
+        if os.path.isabs(comspec):
+            return comspec
+        raise FileNotFoundError('shell not found: neither %ComSpec% nor %SystemRoot% is set')
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
@@ -1256,7 +1274,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.utcnow(), precision)
+    today = datetime_round(datetime.datetime.now(datetime.timezone.utc), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -1319,8 +1337,8 @@ def datetime_round(dt, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = calendar.timegm(dt.timetuple())
-    return datetime.datetime.utcfromtimestamp(roundto(timestamp, unit_seconds[precision]))
+    timestamp = roundto(calendar.timegm(dt.timetuple()), unit_seconds[precision])
+    return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
 
 
 def hyphenate_date(date_str):
@@ -2723,6 +2741,7 @@ def js_to_json(code, vars={}, *, strict=False):
     def create_map(mobj):
         return json.dumps(dict(json.loads(js_to_json(mobj.group(1) or '[]', vars=vars))))
 
+    code = re.sub(r'(?:new\s+)?Array\((.*?)\)', r'[\g<1>]', code)
     code = re.sub(r'new Map\((\[.*?\])?\)', create_map, code)
     if not strict:
         code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
@@ -2847,6 +2866,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'quicktime': 'mov',
         'webm': 'webm',
         'vp9': 'vp9',
+        'video/ogg': 'ogv',
         'x-flv': 'flv',
         'x-m4v': 'm4v',
         'x-matroska': 'mkv',

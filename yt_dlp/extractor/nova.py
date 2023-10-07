@@ -6,7 +6,6 @@ from ..utils import (
     determine_ext,
     int_or_none,
     js_to_json,
-    qualities,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -49,77 +48,52 @@ class NovaEmbedIE(InfoExtractor):
         duration = None
         formats = []
 
-        player = self._parse_json(
-            self._search_regex(
-                (r'(?:(?:replacePlaceholders|processAdTagModifier).*?:\s*)?(?:replacePlaceholders|processAdTagModifier)\s*\(\s*(?P<json>{.*?})\s*\)(?:\s*\))?\s*,',
-                    r'Player\.init\s*\([^,]+,(?P<cndn>\s*\w+\s*\?)?\s*(?P<json>{(?(cndn).+?|.+)})\s*(?(cndn):|,\s*{.+?}\s*\)\s*;)'),
-                webpage, 'player', default='{}', group='json'), video_id, fatal=False)
-        if player:
-            for format_id, format_list in player['tracks'].items():
-                if not isinstance(format_list, list):
-                    format_list = [format_list]
-                for format_dict in format_list:
-                    if not isinstance(format_dict, dict):
-                        continue
-                    if (not self.get_param('allow_unplayable_formats')
-                            and traverse_obj(format_dict, ('drm', 'keySystem'))):
-                        has_drm = True
-                        continue
-                    format_url = url_or_none(format_dict.get('src'))
-                    format_type = format_dict.get('type')
-                    ext = determine_ext(format_url)
-                    if (format_type == 'application/x-mpegURL'
-                            or format_id == 'HLS' or ext == 'm3u8'):
-                        formats.extend(self._extract_m3u8_formats(
-                            format_url, video_id, 'mp4',
-                            entry_protocol='m3u8_native', m3u8_id='hls',
-                            fatal=False))
-                    elif (format_type == 'application/dash+xml'
-                          or format_id == 'DASH' or ext == 'mpd'):
-                        formats.extend(self._extract_mpd_formats(
-                            format_url, video_id, mpd_id='dash', fatal=False))
-                    else:
-                        formats.append({
-                            'url': format_url,
-                        })
-            duration = int_or_none(player.get('duration'))
-        else:
-            # Old path, not actual as of 08.04.2020
-            bitrates = self._parse_json(
-                self._search_regex(
-                    r'(?s)(?:src|bitrates)\s*=\s*({.+?})\s*;', webpage, 'formats'),
-                video_id, transform_source=js_to_json)
-
-            QUALITIES = ('lq', 'mq', 'hq', 'hd')
-            quality_key = qualities(QUALITIES)
-
-            for format_id, format_list in bitrates.items():
-                if not isinstance(format_list, list):
-                    format_list = [format_list]
-                for format_url in format_list:
-                    format_url = url_or_none(format_url)
-                    if not format_url:
-                        continue
-                    if format_id == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
-                            format_url, video_id, ext='mp4',
-                            entry_protocol='m3u8_native', m3u8_id='hls',
-                            fatal=False))
-                        continue
-                    f = {
+        def process_format_list(format_list, format_id=""):
+            nonlocal formats, has_drm
+            if not isinstance(format_list, list):
+                format_list = [format_list]
+            for format_dict in format_list:
+                if not isinstance(format_dict, dict):
+                    continue
+                if (not self.get_param('allow_unplayable_formats')
+                        and traverse_obj(format_dict, ('drm', 'keySystem'))):
+                    has_drm = True
+                    continue
+                format_url = url_or_none(format_dict.get('src'))
+                format_type = format_dict.get('type')
+                ext = determine_ext(format_url)
+                if (format_type == 'application/x-mpegURL'
+                        or format_id == 'HLS' or ext == 'm3u8'):
+                    formats.extend(self._extract_m3u8_formats(
+                        format_url, video_id, 'mp4',
+                        entry_protocol='m3u8_native', m3u8_id='hls',
+                        fatal=False))
+                elif (format_type == 'application/dash+xml'
+                      or format_id == 'DASH' or ext == 'mpd'):
+                    formats.extend(self._extract_mpd_formats(
+                        format_url, video_id, mpd_id='dash', fatal=False))
+                else:
+                    formats.append({
                         'url': format_url,
-                    }
-                    f_id = format_id
-                    for quality in QUALITIES:
-                        if '%s.mp4' % quality in format_url:
-                            f_id += '-%s' % quality
-                            f.update({
-                                'quality': quality_key(quality),
-                                'format_note': quality.upper(),
-                            })
-                            break
-                    f['format_id'] = f_id
-                    formats.append(f)
+                    })
+
+        player = self._search_json(
+            r'player:', webpage, 'player', video_id, fatal=False, end_pattern=r';\s*</script>')
+        if player:
+            for src in traverse_obj(player, ('lib', 'source', 'sources', ...)):
+                process_format_list(src)
+            duration = traverse_obj(player, ('sourceInfo', 'duration', {int_or_none}))
+        if not formats and not has_drm:
+            # older code path, in use before August 2023
+            player = self._parse_json(
+                self._search_regex(
+                    (r'(?:(?:replacePlaceholders|processAdTagModifier).*?:\s*)?(?:replacePlaceholders|processAdTagModifier)\s*\(\s*(?P<json>{.*?})\s*\)(?:\s*\))?\s*,',
+                     r'Player\.init\s*\([^,]+,(?P<cndn>\s*\w+\s*\?)?\s*(?P<json>{(?(cndn).+?|.+)})\s*(?(cndn):|,\s*{.+?}\s*\)\s*;)'),
+                    webpage, 'player', group='json'), video_id)
+            if player:
+                for format_id, format_list in player['tracks'].items():
+                    process_format_list(format_list, format_id)
+                duration = int_or_none(player.get('duration'))
 
         if not formats and has_drm:
             self.report_drm(video_id)
