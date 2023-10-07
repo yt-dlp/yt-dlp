@@ -6,7 +6,7 @@ import socket
 import warnings
 
 from ..dependencies import brotli, requests, urllib3
-from ..utils import int_or_none, variadic
+from ..utils import bug_reports_message, int_or_none, variadic
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -91,7 +91,7 @@ is best to avoid it in requests too for compatability reasons.
 """
 
 
-class _Urllib3PercentREOverride:
+class Urllib3PercentREOverride:
     def __init__(self, r: re.Pattern):
         self.re = r
 
@@ -108,11 +108,11 @@ class _Urllib3PercentREOverride:
 import urllib3.util.url  # noqa: E305
 
 if hasattr(urllib3.util.url, 'PERCENT_RE'):
-    urllib3.util.url.PERCENT_RE = _Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
+    urllib3.util.url.PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url.PERCENT_RE)
 elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
-    urllib3.util.url._PERCENT_RE = _Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
+    urllib3.util.url._PERCENT_RE = Urllib3PercentREOverride(urllib3.util.url._PERCENT_RE)
 else:
-    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)')
+    warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
 """
 Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
@@ -290,15 +290,15 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
 
     def _create_instance(self, cookiejar):
         session = RequestsSession()
-        _http_adapter = RequestsHTTPAdapter(
+        http_adapter = RequestsHTTPAdapter(
             ssl_context=self._make_sslcontext(),
             source_address=self.source_address,
             max_retries=urllib3.util.retry.Retry(False),
         )
         session.adapters.clear()
         session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})
-        session.mount('https://', _http_adapter)
-        session.mount('http://', _http_adapter)
+        session.mount('https://', http_adapter)
+        session.mount('http://', http_adapter)
         session.cookies = cookiejar
         session.trust_env = False  # no need, we already load proxies from env
         return session
