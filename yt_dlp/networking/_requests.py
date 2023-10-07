@@ -20,8 +20,8 @@ if len(urllib3_version) == 2:
 
 urllib3_version = tuple(map(functools.partial(int_or_none, default=0), urllib3_version[:3]))
 
-if urllib3_version < (1, 26, 0):
-    raise ImportError('Only urllib3 >= 1.26.0 is supported')
+if urllib3_version < (1, 26, 17):
+    raise ImportError('Only urllib3 >= 1.26.17 is supported')
 
 if requests.__build__ < 0x023100:
     raise ImportError('Only requests >= 2.31.0 is supported')
@@ -64,13 +64,7 @@ SUPPORTED_ENCODINGS = [
     'gzip', 'deflate'
 ]
 
-
-# urllib3 does not support brotlicffi on versions < 1.26.9 [1]
-# 1: https://github.com/urllib3/urllib3/blob/1.26.x/CHANGES.rst#1269-2022-03-16
-if (
-    brotli is not None
-    and not (brotli.__name__ == 'brotlicffi' and urllib3_version < (1, 26, 9))
-):
+if brotli is not None:
     SUPPORTED_ENCODINGS.append('br')
 
 """
