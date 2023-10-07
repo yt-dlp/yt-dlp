@@ -2047,7 +2047,6 @@ from .tubitv import (
     TubiTvIE,
     TubiTvShowIE,
 )
-from .tudou import TudouIE
 from .tumblr import TumblrIE
 from .tunein import (
     TuneInStationIE,
