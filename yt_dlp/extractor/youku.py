@@ -20,7 +20,7 @@ class YoukuIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         (?:
             https?://(
-                (?:v|player)\.youku\.com/(?:v_show/id_|player\.php/sid/)|
+                (?:v|play(?:er)?)\.(?:youku|tudou)\.com/(?:v_show/id_|player\.php/sid/)|
                 video\.tudou\.com/v/)|
             youku:)
         (?P<id>[A-Za-z0-9]+)(?:\.html|/v\.swf|)
@@ -86,6 +86,14 @@ class YoukuIE(InfoExtractor):
             'uploader_id': '1640913339',
             'uploader_url': 'https://www.youku.com/profile/index/?uid=UNjU2MzY1MzM1Ng==',
             'tags': list,
+        },
+    }, {
+        'url': 'https://play.tudou.com/v_show/id_XNjAxNjI2OTU3Ng.html?',
+        'info_dict': {
+            'id': 'XNjAxNjI2OTU3Ng==',
+            'ext': 'mp4',
+            'title': '阿斯塔意识到哈里杀了人，自己被骗了',
+            'show_name': '外星居民 第一季',
         },
     }]
 
