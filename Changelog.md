@@ -4,6 +4,35 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.10.07
+
+#### Extractor changes
+- **abc.net.au**: iview: [Improve `episode` extraction](https://github.com/yt-dlp/yt-dlp/commit/a9efb4b8d74f3583450ffda0ee57259a47d39c70) ([#8201](https://github.com/yt-dlp/yt-dlp/issues/8201)) by [xofe](https://github.com/xofe)
+- **erocast**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/47c598783c98c179e04dd12c2a3fee0f3dc53087) ([#8264](https://github.com/yt-dlp/yt-dlp/issues/8264)) by [madewokherd](https://github.com/madewokherd)
+- **gofile**: [Fix token cookie bug](https://github.com/yt-dlp/yt-dlp/commit/0730d5a966fa8a937d84bfb7f68be5198acb039b) by [bashonly](https://github.com/bashonly)
+- **iq.com**: [Fix extraction and subtitles](https://github.com/yt-dlp/yt-dlp/commit/35d9cbaf9638ccc9daf8a863063b2e7c135bc664) ([#8260](https://github.com/yt-dlp/yt-dlp/issues/8260)) by [AS6939](https://github.com/AS6939)
+- **lbry**
+    - [Add playlist support](https://github.com/yt-dlp/yt-dlp/commit/48cceec1ddb8649b5e771df8df79eb9c39c82b90) ([#8213](https://github.com/yt-dlp/yt-dlp/issues/8213)) by [bashonly](https://github.com/bashonly), [drzraf](https://github.com/drzraf), [Grub4K](https://github.com/Grub4K)
+    - [Extract `uploader_id`](https://github.com/yt-dlp/yt-dlp/commit/0e722f2f3ca42e634fd7b06ee70b16bf833ce132) ([#8244](https://github.com/yt-dlp/yt-dlp/issues/8244)) by [drzraf](https://github.com/drzraf)
+- **litv**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/91a670a4f7babe9c8aa2018f57d8c8952a6f49d8) ([#7785](https://github.com/yt-dlp/yt-dlp/issues/7785)) by [jiru](https://github.com/jiru)
+- **neteasemusic**: [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/f980df734cf5c0eaded2f7b38c6c60bccfeebb48) ([#8181](https://github.com/yt-dlp/yt-dlp/issues/8181)) by [c-basalt](https://github.com/c-basalt)
+- **nhk**: [Fix VOD extraction](https://github.com/yt-dlp/yt-dlp/commit/e831c80e8b2fc025b3b67d82974cc59e3526fdc8) ([#8249](https://github.com/yt-dlp/yt-dlp/issues/8249)) by [garret1317](https://github.com/garret1317)
+- **radiko**: [Improve extraction](https://github.com/yt-dlp/yt-dlp/commit/2ad3873f0dfa9285c91d2160e36c039e69d597c7) ([#8221](https://github.com/yt-dlp/yt-dlp/issues/8221)) by [garret1317](https://github.com/garret1317)
+- **substack**
+    - [Fix download cookies bug](https://github.com/yt-dlp/yt-dlp/commit/2f2dda3a7e85148773da3cdbc03ac9949ec1bc45) ([#8219](https://github.com/yt-dlp/yt-dlp/issues/8219)) by [handlerug](https://github.com/handlerug)
+    - [Fix embed extraction](https://github.com/yt-dlp/yt-dlp/commit/fbcc299bd8a19cf8b3c8805d6c268a9110230973) ([#8218](https://github.com/yt-dlp/yt-dlp/issues/8218)) by [handlerug](https://github.com/handlerug)
+- **theta**: [Remove extractors](https://github.com/yt-dlp/yt-dlp/commit/792f1e64f6a2beac51e85408d142b3118115c4fd) ([#8251](https://github.com/yt-dlp/yt-dlp/issues/8251)) by [alerikaisattera](https://github.com/alerikaisattera)
+- **wrestleuniversevod**: [Call API with device ID](https://github.com/yt-dlp/yt-dlp/commit/b095fd3fa9d58a65dc9b830bd63b9d909422aa86) ([#8272](https://github.com/yt-dlp/yt-dlp/issues/8272)) by [bashonly](https://github.com/bashonly)
+- **xhamster**: user: [Support creator urls](https://github.com/yt-dlp/yt-dlp/commit/cc8d8441524ec3442d7c0d3f8f33f15b66aa06f3) ([#8232](https://github.com/yt-dlp/yt-dlp/issues/8232)) by [Grub4K](https://github.com/Grub4K)
+- **youtube**
+    - [Fix `heatmap` extraction](https://github.com/yt-dlp/yt-dlp/commit/03e85ea99db76a2fddb65bf46f8819bda780aaf3) ([#8299](https://github.com/yt-dlp/yt-dlp/issues/8299)) by [bashonly](https://github.com/bashonly)
+    - [Raise a warning for `Incomplete Data` instead of an error](https://github.com/yt-dlp/yt-dlp/commit/eb5bdbfa70126c7d5355cc0954b63720522e462c) ([#8238](https://github.com/yt-dlp/yt-dlp/issues/8238)) by [coletdjnz](https://github.com/coletdjnz)
+
+#### Misc. changes
+- **cleanup**
+    - [Update extractor tests](https://github.com/yt-dlp/yt-dlp/commit/19c90e405b4137c06dfe6f9aaa02396df0da93e5) ([#7718](https://github.com/yt-dlp/yt-dlp/issues/7718)) by [trainman261](https://github.com/trainman261)
+    - Miscellaneous: [377e85a](https://github.com/yt-dlp/yt-dlp/commit/377e85a1797db9e98b78b38203ed9d4ded229991) by [dirkf](https://github.com/dirkf), [gamer191](https://github.com/gamer191), [Grub4K](https://github.com/Grub4K)
+
 ### 2023.09.24
 
 #### Important changes

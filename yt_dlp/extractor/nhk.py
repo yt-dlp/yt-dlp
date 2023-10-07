@@ -28,6 +28,44 @@ class NhkBaseIE(InfoExtractor):
                 m_id, lang, '/all' if is_video else ''),
             m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
 
+    def _get_api_info(self, refresh=True):
+        if not refresh:
+            return self.cache.load('nhk', 'api_info')
+
+        self.cache.store('nhk', 'api_info', {})
+        movie_player_js = self._download_webpage(
+            'https://movie-a.nhk.or.jp/world/player/js/movie-player.js', None,
+            note='Downloading stream API information')
+        api_info = {
+            'url': self._search_regex(
+                r'prod:[^;]+\bapiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API url'),
+            'token': self._search_regex(
+                r'prod:[^;]+\btoken:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API token'),
+        }
+        self.cache.store('nhk', 'api_info', api_info)
+        return api_info
+
+    def _extract_formats_and_subtitles(self, vod_id):
+        for refresh in (False, True):
+            api_info = self._get_api_info(refresh)
+            if not api_info:
+                continue
+
+            api_url = api_info.pop('url')
+            stream_url = traverse_obj(
+                self._download_json(
+                    api_url, vod_id, 'Downloading stream url info', fatal=False, query={
+                        **api_info,
+                        'type': 'json',
+                        'optional_id': vod_id,
+                        'active_flg': 1,
+                    }),
+                ('meta', 0, 'movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
+            if stream_url:
+                return self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
+
+        raise ExtractorError('Unable to extract stream url')
+
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
         lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
@@ -67,12 +105,14 @@ class NhkBaseIE(InfoExtractor):
         }
         if is_video:
             vod_id = episode['vod_id']
+            formats, subs = self._extract_formats_and_subtitles(vod_id)
+
             info.update({
-                '_type': 'url_transparent',
-                'ie_key': 'Piksel',
-                'url': 'https://movie-s.nhk.or.jp/v/refid/nhkworld/prefid/' + vod_id,
                 'id': vod_id,
+                'formats': formats,
+                'subtitles': subs,
             })
+
         else:
             if fetch_episode:
                 audio_path = episode['audio']['audio']

@@ -574,6 +574,7 @@ from .epicon import (
 from .eplus import EplusIbIE
 from .epoch import EpochIE
 from .eporner import EpornerIE
+from .erocast import ErocastIE
 from .eroprofile import (
     EroProfileIE,
     EroProfileAlbumIE,
@@ -951,6 +952,7 @@ from .lastfm import (
 from .lbry import (
     LBRYIE,
     LBRYChannelIE,
+    LBRYPlaylistIE,
 )
 from .lci import LCIIE
 from .lcp import (
@@ -2002,10 +2004,6 @@ from .theplatform import (
 )
 from .thestar import TheStarIE
 from .thesun import TheSunIE
-from .theta import (
-    ThetaVideoIE,
-    ThetaStreamIE,
-)
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE

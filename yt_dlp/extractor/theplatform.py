@@ -167,7 +167,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             # rtmp download
             'skip_download': True,
         },
-        'skip': '404 Not Found',
+        'skip': 'CNet no longer uses ThePlatform',
     }, {
         'url': 'https://player.theplatform.com/p/D6x-PC/pulse_preview/embed/select/media/yMBg9E8KFxZD',
         'info_dict': {
@@ -177,7 +177,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'title': 'HIGHLIGHTS: USA bag first ever series Cup win',
             'uploader': 'EGSM',
         },
-        'skip': '404 Not Found',
+        'skip': 'Dead link',
     }, {
         'url': 'http://player.theplatform.com/p/NnzsPC/widget/select/media/4Y0TlYUr_ZT7',
         'only_matching': True,
@@ -195,7 +195,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'upload_date': '20150701',
             'uploader': 'NBCU-NEWS',
         },
-        'skip': '404 Not Found',
+        'skip': 'Error: Player PID "nbcNewsOffsite" is disabled',
     }, {
         # From http://www.nbc.com/the-blacklist/video/sir-crispin-crandall/2928790?onid=137781#vc137781=1
         # geo-restricted (US), HLS encrypted with AES-128
