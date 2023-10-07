@@ -190,8 +190,11 @@ def make_socks_conn_class(base_class, socks_proxy):
 
         def connect(self):
             self.sock = create_connection(
-                (proxy_args['addr'], proxy_args['port']), timeout=self.timeout,
-                source_address=self.source_address, _create_socket_func=functools.partial(create_socks_proxy_socket, (self.host, self.port), proxy_args))
+                (proxy_args['addr'], proxy_args['port']),
+                timeout=self.timeout,
+                source_address=self.source_address,
+                _create_socket_func=functools.partial(
+                    create_socks_proxy_socket, (self.host, self.port), proxy_args))
             if isinstance(self, http.client.HTTPSConnection):
                 self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
 
