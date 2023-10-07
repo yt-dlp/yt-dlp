@@ -422,25 +422,30 @@ class FacebookIE(InfoExtractor):
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             snippet = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict) or {}
-            locale = self._html_search_regex((self._meta_regex('og:locale'), self._meta_regex('twitter:locale')), webpage, 'locale', group='content')
+            locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
             captions = get_first(snippet, ('video_available_captions_locales')) or get_first(snippet, ('captions_url')) or None
+            automatic_captions = {}
             subtitles = {}
             if isinstance(captions, str):
-                subtitles[locale] = [{'ext': 'srt', 'url': captions}]
-            elif captions:
+                subtitles[locale] = [{'ext': self._search_regex('\.(\w{3,})\?', captions, 'captions_ext', default='srt'), 'url': captions}]
+            elif isinstance(captions, list):
+                if len(captions) > 1:
+                    captions = sorted(captions, key=lambda c: (c['locale'] != locale, c['locale']))
                 for c in captions:
-                    subtitles[c['locale']] = [{
-                        'ext': 'srt',
+                    s = {
+                        'ext': self._search_regex('\.(\w{3,})\?', c['captions_url'], 'captions_ext', default='srt'),
                         'url': c['captions_url'],
                         'name': (c['localized_language']
                                  + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
                                  + (' (' + c['localized_creation_method'] + ')' if c['localized_creation_method'] else '')),
-                    }]
-                lang = list(subtitles.keys())
-                lang.sort()
-                if lang.index(locale):
-                    lang.insert(0, lang.pop(lang.index(locale)))
-                subtitles = {i: subtitles[i] for i in lang}
+                    }
+                    # observed 'localized_creation_method' value: null, "Auto-generated"(translated into diff lang)
+                    # if a 3rd method exists, captions created by such method will be categorized into automatic_captions
+                    # TODO: better way to distinguish auto-generated captions from other captions
+                    if c['localized_creation_method']:
+                        automatic_captions.setdefault(c['locale'], []).append(s)
+                    else:
+                        subtitles.setdefault(c['locale'], []).append(s)
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -484,6 +489,7 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'automatic_captions': automatic_captions,
                 'subtitles': subtitles,
             }
 
