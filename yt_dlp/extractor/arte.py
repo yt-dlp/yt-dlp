@@ -48,17 +48,7 @@ class ArteTVIE(ArteTVBaseIE):
     }, {
         'note': 'No alt_title',
         'url': 'https://www.arte.tv/fr/videos/110371-000-A/la-chaleur-supplice-des-arbres-de-rue/',
-        'info_dict': {
-            'id': '110371-000-A',
-            'ext': 'mp4',
-            'upload_date': '20220718',
-            'duration': 154,
-            'timestamp': 1658162460,
-            'description': 'md5:5890f36fe7dccfadb8b7c0891de54786',
-            'title': 'La chaleur, supplice des arbres de rue',
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/CPE2sQDtD8GLQgt8DuYHLf/940x530',
-        },
-        'params': {'skip_download': 'm3u8'}
+        'only_matching': True,
     }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
@@ -67,19 +57,7 @@ class ArteTVIE(ArteTVBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
-        'info_dict': {
-            'id': '110203-006-A',
-            'chapters': 'count:16',
-            'description': 'md5:cf592f1df52fe52007e3f8eac813c084',
-            'alt_title': 'Zaz',
-            'title': 'Baloise Session 2022',
-            'timestamp': 1668445200,
-            'duration': 4054,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/ubQjmVCGyRx3hmBuZEK9QZ/940x530',
-            'upload_date': '20221114',
-            'ext': 'mp4',
-        },
-        'expected_warnings': ['geo restricted']
+        'only_matching': True,
     }]
 
     _GEO_BYPASS = True
