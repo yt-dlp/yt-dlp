@@ -2713,14 +2713,14 @@ class InfoExtractor:
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
                             **codecs,
-                            'role': role_node.attrib.get('value') if role_node is not None else None,
+                            'role': role,
                         }
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
                             'manifest_url': mpd_url,
                             'filesize': filesize,
-                            'role': role_node.attrib.get('value') if role_node is not None else None,
+                            'role': role,
                         }
                     elif content_type == 'image/jpeg':
                         # See test case in VikiIE
