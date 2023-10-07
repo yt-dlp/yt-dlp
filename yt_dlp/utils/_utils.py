@@ -2744,7 +2744,7 @@ def js_to_json(code, vars={}, *, strict=False):
     code = re.sub(r'(?:new\s+)?Array\((.*?)\)', r'[\g<1>]', code)
     code = re.sub(r'new Map\((\[.*?\])?\)', create_map, code)
     if not strict:
-        code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
+        code = re.sub(rf'new Date\(({STRING_RE})\)', r'\g<1>', code)
         code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
         code = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', code)
         code = re.sub(r'\(function\([^)]*\)\s*\{[^}]*\}\s*\)\s*\(\s*(["\'][^)]*["\'])\s*\)', r'\1', code)
