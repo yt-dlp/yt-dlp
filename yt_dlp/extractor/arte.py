@@ -126,10 +126,9 @@ class ArteTVIE(ArteTVBaseIE):
         lang = mobj.group('lang') or mobj.group('lang_2')
         langauge_code = self._LANG_MAP.get(lang)
 
-        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers= {
+        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
             "x-validated-age": 18
         })
-
 
         geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
         if geoblocking.get('restrictedArea'):
