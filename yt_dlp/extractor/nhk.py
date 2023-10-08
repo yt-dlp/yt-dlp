@@ -156,7 +156,7 @@ class NhkVodIE(NhkBaseIE):
         'info_dict': {
             'id': 'lpZXIwaDE6_Z-976CPsFdxyICyWUzlT5',
             'ext': 'mp4',
-            'title': "Dining with the Chef - Chef Saito's Family recipe: MENCHI-KATSU",
+            'title': 'Dining with the Chef - Chef Saito\'s Family recipe: MENCHI-KATSU',
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
             'thumbnail': 'md5:d6a4d9b6e9be90aaadda0bcce89631ed',
             'series': 'Dining with the Chef',
@@ -164,17 +164,16 @@ class NhkVodIE(NhkBaseIE):
         },
     }, {
         # radio
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/r_inventions-20201104-1/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/livinginjapan-20231001-1/',
         'info_dict': {
             'id': 'livinginjapan-20231001-1-en',
             'ext': 'm4a',
-            'title': "Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines",
+            'title': 'Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines',
             'series': 'Living in Japan',
             'description': 'md5:850611969932874b4a3309e0cae06c2f',
             'thumbnail': 'md5:960622fb6e06054a4a1a0c97ea752545',
             'episode': 'Tips for Travelers to Japan / Ramen Vending Machines'
         },
-        'skip': '404 Not Found',
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
         'only_matching': True,
@@ -200,6 +199,19 @@ class NhkVodIE(NhkBaseIE):
             'timestamp': 1623722008,
         },
         'skip': '404 Not Found',
+    }, {
+        # japanese-language, longer id than english
+        'url': 'https://www3.nhk.or.jp/nhkworld/ja/ondemand/video/0020271111/',
+        'info_dict': {
+            'id': 'nw_ja_v_jvod_ohayou_20231008',
+            'ext': 'mp4',
+            'title': 'おはよう日本（7時台） - 10月8日放送',
+            'series': 'おはよう日本（7時台）',
+            'episode': '10月8日放送',
+            'thumbnail': 'md5:d733b1c8e965ab68fb02b2d347d0e9b4',
+            'description': 'md5:9c1d6cbeadb827b955b20e99ab920ff0',
+        },
+        'skip': 'expires 2023-10-15',
     }]
 
     def _real_extract(self, url):
