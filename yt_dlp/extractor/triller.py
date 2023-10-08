@@ -3,9 +3,9 @@ import json
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     UnsupportedError,
     determine_ext,
     int_or_none,
@@ -65,13 +65,6 @@ class TrillerBaseIE(InfoExtractor):
             'author_id': ('author', 'user_id'),
             'timestamp': ('timestamp', {unified_timestamp}),
         }))
-
-    def _check_user_info(self, user_info):
-        if user_info.get('private') and not user_info.get('followed_by_me'):
-            raise ExtractorError('This video is private', expected=True)
-        elif traverse_obj(user_info, 'blocked_by_user', 'blocking_user'):
-            raise ExtractorError('The author of the video is blocked', expected=True)
-        return user_info
 
     def _parse_video_info(self, video_info, username, user_id, display_id=None):
         video_id = str(video_info['id'])
@@ -231,8 +224,6 @@ class TrillerIE(TrillerBaseIE):
             f'{self._API_BASE_URL}/api/videos/{display_id}', display_id,
             headers=self._API_HEADERS)['videos'][0]
 
-        self._check_user_info(video_info.get('user') or {})
-
         return self._parse_video_info(video_info, username, None, display_id)
 
 
@@ -287,9 +278,14 @@ class TrillerUserIE(TrillerBaseIE):
     def _real_extract(self, url):
         username = self._match_id(url)
 
-        user_info = self._check_user_info(self._download_json(
+        user_info = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/api/users/by_username/{username}',
-            username, note='Downloading user info', headers=self._API_HEADERS)['user'])
+            username, note='Downloading user info', headers=self._API_HEADERS), ('user', {dict})) or {}
+
+        if user_info.get('private') and user_info.get('followed_by_me') not in (True, 'true'):
+            raise ExtractorError('This user profile is private', expected=True)
+        elif traverse_obj(user_info, (('blocked_by_user', 'blocking_user'), {bool}), get_all=False):
+            raise ExtractorError('The author of the video is blocked', expected=True)
 
         user_id = str_or_none(user_info.get('user_id'))
         if not user_id:
@@ -327,7 +323,7 @@ class TrillerShortIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        real_url = self._request_webpage(HEADRequest(url), self._match_id(url)).geturl()
+        real_url = self._request_webpage(HEADRequest(url), self._match_id(url)).url
         if self.suitable(real_url):  # Prevent infinite loop in case redirect fails
             raise UnsupportedError(real_url)
         return self.url_result(real_url)

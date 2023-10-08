@@ -7,19 +7,18 @@ import platform
 import re
 import subprocess
 import sys
-import urllib.error
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath, compat_shlex_quote
+from .networking import Request
+from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
-    network_exceptions,
     remove_end,
     remove_start,
-    sanitized_Request,
     shell_quote,
     system_identifier,
     version_tuple,
@@ -113,6 +112,31 @@ def is_non_updateable():
         detect_variant(), _NON_UPDATEABLE_REASONS['unknown' if VARIANT else 'other'])
 
 
+def _get_system_deprecation():
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 8)
+
+    if sys.version_info > MIN_RECOMMENDED:
+        return None
+
+    major, minor = sys.version_info[:2]
+    if sys.version_info < MIN_SUPPORTED:
+        msg = f'Python version {major}.{minor} is no longer supported'
+    else:
+        msg = f'Support for Python version {major}.{minor} has been deprecated. '
+        # Temporary until `win_x86_exe` uses 3.8, which will deprecate Vista and Server 2008
+        if detect_variant() == 'win_x86_exe':
+            platform_name = platform.platform()
+            if any(platform_name.startswith(f'Windows-{name}') for name in ('Vista', '2008Server')):
+                msg = 'Support for Windows Vista/Server 2008 has been deprecated. '
+            else:
+                return None
+        msg += ('See  https://github.com/yt-dlp/yt-dlp/issues/7803  for details.'
+                '\nYou may stop receiving updates on this version at any time')
+
+    major, minor = MIN_RECOMMENDED
+    return f'{msg}! Please update to Python {major}.{minor} or above'
+
+
 def _sha256_file(path):
     h = hashlib.sha256()
     mv = memoryview(bytearray(128 * 1024))
@@ -190,7 +214,7 @@ class Updater:
     def _get_version_info(self, tag):
         url = f'{API_BASE_URL}/{self._target_repo}/releases/{tag}'
         self.ydl.write_debug(f'Fetching release info: {url}')
-        return json.loads(self.ydl.urlopen(sanitized_Request(url, headers={
+        return json.loads(self.ydl.urlopen(Request(url, headers={
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'yt-dlp',
             'X-GitHub-Api-Version': '2022-11-28',
@@ -315,7 +339,7 @@ class Updater:
         try:
             newcontent = self._download(self.release_name, self._tag)
         except network_exceptions as e:
-            if isinstance(e, urllib.error.HTTPError) and e.code == 404:
+            if isinstance(e, HTTPError) and e.status == 404:
                 return self._report_error(
                     f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
             return self._report_network_error(f'fetch updates: {e}')

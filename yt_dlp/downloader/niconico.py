@@ -5,13 +5,8 @@ import time
 from . import get_suitable_downloader
 from .common import FileDownloader
 from .external import FFmpegFD
-from ..utils import (
-    DownloadError,
-    WebSocketsWrapper,
-    sanitized_Request,
-    str_or_none,
-    try_get,
-)
+from ..networking import Request
+from ..utils import DownloadError, WebSocketsWrapper, str_or_none, try_get
 
 
 class NiconicoDmcFD(FileDownloader):
@@ -33,7 +28,7 @@ class NiconicoDmcFD(FileDownloader):
         heartbeat_data = heartbeat_info_dict['data'].encode()
         heartbeat_interval = heartbeat_info_dict.get('interval', 30)
 
-        request = sanitized_Request(heartbeat_url, heartbeat_data)
+        request = Request(heartbeat_url, heartbeat_data)
 
         def heartbeat():
             try:

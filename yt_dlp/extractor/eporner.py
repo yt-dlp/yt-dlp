@@ -52,7 +52,7 @@ class EpornerIE(InfoExtractor):
 
         webpage, urlh = self._download_webpage_handle(url, display_id)
 
-        video_id = self._match_id(urlh.geturl())
+        video_id = self._match_id(urlh.url)
 
         hash = self._search_regex(
             r'hash\s*[:=]\s*["\']([\da-f]{32})', webpage, 'hash')

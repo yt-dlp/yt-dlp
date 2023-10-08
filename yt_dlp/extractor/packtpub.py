@@ -1,10 +1,7 @@
 import json
 
 from .common import InfoExtractor
-from ..compat import (
-    # compat_str,
-    compat_HTTPError,
-)
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -54,8 +51,8 @@ class PacktPubIE(PacktPubBaseIE):
                     'password': password,
                 }).encode())['data']['access']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (400, 401, 404):
-                message = self._parse_json(e.cause.read().decode(), None)['message']
+            if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401, 404):
+                message = self._parse_json(e.cause.response.read().decode(), None)['message']
                 raise ExtractorError(message, expected=True)
             raise
 
@@ -70,7 +67,7 @@ class PacktPubIE(PacktPubBaseIE):
                 'https://services.packtpub.com/products-v1/products/%s/%s/%s' % (course_id, chapter_id, video_id), video_id,
                 'Downloading JSON video', headers=headers)['data']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 self.raise_login_required('This video is locked')
             raise
 
