@@ -1273,6 +1273,7 @@ from .nfl import (
 )
 from .nhk import (
     NhkVodIE,
+    NhkVodAudioIE,
     NhkVodProgramIE,
     NhkForSchoolBangumiIE,
     NhkForSchoolSubjectIE,

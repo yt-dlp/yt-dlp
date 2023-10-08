@@ -68,11 +68,12 @@ class NhkBaseIE(InfoExtractor):
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
-        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
-        if len(episode_id) == 7:
+        lang, m_type, episode_id = self._match_valid_url(url).groups()
+        is_video = m_type == 'video'
+
+        if is_video:
             episode_id = episode_id[:4] + '-' + episode_id[4:]
 
-        is_video = m_type == 'video'
         if fetch_episode:
             episode = self._call_api(
                 episode_id, lang, is_video, True, episode_id[:4] == '9999')[0]
@@ -133,7 +134,7 @@ class NhkBaseIE(InfoExtractor):
 
 class NhkVodIE(NhkBaseIE):
     # the 7-character IDs can have alphabetic chars too: assume [a-z] rather than just [a-f], eg
-    _VALID_URL = r'%s%s(?P<id>[0-9a-z]{7}|[^/]+?-\d{8}-[0-9a-z]+)' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    _VALID_URL = r'%s/(?P<type>video)/(?P<id>[0-9a-z]+)/' % (NhkBaseIE._BASE_URL_REGEX)
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
@@ -165,28 +166,6 @@ class NhkVodIE(NhkBaseIE):
             'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
         },
     }, {
-        # audio clip
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/r_inventions-20201104-1/',
-        'info_dict': {
-            'id': 'r_inventions-20201104-1-en',
-            'ext': 'm4a',
-            'title': "Japan's Top Inventions - Miniature Video Cameras",
-            'description': 'md5:07ea722bdbbb4936fdd360b6a480c25b',
-        },
-        'skip': '404 Not Found',
-    }, {
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/plugin-20190404-1/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www3.nhk.or.jp/nhkworld/fr/ondemand/audio/plugin-20190404-1/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/j_art-20150903-1/',
-        'only_matching': True,
-    }, {
         # video, alphabetic character in ID #29670
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999a34/',
         'info_dict': {
@@ -199,6 +178,35 @@ class NhkVodIE(NhkBaseIE):
             'timestamp': 1623722008,
         },
         'skip': '404 Not Found',
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        return self._extract_episode_info(url)
+
+class NhkVodAudioIE(NhkBaseIE):
+    _VALID_URL = r'%s/(?P<type>audio)/(?P<id>[^/]+?-\d{8}-[0-9a-z]+)/' % (NhkBaseIE._BASE_URL_REGEX)
+    _TESTS = [{
+        # audio clip
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/r_inventions-20201104-1/',
+        'info_dict': {
+            'id': 'r_inventions-20201104-1-en',
+            'ext': 'm4a',
+            'title': "Japan's Top Inventions - Miniature Video Cameras",
+            'description': 'md5:07ea722bdbbb4936fdd360b6a480c25b',
+        },
+        'skip': '404 Not Found',
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/plugin-20190404-1/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/fr/ondemand/audio/plugin-20190404-1/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/j_art-20150903-1/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
