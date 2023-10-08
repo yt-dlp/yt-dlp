@@ -69,10 +69,11 @@ class NhkBaseIE(InfoExtractor):
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
         lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
-        if len(episode_id) == 7:
+        is_video = m_type == 'video'
+
+        if is_video:
             episode_id = episode_id[:4] + '-' + episode_id[4:]
 
-        is_video = m_type == 'video'
         if fetch_episode:
             episode = self._call_api(
                 episode_id, lang, is_video, True, episode_id[:4] == '9999')[0]
@@ -133,7 +134,8 @@ class NhkBaseIE(InfoExtractor):
 
 class NhkVodIE(NhkBaseIE):
     # the 7-character IDs can have alphabetic chars too: assume [a-z] rather than just [a-f], eg
-    _VALID_URL = r'%s%s(?P<id>[0-9a-z]{7}|[^/]+?-\d{8}-[0-9a-z]+)' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    _VALID_URL = [r'%s/(?P<type>video)/(?P<id>[0-9a-z]+)/' % (NhkBaseIE._BASE_URL_REGEX),
+                  r'%s/(?P<type>audio)/(?P<id>[^/]+?-\d{8}-[0-9a-z]+)/' % (NhkBaseIE._BASE_URL_REGEX)]
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
@@ -206,7 +208,7 @@ class NhkVodIE(NhkBaseIE):
 
 
 class NhkVodProgramIE(NhkBaseIE):
-    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z_]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
     _TESTS = [{
         # video program episodes
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
