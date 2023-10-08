@@ -479,7 +479,6 @@ class VKIE(VKBaseIE):
                 formats.extend(self._extract_mpd_formats(
                     format_url, video_id,
                     mpd_id=format_id, fatal=False))
-              
 
         subtitles = {}
         for sub in data.get('subs') or {}:
