@@ -422,6 +422,7 @@
  - **eplus:inbound**: e+ (イープラス) overseas
  - **Epoch**
  - **Eporner**
+ - **Erocast**
  - **EroProfile**: [*eroprofile*](## "netrc machine")
  - **EroProfile:album**
  - **ertflix**: ERTFLIX videos
@@ -699,6 +700,7 @@
  - **LastFMUser**
  - **lbry**
  - **lbry:channel**
+ - **lbry:playlist**
  - **LCI**
  - **Lcp**
  - **LcpPlay**
@@ -1474,8 +1476,6 @@
  - **ThePlatformFeed**
  - **TheStar**
  - **TheSun**
- - **ThetaStream**
- - **ThetaVideo**
  - **TheWeatherChannel**
  - **ThisAmericanLife**
  - **ThisAV**

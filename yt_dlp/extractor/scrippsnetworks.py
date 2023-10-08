@@ -39,6 +39,7 @@ class ScrippsNetworksWatchIE(AWSIE):
             'skip_download': True,
         },
         'add_ie': [AnvatoIE.ie_key()],
+        'skip': '404 Not Found',
     }]
 
     _SNI_TABLE = {
@@ -113,6 +114,9 @@ class ScrippsNetworksIE(InfoExtractor):
             'timestamp': 1475678834,
             'upload_date': '20161005',
             'uploader': 'SCNI-SCND',
+            'duration': 29.995,
+            'chapters': [{'start_time': 0.0, 'end_time': 29.995, 'title': '<Untitled Chapter 1>'}],
+            'thumbnail': 'https://images.dds.discovery.com/up/tp/Scripps_-_Food_Category_Prod/122/987/0260338_630x355.jpg',
         },
         'add_ie': ['ThePlatform'],
         'expected_warnings': ['No HLS formats found'],
