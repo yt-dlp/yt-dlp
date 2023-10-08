@@ -68,7 +68,7 @@ class NhkBaseIE(InfoExtractor):
 
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
-        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
+        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).group('lang', 'type', 'id')
         is_video = m_type == 'video'
 
         if is_video:
@@ -253,8 +253,7 @@ class NhkVodProgramIE(NhkBaseIE):
     }]
 
     def _real_extract(self, url):
-        lang, m_type, program_id, episode_type = self._match_valid_url(url).groups()
-
+        lang, m_type, program_id, episode_type = self._match_valid_url(url).group('lang', 'type', 'id', 'episode_type')
         episodes = self._call_api(
             program_id, lang, m_type == 'video', False, episode_type == 'clip')
 
