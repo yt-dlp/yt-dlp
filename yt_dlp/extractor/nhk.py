@@ -182,6 +182,7 @@ class NhkVodIE(NhkBaseIE):
     def _real_extract(self, url):
         return self._extract_episode_info(url)
 
+
 class NhkVodAudioIE(NhkBaseIE):
     _VALID_URL = r'%s/(?P<type>audio)/(?P<id>[^/]+?-\d{8}-[0-9a-z]+)/' % (NhkBaseIE._BASE_URL_REGEX)
     _TESTS = [{
