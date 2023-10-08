@@ -134,8 +134,8 @@ class NhkBaseIE(InfoExtractor):
 
 class NhkVodIE(NhkBaseIE):
     # the 7-character IDs can have alphabetic chars too: assume [a-z] rather than just [a-f], eg
-    _VALID_URL = [r'%s/(?P<type>video)/(?P<id>[0-9a-z]+)/' % (NhkBaseIE._BASE_URL_REGEX),
-                  r'%s/(?P<type>audio)/(?P<id>[^/]+?-\d{8}-[0-9a-z]+)/' % (NhkBaseIE._BASE_URL_REGEX)]
+    _VALID_URL = [rf'{NhkBaseIE._BASE_URL_REGEX}/(?P<type>video)/(?P<id>[0-9a-z]+)',
+                  rf'{NhkBaseIE._BASE_URL_REGEX}/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[0-9a-z]+)']
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
@@ -219,7 +219,7 @@ class NhkVodIE(NhkBaseIE):
 
 
 class NhkVodProgramIE(NhkBaseIE):
-    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z_]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    _VALID_URL = rf'{NhkBaseIE._BASE_URL_REGEX}/program{NhkBaseIE._TYPE_REGEX}(?P<id>\w+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?'
     _TESTS = [{
         # video program episodes
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
