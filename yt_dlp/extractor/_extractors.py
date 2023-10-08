@@ -249,6 +249,7 @@ from .bloomberg import BloombergIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .bostonglobe import BostonGlobeIE
+from .boosty import BoostyIE
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
 from .bpb import BpbIE
