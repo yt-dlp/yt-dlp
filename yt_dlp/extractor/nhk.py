@@ -139,41 +139,40 @@ class NhkVodIE(NhkBaseIE):
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2061601/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2049126/',
         'info_dict': {
-            'id': 'yd8322ch',
+            'id': 'nw_vod_v_en_2049_126_20230413233000_01_1681398302',
             'ext': 'mp4',
-            'description': 'md5:109c8b05d67a62d0592f2b445d2cd898',
-            'title': 'GRAND SUMO Highlights - [Recap] May Tournament Day 1 (Opening Day)',
-            'upload_date': '20230514',
-            'timestamp': 1684083791,
-            'series': 'GRAND SUMO Highlights',
-            'episode': '[Recap] May Tournament Day 1 (Opening Day)',
-            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1684084443/4028649.jpg?w=1920&h=1080',
+            'title': 'Japan Railway Journal - The Tohoku Shinkansen: Full Speed Ahead',
+            'description': 'md5:49f7c5b206e03868a2fdf0d0814b92f6',
+            'thumbnail': 'md5:51bcef4a21936e7fea1ff4e06353f463',
+            'episode': 'The Tohoku Shinkansen: Full Speed Ahead',
+            'series': 'Japan Railway Journal',
         },
     }, {
         # video clip
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999011/',
-        'md5': '7a90abcfe610ec22a6bfe15bd46b30ca',
+        'md5': '153c3016dfd252ba09726588149cf0e7',
         'info_dict': {
-            'id': 'a95j5iza',
+            'id': 'lpZXIwaDE6_Z-976CPsFdxyICyWUzlT5',
             'ext': 'mp4',
             'title': "Dining with the Chef - Chef Saito's Family recipe: MENCHI-KATSU",
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
-            'timestamp': 1565965194,
-            'upload_date': '20190816',
-            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1567086278/3715195.jpg?w=1920&h=1080',
+            'thumbnail': 'md5:d6a4d9b6e9be90aaadda0bcce89631ed',
             'series': 'Dining with the Chef',
             'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
         },
     }, {
-        # audio clip
+        # radio
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/r_inventions-20201104-1/',
         'info_dict': {
-            'id': 'r_inventions-20201104-1-en',
+            'id': 'livinginjapan-20231001-1-en',
             'ext': 'm4a',
-            'title': "Japan's Top Inventions - Miniature Video Cameras",
-            'description': 'md5:07ea722bdbbb4936fdd360b6a480c25b',
+            'title': "Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines",
+            'series': 'Living in Japan',
+            'description': 'md5:850611969932874b4a3309e0cae06c2f',
+            'thumbnail': 'md5:960622fb6e06054a4a1a0c97ea752545',
+            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines'
         },
         'skip': '404 Not Found',
     }, {
