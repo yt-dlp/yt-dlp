@@ -123,12 +123,6 @@ class NhkBaseIE(InfoExtractor):
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:
                     f['language'] = lang
-            else:
-                info.update({
-                    '_type': 'url_transparent',
-                    'ie_key': NhkVodIE.ie_key(),
-                    'url': url,
-                })
         return info
 
 
@@ -213,7 +207,7 @@ class NhkVodAudioIE(NhkBaseIE):
 
 
 class NhkVodProgramIE(NhkBaseIE):
-    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z_]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
     _TESTS = [{
         # video program episodes
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
@@ -257,12 +251,10 @@ class NhkVodProgramIE(NhkBaseIE):
             episode_path = episode.get('url')
             if not episode_path:
                 continue
-            entries.append(self._extract_episode_info(
-                urljoin(url, episode_path), episode))
+            entries.append(self.url_result(
+                urljoin(url, episode_path)))
 
-        program_title = None
-        if entries:
-            program_title = entries[0].get('series')
+        program_title = traverse_obj(episodes, (0, 'series'))
 
         return self.playlist_result(entries, program_id, program_title)
 
