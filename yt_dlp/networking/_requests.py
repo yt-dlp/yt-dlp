@@ -14,11 +14,7 @@ if requests is None:
 if urllib3 is None:
     raise ImportError('urllib3 module is not installed')
 
-urllib3_version = urllib3.__version__.split('.')
-if len(urllib3_version) == 2:
-    urllib3_version.append('0')
-
-urllib3_version = tuple(map(functools.partial(int_or_none, default=0), urllib3_version[:3]))
+urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.'))
 
 if urllib3_version < (1, 26, 17):
     raise ImportError('Only urllib3 >= 1.26.17 is supported')
