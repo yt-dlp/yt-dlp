@@ -21,8 +21,8 @@ class BoostyIE(InfoExtractor):
 
         # formats, subtitles = self._extract_m3u8_formats_and_subtitles(f'{json_data["blog"]["posts"]}', video_id)
 
-        data = json_data["posts"]["postsList"]["data"]["posts"][0]["data"]
-        for i in data:
+        data = json_data["posts"]["postsList"]["data"]["posts"][0]
+        for i in data["data"]:
             if i["type"] == "ok_video":
                 playerUrls = i["playerUrls"]
                 # print(playerUrls)
@@ -88,12 +88,15 @@ class BoostyIE(InfoExtractor):
 
                 return {
                     "id": video_id,
-                    "title": self._og_search_title(webpage).strip(),
+                    "title": data.get("title"),
                     "alt_title": i.get("title"),
                     "thumbnail": i.get("preview") or self._og_search_thumbnail(webpage),
                     "duration": i.get("duration"),
                     "display_id": f"http://ok.ru/videoembed/{i.get('vid')}",
                     "formats": formats,
+                    "author": data.get("user").get("name"),
+                    "channel": data.get("user").get("blogUrl"),
+                    "tags": data.get("tags")
                     # 'subtitles': subtitles,
                     # 'season_number': traverse_obj(json_data, ('program', 'seasonNum')),
                 }
