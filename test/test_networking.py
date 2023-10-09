@@ -881,7 +881,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
         def mock_read(*args, **kwargs):
             raise raised()
-        monkeypatch.setattr(res.fp, "read", mock_read)
+        monkeypatch.setattr(res.fp, 'read', mock_read)
 
         with pytest.raises(expected, match=match) as exc_info:
             res.read()
