@@ -852,20 +852,26 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
             assert exc_info.type is expected
 
-    @pytest.mark.parametrize('raised,expected', [
-        (lambda: urllib3.exceptions.SSLError(), SSLError),
-        (lambda: urllib3.exceptions.TimeoutError(), TransportError),
-        (lambda: urllib3.exceptions.ReadTimeoutError(None, None, None), TransportError),
-        (lambda: urllib3.exceptions.ProtocolError(), TransportError),
-        (lambda: urllib3.exceptions.ProtocolError(
-            'error', http.client.IncompleteRead(partial=b'')), IncompleteRead),
-        (lambda: urllib3.exceptions.IncompleteRead(partial=3, expected=5), IncompleteRead),
-        (lambda: urllib3.exceptions.DecodeError(), TransportError),
-        (lambda: urllib3.exceptions.HTTPError(), TransportError)  # catch-all
+    @pytest.mark.parametrize('raised,expected,match', [
+        (lambda: urllib3.exceptions.SSLError(), SSLError, None),
+        (lambda: urllib3.exceptions.TimeoutError(), TransportError, None),
+        (lambda: urllib3.exceptions.ReadTimeoutError(None, None, None), TransportError, None),
+        (lambda: urllib3.exceptions.ProtocolError(), TransportError, None),
+        (lambda: urllib3.exceptions.DecodeError(), TransportError, None),
+        (lambda: urllib3.exceptions.HTTPError(), TransportError, None),  # catch-all
+        (
+            lambda: urllib3.exceptions.ProtocolError('error', http.client.IncompleteRead(partial=b'abc', expected=4)),
+            IncompleteRead,
+            '3 bytes read, 4 more expected'
+        ),
+        (
+            lambda: urllib3.exceptions.IncompleteRead(partial=3, expected=5),
+            IncompleteRead,
+            '3 bytes read, 5 more expected'
+        ),
     ])
-    @pytest.mark.skipif(requests is None, reason='requests is not installed')
-    @pytest.mark.skipif(urllib3 is None, reason='urllib3 is not installed')
-    def test_response_error_mapping(self, monkeypatch, raised, expected):
+    @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
+    def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from urllib3.response import HTTPResponse as Urllib3Response
         from requests.models import Response as RequestsResponse
         from yt_dlp.networking._requests import RequestsResponseAdapter
@@ -877,7 +883,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             raise raised()
         monkeypatch.setattr(res.fp, "read", mock_read)
 
-        with pytest.raises(expected) as exc_info:
+        with pytest.raises(expected, match=match) as exc_info:
             res.read()
 
         assert exc_info.type is expected
