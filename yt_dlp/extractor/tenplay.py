@@ -119,27 +119,20 @@ class TenPlayIE(InfoExtractor):
 
 class TenPlaySeasonIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?10play\.com\.au/(?P<show>[^/?#]+)/episodes/(?P<season>[^/?#]+)/?(?:$|[?#])'
-
     _TESTS = [{
         'url': 'https://10play.com.au/masterchef/episodes/season-14',
         'info_dict': {
             'title': 'Season 14',
             'id': 'MjMyOTIy',
         },
-        'playlist_count': 64,
-        'params': {
-            'skip_download': True,
-        },
+        'playlist_mincount': 64,
     }, {
         'url': 'https://10play.com.au/the-bold-and-the-beautiful-fast-tracked/episodes/season-2022',
         'info_dict': {
             'title': 'Season 2022',
             'id': 'Mjc0OTIw',
         },
-        'playlist_count': 256,
-        'params': {
-            'skip_download': True,
-        }
+        'playlist_mincount': 256,
     }]
 
     def _entries(self, load_more_url, display_id=None):
@@ -159,7 +152,6 @@ class TenPlaySeasonIE(InfoExtractor):
 
     def _real_extract(self, url):
         show, season = self._match_valid_url(url).group('show', 'season')
-
         season_info = self._download_json(
             f'https://10play.com.au/api/shows/{show}/episodes/{season}', f'{show}/{season}')
 
