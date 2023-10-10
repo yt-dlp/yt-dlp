@@ -62,7 +62,7 @@ def py2exe_params():
             'compressed': 1,
             'optimize': 2,
             'dist_dir': './dist',
-            'excludes': ['Crypto', 'urllib3.contrib.socks'],  # py2exe cannot import Crypto
+            'excludes': ['Crypto', 'Cryptodome', 'urllib3.contrib.socks'],  # py2exe cannot import Crypto
             'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
             # Modules that are only imported dynamically must be added here
             'includes': ['yt_dlp.compat._legacy', 'yt_dlp.compat._deprecated',
