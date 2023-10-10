@@ -67,8 +67,8 @@ class MBNIE(InfoExtractor):
             })
 
         formats = []
-        for stream in traverse_obj(media_info, ('movie_list', lambda _, v: v['url'])):
-            location = re.sub(r'/(?:chunk|play)list(?:_pd\d+)?\.m3u8', '/manifest.m3u8', stream['url'])
+        for stream_url in traverse_obj(media_info, ('movie_list', ..., 'url')):
+            location = re.sub(r'/(?:chunk|play)list(?:_pd\d+)?\.m3u8', '/manifest.m3u8', stream_url)
             m3u8_url = url_or_none(self._download_webpage(
                 f'https://www.mbn.co.kr/player/mbnStreamAuth_new_vod.mbn?vod_url={location}',
                 content_id, note='Fetching authenticated m3u8 url'))
