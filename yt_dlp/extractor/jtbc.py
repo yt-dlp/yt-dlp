@@ -9,7 +9,11 @@ from ..utils import (
 
 class JTBCIE(InfoExtractor):
     IE_DESC = 'jtbc.co.kr'
-    _VALID_URL = r'https?://(?:vod\.jtbc\.co\.kr/player/(?:program|clip)|tv\.jtbc\.co\.kr/(?:replay|trailer|clip)/pr[0-9]+/pm[0-9]+)/(?P<id>(?:ep|vo)[0-9]+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:
+            vod\.jtbc\.co\.kr/player/(?:program|clip)
+            |tv\.jtbc\.co\.kr/(?:replay|trailer|clip)/pr\d+/pm\d+
+        )/(?P<id>(?:ep|vo)\d+)'''
     _GEO_COUNTRIES = ['KR']
 
     _TESTS = [{
@@ -74,7 +78,7 @@ class JTBCIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        file_id = self._search_regex(r'data-vod="(VO[0-9]+)"', webpage, 'vod_id')
+        file_id = self._search_regex(r'data-vod="(VO\d+)"', webpage, 'vod id')
 
         metadata = self._download_json(
             f'https://now-api.jtbc.co.kr/v1/vod/detail?vodFileId={file_id}',
@@ -84,23 +88,24 @@ class JTBCIE(InfoExtractor):
             f'https://api.jtbc.co.kr/vod/{file_id}', video_id, note='Downloading VOD playback data')
 
         subtitles = {}
-        for sub in playback_data.get('tracks', []):
-            subtitles.setdefault(sub.get('label', 'und'), []).append({'url': sub.get('file')})
+        for sub in traverse_obj(playback_data, ('tracks', lambda _, v: v['file'])):
+            subtitles.setdefault(sub.get('label', 'und'), []).append({'url': sub['file']})
 
         formats = []
-        for format_id, stream in traverse_obj(playback_data, ('sources', 'HLS'), default={}).items():
-            m3u8_url = re.sub(r'/playlist(?:_pd180000)?\.m3u8', '/index.m3u8', stream.get('file'))
-            formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id=format_id))
+        for format_id, stream in traverse_obj(playback_data, ('sources', 'HLS', lambda _, v: v['file'], {dict.items}, ...)):
+            m3u8_url = re.sub(r'/playlist(?:_pd\d+)?\.m3u8', '/index.m3u8', stream['file'])
+            formats.extend(self._extract_m3u8_formats(
+                m3u8_url, video_id, m3u8_id=format_id, fatal=False))
 
         return {
             'id': video_id,
             **traverse_obj(metadata, ('vodDetail', {
                 'title': 'vodTitleView',
                 'series': 'programTitle',
-                'age_limit': 'watchAge',
+                'age_limit': ('watchAge', {int_or_none}),
                 'release_date': ('broadcastDate', {lambda x: re.match(r'\d{8}', x.replace('.', ''))}, 0),
                 'description': 'episodeContents',
-                'thumbnail': 'imgFileUrl',
+                'thumbnail': ('imgFileUrl', {url_or_none}),
             })),
             'duration': parse_duration(playback_data.get('playTime')),
             'formats': formats,
@@ -110,7 +115,7 @@ class JTBCIE(InfoExtractor):
 
 class JTBCProgramIE(InfoExtractor):
     IE_NAME = 'JTBC:program'
-    _VALID_URL = r'https?://(?:vod\.jtbc\.co\.kr/program|tv\.jtbc\.co\.kr/replay)/(?P<id>pr[0-9]+)/(?:replay|pm[0-9]+)$'
+    _VALID_URL = r'https?://(?:vod\.jtbc\.co\.kr/program|tv\.jtbc\.co\.kr/replay)/(?P<id>pr\d+)/(?:replay|pm\d+)/?(?:$|[?#])'
 
     _TESTS = [{
         'url': 'https://tv.jtbc.co.kr/replay/pr10010392/pm10032710',
@@ -132,11 +137,13 @@ class JTBCProgramIE(InfoExtractor):
         program_id = self._match_id(url)
 
         vod_list = self._download_json(
-            f'https://now-api.jtbc.co.kr/v1/vodClip/programHome/programReplayVodList?programId={program_id}&rowCount=10000',
-            program_id, note='Downloading program replay list')
+            'https://now-api.jtbc.co.kr/v1/vodClip/programHome/programReplayVodList', program_id,
+            note='Downloading program replay list', query={
+                'programId': program_id,
+                'rowCount': '10000',
+            })
 
-        entries = [self.url_result(
-            'https://vod.jtbc.co.kr/player/program/' + video.get('episodeId'), JTBCIE.ie_key()
-        ) for video in vod_list.get('programReplayVodList', [])]
+        entries = [self.url_result(f'https://vod.jtbc.co.kr/player/program/{video_id}', JTBCIE, video_id)
+                   for video_id in traverse_obj(vod_list, ('programReplayVodList', ... 'episodeId'))]
 
         return self.playlist_result(entries, program_id)
