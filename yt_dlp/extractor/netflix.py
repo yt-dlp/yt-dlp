@@ -3,18 +3,21 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
+    bool_or_none,
     float_or_none,
     int_or_none,
     js_to_json,
     traverse_obj,
     try_call,
+    unified_strdate,
+    url_or_none,
 )
 
 
 class NetflixIE(InfoExtractor):
     IE_NAME = 'Netflix'
     IE_DESC = 'DRM-free trailers and teasers from Netflix'
-    _VALID_URL = r'https?://(?:www\.)?netflix\.com/(?:[a-zA-Z_-]*/)?title/[0-9]+\?(?:.*&)?clip=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?netflix\.com/(?:[a-zA-Z_-]*/)?title/\d+\?(?:.*&)?clip=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.netflix.com/title/81040344?clip=81499051',
         'md5': '9032282465b38f310765345edabc7f78',
@@ -188,15 +191,17 @@ class NetflixIE(InfoExtractor):
                 formats.append({
                     'format_id': f'{stream.get("content_profile")}-{stream.get("language")}-{stream.get("bitrate")}',
                     'format_note': f'{audio_track.get("languageDescription")}-{audio_track.get("surroundFormatLabel")}',
-                    'url': traverse_obj(stream, ('urls', 0, 'url')),
                     'ext': 'mp4',
                     'vcodec': 'none',
                     'acodec': acodec,
-                    'abr': stream.get('bitrate'),
-                    'filesize': stream.get('size'),
+                    **traverse_obj(stream, {
+                        'url': ('urls', 0, 'url', {url_or_none}),
+                        'abr': ('bitrate', {int_or_none}),
+                        'filesize': ('size', {int_or_none}),
+                        'has_drm': ('isDrm', {bool_or_none}),
+                    }),
                     'audio_channels': try_call(lambda: sum([int(x) for x in stream.get('channels').split('.')])),
                     'language': audio_track.get('language'),
-                    'has_drm': stream.get('isDrm'),
                     'preference': 1 if audio_track.get('isNative') else -1,
                 })
         return formats
@@ -222,16 +227,18 @@ class NetflixIE(InfoExtractor):
                 for stream in video_track.get('streams', []):
                     formats.append({
                         'format_id': f'{stream.get("content_profile")}-{stream.get("bitrate")}',
-                        'url': traverse_obj(stream, ('urls', 0, 'url')),
                         'ext': 'mp4',
                         'vcodec': vcodec,
                         'acodec': 'none',
-                        'width': stream.get('res_w'),
-                        'height': stream.get('res_h'),
-                        'vbr': stream.get('bitrate'),
-                        'filesize': stream.get('size'),
+                        **traverse_obj(stream, {
+                            'url': ('urls', 0, 'url', {url_or_none}),
+                            'width': ('res_w', {int_or_none}),
+                            'height': ('res_h', {int_or_none}),
+                            'vbr': ('bitrate', {int_or_none}),
+                            'filesize': ('size', {int_or_none}),
+                            'has_drm': ('isDrm', {bool_or_none}),
+                        }),
                         'fps': float_or_none(stream.get('framerate_value'), stream.get('framerate_scale')),
-                        'has_drm': stream.get('isDrm'),
                     })
 
             if not first:
@@ -269,7 +276,7 @@ class NetflixIE(InfoExtractor):
                         name = f'Forced Narrative ({subtitle_track.get("language")})'
                     subtitles[lang].append({
                         'ext': self.SUBTITLE_EXT.get(format),
-                        'url': traverse_obj(data, ('urls', 0, 'url')),
+                        'url': traverse_obj(data, ('urls', 0, 'url', {url_or_none})),
                         'name': name,
                     })
 
@@ -281,8 +288,8 @@ class NetflixIE(InfoExtractor):
                 lambda _, v: v['id'] == int(clip_id), {
                     'title': 'title',
                     'description': 'synopsis',
-                    'duration': 'runtime',
-                    'thumbnail': 'placeholderImageUrl',
+                    'duration': ('runtime', {int_or_none}),
+                    'thumbnail': ('placeholderImageUrl', {url_or_none}),
                 }), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
@@ -292,13 +299,13 @@ class NetflixIE(InfoExtractor):
 class NetflixPageIE(InfoExtractor):
     IE_NAME = 'Netflix:page'
     IE_DESC = 'DRM-free trailers and teasers from Netflix\'s show/movie pages'
-    _VALID_URL = r'https?://(?:www\.)?netflix\.com/(?:[a-zA-Z_-]*/)?title/(?P<id>[0-9]+)$'
+    _VALID_URL = r'https?://(?:www\.)?netflix\.com/(?:[a-zA-Z_-]*/)?title/(?P<id>\d+)$'
     _TESTS = [{
         'url': 'https://www.netflix.com/title/81435227',
         'info_dict': {
             'id': '81435227',
             'title': 'Fatherhood',
-            'year': 2021,
+            'release_date': '20210101',
             'description': 'md5:80610df33173bb555f145b47358217c9',
             'age_limit': 6,
             'cast': ['Kevin Hart', 'Alfre Woodard', 'Lil Rel Howery'],
@@ -309,7 +316,7 @@ class NetflixPageIE(InfoExtractor):
         'info_dict': {
             'id': '81040344',
             'title': 'Squid Game',
-            'year': 2021,
+            'release_date': '20210101',
             'description': 'md5:730219e5007ed51caf1048632582b68c',
             'age_limit': 16,
             'cast': ['Lee Jung-jae', 'Park Hae-soo', 'Wi Ha-jun'],
@@ -320,7 +327,7 @@ class NetflixPageIE(InfoExtractor):
         'info_dict': {
             'id': '70142405',
             'title': 'Avatar: The Last Airbender',
-            'year': 2005,
+            'release_date': '20050101',
             'description': 'md5:513bac1f38adf46b1d95cbf7e9aae8bb',
             'age_limit': 6,
             'cast': ['Zach Tyler', 'Mae Whitman', 'Jack De Sena'],
@@ -350,7 +357,7 @@ class NetflixPageIE(InfoExtractor):
                                           lambda _, v: v['type'] == 'titleMetadata', 'data', {
                 'title': 'title',
                 'description': 'synopsis',
-                'year': 'year',
+                'release_date': ('year', {lambda y: f'{y}0101'}, {unified_strdate}),
                 'cast': 'starring',
                 'age_limit': ('maturityDetails', 'value', {int_or_none}),
             }), get_all=False),
