@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import http.client
 import logging
@@ -116,10 +117,8 @@ See: https://github.com/urllib3/urllib3/issues/517
 """
 
 if urllib3_version < (2, 0, 0):
-    try:
+    with contextlib.suppress():
         urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
-    except AttributeError:
-        pass
 
 
 # Requests will not automatically handle no_proxy by default
