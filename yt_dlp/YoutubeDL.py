@@ -4099,7 +4099,8 @@ class YoutubeDL:
                         'client_certificate_key': 'client_certificate_key',
                         'client_certificate_password': 'client_certificate_password',
                     },
-                })))
+               }),
+            ))
         director.preferences.update(preferences or [])
         if 'prefer-legacy-http-handler' in self.params['compat_opts']:
             director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
