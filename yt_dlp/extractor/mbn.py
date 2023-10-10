@@ -9,7 +9,7 @@ from ..utils import (
 
 class MBNIE(InfoExtractor):
     IE_DESC = 'mbn.co.kr (매일방송)'
-    _VALID_URL = r'https?://(?:www\.)?mbn\.co\.kr/vod/programContents/(?:previewlist|preview)/[0-9]+/[0-9]+/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?mbn\.co\.kr/vod/programContents/preview(?:list)?/\d+/\d+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://mbn.co.kr/vod/programContents/previewlist/861/5433/1276155',
         'md5': '85e1694e5b247c04d1386b7e3c90fd76',
@@ -54,29 +54,34 @@ class MBNIE(InfoExtractor):
         content_id = self._match_id(url)
         webpage = self._download_webpage(url, content_id)
 
-        content_cls_cd = self._search_regex(r'"\?content_cls_cd=(\d+)&', webpage, 'content_cls_cd', default='20')
+        content_cls_cd = self._search_regex(
+            r'"\?content_cls_cd=(\d+)&', webpage, 'content cls cd', fatal=False) or '20'
         media_info = self._download_json(
-            f'https://www.mbn.co.kr/player/mbnVodPlayer_2020.mbn?content_cls_cd={content_cls_cd}&content_id={content_id}&relay_type=1',
-            content_id, note='Fetching playback data')
+            'https://www.mbn.co.kr/player/mbnVodPlayer_2020.mbn', content_id,
+            note='Fetching playback data', query={
+                'content_cls_cd': content_cls_cd,
+                'content_id': content_id,
+                'relay_type': '1',
+            })
 
         formats = []
-        for stream in media_info.get('movie_list'):
-            if not stream.get('url'):
-                continue
-            location = re.sub(r'/(?:chunklist|playlist)(?:_pd180000)?\.m3u8', '/manifest.m3u8', stream['url'])
-            m3u8_url = self._download_webpage(
+        for stream in traverse_obj(media_info, ('movie_list', lambda _, v: v['url'])):
+            location = re.sub(r'/(?:chunk|play)list(?:_pd\d+)?\.m3u8', '/manifest.m3u8', stream['url'])
+            m3u8_url = url_or_none(self._download_webpage(
                 f'https://www.mbn.co.kr/player/mbnStreamAuth_new_vod.mbn?vod_url={location}',
-                content_id, note='Generating authenticated m3u8 url')
+                content_id, note='Fetching authenticated m3u8 url'))
 
-            formats.extend(self._extract_m3u8_formats(m3u8_url, content_id))
+            formats.extend(self._extract_m3u8_formats(m3u8_url, content_id, fatal=False))
 
         return {
             'id': content_id,
-            'title': media_info.get('movie_title'),
-            'duration': int_or_none(media_info.get('play_sec')),
-            'release_date': unified_strdate(media_info.get('bcast_date').replace('.', '')),
-            'thumbnail': media_info.get('movie_start_Img'),
-            'series': media_info.get('prog_nm'),
-            'episode_number': int_or_none(media_info.get('ad_contentnumber')),
+            **traverse_obj(media_info, {
+                'title': ('movie_title', {str}),
+                'duration': ('play_sec', {int_or_none}),
+                'release_date': ('bcast_date', {lambda x: x.replace('.', '')}, {unified_strdate}),
+                'thumbnail': ('movie_start_Img', {url_or_none}),
+                'series': ('prog_nm', {str}),
+                'episode_number': ('ad_contentnumber', {int_or_none}),
+            }),
             'formats': formats,
         }
