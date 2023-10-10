@@ -94,8 +94,8 @@ class JTBCIE(InfoExtractor):
             subtitles.setdefault(sub.get('label', 'und'), []).append({'url': sub['file']})
 
         formats = []
-        for stream in traverse_obj(playback_data, ('sources', 'HLS', lambda _, v: v['file'])):
-            m3u8_url = re.sub(r'/playlist(?:_pd\d+)?\.m3u8', '/index.m3u8', stream['file'])
+        for stream_url in traverse_obj(playback_data, ('sources', 'HLS', ..., 'file')):
+            m3u8_url = re.sub(r'/playlist(?:_pd\d+)?\.m3u8', '/index.m3u8', stream_url)
             formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, fatal=False))
 
         return {
