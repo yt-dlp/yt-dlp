@@ -144,6 +144,6 @@ class JTBCProgramIE(InfoExtractor):
             })
 
         entries = [self.url_result(f'https://vod.jtbc.co.kr/player/program/{video_id}', JTBCIE, video_id)
-                   for video_id in traverse_obj(vod_list, ('programReplayVodList', ... 'episodeId'))]
+                   for video_id in traverse_obj(vod_list, ('programReplayVodList', ..., 'episodeId'))]
 
         return self.playlist_result(entries, program_id)
