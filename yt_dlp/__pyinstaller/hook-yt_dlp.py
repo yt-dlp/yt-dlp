@@ -23,7 +23,7 @@ def get_hidden_imports():
     yield pycryptodome_module()
     yield from collect_submodules('websockets')
     # These are auto-detected, but explicitly add them just in case
-    yield from ('mutagen', 'brotli', 'certifi')
+    yield from ('mutagen', 'brotli', 'certifi', 'requests', 'urllib3')
 
 
 hiddenimports = list(get_hidden_imports())
