@@ -1753,6 +1753,11 @@ from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
 from .savefrom import SaveFromIE
 from .sbs import SBSIE
+from .sbscokr import (
+    SBSCoKrIE,
+    SBSCoKrAllvodProgramIE,
+    SBSCoKrProgramsVodIE,
+)
 from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastify import ScreencastifyIE
