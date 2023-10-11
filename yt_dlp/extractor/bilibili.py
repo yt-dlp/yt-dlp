@@ -2,6 +2,7 @@ import base64
 import functools
 import hashlib
 import itertools
+import json
 import math
 import re
 import time
@@ -95,7 +96,7 @@ class BilibiliBaseIE(InfoExtractor):
         return self._download_json(
             'https://api.bilibili.com/x/player/playurl', video_id,
             query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
-            note=f'Downloading video formats {cid}')['data']
+            note=f'Downloading video formats for cid {cid}')['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -105,7 +106,7 @@ class BilibiliBaseIE(InfoExtractor):
                          f'{line["content"]}\n\n')
         return srt_data
 
-    def _get_subtitles(self, video_id, cid):
+    def _get_subtitles(self, video_id, cid, aid=None):
         subtitles = {
             'danmaku': [{
                 'ext': 'xml',
@@ -114,8 +115,9 @@ class BilibiliBaseIE(InfoExtractor):
         }
 
         video_info_json = self._download_json(
-            f'https://api.bilibili.com/x/player/v2?bvid={video_id}&cid={cid}',
-            video_id, note=f"Extracting subtitle info {cid}")
+            'https://api.bilibili.com/x/player/v2', video_id,
+            query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
+            note=f'Extracting subtitle info {cid}')
         for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
@@ -168,53 +170,51 @@ class BilibiliBaseIE(InfoExtractor):
                 lambda _, v: url_or_none(v['share_url']) and v['id'])):
             yield self.url_result(entry['share_url'], BiliBiliBangumiIE, f'ep{entry["id"]}')
 
-    def _get_divisions(self, video_id, graph_version, edges={}, edge_id=""):
+    def _get_divisions(self, video_id, graph_version, edges, edge_id, cid_edges={}):
         division_data = self._download_json(
-            f'https://api.bilibili.com/x/stein/edgeinfo_v2?graph_version={graph_version}&edge_id={edge_id}&bvid={video_id}',
-            video_id, note=f'Extracting divisions from edge {edge_id}')
-        for node in traverse_obj(division_data, ('data', 'story_list', {list}), default=[]):
-            edges[node['edge_id']] = {
-                **edges.get(node['edge_id'], {}),
-                **traverse_obj(node, {
-                    'title': ('title', {str_or_none}),
-                    'cid': ('cid', {int}),
-                })
-            }
-        edges[edge_id] = {
-            **edges.get(edge_id, {}),
-            'title': traverse_obj(division_data, ("data", "title", {str_or_none})),
-            'choices': traverse_obj(division_data, ("data", "edges", "questions", ..., "choices", ..., {
-                'edge_id': ('id', {int}),
-                'cid': ('cid', {int}),
-                'text': ('option', {str_or_none}),
-            })) or [],
-        }
-        for choice in edges[edge_id]['choices']:
+            'https://api.bilibili.com/x/stein/edgeinfo_v2', video_id,
+            query={'graph_version': graph_version, 'edge_id': edge_id, 'bvid': video_id},
+            note=f'Extracting divisions from edge {edge_id}')
+        for node in traverse_obj(division_data, ('data', 'story_list', lambda _, v: v['edge_id'] == edge_id)):
+            edges.setdefault(node['edge_id'], {}).update(traverse_obj(node, {
+                'title': ('title', {str}),
+                'cid': ('cid', {int_or_none}),
+            }))
+
+        edges[edge_id].update(traverse_obj(division_data, ('data', {
+            'title': ('title', {str}),
+            'choices': ('edges', 'questions', ..., 'choices', ..., {
+                'edge_id': ('id', {int_or_none}),
+                'cid': ('cid', {int_or_none}),
+                'text': ('option', {str}),
+            }),
+        })))
+        # use dict to combine edges that use the save video section (same cid)
+        cid_edges.setdefault(edges[edge_id]['cid'], {})[edge_id] = edges[edge_id]
+        for choice in edges[edge_id].get('choices', []):
             if choice['edge_id'] not in edges:
                 edges[choice['edge_id']] = {'cid': choice['cid']}
-                self._get_divisions(video_id, graph_version, edges=edges, edge_id=choice['edge_id'])
-        return edges
+                self._get_divisions(video_id, graph_version, edges, choice['edge_id'], cid_edges=cid_edges)
+        return cid_edges
 
-    def _get_interactive_videos(self, video_id, cid, metainfo):
+    def _get_interactive_entries(self, video_id, cid, metainfo):
         graph_version = traverse_obj(
             self._download_json(
                 f'https://api.bilibili.com/x/player/wbi/v2?bvid={video_id}&cid={cid}',
-                video_id, note=f'Extracting graph version for {video_id}'),
+                video_id, note='Extracting graph version'),
             ('data', 'interaction', 'graph_version', {int_or_none}))
-        edges = self._get_divisions(video_id, graph_version, {1: {"cid": cid}}, 1)
-        entries = []
-        for edge_id, edge in edges.items():
-            play_info = self._download_playinfo(video_id, edge['cid'])
-            entries.append({
+        cid_edges = self._get_divisions(video_id, graph_version, {1: {"cid": cid}}, 1)
+        for cid, edges in cid_edges.items():
+            play_info = self._download_playinfo(video_id, cid)
+            yield {
                 **metainfo,
-                'id': f'{video_id}_{edge_id}',
-                'title': f'{metainfo.get("title")} - {edge.get("title")}',
+                'id': f'{video_id}_{cid}',
+                'title': f'{metainfo.get("title")} - {list(edges.values())[0].get("title")}',
                 'formats': self.extract_formats(play_info),
-                'description': f'{edge["choices"]}\n{metainfo.get("description")}',
+                'description': f'{json.dumps(edges, ensure_ascii=False)}\n{metainfo.get("description", "")}',
                 'duration': float_or_none(play_info.get('timelength'), scale=1000),
-                'subtitles': self.extract_subtitles(video_id, edge['cid']),
-            })
-        return entries
+                'subtitles': self.extract_subtitles(video_id, cid),
+            }
 
 
 class BiliBiliIE(BilibiliBaseIE):
@@ -403,6 +403,43 @@ class BiliBiliIE(BilibiliBaseIE):
         },
         'params': {'skip_download': True},
     }, {
+        'note': 'interactive/split-path video',
+        'url': 'https://www.bilibili.com/video/BV1af4y1H7ga/',
+        'info_dict': {
+            'id': 'BV1af4y1H7ga',
+            'title': '【互动游戏】花了大半年时间做的自我介绍~请查收！！',
+            'timestamp': 1630500414,
+            'upload_date': '20210901',
+            'description': 'md5:01113e39ab06e28042d74ac356a08786',
+            'tags': list,
+            'uploader': '钉宫妮妮Ninico',
+            'duration': 1503,
+            'uploader_id': '8881297',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'playlist_count': 33,
+        'playlist': [{
+            'info_dict': {
+                'id': 'BV1af4y1H7ga_400950101',
+                'ext': 'mp4',
+                'title': '【互动游戏】花了大半年时间做的自我介绍~请查收！！ - 听见猫猫叫~',
+                'timestamp': 1630500414,
+                'upload_date': '20210901',
+                'description': 'md5:db66ac7a2813a94b8291dbce990cc5b2',
+                'tags': list,
+                'uploader': '钉宫妮妮Ninico',
+                'duration': 11.605,
+                'uploader_id': '8881297',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            },
+        }],
+    }, {
         'url': 'https://www.bilibili.com/video/BV1jL41167ZG/',
         'info_dict': {
             'id': 'BV1jL41167ZG',
@@ -445,12 +482,12 @@ class BiliBiliIE(BilibiliBaseIE):
                     toast = get_element_by_class('tips-toast', webpage) or ''
                     msg = clean_html(f'{get_element_by_class("belongs-to", toast) or ""} {get_element_by_class("level", toast) or ""}')
                     raise ExtractorError(f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
-                raise
+                raise ExtractorError('Failed to extract play_info')
             except RegexNotFoundError:
                 if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
                     self.raise_login_required()
                 if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
-                    self.report_warning('This video may be geo-restricted. You might want to try a VPN or a proxy server (with --proxy)', video_id)
+                    self.report_warning('This video may be deleted or geo-restricted. You might want to try a VPN or a proxy server (with --proxy)', video_id)
                 raise
             video_data = initial_state['videoData']
 
@@ -512,14 +549,13 @@ class BiliBiliIE(BilibiliBaseIE):
             'http_headers': {'Referer': url},
         }
 
-        is_interactive = traverse_obj(video_data, ("rights", "is_stein_gate"))
+        is_interactive = traverse_obj(video_data, ('rights', 'is_stein_gate'))
         if is_interactive:
-            entries = self._get_interactive_videos(video_id, cid, metainfo)
-            metainfo.update({
-                'duration': traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
-                '__post_extractor': self.extract_comments(aid),
-            })
-            return self.playlist_result(entries, **metainfo)
+            return self.playlist_result(
+                self._get_interactive_entries(video_id, cid, metainfo), **metainfo, **{
+                    'duration': traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
+                    '__post_extractor': self.extract_comments(aid),
+                })
         else:
             return {
                 **metainfo,
@@ -612,7 +648,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'season_number': season_number,
             'timestamp': int_or_none(episode_info.get('pub_time')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'subtitles': self.extract_subtitles(video_id, aid, episode_info.get('cid')),
+            'subtitles': self.extract_subtitles(video_id, episode_info.get('cid'), aid=aid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': headers,
         }
