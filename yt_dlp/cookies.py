@@ -33,7 +33,6 @@ from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
     Popen,
     error_to_str,
-    escape_url,
     expand_path,
     is_path_like,
     sanitize_url,
@@ -42,6 +41,7 @@ from .utils import (
     write_string,
 )
 from .utils._utils import _YDLLogger
+from .utils.networking import normalize_url
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -97,7 +97,7 @@ def load_cookies(cookie_file, browser_specification, ydl):
 
         jar = YoutubeDLCookieJar(cookie_file)
         if not is_filename or os.access(cookie_file, os.R_OK):
-            jar.load(ignore_discard=True, ignore_expires=True)
+            jar.load()
         cookie_jars.append(jar)
 
     return _merge_cookie_jars(cookie_jars)
@@ -138,7 +138,7 @@ def _extract_firefox_cookies(profile, container, logger):
         containers_path = os.path.join(os.path.dirname(cookie_database_path), 'containers.json')
         if not os.path.isfile(containers_path) or not os.access(containers_path, os.R_OK):
             raise FileNotFoundError(f'could not read containers.json in {search_root}')
-        with open(containers_path) as containers:
+        with open(containers_path, encoding='utf8') as containers:
             identities = json.load(containers).get('identities', [])
         container_id = next((context.get('userContextId') for context in identities if container in (
             context.get('name'),
@@ -1213,7 +1213,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 file.truncate(0)
             yield file
 
-    def _really_save(self, f, ignore_discard=False, ignore_expires=False):
+    def _really_save(self, f, ignore_discard, ignore_expires):
         now = time.time()
         for cookie in self:
             if (not ignore_discard and cookie.discard
@@ -1234,7 +1234,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 name, value
             )))
 
-    def save(self, filename=None, *args, **kwargs):
+    def save(self, filename=None, ignore_discard=True, ignore_expires=True):
         """
         Save cookies to a file.
         Code is taken from CPython 3.6
@@ -1253,9 +1253,9 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
 
         with self.open(filename, write=True) as f:
             f.write(self._HEADER)
-            self._really_save(f, *args, **kwargs)
+            self._really_save(f, ignore_discard, ignore_expires)
 
-    def load(self, filename=None, ignore_discard=False, ignore_expires=False):
+    def load(self, filename=None, ignore_discard=True, ignore_expires=True):
         """Load cookies from a file."""
         if filename is None:
             if self.filename is not None:
@@ -1308,7 +1308,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
 
     def get_cookie_header(self, url):
         """Generate a Cookie HTTP header for a given url"""
-        cookie_req = urllib.request.Request(escape_url(sanitize_url(url)))
+        cookie_req = urllib.request.Request(normalize_url(sanitize_url(url)))
         self.add_cookie_header(cookie_req)
         return cookie_req.get_header('Cookie')
 
@@ -1317,7 +1317,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
         # Policy `_now` attribute must be set before calling `_cookies_for_request`
         # Ref: https://github.com/python/cpython/blob/3.7/Lib/http/cookiejar.py#L1360
         self._policy._now = self._now = int(time.time())
-        return self._cookies_for_request(urllib.request.Request(escape_url(sanitize_url(url))))
+        return self._cookies_for_request(urllib.request.Request(normalize_url(sanitize_url(url))))
 
     def clear(self, *args, **kwargs):
         with contextlib.suppress(KeyError):

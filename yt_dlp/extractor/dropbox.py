@@ -1,3 +1,4 @@
+import base64
 import os.path
 import re
 
@@ -5,14 +6,13 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
-    traverse_obj,
-    try_get,
+    update_url_query,
     url_basename,
 )
 
 
 class DropboxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dropbox[.]com/sh?/(?P<id>[a-zA-Z0-9]{15})/.*'
+    _VALID_URL = r'https?://(?:www\.)?dropbox\.com/(?:(?:e/)?scl/fi|sh?)/(?P<id>\w+)'
     _TESTS = [
         {
             'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh/youtube-dl%20test%20video%20%27%C3%A4%22BaW_jenozKc.mp4?dl=0',
@@ -22,7 +22,16 @@ class DropboxIE(InfoExtractor):
                 'title': 'youtube-dl test video \'ä"BaW_jenozKc'
             }
         }, {
-            'url': 'https://www.dropbox.com/sh/662glsejgzoj9sr/AAByil3FGH9KFNZ13e08eSa1a/Pregame%20Ceremony%20Program%20PA%2020140518.m4v',
+            'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh',
+            'only_matching': True,
+        }, {
+            'url': 'https://www.dropbox.com/sh/2mgpiuq7kv8nqdf/AABy-fW4dkydT4GmWi2mdOUDa?dl=0&preview=Drone+Shot.mp4',
+            'only_matching': True,
+        }, {
+            'url': 'https://www.dropbox.com/scl/fi/r2kd2skcy5ylbbta5y1pz/DJI_0003.MP4?dl=0&rlkey=wcdgqangn7t3lnmmv6li9mu9h',
+            'only_matching': True,
+        }, {
+            'url': 'https://www.dropbox.com/e/scl/fi/r2kd2skcy5ylbbta5y1pz/DJI_0003.MP4?dl=0&rlkey=wcdgqangn7t3lnmmv6li9mu9h',
             'only_matching': True,
         },
     ]
@@ -53,16 +62,25 @@ class DropboxIE(InfoExtractor):
             else:
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
 
-        info_json = self._search_json(r'InitReact\.mountComponent\(.*?,', webpage, 'mountComponent', video_id,
-                                      contains_pattern=r'{.+?"preview".+?}', end_pattern=r'\)')['props']
-        transcode_url = traverse_obj(info_json, ((None, 'preview'), 'file', 'preview', 'content', 'transcode_url'), get_all=False)
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id)
+        formats, subtitles, has_anonymous_download = [], {}, False
+        for encoded in reversed(re.findall(r'registerStreamedPrefetch\s*\(\s*"[\w/+=]+"\s*,\s*"([\w/+=]+)"', webpage)):
+            decoded = base64.b64decode(encoded).decode('utf-8', 'ignore')
+            transcode_url = self._search_regex(
+                r'\n.(https://[^\x03\x08\x12\n]+\.m3u8)', decoded, 'transcode url', default=None)
+            if not transcode_url:
+                continue
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id, 'mp4')
+            has_anonymous_download = self._search_regex(r'(anonymous:\tanonymous)', decoded, 'anonymous', default=False)
+            break
 
         # downloads enabled we can get the original file
-        if 'anonymous' in (try_get(info_json, lambda x: x['sharePermission']['canDownloadRoles']) or []):
-            video_url = re.sub(r'[?&]dl=0', '', url)
-            video_url += ('?' if '?' not in video_url else '&') + 'dl=1'
-            formats.append({'url': video_url, 'format_id': 'original', 'format_note': 'Original', 'quality': 1})
+        if has_anonymous_download:
+            formats.append({
+                'url': update_url_query(url, {'dl': '1'}),
+                'format_id': 'original',
+                'format_note': 'Original',
+                'quality': 1
+            })
 
         return {
             'id': video_id,

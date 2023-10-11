@@ -31,7 +31,7 @@ class BanByeBaseIE(InfoExtractor):
 
 
 class BanByeIE(BanByeBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?watch/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?watch/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://banbye.com/watch/v_ytfmvkVYLE8T',
         'md5': '2f4ea15c5ca259a73d909b2cfd558eb5',
@@ -59,7 +59,27 @@ class BanByeIE(BanByeBaseIE):
             'title': 'Krzysztof Karoń',
             'id': 'p_Ld82N6gBw_OJ',
         },
-        'playlist_count': 9,
+        'playlist_mincount': 9,
+    }, {
+        'url': 'https://banbye.com/watch/v_kb6_o1Kyq-CD',
+        'info_dict': {
+            'id': 'v_kb6_o1Kyq-CD',
+            'ext': 'mp4',
+            'title': 'Co tak naprawdę dzieje się we Francji?! Czy Warszawa a potem cała Polska będzie drugim Paryżem?!🤔🇵🇱',
+            'description': 'md5:82be4c0e13eae8ea1ca8b9f2e07226a8',
+            'uploader': 'Marcin Rola - MOIM ZDANIEM!🇵🇱',
+            'channel_id': 'ch_QgWnHvDG2fo5',
+            'channel_url': 'https://banbye.com/channel/ch_QgWnHvDG2fo5',
+            'duration': 597,
+            'timestamp': 1688642656,
+            'upload_date': '20230706',
+            'thumbnail': 'https://cdn.banbye.com/video/v_kb6_o1Kyq-CD/96.webp',
+            'tags': ['Paryż', 'Francja', 'Polska', 'Imigranci', 'Morawiecki', 'Tusk'],
+            'like_count': int,
+            'dislike_count': int,
+            'view_count': int,
+            'comment_count': int,
+        },
     }]
 
     def _real_extract(self, url):

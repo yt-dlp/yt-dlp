@@ -95,17 +95,20 @@ class TestNetworkingUtils:
 
     @pytest.mark.skipif(not certifi, reason='certifi is not installed')
     def test_load_certifi(self):
+        context_certifi = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context_certifi.load_verify_locations(cafile=certifi.where())
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        context2 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_load_certs(context, use_certifi=True)
-        context2.load_verify_locations(cafile=certifi.where())
-        assert context.get_ca_certs() == context2.get_ca_certs()
+        assert context.get_ca_certs() == context_certifi.get_ca_certs()
 
-        # Test load normal certs
-        # XXX: could there be a case where system certs are the same as certifi?
-        context3 = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ssl_load_certs(context3, use_certifi=False)
-        assert context3.get_ca_certs() != context.get_ca_certs()
+        context_default = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context_default.load_default_certs()
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_load_certs(context, use_certifi=False)
+        assert context.get_ca_certs() == context_default.get_ca_certs()
+
+        if context_default.get_ca_certs() == context_certifi.get_ca_certs():
+            pytest.skip('System uses certifi as default. The test is not valid')
 
     @pytest.mark.parametrize('method,status,expected', [
         ('GET', 303, 'GET'),
@@ -266,14 +269,14 @@ class TestNetworkingExceptions:
         assert not response.closed
 
     def test_incomplete_read_error(self):
-        error = IncompleteRead(b'test', 3, cause='test')
+        error = IncompleteRead(4, 3, cause='test')
         assert isinstance(error, IncompleteRead)
         assert repr(error) == '<IncompleteRead: 4 bytes read, 3 more expected>'
         assert str(error) == error.msg == '4 bytes read, 3 more expected'
-        assert error.partial == b'test'
+        assert error.partial == 4
         assert error.expected == 3
         assert error.cause == 'test'
 
-        error = IncompleteRead(b'aaa')
+        error = IncompleteRead(3)
         assert repr(error) == '<IncompleteRead: 3 bytes read>'
         assert str(error) == '3 bytes read'

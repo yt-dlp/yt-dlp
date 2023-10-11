@@ -27,11 +27,24 @@ class CrunchyrollBaseIE(InfoExtractor):
     _AUTH_HEADERS = None
     _API_ENDPOINT = None
     _BASIC_AUTH = None
-    _QUERY = {}
+    _CLIENT_ID = ('cr_web', 'noaihdevm_6iyg0a8l0q')
+    _LOCALE_LOOKUP = {
+        'ar': 'ar-SA',
+        'de': 'de-DE',
+        '': 'en-US',
+        'es': 'es-419',
+        'es-es': 'es-ES',
+        'fr': 'fr-FR',
+        'it': 'it-IT',
+        'pt-br': 'pt-BR',
+        'pt-pt': 'pt-PT',
+        'ru': 'ru-RU',
+        'hi': 'hi-IN',
+    }
 
     @property
     def is_logged_in(self):
-        return self._get_cookies(self._BASE_URL).get('etp_rt')
+        return bool(self._get_cookies(self._BASE_URL).get('etp_rt'))
 
     def _perform_login(self, username, password):
         if self.is_logged_in:
@@ -62,49 +75,49 @@ class CrunchyrollBaseIE(InfoExtractor):
         if not self.is_logged_in:
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
-    def _update_query(self, lang):
-        if lang in CrunchyrollBaseIE._QUERY:
-            return
-
-        webpage = self._download_webpage(
-            f'{self._BASE_URL}/{lang}', None, note=f'Retrieving main page (lang={lang or None})')
-
-        initial_state = self._search_json(r'__INITIAL_STATE__\s*=', webpage, 'initial state', None)
-        CrunchyrollBaseIE._QUERY[lang] = traverse_obj(initial_state, {
-            'locale': ('localization', 'locale'),
-        }) or None
-
-        if CrunchyrollBaseIE._BASIC_AUTH:
-            return
-
-        app_config = self._search_json(r'__APP_CONFIG__\s*=', webpage, 'app config', None)
-        cx_api_param = app_config['cxApiParams']['accountAuthClientId' if self.is_logged_in else 'anonClientId']
-        self.write_debug(f'Using cxApiParam={cx_api_param}')
-        CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
-
     def _update_auth(self):
         if CrunchyrollBaseIE._AUTH_HEADERS and CrunchyrollBaseIE._AUTH_REFRESH > time_seconds():
             return
 
-        assert CrunchyrollBaseIE._BASIC_AUTH, '_update_query needs to be called at least one time beforehand'
+        if not CrunchyrollBaseIE._BASIC_AUTH:
+            cx_api_param = self._CLIENT_ID[self.is_logged_in]
+            self.write_debug(f'Using cxApiParam={cx_api_param}')
+            CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
+
         grant_type = 'etp_rt_cookie' if self.is_logged_in else 'client_id'
-        auth_response = self._download_json(
-            f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
-            headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
+        try:
+            auth_response = self._download_json(
+                f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
+                headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
+                raise ExtractorError(
+                    'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                    'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
+                    'and your browser\'s User-Agent (with --user-agent)', expected=True)
+            raise
 
         CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
         CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
+    def _locale_from_language(self, language):
+        config_locale = self._configuration_arg('metadata', ie_key=CrunchyrollBetaIE, casesense=True)
+        return config_locale[0] if config_locale else self._LOCALE_LOOKUP.get(language)
+
     def _call_base_api(self, endpoint, internal_id, lang, note=None, query={}):
-        self._update_query(lang)
         self._update_auth()
 
         if not endpoint.startswith('/'):
             endpoint = f'/{endpoint}'
 
+        query = query.copy()
+        locale = self._locale_from_language(lang)
+        if locale:
+            query['locale'] = locale
+
         return self._download_json(
             f'{self._BASE_URL}{endpoint}', internal_id, note or f'Calling API: {endpoint}',
-            headers=CrunchyrollBaseIE._AUTH_HEADERS, query={**CrunchyrollBaseIE._QUERY[lang], **query})
+            headers=CrunchyrollBaseIE._AUTH_HEADERS, query=query)
 
     def _call_api(self, path, internal_id, lang, note='api', query={}):
         if not path.startswith(f'/content/v2/{self._API_ENDPOINT}/'):
@@ -206,7 +219,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
     IE_NAME = 'crunchyroll'
     _VALID_URL = r'''(?x)
         https?://(?:beta\.|www\.)?crunchyroll\.com/
-        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        (?:(?P<lang>\w{2}(?:-\w{2})?)/)?
         watch/(?!concert|musicvideo)(?P<id>\w+)'''
     _TESTS = [{
         # Premium only
@@ -304,7 +317,7 @@ class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
         },
         'playlist_mincount': 5,
     }, {
-        'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y',
+        'url': 'https://www.crunchyroll.com/de/watch/GY2P1Q98Y',
         'only_matching': True,
     }, {
         'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',

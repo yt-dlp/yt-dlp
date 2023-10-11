@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import gzip
 import http.client
 import io
 import socket
@@ -24,11 +23,12 @@ from urllib.request import (
 from ._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
+    create_connection,
     get_redirect_method,
     make_socks_proxy_opts,
     select_proxy,
 )
-from .common import Features, RequestHandler, Response, register
+from .common import Features, RequestHandler, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
@@ -41,7 +41,8 @@ from .exceptions import (
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
 from ..socks import sockssocket
-from ..utils import escape_url, update_url_query
+from ..utils import update_url_query
+from ..utils.networking import normalize_url
 
 SUPPORTED_ENCODINGS = ['gzip', 'deflate']
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -54,44 +55,10 @@ if brotli:
 def _create_http_connection(http_class, source_address, *args, **kwargs):
     hc = http_class(*args, **kwargs)
 
+    if hasattr(hc, '_create_connection'):
+        hc._create_connection = create_connection
+
     if source_address is not None:
-        # This is to workaround _create_connection() from socket where it will try all
-        # address data from getaddrinfo() including IPv6. This filters the result from
-        # getaddrinfo() based on the source_address value.
-        # This is based on the cpython socket.create_connection() function.
-        # https://github.com/python/cpython/blob/master/Lib/socket.py#L691
-        def _create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
-            host, port = address
-            err = None
-            addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
-            af = socket.AF_INET if '.' in source_address[0] else socket.AF_INET6
-            ip_addrs = [addr for addr in addrs if addr[0] == af]
-            if addrs and not ip_addrs:
-                ip_version = 'v4' if af == socket.AF_INET else 'v6'
-                raise OSError(
-                    "No remote IP%s addresses available for connect, can't use '%s' as source address"
-                    % (ip_version, source_address[0]))
-            for res in ip_addrs:
-                af, socktype, proto, canonname, sa = res
-                sock = None
-                try:
-                    sock = socket.socket(af, socktype, proto)
-                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
-                        sock.settimeout(timeout)
-                    sock.bind(source_address)
-                    sock.connect(sa)
-                    err = None  # Explicitly break reference cycle
-                    return sock
-                except OSError as _:
-                    err = _
-                    if sock is not None:
-                        sock.close()
-            if err is not None:
-                raise err
-            else:
-                raise OSError('getaddrinfo returns an empty list')
-        if hasattr(hc, '_create_connection'):
-            hc._create_connection = _create_connection
         hc.source_address = (source_address, 0)
 
     return hc
@@ -154,20 +121,11 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
 
     @staticmethod
     def gz(data):
-        gz = gzip.GzipFile(fileobj=io.BytesIO(data), mode='rb')
-        try:
-            return gz.read()
-        except OSError as original_oserror:
-            # There may be junk add the end of the file
-            # See http://stackoverflow.com/q/4928560/35070 for details
-            for i in range(1, 1024):
-                try:
-                    gz = gzip.GzipFile(fileobj=io.BytesIO(data[:-i]), mode='rb')
-                    return gz.read()
-                except OSError:
-                    continue
-            else:
-                raise original_oserror
+        # There may be junk added the end of the file
+        # We ignore it by only ever decoding a single gzip payload
+        if not data:
+            return data
+        return zlib.decompress(data, wbits=zlib.MAX_WBITS | 16)
 
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
@@ -179,7 +137,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         # Since redirects are also affected (e.g. http://www.southpark.de/alle-episoden/s18e09)
         # the code of this workaround has been moved here from YoutubeDL.urlopen()
         url = req.get_full_url()
-        url_escaped = escape_url(url)
+        url_escaped = normalize_url(url)
 
         # Substitute URL if any change after escaping
         if url != url_escaped:
@@ -212,7 +170,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
                 location = location.encode('iso-8859-1').decode()
-                location_escaped = escape_url(location)
+                location_escaped = normalize_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
                     resp.headers['Location'] = location_escaped
@@ -229,13 +187,28 @@ def make_socks_conn_class(base_class, socks_proxy):
     proxy_args = make_socks_proxy_opts(socks_proxy)
 
     class SocksConnection(base_class):
-        def connect(self):
-            self.sock = sockssocket()
-            self.sock.setproxy(**proxy_args)
-            if type(self.timeout) in (int, float):  # noqa: E721
-                self.sock.settimeout(self.timeout)
-            self.sock.connect((self.host, self.port))
+        _create_connection = create_connection
 
+        def connect(self):
+            def sock_socket_connect(ip_addr, timeout, source_address):
+                af, socktype, proto, canonname, sa = ip_addr
+                sock = sockssocket(af, socktype, proto)
+                try:
+                    connect_proxy_args = proxy_args.copy()
+                    connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
+                    sock.setproxy(**connect_proxy_args)
+                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
+                        sock.settimeout(timeout)
+                    if source_address:
+                        sock.bind(source_address)
+                    sock.connect((self.host, self.port))
+                    return sock
+                except socket.error:
+                    sock.close()
+                    raise
+            self.sock = create_connection(
+                (proxy_args['addr'], proxy_args['port']), timeout=self.timeout,
+                source_address=self.source_address, _create_socket_func=sock_socket_connect)
             if isinstance(self, http.client.HTTPSConnection):
                 self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
 
@@ -315,7 +288,7 @@ class HEADRequest(urllib.request.Request):
 def update_Request(req, url=None, data=None, headers=None, query=None):
     req_headers = req.headers.copy()
     req_headers.update(headers or {})
-    req_data = data or req.data
+    req_data = data if data is not None else req.data
     req_url = update_url_query(url or req.get_full_url(), query)
     req_get_method = req.get_method()
     if req_get_method == 'HEAD':
@@ -364,7 +337,7 @@ def handle_sslerror(e: ssl.SSLError):
 
 def handle_response_read_exceptions(e):
     if isinstance(e, http.client.IncompleteRead):
-        raise IncompleteRead(partial=e.partial, cause=e, expected=e.expected) from e
+        raise IncompleteRead(partial=len(e.partial), cause=e, expected=e.expected) from e
     elif isinstance(e, ssl.SSLError):
         handle_sslerror(e)
     elif isinstance(e, (OSError, EOFError, http.client.HTTPException, *CONTENT_DECODE_ERRORS)):
@@ -372,7 +345,7 @@ def handle_response_read_exceptions(e):
         raise TransportError(cause=e) from e
 
 
-@register
+@register_rh
 class UrllibRH(RequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https', 'data', 'ftp')
     _SUPPORTED_PROXY_SCHEMES = ('http', 'socks4', 'socks4a', 'socks5', 'socks5h')
@@ -384,6 +357,11 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         self.enable_file_urls = enable_file_urls
         if self.enable_file_urls:
             self._SUPPORTED_URL_SCHEMES = (*self._SUPPORTED_URL_SCHEMES, 'file')
+
+    def _check_extensions(self, extensions):
+        super()._check_extensions(extensions)
+        extensions.pop('cookiejar', None)
+        extensions.pop('timeout', None)
 
     def _create_instance(self, proxies, cookiejar):
         opener = urllib.request.OpenerDirector()
@@ -433,7 +411,7 @@ class UrllibRH(RequestHandler, InstanceStoreMixin):
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 # Prevent file object from being closed when urllib.error.HTTPError is destroyed.
-                e._closer.file = None
+                e._closer.close_called = True
                 raise HTTPError(UrllibResponseAdapter(e.fp), redirect_loop='redirect error' in str(e)) from e
             raise  # unexpected
         except urllib.error.URLError as e:

@@ -133,8 +133,8 @@ class Zee5IE(InfoExtractor):
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         access_token_request = self._download_json(
-            'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
-            video_id, note='Downloading access token')
+            'https://launchapi.zee5.com/launch?platform_name=web_app',
+            video_id, note='Downloading access token')['platform_token']
         data = {
             'x-access-token': access_token_request['token']
         }
@@ -240,8 +240,8 @@ class Zee5SeriesIE(InfoExtractor):
 
     def _entries(self, show_id):
         access_token_request = self._download_json(
-            'https://useraction.zee5.com/token/platform_tokens.php?platform_name=web_app',
-            show_id, note='Downloading access token')
+            'https://launchapi.zee5.com/launch?platform_name=web_app',
+            show_id, note='Downloading access token')['platform_token']
         headers = {
             'X-Access-Token': access_token_request['token'],
             'Referer': 'https://www.zee5.com/',

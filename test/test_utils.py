@@ -14,6 +14,7 @@ import contextlib
 import io
 import itertools
 import json
+import subprocess
 import xml.etree.ElementTree
 
 from yt_dlp.compat import (
@@ -28,6 +29,7 @@ from yt_dlp.utils import (
     InAdvancePagedList,
     LazyList,
     OnDemandPagedList,
+    Popen,
     age_restricted,
     args_to_str,
     base_url,
@@ -47,8 +49,6 @@ from yt_dlp.utils import (
     encode_base_n,
     encode_compat_str,
     encodeFilename,
-    escape_rfc3986,
-    escape_url,
     expand_path,
     extract_attributes,
     extract_basic_auth,
@@ -132,7 +132,12 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
-from yt_dlp.utils.networking import HTTPHeaderDict
+from yt_dlp.utils.networking import (
+    HTTPHeaderDict,
+    escape_rfc3986,
+    normalize_url,
+    remove_dot_segments,
+)
 
 
 class TestUtil(unittest.TestCase):
@@ -655,6 +660,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('P0Y0M0DT0H4M20.880S'), 260.88)
         self.assertEqual(parse_duration('01:02:03:050'), 3723.05)
         self.assertEqual(parse_duration('103:050'), 103.05)
+        self.assertEqual(parse_duration('1HR 3MIN'), 3780)
+        self.assertEqual(parse_duration('2hrs 3mins'), 7380)
 
     def test_fix_xml_ampersands(self):
         self.assertEqual(
@@ -931,24 +938,45 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(escape_rfc3986('foo bar'), 'foo%20bar')
         self.assertEqual(escape_rfc3986('foo%20bar'), 'foo%20bar')
 
-    def test_escape_url(self):
+    def test_normalize_url(self):
         self.assertEqual(
-            escape_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
+            normalize_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
             'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4'
         )
         self.assertEqual(
-            escape_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
+            normalize_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
             'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/фрагмент'),
+            normalize_url('http://тест.рф/фрагмент'),
             'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/абв?абв=абв#абв'),
+            normalize_url('http://тест.рф/абв?абв=абв#абв'),
             'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
         )
-        self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+        self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+
+        self.assertEqual(normalize_url('http://www.example.com/../a/b/../c/./d.html'), 'http://www.example.com/a/c/d.html')
+
+    def test_remove_dot_segments(self):
+        self.assertEqual(remove_dot_segments('/a/b/c/./../../g'), '/a/g')
+        self.assertEqual(remove_dot_segments('mid/content=5/../6'), 'mid/6')
+        self.assertEqual(remove_dot_segments('/ad/../cd'), '/cd')
+        self.assertEqual(remove_dot_segments('/ad/../cd/'), '/cd/')
+        self.assertEqual(remove_dot_segments('/..'), '/')
+        self.assertEqual(remove_dot_segments('/./'), '/')
+        self.assertEqual(remove_dot_segments('/./a'), '/a')
+        self.assertEqual(remove_dot_segments('/abc/./.././d/././e/.././f/./../../ghi'), '/ghi')
+        self.assertEqual(remove_dot_segments('/'), '/')
+        self.assertEqual(remove_dot_segments('/t'), '/t')
+        self.assertEqual(remove_dot_segments('t'), 't')
+        self.assertEqual(remove_dot_segments(''), '')
+        self.assertEqual(remove_dot_segments('/../a/b/c'), '/a/b/c')
+        self.assertEqual(remove_dot_segments('../a'), 'a')
+        self.assertEqual(remove_dot_segments('./a'), 'a')
+        self.assertEqual(remove_dot_segments('.'), '')
+        self.assertEqual(remove_dot_segments('////'), '////')
 
     def test_js_to_json_vars_strings(self):
         self.assertDictEqual(
@@ -1181,6 +1209,9 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('\'"\\""\'')
         self.assertEqual(json.loads(on), '"""', msg='Unnecessary quote escape should be escaped')
 
+        on = js_to_json('[new Date("spam"), \'("eggs")\']')
+        self.assertEqual(json.loads(on), ['spam', '("eggs")'], msg='Date regex should match a single string')
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
@@ -1191,6 +1222,14 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(js_to_json('`${name}${name}`', {'name': '5'}), '"55"')
         self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
         self.assertEqual(js_to_json('`${name}`', {}), '"name"')
+
+    def test_js_to_json_common_constructors(self):
+        self.assertEqual(json.loads(js_to_json('new Map([["a", 5]])')), {'a': 5})
+        self.assertEqual(json.loads(js_to_json('Array(5, 10)')), [5, 10])
+        self.assertEqual(json.loads(js_to_json('new Array(15,5)')), [15, 5])
+        self.assertEqual(json.loads(js_to_json('new Map([Array(5, 10),new Array(15,5)])')), {'5': 10, '15': 5})
+        self.assertEqual(json.loads(js_to_json('new Date("123")')), "123")
+        self.assertEqual(json.loads(js_to_json('new Date(\'2023-10-19\')')), "2023-10-19")
 
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
@@ -2318,6 +2357,8 @@ Line 1
 
     def test_http_header_dict(self):
         headers = HTTPHeaderDict()
+        headers['ytdl-test'] = b'0'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '0')])
         headers['ytdl-test'] = 1
         self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
         headers['Ytdl-test'] = '2'
@@ -2353,6 +2394,21 @@ Line 1
         assert extract_basic_auth('http://:pass@foo.bar') == ('http://foo.bar', 'Basic OnBhc3M=')
         assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
         assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
+
+    @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
+    def test_Popen_windows_escaping(self):
+        def run_shell(args):
+            stdout, stderr, error = Popen.run(
+                args, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            assert not stderr
+            assert not error
+            return stdout
+
+        # Test escaping
+        assert run_shell(['echo', 'test"&']) == '"test""&"\n'
+        # Test if delayed expansion is disabled
+        assert run_shell(['echo', '^!']) == '"^!"\n'
+        assert run_shell('echo "^!"') == '"^!"\n'
 
 
 if __name__ == '__main__':
