@@ -1992,7 +1992,10 @@ from .tencent import (
     WeTvSeriesIE,
 )
 from .tennistv import TennisTVIE
-from .tenplay import TenPlayIE
+from .tenplay import (
+    TenPlayIE,
+    TenPlaySeasonIE,
+)
 from .testurl import TestURLIE
 from .tf1 import TF1IE
 from .tfo import TFOIE
