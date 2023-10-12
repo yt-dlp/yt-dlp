@@ -1,6 +1,7 @@
 from yt_dlp.extractor.common import InfoExtractor
 import re
 
+
 class MaarivIE(InfoExtractor):
     IE_NAME = 'maariv.co.il'
     _VALID_URL = r'(https?://)?(www\.)?(m\.)?maariv\.co\.il(?:/[^/]+)*/Article-(?P<id>\d{7})'
