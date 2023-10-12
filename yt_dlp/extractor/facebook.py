@@ -424,6 +424,7 @@ class FacebookIE(InfoExtractor):
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict) or {}
             locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
             captions = get_first(snippet, ('video_available_captions_locales')) or get_first(snippet, ('captions_url')) or None
+            useIsVideoBroadcast = get_first(snippet, ('is_video_broadcast')) or False
             automatic_captions = {}
             subtitles = {}
             if isinstance(captions, str):
@@ -439,10 +440,7 @@ class FacebookIE(InfoExtractor):
                                  + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
                                  + (' (' + c['localized_creation_method'] + ')' if c['localized_creation_method'] else '')),
                     }
-                    # observed 'localized_creation_method' value: null, "Auto-generated"(translated into diff lang)
-                    # if a 3rd method exists, captions created by such method will be categorized into automatic_captions
-                    # TODO: better way to distinguish auto-generated captions from other captions
-                    if c['localized_creation_method']:
+                    if c['localized_creation_method'] or useIsVideoBroadcast:
                         automatic_captions.setdefault(c['locale'], []).append(s)
                     else:
                         subtitles.setdefault(c['locale'], []).append(s)
