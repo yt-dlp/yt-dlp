@@ -727,7 +727,7 @@ def create_parser():
     authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
-        help='Video password (vimeo, youku)')
+        help='Video-specific password')
     authentication.add_option(
         '--ap-mso',
         dest='ap_mso', metavar='MSO',
