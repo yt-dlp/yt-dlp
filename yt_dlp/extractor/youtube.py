@@ -949,7 +949,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         main_rm = next(main_retries)
         # Manual retry loop for multiple RetryManagers
         # The proper RetryManager MUST be advanced after an error
-        # and it's result MUST be checked if the manager is non fatal
+        # and its result MUST be checked if the manager is non fatal
         while True:
             try:
                 response = self._call_api(
