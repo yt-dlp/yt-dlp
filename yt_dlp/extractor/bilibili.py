@@ -203,7 +203,7 @@ class BilibiliBaseIE(InfoExtractor):
                 f'https://api.bilibili.com/x/player/wbi/v2?bvid={video_id}&cid={cid}',
                 video_id, note='Extracting graph version'),
             ('data', 'interaction', 'graph_version', {int_or_none}))
-        cid_edges = self._get_divisions(video_id, graph_version, {1: {"cid": cid}}, 1)
+        cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
             play_info = self._download_playinfo(video_id, cid)
             yield {
@@ -480,7 +480,7 @@ class BiliBiliIE(BilibiliBaseIE):
             except KeyError:
                 if play_info_obj.get('code') == 87007:
                     toast = get_element_by_class('tips-toast', webpage) or ''
-                    msg = clean_html(f'{get_element_by_class("belongs-to", toast) or ""} {get_element_by_class("level", toast) or ""}')
+                    msg = clean_html(f'{get_element_by_class("belongs-to", toast) or ""}，{get_element_by_class("level", toast) or ""}')
                     raise ExtractorError(f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
                 raise ExtractorError('Failed to extract play_info')
             except RegexNotFoundError:
@@ -610,7 +610,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         },
         'skip': 'Geo-restricted',
     }, {
-        'note': 'making-of which falls outside main section',
+        'note': 'a making-of which falls outside main section',
         'url': 'https://www.bilibili.com/bangumi/play/ep345120',
         'info_dict': {
             'id': '345120',
@@ -917,11 +917,12 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseIE):
     def _real_extract(self, url):
         season_id = self._match_id(url)
         season_info = self._download_season_info('season_id', season_id, self._HEADERS)
-        return self.playlist_result(
-            self._get_cheese_entries(season_info), season_id, **traverse_obj(season_info, {
-                'title': ('title', {str}),
-                'description': ('subtitle', {str}),
-            }))
+        metainfo = traverse_obj(season_info, {
+            'title': ('title', {str}),
+            'description': ('subtitle', {str}),
+        })
+
+        return self.playlist_result(self._get_cheese_entries(season_info), season_id, **metainfo)
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
