@@ -1081,7 +1081,7 @@ class ERRJupiterIE(ERRTVIE):
         },
     }, {
         # 1 A monthly playlist
-        'skip': True,  # Spare err.ee
+        'skip': 'Spare err.ee',
         'url': 'https://jupiter.err.ee/1014230/dzassi-abg-wes-montgomery',
         '_type': 'playlist',
         'info_dict': {
@@ -1111,7 +1111,7 @@ class ERRJupiterIE(ERRTVIE):
         },
     }, {
         # 3 Another seasonal playlist
-        'skip': True,  # Spare err.ee
+        'skip': 'Spare err.ee',
         'url': 'https://jupiter.err.ee/1608212173/pealtnagija',
         'md5': 'dd0203a487eb3a15aefdd9ce5132e0c9',
         'info_dict': {
@@ -1462,7 +1462,7 @@ class ERRArhiivIE(ERRTVIE):
         },
     }, {
         # 4 arhiiv.err.ee video playlist
-        'skip': True,  # Spare err.ee
+        'skip': 'Spare err.ee',
         '_type': 'playlist',
         'url':
         'https://arhiiv.err.ee/video/seeria/terevisioon',
@@ -1476,7 +1476,7 @@ class ERRArhiivIE(ERRTVIE):
         },
     }, {
         # 5 arhiiv.err.ee audio playlist
-        'skip': True,  # Spare err.ee
+        'skip': 'Spare err.ee',
         '_type': 'playlist',
         'url':
         'https://arhiiv.err.ee/audio/seeria/paevakaja',
@@ -1516,7 +1516,7 @@ class ERRArhiivIE(ERRTVIE):
         },
     }, {
         # 8 arhiiv.err.ee video playlist
-        'skip': True,  # Spare err.ee
+        'skip': 'Spare err.ee',
         '_type': 'playlist',
         'url':
         'https://arhiiv.err.ee/video/ringvaade-suvel',
