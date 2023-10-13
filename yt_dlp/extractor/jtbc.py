@@ -4,9 +4,9 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     parse_duration,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class JTBCIE(InfoExtractor):
@@ -22,7 +22,8 @@ class JTBCIE(InfoExtractor):
         'url': 'https://tv.jtbc.co.kr/replay/pr10011629/pm10067930/ep20216321/view',
         'md5': 'e6ade71d8c8685bbfd6e6ce4167c6a6c',
         'info_dict': {
-            'id': 'ep20216321',
+            'id': 'VO10721192',
+            'display_id': 'ep20216321',
             'ext': 'mp4',
             'title': '힘쎈여자 강남순 2회 다시보기',
             'description': 'md5:043c1d9019100ce271dba09995dbd1e2',
@@ -36,7 +37,8 @@ class JTBCIE(InfoExtractor):
         'url': 'https://vod.jtbc.co.kr/player/program/ep20216733',
         'md5': '217a6d190f115a75e4bda0ceaa4cd7f4',
         'info_dict': {
-            'id': 'ep20216733',
+            'id': 'VO10721429',
+            'display_id': 'ep20216733',
             'ext': 'mp4',
             'title': '헬로 마이 닥터 친절한 진료실 149회 다시보기',
             'description': 'md5:1d70788a982dd5de26874a92fcffddb8',
@@ -50,7 +52,8 @@ class JTBCIE(InfoExtractor):
         'url': 'https://vod.jtbc.co.kr/player/clip/vo10721270',
         'md5': '05782e2dc22a9c548aebefe62ae4328a',
         'info_dict': {
-            'id': 'vo10721270',
+            'id': 'VO10721270',
+            'display_id': 'vo10721270',
             'ext': 'mp4',
             'title': '뭉쳐야 찬다3 2회 예고편 - A매치로 향하는 마지막 관문💥',
             'description': 'md5:d48b51a8655c84843b4ed8d0c39aae68',
@@ -62,9 +65,10 @@ class JTBCIE(InfoExtractor):
         },
     }, {
         'url': 'https://tv.jtbc.co.kr/trailer/pr10010392/pm10032526/vo10720912/view',
-        'md5': '217a6d190f115a75e4bda0ceaa4cd7f4',
+        'md5': '367d480eb3ef54a9cd7a4b4d69c4b32d',
         'info_dict': {
-            'id': 'vo10720912',
+            'id': 'VO10720912',
+            'display_id': 'vo10720912',
             'ext': 'mp4',
             'title': '아는 형님 404회 예고편 | 10월 14일(토) 저녁 8시 50분 방송!',
             'description': 'md5:2743bb1079ceb85bb00060f2ad8f0280',
@@ -77,17 +81,16 @@ class JTBCIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        display_id = self._match_id(url)
 
-        file_id = self._search_regex(r'data-vod="(VO\d+)"', webpage, 'vod id')
-
-        metadata = self._download_json(
-            f'https://now-api.jtbc.co.kr/v1/vod/detail?vodFileId={file_id}',
-            video_id, note='Downloading mobile details', fatal=False)
+        if display_id.startswith('vo'):
+            video_id = display_id.upper()
+        else:
+            webpage = self._download_webpage(url, display_id)
+            video_id = self._search_regex(r'data-vod="(VO\d+)"', webpage, 'vod id')
 
         playback_data = self._download_json(
-            f'https://api.jtbc.co.kr/vod/{file_id}', video_id, note='Downloading VOD playback data')
+            f'https://api.jtbc.co.kr/vod/{video_id}', video_id, note='Downloading VOD playback data')
 
         subtitles = {}
         for sub in traverse_obj(playback_data, ('tracks', lambda _, v: v['file'])):
@@ -98,8 +101,12 @@ class JTBCIE(InfoExtractor):
             stream_url = re.sub(r'/playlist(?:_pd\d+)?\.m3u8', '/index.m3u8', stream_url)
             formats.extend(self._extract_m3u8_formats(stream_url, video_id, fatal=False))
 
+        metadata = self._download_json(
+            'https://now-api.jtbc.co.kr/v1/vod/detail', video_id,
+            note='Downloading mobile details', fatal=False, query={'vodFileId': video_id})
         return {
             'id': video_id,
+            'display_id': display_id,
             **traverse_obj(metadata, ('vodDetail', {
                 'title': 'vodTitleView',
                 'series': 'programTitle',
@@ -146,5 +153,4 @@ class JTBCProgramIE(InfoExtractor):
 
         entries = [self.url_result(f'https://vod.jtbc.co.kr/player/program/{video_id}', JTBCIE, video_id)
                    for video_id in traverse_obj(vod_list, ('programReplayVodList', ..., 'episodeId'))]
-
         return self.playlist_result(entries, program_id)
