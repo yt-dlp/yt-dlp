@@ -13,7 +13,6 @@ from .exceptions import (
     HTTPError,
     IncompleteRead,
     ProxyError,
-    RequiredDependencyNotInstalled,
     SSLError,
     TransportError,
 )
@@ -22,7 +21,7 @@ from ..dependencies import curl_cffi
 from ..utils import int_or_none
 
 if curl_cffi is None:
-    raise RequiredDependencyNotInstalled('curl_cffi is not installed')
+    raise ImportError('curl_cffi is not installed')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -108,7 +107,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 partial = e.response.content
                 content_length = int_or_none(e.response.headers.get('Content-Length'))
                 raise IncompleteRead(
-                    partial=partial,
+                    partial=len(partial),
                     expected=content_length - len(partial) if content_length is not None else None,
                     cause=e) from e
             elif e.code == CurlECode.PROXY:
