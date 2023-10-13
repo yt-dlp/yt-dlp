@@ -56,6 +56,7 @@ class CommitGroup(enum.Enum):
                 },
                 cls.MISC: {
                     'build',
+                    'ci',
                     'cleanup',
                     'devscripts',
                     'docs',
