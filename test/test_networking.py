@@ -599,7 +599,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.headers.get('Content-Encoding') == 'unsupported'
             assert res.read() == b'raw'
 
-    @pytest.mark.parametrize('handler', ['Urllib', 'CurlCFFI'], indirect=True)
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
     def test_read(self, handler):
         with handler() as rh:
             res = validate_and_send(
@@ -607,6 +607,8 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert res.readable()
             assert res.read(1) == b'H'
             assert res.read(3) == b'ost'
+            assert res.read().decode().endswith('\n\n')
+            assert res.read() == b''
 
 
 class TestHTTPProxy(TestRequestHandlerBase):

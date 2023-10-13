@@ -26,9 +26,43 @@ if curl_cffi is None:
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
 
-# XXX: curl_cffi reads the whole response at once into memory
-# Streaming is not yet supported.
-# See: https://github.com/yifeikong/curl_cffi/issues/26
+
+class CurlCFFIResponseReader(io.IOBase):
+    def __init__(self, response: curl_cffi.requests.Response):
+        self._response = response
+        self._buffer = b''
+        self._eof = False
+
+    def readable(self):
+        return True
+
+    def read(self, size=None):
+        if self._eof:
+            return b''
+
+        while size is None or len(self._buffer) < size:
+            chunk = next(self._response.iter_content(), None)
+            if chunk is None:
+                self._eof = True
+                break
+            self._buffer += chunk
+
+        data = self._buffer[:size]
+        self._buffer = self._buffer[size:]
+        return data
+
+    def close(self):
+        self._response.close()
+        super().close()
+
+
+class CurlCFFIResponseAdapter(Response):
+    def __init__(self, response: curl_cffi.requests.Response):
+        super().__init__(
+            fp=CurlCFFIResponseReader(response),
+            headers=response.headers,
+            url=response.url,
+            status=response.status_code)
 
 
 @register_rh
@@ -91,6 +125,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 timeout=request.extensions.get('timeout') or self.timeout,
                 impersonate=self._get_impersonate_target(request),
                 interface=self.source_address,
+                stream=True
             )
         except curl_cffi.requests.errors.RequestsError as e:
             if e.code == CurlECode.PEER_FAILED_VERIFICATION:
@@ -115,11 +150,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             else:
                 raise TransportError(cause=e) from e
 
-        response = Response(
-            io.BytesIO(curl_response.content),
-            headers=curl_response.headers,
-            url=curl_response.url,
-            status=curl_response.status_code)
+        response = CurlCFFIResponseAdapter(curl_response)
 
         if not 200 <= response.status < 300:
             raise HTTPError(response, redirect_loop=max_redirects_exceeded)

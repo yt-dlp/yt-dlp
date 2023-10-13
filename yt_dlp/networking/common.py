@@ -490,7 +490,7 @@ class Response(io.IOBase):
 
     def __init__(
             self,
-            fp: typing.IO,
+            fp: io.IOBase,
             url: str,
             headers: Mapping[str, str],
             status: int = 200,
