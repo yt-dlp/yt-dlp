@@ -23,8 +23,6 @@ if urllib3_version < (1, 26, 17):
 if requests.__build__ < 0x023100:
     raise ImportError('Only requests >= 2.31.0 is supported')
 
-from http.client import HTTPConnection
-
 import requests.adapters
 import requests.utils
 import urllib3.connection
@@ -264,7 +262,7 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
             # Setting this globally is not ideal, but is easier than hacking with urllib3.
             # It could technically be problematic for scripts embedding yt-dlp.
             # However, it is unlikely debug traffic is used in that context in a way this will cause problems.
-            HTTPConnection.debuglevel = 1
+            urllib3.connection.HTTPConnection.debuglevel = 1
             logger.setLevel(logging.DEBUG)
         # this is expected if we are using --no-check-certificate
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
