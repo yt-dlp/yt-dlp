@@ -4,9 +4,9 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     parse_resolution,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class SBSCoKrIE(InfoExtractor):
