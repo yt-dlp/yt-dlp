@@ -3,10 +3,10 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    traverse_obj,
     unified_strdate,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MBNIE(InfoExtractor):
