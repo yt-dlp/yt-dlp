@@ -4223,7 +4223,7 @@ class YoutubeDL:
         return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
-        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
+        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error '''
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails, ret = [], []
         if write_all or self.params.get('writethumbnail', False):
@@ -4238,6 +4238,9 @@ class YoutubeDL:
         if thumbnails and not thumb_filename_base:
             self.write_debug(f'Skipping writing {label} thumbnail')
             return ret
+
+        if not self._ensure_dir_exists(filename):
+            return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
             thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')
