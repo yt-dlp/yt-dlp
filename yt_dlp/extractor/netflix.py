@@ -7,11 +7,11 @@ from ..utils import (
     float_or_none,
     int_or_none,
     js_to_json,
-    traverse_obj,
     try_call,
     unified_strdate,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class NetflixIE(InfoExtractor):
