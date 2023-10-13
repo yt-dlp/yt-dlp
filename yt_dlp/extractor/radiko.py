@@ -154,7 +154,7 @@ class RadikoBaseIE(InfoExtractor):
                     sf['preference'] = -100
                     sf['format_note'] = 'not preferred'
                 if not is_onair and timefree_int == 1 and time_to_skip:
-                    sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
+                    sf['downloader_options'] = {'ffmpeg_args': ['-ss', str(time_to_skip)]}
             formats.extend(subformats)
 
         return formats
