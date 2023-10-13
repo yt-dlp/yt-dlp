@@ -89,7 +89,6 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326) **\***
     * Supports some (but not all) age-gated content without cookies
     * Download livestreams from the start using `--live-from-start` (*experimental*)
-    * `255kbps` audio is extracted (if available) from YouTube Music when premium cookies are given
     * Channel URLs download all uploads of the channel, including shorts and live
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE][::CONTAINER]`
@@ -913,7 +912,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     Defaults to ~/.netrc
     --netrc-cmd NETRC_CMD           Command to execute to get the credentials
                                     for an extractor.
-    --video-password PASSWORD       Video password (vimeo, youku)
+    --video-password PASSWORD       Video-specific password
     --ap-mso MSO                    Adobe Pass multiple-system operator (TV
                                     provider) identifier, use --ap-list-mso for
                                     a list of available MSOs

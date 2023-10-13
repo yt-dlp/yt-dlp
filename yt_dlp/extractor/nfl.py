@@ -247,7 +247,7 @@ class NFLArticleIE(NFLBaseIE):
 
 class NFLPlusReplayIE(NFLBaseIE):
     IE_NAME = 'nfl.com:plus:replay'
-    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/games/(?P<slug>[\w-]+)(?:/(?P<id>\d+))?'
+    _VALID_URL = r'https?://(?:www\.)?nfl\.com/plus/games/(?P<slug>[\w-]+)(?:/(?P<id>\d+))?'
     _TESTS = [{
         'url': 'https://www.nfl.com/plus/games/giants-at-vikings-2022-post-1/1572108',
         'info_dict': {
@@ -342,7 +342,7 @@ class NFLPlusReplayIE(NFLBaseIE):
 
 class NFLPlusEpisodeIE(NFLBaseIE):
     IE_NAME = 'nfl.com:plus:episode'
-    _VALID_URL = r'https?://(?:www\.)?nfl.com/plus/episodes/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?nfl\.com/plus/episodes/(?P<id>[\w-]+)'
     _TESTS = [{
         'note': 'Subscription required',
         'url': 'https://www.nfl.com/plus/episodes/kurt-s-qb-insider-conference-championships',

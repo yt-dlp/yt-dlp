@@ -24,7 +24,7 @@ class XHamsterIE(InfoExtractor):
     _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com|xhday\.com|xhvid\.com)'
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:.+?\.)?%s/
+                        (?:[^/?#]+\.)?%s/
                         (?:
                             movies/(?P<id>[\dA-Za-z]+)/(?P<display_id>[^/]*)\.html|
                             videos/(?P<display_id_2>[^/]*)-(?P<id_2>[\dA-Za-z]+)
@@ -372,7 +372,7 @@ class XHamsterIE(InfoExtractor):
 
 
 class XHamsterEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:.+?\.)?%s/xembed\.php\?video=(?P<id>\d+)' % XHamsterIE._DOMAINS
+    _VALID_URL = r'https?://(?:[^/?#]+\.)?%s/xembed\.php\?video=(?P<id>\d+)' % XHamsterIE._DOMAINS
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1']
     _TEST = {
         'url': 'http://xhamster.com/xembed.php?video=3328539',
