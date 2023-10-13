@@ -22,10 +22,11 @@ from ..utils import (
 
 
 class LBRYBaseIE(InfoExtractor):
-    _BASE_URL_REGEX = r'(?:https?://(?:www\.)?(?:lbry\.tv|odysee\.com)/|lbry://)'
+    _BASE_URL_REGEX = r'(?x)(?:https?://(?:www\.)?(?:lbry\.tv|odysee\.com)/|lbry://)'
     _CLAIM_ID_REGEX = r'[0-9a-f]{1,40}'
-    _OPT_CLAIM_ID = '[^:/?#&]+(?:[:#]%s)?' % _CLAIM_ID_REGEX
+    _OPT_CLAIM_ID = '[^$@:/?#&]+(?:[:#]%s)?' % _CLAIM_ID_REGEX
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
+    _PAGE_SIZE = 50
 
     def _call_api_proxy(self, method, display_id, params, resource):
         headers = {'Content-Type': 'application/json-rpc'}
@@ -69,18 +70,78 @@ class LBRYBaseIE(InfoExtractor):
             'duration': ('value', stream_type, 'duration', {int_or_none}),
             'channel': ('signing_channel', 'value', 'title', {str}),
             'channel_id': ('signing_channel', 'claim_id', {str}),
+            'uploader_id': ('signing_channel', 'name', {str}),
         })
 
-        channel_name = traverse_obj(stream, ('signing_channel', 'name', {str}))
-        if channel_name and info.get('channel_id'):
-            info['channel_url'] = self._permanent_url(url, channel_name, info['channel_id'])
+        if info.get('uploader_id') and info.get('channel_id'):
+            info['channel_url'] = self._permanent_url(url, info['uploader_id'], info['channel_id'])
 
         return info
+
+    def _fetch_page(self, display_id, url, params, page):
+        page += 1
+        page_params = {
+            'no_totals': True,
+            'page': page,
+            'page_size': self._PAGE_SIZE,
+            **params,
+        }
+        result = self._call_api_proxy(
+            'claim_search', display_id, page_params, f'page {page}')
+        for item in traverse_obj(result, ('items', lambda _, v: v['name'] and v['claim_id'])):
+            yield {
+                **self._parse_stream(item, url),
+                '_type': 'url',
+                'id': item['claim_id'],
+                'url': self._permanent_url(url, item['name'], item['claim_id']),
+            }
+
+    def _playlist_entries(self, url, display_id, claim_param, metadata):
+        qs = parse_qs(url)
+        content = qs.get('content', [None])[0]
+        params = {
+            'fee_amount': qs.get('fee_amount', ['>=0'])[0],
+            'order_by': {
+                'new': ['release_time'],
+                'top': ['effective_amount'],
+                'trending': ['trending_group', 'trending_mixed'],
+            }[qs.get('order', ['new'])[0]],
+            'claim_type': 'stream',
+            'stream_types': [content] if content in ['audio', 'video'] else self._SUPPORTED_STREAM_TYPES,
+            **claim_param,
+        }
+        duration = qs.get('duration', [None])[0]
+        if duration:
+            params['duration'] = {
+                'long': '>=1200',
+                'short': '<=240',
+            }[duration]
+        language = qs.get('language', ['all'])[0]
+        if language != 'all':
+            languages = [language]
+            if language == 'en':
+                languages.append('none')
+            params['any_languages'] = languages
+
+        entries = OnDemandPagedList(
+            functools.partial(self._fetch_page, display_id, url, params),
+            self._PAGE_SIZE)
+
+        return self.playlist_result(
+            entries, display_id, **traverse_obj(metadata, ('value', {
+                'title': 'title',
+                'description': 'description',
+            })))
 
 
 class LBRYIE(LBRYBaseIE):
     IE_NAME = 'lbry'
-    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?P<id>\$/[^/]+/[^/]+/{1}|@{0}/{0}|(?!@){0})'.format(LBRYBaseIE._OPT_CLAIM_ID, LBRYBaseIE._CLAIM_ID_REGEX)
+    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'''
+        (?:\$/(?:download|embed)/)?
+        (?P<id>
+            [^$@:/?#]+/{LBRYBaseIE._CLAIM_ID_REGEX}
+            |(?:@{LBRYBaseIE._OPT_CLAIM_ID}/)?{LBRYBaseIE._OPT_CLAIM_ID}
+        )'''
     _TESTS = [{
         # Video
         'url': 'https://lbry.tv/@Mantega:1/First-day-LBRY:1',
@@ -98,6 +159,7 @@ class LBRYIE(LBRYBaseIE):
             'height': 720,
             'thumbnail': 'https://spee.ch/7/67f2d809c263288c.png',
             'license': 'None',
+            'uploader_id': '@Mantega',
             'duration': 346,
             'channel': 'LBRY/Odysee rats united!!!',
             'channel_id': '1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
@@ -131,6 +193,7 @@ class LBRYIE(LBRYBaseIE):
             'vcodec': 'none',
             'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
             'license': 'None',
+            'uploader_id': '@LBRYFoundation',
         }
     }, {
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
@@ -149,6 +212,7 @@ class LBRYIE(LBRYBaseIE):
             'channel': 'Gardening In Canada',
             'channel_id': 'b8be0e93b423dad221abe29545fbe8ec36e806bc',
             'channel_url': 'https://odysee.com/@gardeningincanada:b8be0e93b423dad221abe29545fbe8ec36e806bc',
+            'uploader_id': '@gardeningincanada',
             'formats': 'mincount:3',
             'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
             'license': 'Copyrighted (contact publisher)',
@@ -174,6 +238,7 @@ class LBRYIE(LBRYBaseIE):
             'formats': 'mincount:1',
             'thumbnail': 'startswith:https://thumb',
             'license': 'None',
+            'uploader_id': '@RT',
         },
         'params': {'skip_download': True}
     }, {
@@ -184,12 +249,13 @@ class LBRYIE(LBRYBaseIE):
             'id': '41fbfe805eb73c8d3012c0c49faa0f563274f634',
             'ext': 'mp4',
             'title': 'Biotechnological Invasion of Skin (April 2023)',
-            'description': 'md5:709a2f4c07bd8891cda3a7cc2d6fcf5c',
+            'description': 'md5:fe28689db2cb7ba3436d819ac3ffc378',
             'channel': 'Wicked Truths',
             'channel_id': '23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
             'channel_url': 'https://odysee.com/@wickedtruths:23d2bbf856b0ceed5b1d7c5960bcc72da5a20cb0',
-            'timestamp': 1685790036,
-            'upload_date': '20230603',
+            'uploader_id': '@wickedtruths',
+            'timestamp': 1695114347,
+            'upload_date': '20230919',
             'release_timestamp': 1685617473,
             'release_date': '20230601',
             'duration': 1063,
@@ -229,10 +295,10 @@ class LBRYIE(LBRYBaseIE):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        if display_id.startswith('$/'):
-            display_id = display_id.split('/', 2)[-1].replace('/', ':')
-        else:
+        if display_id.startswith('@'):
             display_id = display_id.replace(':', '#')
+        else:
+            display_id = display_id.replace('/', ':')
         display_id = urllib.parse.unquote(display_id)
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
@@ -299,7 +365,7 @@ class LBRYIE(LBRYBaseIE):
 
 class LBRYChannelIE(LBRYBaseIE):
     IE_NAME = 'lbry:channel'
-    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'(?P<id>@%s)/?(?:[?&]|$)' % LBRYBaseIE._OPT_CLAIM_ID
+    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + rf'(?P<id>@{LBRYBaseIE._OPT_CLAIM_ID})/?(?:[?&]|$)'
     _TESTS = [{
         'url': 'https://lbry.tv/@LBRYFoundation:0',
         'info_dict': {
@@ -315,65 +381,50 @@ class LBRYChannelIE(LBRYBaseIE):
         'url': 'lbry://@lbry#3f',
         'only_matching': True,
     }]
-    _PAGE_SIZE = 50
-
-    def _fetch_page(self, claim_id, url, params, page):
-        page += 1
-        page_params = {
-            'channel_ids': [claim_id],
-            'claim_type': 'stream',
-            'no_totals': True,
-            'page': page,
-            'page_size': self._PAGE_SIZE,
-        }
-        page_params.update(params)
-        result = self._call_api_proxy(
-            'claim_search', claim_id, page_params, 'page %d' % page)
-        for item in (result.get('items') or []):
-            stream_claim_name = item.get('name')
-            stream_claim_id = item.get('claim_id')
-            if not (stream_claim_name and stream_claim_id):
-                continue
-
-            yield {
-                **self._parse_stream(item, url),
-                '_type': 'url',
-                'id': stream_claim_id,
-                'url': self._permanent_url(url, stream_claim_name, stream_claim_id),
-            }
 
     def _real_extract(self, url):
         display_id = self._match_id(url).replace(':', '#')
-        result = self._resolve_url(
-            'lbry://' + display_id, display_id, 'channel')
+        result = self._resolve_url(f'lbry://{display_id}', display_id, 'channel')
         claim_id = result['claim_id']
-        qs = parse_qs(url)
-        content = qs.get('content', [None])[0]
-        params = {
-            'fee_amount': qs.get('fee_amount', ['>=0'])[0],
-            'order_by': {
-                'new': ['release_time'],
-                'top': ['effective_amount'],
-                'trending': ['trending_group', 'trending_mixed'],
-            }[qs.get('order', ['new'])[0]],
-            'stream_types': [content] if content in ['audio', 'video'] else self._SUPPORTED_STREAM_TYPES,
-        }
-        duration = qs.get('duration', [None])[0]
-        if duration:
-            params['duration'] = {
-                'long': '>=1200',
-                'short': '<=240',
-            }[duration]
-        language = qs.get('language', ['all'])[0]
-        if language != 'all':
-            languages = [language]
-            if language == 'en':
-                languages.append('none')
-            params['any_languages'] = languages
-        entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, claim_id, url, params),
-            self._PAGE_SIZE)
-        result_value = result.get('value') or {}
-        return self.playlist_result(
-            entries, claim_id, result_value.get('title'),
-            result_value.get('description'))
+
+        return self._playlist_entries(url, claim_id, {'channel_ids': [claim_id]}, result)
+
+
+class LBRYPlaylistIE(LBRYBaseIE):
+    IE_NAME = 'lbry:playlist'
+    _VALID_URL = LBRYBaseIE._BASE_URL_REGEX + r'\$/(?:play)?list/(?P<id>[0-9a-f-]+)'
+    _TESTS = [{
+        'url': 'https://odysee.com/$/playlist/ffef782f27486f0ac138bde8777f72ebdd0548c2',
+        'info_dict': {
+            'id': 'ffef782f27486f0ac138bde8777f72ebdd0548c2',
+            'title': 'Théâtre Classique',
+            'description': 'Théâtre Classique',
+        },
+        'playlist_mincount': 4,
+    }, {
+        'url': 'https://odysee.com/$/list/9c6658b3dd21e4f2a0602d523a13150e2b48b770',
+        'info_dict': {
+            'id': '9c6658b3dd21e4f2a0602d523a13150e2b48b770',
+            'title': 'Social Media Exposed',
+            'description': 'md5:98af97317aacd5b85d595775ea37d80e',
+        },
+        'playlist_mincount': 34,
+    }, {
+        'url': 'https://odysee.com/$/playlist/938fb11d-215f-4d1c-ad64-723954df2184',
+        'info_dict': {
+            'id': '938fb11d-215f-4d1c-ad64-723954df2184',
+        },
+        'playlist_mincount': 1000,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        result = traverse_obj(self._call_api_proxy('claim_search', display_id, {
+            'claim_ids': [display_id],
+            'no_totals': True,
+            'page': 1,
+            'page_size': self._PAGE_SIZE,
+        }, 'playlist'), ('items', 0))
+        claim_param = {'claim_ids': traverse_obj(result, ('value', 'claims', ..., {str}))}
+
+        return self._playlist_entries(url, display_id, claim_param, result)

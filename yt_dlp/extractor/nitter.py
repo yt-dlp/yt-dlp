@@ -265,6 +265,26 @@ class NitterIE(InfoExtractor):
                 'repost_count': int,
                 'comment_count': int,
             }
+        }, {  # no OpenGraph title
+            'url': f'https://{current_instance}/LocalBateman/status/1678455464038735895#m',
+            'info_dict': {
+                'id': '1678455464038735895',
+                'ext': 'mp4',
+                'title': 'Your Typical Local Man - Local man, what did Romanians ever do to you?',
+                'description': 'Local man, what did Romanians ever do to you?',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'uploader': 'Your Typical Local Man',
+                'uploader_id': 'LocalBateman',
+                'uploader_url': f'https://{current_instance}/LocalBateman',
+                'upload_date': '20230710',
+                'timestamp': 1689009900,
+                'view_count': int,
+                'like_count': int,
+                'repost_count': int,
+                'comment_count': int,
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+            'params': {'skip_download': 'm3u8'},
         }
     ]
 
@@ -292,7 +312,7 @@ class NitterIE(InfoExtractor):
                 'ext': ext
             }]
 
-        title = description = self._og_search_description(full_webpage) or self._html_search_regex(
+        title = description = self._og_search_description(full_webpage, default=None) or self._html_search_regex(
             r'<div class="tweet-content[^>]+>([^<]+)</div>', webpage, 'title', fatal=False)
 
         uploader_id = self._html_search_regex(

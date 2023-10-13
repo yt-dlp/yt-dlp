@@ -43,6 +43,8 @@ except Exception as _err:
 
 try:
     import sqlite3
+    # We need to get the underlying `sqlite` version, see https://github.com/yt-dlp/yt-dlp/issues/8152
+    sqlite3._yt_dlp__version = sqlite3.sqlite_version
 except ImportError:
     # although sqlite3 is part of the standard library, it is possible to compile python without
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544

@@ -1,4 +1,4 @@
-# flake8: noqa: 401
+# flake8: noqa: F401
 import warnings
 
 from .common import (
@@ -9,7 +9,6 @@ from .common import (
     RequestHandler,
     Response,
 )
-from .exceptions import RequiredDependencyNotInstalled
 
 # isort: split
 # TODO: all request handlers should be safely imported
@@ -17,7 +16,7 @@ from . import _urllib
 
 try:
     from . import _curlcffi  # noqa: F401
-except RequiredDependencyNotInstalled:
+except ImportError:
     pass
 except Exception as e:
     warnings.warn(f'Failed to import curl_cffi handler: {e}')

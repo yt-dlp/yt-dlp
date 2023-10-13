@@ -9,10 +9,6 @@ if typing.TYPE_CHECKING:
     from .common import RequestHandler, Response
 
 
-class RequiredDependencyNotInstalled(ImportError):
-    pass
-
-
 class RequestError(YoutubeDLError):
     def __init__(
         self,
@@ -79,12 +75,10 @@ class HTTPError(RequestError):
 
 
 class IncompleteRead(TransportError):
-    def __init__(self, partial=None, expected=None, **kwargs):
+    def __init__(self, partial: int, expected: int = None, **kwargs):
         self.partial = partial
-        if isinstance(partial, int):
-            self.partial = [b''] * partial
         self.expected = expected
-        msg = f'{len(self.partial) if partial is not None else "unknown"} bytes read'
+        msg = f'{partial} bytes read'
         if expected is not None:
             msg += f', {expected} more expected'
 
@@ -121,7 +115,7 @@ class _CompatHTTPError(urllib.error.HTTPError, HTTPError):
             hdrs=http_error.response.headers,
             fp=http_error.response
         )
-        self._closer.file = None  # Disable auto close
+        self._closer.close_called = True  # Disable auto close
         self._http_error = http_error
         HTTPError.__init__(self, http_error.response, redirect_loop=http_error.redirect_loop)
 

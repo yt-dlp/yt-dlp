@@ -66,6 +66,7 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
             'timestamp': 255977160,
         },
+        'skip': '404 Not Found',
     }, {
         # multiple iframes
         'url': 'http://www.cbc.ca/natureofthings/blog/birds-eye-view-from-vancouvers-burrard-street-bridge-how-we-got-the-shot',
@@ -97,7 +98,7 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -339,12 +340,12 @@ class CBCGemIE(InfoExtractor):
         data = json.dumps({'jwt': sig}).encode()
         headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
-                                   None, data=data, headers=headers)
+                                   None, data=data, headers=headers, expected_status=426)
         cbc_access_token = resp['accessToken']
 
         headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
         resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
-                                   None, headers=headers)
+                                   None, headers=headers, expected_status=426)
         return resp['claimsToken']
 
     def _get_claims_token_expiry(self):
@@ -476,6 +477,10 @@ class CBCGemPlaylistIE(InfoExtractor):
             'id': 'schitts-creek/s06',
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+            'series': 'Schitt\'s Creek',
+            'season_number': 6,
+            'season': 'Season 6',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/season/perso/cbc_schitts_creek_season_06_carousel_v03.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
         },
     }, {
         'url': 'https://gem.cbc.ca/schitts-creek/s06',

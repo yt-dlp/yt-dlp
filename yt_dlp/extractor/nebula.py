@@ -127,7 +127,6 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'lindsayellis',
                 'uploader': 'Lindsay Ellis',
                 'uploader_id': 'lindsayellis',
-                'timestamp': 1533009600,
                 'uploader_url': 'https://nebula.tv/lindsayellis',
                 'series': 'Lindsay Ellis',
                 'display_id': 'that-time-disney-remade-beauty-and-the-beast',
