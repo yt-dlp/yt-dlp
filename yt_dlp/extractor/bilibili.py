@@ -271,7 +271,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'id': 'BV1bK411W797_p1',
                 'ext': 'mp4',
                 'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
-                'tags': 'count:11',
+                'tags': 'count:10',
                 'timestamp': 1589601697,
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
                 'uploader': '打牌还是打桩',
@@ -291,7 +291,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'id': 'BV1bK411W797_p1',
             'ext': 'mp4',
             'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
-            'tags': 'count:11',
+            'tags': 'count:10',
             'timestamp': 1589601697,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
             'uploader': '打牌还是打桩',
@@ -571,13 +571,32 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/play/(?P<id>ep\d+)'
 
     _TESTS = [{
+        'url': 'https://www.bilibili.com/bangumi/play/ep21495/',
+        'info_dict': {
+            'id': 'ep21495',
+            'ext': 'mp4',
+            'series': '悠久之翼',
+            'series_id': '774',
+            'season': '第二季',
+            'season_id': '1182',
+            'season_number': 2,
+            'episode': 'forever／ef',
+            'episode_id': '21495',
+            'episode_number': 12,
+            'title': '12 forever／ef',
+            'duration': 1420.791,
+            'timestamp': 1320412200,
+            'upload_date': '20111104',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
         'url': 'https://www.bilibili.com/bangumi/play/ep267851',
         'info_dict': {
-            'id': '267851',
+            'id': 'ep267851',
             'ext': 'mp4',
             'series': '鬼灭之刃',
             'series_id': '4358',
-            'season': '鬼灭之刃',
+            'season': '立志篇',
             'season_id': '26801',
             'season_number': 1,
             'episode': '残酷',
@@ -589,7 +608,27 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'upload_date': '20190406',
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
         },
-        'skip': 'According to the copyright owner\'s request, you may only watch the video after you are premium member.'
+        'skip': 'Geo-restricted',
+    }, {
+        'note': 'making-of which falls outside main section',
+        'url': 'https://www.bilibili.com/bangumi/play/ep345120',
+        'info_dict': {
+            'id': 'ep345120',
+            'ext': 'mp4',
+            'series': '鬼灭之刃',
+            'series_id': '4358',
+            'season': '立志篇',
+            'season_id': '26801',
+            'season_number': 1,
+            'episode': '炭治郎篇',
+            'episode_id': '345120',
+            'episode_number': 27,
+            'title': '#1 炭治郎篇',
+            'duration': 1922.129,
+            'timestamp': 1602853860,
+            'upload_date': '20201016',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
+        },
     }]
 
     def _real_extract(self, url):
@@ -620,15 +659,15 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         episode_number, episode_info = next((
             (idx, ep) for idx, ep in enumerate(traverse_obj(
-                bangumi_info, ('episodes', ..., {dict})), 1)
+                bangumi_info, (('episodes', ('section', ..., 'episodes')), ..., {dict})), 1)
             if str_or_none(ep.get('id')) == episode_id), (1, {}))
 
         season_id = bangumi_info.get('season_id')
-        season_number = season_id and next((
-            idx + 1 for idx, e in enumerate(
+        season_number, season_title = season_id and next((
+            (idx + 1, e.get('season_title')) for idx, e in enumerate(
                 traverse_obj(bangumi_info, ('seasons', ...)))
             if e.get('season_id') == season_id
-        ), None)
+        ), (None, None))
 
         aid = episode_info.get('aid')
 
@@ -640,13 +679,16 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 'series_id': ('series', 'series_id', {str_or_none}),
                 'thumbnail': ('square_cover', {url_or_none}),
             }),
-            'title': join_nonempty('title', 'long_title', delim=' ', from_dict=episode_info),
-            'episode': episode_info.get('long_title'),
+            **traverse_obj(episode_info, {
+                'episode': ('long_title', {str}),
+                'episode_number': ('title', {int_or_none}, {lambda x: x or episode_number}),
+                'timestamp': ('pub_time', {int_or_none}),
+                'title': {lambda v: v and join_nonempty('title', 'long_title', delim=' ', from_dict=v)},
+            }),
             'episode_id': episode_id,
-            'episode_number': int_or_none(episode_info.get('title')) or episode_number,
+            'season': str_or_none(season_title),
             'season_id': str_or_none(season_id),
             'season_number': season_number,
-            'timestamp': int_or_none(episode_info.get('pub_time')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'subtitles': self.extract_subtitles(video_id, episode_info.get('cid'), aid=aid),
             '__post_extractor': self.extract_comments(aid),
@@ -660,17 +702,51 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
         'url': 'https://www.bilibili.com/bangumi/media/md24097891',
         'info_dict': {
             'id': '24097891',
+            'title': 'CAROLE & TUESDAY',
+            'description': 'md5:42417ad33d1eaa1c93bfd2dd1626b829',
         },
         'playlist_mincount': 25,
+    }, {
+        'url': 'https://www.bilibili.com/bangumi/media/md1565/',
+        'info_dict': {
+            'id': '1565',
+            'title': '攻壳机动队 S.A.C. 2nd GIG',
+            'description': 'md5:46cac00bafd645b97f4d6df616fc576d',
+        },
+        'playlist_count': 26,
+        'playlist': [{
+            'info_dict': {
+                'id': 'ep68540',
+                'ext': 'mp4',
+                'series': '攻壳机动队',
+                'series_id': '1077',
+                'season': '第二季',
+                'season_id': '1565',
+                'season_number': 2,
+                'episode': '再启动 REEMBODY',
+                'episode_id': '68540',
+                'episode_number': 1,
+                'title': '1 再启动 REEMBODY',
+                'duration': 1525.777,
+                'timestamp': 1425074413,
+                'upload_date': '20150227',
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
+            },
+        }],
     }]
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
-        ss_id = self._search_json(
-            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)['mediaInfo']['season_id']
 
-        return self.playlist_result(self._get_episodes_from_season(ss_id, url), media_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
+        ss_id = initial_state['mediaInfo']['season_id']
+        metainfo = traverse_obj(initial_state, ('mediaInfo', {
+            'title': ('title', {str}),
+            'description': ('evaluate', {str}),
+        }))
+
+        return self.playlist_result(self._get_episodes_from_season(ss_id, url), media_id, **metainfo)
 
 
 class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
@@ -678,15 +754,51 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/play/ss26801',
         'info_dict': {
-            'id': '26801'
+            'id': '26801',
+            'title': '鬼灭之刃',
+            'description': 'md5:e2cc9848b6f69be6db79fc2a82d9661b',
         },
         'playlist_mincount': 26
+    }, {
+        'url': 'https://www.bilibili.com/bangumi/play/ss2251',
+        'info_dict': {
+            'id': '2251',
+            'title': '玲音',
+            'description': 'md5:1fd40e3df4c08d4d9d89a6a34844bdc4',
+        },
+        'playlist_count': 13,
+        'playlist': [{
+            'info_dict': {
+                'id': 'ep50188',
+                'ext': 'mp4',
+                'series': '玲音',
+                'series_id': '1526',
+                'season': 'TV',
+                'season_id': '2251',
+                'season_number': 1,
+                'episode': 'WEIRD',
+                'episode_id': '50188',
+                'episode_number': 1,
+                'title': '1 WEIRD',
+                'duration': 1436.992,
+                'timestamp': 1343185080,
+                'upload_date': '20120725',
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
+            },
+        }],
     }]
 
     def _real_extract(self, url):
         ss_id = self._match_id(url)
+        webpage = self._download_webpage(url, ss_id)
+        metainfo = traverse_obj(
+            self._search_json(r'<script[^>]+type="application/ld\+json"[^>]*>', webpage, 'info', ss_id),
+            ('itemListElement', ..., {
+                'title': ('name', {str}),
+                'description': ('description', {str}),
+            }), get_all=False)
 
-        return self.playlist_result(self._get_episodes_from_season(ss_id, url), ss_id)
+        return self.playlist_result(self._get_episodes_from_season(ss_id, url), ss_id, **metainfo)
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
