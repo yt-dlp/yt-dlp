@@ -212,6 +212,8 @@ from .bilibili import (
     BiliBiliBangumiIE,
     BiliBiliBangumiSeasonIE,
     BiliBiliBangumiMediaIE,
+    BilibiliCheeseIE,
+    BilibiliCheeseSeasonIE,
     BiliBiliSearchIE,
     BilibiliCategoryIE,
     BilibiliAudioIE,
