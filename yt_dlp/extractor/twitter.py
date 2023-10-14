@@ -1741,7 +1741,7 @@ class TwitterSpacesIE(TwitterBaseIE):
 
 class TwitterShortenerIE(TwitterBaseIE):
     IE_NAME = 'twitter:shortener'
-    _VALID_URL = r'https?://t.co/(?P<id>[^?]+)|tco:(?P<eid>[^?]+)'
+    _VALID_URL = r'https?://t\.co/(?P<id>[^?#]+)|tco:(?P<eid>[^?#]+)'
     _BASE_URL = 'https://t.co/'
 
     def _real_extract(self, url):

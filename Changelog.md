@@ -4,6 +4,30 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.10.13
+
+#### Core changes
+- [Ensure thumbnail output directory exists](https://github.com/yt-dlp/yt-dlp/commit/2acd1d555ef89851c73773776715d3de9a0e30b9) ([#7985](https://github.com/yt-dlp/yt-dlp/issues/7985)) by [Riteo](https://github.com/Riteo)
+- **utils**
+    - `js_to_json`: [Fix `Date` constructor parsing](https://github.com/yt-dlp/yt-dlp/commit/9d7ded6419089c1bf252496073f73ad90ed71004) ([#8295](https://github.com/yt-dlp/yt-dlp/issues/8295)) by [awalgarg](https://github.com/awalgarg), [Grub4K](https://github.com/Grub4K)
+    - `write_xattr`: [Use `os.setxattr` if available](https://github.com/yt-dlp/yt-dlp/commit/84e26038d4002e763ea51ca1bdce4f7e63c540bf) ([#8205](https://github.com/yt-dlp/yt-dlp/issues/8205)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
+
+#### Extractor changes
+- **artetv**: [Support age-restricted content](https://github.com/yt-dlp/yt-dlp/commit/09f815ad52843219a7ee3f2a0dddf6c250c91f0c) ([#8301](https://github.com/yt-dlp/yt-dlp/issues/8301)) by [StefanLobbenmeier](https://github.com/StefanLobbenmeier)
+- **jtbc**: [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/b286ec68f1f28798b3e371f888a2ed97d399cf77) ([#8314](https://github.com/yt-dlp/yt-dlp/issues/8314)) by [seproDev](https://github.com/seproDev)
+- **mbn**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/e030b6b6fba7b2f4614ad2ab9f7649d40a2dd305) ([#8312](https://github.com/yt-dlp/yt-dlp/issues/8312)) by [seproDev](https://github.com/seproDev)
+- **nhk**: [Fix Japanese-language VOD extraction](https://github.com/yt-dlp/yt-dlp/commit/4de94b9e165bfd6421a692f5f2eabcdb08edcb71) ([#8309](https://github.com/yt-dlp/yt-dlp/issues/8309)) by [garret1317](https://github.com/garret1317)
+- **radiko**: [Fix bug with `downloader_options`](https://github.com/yt-dlp/yt-dlp/commit/b9316642313bbc9e209ac0d2276d37ba60bceb49) by [bashonly](https://github.com/bashonly)
+- **tenplay**: [Add support for seasons](https://github.com/yt-dlp/yt-dlp/commit/88a99c87b680ae59002534a517e191f46c42cbd4) ([#7939](https://github.com/yt-dlp/yt-dlp/issues/7939)) by [midnightveil](https://github.com/midnightveil)
+- **youku**: [Improve tudou.com support](https://github.com/yt-dlp/yt-dlp/commit/b7098d46b552a9322c6cea39ba80be5229f922de) ([#8160](https://github.com/yt-dlp/yt-dlp/issues/8160)) by [naginatana](https://github.com/naginatana)
+- **youtube**: [Fix bug with `--extractor-retries inf`](https://github.com/yt-dlp/yt-dlp/commit/feebf6d02fc9651331eee2af5e08e6112288163b) ([#8328](https://github.com/yt-dlp/yt-dlp/issues/8328)) by [Grub4K](https://github.com/Grub4K)
+
+#### Downloader changes
+- **fragment**: [Improve progress calculation](https://github.com/yt-dlp/yt-dlp/commit/1c51c520f7b511ebd9e4eb7322285a8c31eedbbd) ([#8241](https://github.com/yt-dlp/yt-dlp/issues/8241)) by [Grub4K](https://github.com/Grub4K)
+
+#### Misc. changes
+- **cleanup**: Miscellaneous: [b634ba7](https://github.com/yt-dlp/yt-dlp/commit/b634ba742d8f38ce9ecfa0546485728b0c6c59d1) by [bashonly](https://github.com/bashonly), [gamer191](https://github.com/gamer191)
+
 ### 2023.10.07
 
 #### Extractor changes
