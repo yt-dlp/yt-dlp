@@ -865,7 +865,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             '3 bytes read, 4 more expected'
         ),
         (
-            lambda: urllib3.exceptions.IncompleteRead(partial=3, expected=5),
+            lambda: urllib3.exceptions.ProtocolError('error', urllib3.exceptions.IncompleteRead(partial=3, expected=5)),
             IncompleteRead,
             '3 bytes read, 5 more expected'
         ),
