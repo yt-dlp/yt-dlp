@@ -142,12 +142,8 @@ class RequestsResponseAdapter(Response):
         except urllib3.exceptions.SSLError as e:
             raise SSLError(cause=e) from e
 
-        except urllib3.exceptions.IncompleteRead as e:
-            # urllib3 IncompleteRead.partial is always an integer
-            raise IncompleteRead(partial=e.partial, expected=e.expected) from e
-
         except urllib3.exceptions.ProtocolError as e:
-            # http.client.IncompleteRead may be contained within ProtocolError
+            # IncompleteRead is always contained within ProtocolError
             # See urllib3.response.HTTPResponse._error_catcher()
             ir_err = next(
                 (err for err in (e.__context__, e.__cause__, *variadic(e.args))
