@@ -182,7 +182,7 @@ class WeverseBaseIE(InfoExtractor):
 
 
 class WeverseIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/live/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/live/0-107323480',
         'md5': '1fa849f00181eef9100d3c8254c47979',
@@ -344,7 +344,7 @@ class WeverseIE(WeverseBaseIE):
 
 
 class WeverseMediaIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/media/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/media/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/media/4-116372884',
         'md5': '8efc9cfd61b2f25209eb1a5326314d28',
@@ -420,7 +420,7 @@ class WeverseMediaIE(WeverseBaseIE):
 
 
 class WeverseMomentIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<artist>[^/?#]+)/moment/(?P<uid>[\da-f]+)/post/(?P<id>[\d-]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<artist>[^/?#]+)/moment/(?P<uid>[\da-f]+)/post/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://weverse.io/secretnumber/moment/66a07e164b56a696ee71c99315ffe27b/post/1-117229444',
         'md5': '87733ac19a54081b7dfc2442036d282b',
@@ -516,7 +516,7 @@ class WeverseTabBaseIE(WeverseBaseIE):
 
 
 class WeverseLiveTabIE(WeverseTabBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/live/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/live/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/live/',
         'playlist_mincount': 55,
@@ -534,7 +534,7 @@ class WeverseLiveTabIE(WeverseTabBaseIE):
 
 
 class WeverseMediaTabIE(WeverseTabBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/media(?:/|/all|/new)?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/media(?:/|/all|/new)?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/billlie/media/',
         'playlist_mincount': 231,
@@ -558,7 +558,7 @@ class WeverseMediaTabIE(WeverseTabBaseIE):
 
 
 class WeverseLiveIE(WeverseBaseIE):
-    _VALID_URL = r'https?://(?:www\.|m\.)?weverse.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?weverse\.io/(?P<id>[^/?#]+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://weverse.io/purplekiss',
         'info_dict': {

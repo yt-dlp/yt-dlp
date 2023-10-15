@@ -422,6 +422,7 @@
  - **eplus:inbound**: e+ (イープラス) overseas
  - **Epoch**
  - **Eporner**
+ - **Erocast**
  - **EroProfile**: [*eroprofile*](## "netrc machine")
  - **EroProfile:album**
  - **ertflix**: ERTFLIX videos
@@ -656,6 +657,8 @@
  - **Joj**
  - **Jove**
  - **JStream**
+ - **JTBC**: jtbc.co.kr
+ - **JTBC:program**
  - **JWPlatform**
  - **Kakao**
  - **Kaltura**
@@ -699,6 +702,7 @@
  - **LastFMUser**
  - **lbry**
  - **lbry:channel**
+ - **lbry:playlist**
  - **LCI**
  - **Lcp**
  - **LcpPlay**
@@ -764,6 +768,7 @@
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
+ - **MBN**: mbn.co.kr (매일방송)
  - **MDR**: MDR.DE and KiKA
  - **MedalTV**
  - **media.ccc.de**
@@ -1466,6 +1471,7 @@
  - **Tempo**
  - **TennisTV**: [*tennistv*](## "netrc machine")
  - **TenPlay**: [*10play*](## "netrc machine")
+ - **TenPlaySeason**
  - **TF1**
  - **TFO**
  - **TheHoleTv**
@@ -1474,8 +1480,6 @@
  - **ThePlatformFeed**
  - **TheStar**
  - **TheSun**
- - **ThetaStream**
- - **ThetaVideo**
  - **TheWeatherChannel**
  - **ThisAmericanLife**
  - **ThisAV**

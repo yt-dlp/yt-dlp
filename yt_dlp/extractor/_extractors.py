@@ -574,6 +574,7 @@ from .epicon import (
 from .eplus import EplusIbIE
 from .epoch import EpochIE
 from .eporner import EpornerIE
+from .erocast import ErocastIE
 from .eroprofile import (
     EroProfileIE,
     EroProfileAlbumIE,
@@ -895,6 +896,10 @@ from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
 from .joj import JojIE
 from .jstream import JStreamIE
+from .jtbc import (
+    JTBCIE,
+    JTBCProgramIE,
+)
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
@@ -951,6 +956,7 @@ from .lastfm import (
 from .lbry import (
     LBRYIE,
     LBRYChannelIE,
+    LBRYPlaylistIE,
 )
 from .lci import LCIIE
 from .lcp import (
@@ -1051,6 +1057,7 @@ from .markiza import (
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
+from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
 from .mediaite import MediaiteIE
@@ -1990,7 +1997,10 @@ from .tencent import (
     WeTvSeriesIE,
 )
 from .tennistv import TennisTVIE
-from .tenplay import TenPlayIE
+from .tenplay import (
+    TenPlayIE,
+    TenPlaySeasonIE,
+)
 from .testurl import TestURLIE
 from .tf1 import TF1IE
 from .tfo import TFOIE
@@ -2002,10 +2012,6 @@ from .theplatform import (
 )
 from .thestar import TheStarIE
 from .thesun import TheSunIE
-from .theta import (
-    ThetaVideoIE,
-    ThetaStreamIE,
-)
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE

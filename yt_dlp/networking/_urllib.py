@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import http.client
 import io
-import socket
 import ssl
 import urllib.error
 import urllib.parse
@@ -24,6 +23,7 @@ from ._helper import (
     InstanceStoreMixin,
     add_accept_encoding_header,
     create_connection,
+    create_socks_proxy_socket,
     get_redirect_method,
     make_socks_proxy_opts,
     select_proxy,
@@ -40,7 +40,6 @@ from .exceptions import (
 )
 from ..dependencies import brotli
 from ..socks import ProxyError as SocksProxyError
-from ..socks import sockssocket
 from ..utils import update_url_query
 from ..utils.networking import normalize_url
 
@@ -190,25 +189,12 @@ def make_socks_conn_class(base_class, socks_proxy):
         _create_connection = create_connection
 
         def connect(self):
-            def sock_socket_connect(ip_addr, timeout, source_address):
-                af, socktype, proto, canonname, sa = ip_addr
-                sock = sockssocket(af, socktype, proto)
-                try:
-                    connect_proxy_args = proxy_args.copy()
-                    connect_proxy_args.update({'addr': sa[0], 'port': sa[1]})
-                    sock.setproxy(**connect_proxy_args)
-                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # noqa: E721
-                        sock.settimeout(timeout)
-                    if source_address:
-                        sock.bind(source_address)
-                    sock.connect((self.host, self.port))
-                    return sock
-                except socket.error:
-                    sock.close()
-                    raise
             self.sock = create_connection(
-                (proxy_args['addr'], proxy_args['port']), timeout=self.timeout,
-                source_address=self.source_address, _create_socket_func=sock_socket_connect)
+                (proxy_args['addr'], proxy_args['port']),
+                timeout=self.timeout,
+                source_address=self.source_address,
+                _create_socket_func=functools.partial(
+                    create_socks_proxy_socket, (self.host, self.port), proxy_args))
             if isinstance(self, http.client.HTTPSConnection):
                 self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
 
