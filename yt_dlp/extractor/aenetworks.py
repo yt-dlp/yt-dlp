@@ -338,6 +338,7 @@ class BiographyIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': '404 Not Found',
     }]
 
     def _real_extract(self, url):

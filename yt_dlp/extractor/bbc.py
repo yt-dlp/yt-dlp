@@ -15,11 +15,13 @@ from ..utils import (
     float_or_none,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     js_to_json,
     parse_duration,
     parse_iso8601,
     parse_qs,
     strip_or_none,
+    traverse_obj,
     try_get,
     unescapeHTML,
     unified_timestamp,
@@ -41,7 +43,6 @@ class BBCCoUkIE(InfoExtractor):
                             iplayer(?:/[^/]+)?/(?:episode/|playlist/)|
                             music/(?:clips|audiovideo/popular)[/#]|
                             radio/player/|
-                            sounds/play/|
                             events/[^/]+/play/[^/]+/
                         )
                         (?P<id>%s)(?!/(?:episodes|broadcasts|clips))
@@ -218,20 +219,6 @@ class BBCCoUkIE(InfoExtractor):
                 # rtmp download
                 'skip_download': True,
             },
-        }, {
-            'url': 'https://www.bbc.co.uk/sounds/play/m0007jzb',
-            'note': 'Audio',
-            'info_dict': {
-                'id': 'm0007jz9',
-                'ext': 'mp4',
-                'title': 'BBC Proms, 2019, Prom 34: West–Eastern Divan Orchestra',
-                'description': "Live BBC Proms. West–Eastern Divan Orchestra with Daniel Barenboim and Martha Argerich.",
-                'duration': 9840,
-            },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            }
         }, {
             'url': 'http://www.bbc.co.uk/iplayer/playlist/p01dvks4',
             'only_matching': True,
@@ -844,6 +831,20 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             'upload_date': '20190604',
             'categories': ['Psychology'],
         },
+    }, {
+        # BBC Sounds
+        'url': 'https://www.bbc.co.uk/sounds/play/m001q78b',
+        'info_dict': {
+            'id': 'm001q789',
+            'ext': 'mp4',
+            'title': 'The Night Tracks Mix - Music for the darkling hour',
+            'thumbnail': 'https://ichef.bbci.co.uk/images/ic/raw/p0c00hym.jpg',
+            'chapters': 'count:8',
+            'description': 'md5:815fb51cbdaa270040aab8145b3f1d67',
+            'uploader': 'Radio 3',
+            'duration': 1800,
+            'uploader_id': 'bbc_radio_three',
+        },
     }, {  # onion routes
         'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
         'only_matching': True,
@@ -1128,6 +1129,13 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     'uploader_id': network.get('id'),
                     'formats': formats,
                     'subtitles': subtitles,
+                    'chapters': traverse_obj(preload_state, (
+                        'tracklist', 'tracks', lambda _, v: float_or_none(v['offset']['start']), {
+                            'title': ('titles', {lambda x: join_nonempty(
+                                'primary', 'secondary', 'tertiary', delim=' - ', from_dict=x)}),
+                            'start_time': ('offset', 'start', {float_or_none}),
+                            'end_time': ('offset', 'end', {float_or_none}),
+                        })) or None,
                 }
 
         bbc3_config = self._parse_json(

@@ -57,8 +57,8 @@ class LecturioIE(LecturioBaseIE):
     _VALID_URL = r'''(?x)
                     https://
                         (?:
-                            app\.lecturio\.com/([^/]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
-                            (?:www\.)?lecturio\.de/[^/]+/(?P<nt_de>[^/?#&]+)\.vortrag
+                            app\.lecturio\.com/([^/?#]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
+                            (?:www\.)?lecturio\.de/(?:[^/?#]+/)+(?P<nt_de>[^/?#&]+)\.vortrag
                         )
                     '''
     _TESTS = [{
@@ -72,6 +72,9 @@ class LecturioIE(LecturioBaseIE):
         'skip': 'Requires lecturio account credentials',
     }, {
         'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-at-1-staatsexamen/oeffentliches-recht-staatsexamen.vortrag',
         'only_matching': True,
     }, {
         'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',

@@ -197,10 +197,6 @@ class IGNVideoIE(IGNBaseIE):
             'thumbnail': 'https://sm.ign.com/ign_me/video/h/how-hitman/how-hitman-aims-to-be-different-than-every-other-s_8z14.jpg',
             'duration': 298,
             'tags': 'count:13',
-            'display_id': '112203',
-            'thumbnail': 'https://sm.ign.com/ign_me/video/h/how-hitman/how-hitman-aims-to-be-different-than-every-other-s_8z14.jpg',
-            'duration': 298,
-            'tags': 'count:13',
         },
         'expected_warnings': ['HTTP Error 400: Bad Request'],
     }, {
