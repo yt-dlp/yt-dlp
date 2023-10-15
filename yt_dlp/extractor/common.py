@@ -247,7 +247,10 @@ class InfoExtractor:
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader
-                    * role      Role value
+                    * role      The DASH Role scheme descriptor value identifies the adapation set to look for.
+                                The role scheme accepts one of the following values - ("subtitle", "main", "alternate",
+                                "supplementary", "commentary", "dub", "description", "sign", "metadata",
+                                "enhanced-audio-intelligibility", "emergency").
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
