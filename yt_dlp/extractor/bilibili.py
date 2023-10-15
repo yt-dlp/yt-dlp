@@ -912,7 +912,11 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseIE):
 
     def _get_cheese_entries(self, season_info):
         for ep_id in traverse_obj(season_info, ('episodes', lambda _, v: v['episode_can_view'], 'id')):
-            yield self.url_result(f'https://www.bilibili.com/cheese/play/ep{ep_id}', BilibiliCheeseIE, str(ep_id))
+            yield {
+                **self._extract_episode(season_info, ep_id, self._HEADERS),
+                'extractor_key': BilibiliCheeseIE.ie_key(),
+                'extractor': 'BilibiliCheese',
+            }
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
