@@ -114,11 +114,14 @@ class BilibiliBaseIE(InfoExtractor):
             }]
         }
 
-        video_info_json = self._download_json(
+        subtitle_info = traverse_obj(self._download_json(
             'https://api.bilibili.com/x/player/v2', video_id,
             query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
-            note=f'Extracting subtitle info {cid}')
-        for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
+            note=f'Extracting subtitle info {cid}'), ('data', 'subtitle'))
+        if not traverse_obj(subtitle_info, 'subtitles') and traverse_obj(subtitle_info, 'allow_submit'):
+            if not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):  # no login session cookie
+                self.report_warning(f'CC subtitles (if exist) are only visible when logged in. {self._login_hint()}')
+        for s in traverse_obj(subtitle_info, ('subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
@@ -899,7 +902,7 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseIE):
                 'view_count': int,
             }
         }],
-        'skip': 'paid video in list',
+        'params': {'playlist_items': '1'},
     }, {
         'url': 'https://www.bilibili.com/cheese/play/ss5918',
         'info_dict': {
@@ -908,6 +911,7 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseIE):
             'description': '帮普通人建立世界模型，降低人与人的沟通门槛',
         },
         'playlist_mincount': 5,
+        'skip': 'paid video in list',
     }]
 
     def _get_cheese_entries(self, season_info):
