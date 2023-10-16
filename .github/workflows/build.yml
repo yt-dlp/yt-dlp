@@ -349,8 +349,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with: # 3.7 is used for Vista support. See https://github.com/yt-dlp/yt-dlp/issues/390
-          python-version: "3.7"
+        with:
+          python-version: "3.8"
           architecture: "x86"
       - name: Install Requirements
         run: |
