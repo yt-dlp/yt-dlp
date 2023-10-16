@@ -1867,6 +1867,8 @@ def fix_xml_ampersands(xml_str):
 
 def setproctitle(title):
     assert isinstance(title, str)
+    # Linux-specific flag taken from "/usr/include/linux/prctl.h"
+    PR_SET_NAME = 15
 
     # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4541
     try:
@@ -1887,7 +1889,7 @@ def setproctitle(title):
     buf = ctypes.create_string_buffer(len(title_bytes))
     buf.value = title_bytes
     try:
-        libc.prctl(15, buf, 0, 0, 0)
+        libc.prctl(PR_SET_NAME, buf, 0, 0, 0)
     except AttributeError:
         return  # Strange libc, just skip this
 
