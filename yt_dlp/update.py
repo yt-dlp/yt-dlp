@@ -123,7 +123,7 @@ def _get_system_deprecation():
         msg = f'Python version {major}.{minor} is no longer supported'
     else:
         msg = (f'Support for Python version {major}.{minor} has been deprecated. '
-                '\nYou may stop receiving updates on this version at any time')
+               '\nYou may stop receiving updates on this version at any time')
 
     major, minor = MIN_RECOMMENDED
     return f'{msg}! Please update to Python {major}.{minor} or above'
