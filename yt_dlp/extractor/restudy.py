@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 
@@ -34,7 +31,6 @@ class RestudyIE(InfoExtractor):
         formats = self._extract_smil_formats(
             'https://cdn.portal.restudy.dk/dynamic/themes/front/awsmedia/SmilDirectory/video_%s.xml' % video_id,
             video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

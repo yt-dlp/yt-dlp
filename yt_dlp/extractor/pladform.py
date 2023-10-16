@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -27,7 +22,26 @@ class PladformIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//out\.pladform\.ru/player\?.+?)\1']
     _TESTS = [{
+        'url': 'http://out.pladform.ru/player?pl=18079&type=html5&videoid=100231282',
+        'info_dict': {
+            'id': '6216d548e755edae6e8280667d774791',
+            'ext': 'mp4',
+            'timestamp': 1406117012,
+            'title': 'Гарик Мартиросян и Гарик Харламов - Кастинг на концерт ко Дню милиции',
+            'age_limit': 0,
+            'upload_date': '20140723',
+            'thumbnail': str,
+            'view_count': int,
+            'description': str,
+            'category': list,
+            'uploader_id': '12082',
+            'uploader': 'Comedy Club',
+            'duration': 367,
+        },
+        'expected_warnings': ['HTTP Error 404: Not Found']
+    }, {
         'url': 'https://out.pladform.ru/player?pl=64471&videoid=3777899&vk_puid15=0&vk_puid34=0',
         'md5': '53362fac3a27352da20fa2803cc5cd6f',
         'info_dict': {
@@ -46,13 +60,6 @@ class PladformIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//out\.pladform\.ru/player\?.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -63,12 +70,18 @@ class PladformIE(InfoExtractor):
             'http://out.pladform.ru/getVideo', video_id, query={
                 'pl': pl,
                 'videoid': video_id,
-            })
+            }, fatal=False)
 
         def fail(text):
             raise ExtractorError(
                 '%s returned error: %s' % (self.IE_NAME, text),
                 expected=True)
+
+        if not video:
+            targetUrl = self._request_webpage(url, video_id, note='Resolving final URL').url
+            if targetUrl == url:
+                raise ExtractorError('Can\'t parse page')
+            return self.url_result(targetUrl)
 
         if video.tag == 'error':
             fail(video.text)
@@ -97,8 +110,6 @@ class PladformIE(InfoExtractor):
             error = xpath_text(video, './cap', 'error', default=None)
             if error:
                 fail(error)
-
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(
             'http://video.pladform.ru/catalog/video/videoid/%s' % video_id,

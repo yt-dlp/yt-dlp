@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -19,23 +17,39 @@ class XVideosIE(InfoExtractor):
                         (?:
                             (?:[^/]+\.)?xvideos2?\.com/video|
                             (?:www\.)?xvideos\.es/video|
-                            flashservice\.xvideos\.com/embedframe/|
+                            (?:www|flashservice)\.xvideos\.com/embedframe/|
                             static-hw\.xvideos\.com/swf/xv-player\.swf\?.*?\bid_video=
                         )
                         (?P<id>[0-9]+)
                     '''
     _TESTS = [{
-        'url': 'http://www.xvideos.com/video4588838/biker_takes_his_girl',
+        'url': 'https://www.xvideos.com/video4588838/motorcycle_guy_cucks_influencer_steals_his_gf',
         'md5': '14cea69fcb84db54293b1e971466c2e1',
         'info_dict': {
             'id': '4588838',
             'ext': 'mp4',
-            'title': 'Biker Takes his Girl',
+            'title': 'Motorcycle Guy Cucks Influencer, Steals his GF',
             'duration': 108,
             'age_limit': 18,
+            'thumbnail': r're:^https://img-hw.xvideos-cdn.com/.+\.jpg',
+        }
+    }, {
+        # Broken HLS formats
+        'url': 'https://www.xvideos.com/video65982001/what_s_her_name',
+        'md5': 'b82d7d7ef7d65a84b1fa6965f81f95a5',
+        'info_dict': {
+            'id': '65982001',
+            'ext': 'mp4',
+            'title': 'what\'s her name?',
+            'duration': 120,
+            'age_limit': 18,
+            'thumbnail': r're:^https://img-hw.xvideos-cdn.com/.+\.jpg',
         }
     }, {
         'url': 'https://flashservice.xvideos.com/embedframe/4588838',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.xvideos.com/embedframe/4588838',
         'only_matching': True,
     }, {
         'url': 'http://static-hw.xvideos.com/swf/xv-player.swf?id_video=4588838',
@@ -80,9 +94,7 @@ class XVideosIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        webpage = self._download_webpage(
-            'https://www.xvideos.com/video%s/' % video_id, video_id)
+        webpage = self._download_webpage(url, video_id)
 
         mobj = re.search(r'<h1 class="inlineError">(.+?)</h1>', webpage)
         if mobj:
@@ -125,17 +137,17 @@ class XVideosIE(InfoExtractor):
                 r'setVideo([^(]+)\((["\'])(http.+?)\2\)', webpage):
             format_id = kind.lower()
             if format_id == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+                hls_formats = self._extract_m3u8_formats(
                     format_url, video_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+                self._check_formats(hls_formats, video_id)
+                formats.extend(hls_formats)
             elif format_id in ('urllow', 'urlhigh'):
                 formats.append({
                     'url': format_url,
                     'format_id': '%s-%s' % (determine_ext(format_url, 'mp4'), format_id[3:]),
                     'quality': -2 if format_id.endswith('low') else None,
                 })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -145,3 +157,24 @@ class XVideosIE(InfoExtractor):
             'thumbnails': thumbnails,
             'age_limit': 18,
         }
+
+
+class XVideosQuickiesIE(InfoExtractor):
+    IE_NAME = 'xvideos:quickies'
+    _VALID_URL = r'https?://(?P<domain>(?:[^/]+\.)?xvideos2?\.com)/amateur-channels/[^#]+#quickies/a/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.xvideos.com/amateur-channels/wifeluna#quickies/a/47258683',
+        'md5': '16e322a93282667f1963915568f782c1',
+        'info_dict': {
+            'id': '47258683',
+            'ext': 'mp4',
+            'title': 'Verification video',
+            'age_limit': 18,
+            'duration': 16,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
+    }]
+
+    def _real_extract(self, url):
+        domain, id_ = self._match_valid_url(url).group('domain', 'id')
+        return self.url_result(f'https://{domain}/video{id_}/_', XVideosIE, id_)

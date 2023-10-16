@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     dict_get,
@@ -13,7 +10,7 @@ from ..utils import (
 
 
 class UtreonIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?utreon.com/v/(?P<id>[a-zA-Z0-9_-]+)'
+    _VALID_URL = r'https?://(?:www\.)?utreon\.com/v/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://utreon.com/v/z_I7ikQbuDw',
         'info_dict': {
@@ -71,7 +68,6 @@ class UtreonIE(InfoExtractor):
             'format_id': format_key.split('_')[1],
             'height': int(format_key.split('_')[1][:-1]),
         } for format_key, format_url in videos_json.items() if url_or_none(format_url)]
-        self._sort_formats(formats)
         thumbnail = url_or_none(dict_get(json_data, ('cover_image_url', 'preview_image_url')))
         return {
             'id': video_id,

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -57,7 +54,6 @@ class ManotoTVIE(InfoExtractor):
         episode_json = self._download_json(_API_URL.format('showmodule', 'episodedetails', video_id), video_id)
         details = episode_json.get('details', {})
         formats = self._extract_m3u8_formats(details.get('videoM3u8Url'), video_id, 'mp4')
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'series': details.get('showTitle'),
@@ -129,7 +125,6 @@ class ManotoTVLiveIE(InfoExtractor):
         details = json.get('details', {})
         video_url = details.get('liveUrl')
         formats = self._extract_m3u8_formats(video_url, video_id, 'mp4', live=True)
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': 'Manoto TV Live',

@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 
 
@@ -28,7 +24,7 @@ class BellMediaIE(InfoExtractor):
         )/.*?(?:\b(?:vid(?:eoid)?|clipId)=|-vid|~|%7E|/(?:episode)?)(?P<id>[0-9]{6,})'''
     _TESTS = [{
         'url': 'https://www.bnnbloomberg.ca/video/david-cockfield-s-top-picks~1403070',
-        'md5': '36d3ef559cfe8af8efe15922cd3ce950',
+        'md5': '3e5b8e38370741d5089da79161646635',
         'info_dict': {
             'id': '1403070',
             'ext': 'flv',
@@ -36,6 +32,14 @@ class BellMediaIE(InfoExtractor):
             'description': 'md5:810f7f8c6a83ad5b48677c3f8e5bb2c3',
             'upload_date': '20180525',
             'timestamp': 1527288600,
+            'season_id': 73997,
+            'season': '2018',
+            'thumbnail': 'http://images2.9c9media.com/image_asset/2018_5_25_baf30cbd-b28d-4a18-9903-4bb8713b00f5_PNG_956x536.jpg',
+            'tags': [],
+            'categories': ['ETFs'],
+            'season_number': 8,
+            'duration': 272.038,
+            'series': 'Market Call Tonight',
         },
     }, {
         'url': 'http://www.thecomedynetwork.ca/video/player?vid=923582',

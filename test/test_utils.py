@@ -1,123 +1,142 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
 
 # Allow direct execution
 import os
+import re
 import sys
 import unittest
+import warnings
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# Various small unit tests
+import contextlib
 import io
 import itertools
 import json
+import subprocess
 import xml.etree.ElementTree
 
+from yt_dlp.compat import (
+    compat_etree_fromstring,
+    compat_HTMLParseError,
+    compat_os_name,
+)
 from yt_dlp.utils import (
+    Config,
+    DateRange,
+    ExtractorError,
+    InAdvancePagedList,
+    LazyList,
+    OnDemandPagedList,
+    Popen,
     age_restricted,
     args_to_str,
-    encode_base_n,
+    base_url,
     caesar,
     clean_html,
     clean_podcast_url,
+    cli_bool_option,
+    cli_option,
+    cli_valueless_option,
     date_from_str,
     datetime_from_str,
-    DateRange,
     detect_exe_version,
     determine_ext,
+    determine_file_encoding,
+    dfxp2srt,
     dict_get,
+    encode_base_n,
     encode_compat_str,
     encodeFilename,
-    escape_rfc3986,
-    escape_url,
+    expand_path,
     extract_attributes,
-    ExtractorError,
+    extract_basic_auth,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
-    get_element_by_class,
+    format_bytes,
+    get_compatible_ext,
     get_element_by_attribute,
-    get_elements_by_class,
+    get_element_by_class,
+    get_element_html_by_attribute,
+    get_element_html_by_class,
+    get_element_text_and_html_by_tag,
     get_elements_by_attribute,
-    InAdvancePagedList,
+    get_elements_by_class,
+    get_elements_html_by_attribute,
+    get_elements_html_by_class,
+    get_elements_text_and_html_by_attribute,
     int_or_none,
     intlist_to_bytes,
+    iri_to_uri,
     is_html,
     js_to_json,
     limit_length,
+    locked_file,
+    lowercase_escape,
+    match_str,
     merge_dicts,
     mimetype2ext,
     month_by_name,
     multipart_encode,
     ohdave_rsa_encrypt,
-    OnDemandPagedList,
     orderedSet,
     parse_age_limit,
+    parse_bitrate,
+    parse_codecs,
+    parse_count,
+    parse_dfxp_time_expr,
     parse_duration,
     parse_filesize,
-    parse_count,
     parse_iso8601,
-    parse_resolution,
-    parse_bitrate,
     parse_qs,
+    parse_resolution,
     pkcs1pad,
+    prepend_extension,
     read_batch_urls,
+    remove_end,
+    remove_quotes,
+    remove_start,
+    render_table,
+    replace_extension,
+    rot47,
     sanitize_filename,
     sanitize_path,
     sanitize_url,
-    sanitized_Request,
-    expand_path,
-    prepend_extension,
-    replace_extension,
-    remove_start,
-    remove_end,
-    remove_quotes,
-    rot47,
     shell_quote,
     smuggle_url,
+    str_or_none,
     str_to_int,
     strip_jsonp,
     strip_or_none,
     subtitles_filename,
     timeconvert,
+    traverse_obj,
+    try_call,
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
     unsmuggle_url,
+    update_url_query,
     uppercase_escape,
-    lowercase_escape,
     url_basename,
     url_or_none,
-    base_url,
-    urljoin,
     urlencode_postdata,
+    urljoin,
     urshift,
-    update_url_query,
+    variadic,
     version_tuple,
-    xpath_with_ns,
+    xpath_attr,
     xpath_element,
     xpath_text,
-    xpath_attr,
-    render_table,
-    match_str,
-    parse_dfxp_time_expr,
-    dfxp2srt,
-    cli_option,
-    cli_valueless_option,
-    cli_bool_option,
-    parse_codecs,
-    iri_to_uri,
-    LazyList,
+    xpath_with_ns,
 )
-from yt_dlp.compat import (
-    compat_chr,
-    compat_etree_fromstring,
-    compat_getenv,
-    compat_os_name,
-    compat_setenv,
+from yt_dlp.utils.networking import (
+    HTTPHeaderDict,
+    escape_rfc3986,
+    normalize_url,
+    remove_dot_segments,
 )
 
 
@@ -133,13 +152,13 @@ class TestUtil(unittest.TestCase):
 
         self.assertEqual(sanitize_filename('123'), '123')
 
-        self.assertEqual('abc_de', sanitize_filename('abc/de'))
+        self.assertEqual('abc⧸de', sanitize_filename('abc/de'))
         self.assertFalse('/' in sanitize_filename('abc/de///'))
 
-        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de'))
-        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|'))
-        self.assertEqual('yes no', sanitize_filename('yes? no'))
-        self.assertEqual('this - that', sanitize_filename('this: that'))
+        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de', is_id=False))
+        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|', is_id=False))
+        self.assertEqual('yes no', sanitize_filename('yes? no', is_id=False))
+        self.assertEqual('this - that', sanitize_filename('this: that', is_id=False))
 
         self.assertEqual(sanitize_filename('AT&T'), 'AT&T')
         aumlaut = 'ä'
@@ -151,10 +170,12 @@ class TestUtil(unittest.TestCase):
             sanitize_filename('New World record at 0:12:34'),
             'New World record at 0_12_34')
 
-        self.assertEqual(sanitize_filename('--gasdgf'), '_-gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf'), '--gasdgf')
         self.assertEqual(sanitize_filename('--gasdgf', is_id=True), '--gasdgf')
-        self.assertEqual(sanitize_filename('.gasdgf'), 'gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf', is_id=False), '_-gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf'), '.gasdgf')
         self.assertEqual(sanitize_filename('.gasdgf', is_id=True), '.gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf', is_id=False), 'gasdgf')
 
         forbidden = '"\0\\/'
         for fc in forbidden:
@@ -243,26 +264,24 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_url('https://foo.bar'), 'https://foo.bar')
         self.assertEqual(sanitize_url('foo bar'), 'foo bar')
 
-    def test_extract_basic_auth(self):
-        auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
-        self.assertFalse(auth_header('http://foo.bar'))
-        self.assertFalse(auth_header('http://:foo.bar'))
-        self.assertEqual(auth_header('http://@foo.bar'), 'Basic Og==')
-        self.assertEqual(auth_header('http://:pass@foo.bar'), 'Basic OnBhc3M=')
-        self.assertEqual(auth_header('http://user:@foo.bar'), 'Basic dXNlcjo=')
-        self.assertEqual(auth_header('http://user:pass@foo.bar'), 'Basic dXNlcjpwYXNz')
-
     def test_expand_path(self):
         def env(var):
-            return '%{0}%'.format(var) if sys.platform == 'win32' else '${0}'.format(var)
+            return f'%{var}%' if sys.platform == 'win32' else f'${var}'
 
-        compat_setenv('yt_dlp_EXPATH_PATH', 'expanded')
+        os.environ['yt_dlp_EXPATH_PATH'] = 'expanded'
         self.assertEqual(expand_path(env('yt_dlp_EXPATH_PATH')), 'expanded')
-        self.assertEqual(expand_path(env('HOME')), compat_getenv('HOME'))
-        self.assertEqual(expand_path('~'), compat_getenv('HOME'))
-        self.assertEqual(
-            expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
-            '%s/expanded' % compat_getenv('HOME'))
+
+        old_home = os.environ.get('HOME')
+        test_str = R'C:\Documents and Settings\тест\Application Data'
+        try:
+            os.environ['HOME'] = test_str
+            self.assertEqual(expand_path(env('HOME')), os.getenv('HOME'))
+            self.assertEqual(expand_path('~'), os.getenv('HOME'))
+            self.assertEqual(
+                expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
+                '%s/expanded' % os.getenv('HOME'))
+        finally:
+            os.environ['HOME'] = old_home or ''
 
     def test_prepend_extension(self):
         self.assertEqual(prepend_extension('abc.ext', 'temp'), 'abc.temp.ext')
@@ -353,6 +372,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_strdate('2012/10/11 01:56:38 +0000'), '20121011')
         self.assertEqual(unified_strdate('1968 12 10'), '19681210')
         self.assertEqual(unified_strdate('1968-12-10'), '19681210')
+        self.assertEqual(unified_strdate('31-07-2022 20:00'), '20220731')
         self.assertEqual(unified_strdate('28/01/2014 21:00:00 +0100'), '20140128')
         self.assertEqual(
             unified_strdate('11/26/2014 11:30:00 AM PST', day_first=False),
@@ -395,6 +415,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('Sep 11, 2013 | 5:49 AM'), 1378878540)
         self.assertEqual(unified_timestamp('December 15, 2017 at 7:49 am'), 1513324140)
         self.assertEqual(unified_timestamp('2018-03-14T08:32:43.1493874+00:00'), 1521016363)
+
+        self.assertEqual(unified_timestamp('December 31 1969 20:00:01 EDT'), 1)
+        self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
+        self.assertEqual(unified_timestamp('12/31/1969 20:01:18 EDT', False), 78)
 
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
@@ -526,9 +550,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(str_to_int('123,456'), 123456)
         self.assertEqual(str_to_int('123.456'), 123456)
         self.assertEqual(str_to_int(523), 523)
-        # Python 3 has no long
-        if sys.version_info < (3, 0):
-            eval('self.assertEqual(str_to_int(123456L), 123456)')
         self.assertEqual(str_to_int('noninteger'), None)
         self.assertEqual(str_to_int([]), None)
 
@@ -548,6 +569,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(base_url('http://foo.de/bar/'), 'http://foo.de/bar/')
         self.assertEqual(base_url('http://foo.de/bar/baz'), 'http://foo.de/bar/')
         self.assertEqual(base_url('http://foo.de/bar/baz?x=z/x/c'), 'http://foo.de/bar/')
+        self.assertEqual(base_url('http://foo.de/bar/baz&x=z&w=y/x/c'), 'http://foo.de/bar/baz&x=z&w=y/x/')
 
     def test_urljoin(self):
         self.assertEqual(urljoin('http://foo.de/', '/a/b/c.txt'), 'http://foo.de/a/b/c.txt')
@@ -616,6 +638,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('3h 11m 53s'), 11513)
         self.assertEqual(parse_duration('3 hours 11 minutes 53 seconds'), 11513)
         self.assertEqual(parse_duration('3 hours 11 mins 53 secs'), 11513)
+        self.assertEqual(parse_duration('3 hours, 11 minutes, 53 seconds'), 11513)
+        self.assertEqual(parse_duration('3 hours, 11 mins, 53 secs'), 11513)
         self.assertEqual(parse_duration('62m45s'), 3765)
         self.assertEqual(parse_duration('6m59s'), 419)
         self.assertEqual(parse_duration('49s'), 49)
@@ -634,6 +658,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('PT1H0.040S'), 3600.04)
         self.assertEqual(parse_duration('PT00H03M30SZ'), 210)
         self.assertEqual(parse_duration('P0Y0M0DT0H4M20.880S'), 260.88)
+        self.assertEqual(parse_duration('01:02:03:050'), 3723.05)
+        self.assertEqual(parse_duration('103:050'), 103.05)
+        self.assertEqual(parse_duration('1HR 3MIN'), 3780)
+        self.assertEqual(parse_duration('2hrs 3mins'), 7380)
 
     def test_fix_xml_ampersands(self):
         self.assertEqual(
@@ -653,8 +681,7 @@ class TestUtil(unittest.TestCase):
             def get_page(pagenum):
                 firstid = pagenum * pagesize
                 upto = min(size, pagenum * pagesize + pagesize)
-                for i in range(firstid, upto):
-                    yield i
+                yield from range(firstid, upto)
 
             pl = OnDemandPagedList(get_page, pagesize)
             got = pl.getslice(*sliceargs)
@@ -723,7 +750,7 @@ class TestUtil(unittest.TestCase):
             multipart_encode({b'field': b'value'}, boundary='AAAAAA')[0],
             b'--AAAAAA\r\nContent-Disposition: form-data; name="field"\r\n\r\nvalue\r\n--AAAAAA--\r\n')
         self.assertEqual(
-            multipart_encode({'欄位'.encode('utf-8'): '值'.encode('utf-8')}, boundary='AAAAAA')[0],
+            multipart_encode({'欄位'.encode(): '值'.encode()}, boundary='AAAAAA')[0],
             b'--AAAAAA\r\nContent-Disposition: form-data; name="\xe6\xac\x84\xe4\xbd\x8d"\r\n\r\n\xe5\x80\xbc\r\n--AAAAAA--\r\n')
         self.assertRaises(
             ValueError, multipart_encode, {b'field': b'value'}, boundary='value')
@@ -848,30 +875,52 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_codecs('avc1.77.30, mp4a.40.2'), {
             'vcodec': 'avc1.77.30',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.2'), {
             'vcodec': 'none',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.5,avc1.42001e'), {
             'vcodec': 'avc1.42001e',
             'acodec': 'mp4a.40.5',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('avc3.640028'), {
             'vcodec': 'avc3.640028',
             'acodec': 'none',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs(', h264,,newcodec,aac'), {
             'vcodec': 'h264',
             'acodec': 'aac',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('av01.0.05M.08'), {
             'vcodec': 'av01.0.05M.08',
             'acodec': 'none',
+            'dynamic_range': None,
+        })
+        self.assertEqual(parse_codecs('vp9.2'), {
+            'vcodec': 'vp9.2',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('av01.0.12M.10.0.110.09.16.09.0'), {
+            'vcodec': 'av01.0.12M.10.0.110.09.16.09.0',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('dvhe'), {
+            'vcodec': 'dvhe',
+            'acodec': 'none',
+            'dynamic_range': 'DV',
         })
         self.assertEqual(parse_codecs('theora, vorbis'), {
             'vcodec': 'theora',
             'acodec': 'vorbis',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('unknownvcodec, unknownacodec'), {
             'vcodec': 'unknownvcodec',
@@ -889,24 +938,124 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(escape_rfc3986('foo bar'), 'foo%20bar')
         self.assertEqual(escape_rfc3986('foo%20bar'), 'foo%20bar')
 
-    def test_escape_url(self):
+    def test_normalize_url(self):
         self.assertEqual(
-            escape_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
+            normalize_url('http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavré_FD.mp4'),
             'http://wowza.imust.org/srv/vod/telemb/new/UPLOAD/UPLOAD/20224_IncendieHavre%CC%81_FD.mp4'
         )
         self.assertEqual(
-            escape_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
+            normalize_url('http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erklärt/Das-Erste/Video?documentId=22673108&bcastId=5290'),
             'http://www.ardmediathek.de/tv/Sturm-der-Liebe/Folge-2036-Zu-Mann-und-Frau-erkl%C3%A4rt/Das-Erste/Video?documentId=22673108&bcastId=5290'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/фрагмент'),
+            normalize_url('http://тест.рф/фрагмент'),
             'http://xn--e1aybc.xn--p1ai/%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82'
         )
         self.assertEqual(
-            escape_url('http://тест.рф/абв?абв=абв#абв'),
+            normalize_url('http://тест.рф/абв?абв=абв#абв'),
             'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
         )
-        self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+        self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+
+        self.assertEqual(normalize_url('http://www.example.com/../a/b/../c/./d.html'), 'http://www.example.com/a/c/d.html')
+
+    def test_remove_dot_segments(self):
+        self.assertEqual(remove_dot_segments('/a/b/c/./../../g'), '/a/g')
+        self.assertEqual(remove_dot_segments('mid/content=5/../6'), 'mid/6')
+        self.assertEqual(remove_dot_segments('/ad/../cd'), '/cd')
+        self.assertEqual(remove_dot_segments('/ad/../cd/'), '/cd/')
+        self.assertEqual(remove_dot_segments('/..'), '/')
+        self.assertEqual(remove_dot_segments('/./'), '/')
+        self.assertEqual(remove_dot_segments('/./a'), '/a')
+        self.assertEqual(remove_dot_segments('/abc/./.././d/././e/.././f/./../../ghi'), '/ghi')
+        self.assertEqual(remove_dot_segments('/'), '/')
+        self.assertEqual(remove_dot_segments('/t'), '/t')
+        self.assertEqual(remove_dot_segments('t'), 't')
+        self.assertEqual(remove_dot_segments(''), '')
+        self.assertEqual(remove_dot_segments('/../a/b/c'), '/a/b/c')
+        self.assertEqual(remove_dot_segments('../a'), 'a')
+        self.assertEqual(remove_dot_segments('./a'), 'a')
+        self.assertEqual(remove_dot_segments('.'), '')
+        self.assertEqual(remove_dot_segments('////'), '////')
+
+    def test_js_to_json_vars_strings(self):
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'null': a,
+                    'nullStr': b,
+                    'true': c,
+                    'trueStr': d,
+                    'false': e,
+                    'falseStr': f,
+                    'unresolvedVar': g,
+                }''',
+                {
+                    'a': 'null',
+                    'b': '"null"',
+                    'c': 'true',
+                    'd': '"true"',
+                    'e': 'false',
+                    'f': '"false"',
+                    'g': 'var',
+                }
+            )),
+            {
+                'null': None,
+                'nullStr': 'null',
+                'true': True,
+                'trueStr': 'true',
+                'false': False,
+                'falseStr': 'false',
+                'unresolvedVar': 'var'
+            }
+        )
+
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'int': a,
+                    'intStr': b,
+                    'float': c,
+                    'floatStr': d,
+                }''',
+                {
+                    'a': '123',
+                    'b': '"123"',
+                    'c': '1.23',
+                    'd': '"1.23"',
+                }
+            )),
+            {
+                'int': 123,
+                'intStr': '123',
+                'float': 1.23,
+                'floatStr': '1.23',
+            }
+        )
+
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'object': a,
+                    'objectStr': b,
+                    'array': c,
+                    'arrayStr': d,
+                }''',
+                {
+                    'a': '{}',
+                    'b': '"{}"',
+                    'c': '[]',
+                    'd': '"[]"',
+                }
+            )),
+            {
+                'object': {},
+                'objectStr': '{}',
+                'array': [],
+                'arrayStr': '[]',
+            }
+        )
 
     def test_js_to_json_realworld(self):
         inp = '''{
@@ -1054,9 +1203,33 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('[1,//{},\n2]')
         self.assertEqual(json.loads(on), [1, 2])
 
+        on = js_to_json(R'"\^\$\#"')
+        self.assertEqual(json.loads(on), R'^$#', msg='Unnecessary escapes should be stripped')
+
+        on = js_to_json('\'"\\""\'')
+        self.assertEqual(json.loads(on), '"""', msg='Unnecessary quote escape should be escaped')
+
+        on = js_to_json('[new Date("spam"), \'("eggs")\']')
+        self.assertEqual(json.loads(on), ['spam', '("eggs")'], msg='Date regex should match a single string')
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
+
+    def test_js_to_json_template_literal(self):
+        self.assertEqual(js_to_json('`Hello ${name}`', {'name': '"world"'}), '"Hello world"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '"X"'}), '"XX"')
+        self.assertEqual(js_to_json('`${name}${name}`', {'name': '5'}), '"55"')
+        self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
+        self.assertEqual(js_to_json('`${name}`', {}), '"name"')
+
+    def test_js_to_json_common_constructors(self):
+        self.assertEqual(json.loads(js_to_json('new Map([["a", 5]])')), {'a': 5})
+        self.assertEqual(json.loads(js_to_json('Array(5, 10)')), [5, 10])
+        self.assertEqual(json.loads(js_to_json('new Array(15,5)')), [15, 5])
+        self.assertEqual(json.loads(js_to_json('new Map([Array(5, 10),new Array(15,5)])')), {'5': 10, '15': 5})
+        self.assertEqual(json.loads(js_to_json('new Date("123")')), "123")
+        self.assertEqual(json.loads(js_to_json('new Date(\'2023-10-19\')')), "2023-10-19")
 
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
@@ -1089,7 +1262,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(extract_attributes('<e x="décompose&#769;">'), {'x': 'décompose\u0301'})
         # "Narrow" Python builds don't support unicode code points outside BMP.
         try:
-            compat_chr(0x10000)
+            chr(0x10000)
             supports_outside_bmp = True
         except ValueError:
             supports_outside_bmp = False
@@ -1100,7 +1273,7 @@ class TestUtil(unittest.TestCase):
 
     def test_clean_html(self):
         self.assertEqual(clean_html('a:\nb'), 'a: b')
-        self.assertEqual(clean_html('a:\n   "b"'), 'a:    "b"')
+        self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
 
     def test_intlist_to_bytes(self):
@@ -1134,19 +1307,29 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_count('1000'), 1000)
         self.assertEqual(parse_count('1.000'), 1000)
         self.assertEqual(parse_count('1.1k'), 1100)
+        self.assertEqual(parse_count('1.1 k'), 1100)
+        self.assertEqual(parse_count('1,1 k'), 1100)
         self.assertEqual(parse_count('1.1kk'), 1100000)
         self.assertEqual(parse_count('1.1kk '), 1100000)
+        self.assertEqual(parse_count('1,1kk'), 1100000)
+        self.assertEqual(parse_count('100 views'), 100)
+        self.assertEqual(parse_count('1,100 views'), 1100)
         self.assertEqual(parse_count('1.1kk views'), 1100000)
+        self.assertEqual(parse_count('10M views'), 10000000)
+        self.assertEqual(parse_count('has 10M views'), 10000000)
 
     def test_parse_resolution(self):
         self.assertEqual(parse_resolution(None), {})
         self.assertEqual(parse_resolution(''), {})
-        self.assertEqual(parse_resolution('1920x1080'), {'width': 1920, 'height': 1080})
-        self.assertEqual(parse_resolution('1920×1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution(' 1920x1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
+        self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('ep1x2'), {})
+        self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)
@@ -1197,11 +1380,48 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
     def test_render_table(self):
         self.assertEqual(
             render_table(
-                ['a', 'bcd'],
-                [[123, 4], [9999, 51]]),
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]]),
+            'a    empty bcd\n'
+            '123        4\n'
+            '9999       51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]],
+                hide_empty=True),
             'a    bcd\n'
             '123  4\n'
             '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['\ta', 'bcd'],
+                [['1\t23', 4], ['\t9999', 51]]),
+            '   a bcd\n'
+            '1 23 4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-'),
+            'a    bcd\n'
+            '--------\n'
+            '123  4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-', extra_gap=2),
+            'a      bcd\n'
+            '----------\n'
+            '123    4\n'
+            '9999   51')
 
     def test_match_str(self):
         # Unary
@@ -1231,6 +1451,7 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertFalse(match_str('x>2K', {'x': 1200}))
         self.assertTrue(match_str('x>=1200 & x < 1300', {'x': 1200}))
         self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
+        self.assertTrue(match_str('x > 1:0:0', {'x': 3700}))
 
         # String
         self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
@@ -1314,7 +1535,7 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
                     <p begin="3" dur="-1">Ignored, three</p>
                 </div>
             </body>
-            </tt>'''.encode('utf-8')
+            </tt>'''.encode()
         srt_data = '''1
 00:00:00,000 --> 00:00:01,000
 The following line contains Chinese characters and special symbols
@@ -1332,14 +1553,14 @@ Line
 '''
         self.assertEqual(dfxp2srt(dfxp_data), srt_data)
 
-        dfxp_data_no_default_namespace = '''<?xml version="1.0" encoding="UTF-8"?>
+        dfxp_data_no_default_namespace = b'''<?xml version="1.0" encoding="UTF-8"?>
             <tt xml:lang="en" xmlns:tts="http://www.w3.org/ns/ttml#parameter">
             <body>
                 <div xml:lang="en">
                     <p begin="0" end="1">The first line</p>
                 </div>
             </body>
-            </tt>'''.encode('utf-8')
+            </tt>'''
         srt_data = '''1
 00:00:00,000 --> 00:00:01,000
 The first line
@@ -1347,7 +1568,7 @@ The first line
 '''
         self.assertEqual(dfxp2srt(dfxp_data_no_default_namespace), srt_data)
 
-        dfxp_data_with_style = '''<?xml version="1.0" encoding="utf-8"?>
+        dfxp_data_with_style = b'''<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/2006/10/ttaf1" xmlns:ttp="http://www.w3.org/2006/10/ttaf1#parameter" ttp:timeBase="media" xmlns:tts="http://www.w3.org/2006/10/ttaf1#style" xml:lang="en" xmlns:ttm="http://www.w3.org/2006/10/ttaf1#metadata">
   <head>
     <styling>
@@ -1365,23 +1586,23 @@ The first line
       <p style="s1" tts:textDecoration="underline" begin="00:00:09.56" id="p2" end="00:00:12.36"><span style="s2" tts:color="lime">inner<br /> </span>style</p>
     </div>
   </body>
-</tt>'''.encode('utf-8')
+</tt>'''
         srt_data = '''1
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <font color="white" face="sansSerif" size="16">default style<font color="red">custom style</font></font>
 
 2
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <b><font color="cyan" face="sansSerif" size="16"><font color="lime">part 1
 </font>part 2</font></b>
 
 3
-00:00:05,839 --> 00:00:09,560
+00:00:05,840 --> 00:00:09,560
 <u><font color="lime">line 3
 part 3</font></u>
 
 4
-00:00:09,560 --> 00:00:12,359
+00:00:09,560 --> 00:00:12,360
 <i><u><font color="yellow"><font color="lime">inner
  </font>style</font></u></i>
 
@@ -1503,45 +1724,118 @@ Line 1
         self.assertEqual(urshift(3, 1), 1)
         self.assertEqual(urshift(-3, 1), 2147483646)
 
+    GET_ELEMENT_BY_CLASS_TEST_STRING = '''
+        <span class="foo bar">nice</span>
+    '''
+
     def test_get_element_by_class(self):
-        html = '''
-            <span class="foo bar">nice</span>
-        '''
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_element_by_class('foo', html), 'nice')
         self.assertEqual(get_element_by_class('no-such-class', html), None)
 
+    def test_get_element_html_by_class(self):
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_element_html_by_class('foo', html), html.strip())
+        self.assertEqual(get_element_by_class('no-such-class', html), None)
+
+    GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING = '''
+        <div itemprop="author" itemscope>foo</div>
+    '''
+
     def test_get_element_by_attribute(self):
-        html = '''
-            <span class="foo bar">nice</span>
-        '''
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_element_by_attribute('class', 'foo bar', html), 'nice')
         self.assertEqual(get_element_by_attribute('class', 'foo', html), None)
         self.assertEqual(get_element_by_attribute('class', 'no-such-foo', html), None)
 
-        html = '''
-            <div itemprop="author" itemscope>foo</div>
-        '''
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
 
         self.assertEqual(get_element_by_attribute('itemprop', 'author', html), 'foo')
 
+    def test_get_element_html_by_attribute(self):
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('class', 'foo bar', html), html.strip())
+        self.assertEqual(get_element_html_by_attribute('class', 'foo', html), None)
+        self.assertEqual(get_element_html_by_attribute('class', 'no-such-foo', html), None)
+
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('itemprop', 'author', html), html.strip())
+
+    GET_ELEMENTS_BY_CLASS_TEST_STRING = '''
+        <span class="foo bar">nice</span><span class="foo bar">also nice</span>
+    '''
+    GET_ELEMENTS_BY_CLASS_RES = ['<span class="foo bar">nice</span>', '<span class="foo bar">also nice</span>']
+
     def test_get_elements_by_class(self):
-        html = '''
-            <span class="foo bar">nice</span><span class="foo bar">also nice</span>
-        '''
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_elements_by_class('foo', html), ['nice', 'also nice'])
         self.assertEqual(get_elements_by_class('no-such-class', html), [])
 
+    def test_get_elements_html_by_class(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_elements_html_by_class('foo', html), self.GET_ELEMENTS_BY_CLASS_RES)
+        self.assertEqual(get_elements_html_by_class('no-such-class', html), [])
+
     def test_get_elements_by_attribute(self):
-        html = '''
-            <span class="foo bar">nice</span><span class="foo bar">also nice</span>
-        '''
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_elements_by_attribute('class', 'foo bar', html), ['nice', 'also nice'])
         self.assertEqual(get_elements_by_attribute('class', 'foo', html), [])
         self.assertEqual(get_elements_by_attribute('class', 'no-such-foo', html), [])
+
+    def test_get_elements_html_by_attribute(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_elements_html_by_attribute('class', 'foo bar', html), self.GET_ELEMENTS_BY_CLASS_RES)
+        self.assertEqual(get_elements_html_by_attribute('class', 'foo', html), [])
+        self.assertEqual(get_elements_html_by_attribute('class', 'no-such-foo', html), [])
+
+    def test_get_elements_text_and_html_by_attribute(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(
+            list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
+            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
+
+        self.assertEqual(list(get_elements_text_and_html_by_attribute(
+            'class', 'foo', '<a class="foo">nice</a><span class="foo">nice</span>', tag='a')), [('nice', '<a class="foo">nice</a>')])
+
+    GET_ELEMENT_BY_TAG_TEST_STRING = '''
+    random text lorem ipsum</p>
+    <div>
+        this should be returned
+        <span>this should also be returned</span>
+        <div>
+            this should also be returned
+        </div>
+        closing tag above should not trick, so this should also be returned
+    </div>
+    but this text should not be returned
+    '''
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[32:276]
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT = GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML[5:-6]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[78:119]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT = GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML[6:-7]
+
+    def test_get_element_text_and_html_by_tag(self):
+        html = self.GET_ELEMENT_BY_TAG_TEST_STRING
+
+        self.assertEqual(
+            get_element_text_and_html_by_tag('div', html),
+            (self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT, self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML))
+        self.assertEqual(
+            get_element_text_and_html_by_tag('span', html),
+            (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
+        self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
 
     def test_iri_to_uri(self):
         self.assertEqual(
@@ -1572,6 +1866,8 @@ Line 1
     def test_clean_podcast_url(self):
         self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')
         self.assertEqual(clean_podcast_url('https://play.podtrac.com/npr-344098539/edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3'), 'https://edge1.pod.npr.org/anon.npr-podcasts/podcast/npr/waitwait/2020/10/20201003_waitwait_wwdtmpodcast201003-015621a5-f035-4eca-a9a1-7c118d90bc3c.mp3')
+        self.assertEqual(clean_podcast_url('https://pdst.fm/e/2.gum.fm/chtbl.com/track/chrt.fm/track/34D33/pscrb.fm/rss/p/traffic.megaphone.fm/ITLLC7765286967.mp3?updated=1687282661'), 'https://traffic.megaphone.fm/ITLLC7765286967.mp3?updated=1687282661')
+        self.assertEqual(clean_podcast_url('https://pdst.fm/e/https://mgln.ai/e/441/www.buzzsprout.com/1121972/13019085-ep-252-the-deep-life-stack.mp3'), 'https://www.buzzsprout.com/1121972/13019085-ep-252-the-deep-life-stack.mp3')
 
     def test_LazyList(self):
         it = list(range(10))
@@ -1594,29 +1890,525 @@ Line 1
         self.assertEqual(repr(LazyList(it)), repr(it))
         self.assertEqual(str(LazyList(it)), str(it))
 
-        self.assertEqual(list(LazyList(it).reverse()), it[::-1])
-        self.assertEqual(list(LazyList(it).reverse()[1:3:7]), it[::-1][1:3:7])
-        self.assertEqual(list(LazyList(it).reverse()[::-1]), it)
+        self.assertEqual(list(LazyList(it, reverse=True)), it[::-1])
+        self.assertEqual(list(reversed(LazyList(it))[::-1]), it)
+        self.assertEqual(list(reversed(LazyList(it))[1:3:7]), it[::-1][1:3:7])
 
     def test_LazyList_laziness(self):
 
         def test(ll, idx, val, cache):
             self.assertEqual(ll[idx], val)
-            self.assertEqual(getattr(ll, '_LazyList__cache'), list(cache))
+            self.assertEqual(ll._cache, list(cache))
 
         ll = LazyList(range(10))
         test(ll, 0, 0, range(1))
         test(ll, 5, 5, range(6))
         test(ll, -3, 7, range(10))
 
-        ll = LazyList(range(10)).reverse()
+        ll = LazyList(range(10), reverse=True)
         test(ll, -1, 0, range(1))
         test(ll, 3, 6, range(10))
 
         ll = LazyList(itertools.count())
         test(ll, 10, 10, range(11))
-        ll.reverse()
+        ll = reversed(ll)
         test(ll, -15, 14, range(15))
+
+    def test_format_bytes(self):
+        self.assertEqual(format_bytes(0), '0.00B')
+        self.assertEqual(format_bytes(1000), '1000.00B')
+        self.assertEqual(format_bytes(1024), '1.00KiB')
+        self.assertEqual(format_bytes(1024**2), '1.00MiB')
+        self.assertEqual(format_bytes(1024**3), '1.00GiB')
+        self.assertEqual(format_bytes(1024**4), '1.00TiB')
+        self.assertEqual(format_bytes(1024**5), '1.00PiB')
+        self.assertEqual(format_bytes(1024**6), '1.00EiB')
+        self.assertEqual(format_bytes(1024**7), '1.00ZiB')
+        self.assertEqual(format_bytes(1024**8), '1.00YiB')
+        self.assertEqual(format_bytes(1024**9), '1024.00YiB')
+
+    def test_hide_login_info(self):
+        self.assertEqual(Config.hide_login_info(['-u', 'foo', '-p', 'bar']),
+                         ['-u', 'PRIVATE', '-p', 'PRIVATE'])
+        self.assertEqual(Config.hide_login_info(['-u']), ['-u'])
+        self.assertEqual(Config.hide_login_info(['-u', 'foo', '-u', 'bar']),
+                         ['-u', 'PRIVATE', '-u', 'PRIVATE'])
+        self.assertEqual(Config.hide_login_info(['--username=foo']),
+                         ['--username=PRIVATE'])
+
+    def test_locked_file(self):
+        TEXT = 'test_locked_file\n'
+        FILE = 'test_locked_file.ytdl'
+        MODES = 'war'  # Order is important
+
+        try:
+            for lock_mode in MODES:
+                with locked_file(FILE, lock_mode, False) as f:
+                    if lock_mode == 'r':
+                        self.assertEqual(f.read(), TEXT * 2, 'Wrong file content')
+                    else:
+                        f.write(TEXT)
+                    for test_mode in MODES:
+                        testing_write = test_mode != 'r'
+                        try:
+                            with locked_file(FILE, test_mode, False):
+                                pass
+                        except (BlockingIOError, PermissionError):
+                            if not testing_write:  # FIXME
+                                print(f'Known issue: Exclusive lock ({lock_mode}) blocks read access ({test_mode})')
+                                continue
+                            self.assertTrue(testing_write, f'{test_mode} is blocked by {lock_mode}')
+                        else:
+                            self.assertFalse(testing_write, f'{test_mode} is not blocked by {lock_mode}')
+        finally:
+            with contextlib.suppress(OSError):
+                os.remove(FILE)
+
+    def test_determine_file_encoding(self):
+        self.assertEqual(determine_file_encoding(b''), (None, 0))
+        self.assertEqual(determine_file_encoding(b'--verbose -x --audio-format mkv\n'), (None, 0))
+
+        self.assertEqual(determine_file_encoding(b'\xef\xbb\xbf'), ('utf-8', 3))
+        self.assertEqual(determine_file_encoding(b'\x00\x00\xfe\xff'), ('utf-32-be', 4))
+        self.assertEqual(determine_file_encoding(b'\xff\xfe'), ('utf-16-le', 2))
+
+        self.assertEqual(determine_file_encoding(b'\xff\xfe# coding: utf-8\n--verbose'), ('utf-16-le', 2))
+
+        self.assertEqual(determine_file_encoding(b'# coding: utf-8\n--verbose'), ('utf-8', 0))
+        self.assertEqual(determine_file_encoding(b'# coding: someencodinghere-12345\n--verbose'), ('someencodinghere-12345', 0))
+
+        self.assertEqual(determine_file_encoding(b'#coding:utf-8\n--verbose'), ('utf-8', 0))
+        self.assertEqual(determine_file_encoding(b'#  coding:   utf-8   \r\n--verbose'), ('utf-8', 0))
+
+        self.assertEqual(determine_file_encoding('# coding: utf-32-be'.encode('utf-32-be')), ('utf-32-be', 0))
+        self.assertEqual(determine_file_encoding('# coding: utf-16-le'.encode('utf-16-le')), ('utf-16-le', 0))
+
+    def test_get_compatible_ext(self):
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None, None], vexts=['mp4'], aexts=['m4a', 'm4a']), 'mkv')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['flv'], aexts=['flv']), 'flv')
+
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['mp4'], aexts=['m4a']), 'mp4')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['mp4'], aexts=['webm']), 'mkv')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['m4a']), 'mkv')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['webm']), 'webm')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['weba']), 'webm')
+
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['h264'], acodecs=['mp4a'], vexts=['mov'], aexts=['m4a']), 'mp4')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['av01.0.12M.08'], acodecs=['opus'], vexts=['mp4'], aexts=['webm']), 'webm')
+
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['vp9'], acodecs=['opus'], vexts=['webm'], aexts=['webm'], preferences=['flv', 'mp4']), 'mp4')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['av1'], acodecs=['mp4a'], vexts=['webm'], aexts=['m4a'], preferences=('webm', 'mkv')), 'mkv')
+
+    def test_try_call(self):
+        def total(*x, **kwargs):
+            return sum(x) + sum(kwargs.values())
+
+        self.assertEqual(try_call(None), None,
+                         msg='not a fn should give None')
+        self.assertEqual(try_call(lambda: 1), 1,
+                         msg='int fn with no expected_type should give int')
+        self.assertEqual(try_call(lambda: 1, expected_type=int), 1,
+                         msg='int fn with expected_type int should give int')
+        self.assertEqual(try_call(lambda: 1, expected_type=dict), None,
+                         msg='int fn with wrong expected_type should give None')
+        self.assertEqual(try_call(total, args=(0, 1, 0, ), expected_type=int), 1,
+                         msg='fn should accept arglist')
+        self.assertEqual(try_call(total, kwargs={'a': 0, 'b': 1, 'c': 0}, expected_type=int), 1,
+                         msg='fn should accept kwargs')
+        self.assertEqual(try_call(lambda: 1, expected_type=dict), None,
+                         msg='int fn with no expected_type should give None')
+        self.assertEqual(try_call(lambda x: {}, total, args=(42, ), expected_type=int), 42,
+                         msg='expect first int result with expected_type int')
+
+    def test_variadic(self):
+        self.assertEqual(variadic(None), (None, ))
+        self.assertEqual(variadic('spam'), ('spam', ))
+        self.assertEqual(variadic('spam', allowed_types=dict), 'spam')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.assertEqual(variadic('spam', allowed_types=[dict]), 'spam')
+
+    def test_traverse_obj(self):
+        _TEST_DATA = {
+            100: 100,
+            1.2: 1.2,
+            'str': 'str',
+            'None': None,
+            '...': ...,
+            'urls': [
+                {'index': 0, 'url': 'https://www.example.com/0'},
+                {'index': 1, 'url': 'https://www.example.com/1'},
+            ],
+            'data': (
+                {'index': 2},
+                {'index': 3},
+            ),
+            'dict': {},
+        }
+
+        # Test base functionality
+        self.assertEqual(traverse_obj(_TEST_DATA, ('str',)), 'str',
+                         msg='allow tuple path')
+        self.assertEqual(traverse_obj(_TEST_DATA, ['str']), 'str',
+                         msg='allow list path')
+        self.assertEqual(traverse_obj(_TEST_DATA, (value for value in ("str",))), 'str',
+                         msg='allow iterable path')
+        self.assertEqual(traverse_obj(_TEST_DATA, 'str'), 'str',
+                         msg='single items should be treated as a path')
+        self.assertEqual(traverse_obj(_TEST_DATA, None), _TEST_DATA)
+        self.assertEqual(traverse_obj(_TEST_DATA, 100), 100)
+        self.assertEqual(traverse_obj(_TEST_DATA, 1.2), 1.2)
+
+        # Test Ellipsis behavior
+        self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
+                              (item for item in _TEST_DATA.values() if item not in (None, {})),
+                              msg='`...` should give all non discarded values')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
+                              msg='`...` selection for dicts should select all values')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., ..., 'url')),
+                         ['https://www.example.com/0', 'https://www.example.com/1'],
+                         msg='nested `...` queries should work')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, (..., ..., 'index')), range(4),
+                              msg='`...` query result should be flattened')
+        self.assertEqual(traverse_obj(iter(range(4)), ...), list(range(4)),
+                         msg='`...` should accept iterables')
+
+        # Test function as key
+        self.assertEqual(traverse_obj(_TEST_DATA, lambda x, y: x == 'urls' and isinstance(y, list)),
+                         [_TEST_DATA['urls']],
+                         msg='function as query key should perform a filter based on (key, value)')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
+                              msg='exceptions in the query function should be catched')
+        self.assertEqual(traverse_obj(iter(range(4)), lambda _, x: x % 2 == 0), [0, 2],
+                         msg='function key should accept iterables')
+        if __debug__:
+            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
+                traverse_obj(_TEST_DATA, lambda a: ...)
+            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
+                traverse_obj(_TEST_DATA, lambda a, b, c: ...)
+
+        # Test set as key (transformation/type, like `expected_type`)
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper}, )), ['STR'],
+                         msg='Function in set should be a transformation')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str})), ['str'],
+                         msg='Type in set should be a type filter')
+        self.assertEqual(traverse_obj(_TEST_DATA, {dict}), _TEST_DATA,
+                         msg='A single set should be wrapped into a path')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper})), ['STR'],
+                         msg='Transformation function should not raise')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str_or_none})),
+                         [item for item in map(str_or_none, _TEST_DATA.values()) if item is not None],
+                         msg='Function in set should be a transformation')
+        if __debug__:
+            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
+                traverse_obj(_TEST_DATA, set())
+            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
+                traverse_obj(_TEST_DATA, {str.upper, str})
+
+        # Test `slice` as a key
+        _SLICE_DATA = [0, 1, 2, 3, 4]
+        self.assertEqual(traverse_obj(_TEST_DATA, ('dict', slice(1))), None,
+                         msg='slice on a dictionary should not throw')
+        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1)), _SLICE_DATA[:1],
+                         msg='slice key should apply slice to sequence')
+        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1, 2)), _SLICE_DATA[1:2],
+                         msg='slice key should apply slice to sequence')
+        self.assertEqual(traverse_obj(_SLICE_DATA, slice(1, 4, 2)), _SLICE_DATA[1:4:2],
+                         msg='slice key should apply slice to sequence')
+
+        # Test alternative paths
+        self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'str'), 'str',
+                         msg='multiple `paths` should be treated as alternative paths')
+        self.assertEqual(traverse_obj(_TEST_DATA, 'str', 100), 'str',
+                         msg='alternatives should exit early')
+        self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'fail'), None,
+                         msg='alternatives should return `default` if exhausted')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., 'fail'), 100), 100,
+                         msg='alternatives should track their own branching return')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('dict', ...), ('data', ...)), list(_TEST_DATA['data']),
+                         msg='alternatives on empty objects should search further')
+
+        # Test branch and path nesting
+        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', (3, 0), 'url')), ['https://www.example.com/0'],
+                         msg='tuple as key should be treated as branches')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', [3, 0], 'url')), ['https://www.example.com/0'],
+                         msg='list as key should be treated as branches')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ((1, 'fail'), (0, 'url')))), ['https://www.example.com/0'],
+                         msg='double nesting in path should be treated as paths')
+        self.assertEqual(traverse_obj(['0', [1, 2]], [(0, 1), 0]), [1],
+                         msg='do not fail early on branching')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', ((1, ('fail', 'url')), (0, 'url')))),
+                              ['https://www.example.com/0', 'https://www.example.com/1'],
+                              msg='tripple nesting in path should be treated as branches')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ('fail', (..., 'url')))),
+                         ['https://www.example.com/0', 'https://www.example.com/1'],
+                         msg='ellipsis as branch path start gets flattened')
+
+        # Test dictionary as key
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}), {0: 100, 1: 1.2},
+                         msg='dict key should result in a dict with the same keys')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', 0, 'url')}),
+                         {0: 'https://www.example.com/0'},
+                         msg='dict key should allow paths')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', (3, 0), 'url')}),
+                         {0: ['https://www.example.com/0']},
+                         msg='tuple in dict path should be treated as branches')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, 'fail'), (0, 'url')))}),
+                         {0: ['https://www.example.com/0']},
+                         msg='double nesting in dict path should be treated as paths')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, ('fail', 'url')), (0, 'url')))}),
+                         {0: ['https://www.example.com/1', 'https://www.example.com/0']},
+                         msg='tripple nesting in dict path should be treated as branches')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}), {},
+                         msg='remove `None` values when top level dict key fails')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}, default=...), {0: ...},
+                         msg='use `default` if key fails and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}), {},
+                         msg='remove empty values when dict key')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}, default=...), {0: ...},
+                         msg='use `default` when dict key and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}), {},
+                         msg='remove empty values when nested dict key fails')
+        self.assertEqual(traverse_obj(None, {0: 'fail'}), {},
+                         msg='default to dict if pruned')
+        self.assertEqual(traverse_obj(None, {0: 'fail'}, default=...), {0: ...},
+                         msg='default to dict if pruned and default is given')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}, default=...), {0: {0: ...}},
+                         msg='use nested `default` when nested dict key fails and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('dict', ...)}), {},
+                         msg='remove key if branch in dict key not successful')
+
+        # Testing default parameter behavior
+        _DEFAULT_DATA = {'None': None, 'int': 0, 'list': []}
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'fail'), None,
+                         msg='default value should be `None`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'fail', 'fail', default=...), ...,
+                         msg='chained fails should result in default')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'None', 'int'), 0,
+                         msg='should not short cirquit on `None`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'fail', default=1), 1,
+                         msg='invalid dict key should result in `default`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, 'None', default=1), 1,
+                         msg='`None` is a deliberate sentinel and should become `default`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', 10)), None,
+                         msg='`IndexError` should result in `default`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail'), default=1), 1,
+                         msg='if branched but not successful return `default` if defined, not `[]`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail'), default=None), None,
+                         msg='if branched but not successful return `default` even if `default` is `None`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail')), [],
+                         msg='if branched but not successful return `[]`, not `default`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', ...)), [],
+                         msg='if branched but object is empty return `[]`, not `default`')
+        self.assertEqual(traverse_obj(None, ...), [],
+                         msg='if branched but object is `None` return `[]`, not `default`')
+        self.assertEqual(traverse_obj({0: None}, (0, ...)), [],
+                         msg='if branched but state is `None` return `[]`, not `default`')
+
+        branching_paths = [
+            ('fail', ...),
+            (..., 'fail'),
+            100 * ('fail',) + (...,),
+            (...,) + 100 * ('fail',),
+        ]
+        for branching_path in branching_paths:
+            self.assertEqual(traverse_obj({}, branching_path), [],
+                             msg='if branched but state is `None`, return `[]` (not `default`)')
+            self.assertEqual(traverse_obj({}, 'fail', branching_path), [],
+                             msg='if branching in last alternative and previous did not match, return `[]` (not `default`)')
+            self.assertEqual(traverse_obj({0: 'x'}, 0, branching_path), 'x',
+                             msg='if branching in last alternative and previous did match, return single value')
+            self.assertEqual(traverse_obj({0: 'x'}, branching_path, 0), 'x',
+                             msg='if branching in first alternative and non-branching path does match, return single value')
+            self.assertEqual(traverse_obj({}, branching_path, 'fail'), None,
+                             msg='if branching in first alternative and non-branching path does not match, return `default`')
+
+        # Testing expected_type behavior
+        _EXPECTED_TYPE_DATA = {'str': 'str', 'int': 0}
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=str),
+                         'str', msg='accept matching `expected_type` type')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int),
+                         None, msg='reject non matching `expected_type` type')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)),
+                         '0', msg='transform type using type function')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=lambda _: 1 / 0),
+                         None, msg='wrap expected_type fuction in try_call')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str),
+                         ['str'], msg='eliminate items that expected_type fails on')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}, expected_type=int),
+                         {0: 100}, msg='type as expected_type should filter dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2, 2: 'None'}, expected_type=str_or_none),
+                         {0: '100', 1: '1.2'}, msg='function as expected_type should transform dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, ({0: 1.2}, 0, {int_or_none}), expected_type=int),
+                         1, msg='expected_type should not filter non final dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 100, 1: 'str'}}, expected_type=int),
+                         {0: {0: 100}}, msg='expected_type should transform deep dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, [({0: '...'}, {0: '...'})], expected_type=type(...)),
+                         [{0: ...}, {0: ...}], msg='expected_type should transform branched dict values')
+        self.assertEqual(traverse_obj({1: {3: 4}}, [(1, 2), 3], expected_type=int),
+                         [4], msg='expected_type regression for type matching in tuple branching')
+        self.assertEqual(traverse_obj(_TEST_DATA, ['data', ...], expected_type=int),
+                         [], msg='expected_type regression for type matching in dict result')
+
+        # Test get_all behavior
+        _GET_ALL_DATA = {'key': [0, 1, 2]}
+        self.assertEqual(traverse_obj(_GET_ALL_DATA, ('key', ...), get_all=False), 0,
+                         msg='if not `get_all`, return only first matching value')
+        self.assertEqual(traverse_obj(_GET_ALL_DATA, ..., get_all=False), [0, 1, 2],
+                         msg='do not overflatten if not `get_all`')
+
+        # Test casesense behavior
+        _CASESENSE_DATA = {
+            'KeY': 'value0',
+            0: {
+                'KeY': 'value1',
+                0: {'KeY': 'value2'},
+            },
+        }
+        self.assertEqual(traverse_obj(_CASESENSE_DATA, 'key'), None,
+                         msg='dict keys should be case sensitive unless `casesense`')
+        self.assertEqual(traverse_obj(_CASESENSE_DATA, 'keY',
+                                      casesense=False), 'value0',
+                         msg='allow non matching key case if `casesense`')
+        self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ('keY',)),
+                                      casesense=False), ['value1'],
+                         msg='allow non matching key case in branch if `casesense`')
+        self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ((0, 'keY'),)),
+                                      casesense=False), ['value2'],
+                         msg='allow non matching key case in branch path if `casesense`')
+
+        # Test traverse_string behavior
+        _TRAVERSE_STRING_DATA = {'str': 'str', 1.2: 1.2}
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', 0)), None,
+                         msg='do not traverse into string if not `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', 0),
+                                      traverse_string=True), 's',
+                         msg='traverse into string if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, (1.2, 1),
+                                      traverse_string=True), '.',
+                         msg='traverse into converted data if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', ...),
+                                      traverse_string=True), 'str',
+                         msg='`...` should result in string (same value) if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', slice(0, None, 2)),
+                                      traverse_string=True), 'sr',
+                         msg='`slice` should result in string if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == "s"),
+                                      traverse_string=True), 'str',
+                         msg='function should result in string if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)),
+                                      traverse_string=True), ['s', 'r'],
+                         msg='branching should result in list if `traverse_string`')
+        self.assertEqual(traverse_obj({}, (0, ...), traverse_string=True), [],
+                         msg='branching should result in list if `traverse_string`')
+        self.assertEqual(traverse_obj({}, (0, lambda x, y: True), traverse_string=True), [],
+                         msg='branching should result in list if `traverse_string`')
+        self.assertEqual(traverse_obj({}, (0, slice(1)), traverse_string=True), [],
+                         msg='branching should result in list if `traverse_string`')
+
+        # Test is_user_input behavior
+        _IS_USER_INPUT_DATA = {'range8': list(range(8))}
+        self.assertEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', '3'),
+                                      is_user_input=True), 3,
+                         msg='allow for string indexing if `is_user_input`')
+        self.assertCountEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', '3:'),
+                                           is_user_input=True), tuple(range(8))[3:],
+                              msg='allow for string slice if `is_user_input`')
+        self.assertCountEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':4:2'),
+                                           is_user_input=True), tuple(range(8))[:4:2],
+                              msg='allow step in string slice if `is_user_input`')
+        self.assertCountEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':'),
+                                           is_user_input=True), range(8),
+                              msg='`:` should be treated as `...` if `is_user_input`')
+        with self.assertRaises(TypeError, msg='too many params should result in error'):
+            traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':::'), is_user_input=True)
+
+        # Test re.Match as input obj
+        mobj = re.fullmatch(r'0(12)(?P<group>3)(4)?', '0123')
+        self.assertEqual(traverse_obj(mobj, ...), [x for x in mobj.groups() if x is not None],
+                         msg='`...` on a `re.Match` should give its `groups()`')
+        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 2)), ['0123', '3'],
+                         msg='function on a `re.Match` should give groupno, value starting at 0')
+        self.assertEqual(traverse_obj(mobj, 'group'), '3',
+                         msg='str key on a `re.Match` should give group with that name')
+        self.assertEqual(traverse_obj(mobj, 2), '3',
+                         msg='int key on a `re.Match` should give group with that name')
+        self.assertEqual(traverse_obj(mobj, 'gRoUp', casesense=False), '3',
+                         msg='str key on a `re.Match` should respect casesense')
+        self.assertEqual(traverse_obj(mobj, 'fail'), None,
+                         msg='failing str key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, 'gRoUpS', casesense=False), None,
+                         msg='failing str key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, 8), None,
+                         msg='failing int key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
+                         msg='function on a `re.Match` should give group name as well')
+
+    def test_http_header_dict(self):
+        headers = HTTPHeaderDict()
+        headers['ytdl-test'] = b'0'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '0')])
+        headers['ytdl-test'] = 1
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        headers['Ytdl-test'] = '2'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
+        self.assertTrue('ytDl-Test' in headers)
+        self.assertEqual(str(headers), str(dict(headers)))
+        self.assertEqual(repr(headers), str(dict(headers)))
+
+        headers.update({'X-dlp': 'data'})
+        self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
+        self.assertEqual(len(headers), 2)
+        self.assertEqual(headers.copy(), headers)
+        headers2 = HTTPHeaderDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
+        self.assertEqual(len(headers2), 2)
+        headers2.clear()
+        self.assertEqual(len(headers2), 0)
+
+        # ensure we prefer latter headers
+        headers3 = HTTPHeaderDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
+        self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        del headers3['ytdl-tesT']
+        self.assertEqual(dict(headers3), {})
+
+        headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
+        self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+
+    def test_extract_basic_auth(self):
+        assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
+        assert extract_basic_auth('http://foo.bar') == ('http://foo.bar', None)
+        assert extract_basic_auth('http://@foo.bar') == ('http://foo.bar', 'Basic Og==')
+        assert extract_basic_auth('http://:pass@foo.bar') == ('http://foo.bar', 'Basic OnBhc3M=')
+        assert extract_basic_auth('http://user:@foo.bar') == ('http://foo.bar', 'Basic dXNlcjo=')
+        assert extract_basic_auth('http://user:pass@foo.bar') == ('http://foo.bar', 'Basic dXNlcjpwYXNz')
+
+    @unittest.skipUnless(compat_os_name == 'nt', 'Only relevant on Windows')
+    def test_Popen_windows_escaping(self):
+        def run_shell(args):
+            stdout, stderr, error = Popen.run(
+                args, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            assert not stderr
+            assert not error
+            return stdout
+
+        # Test escaping
+        assert run_shell(['echo', 'test"&']) == '"test""&"\n'
+        # Test if delayed expansion is disabled
+        assert run_shell(['echo', '^!']) == '"^!"\n'
+        assert run_shell('echo "^!"') == '"^!"\n'
 
 
 if __name__ == '__main__':

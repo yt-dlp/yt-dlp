@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import unified_timestamp
 
@@ -20,9 +17,6 @@ class InternazionaleIE(InfoExtractor):
             'upload_date': '20150219',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }, {
         'url': 'https://www.internazionale.it/video/2018/08/29/telefono-stare-con-noi-stessi',
         'md5': '9db8663704cab73eb972d1cee0082c79',
@@ -35,9 +29,6 @@ class InternazionaleIE(InfoExtractor):
             'timestamp': 1535528954,
             'upload_date': '20180829',
             'thumbnail': r're:^https?://.*\.jpg$',
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }]
 
@@ -69,7 +60,6 @@ class InternazionaleIE(InfoExtractor):
             entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
         formats.extend(self._extract_mpd_formats(
             video_base + 'mpd', display_id, mpd_id='dash', fatal=False))
-        self._sort_formats(formats)
 
         timestamp = unified_timestamp(self._html_search_meta(
             'article:published_time', webpage, 'timestamp'))

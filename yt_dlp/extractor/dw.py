@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -65,7 +62,6 @@ class DWIE(InfoExtractor):
                 transform_source=lambda s: s.replace(
                     'rtmp://tv-od.dw.de/flash/',
                     'http://tv-download.dw.de/dwtv_video/flv/'))
-        self._sort_formats(formats)
 
         upload_date = hidden_inputs.get('display_date')
         if not upload_date:

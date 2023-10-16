@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -106,8 +103,6 @@ class WebOfStoriesIE(InfoExtractor):
             'ext': rtmp_ext,
             'play_path': play_path,
         }]
-
-        self._sort_formats(formats)
 
         return {
             'id': story_id,

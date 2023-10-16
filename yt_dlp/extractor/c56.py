@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import js_to_json
 
@@ -53,7 +49,6 @@ class C56IE(InfoExtractor):
                 'url': f['url']
             } for f in info['rfiles']
         ]
-        self._sort_formats(formats)
 
         return {
             'id': info['vid'],

@@ -1,10 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     clean_html,
+    format_field,
     int_or_none,
     str_or_none,
     strip_or_none,
@@ -78,7 +76,7 @@ class MindsIE(MindsBaseIE):
             else:
                 return self.url_result(entity['perma_url'])
         else:
-            assert(entity['subtype'] == 'video')
+            assert entity['subtype'] == 'video'
             video_id = entity_id
         # 1080p and webm formats available only on the sources array
         video = self._call_api(
@@ -94,7 +92,6 @@ class MindsIE(MindsBaseIE):
                 'height': int_or_none(source.get('size')),
                 'url': src,
             })
-        self._sort_formats(formats)
 
         entity = video.get('entity') or entity
         owner = entity.get('ownerObj') or {}
@@ -109,7 +106,7 @@ class MindsIE(MindsBaseIE):
         if poster:
             urlh = self._request_webpage(poster, video_id, fatal=False)
             if urlh:
-                thumbnail = urlh.geturl()
+                thumbnail = urlh.url
 
         return {
             'id': video_id,
@@ -120,7 +117,7 @@ class MindsIE(MindsBaseIE):
             'timestamp': int_or_none(entity.get('time_created')),
             'uploader': strip_or_none(owner.get('name')),
             'uploader_id': uploader_id,
-            'uploader_url': 'https://www.minds.com/' + uploader_id if uploader_id else None,
+            'uploader_url': format_field(uploader_id, None, 'https://www.minds.com/%s'),
             'view_count': int_or_none(entity.get('play:count')),
             'like_count': int_or_none(entity.get('thumbs:up:count')),
             'dislike_count': int_or_none(entity.get('thumbs:down:count')),

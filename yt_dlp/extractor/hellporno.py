@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -38,11 +36,9 @@ class HellPornoIE(InfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        title = remove_end(self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title'), ' - Hell Porno')
+        title = remove_end(self._html_extract_title(webpage), ' - Hell Porno')
 
         info = self._parse_html5_media_entries(url, webpage, display_id)[0]
-        self._sort_formats(info['formats'])
 
         video_id = self._search_regex(
             (r'chs_object\s*=\s*["\'](\d+)',

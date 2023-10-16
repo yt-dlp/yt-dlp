@@ -1,17 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_xpath,
-)
 from ..utils import (
     int_or_none,
     find_xpath_attr,
     xpath_text,
     update_url_query,
 )
+from ..compat import compat_urllib_parse_unquote
 
 
 class NozIE(InfoExtractor):
@@ -50,7 +44,7 @@ class NozIE(InfoExtractor):
         duration = int_or_none(xpath_text(
             doc, './/article/movie/file/duration'))
         formats = []
-        for qnode in doc.findall(compat_xpath('.//article/movie/file/qualities/qual')):
+        for qnode in doc.findall('.//article/movie/file/qualities/qual'):
             http_url_ele = find_xpath_attr(
                 qnode, './html_urls/video_url', 'format', 'video/mp4')
             http_url = http_url_ele.text if http_url_ele is not None else None
@@ -77,7 +71,6 @@ class NozIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         m3u8_url, video_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

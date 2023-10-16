@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -7,6 +5,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    format_field,
     int_or_none,
     qualities,
 )
@@ -90,12 +89,11 @@ class FlickrIE(InfoExtractor):
                     'url': stream['_content'],
                     'quality': preference(stream_type),
                 })
-            self._sort_formats(formats)
 
             owner = video_info.get('owner', {})
             uploader_id = owner.get('nsid')
             uploader_path = owner.get('path_alias') or uploader_id
-            uploader_url = 'https://www.flickr.com/photos/%s/' % uploader_path if uploader_path else None
+            uploader_url = format_field(uploader_path, None, 'https://www.flickr.com/photos/%s/')
 
             return {
                 'id': video_id,

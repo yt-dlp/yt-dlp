@@ -1,12 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import int_or_none
 
 
 class FilmmoduIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www.)?filmmodu.org/(?P<id>[^/]+-(?:turkce-dublaj-izle|altyazili-izle))'
+    _VALID_URL = r'https?://(?:www\.)?filmmodu\.org/(?P<id>[^/]+-(?:turkce-dublaj-izle|altyazili-izle))'
     _TESTS = [{
         'url': 'https://www.filmmodu.org/f9-altyazili-izle',
         'md5': 'aeefd955c2a508a5bdaa3bcec8eeb0d4',
@@ -53,8 +50,6 @@ class FilmmoduIE(InfoExtractor):
             'height': int_or_none(source.get('res')),
             'protocol': 'm3u8_native',
         } for source in data['sources']]
-
-        self._sort_formats(formats)
 
         subtitles = {}
 

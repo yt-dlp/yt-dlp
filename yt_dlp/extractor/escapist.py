@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -97,7 +95,6 @@ class EscapistIE(InfoExtractor):
             'format_id': '%s-%sp' % (determine_ext(video['src']), video['res']),
             'height': int_or_none(video.get('res')),
         } for video in data['files']['videos']]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

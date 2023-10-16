@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
 from ..utils import ExtractorError
@@ -24,8 +20,6 @@ class BokeCCBaseIE(InfoExtractor):
             'url': quality.find('./copy').attrib['playurl'],
             'quality': int(quality.attrib['value']),
         } for quality in info_xml.findall('./video/quality')]
-
-        self._sort_formats(formats)
 
         return formats
 

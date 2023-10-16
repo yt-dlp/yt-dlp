@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -27,16 +25,21 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        component_props = self._parse_json(self._download_json(
-            'https://www.khanacademy.org/api/internal/graphql',
+        content = self._download_json(
+            'https://www.khanacademy.org/api/internal/graphql/FetchContentData',
             display_id, query={
-                'hash': 1604303425,
+                'fastly_cacheable': 'persist_until_publish',
+                'hash': '4134764944',
+                'lang': 'en',
                 'variables': json.dumps({
                     'path': display_id,
-                    'queryParams': '',
+                    'queryParams': 'lang=en',
+                    'isModal': False,
+                    'followRedirects': True,
+                    'countryCode': 'US',
                 }),
-            })['data']['contentJson'], display_id)['componentProps']
-        return self._parse_component_props(component_props)
+            })['data']['contentJson']
+        return self._parse_component_props(self._parse_json(content, display_id)['componentProps'])
 
 
 class KhanAcademyIE(KhanAcademyBaseIE):

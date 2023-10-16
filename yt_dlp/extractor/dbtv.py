@@ -1,13 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 
 
 class DBTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?dagbladet\.no/video/(?:(?:embed|(?P<display_id>[^/]+))/)?(?P<id>[0-9A-Za-z_-]{11}|[a-zA-Z0-9]{8})'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?dagbladet\.no/video/embed/(?:[0-9A-Za-z_-]{11}|[a-zA-Z0-9]{8}).*?)\1']
     _TESTS = [{
         'url': 'https://www.dagbladet.no/video/PynxJnNWChE/',
         'md5': 'b8f850ba1860adbda668d367f9b77699',
@@ -30,12 +26,6 @@ class DBTVIE(InfoExtractor):
         'url': 'https://www.dagbladet.no/video/truer-iran-bor-passe-dere/PalfB2Cw',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [url for _, url in re.findall(
-            r'<iframe[^>]+src=(["\'])((?:https?:)?//(?:www\.)?dagbladet\.no/video/embed/(?:[0-9A-Za-z_-]{11}|[a-zA-Z0-9]{8}).*?)\1',
-            webpage)]
 
     def _real_extract(self, url):
         display_id, video_id = self._match_valid_url(url).groups()

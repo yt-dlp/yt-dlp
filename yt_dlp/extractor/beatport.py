@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -77,7 +74,6 @@ class BeatportIE(InfoExtractor):
                 fmt['abr'] = 96
                 fmt['asr'] = 44100
             formats.append(fmt)
-        self._sort_formats(formats)
 
         images = []
         for name, info in track['images'].items():

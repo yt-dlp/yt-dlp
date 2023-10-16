@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     js_to_json,
@@ -51,7 +48,6 @@ class NobelPrizeIE(InfoExtractor):
                 formats.append({
                     'url': source_src,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

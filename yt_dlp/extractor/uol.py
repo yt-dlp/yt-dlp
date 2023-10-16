@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -95,7 +92,6 @@ class UOLIE(InfoExtractor):
                 if v:
                     query[k] = v
             f_url = update_url_query(f_url, query)
-            format_id = format_id
             if format_id == 'HLS':
                 m3u8_formats = self._extract_m3u8_formats(
                     f_url, media_id, 'mp4', 'm3u8_native',
@@ -111,7 +107,6 @@ class UOLIE(InfoExtractor):
                 'url': f_url,
                 'quality': quality(format_id),
             })
-        self._sort_formats(formats)
 
         tags = []
         for tag in video_data.get('tags', []):

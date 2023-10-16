@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     find_xpath_attr,
@@ -76,8 +74,6 @@ class HowStuffWorksIE(InfoExtractor):
                     'format_id': '%dk' % vbr,
                     'vbr': vbr,
                 })
-
-        self._sort_formats(formats)
 
         return {
             'id': '%s' % video_id,

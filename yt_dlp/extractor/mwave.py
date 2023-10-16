@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -49,7 +47,6 @@ class MwaveIE(InfoExtractor):
                 continue
             formats.extend(
                 self._extract_f4m_formats(f4m_url + '&hdcore=3.0.3', video_id, f4m_id=stream_name))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

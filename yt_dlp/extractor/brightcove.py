@@ -1,21 +1,19 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import re
 import struct
+import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
-    compat_HTTPError,
     compat_parse_qs,
     compat_urlparse,
-    compat_xml_parse_error,
 )
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
+    dict_get,
     extract_attributes,
     ExtractorError,
     find_xpath_attr,
@@ -147,6 +145,159 @@ class BrightcoveLegacyIE(InfoExtractor):
         }
     ]
 
+    _WEBPAGE_TESTS = [{
+        # embedded brightcove video
+        # it also tests brightcove videos that need to set the 'Referer'
+        # in the http requests
+        'url': 'http://www.bfmtv.com/video/bfmbusiness/cours-bourse/cours-bourse-l-analyse-technique-154522/',
+        'info_dict': {
+            'id': '2765128793001',
+            'ext': 'mp4',
+            'title': 'Le cours de bourse : l’analyse technique',
+            'description': 'md5:7e9ad046e968cb2d1114004aba466fd9',
+            'uploader': 'BFM BUSINESS',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': '404 Not Found',
+    }, {
+        # embedded with itemprop embedURL and video id spelled as `idVideo`
+        'url': 'http://bfmbusiness.bfmtv.com/mediaplayer/chroniques/olivier-delamarche/',
+        'info_dict': {
+            'id': '5255628253001',
+            'ext': 'mp4',
+            'title': 'md5:37c519b1128915607601e75a87995fc0',
+            'description': 'md5:37f7f888b434bb8f8cc8dbd4f7a4cf26',
+            'uploader': 'BFM BUSINESS',
+            'uploader_id': '876450612001',
+            'timestamp': 1482255315,
+            'upload_date': '20161220',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'Redirects, page gone',
+    }, {
+        # https://github.com/ytdl-org/youtube-dl/issues/2253
+        'url': 'http://bcove.me/i6nfkrc3',
+        'md5': '0ba9446db037002366bab3b3eb30c88c',
+        'info_dict': {
+            'id': '3101154703001',
+            'ext': 'mp4',
+            'title': 'Still no power',
+            'uploader': 'thestar.com',
+            'description': 'Mississauga resident David Farmer is still out of power as a result of the ice storm a month ago. To keep the house warm, Farmer cuts wood from his property for a wood burning stove downstairs.',
+        },
+        'skip': 'video gone',
+    }, {
+        # https://github.com/ytdl-org/youtube-dl/issues/3541
+        'url': 'http://www.kijk.nl/sbs6/leermijvrouwenkennen/videos/jqMiXKAYan2S/aflevering-1',
+        'info_dict': {
+            'id': '3866516442001',
+            'ext': 'mp4',
+            'title': 'Leer mij vrouwen kennen: Aflevering 1',
+            'description': 'Leer mij vrouwen kennen: Aflevering 1',
+            'uploader': 'SBS Broadcasting',
+        },
+        'skip': 'Restricted to Netherlands, 404 Not Found',
+        'params': {
+            'skip_download': True,  # m3u8 download
+        },
+    }, {
+        # Brightcove video in <iframe>
+        'url': 'http://www.un.org/chinese/News/story.asp?NewsID=27724',
+        'md5': '36d74ef5e37c8b4a2ce92880d208b968',
+        'info_dict': {
+            'id': '5360463607001',
+            'ext': 'mp4',
+            'title': '叙利亚失明儿童在废墟上演唱《心跳》  呼吁获得正常童年生活',
+            'description': '联合国儿童基金会中东和北非区域大使、作曲家扎德·迪拉尼（Zade Dirani）在3月15日叙利亚冲突爆发7周年纪念日之际发布了为叙利亚谱写的歌曲《心跳》（HEARTBEAT），为受到六年冲突影响的叙利亚儿童发出强烈呐喊，呼吁世界做出共同努力，使叙利亚儿童重新获得享有正常童年生活的权利。',
+            'uploader': 'United Nations',
+            'uploader_id': '1362235914001',
+            'timestamp': 1489593889,
+            'upload_date': '20170315',
+        },
+        'skip': '404 Not Found',
+    }, {
+        # Brightcove with UUID in videoPlayer
+        'url': 'http://www8.hp.com/cn/zh/home.html',
+        'info_dict': {
+            'id': '5255815316001',
+            'ext': 'mp4',
+            'title': 'Sprocket Video - China',
+            'description': 'Sprocket Video - China',
+            'uploader': 'HP-Video Gallery',
+            'timestamp': 1482263210,
+            'upload_date': '20161220',
+            'uploader_id': '1107601872001',
+        },
+        'params': {
+            'skip_download': True,  # m3u8 download
+        },
+        'skip': 'video rotates...weekly?',
+    }, {
+        # Multiple brightcove videos
+        # https://github.com/ytdl-org/youtube-dl/issues/2283
+        'url': 'http://www.newyorker.com/online/blogs/newsdesk/2014/01/always-never-nuclear-command-and-control.html',
+        'info_dict': {
+            'id': 'always-never',
+            'title': 'Always / Never - The New Yorker',
+        },
+        'playlist_count': 3,
+        'params': {
+            'extract_flat': False,
+            'skip_download': True,
+        },
+        'skip': 'Redirects, page gone',
+    }, {
+        # BrightcoveInPageEmbed embed
+        'url': 'http://www.geekandsundry.com/tabletop-bonus-wils-final-thoughts-on-dread/',
+        'info_dict': {
+            'id': '4238694884001',
+            'ext': 'flv',
+            'title': 'Tabletop: Dread, Last Thoughts',
+            'description': 'Tabletop: Dread, Last Thoughts',
+            'duration': 51690,
+        },
+        'skip': 'Redirects, page gone',
+    }, {
+        # Brightcove embed, with no valid 'renditions' but valid 'IOSRenditions'
+        # This video can't be played in browsers if Flash disabled and UA set to iPhone, which is actually a false alarm
+        'url': 'https://dl.dropboxusercontent.com/u/29092637/interview.html',
+        'info_dict': {
+            'id': '4785848093001',
+            'ext': 'mp4',
+            'title': 'The Cardinal Pell Interview',
+            'description': 'Sky News Contributor Andrew Bolt interviews George Pell in Rome, following the Cardinal\'s evidence before the Royal Commission into Child Abuse. ',
+            'uploader': 'GlobeCast Australia - GlobeStream',
+            'uploader_id': '2733773828001',
+            'upload_date': '20160304',
+            'timestamp': 1457083087,
+        },
+        'params': {
+            # m3u8 downloads
+            'skip_download': True,
+        },
+        'skip': '404 Not Found',
+    }, {
+        # Brightcove embed with whitespace around attribute names
+        'url': 'http://www.stack.com/video/3167554373001/learn-to-hit-open-three-pointers-with-damian-lillard-s-baseline-drift-drill',
+        'info_dict': {
+            'id': '3167554373001',
+            'ext': 'mp4',
+            'title': "Learn to Hit Open Three-Pointers With Damian Lillard's Baseline Drift Drill",
+            'description': 'md5:57bacb0e0f29349de4972bfda3191713',
+            'uploader_id': '1079349493',
+            'upload_date': '20140207',
+            'timestamp': 1391810548,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': '410 Gone',
+    }]
+
     @classmethod
     def _build_brightcove_url(cls, object_str):
         """
@@ -165,7 +316,7 @@ class BrightcoveLegacyIE(InfoExtractor):
 
         try:
             object_doc = compat_etree_fromstring(object_str.encode('utf-8'))
-        except compat_xml_parse_error:
+        except xml.etree.ElementTree.ParseError:
             return
 
         fv_el = find_xpath_attr(object_doc, './param', 'name', 'flashVars')
@@ -283,6 +434,11 @@ class BrightcoveLegacyIE(InfoExtractor):
         return [src for _, src in re.findall(
             r'<iframe[^>]+src=([\'"])((?:https?:)?//link\.brightcove\.com/services/player/(?!\1).+)\1', webpage)]
 
+    def _extract_from_webpage(self, url, webpage):
+        bc_urls = self._extract_brightcove_urls(webpage)
+        for bc_url in bc_urls:
+            yield self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveLegacyIE)
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
@@ -338,7 +494,132 @@ class BrightcoveLegacyIE(InfoExtractor):
         raise UnsupportedError(url)
 
 
-class BrightcoveNewIE(AdobePassIE):
+class BrightcoveNewBaseIE(AdobePassIE):
+    def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
+        title = json_data['name'].strip()
+
+        formats, subtitles = [], {}
+        sources = json_data.get('sources') or []
+        for source in sources:
+            container = source.get('container')
+            ext = mimetype2ext(source.get('type'))
+            src = source.get('src')
+            if ext == 'm3u8' or container == 'M2TS':
+                if not src:
+                    continue
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    src, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
+                subtitles = self._merge_subtitles(subtitles, subs)
+            elif ext == 'mpd':
+                if not src:
+                    continue
+                fmts, subs = self._extract_mpd_formats_and_subtitles(src, video_id, 'dash', fatal=False)
+                subtitles = self._merge_subtitles(subtitles, subs)
+            else:
+                streaming_src = source.get('streaming_src')
+                stream_name, app_name = source.get('stream_name'), source.get('app_name')
+                if not src and not streaming_src and (not stream_name or not app_name):
+                    continue
+                tbr = float_or_none(source.get('avg_bitrate'), 1000)
+                height = int_or_none(source.get('height'))
+                width = int_or_none(source.get('width'))
+                f = {
+                    'tbr': tbr,
+                    'filesize': int_or_none(source.get('size')),
+                    'container': container,
+                    'ext': ext or container.lower(),
+                }
+                if width == 0 and height == 0:
+                    f.update({
+                        'vcodec': 'none',
+                    })
+                else:
+                    f.update({
+                        'width': width,
+                        'height': height,
+                        'vcodec': source.get('codec'),
+                    })
+
+                def build_format_id(kind):
+                    format_id = kind
+                    if tbr:
+                        format_id += '-%dk' % int(tbr)
+                    if height:
+                        format_id += '-%dp' % height
+                    return format_id
+
+                if src or streaming_src:
+                    f.update({
+                        'url': src or streaming_src,
+                        'format_id': build_format_id('http' if src else 'http-streaming'),
+                        'source_preference': 0 if src else -1,
+                    })
+                else:
+                    f.update({
+                        'url': app_name,
+                        'play_path': stream_name,
+                        'format_id': build_format_id('rtmp'),
+                    })
+                fmts = [f]
+
+            # https://support.brightcove.com/playback-api-video-fields-reference#key_systems_object
+            if container == 'WVM' or source.get('key_systems') or ext == 'ism':
+                for f in fmts:
+                    f['has_drm'] = True
+            formats.extend(fmts)
+
+        if not formats:
+            errors = json_data.get('errors')
+            if errors:
+                error = errors[0]
+                self.raise_no_formats(
+                    error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
+
+        headers.pop('Authorization', None)  # or else http formats will give error 400
+        for f in formats:
+            f.setdefault('http_headers', {}).update(headers)
+
+        for text_track in json_data.get('text_tracks', []):
+            if text_track.get('kind') != 'captions':
+                continue
+            text_track_url = url_or_none(text_track.get('src'))
+            if not text_track_url:
+                continue
+            lang = (str_or_none(text_track.get('srclang'))
+                    or str_or_none(text_track.get('label')) or 'en').lower()
+            subtitles.setdefault(lang, []).append({
+                'url': text_track_url,
+            })
+
+        is_live = False
+        duration = float_or_none(json_data.get('duration'), 1000)
+        if duration is not None and duration <= 0:
+            is_live = True
+
+        common_res = [(160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
+        thumb_base_url = dict_get(json_data, ('poster', 'thumbnail'))
+        thumbnails = [{
+            'url': re.sub(r'\d+x\d+', f'{w}x{h}', thumb_base_url),
+            'width': w,
+            'height': h,
+        } for w, h in common_res] if thumb_base_url else None
+
+        return {
+            'id': video_id,
+            'title': title,
+            'description': clean_html(json_data.get('description')),
+            'thumbnails': thumbnails,
+            'duration': duration,
+            'timestamp': parse_iso8601(json_data.get('published_at')),
+            'uploader_id': json_data.get('account_id'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'tags': json_data.get('tags', []),
+            'is_live': is_live,
+        }
+
+
+class BrightcoveNewIE(BrightcoveNewBaseIE):
     IE_NAME = 'brightcove:new'
     _VALID_URL = r'https?://players\.brightcove\.net/(?P<account_id>\d+)/(?P<player_id>[^/]+)_(?P<embed>[^/]+)/index\.html\?.*(?P<content_type>video|playlist)Id=(?P<video_id>\d+|ref:[^&]+)'
     _TESTS = [{
@@ -355,6 +636,7 @@ class BrightcoveNewIE(AdobePassIE):
             'uploader_id': '929656772001',
             'formats': 'mincount:20',
         },
+        'skip': '404 Not Found',
     }, {
         # with rtmp streams
         'url': 'http://players.brightcove.net/4036320279001/5d112ed9-283f-485f-a7f9-33f42e8bc042_default/index.html?videoId=4279049078001',
@@ -402,13 +684,114 @@ class BrightcoveNewIE(AdobePassIE):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [{
+        # brightcove player url embed
+        'url': 'https://nbc-2.com/weather/forecast/2022/11/16/forecast-warmest-day-of-the-week/',
+        'md5': '2934d5372b354d27083ccf8575dbfee2',
+        'info_dict': {
+            'id': '6315650313112',
+            'title': 'First Alert Forecast: November 15, 2022',
+            'ext': 'mp4',
+            'tags': ['nbc2', 'forecast'],
+            'uploader_id': '6146886170001',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'timestamp': 1668574571,
+            'duration': 233.375,
+            'upload_date': '20221116',
+        },
+    }, {
+        # embedded with video tag only
+        'url': 'https://www.gooddishtv.com/tiktok-rapping-chef-mr-pyrex',
+        'info_dict': {
+            'id': 'tiktok-rapping-chef-mr-pyrex',
+            'title': 'TikTok\'s Rapping Chef Makes Jambalaya for the Hosts',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'age_limit': 0,
+            'description': 'Just in time for Mardi Gras',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '6299189544001',
+                'ext': 'mp4',
+                'title': 'TGD_01-032_5',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'tags': [],
+                'timestamp': 1646078943,
+                'uploader_id': '1569565978001',
+                'upload_date': '20220228',
+                'duration': 217.195,
+            },
+        }, {
+            'info_dict': {
+                'id': '6305565995112',
+                'ext': 'mp4',
+                'title': 'TGD 01-087 (Airs 05.25.22)_Segment 5',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'tags': [],
+                'timestamp': 1651604591,
+                'uploader_id': '1569565978001',
+                'upload_date': '20220503',
+                'duration': 310.421,
+            },
+        }],
+    }, {
+        # Brightcove:new type [2].
+        'url': 'http://www.delawaresportszone.com/video-st-thomas-more-earns-first-trip-to-basketball-semis',
+        'md5': '2b35148fcf48da41c9fb4591650784f3',
+        'info_dict': {
+            'id': '5348741021001',
+            'ext': 'mp4',
+            'upload_date': '20170306',
+            'uploader_id': '4191638492001',
+            'timestamp': 1488769918,
+            'title': 'VIDEO:  St. Thomas More earns first trip to basketball semis',
+        },
+        'skip': '404 Not Found',
+    }, {
+        # Alternative brightcove <video> attributes
+        'url': 'http://www.programme-tv.net/videos/extraits/81095-guillaume-canet-evoque-les-rumeurs-d-infidelite-de-marion-cotillard-avec-brad-pitt-dans-vivement-dimanche/',
+        'info_dict': {
+            'id': '81095-guillaume-canet-evoque-les-rumeurs-d-infidelite-de-marion-cotillard-avec-brad-pitt-dans-vivement-dimanche',
+            'title': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche, Extraits : toutes les vidéos avec Télé-Loisirs",
+        },
+        'playlist': [{
+            'md5': '732d22ba3d33f2f3fc253c39f8f36523',
+            'info_dict': {
+                'id': '5311302538001',
+                'ext': 'mp4',
+                'title': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche",
+                'description': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche (France 2, 5 février 2017)",
+                'timestamp': 1486321708,
+                'upload_date': '20170205',
+                'uploader_id': '800000640001',
+            },
+            'only_matching': True,
+        }],
+        'skip': '404 Not Found',
+    }, {
+        # Brightcove URL in single quotes
+        'url': 'http://www.sportsnet.ca/baseball/mlb/sn-presents-russell-martin-world-citizen/',
+        'md5': '4ae374f1f8b91c889c4b9203c8c752af',
+        'info_dict': {
+            'id': '4255764656001',
+            'ext': 'mp4',
+            'title': 'SN Presents: Russell Martin, World Citizen',
+            'description': 'To understand why he was the Toronto Blue Jays’ top off-season priority is to appreciate his background and upbringing in Montreal, where he first developed his baseball skills. Written and narrated by Stephen Brunt.',
+            'uploader': 'Rogers Sportsnet',
+            'uploader_id': '1704050871',
+            'upload_date': '20150525',
+            'timestamp': 1432570283,
+        },
+        'skip': 'Page no longer has URL, now has javascript',
+    }]
+
     @staticmethod
     def _extract_url(ie, webpage):
-        urls = BrightcoveNewIE._extract_urls(ie, webpage)
+        urls = BrightcoveNewIE._extract_brightcove_urls(ie, webpage)
         return urls[0] if urls else None
 
     @staticmethod
-    def _extract_urls(ie, webpage):
+    def _extract_brightcove_urls(ie, webpage):
         # Reference:
         # 1. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#setvideoiniframe
         # 2. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#tag
@@ -468,128 +851,10 @@ class BrightcoveNewIE(AdobePassIE):
 
         return entries
 
-    def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
-        title = json_data['name'].strip()
-
-        num_drm_sources = 0
-        formats, subtitles = [], {}
-        sources = json_data.get('sources') or []
-        for source in sources:
-            container = source.get('container')
-            ext = mimetype2ext(source.get('type'))
-            src = source.get('src')
-            skip_unplayable = not self.get_param('allow_unplayable_formats')
-            # https://support.brightcove.com/playback-api-video-fields-reference#key_systems_object
-            if skip_unplayable and (container == 'WVM' or source.get('key_systems')):
-                num_drm_sources += 1
-                continue
-            elif ext == 'ism' and skip_unplayable:
-                continue
-            elif ext == 'm3u8' or container == 'M2TS':
-                if not src:
-                    continue
-                f, subs = self._extract_m3u8_formats_and_subtitles(
-                    src, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
-                formats.extend(f)
-                subtitles = self._merge_subtitles(subtitles, subs)
-            elif ext == 'mpd':
-                if not src:
-                    continue
-                f, subs = self._extract_mpd_formats_and_subtitles(src, video_id, 'dash', fatal=False)
-                formats.extend(f)
-                subtitles = self._merge_subtitles(subtitles, subs)
-            else:
-                streaming_src = source.get('streaming_src')
-                stream_name, app_name = source.get('stream_name'), source.get('app_name')
-                if not src and not streaming_src and (not stream_name or not app_name):
-                    continue
-                tbr = float_or_none(source.get('avg_bitrate'), 1000)
-                height = int_or_none(source.get('height'))
-                width = int_or_none(source.get('width'))
-                f = {
-                    'tbr': tbr,
-                    'filesize': int_or_none(source.get('size')),
-                    'container': container,
-                    'ext': ext or container.lower(),
-                }
-                if width == 0 and height == 0:
-                    f.update({
-                        'vcodec': 'none',
-                    })
-                else:
-                    f.update({
-                        'width': width,
-                        'height': height,
-                        'vcodec': source.get('codec'),
-                    })
-
-                def build_format_id(kind):
-                    format_id = kind
-                    if tbr:
-                        format_id += '-%dk' % int(tbr)
-                    if height:
-                        format_id += '-%dp' % height
-                    return format_id
-
-                if src or streaming_src:
-                    f.update({
-                        'url': src or streaming_src,
-                        'format_id': build_format_id('http' if src else 'http-streaming'),
-                        'source_preference': 0 if src else -1,
-                    })
-                else:
-                    f.update({
-                        'url': app_name,
-                        'play_path': stream_name,
-                        'format_id': build_format_id('rtmp'),
-                    })
-                formats.append(f)
-
-        if not formats:
-            errors = json_data.get('errors')
-            if errors:
-                error = errors[0]
-                self.raise_no_formats(
-                    error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
-            elif (not self.get_param('allow_unplayable_formats')
-                    and sources and num_drm_sources == len(sources)):
-                self.report_drm(video_id)
-
-        self._sort_formats(formats)
-
-        for f in formats:
-            f.setdefault('http_headers', {}).update(headers)
-
-        for text_track in json_data.get('text_tracks', []):
-            if text_track.get('kind') != 'captions':
-                continue
-            text_track_url = url_or_none(text_track.get('src'))
-            if not text_track_url:
-                continue
-            lang = (str_or_none(text_track.get('srclang'))
-                    or str_or_none(text_track.get('label')) or 'en').lower()
-            subtitles.setdefault(lang, []).append({
-                'url': text_track_url,
-            })
-
-        is_live = False
-        duration = float_or_none(json_data.get('duration'), 1000)
-        if duration is not None and duration <= 0:
-            is_live = True
-
-        return {
-            'id': video_id,
-            'title': self._live_title(title) if is_live else title,
-            'description': clean_html(json_data.get('description')),
-            'thumbnail': json_data.get('thumbnail') or json_data.get('poster'),
-            'duration': duration,
-            'timestamp': parse_iso8601(json_data.get('published_at')),
-            'uploader_id': json_data.get('account_id'),
-            'formats': formats,
-            'subtitles': subtitles,
-            'tags': json_data.get('tags', []),
-            'is_live': is_live,
-        }
+    def _extract_from_webpage(self, url, webpage):
+        bc_urls = self._extract_brightcove_urls(self, webpage)
+        for bc_url in bc_urls:
+            yield self.url_result(smuggle_url(bc_url, {'referrer': url}), BrightcoveNewIE)
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -601,9 +866,9 @@ class BrightcoveNewIE(AdobePassIE):
         account_id, player_id, embed, content_type, video_id = self._match_valid_url(url).groups()
 
         policy_key_id = '%s_%s' % (account_id, player_id)
-        policy_key = self._downloader.cache.load('brightcove', policy_key_id)
+        policy_key = self.cache.load('brightcove', policy_key_id)
         policy_key_extracted = False
-        store_pk = lambda x: self._downloader.cache.store('brightcove', policy_key_id, x)
+        store_pk = lambda x: self.cache.store('brightcove', policy_key_id, x)
 
         def extract_policy_key():
             base_url = 'http://players.brightcove.net/%s/%s_%s/' % (account_id, player_id, embed)
@@ -631,9 +896,10 @@ class BrightcoveNewIE(AdobePassIE):
             store_pk(policy_key)
             return policy_key
 
-        api_url = 'https://edge.api.brightcove.com/playback/v1/accounts/%s/%ss/%s' % (account_id, content_type, video_id)
-        headers = {}
-        referrer = smuggled_data.get('referrer')
+        token = smuggled_data.get('token')
+        api_url = f'https://{"edge-auth" if token else "edge"}.api.brightcove.com/playback/v1/accounts/{account_id}/{content_type}s/{video_id}'
+        headers = {'Authorization': f'Bearer {token}'} if token else {}
+        referrer = smuggled_data.get('referrer')  # XXX: notice the spelling/case of the key
         if referrer:
             headers.update({
                 'Referer': referrer,
@@ -649,8 +915,8 @@ class BrightcoveNewIE(AdobePassIE):
                 json_data = self._download_json(api_url, video_id, headers=headers)
                 break
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
-                    json_data = self._parse_json(e.cause.read().decode(), video_id)[0]
+                if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
+                    json_data = self._parse_json(e.cause.response.read().decode(), video_id)[0]
                     message = json_data.get('message') or json_data['error_code']
                     if json_data.get('error_subcode') == 'CLIENT_GEO':
                         self.raise_geo_restricted(msg=message)

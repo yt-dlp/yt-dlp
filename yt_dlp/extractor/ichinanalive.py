@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import ExtractorError, str_or_none, traverse_obj, unified_strdate
 from ..compat import compat_str
@@ -76,8 +73,6 @@ class IchinanaLiveIE(InfoExtractor):
                 'acodec': 'aac',
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': uploader or video_id,
@@ -149,8 +144,6 @@ class IchinanaLiveClipIE(InfoExtractor):
                 'acodec': 'aac',
                 'http_headers': {'Referer': url},
             })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

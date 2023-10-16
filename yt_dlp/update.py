@@ -1,269 +1,464 @@
-from __future__ import unicode_literals
-
+import atexit
+import contextlib
 import hashlib
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
-import traceback
 from zipimport import zipimporter
 
-from .compat import compat_realpath
-from .utils import encode_compat_str
+from .compat import functools  # isort: split
+from .compat import compat_realpath, compat_shlex_quote
+from .networking import Request
+from .networking.exceptions import HTTPError, network_exceptions
+from .utils import (
+    Popen,
+    cached_method,
+    deprecation_warning,
+    remove_end,
+    remove_start,
+    shell_quote,
+    system_identifier,
+    version_tuple,
+)
+from .version import CHANNEL, UPDATE_HINT, VARIANT, __version__
 
-from .version import __version__
+UPDATE_SOURCES = {
+    'stable': 'yt-dlp/yt-dlp',
+    'nightly': 'yt-dlp/yt-dlp-nightly-builds',
+}
+REPOSITORY = UPDATE_SOURCES['stable']
+
+_VERSION_RE = re.compile(r'(\d+\.)*\d+')
+
+API_BASE_URL = 'https://api.github.com/repos'
+
+# Backwards compatibility variables for the current channel
+API_URL = f'{API_BASE_URL}/{REPOSITORY}/releases'
 
 
-'''  # Not signed
-def rsa_verify(message, signature, key):
-    from hashlib import sha256
-    assert isinstance(message, bytes)
-    byte_size = (len(bin(key[0])) - 2 + 8 - 1) // 8
-    signature = ('%x' % pow(int(signature, 16), key[1], key[0])).encode()
-    signature = (byte_size * 2 - len(signature)) * b'0' + signature
-    asn1 = b'3031300d060960864801650304020105000420'
-    asn1 += sha256(message).hexdigest().encode()
-    if byte_size < len(asn1) // 2 + 11:
-        return False
-    expected = b'0001' + (byte_size - len(asn1) // 2 - 3) * b'ff' + b'00' + asn1
-    return expected == signature
-'''
+@functools.cache
+def _get_variant_and_executable_path():
+    """@returns (variant, executable_path)"""
+    if getattr(sys, 'frozen', False):
+        path = sys.executable
+        if not hasattr(sys, '_MEIPASS'):
+            return 'py2exe', path
+        elif sys._MEIPASS == os.path.dirname(path):
+            return f'{sys.platform}_dir', path
+        elif sys.platform == 'darwin':
+            machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
+        else:
+            machine = f'_{platform.machine().lower()}'
+            # Ref: https://en.wikipedia.org/wiki/Uname#Examples
+            if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
+                machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+        return f'{remove_end(sys.platform, "32")}{machine}_exe', path
+
+    path = os.path.dirname(__file__)
+    if isinstance(__loader__, zipimporter):
+        return 'zip', os.path.join(path, '..')
+    elif (os.path.basename(sys.argv[0]) in ('__main__.py', '-m')
+          and os.path.exists(os.path.join(path, '../.git/HEAD'))):
+        return 'source', path
+    return 'unknown', path
 
 
 def detect_variant():
-    if hasattr(sys, 'frozen'):
-        if getattr(sys, '_MEIPASS', None):
-            if sys._MEIPASS == os.path.dirname(sys.executable):
-                return 'dir'
-            return 'exe'
-        return 'py2exe'
-    elif isinstance(globals().get('__loader__'), zipimporter):
-        return 'zip'
-    elif os.path.basename(sys.argv[0]) == '__main__.py':
-        return 'source'
-    return 'unknown'
+    return VARIANT or _get_variant_and_executable_path()[0]
 
+
+@functools.cache
+def current_git_head():
+    if detect_variant() != 'source':
+        return
+    with contextlib.suppress(Exception):
+        stdout, _, _ = Popen.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            text=True, cwd=os.path.dirname(os.path.abspath(__file__)),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if re.fullmatch('[0-9a-f]+', stdout.strip()):
+            return stdout.strip()
+
+
+_FILE_SUFFIXES = {
+    'zip': '',
+    'py2exe': '_min.exe',
+    'win_exe': '.exe',
+    'win_x86_exe': '_x86.exe',
+    'darwin_exe': '_macos',
+    'darwin_legacy_exe': '_macos_legacy',
+    'linux_exe': '_linux',
+    'linux_aarch64_exe': '_linux_aarch64',
+    'linux_armv7l_exe': '_linux_armv7l',
+}
 
 _NON_UPDATEABLE_REASONS = {
-    'exe': None,
-    'zip': None,
-    'dir': 'Auto-update is not supported for unpackaged windows executable. Re-download the latest release',
-    'py2exe': 'There is no official release for py2exe executable. Build it again with the latest source code',
-    'source': 'You cannot update when running from source code',
-    'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball. Use that to update',
+    **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
+    **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
+       for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
+    'source': 'You cannot update when running from source code; Use git to pull the latest changes',
+    'unknown': 'You installed yt-dlp with a package manager or setup.py; Use that to update',
+    'other': 'You are using an unofficial build of yt-dlp; Build the executable again',
 }
 
 
 def is_non_updateable():
-    return _NON_UPDATEABLE_REASONS.get(detect_variant(), _NON_UPDATEABLE_REASONS['unknown'])
+    if UPDATE_HINT:
+        return UPDATE_HINT
+    return _NON_UPDATEABLE_REASONS.get(
+        detect_variant(), _NON_UPDATEABLE_REASONS['unknown' if VARIANT else 'other'])
 
 
+def _get_system_deprecation():
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 8)
+
+    if sys.version_info > MIN_RECOMMENDED:
+        return None
+
+    major, minor = sys.version_info[:2]
+    if sys.version_info < MIN_SUPPORTED:
+        msg = f'Python version {major}.{minor} is no longer supported'
+    else:
+        msg = f'Support for Python version {major}.{minor} has been deprecated. '
+        # Temporary until `win_x86_exe` uses 3.8, which will deprecate Vista and Server 2008
+        if detect_variant() == 'win_x86_exe':
+            platform_name = platform.platform()
+            if any(platform_name.startswith(f'Windows-{name}') for name in ('Vista', '2008Server')):
+                msg = 'Support for Windows Vista/Server 2008 has been deprecated. '
+            else:
+                return None
+        msg += ('See  https://github.com/yt-dlp/yt-dlp/issues/7803  for details.'
+                '\nYou may stop receiving updates on this version at any time')
+
+    major, minor = MIN_RECOMMENDED
+    return f'{msg}! Please update to Python {major}.{minor} or above'
+
+
+def _sha256_file(path):
+    h = hashlib.sha256()
+    mv = memoryview(bytearray(128 * 1024))
+    with open(os.path.realpath(path), 'rb', buffering=0) as f:
+        for n in iter(lambda: f.readinto(mv), 0):
+            h.update(mv[:n])
+    return h.hexdigest()
+
+
+class Updater:
+    _exact = True
+
+    def __init__(self, ydl, target=None):
+        self.ydl = ydl
+
+        self.target_channel, sep, self.target_tag = (target or CHANNEL).rpartition('@')
+        # stable => stable@latest
+        if not sep and ('/' in self.target_tag or self.target_tag in UPDATE_SOURCES):
+            self.target_channel = self.target_tag
+            self.target_tag = None
+        elif not self.target_channel:
+            self.target_channel = CHANNEL.partition('@')[0]
+
+        if not self.target_tag:
+            self.target_tag = 'latest'
+            self._exact = False
+        elif self.target_tag != 'latest':
+            self.target_tag = f'tags/{self.target_tag}'
+
+        if '/' in self.target_channel:
+            self._target_repo = self.target_channel
+            if self.target_channel not in (CHANNEL, *UPDATE_SOURCES.values()):
+                self.ydl.report_warning(
+                    f'You are switching to an {self.ydl._format_err("unofficial", "red")} executable '
+                    f'from {self.ydl._format_err(self._target_repo, self.ydl.Styles.EMPHASIS)}. '
+                    f'Run {self.ydl._format_err("at your own risk", "light red")}')
+                self._block_restart('Automatically restarting into custom builds is disabled for security reasons')
+        else:
+            self._target_repo = UPDATE_SOURCES.get(self.target_channel)
+            if not self._target_repo:
+                self._report_error(
+                    f'Invalid update channel {self.target_channel!r} requested. '
+                    f'Valid channels are {", ".join(UPDATE_SOURCES)}', True)
+
+    def _version_compare(self, a, b, channel=CHANNEL):
+        if self._exact and channel != self.target_channel:
+            return False
+
+        if _VERSION_RE.fullmatch(f'{a}.{b}'):
+            a, b = version_tuple(a), version_tuple(b)
+            return a == b if self._exact else a >= b
+        return a == b
+
+    @functools.cached_property
+    def _tag(self):
+        if self._version_compare(self.current_version, self.latest_version):
+            return self.target_tag
+
+        identifier = f'{detect_variant()} {self.target_channel} {system_identifier()}'
+        for line in self._download('_update_spec', 'latest').decode().splitlines():
+            if not line.startswith('lock '):
+                continue
+            _, tag, pattern = line.split(' ', 2)
+            if re.match(pattern, identifier):
+                if not self._exact:
+                    return f'tags/{tag}'
+                elif self.target_tag == 'latest' or not self._version_compare(
+                        tag, self.target_tag[5:], channel=self.target_channel):
+                    self._report_error(
+                        f'yt-dlp cannot be updated above {tag} since you are on an older Python version', True)
+                    return f'tags/{self.current_version}'
+        return self.target_tag
+
+    @cached_method
+    def _get_version_info(self, tag):
+        url = f'{API_BASE_URL}/{self._target_repo}/releases/{tag}'
+        self.ydl.write_debug(f'Fetching release info: {url}')
+        return json.loads(self.ydl.urlopen(Request(url, headers={
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'yt-dlp',
+            'X-GitHub-Api-Version': '2022-11-28',
+        })).read().decode())
+
+    @property
+    def current_version(self):
+        """Current version"""
+        return __version__
+
+    @staticmethod
+    def _label(channel, tag):
+        """Label for a given channel and tag"""
+        return f'{channel}@{remove_start(tag, "tags/")}'
+
+    def _get_actual_tag(self, tag):
+        if tag.startswith('tags/'):
+            return tag[5:]
+        return self._get_version_info(tag)['tag_name']
+
+    @property
+    def new_version(self):
+        """Version of the latest release we can update to"""
+        return self._get_actual_tag(self._tag)
+
+    @property
+    def latest_version(self):
+        """Version of the target release"""
+        return self._get_actual_tag(self.target_tag)
+
+    @property
+    def has_update(self):
+        """Whether there is an update available"""
+        return not self._version_compare(self.current_version, self.new_version)
+
+    @functools.cached_property
+    def filename(self):
+        """Filename of the executable"""
+        return compat_realpath(_get_variant_and_executable_path()[1])
+
+    def _download(self, name, tag):
+        slug = 'latest/download' if tag == 'latest' else f'download/{tag[5:]}'
+        url = f'https://github.com/{self._target_repo}/releases/{slug}/{name}'
+        self.ydl.write_debug(f'Downloading {name} from {url}')
+        return self.ydl.urlopen(url).read()
+
+    @functools.cached_property
+    def release_name(self):
+        """The release filename"""
+        return f'yt-dlp{_FILE_SUFFIXES[detect_variant()]}'
+
+    @functools.cached_property
+    def release_hash(self):
+        """Hash of the latest release"""
+        hash_data = dict(ln.split()[::-1] for ln in self._download('SHA2-256SUMS', self._tag).decode().splitlines())
+        return hash_data[self.release_name]
+
+    def _report_error(self, msg, expected=False):
+        self.ydl.report_error(msg, tb=False if expected else None)
+        self.ydl._download_retcode = 100
+
+    def _report_permission_error(self, file):
+        self._report_error(f'Unable to write to {file}; Try running as administrator', True)
+
+    def _report_network_error(self, action, delim=';'):
+        self._report_error(
+            f'Unable to {action}{delim} visit  '
+            f'https://github.com/{self._target_repo}/releases/{self.target_tag.replace("tags/", "tag/")}', True)
+
+    def check_update(self):
+        """Report whether there is an update available"""
+        if not self._target_repo:
+            return False
+        try:
+            self.ydl.to_screen((
+                f'Available version: {self._label(self.target_channel, self.latest_version)}, ' if self.target_tag == 'latest' else ''
+            ) + f'Current version: {self._label(CHANNEL, self.current_version)}')
+        except network_exceptions as e:
+            return self._report_network_error(f'obtain version info ({e})', delim='; Please try again later or')
+
+        if not is_non_updateable():
+            self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
+
+        if self.has_update:
+            return True
+
+        if self.target_tag == self._tag:
+            self.ydl.to_screen(f'yt-dlp is up to date ({self._label(CHANNEL, self.current_version)})')
+        elif not self._exact:
+            self.ydl.report_warning('yt-dlp cannot be updated any further since you are on an older Python version')
+        return False
+
+    def update(self):
+        """Update yt-dlp executable to the latest version"""
+        if not self.check_update():
+            return
+        err = is_non_updateable()
+        if err:
+            return self._report_error(err, True)
+        self.ydl.to_screen(f'Updating to {self._label(self.target_channel, self.new_version)} ...')
+        if (_VERSION_RE.fullmatch(self.target_tag[5:])
+                and version_tuple(self.target_tag[5:]) < (2023, 3, 2)):
+            self.ydl.report_warning('You are downgrading to a version without --update-to')
+            self._block_restart('Cannot automatically restart to a version without --update-to')
+
+        directory = os.path.dirname(self.filename)
+        if not os.access(self.filename, os.W_OK):
+            return self._report_permission_error(self.filename)
+        elif not os.access(directory, os.W_OK):
+            return self._report_permission_error(directory)
+
+        new_filename, old_filename = f'{self.filename}.new', f'{self.filename}.old'
+        if detect_variant() == 'zip':  # Can be replaced in-place
+            new_filename, old_filename = self.filename, None
+
+        try:
+            if os.path.exists(old_filename or ''):
+                os.remove(old_filename)
+        except OSError:
+            return self._report_error('Unable to remove the old version')
+
+        try:
+            newcontent = self._download(self.release_name, self._tag)
+        except network_exceptions as e:
+            if isinstance(e, HTTPError) and e.status == 404:
+                return self._report_error(
+                    f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
+            return self._report_network_error(f'fetch updates: {e}')
+
+        try:
+            expected_hash = self.release_hash
+        except Exception:
+            self.ydl.report_warning('no hash information found for the release')
+        else:
+            if hashlib.sha256(newcontent).hexdigest() != expected_hash:
+                return self._report_network_error('verify the new executable')
+
+        try:
+            with open(new_filename, 'wb') as outf:
+                outf.write(newcontent)
+        except OSError:
+            return self._report_permission_error(new_filename)
+
+        if old_filename:
+            mask = os.stat(self.filename).st_mode
+            try:
+                os.rename(self.filename, old_filename)
+            except OSError:
+                return self._report_error('Unable to move current version')
+
+            try:
+                os.rename(new_filename, self.filename)
+            except OSError:
+                self._report_error('Unable to overwrite current version')
+                return os.rename(old_filename, self.filename)
+
+        variant = detect_variant()
+        if variant.startswith('win') or variant == 'py2exe':
+            atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
+                            shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif old_filename:
+            try:
+                os.remove(old_filename)
+            except OSError:
+                self._report_error('Unable to remove the old version')
+
+            try:
+                os.chmod(self.filename, mask)
+            except OSError:
+                return self._report_error(
+                    f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
+
+        self.ydl.to_screen(f'Updated yt-dlp to {self._label(self.target_channel, self.new_version)}')
+        return True
+
+    @functools.cached_property
+    def cmd(self):
+        """The command-line to run the executable, if known"""
+        # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
+        if getattr(sys, 'orig_argv', None):
+            return sys.orig_argv
+        elif getattr(sys, 'frozen', False):
+            return sys.argv
+
+    def restart(self):
+        """Restart the executable"""
+        assert self.cmd, 'Must be frozen or Py >= 3.10'
+        self.ydl.write_debug(f'Restarting: {shell_quote(self.cmd)}')
+        _, _, returncode = Popen.run(self.cmd)
+        return returncode
+
+    def _block_restart(self, msg):
+        def wrapper():
+            self._report_error(f'{msg}. Restart yt-dlp to use the updated version', expected=True)
+            return self.ydl._download_retcode
+        self.restart = wrapper
+
+
+def run_update(ydl):
+    """Update the program file with the latest version from the repository
+    @returns    Whether there was a successful update (No update = False)
+    """
+    return Updater(ydl).update()
+
+
+# Deprecated
 def update_self(to_screen, verbose, opener):
-    ''' Exists for backward compatibility. Use run_update(ydl) instead '''
+    import traceback
+
+    deprecation_warning(f'"{__name__}.update_self" is deprecated and may be removed '
+                        f'in a future version. Use "{__name__}.run_update(ydl)" instead')
 
     printfn = to_screen
 
     class FakeYDL():
-        _opener = opener
         to_screen = printfn
 
-        @staticmethod
-        def report_warning(msg, *args, **kwargs):
-            return printfn('WARNING: %s' % msg, *args, **kwargs)
+        def report_warning(self, msg, *args, **kwargs):
+            return printfn(f'WARNING: {msg}', *args, **kwargs)
 
-        @staticmethod
-        def report_error(msg, tb=None):
-            printfn('ERROR: %s' % msg)
+        def report_error(self, msg, tb=None):
+            printfn(f'ERROR: {msg}')
             if not verbose:
                 return
             if tb is None:
-                # Copied from YoutubeDl.trouble
+                # Copied from YoutubeDL.trouble
                 if sys.exc_info()[0]:
                     tb = ''
                     if hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
                         tb += ''.join(traceback.format_exception(*sys.exc_info()[1].exc_info))
-                    tb += encode_compat_str(traceback.format_exc())
+                    tb += traceback.format_exc()
                 else:
                     tb_data = traceback.format_list(traceback.extract_stack())
                     tb = ''.join(tb_data)
             if tb:
                 printfn(tb)
 
+        def write_debug(self, msg, *args, **kwargs):
+            printfn(f'[debug] {msg}', *args, **kwargs)
+
+        def urlopen(self, url):
+            return opener.open(url)
+
     return run_update(FakeYDL())
 
 
-def run_update(ydl):
-    """
-    Update the program file with the latest version from the repository
-    Returns whether the program should terminate
-    """
-
-    JSON_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest'
-
-    def report_error(msg, network=False, expected=False, delim=';'):
-        if network:
-            msg += '%s Visit  https://github.com/yt-dlp/yt-dlp/releases/latest' % delim
-        ydl.report_error(msg, tb='' if network or expected else None)
-
-    def calc_sha256sum(path):
-        h = hashlib.sha256()
-        b = bytearray(128 * 1024)
-        mv = memoryview(b)
-        with open(os.path.realpath(path), 'rb', buffering=0) as f:
-            for n in iter(lambda: f.readinto(mv), 0):
-                h.update(mv[:n])
-        return h.hexdigest()
-
-    # Download and check versions info
-    try:
-        version_info = ydl._opener.open(JSON_URL).read().decode('utf-8')
-        version_info = json.loads(version_info)
-    except Exception:
-        return report_error('can\'t obtain versions info. Please try again later ', True, delim='or')
-
-    def version_tuple(version_str):
-        return tuple(map(int, version_str.split('.')))
-
-    version_id = version_info['tag_name']
-    if version_tuple(__version__) >= version_tuple(version_id):
-        ydl.to_screen(f'yt-dlp is up to date ({__version__})')
-        return
-
-    err = is_non_updateable()
-    if err:
-        ydl.to_screen(f'Latest version: {version_id}, Current version: {__version__}')
-        return report_error(err, expected=True)
-
-    # sys.executable is set to the full pathname of the exe-file for py2exe
-    # though symlinks are not followed so that we need to do this manually
-    # with help of realpath
-    filename = compat_realpath(sys.executable if hasattr(sys, 'frozen') else sys.argv[0])
-    ydl.to_screen(f'Current version {__version__}; Build Hash {calc_sha256sum(filename)}')
-    ydl.to_screen(f'Updating to version {version_id} ...')
-
-    version_labels = {
-        'zip_3': '',
-        'exe_64': '.exe',
-        'exe_32': '_x86.exe',
-    }
-
-    def get_bin_info(bin_or_exe, version):
-        label = version_labels['%s_%s' % (bin_or_exe, version)]
-        return next((i for i in version_info['assets'] if i['name'] == 'yt-dlp%s' % label), {})
-
-    def get_sha256sum(bin_or_exe, version):
-        filename = 'yt-dlp%s' % version_labels['%s_%s' % (bin_or_exe, version)]
-        urlh = next(
-            (i for i in version_info['assets'] if i['name'] in ('SHA2-256SUMS')),
-            {}).get('browser_download_url')
-        if not urlh:
-            return None
-        hash_data = ydl._opener.open(urlh).read().decode('utf-8')
-        return dict(ln.split()[::-1] for ln in hash_data.splitlines()).get(filename)
-
-    if not os.access(filename, os.W_OK):
-        return report_error('no write permissions on %s' % filename, expected=True)
-
-    # PyInstaller
-    if hasattr(sys, 'frozen'):
-        exe = filename
-        directory = os.path.dirname(exe)
-        if not os.access(directory, os.W_OK):
-            return report_error('no write permissions on %s' % directory, expected=True)
-        try:
-            if os.path.exists(filename + '.old'):
-                os.remove(filename + '.old')
-        except (IOError, OSError):
-            return report_error('unable to remove the old version')
-
-        try:
-            arch = platform.architecture()[0][:2]
-            url = get_bin_info('exe', arch).get('browser_download_url')
-            if not url:
-                return report_error('unable to fetch updates', True)
-            urlh = ydl._opener.open(url)
-            newcontent = urlh.read()
-            urlh.close()
-        except (IOError, OSError, StopIteration):
-            return report_error('unable to download latest version', True)
-
-        try:
-            with open(exe + '.new', 'wb') as outf:
-                outf.write(newcontent)
-        except (IOError, OSError):
-            return report_error('unable to write the new version')
-
-        expected_sum = get_sha256sum('exe', arch)
-        if not expected_sum:
-            ydl.report_warning('no hash information found for the release')
-        elif calc_sha256sum(exe + '.new') != expected_sum:
-            report_error('unable to verify the new executable', True)
-            try:
-                os.remove(exe + '.new')
-            except OSError:
-                return report_error('unable to remove corrupt download')
-
-        try:
-            os.rename(exe, exe + '.old')
-        except (IOError, OSError):
-            return report_error('unable to move current version')
-        try:
-            os.rename(exe + '.new', exe)
-        except (IOError, OSError):
-            report_error('unable to overwrite current version')
-            os.rename(exe + '.old', exe)
-            return
-        try:
-            # Continues to run in the background
-            subprocess.Popen(
-                'ping 127.0.0.1 -n 5 -w 1000 & del /F "%s.old"' % exe,
-                shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            ydl.to_screen('Updated yt-dlp to version %s' % version_id)
-            return True  # Exit app
-        except OSError:
-            report_error('unable to delete old version')
-
-    # Zip unix package
-    elif isinstance(globals().get('__loader__'), zipimporter):
-        try:
-            url = get_bin_info('zip', '3').get('browser_download_url')
-            if not url:
-                return report_error('unable to fetch updates', True)
-            urlh = ydl._opener.open(url)
-            newcontent = urlh.read()
-            urlh.close()
-        except (IOError, OSError, StopIteration):
-            return report_error('unable to download latest version', True)
-
-        expected_sum = get_sha256sum('zip', '3')
-        if not expected_sum:
-            ydl.report_warning('no hash information found for the release')
-        elif hashlib.sha256(newcontent).hexdigest() != expected_sum:
-            return report_error('unable to verify the new zip', True)
-
-        try:
-            with open(filename, 'wb') as outf:
-                outf.write(newcontent)
-        except (IOError, OSError):
-            return report_error('unable to overwrite current version')
-
-    ydl.to_screen('Updated yt-dlp to version %s; Restart yt-dlp to use the new version' % version_id)
-
-
-'''  # UNUSED
-def get_notes(versions, fromVersion):
-    notes = []
-    for v, vdata in sorted(versions.items()):
-        if v > fromVersion:
-            notes.extend(vdata.get('notes', []))
-    return notes
-
-
-def print_notes(to_screen, versions, fromVersion=__version__):
-    notes = get_notes(versions, fromVersion)
-    if notes:
-        to_screen('PLEASE NOTE:')
-        for note in notes:
-            to_screen(note)
-'''
+__all__ = ['Updater']

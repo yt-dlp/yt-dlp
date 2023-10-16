@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -37,7 +35,6 @@ class FourTubeBaseIE(InfoExtractor):
             'resolution': format + 'p',
             'quality': int(format),
         } for format in sources]
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):

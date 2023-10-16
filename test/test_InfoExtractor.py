@@ -1,27 +1,32 @@
 #!/usr/bin/env python3
 
-from __future__ import unicode_literals
-
 # Allow direct execution
-import io
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
-from yt_dlp.compat import compat_etree_fromstring, compat_http_server
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.extractor import YoutubeIE, get_info_extractor
-from yt_dlp.utils import encode_data_uri, strip_jsonp, ExtractorError, RegexNotFoundError
+
+import http.server
 import threading
 
+from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
+from yt_dlp.compat import compat_etree_fromstring
+from yt_dlp.extractor import YoutubeIE, get_info_extractor
+from yt_dlp.extractor.common import InfoExtractor
+from yt_dlp.utils import (
+    ExtractorError,
+    RegexNotFoundError,
+    encode_data_uri,
+    strip_jsonp,
+)
 
 TEAPOT_RESPONSE_STATUS = 418
 TEAPOT_RESPONSE_BODY = "<h1>418 I'm a teapot</h1>"
 
 
-class InfoExtractorTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
@@ -36,7 +41,9 @@ class InfoExtractorTestRequestHandler(compat_http_server.BaseHTTPRequestHandler)
 
 
 class DummyIE(InfoExtractor):
-    pass
+    def _sort_formats(self, formats, field_preference=[]):
+        self._downloader.sort_formats(
+            {'formats': formats, '_format_sort_fields': field_preference})
 
 
 class TestInfoExtractor(unittest.TestCase):
@@ -62,6 +69,7 @@ class TestInfoExtractor(unittest.TestCase):
             <meta name="og:test1" content='foo > < bar'/>
             <meta name="og:test2" content="foo >//< bar"/>
             <meta property=og-test3 content='Ill-formatted opengraph'/>
+            <meta property=og:test4 content=unquoted-value/>
             '''
         self.assertEqual(ie._og_search_title(html), 'Foo')
         self.assertEqual(ie._og_search_description(html), 'Some video\'s description ')
@@ -74,6 +82,7 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertEqual(ie._og_search_property(('test0', 'test1'), html), 'foo > < bar')
         self.assertRaises(RegexNotFoundError, ie._og_search_property, 'test0', html, None, fatal=True)
         self.assertRaises(RegexNotFoundError, ie._og_search_property, ('test0', 'test00'), html, None, fatal=True)
+        self.assertEqual(ie._og_search_property('test4', html), 'unquoted-value')
 
     def test_html_search_meta(self):
         ie = self.ie
@@ -99,10 +108,10 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertRaises(RegexNotFoundError, ie._html_search_meta, ('z', 'x'), html, None, fatal=True)
 
     def test_search_json_ld_realworld(self):
-        # https://github.com/ytdl-org/youtube-dl/issues/23306
-        expect_dict(
-            self,
-            self.ie._search_json_ld(r'''<script type="application/ld+json">
+        _TESTS = [
+            # https://github.com/ytdl-org/youtube-dl/issues/23306
+            (
+                r'''<script type="application/ld+json">
 {
 "@context": "http://schema.org/",
 "@type": "VideoObject",
@@ -135,17 +144,171 @@ class TestInfoExtractor(unittest.TestCase):
 "name": "Kleio Valentien",
 "url": "https://www.eporner.com/pornstar/kleio-valentien/"
 }]}
-</script>''', None),
-            {
-                'title': '1 On 1 With Kleio',
-                'description': 'Kleio Valentien',
-                'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
-                'timestamp': 1449347075,
-                'duration': 743.0,
-                'view_count': 1120958,
-                'width': 1920,
-                'height': 1080,
-            })
+                </script>''',
+                {
+                    'title': '1 On 1 With Kleio',
+                    'description': 'Kleio Valentien',
+                    'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
+                    'timestamp': 1449347075,
+                    'duration': 743.0,
+                    'view_count': 1120958,
+                    'width': 1920,
+                    'height': 1080,
+                },
+                {},
+            ),
+            (
+                r'''<script type="application/ld+json">
+      {
+      "@context": "https://schema.org",
+      "@graph": [
+      {
+      "@type": "NewsArticle",
+      "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://www.ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn"
+      },
+      "headline": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
+      "name": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
+      "description": "Τα παιδιά δέχθηκαν την επίθεση επειδή αρνήθηκαν να γίνουν μέλη της συμμορίας, ανέφερε ο Γ. Ζαχαρόπουλος.",
+      "image": {
+      "@type": "ImageObject",
+      "url": "https://ant1media.azureedge.net/imgHandler/1100/a635c968-be71-447c-bf9c-80d843ece21e.jpg",
+      "width": 1100,
+      "height": 756            },
+      "datePublished": "2021-11-10T08:50:00+03:00",
+      "dateModified": "2021-11-10T08:52:53+03:00",
+      "author": {
+      "@type": "Person",
+      "@id": "https://www.ant1news.gr/",
+      "name": "Ant1news",
+      "image": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
+      "url": "https://www.ant1news.gr/"
+      },
+      "publisher": {
+      "@type": "Organization",
+      "@id": "https://www.ant1news.gr#publisher",
+      "name": "Ant1news",
+      "url": "https://www.ant1news.gr",
+      "logo": {
+      "@type": "ImageObject",
+      "url": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
+      "width": 400,
+      "height": 400                },
+      "sameAs": [
+      "https://www.facebook.com/Ant1news.gr",
+      "https://twitter.com/antennanews",
+      "https://www.youtube.com/channel/UC0smvAbfczoN75dP0Hw4Pzw",
+      "https://www.instagram.com/ant1news/"
+      ]
+      },
+
+      "keywords": "μαχαίρωμα,συμμορία ανηλίκων,ΕΙΔΗΣΕΙΣ,ΕΙΔΗΣΕΙΣ ΣΗΜΕΡΑ,ΝΕΑ,Κοινωνία - Ant1news",
+
+
+      "articleSection": "Κοινωνία"
+      }
+      ]
+      }
+                </script>''',
+                {
+                    'timestamp': 1636523400,
+                    'title': 'md5:91fe569e952e4d146485740ae927662b',
+                },
+                {'expected_type': 'NewsArticle'},
+            ),
+            (
+                r'''<script type="application/ld+json">
+                {"url":"/vrtnu/a-z/het-journaal/2021/het-journaal-het-journaal-19u-20211231/",
+                "name":"Het journaal 19u",
+                "description":"Het journaal 19u van vrijdag 31 december 2021.",
+                "potentialAction":{"url":"https://vrtnu.page.link/pfVy6ihgCAJKgHqe8","@type":"ShareAction"},
+                "mainEntityOfPage":{"@id":"1640092242445","@type":"WebPage"},
+                "publication":[{
+                    "startDate":"2021-12-31T19:00:00.000+01:00",
+                    "endDate":"2022-01-30T23:55:00.000+01:00",
+                    "publishedBy":{"name":"een","@type":"Organization"},
+                    "publishedOn":{"url":"https://www.vrt.be/vrtnu/","name":"VRT NU","@type":"BroadcastService"},
+                    "@id":"pbs-pub-3a7ec233-da95-4c1e-9b2b-cf5fdfebcbe8",
+                    "@type":"BroadcastEvent"
+                    }],
+                "video":{
+                    "name":"Het journaal - Aflevering 365 (Seizoen 2021)",
+                    "description":"Het journaal 19u van vrijdag 31 december 2021. Bekijk aflevering 365 van seizoen 2021 met VRT NU via de site of app.",
+                    "thumbnailUrl":"//images.vrt.be/width1280/2021/12/31/80d5ed00-6a64-11ec-b07d-02b7b76bf47f.jpg",
+                    "expires":"2022-01-30T23:55:00.000+01:00",
+                    "hasPart":[
+                        {"name":"Explosie Turnhout","startOffset":70,"@type":"Clip"},
+                        {"name":"Jaarwisseling","startOffset":440,"@type":"Clip"},
+                        {"name":"Natuurbranden Colorado","startOffset":1179,"@type":"Clip"},
+                        {"name":"Klimaatverandering","startOffset":1263,"@type":"Clip"},
+                        {"name":"Zacht weer","startOffset":1367,"@type":"Clip"},
+                        {"name":"Financiële balans","startOffset":1383,"@type":"Clip"},
+                        {"name":"Club Brugge","startOffset":1484,"@type":"Clip"},
+                        {"name":"Mentale gezondheid bij topsporters","startOffset":1575,"@type":"Clip"},
+                        {"name":"Olympische Winterspelen","startOffset":1728,"@type":"Clip"},
+                        {"name":"Sober oudjaar in Nederland","startOffset":1873,"@type":"Clip"}
+                        ],
+                    "duration":"PT34M39.23S",
+                    "uploadDate":"2021-12-31T19:00:00.000+01:00",
+                    "@id":"vid-9457d0c6-b8ac-4aba-b5e1-15aa3a3295b5",
+                    "@type":"VideoObject"
+                },
+                "genre":["Nieuws en actua"],
+                "episodeNumber":365,
+                "partOfSeries":{"name":"Het journaal","@id":"222831405527","@type":"TVSeries"},
+                "partOfSeason":{"name":"Seizoen 2021","@id":"961809365527","@type":"TVSeason"},
+                "@context":"https://schema.org","@id":"961685295527","@type":"TVEpisode"}</script>
+                ''',
+                {
+                    'chapters': [
+                        {"title": "Explosie Turnhout", "start_time": 70, "end_time": 440},
+                        {"title": "Jaarwisseling", "start_time": 440, "end_time": 1179},
+                        {"title": "Natuurbranden Colorado", "start_time": 1179, "end_time": 1263},
+                        {"title": "Klimaatverandering", "start_time": 1263, "end_time": 1367},
+                        {"title": "Zacht weer", "start_time": 1367, "end_time": 1383},
+                        {"title": "Financiële balans", "start_time": 1383, "end_time": 1484},
+                        {"title": "Club Brugge", "start_time": 1484, "end_time": 1575},
+                        {"title": "Mentale gezondheid bij topsporters", "start_time": 1575, "end_time": 1728},
+                        {"title": "Olympische Winterspelen", "start_time": 1728, "end_time": 1873},
+                        {"title": "Sober oudjaar in Nederland", "start_time": 1873, "end_time": 2079.23}
+                    ],
+                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)'
+                }, {}
+            ),
+            (
+                # test multiple thumbnails in a list
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":["https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"]}
+</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                },
+                {},
+            ),
+            (
+                # test single thumbnail
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":"https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"}
+</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                },
+                {},
+            )
+        ]
+        for html, expected_dict, search_json_ld_kwargs in _TESTS:
+            expect_dict(
+                self,
+                self.ie._search_json_ld(html, None, **search_json_ld_kwargs),
+                expected_dict
+            )
 
     def test_download_json(self):
         uri = encode_data_uri(b'{"foo": "blah"}', 'application/json')
@@ -342,6 +505,24 @@ class TestInfoExtractor(unittest.TestCase):
             {
                 'formats': [{
                     'url': 'https://www.klarna.com/uk/wp-content/uploads/sites/11/2019/01/KL062_Smooth3_0_DogWalking_5s_920x080_.mp4',
+                    'ext': 'mp4',
+                }],
+            })
+
+        # from https://0000.studio/
+        # with type attribute but without extension in URL
+        expect_dict(
+            self,
+            self.ie._parse_html5_media_entries(
+                'https://0000.studio',
+                r'''
+                <video src="https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92"
+                    controls="controls" type="video/mp4" preload="metadata" autoplay="autoplay" playsinline class="object-contain">
+                </video>
+                ''', None)[0],
+            {
+                'formats': [{
+                    'url': 'https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92',
                     'ext': 'mp4',
                 }],
             })
@@ -736,8 +917,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 263.851,
-                    'abr': 0,
                 }, {
                     'format_id': '577',
                     'format_index': None,
@@ -755,8 +934,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 577.61,
-                    'abr': 0,
                 }, {
                     'format_id': '915',
                     'format_index': None,
@@ -774,8 +951,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 915.905,
-                    'abr': 0,
                 }, {
                     'format_id': '1030',
                     'format_index': None,
@@ -793,8 +968,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 1030.138,
-                    'abr': 0,
                 }, {
                     'format_id': '1924',
                     'format_index': None,
@@ -812,8 +985,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'acodec': 'mp4a.40.2',
                     'video_ext': 'mp4',
                     'audio_ext': 'none',
-                    'vbr': 1924.009,
-                    'abr': 0,
                 }],
                 {
                     'en': [{
@@ -857,8 +1028,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for m3u8_file, m3u8_url, expected_formats, expected_subs in _TEST_CASES:
-            with io.open('./test/testdata/m3u8/%s.m3u8' % m3u8_file,
-                         mode='r', encoding='utf-8') as f:
+            with open('./test/testdata/m3u8/%s.m3u8' % m3u8_file, encoding='utf-8') as f:
                 formats, subs = self.ie._parse_m3u8_formats_and_subtitles(
                     f.read(), m3u8_url, ext='mp4')
                 self.ie._sort_formats(formats)
@@ -1203,10 +1373,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with io.open('./test/testdata/mpd/%s.mpd' % mpd_file,
-                         mode='r', encoding='utf-8') as f:
+            with open('./test/testdata/mpd/%s.mpd' % mpd_file, encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_mpd_formats_and_subtitles(
-                    compat_etree_fromstring(f.read().encode('utf-8')),
+                    compat_etree_fromstring(f.read().encode()),
                     mpd_base_url=mpd_base_url, mpd_url=mpd_url)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
@@ -1227,6 +1396,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     'vcodec': 'none',
                     'acodec': 'AACL',
                     'protocol': 'ism',
+                    'audio_channels': 2,
                     '_download_params': {
                         'stream_type': 'audio',
                         'duration': 8880746666,
@@ -1240,9 +1410,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'audio_ext': 'isma',
-                    'video_ext': 'none',
-                    'abr': 128,
                 }, {
                     'format_id': 'video-100',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1266,9 +1433,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 100,
                 }, {
                     'format_id': 'video-326',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1292,9 +1456,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 326,
                 }, {
                     'format_id': 'video-698',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1318,9 +1479,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 698,
                 }, {
                     'format_id': 'video-1493',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1344,9 +1502,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 1493,
                 }, {
                     'format_id': 'video-4482',
                     'url': 'https://sdn-global-streaming-cache-3qsdn.akamaized.net/stream/3144/files/17/07/672975/3144-kZT4LWMQw6Rh7Kpd.ism/Manifest',
@@ -1370,9 +1525,6 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                         'bits_per_sample': 16,
                         'nal_unit_length_field': 4
                     },
-                    'video_ext': 'ismv',
-                    'audio_ext': 'none',
-                    'vbr': 4482,
                 }],
                 {
                     'eng': [
@@ -1392,13 +1544,271 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     ]
                 },
             ),
+            (
+                'ec-3_test',
+                'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                [{
+                    'format_id': 'audio_deu-127',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'isma',
+                    'tbr': 127,
+                    'asr': 48000,
+                    'vcodec': 'none',
+                    'acodec': 'AACL',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    'audio_channels': 2,
+                    '_download_params': {
+                        'stream_type': 'audio',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 0,
+                        'height': 0,
+                        'fourcc': 'AACL',
+                        'language': 'deu',
+                        'codec_private_data': '1190',
+                        'sampling_rate': 48000,
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'audio_deu_1-224',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'isma',
+                    'tbr': 224,
+                    'asr': 48000,
+                    'vcodec': 'none',
+                    'acodec': 'EC-3',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    'audio_channels': 6,
+                    '_download_params': {
+                        'stream_type': 'audio',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 0,
+                        'height': 0,
+                        'fourcc': 'EC-3',
+                        'language': 'deu',
+                        'codec_private_data': '00063F000000AF87FBA7022DFB42A4D405CD93843BDD0700200F00',
+                        'sampling_rate': 48000,
+                        'channels': 6,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-23',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 384,
+                    'height': 216,
+                    'tbr': 23,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 384,
+                        'height': 216,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '000000016742C00CDB06077E5C05A808080A00000300020000030009C0C02EE0177CC6300F142AE00000000168CA8DC8',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-403',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 400,
+                    'height': 224,
+                    'tbr': 403,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 400,
+                        'height': 224,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4014E98323B602D4040405000003000100000300320F1429380000000168EAECF2',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-680',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 640,
+                    'height': 360,
+                    'tbr': 680,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 640,
+                        'height': 360,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-1253',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 640,
+                    'height': 360,
+                    'tbr': 1253,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'vbr': 1253,
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 640,
+                        'height': 360,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-2121',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 768,
+                    'height': 432,
+                    'tbr': 2121,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 768,
+                        'height': 432,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D401EECA0601BD80B50101014000003000400000300C83C58B6580000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-3275',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 1280,
+                    'height': 720,
+                    'tbr': 3275,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 1280,
+                        'height': 720,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4020ECA02802DD80B501010140000003004000000C83C60C65800000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-5300',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 1920,
+                    'height': 1080,
+                    'tbr': 5300,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 1920,
+                        'height': 1080,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }, {
+                    'format_id': 'video_deu-8079',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 1920,
+                    'height': 1080,
+                    'tbr': 8079,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    'language': 'deu',
+                    '_download_params': {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 1920,
+                        'height': 1080,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                }],
+                {},
+            ),
         ]
 
         for ism_file, ism_url, expected_formats, expected_subtitles in _TEST_CASES:
-            with io.open('./test/testdata/ism/%s.Manifest' % ism_file,
-                         mode='r', encoding='utf-8') as f:
+            with open('./test/testdata/ism/%s.Manifest' % ism_file, encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_ism_formats_and_subtitles(
-                    compat_etree_fromstring(f.read().encode('utf-8')), ism_url=ism_url)
+                    compat_etree_fromstring(f.read().encode()), ism_url=ism_url)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
                 expect_value(self, subtitles, expected_subtitles, None)
@@ -1422,10 +1832,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for f4m_file, f4m_url, expected_formats in _TEST_CASES:
-            with io.open('./test/testdata/f4m/%s.f4m' % f4m_file,
-                         mode='r', encoding='utf-8') as f:
+            with open('./test/testdata/f4m/%s.f4m' % f4m_file, encoding='utf-8') as f:
                 formats = self.ie._parse_f4m_formats(
-                    compat_etree_fromstring(f.read().encode('utf-8')),
+                    compat_etree_fromstring(f.read().encode()),
                     f4m_url, None)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
@@ -1470,10 +1879,9 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         ]
 
         for xspf_file, xspf_url, expected_entries in _TEST_CASES:
-            with io.open('./test/testdata/xspf/%s.xspf' % xspf_file,
-                         mode='r', encoding='utf-8') as f:
+            with open('./test/testdata/xspf/%s.xspf' % xspf_file, encoding='utf-8') as f:
                 entries = self.ie._parse_xspf(
-                    compat_etree_fromstring(f.read().encode('utf-8')),
+                    compat_etree_fromstring(f.read().encode()),
                     xspf_file, xspf_url=xspf_url, xspf_base_url=xspf_url)
                 expect_value(self, entries, expected_entries, None)
                 for i in range(len(entries)):
@@ -1486,7 +1894,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         # or the underlying `_download_webpage_handle` returning no content
         # when a response matches `expected_status`.
 
-        httpd = compat_http_server.HTTPServer(
+        httpd = http.server.HTTPServer(
             ('127.0.0.1', 0), InfoExtractorTestRequestHandler)
         port = http_server_port(httpd)
         server_thread = threading.Thread(target=httpd.serve_forever)

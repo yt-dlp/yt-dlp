@@ -1,16 +1,10 @@
-from __future__ import unicode_literals
-
-import sys
-
 from .common import InfoExtractor
 from ..utils import ExtractorError
 
 
 class CommonMistakesIE(InfoExtractor):
     IE_DESC = False  # Do not list
-    _VALID_URL = r'''(?x)
-        (?:url|URL)$
-    '''
+    _VALID_URL = r'(?:url|URL|yt-dlp)$'
 
     _TESTS = [{
         'url': 'url',
@@ -35,9 +29,7 @@ class UnicodeBOMIE(InfoExtractor):
     IE_DESC = False
     _VALID_URL = r'(?P<bom>\ufeff)(?P<id>.*)$'
 
-    # Disable test for python 3.2 since BOM is broken in re in this version
-    # (see https://github.com/ytdl-org/youtube-dl/issues/9751)
-    _TESTS = [] if (3, 0) < sys.version_info <= (3, 3) else [{
+    _TESTS = [{
         'url': '\ufeffhttp://www.youtube.com/watch?v=BaW_jenozKc',
         'only_matching': True,
     }]

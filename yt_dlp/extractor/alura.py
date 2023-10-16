@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -66,22 +63,13 @@ class AluraIE(InfoExtractor):
                             f['height'] = int('720' if m.group('res') == 'hd' else '480')
                 formats.extend(video_format)
 
-            self._sort_formats(formats)
-
             return {
                 'id': video_id,
                 'title': video_title,
                 "formats": formats
             }
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-        pass
+    def _perform_login(self, username, password):
 
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login popup')
@@ -123,7 +111,7 @@ class AluraIE(InfoExtractor):
             raise ExtractorError('Unable to log in')
 
 
-class AluraCourseIE(AluraIE):
+class AluraCourseIE(AluraIE):  # XXX: Do not subclass from concrete IE
 
     _VALID_URL = r'https?://(?:cursos\.)?alura\.com\.br/course/(?P<id>[^/]+)'
     _LOGIN_URL = 'https://cursos.alura.com.br/loginForm?urlAfterLogin=/loginForm'

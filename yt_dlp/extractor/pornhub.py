@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import itertools
 import math
@@ -8,31 +5,31 @@ import operator
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_request,
-)
 from .openload import PhantomJSwrapper
+from ..compat import compat_str
+from ..networking import Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    NO_DEFAULT,
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
+    format_field,
     int_or_none,
     merge_dicts,
-    NO_DEFAULT,
     orderedSet,
     remove_quotes,
+    remove_start,
     str_to_int,
     update_url_query,
-    urlencode_postdata,
     url_or_none,
+    urlencode_postdata,
 )
 
 
 class PornHubBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'pornhub'
-    _PORNHUB_HOST_RE = r'(?:(?P<host>pornhub(?:premium)?\.(?:com|net|org))|pornhubthbh7ap3u\.onion)'
+    _PORNHUB_HOST_RE = r'(?:(?P<host>pornhub(?:premium)?\.(?:com|net|org))|pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd\.onion)'
 
     def _download_webpage_handle(self, *args, **kwargs):
         def dl(*args, **kwargs):
@@ -50,8 +47,8 @@ class PornHubBaseIE(InfoExtractor):
                 r'document\.cookie\s*=\s*["\']RNKEY=',
                 r'document\.location\.reload\(true\)')):
             url_or_request = args[0]
-            url = (url_or_request.get_full_url()
-                   if isinstance(url_or_request, compat_urllib_request.Request)
+            url = (url_or_request.url
+                   if isinstance(url_or_request, Request)
                    else url_or_request)
             phantom = PhantomJSwrapper(self, required_version='2.0')
             phantom.get(url, html=webpage)
@@ -61,6 +58,12 @@ class PornHubBaseIE(InfoExtractor):
 
     def _real_initialize(self):
         self._logged_in = False
+
+    def _set_age_cookies(self, host):
+        self._set_cookie(host, 'age_verified', '1')
+        self._set_cookie(host, 'accessAgeDisclaimerPH', '1')
+        self._set_cookie(host, 'accessAgeDisclaimerUK', '1')
+        self._set_cookie(host, 'accessPH', '1')
 
     def _login(self, host):
         if self._logged_in:
@@ -132,6 +135,7 @@ class PornHubIE(PornHubBaseIE):
                         )
                         (?P<id>[\da-z]+)
                     ''' % PornHubBaseIE._PORNHUB_HOST_RE
+    _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)']
     _TESTS = [{
         'url': 'http://www.pornhub.com/view_video.php?viewkey=648719015',
         'md5': 'a6391306d050e4547f62b3f485dd9ba9',
@@ -201,6 +205,16 @@ class PornHubIE(PornHubBaseIE):
         },
         'skip': 'This video has been disabled',
     }, {
+        'url': 'http://www.pornhub.com/view_video.php?viewkey=ph601dc30bae19a',
+        'info_dict': {
+            'id': 'ph601dc30bae19a',
+            'uploader': 'Projekt Melody',
+            'uploader_id': 'projekt-melody',
+            'upload_date': '20210205',
+            'title': '"Welcome to My Pussy Mansion" - CB Stream (02/03/21)',
+            'thumbnail': r're:https?://.+',
+        },
+    }, {
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph557bbb6676d2d',
         'only_matching': True,
     }, {
@@ -247,19 +261,12 @@ class PornHubIE(PornHubBaseIE):
         'url': 'https://www.pornhub.com/view_video.php?viewkey=ph5a9813bfa7156',
         'only_matching': True,
     }, {
-        'url': 'http://pornhubthbh7ap3u.onion/view_video.php?viewkey=ph5a9813bfa7156',
+        'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/view_video.php?viewkey=ph5a9813bfa7156',
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)',
-            webpage)
-
     def _extract_count(self, pattern, webpage, name):
-        return str_to_int(self._search_regex(
-            pattern, webpage, '%s count' % name, fatal=False))
+        return str_to_int(self._search_regex(pattern, webpage, '%s count' % name, default=None))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -267,8 +274,7 @@ class PornHubIE(PornHubBaseIE):
         video_id = mobj.group('id')
 
         self._login(host)
-
-        self._set_cookie(host, 'age_verified', '1')
+        self._set_age_cookies(host)
 
         def dl_webpage(platform):
             self._set_cookie(host, 'platform', platform)
@@ -432,7 +438,7 @@ class PornHubIE(PornHubBaseIE):
                     default=None))
             formats.append({
                 'url': format_url,
-                'format_id': '%dp' % height if height else None,
+                'format_id': format_field(height, None, '%dp'),
                 'height': height,
             })
 
@@ -456,13 +462,11 @@ class PornHubIE(PornHubBaseIE):
                 continue
             add_format(video_url)
 
-        # field_preference is unnecessary here, but kept for code-similarity with youtube-dl
-        self._sort_formats(
-            formats, field_preference=('height', 'width', 'fps', 'format_id'))
-
+        model_profile = self._search_json(
+            r'var\s+MODEL_PROFILE\s*=', webpage, 'model profile', video_id, fatal=False)
         video_uploader = self._html_search_regex(
             r'(?s)From:&nbsp;.+?<(?:a\b[^>]+\bhref=["\']/(?:(?:user|channel)s|model|pornstar)/|span\b[^>]+\bclass=["\']username)[^>]+>(.+?)<',
-            webpage, 'uploader', default=None)
+            webpage, 'uploader', default=None) or model_profile.get('username')
 
         def extract_vote_count(kind, name):
             return self._extract_count(
@@ -491,6 +495,7 @@ class PornHubIE(PornHubBaseIE):
         return merge_dicts({
             'id': video_id,
             'uploader': video_uploader,
+            'uploader_id': remove_start(model_profile.get('modelProfileLink'), '/model/'),
             'upload_date': upload_date,
             'title': title,
             'thumbnail': thumbnail,
@@ -562,7 +567,7 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
         'url': 'https://www.pornhubpremium.com/pornstar/lily-labeau',
         'only_matching': True,
     }, {
-        'url': 'https://pornhubthbh7ap3u.onion/model/zoe_ph',
+        'url': 'https://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/model/zoe_ph',
         'only_matching': True,
     }]
 
@@ -570,6 +575,7 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
         mobj = self._match_valid_url(url)
         user_id = mobj.group('id')
         videos_url = '%s/videos' % mobj.group('url')
+        self._set_age_cookies(mobj.group('host'))
         page = self._extract_page(url)
         if page:
             videos_url = update_url_query(videos_url, {'page': page})
@@ -598,7 +604,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
                 base_url, item_id, note, query={'page': num})
 
         def is_404(e):
-            return isinstance(e.cause, compat_HTTPError) and e.cause.code == 404
+            return isinstance(e.cause, HTTPError) and e.cause.status == 404
 
         base_url = url
         has_page = page is not None
@@ -634,6 +640,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
         item_id = mobj.group('id')
 
         self._login(host)
+        self._set_age_cookies(host)
 
         return self.playlist_result(self._entries(url, host, item_id), item_id)
 
@@ -733,7 +740,7 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
         'url': 'https://www.pornhub.com/video/incategories/60fps-1/hd-porn',
         'only_matching': True,
     }, {
-        'url': 'https://pornhubthbh7ap3u.onion/model/zoe_ph/videos',
+        'url': 'https://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/model/zoe_ph/videos',
         'only_matching': True,
     }]
 
@@ -756,7 +763,7 @@ class PornHubUserVideosUploadIE(PornHubPagedPlaylistBaseIE):
         'url': 'https://www.pornhub.com/model/zoe_ph/videos/upload',
         'only_matching': True,
     }, {
-        'url': 'http://pornhubthbh7ap3u.onion/pornstar/jenny-blighe/videos/upload',
+        'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/pornstar/jenny-blighe/videos/upload',
         'only_matching': True,
     }]
 
@@ -813,5 +820,6 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
         item_id = mobj.group('id')
 
         self._login(host)
+        self._set_age_cookies(host)
 
         return self.playlist_result(self._entries(mobj.group('url'), host, item_id), item_id)

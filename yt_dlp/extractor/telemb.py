@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -60,7 +57,6 @@ class TeleMBIE(InfoExtractor):
                     'preference': -10,
                 })
             formats.append(fmt)
-        self._sort_formats(formats)
 
         title = remove_start(self._og_search_title(webpage), 'TéléMB : ')
         description = self._html_search_regex(

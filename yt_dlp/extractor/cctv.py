@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -162,7 +159,8 @@ class CCTVIE(InfoExtractor):
                         'url': video_url,
                         'format_id': 'http',
                         'quality': quality,
-                        'source_preference': -10
+                        # Sample clip
+                        'preference': -10
                     })
 
         hls_url = try_get(data, lambda x: x['hls_url'], compat_str)
@@ -171,8 +169,6 @@ class CCTVIE(InfoExtractor):
             formats.extend(self._extract_m3u8_formats(
                 hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
                 m3u8_id='hls', fatal=False))
-
-        self._sort_formats(formats)
 
         uploader = data.get('editer_name')
         description = self._html_search_meta(

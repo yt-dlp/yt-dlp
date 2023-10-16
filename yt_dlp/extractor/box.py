@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -81,8 +78,6 @@ class BoxIE(InfoExtractor):
                 'format_id': 'download',
                 'url': update_url_query(authenticated_download_url, query),
             })
-
-        self._sort_formats(formats)
 
         creator = f.get('created_by') or {}
 

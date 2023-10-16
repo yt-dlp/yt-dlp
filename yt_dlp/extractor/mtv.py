@@ -1,22 +1,16 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_xpath,
-)
+from ..compat import compat_str
+from ..networking import HEADRequest, Request
 from ..utils import (
     ExtractorError,
+    RegexNotFoundError,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
-    HEADRequest,
     int_or_none,
-    RegexNotFoundError,
-    sanitized_Request,
+    join_nonempty,
     strip_or_none,
     timeconvert,
     try_get,
@@ -56,15 +50,15 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
     def _extract_mobile_video_formats(self, mtvn_id):
         webpage_url = self._MOBILE_TEMPLATE % mtvn_id
-        req = sanitized_Request(webpage_url)
+        req = Request(webpage_url)
         # Otherwise we get a webpage that would execute some javascript
-        req.add_header('User-Agent', 'curl/7')
+        req.headers['User-Agent'] = 'curl/7'
         webpage = self._download_webpage(req, mtvn_id,
                                          'Downloading mobile page')
         metrics_url = unescapeHTML(self._search_regex(r'<a href="(http://metrics.+?)"', webpage, 'url'))
         req = HEADRequest(metrics_url)
         response = self._request_webpage(req, mtvn_id, 'Resolving url')
-        url = response.geturl()
+        url = response.url
         # Transform the url to get the best quality:
         url = re.sub(r'.+pxE=mp4', 'http://mtvnmobile.vo.llnwd.net/kip0/_pxn=0+_pxK=18639+_pxE=mp4', url, 1)
         return [{'url': url, 'ext': 'mp4'}]
@@ -99,16 +93,14 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     formats.extend([{
                         'ext': 'flv' if rtmp_video_url.startswith('rtmp') else ext,
                         'url': rtmp_video_url,
-                        'format_id': '-'.join(filter(None, [
+                        'format_id': join_nonempty(
                             'rtmp' if rtmp_video_url.startswith('rtmp') else None,
-                            rendition.get('bitrate')])),
+                            rendition.get('bitrate')),
                         'width': int(rendition.get('width')),
                         'height': int(rendition.get('height')),
                     }])
                 except (KeyError, TypeError):
                     raise ExtractorError('Invalid rendition field.')
-        if formats:
-            self._sort_formats(formats)
         return formats
 
     def _extract_subtitles(self, mdoc, mtvn_id):
@@ -166,9 +158,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
                 itemdoc, './/{http://search.yahoo.com/mrss/}category',
                 'scheme', 'urn:mtvn:video_title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//{http://search.yahoo.com/mrss/}title'))
+            title_el = itemdoc.find('.//{http://search.yahoo.com/mrss/}title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//title'))
+            title_el = itemdoc.find('.//title')
             if title_el.text is None:
                 title_el = None
 
@@ -206,8 +198,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
         # http://www.southpark.de/alle-episoden/s14e01-sexual-healing)
         if not formats:
             return None
-
-        self._sort_formats(formats)
 
         return {
             'title': title,
@@ -311,11 +301,17 @@ class MTVServicesInfoExtractor(InfoExtractor):
             main_container = self._extract_child_with_type(data, 'MainContainer')
             ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
-            mgid = video_player['props']['media']['video']['config']['uri']
+            if video_player:
+                mgid = try_get(video_player, lambda x: x['props']['media']['video']['config']['uri'])
+            else:
+                flex_wrapper = self._extract_child_with_type(ab_testing or main_container, 'FlexWrapper')
+                auth_suite_wrapper = self._extract_child_with_type(flex_wrapper, 'AuthSuiteWrapper')
+                player = self._extract_child_with_type(auth_suite_wrapper or flex_wrapper, 'Player')
+                if player:
+                    mgid = try_get(player, lambda x: x['props']['videoDetail']['mgid'])
 
         if not mgid:
-            mgid = self._search_regex(
-                r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
+            raise ExtractorError('Could not extract mgid')
 
         return mgid
 
@@ -330,6 +326,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtvservices:embedded'
     _VALID_URL = r'https?://media\.mtvnservices\.com/embed/(?P<mgid>.+?)(\?|/|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1']
 
     _TEST = {
         # From http://www.thewrap.com/peter-dinklage-sums-up-game-of-thrones-in-45-seconds-video/
@@ -344,13 +341,6 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
             'upload_date': '20140515',
         },
     }
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
@@ -541,7 +531,7 @@ class MTVItaliaIE(MTVServicesInfoExtractor):
         }
 
 
-class MTVItaliaProgrammaIE(MTVItaliaIE):
+class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'mtv.it:programma'
     _VALID_URL = r'https?://(?:www\.)?mtv\.it/(?:programmi|playlist)/(?P<id>[0-9a-z]+)'
     _TESTS = [{

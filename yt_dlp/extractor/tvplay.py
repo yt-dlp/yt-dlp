@@ -1,20 +1,15 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urlparse,
-)
+from ..compat import compat_urlparse
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
-    parse_duration,
     parse_iso8601,
     qualities,
+    traverse_obj,
     try_get,
     update_url_query,
     url_or_none,
@@ -33,10 +28,7 @@ class TVPlayIE(InfoExtractor):
                             (?:
                                 tvplay(?:\.skaties)?\.lv(?:/parraides)?|
                                 (?:tv3play|play\.tv3)\.lt(?:/programos)?|
-                                tv3play(?:\.tv3)?\.ee/sisu|
-                                (?:tv(?:3|6|8|10)play)\.se/program|
-                                (?:(?:tv3play|viasat4play|tv6play)\.no|(?:tv3play)\.dk)/programmer|
-                                play\.nova(?:tv)?\.bg/programi
+                                tv3play(?:\.tv3)?\.ee/sisu
                             )
                             /(?:[^/]+/)+
                         )
@@ -96,117 +88,6 @@ class TVPlayIE(InfoExtractor):
             },
         },
         {
-            'url': 'http://www.tv3play.se/program/husraddarna/395385?autostart=true',
-            'info_dict': {
-                'id': '395385',
-                'ext': 'mp4',
-                'title': 'Husräddarna S02E07',
-                'description': 'md5:f210c6c89f42d4fc39faa551be813777',
-                'duration': 2574,
-                'timestamp': 1400596321,
-                'upload_date': '20140520',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv6play.se/program/den-sista-dokusapan/266636?autostart=true',
-            'info_dict': {
-                'id': '266636',
-                'ext': 'mp4',
-                'title': 'Den sista dokusåpan S01E08',
-                'description': 'md5:295be39c872520221b933830f660b110',
-                'duration': 1492,
-                'timestamp': 1330522854,
-                'upload_date': '20120229',
-                'age_limit': 18,
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv8play.se/program/antikjakten/282756?autostart=true',
-            'info_dict': {
-                'id': '282756',
-                'ext': 'mp4',
-                'title': 'Antikjakten S01E10',
-                'description': 'md5:1b201169beabd97e20c5ad0ad67b13b8',
-                'duration': 2646,
-                'timestamp': 1348575868,
-                'upload_date': '20120925',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv3play.no/programmer/anna-anka-soker-assistent/230898?autostart=true',
-            'info_dict': {
-                'id': '230898',
-                'ext': 'mp4',
-                'title': 'Anna Anka søker assistent - Ep. 8',
-                'description': 'md5:f80916bf5bbe1c5f760d127f8dd71474',
-                'duration': 2656,
-                'timestamp': 1277720005,
-                'upload_date': '20100628',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.viasat4play.no/programmer/budbringerne/21873?autostart=true',
-            'info_dict': {
-                'id': '21873',
-                'ext': 'mp4',
-                'title': 'Budbringerne program 10',
-                'description': 'md5:4db78dc4ec8a85bb04fd322a3ee5092d',
-                'duration': 1297,
-                'timestamp': 1254205102,
-                'upload_date': '20090929',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://www.tv6play.no/programmer/hotelinspektor-alex-polizzi/361883?autostart=true',
-            'info_dict': {
-                'id': '361883',
-                'ext': 'mp4',
-                'title': 'Hotelinspektør Alex Polizzi - Ep. 10',
-                'description': 'md5:3ecf808db9ec96c862c8ecb3a7fdaf81',
-                'duration': 2594,
-                'timestamp': 1393236292,
-                'upload_date': '20140224',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'http://play.novatv.bg/programi/zdravei-bulgariya/624952?autostart=true',
-            'info_dict': {
-                'id': '624952',
-                'ext': 'flv',
-                'title': 'Здравей, България (12.06.2015 г.) ',
-                'description': 'md5:99f3700451ac5bb71a260268b8daefd7',
-                'duration': 8838,
-                'timestamp': 1434100372,
-                'upload_date': '20150612',
-            },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            },
-        },
-        {
-            'url': 'https://play.nova.bg/programi/zdravei-bulgariya/764300?autostart=true',
-            'only_matching': True,
-        },
-        {
             'url': 'http://tvplay.skaties.lv/parraides/vinas-melo-labak/418113?autostart=true',
             'only_matching': True,
         },
@@ -246,8 +127,8 @@ class TVPlayIE(InfoExtractor):
                 'http://playapi.mtgx.tv/v3/videos/stream/%s' % video_id,
                 video_id, 'Downloading streams JSON')
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                msg = self._parse_json(e.cause.read().decode('utf-8'), video_id)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                msg = self._parse_json(e.cause.response.read().decode('utf-8'), video_id)
                 raise ExtractorError(msg['msg'], expected=True)
             raise
 
@@ -297,8 +178,6 @@ class TVPlayIE(InfoExtractor):
                 'This content might not be available in your country due to copyright reasons',
                 metadata_available=True)
 
-        self._sort_formats(formats)
-
         # TODO: webvtt in m3u8
         subtitles = {}
         sami_path = video.get('sami_path')
@@ -332,174 +211,96 @@ class TVPlayIE(InfoExtractor):
         }
 
 
-class ViafreeIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:www\.)?
-                        viafree\.(?P<country>dk|no|se)
-                        /(?P<id>program(?:mer)?/(?:[^/]+/)+[^/?#&]+)
-                    '''
-    _TESTS = [{
-        'url': 'http://www.viafree.no/programmer/underholdning/det-beste-vorspielet/sesong-2/episode-1',
-        'info_dict': {
-            'id': '757786',
-            'ext': 'mp4',
-            'title': 'Det beste vorspielet - Sesong 2 - Episode 1',
-            'description': 'md5:b632cb848331404ccacd8cd03e83b4c3',
-            'series': 'Det beste vorspielet',
-            'season_number': 2,
-            'duration': 1116,
-            'timestamp': 1471200600,
-            'upload_date': '20160814',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://www.viafree.dk/programmer/humor/comedy-central-roast-of-charlie-sheen/film/1047660',
-        'info_dict': {
-            'id': '1047660',
-            'ext': 'mp4',
-            'title': 'Comedy Central Roast of Charlie Sheen - Comedy Central Roast of Charlie Sheen',
-            'description': 'md5:ec956d941ae9fd7c65a48fd64951dc6d',
-            'series': 'Comedy Central Roast of Charlie Sheen',
-            'season_number': 1,
-            'duration': 3747,
-            'timestamp': 1608246060,
-            'upload_date': '20201217'
-        },
-        'params': {
-            'format': 'bestvideo',
-            'skip_download': True
-        }
-    }, {
-        # with relatedClips
-        'url': 'http://www.viafree.se/program/reality/sommaren-med-youtube-stjarnorna/sasong-1/avsnitt-1',
-        'only_matching': True,
-    }, {
-        # Different og:image URL schema
-        'url': 'http://www.viafree.se/program/reality/sommaren-med-youtube-stjarnorna/sasong-1/avsnitt-2',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.viafree.se/program/livsstil/husraddarna/sasong-2/avsnitt-2',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.viafree.dk/programmer/reality/paradise-hotel/saeson-7/episode-5',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.viafree.se/program/underhallning/i-like-radio-live/sasong-1/676869',
-        'only_matching': True,
-    }]
-    _GEO_BYPASS = False
-
-    def _real_extract(self, url):
-        country, path = self._match_valid_url(url).groups()
-        content = self._download_json(
-            'https://viafree-content.mtg-api.com/viafree-content/v1/%s/path/%s' % (country, path), path)
-        program = content['_embedded']['viafreeBlocks'][0]['_embedded']['program']
-        guid = program['guid']
-        meta = content['meta']
-        title = meta['title']
-
-        try:
-            stream_href = self._download_json(
-                program['_links']['streamLink']['href'], guid,
-                headers=self.geo_verification_headers())['embedded']['prioritizedStreams'][0]['links']['stream']['href']
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                self.raise_geo_restricted(countries=[country])
-            raise
-
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_href, guid, 'mp4')
-        self._sort_formats(formats)
-        episode = program.get('episode') or {}
-        return {
-            'id': guid,
-            'title': title,
-            'thumbnail': meta.get('image'),
-            'description': meta.get('description'),
-            'series': episode.get('seriesTitle'),
-            'subtitles': subtitles,
-            'episode_number': int_or_none(episode.get('episodeNumber')),
-            'season_number': int_or_none(episode.get('seasonNumber')),
-            'duration': int_or_none(try_get(program, lambda x: x['video']['duration']['milliseconds']), 1000),
-            'timestamp': parse_iso8601(try_get(program, lambda x: x['availability']['start'])),
-            'formats': formats,
-        }
-
-
 class TVPlayHomeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:tv3?)?play\.(?:tv3\.lt|skaties\.lv|tv3\.ee)/(?:[^/]+/)*[^/?#&]+-(?P<id>\d+)'
+    _VALID_URL = r'''(?x)
+            https?://
+            (?:tv3?)?
+            play\.(?:tv3|skaties)\.(?P<country>lv|lt|ee)/
+            (?P<live>lives/)?
+            [^?#&]+(?:episode|programme|clip)-(?P<id>\d+)
+    '''
     _TESTS = [{
-        'url': 'https://tvplay.tv3.lt/aferistai-n-7/aferistai-10047125/',
+        'url': 'https://play.tv3.lt/series/gauju-karai-karveliai,serial-2343791/serija-8,episode-2343828',
         'info_dict': {
-            'id': '366367',
+            'id': '2343828',
             'ext': 'mp4',
-            'title': 'Aferistai',
-            'description': 'Aferistai. Kalėdinė pasaka.',
-            'series': 'Aferistai [N-7]',
-            'season': '1 sezonas',
+            'title': 'Gaujų karai. Karveliai (2021) | S01E08: Serija 8',
+            'description': 'md5:f6fcfbb236429f05531131640dfa7c81',
+            'duration': 2710,
+            'season': 'Gaujų karai. Karveliai',
             'season_number': 1,
-            'duration': 464,
-            'timestamp': 1394209658,
-            'upload_date': '20140307',
-            'age_limit': 18,
+            'release_year': 2021,
+            'episode': 'Serija 8',
+            'episode_number': 8,
         },
         'params': {
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
     }, {
-        'url': 'https://tvplay.skaties.lv/vinas-melo-labak/vinas-melo-labak-10280317/',
+        'url': 'https://play.tv3.lt/series/moterys-meluoja-geriau-n-7,serial-2574652/serija-25,episode-3284937',
+        'info_dict': {
+            'id': '3284937',
+            'ext': 'mp4',
+            'season': 'Moterys meluoja geriau [N-7]',
+            'season_number': 14,
+            'release_year': 2021,
+            'episode': 'Serija 25',
+            'episode_number': 25,
+            'title': 'Moterys meluoja geriau [N-7] (2021) | S14|E25: Serija 25',
+            'description': 'md5:c6926e9710f1a126f028fbe121eddb79',
+            'duration': 2440,
+        },
+        'skip': '404'
+    }, {
+        'url': 'https://play.tv3.lt/lives/tv6-lt,live-2838694/optibet-a-lygos-rungtynes-marijampoles-suduva--vilniaus-riteriai,programme-3422014',
         'only_matching': True,
     }, {
-        'url': 'https://tvplay.tv3.ee/cool-d-ga-mehhikosse/cool-d-ga-mehhikosse-10044354/',
+        'url': 'https://tv3play.skaties.lv/series/women-lie-better-lv,serial-1024464/women-lie-better-lv,episode-1038762',
         'only_matching': True,
     }, {
-        'url': 'https://play.tv3.lt/aferistai-10047125',
+        'url': 'https://play.tv3.ee/series/_,serial-2654462/_,episode-2654474',
         'only_matching': True,
     }, {
-        'url': 'https://tv3play.skaties.lv/vinas-melo-labak-10280317',
-        'only_matching': True,
-    }, {
-        'url': 'https://play.tv3.ee/cool-d-ga-mehhikosse-10044354',
+        'url': 'https://tv3play.skaties.lv/clips/tv3-zinas-valsti-lidz-15novembrim-bus-majsede,clip-3464509',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        country, is_live, video_id = self._match_valid_url(url).groups()
 
-        asset = self._download_json(
-            urljoin(url, '/sb/public/asset/' + video_id), video_id)
+        api_path = 'lives/programmes' if is_live else 'vods'
+        data = self._download_json(
+            urljoin(url, f'/api/products/{api_path}/{video_id}?platform=BROWSER&lang={country.upper()}'),
+            video_id)
 
-        m3u8_url = asset['movie']['contentUrl']
-        video_id = asset['assetId']
-        asset_title = asset['title']
-        title = asset_title['title']
+        video_type = 'CATCHUP' if is_live else 'MOVIE'
+        stream_id = data['programRecordingId'] if is_live else video_id
+        stream = self._download_json(
+            urljoin(url, f'/api/products/{stream_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            stream['sources']['HLS'][0]['src'], video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
 
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
-
-        thumbnails = None
-        image_url = asset.get('imageUrl')
-        if image_url:
-            thumbnails = [{
-                'url': urljoin(url, image_url),
-                'ext': 'jpg',
-            }]
-
-        metadata = asset.get('metadata') or {}
+        thumbnails = set(traverse_obj(
+            data, (('galary', 'images', 'artworks'), ..., ..., ('miniUrl', 'mainUrl')), expected_type=url_or_none))
 
         return {
             'id': video_id,
-            'title': title,
-            'description': asset_title.get('summaryLong') or asset_title.get('summaryShort'),
-            'thumbnails': thumbnails,
-            'duration': parse_duration(asset_title.get('runTime')),
-            'series': asset.get('tvSeriesTitle'),
-            'season': asset.get('tvSeasonTitle'),
-            'season_number': int_or_none(metadata.get('seasonNumber')),
-            'episode': asset_title.get('titleBrief'),
-            'episode_number': int_or_none(metadata.get('episodeNumber')),
+            'title': self._resolve_title(data),
+            'description': traverse_obj(data, 'description', 'lead'),
+            'duration': int_or_none(data.get('duration')),
+            'season': traverse_obj(data, ('season', 'serial', 'title')),
+            'season_number': int_or_none(traverse_obj(data, ('season', 'number'))),
+            'episode': data.get('title'),
+            'episode_number': int_or_none(data.get('episode')),
+            'release_year': int_or_none(traverse_obj(data, ('season', 'serial', 'year'))),
+            'thumbnails': [{'url': url, 'ext': 'jpg'} for url in thumbnails],
             'formats': formats,
+            'subtitles': subtitles,
         }
+
+    @staticmethod
+    def _resolve_title(data):
+        return try_get(data, lambda x: (
+            f'{data["season"]["serial"]["title"]} ({data["season"]["serial"]["year"]}) | '
+            f'S{data["season"]["number"]:02d}E{data["episode"]:02d}: {data["title"]}'
+        )) or data.get('title')

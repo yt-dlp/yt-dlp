@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     dict_get,
@@ -22,9 +19,6 @@ class KinoPoiskIE(InfoExtractor):
             'thumbnail': r're:^https?://.*',
             'duration': 4533,
             'age_limit': 12,
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }, {
         'url': 'https://www.kinopoisk.ru/film/81041',
@@ -50,7 +44,6 @@ class KinoPoiskIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             data['playlistEntity']['uri'], video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         description = dict_get(
             film, ('descriptscription', 'description',

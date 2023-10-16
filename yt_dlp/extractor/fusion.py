@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -72,7 +70,6 @@ class FusionIE(InfoExtractor):
                         'protocol': 'm3u8_native' if ext == 'm3u8' else 'https',
                     })
         if formats:
-            self._sort_formats(formats)
             info['formats'] = formats
         else:
             info.update({

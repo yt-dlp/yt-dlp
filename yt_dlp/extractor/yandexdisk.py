@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -130,7 +127,6 @@ class YandexDiskIE(InfoExtractor):
                     'url': format_url,
                     'width': int_or_none(size.get('width')),
                 })
-        self._sort_formats(formats)
 
         uid = resource.get('uid')
         display_name = try_get(store, lambda x: x['users'][uid]['displayName'])

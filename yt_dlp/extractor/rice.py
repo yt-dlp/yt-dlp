@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -91,7 +88,6 @@ class RICEIE(InfoExtractor):
                         'ext': 'flv',
                     })
                 formats.append(fmt)
-        self._sort_formats(formats)
 
         thumbnails = []
         for content_asset in content_data.findall('.//contentAssets'):

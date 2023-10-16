@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -38,8 +34,7 @@ class MojvideoIE(InfoExtractor):
                 r'<errordesc>([^<]*)</errordesc>', playerapi, 'error description', fatal=False)
             raise ExtractorError('%s said: %s' % (self.IE_NAME, error_desc), expected=True)
 
-        title = self._html_search_regex(
-            r'<title>([^<]+)</title>', playerapi, 'title')
+        title = self._html_extract_title(playerapi)
         video_url = self._html_search_regex(
             r'<file>([^<]+)</file>', playerapi, 'video URL')
         thumbnail = self._html_search_regex(

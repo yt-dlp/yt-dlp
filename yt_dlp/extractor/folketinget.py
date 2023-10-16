@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
 from ..utils import (
@@ -62,7 +59,6 @@ class FolketingetIE(InfoExtractor):
             'url': xpath_text(n, './url', fatal=True),
             'tbr': int_or_none(n.attrib['bitrate']),
         } for n in doc.findall('.//streams/stream')]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

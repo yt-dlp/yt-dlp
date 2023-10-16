@@ -1,9 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
-    js_to_json,
     try_get,
     unified_timestamp
 )
@@ -14,17 +10,7 @@ class SovietsClosetBaseIE(InfoExtractor):
 
     def parse_nuxt_jsonp(self, nuxt_jsonp_url, video_id, name):
         nuxt_jsonp = self._download_webpage(nuxt_jsonp_url, video_id, note=f'Downloading {name} __NUXT_JSONP__')
-        js, arg_keys, arg_vals = self._search_regex(
-            r'__NUXT_JSONP__\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)',
-            nuxt_jsonp, '__NUXT_JSONP__', group=['js', 'arg_keys', 'arg_vals'])
-
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
-
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
-
-        return self._parse_json(js_to_json(js, args), video_id)['data'][0]
+        return self._search_nuxt_data(nuxt_jsonp, video_id, '__NUXT_JSONP__')
 
     def video_meta(self, video_id, game_name, category_name, episode_number, stream_date):
         title = game_name
@@ -58,7 +44,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
     _TESTS = [
         {
             'url': 'https://sovietscloset.com/video/1337',
-            'md5': '11e58781c4ca5b283307aa54db5b3f93',
+            'md5': 'bd012b04b261725510ca5383074cdd55',
             'info_dict': {
                 'id': '1337',
                 'ext': 'mp4',
@@ -78,18 +64,18 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'series': 'The Witcher',
                 'season': 'Misc',
                 'episode_number': 13,
+                'episode': 'Episode 13',
             },
         },
         {
             'url': 'https://sovietscloset.com/video/1105',
-            'md5': '578b1958a379e7110ba38697042e9efb',
+            'md5': '89fa928f183893cb65a0b7be846d8a90',
             'info_dict': {
                 'id': '1105',
                 'ext': 'mp4',
-                'title': 'Arma 3 - Zeus Games #3',
+                'title': 'Arma 3 - Zeus Games #5',
                 'uploader': 'SovietWomble',
                 'thumbnail': r're:^https?://.*\.b-cdn\.net/c0e5e76f-3a93-40b4-bf01-12343c2eec5d/thumbnail\.jpg$',
-                'uploader': 'SovietWomble',
                 'creator': 'SovietWomble',
                 'release_timestamp': 1461157200,
                 'release_date': '20160420',
@@ -102,7 +88,8 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'availability': 'public',
                 'series': 'Arma 3',
                 'season': 'Zeus Games',
-                'episode_number': 3,
+                'episode_number': 5,
+                'episode': 'Episode 5',
             },
         },
     ]
@@ -116,7 +103,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         thumbnail_url = self._search_regex(r'(https?://.*?thumbnail\.jpg)', iframe, 'thumbnail url')
 
         m3u8_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.MEDIADELIVERY_REFERER)
-        self._sort_formats(m3u8_formats)
 
         if not m3u8_formats:
             duration = None
@@ -134,7 +120,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        static_assets_base = self._search_regex(r'staticAssetsBase:\"(.*?)\"', webpage, 'staticAssetsBase')
+        static_assets_base = self._search_regex(r'(/_nuxt/static/\d+)', webpage, 'staticAssetsBase')
         static_assets_base = f'https://sovietscloset.com{static_assets_base}'
 
         stream = self.parse_nuxt_jsonp(f'{static_assets_base}/video/{video_id}/payload.js', video_id, 'video')['stream']
@@ -193,7 +179,7 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        static_assets_base = self._search_regex(r'staticAssetsBase:\"(.*?)\"', webpage, 'staticAssetsBase')
+        static_assets_base = self._search_regex(r'(/_nuxt/static/\d+)', webpage, 'staticAssetsBase')
         static_assets_base = f'https://sovietscloset.com{static_assets_base}'
 
         sovietscloset = self.parse_nuxt_jsonp(f'{static_assets_base}/payload.js', playlist_id, 'global')['games']

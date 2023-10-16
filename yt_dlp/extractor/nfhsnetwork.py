@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 
@@ -127,7 +124,6 @@ class NFHSNetworkIE(InfoExtractor):
             video_id).get('video_url')
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', live=isLive)
-        self._sort_formats(formats, ['res', 'tbr'])
 
         return {
             'id': video_id,
@@ -140,5 +136,6 @@ class NFHSNetworkIE(InfoExtractor):
             'uploader_url': uploaderPage,
             'location': location,
             'upload_date': upload_date,
-            'is_live': isLive
+            'is_live': isLive,
+            '_format_sort_fields': ('res', 'tbr'),
         }

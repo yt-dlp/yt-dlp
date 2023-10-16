@@ -1,17 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import calendar
-import datetime
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    extract_timezone,
     int_or_none,
     parse_duration,
     parse_resolution,
     try_get,
+    unified_timestamp,
     url_or_none,
 )
 
@@ -87,7 +81,6 @@ class CCMAIE(InfoExtractor):
                 'url': media_url,
                 'vcodec': 'none' if media_type == 'audio' else None,
             })
-        self._sort_formats(formats)
 
         informacio = media['informacio']
         title = informacio['titol']
@@ -95,14 +88,8 @@ class CCMAIE(InfoExtractor):
         duration = int_or_none(durada.get('milisegons'), 1000) or parse_duration(durada.get('text'))
         tematica = try_get(informacio, lambda x: x['tematica']['text'])
 
-        timestamp = None
         data_utc = try_get(informacio, lambda x: x['data_emissio']['utc'])
-        try:
-            timezone, data_utc = extract_timezone(data_utc)
-            timestamp = calendar.timegm((datetime.datetime.strptime(
-                data_utc, '%Y-%d-%mT%H:%M:%S') - timezone).timetuple())
-        except TypeError:
-            pass
+        timestamp = unified_timestamp(data_utc)
 
         subtitles = {}
         subtitols = media.get('subtitols') or []

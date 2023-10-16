@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -39,11 +37,7 @@ class EroProfileIE(InfoExtractor):
         'skip': 'Requires login',
     }]
 
-    def _login(self):
-        (username, password) = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         query = compat_urllib_parse_urlencode({
             'username': username,
             'password': password,
@@ -61,9 +55,6 @@ class EroProfileIE(InfoExtractor):
         redirect_url = self._search_regex(
             r'<script[^>]+?src="([^"]+)"', login_page, 'login redirect url')
         self._download_webpage(redirect_url, None, False)
-
-    def _real_initialize(self):
-        self._login()
 
     def _real_extract(self, url):
         display_id = self._match_id(url)

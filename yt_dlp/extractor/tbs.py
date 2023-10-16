@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .turner import TurnerBaseIE
@@ -16,7 +13,7 @@ from ..utils import (
 
 
 class TBSIE(TurnerBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?P<site>tbs|tntdrama)\.com(?P<path>/(?:movies|watchtnt|shows/[^/]+/(?:clips|season-\d+/episode-\d+))/(?P<id>[^/?#]+))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<site>tbs|tntdrama)\.com(?P<path>/(?:movies|watchtnt|watchtbs|shows/[^/]+/(?:clips|season-\d+/episode-\d+))/(?P<id>[^/?#]+))'
     _TESTS = [{
         'url': 'http://www.tntdrama.com/shows/the-alienist/clips/monster',
         'info_dict': {
@@ -45,7 +42,7 @@ class TBSIE(TurnerBaseIE):
         drupal_settings = self._parse_json(self._search_regex(
             r'<script[^>]+?data-drupal-selector="drupal-settings-json"[^>]*?>({.+?})</script>',
             webpage, 'drupal setting'), display_id)
-        isLive = 'watchtnt' in path
+        isLive = 'watchtnt' in path or 'watchtbs' in path
         video_data = next(v for v in drupal_settings['turner_playlist'] if isLive or v.get('url') == path)
 
         media_id = video_data['mediaID']

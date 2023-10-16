@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .telecinco import TelecincoIE
 from ..utils import (
     int_or_none,
@@ -8,7 +5,7 @@ from ..utils import (
 )
 
 
-class MiTeleIE(TelecincoIE):
+class MiTeleIE(TelecincoIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'mitele.es'
     _VALID_URL = r'https?://(?:www\.)?mitele\.es/(?:[^/]+/)+(?P<id>[^/]+)/player'
 

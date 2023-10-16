@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -108,7 +104,7 @@ class PalcoMP3ArtistIE(PalcoMP3BaseIE):
     }
     name'''
 
-    @ classmethod
+    @classmethod
     def suitable(cls, url):
         return False if PalcoMP3IE._match_valid_url(url) else super(PalcoMP3ArtistIE, cls).suitable(url)
 

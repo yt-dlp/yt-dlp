@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .adobepass import AdobePassIE
 from ..utils import (
     update_url_query,
@@ -25,6 +23,7 @@ class SyfyIE(AdobePassIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'Redirects to main page',
     }]
 
     def _real_extract(self, url):

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -119,7 +116,6 @@ class XuiteIE(InfoExtractor):
                 'format_id': format_id,
                 'height': int(format_id) if format_id.isnumeric() else None,
             })
-        self._sort_formats(formats)
 
         timestamp = media_info.get('PUBLISH_DATETIME')
         if timestamp:

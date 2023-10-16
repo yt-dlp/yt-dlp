@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -51,7 +49,6 @@ class MetacriticIE(InfoExtractor):
                 'format_id': rate_str,
                 'tbr': int(rate_str),
             })
-        self._sort_formats(formats)
 
         description = self._html_search_regex(r'<b>Description:</b>(.*?)</p>',
                                               webpage, 'description', flags=re.DOTALL)

@@ -1,12 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_chr,
-)
+from ..compat import compat_b64decode
 from ..utils import int_or_none
 
 
@@ -54,7 +47,7 @@ class PopcorntimesIE(InfoExtractor):
                 c_ord += 13
                 if upper < c_ord:
                     c_ord -= 26
-            loc_b64 += compat_chr(c_ord)
+            loc_b64 += chr(c_ord)
 
         video_url = compat_b64decode(loc_b64).decode('utf-8')
 

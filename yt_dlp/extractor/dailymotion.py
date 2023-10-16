@@ -1,20 +1,19 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     age_restricted,
     clean_html,
-    ExtractorError,
     int_or_none,
-    OnDemandPagedList,
+    traverse_obj,
     try_get,
     unescapeHTML,
+    unsmuggle_url,
     urlencode_postdata,
 )
 
@@ -69,9 +68,9 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
                         None, 'Downloading Access Token',
                         data=urlencode_postdata(data))['access_token']
                 except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                         raise ExtractorError(self._parse_json(
-                            e.cause.read().decode(), xid)['error_description'], expected=True)
+                            e.cause.response.read().decode(), xid)['error_description'], expected=True)
                     raise
                 self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
             self._HEADERS['Authorization'] = 'Bearer ' + token
@@ -94,12 +93,13 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:embed|swf|\#)/)?video|swf)|
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
-                        /(?P<id>[^/?_]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                        [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
     IE_NAME = 'dailymotion'
+    _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
     _TESTS = [{
         'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
         'md5': '074b95bdee76b9e3654137aee9c79dfe',
@@ -115,6 +115,25 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'uploader_id': 'x1xm8ri',
             'age_limit': 0,
         },
+    }, {
+        'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
+        'md5': 'e2f9717c6604773f963f069ca53a07f8',
+        'info_dict': {
+            'id': 'x89eyek',
+            'ext': 'mp4',
+            'title': "En quête d'esprit du 27/03/2022",
+            'description': 'md5:66542b9f4df2eb23f314fc097488e553',
+            'duration': 2756,
+            'timestamp': 1648383669,
+            'upload_date': '20220327',
+            'uploader': 'CNEWS',
+            'uploader_id': 'x24vth',
+            'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+            'tags': ['en_quete_d_esprit'],
+            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+        }
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
         'md5': '2137c41a8e78554bb09225b8eb322406',
@@ -190,29 +209,23 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
       }
       xid'''
 
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        # Look for embedded Dailymotion player
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         # https://developer.dailymotion.com/player#player-parameters
-        for mobj in re.finditer(
-                r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1', webpage):
-            urls.append(unescapeHTML(mobj.group('url')))
+        yield from super()._extract_embed_urls(url, webpage)
         for mobj in re.finditer(
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
-            urls.append('https://www.dailymotion.com/embed/video/' + mobj.group('id'))
-        return urls
+            yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url)
         video_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
-            if not self.get_param('noplaylist'):
-                self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % playlist_id)
+            if self._yes_playlist(playlist_id, video_id):
                 return self.url_result(
                     'http://www.dailymotion.com/playlist/' + playlist_id,
                     'DailymotionPlaylist', playlist_id)
-            self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
         password = self.get_param('videopassword')
         media = self._call_api(
@@ -238,7 +251,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         metadata = self._download_json(
             'https://www.dailymotion.com/player/metadata/video/' + xid,
             xid, 'Downloading metadata JSON',
-            query={'app': 'com.dailymotion.neon'})
+            query=traverse_obj(smuggled_data, 'query') or {'app': 'com.dailymotion.neon'})
 
         error = metadata.get('error')
         if error:
@@ -261,9 +274,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     continue
                 if media_type == 'application/x-mpegURL':
                     formats.extend(self._extract_m3u8_formats(
-                        media_url, video_id, 'mp4',
-                        'm3u8' if is_live else 'm3u8_native',
-                        m3u8_id='hls', fatal=False))
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
                 else:
                     f = {
                         'url': media_url,
@@ -282,7 +293,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             f['url'] = f['url'].split('#')[0]
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
-        self._sort_formats(formats)
 
         subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
@@ -305,7 +315,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': clean_html(media.get('description')),
             'thumbnails': thumbnails,
             'duration': int_or_none(metadata.get('duration')) or None,
@@ -362,6 +372,15 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
         'playlist_mincount': 20,
     }]
     _OBJECT_TYPE = 'collection'
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        # Look for embedded Dailymotion playlist player (#3822)
+        for mobj in re.finditer(
+                r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.[a-z]{2,3}/widget/jukebox\?.+?)\1',
+                webpage):
+            for p in re.findall(r'list\[\]=/playlist/([^/]+)/', unescapeHTML(mobj.group('url'))):
+                yield '//dailymotion.com/playlist/%s' % p
 
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):

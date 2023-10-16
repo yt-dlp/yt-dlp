@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -97,8 +94,6 @@ class KonserthusetPlayIE(InfoExtractor):
             formats.append({
                 'url': fallback_url,
             })
-
-        self._sort_formats(formats)
 
         title = player_config.get('title') or media['title']
         description = player_config.get('mediaInfo', {}).get('description')

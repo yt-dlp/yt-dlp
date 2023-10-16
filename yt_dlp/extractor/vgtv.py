@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -12,11 +9,12 @@ from ..utils import (
 )
 
 
-class VGTVIE(XstreamIE):
+class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'VGTV, BTTV, FTV, Aftenposten and Aftonbladet'
     _GEO_BYPASS = False
 
     _HOST_TO_APPNAME = {
+        'tv.vg.no': 'vgtv',
         'vgtv.no': 'vgtv',
         'bt.no/tv': 'bttv',
         'aftenbladet.no/tv': 'satv',
@@ -130,6 +128,10 @@ class VGTVIE(XstreamIE):
             },
         },
         {
+            'url': 'https://tv.vg.no/video/241779/politiets-ekstremkjoering',
+            'only_matching': True,
+        },
+        {
             'url': 'http://www.bt.no/tv/#!/video/100250/norling-dette-er-forskjellen-paa-1-divisjon-og-eliteserien',
             'only_matching': True,
         },
@@ -195,9 +197,7 @@ class VGTVIE(XstreamIE):
         hls_url = streams.get('hls')
         if hls_url:
             formats.extend(self._extract_m3u8_formats(
-                hls_url, video_id, 'mp4',
-                entry_protocol='m3u8' if is_live else 'm3u8_native',
-                m3u8_id='hls', fatal=False))
+                hls_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
 
         hds_url = streams.get('hds')
         if hds_url:
@@ -238,11 +238,9 @@ class VGTVIE(XstreamIE):
                 raise self.raise_geo_restricted(
                     countries=[host.rpartition('.')[-1].partition('/')[0].upper()])
 
-        self._sort_formats(info['formats'])
-
         info.update({
             'id': video_id,
-            'title': self._live_title(data['title']) if is_live else data['title'],
+            'title': data['title'],
             'description': data['description'],
             'thumbnail': data['images']['main'] + '?t[]=900x506q80',
             'timestamp': data['published'],

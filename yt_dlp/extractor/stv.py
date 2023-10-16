@@ -1,10 +1,6 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
-    compat_str,
     float_or_none,
     int_or_none,
     smuggle_url,
@@ -45,10 +41,7 @@ class STVPlayerIE(InfoExtractor):
         ptype, video_id = self._match_valid_url(url).groups()
 
         webpage = self._download_webpage(url, video_id, fatal=False) or ''
-        props = (self._parse_json(self._search_regex(
-            r'<script[^>]+id="__NEXT_DATA__"[^>]*>({.+?})</script>',
-            webpage, 'next data', default='{}'), video_id,
-            fatal=False) or {}).get('props') or {}
+        props = self._search_nextjs_data(webpage, video_id, default='{}').get('props') or {}
         player_api_cache = try_get(
             props, lambda x: x['initialReduxState']['playerApiCache']) or {}
 
@@ -80,6 +73,8 @@ class STVPlayerIE(InfoExtractor):
             })
 
         programme = result.get('programme') or {}
+        if programme.get('drmEnabled'):
+            self.report_drm(video_id)
 
         return {
             '_type': 'url_transparent',

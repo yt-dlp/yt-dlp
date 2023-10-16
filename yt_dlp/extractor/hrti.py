@@ -1,16 +1,13 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking import Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
     int_or_none,
     parse_age_limit,
-    sanitized_Request,
     try_get,
 )
 
@@ -27,8 +24,9 @@ class HRTiBaseIE(InfoExtractor):
     _APP_VERSION = '1.1'
     _APP_PUBLICATION_ID = 'all_in_one'
     _API_URL = 'http://clientapi.hrt.hr/client_api.php/config/identify/format/json'
+    _token = None
 
-    def _initialize_api(self):
+    def _initialize_pre_login(self):
         init_data = {
             'application_publication_id': self._APP_PUBLICATION_ID
         }
@@ -44,7 +42,7 @@ class HRTiBaseIE(InfoExtractor):
             'application_version': self._APP_VERSION
         }
 
-        req = sanitized_Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
+        req = Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
         req.get_method = lambda: 'PUT'
 
         resources = self._download_json(
@@ -64,12 +62,7 @@ class HRTiBaseIE(InfoExtractor):
 
         self._logout_url = modules['user']['resources']['logout']['uri']
 
-    def _login(self):
-        username, password = self._get_login_info()
-        # TODO: figure out authentication with cookies
-        if username is None or password is None:
-            self.raise_login_required()
-
+    def _perform_login(self, username, password):
         auth_data = {
             'username': username,
             'password': password,
@@ -80,8 +73,8 @@ class HRTiBaseIE(InfoExtractor):
                 self._login_url, None, note='Logging in', errnote='Unable to log in',
                 data=json.dumps(auth_data).encode('utf-8'))
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 406:
-                auth_info = self._parse_json(e.cause.read().encode('utf-8'), None)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 406:
+                auth_info = self._parse_json(e.cause.response.read().encode('utf-8'), None)
             else:
                 raise
 
@@ -94,8 +87,9 @@ class HRTiBaseIE(InfoExtractor):
         self._token = auth_info['secure_streaming_token']
 
     def _real_initialize(self):
-        self._initialize_api()
-        self._login()
+        if not self._token:
+            # TODO: figure out authentication with cookies
+            self.raise_login_required(method='password')
 
 
 class HRTiIE(HRTiBaseIE):
@@ -150,7 +144,6 @@ class HRTiIE(HRTiBaseIE):
         formats = self._extract_m3u8_formats(
             m3u8_url, display_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls')
-        self._sort_formats(formats)
 
         description = clean_html(title_info.get('summary_long'))
         age_limit = parse_age_limit(video.get('parental_control', {}).get('rating'))

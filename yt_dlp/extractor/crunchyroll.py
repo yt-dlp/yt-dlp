@@ -1,700 +1,650 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import base64
 
-import re
-import json
-import zlib
-
-from hashlib import sha1
-from math import pow, sqrt, floor
 from .common import InfoExtractor
-from .vrv import VRVIE
-from ..compat import (
-    compat_b64decode,
-    compat_etree_Element,
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_urlencode,
-    compat_urllib_request,
-    compat_urlparse,
-)
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    bytes_to_intlist,
-    extract_attributes,
     float_or_none,
-    intlist_to_bytes,
+    format_field,
     int_or_none,
-    lowercase_escape,
-    merge_dicts,
-    remove_end,
-    sanitized_Request,
-    try_get,
+    join_nonempty,
+    parse_age_limit,
+    parse_count,
+    parse_iso8601,
+    qualities,
+    remove_start,
+    time_seconds,
+    traverse_obj,
+    url_or_none,
     urlencode_postdata,
-    xpath_text,
-)
-from ..aes import (
-    aes_cbc_decrypt,
 )
 
 
 class CrunchyrollBaseIE(InfoExtractor):
-    _LOGIN_URL = 'https://www.crunchyroll.com/login'
-    _LOGIN_FORM = 'login_form'
+    _BASE_URL = 'https://www.crunchyroll.com'
+    _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
-
-    def _call_rpc_api(self, method, video_id, note=None, data=None):
-        data = data or {}
-        data['req'] = 'RpcApi' + method
-        data = compat_urllib_parse_urlencode(data).encode('utf-8')
-        return self._download_xml(
-            'https://www.crunchyroll.com/xml/',
-            video_id, note, fatal=False, data=data, headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-            })
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-
-        def is_logged(webpage):
-            return 'href="/logout"' in webpage
-
-        # Already logged in
-        if is_logged(login_page):
-            return
-
-        login_form_str = self._search_regex(
-            r'(?P<form><form[^>]+?id=(["\'])%s\2[^>]*>)' % self._LOGIN_FORM,
-            login_page, 'login form', group='form')
-
-        post_url = extract_attributes(login_form_str).get('action')
-        if not post_url:
-            post_url = self._LOGIN_URL
-        elif not post_url.startswith('http'):
-            post_url = compat_urlparse.urljoin(self._LOGIN_URL, post_url)
-
-        login_form = self._form_hidden_inputs(self._LOGIN_FORM, login_page)
-
-        login_form.update({
-            'login_form[name]': username,
-            'login_form[password]': password,
-        })
-
-        response = self._download_webpage(
-            post_url, None, 'Logging in', 'Wrong login info',
-            data=urlencode_postdata(login_form),
-            headers={'Content-Type': 'application/x-www-form-urlencoded'})
-
-        # Successful login
-        if is_logged(response):
-            return
-
-        error = self._html_search_regex(
-            '(?s)<ul[^>]+class=["\']messages["\'][^>]*>(.+?)</ul>',
-            response, 'error message', default=None)
-        if error:
-            raise ExtractorError('Unable to login: %s' % error, expected=True)
-
-        raise ExtractorError('Unable to log in')
-
-    def _real_initialize(self):
-        self._login()
-
-    @staticmethod
-    def _add_skip_wall(url):
-        parsed_url = compat_urlparse.urlparse(url)
-        qs = compat_urlparse.parse_qs(parsed_url.query)
-        # Always force skip_wall to bypass maturity wall, namely 18+ confirmation message:
-        # > This content may be inappropriate for some people.
-        # > Are you sure you want to continue?
-        # since it's not disabled by default in crunchyroll account's settings.
-        # See https://github.com/ytdl-org/youtube-dl/issues/7202.
-        qs['skip_wall'] = ['1']
-        return compat_urlparse.urlunparse(
-            parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
-
-
-class CrunchyrollIE(CrunchyrollBaseIE, VRVIE):
-    IE_NAME = 'crunchyroll'
-    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.(?:com|fr)/(?:media(?:-|/\?id=)|(?:[^/]*/){1,2}[^/?&]*?)(?P<id>[0-9]+))(?:[/?&]|$)'
-    _TESTS = [{
-        'url': 'http://www.crunchyroll.com/wanna-be-the-strongest-in-the-world/episode-1-an-idol-wrestler-is-born-645513',
-        'info_dict': {
-            'id': '645513',
-            'ext': 'mp4',
-            'title': 'Wanna be the Strongest in the World Episode 1 – An Idol-Wrestler is Born!',
-            'description': 'md5:2d17137920c64f2f49981a7797d275ef',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': 'Yomiuri Telecasting Corporation (YTV)',
-            'upload_date': '20131013',
-            'url': 're:(?!.*&amp)',
-        },
-        'params': {
-            # rtmp
-            'skip_download': True,
-        },
-        'skip': 'Video gone',
-    }, {
-        'url': 'http://www.crunchyroll.com/media-589804/culture-japan-1',
-        'info_dict': {
-            'id': '589804',
-            'ext': 'flv',
-            'title': 'Culture Japan Episode 1 – Rebuilding Japan after the 3.11',
-            'description': 'md5:2fbc01f90b87e8e9137296f37b461c12',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': 'Danny Choo Network',
-            'upload_date': '20120213',
-        },
-        'params': {
-            # rtmp
-            'skip_download': True,
-        },
-        'skip': 'Video gone',
-    }, {
-        'url': 'http://www.crunchyroll.com/rezero-starting-life-in-another-world-/episode-5-the-morning-of-our-promise-is-still-distant-702409',
-        'info_dict': {
-            'id': '702409',
-            'ext': 'mp4',
-            'title': compat_str,
-            'description': compat_str,
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': 'Re:Zero Partners',
-            'timestamp': 1462098900,
-            'upload_date': '20160501',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://www.crunchyroll.com/konosuba-gods-blessing-on-this-wonderful-world/episode-1-give-me-deliverance-from-this-judicial-injustice-727589',
-        'info_dict': {
-            'id': '727589',
-            'ext': 'mp4',
-            'title': compat_str,
-            'description': compat_str,
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': 'Kadokawa Pictures Inc.',
-            'timestamp': 1484130900,
-            'upload_date': '20170111',
-            'series': compat_str,
-            'season': "KONOSUBA -God's blessing on this wonderful world! 2",
-            'season_number': 2,
-            'episode': 'Give Me Deliverance From This Judicial Injustice!',
-            'episode_number': 1,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://www.crunchyroll.fr/girl-friend-beta/episode-11-goodbye-la-mode-661697',
-        'only_matching': True,
-    }, {
-        # geo-restricted (US), 18+ maturity wall, non-premium available
-        'url': 'http://www.crunchyroll.com/cosplay-complex-ova/episode-1-the-birth-of-the-cosplay-club-565617',
-        'only_matching': True,
-    }, {
-        # A description with double quotes
-        'url': 'http://www.crunchyroll.com/11eyes/episode-1-piros-jszaka-red-night-535080',
-        'info_dict': {
-            'id': '535080',
-            'ext': 'mp4',
-            'title': compat_str,
-            'description': compat_str,
-            'uploader': 'Marvelous AQL Inc.',
-            'timestamp': 1255512600,
-            'upload_date': '20091014',
-        },
-        'params': {
-            # Just test metadata extraction
-            'skip_download': True,
-        },
-    }, {
-        # make sure we can extract an uploader name that's not a link
-        'url': 'http://www.crunchyroll.com/hakuoki-reimeiroku/episode-1-dawn-of-the-divine-warriors-606899',
-        'info_dict': {
-            'id': '606899',
-            'ext': 'mp4',
-            'title': 'Hakuoki Reimeiroku Episode 1 – Dawn of the Divine Warriors',
-            'description': 'Ryunosuke was left to die, but Serizawa-san asked him a simple question "Do you want to live?"',
-            'uploader': 'Geneon Entertainment',
-            'upload_date': '20120717',
-        },
-        'params': {
-            # just test metadata extraction
-            'skip_download': True,
-        },
-        'skip': 'Video gone',
-    }, {
-        # A video with a vastly different season name compared to the series name
-        'url': 'http://www.crunchyroll.com/nyarko-san-another-crawling-chaos/episode-1-test-590532',
-        'info_dict': {
-            'id': '590532',
-            'ext': 'mp4',
-            'title': compat_str,
-            'description': compat_str,
-            'uploader': 'TV TOKYO',
-            'timestamp': 1330956000,
-            'upload_date': '20120305',
-            'series': 'Nyarko-san: Another Crawling Chaos',
-            'season': 'Haiyoru! Nyaruani (ONA)',
-        },
-        'params': {
-            # Just test metadata extraction
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://www.crunchyroll.com/media-723735',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.crunchyroll.com/en-gb/mob-psycho-100/episode-2-urban-legends-encountering-rumors-780921',
-        'only_matching': True,
-    }]
-
-    _FORMAT_IDS = {
-        '360': ('60', '106'),
-        '480': ('61', '106'),
-        '720': ('62', '106'),
-        '1080': ('80', '108'),
+    _AUTH_HEADERS = None
+    _API_ENDPOINT = None
+    _BASIC_AUTH = None
+    _CLIENT_ID = ('cr_web', 'noaihdevm_6iyg0a8l0q')
+    _LOCALE_LOOKUP = {
+        'ar': 'ar-SA',
+        'de': 'de-DE',
+        '': 'en-US',
+        'es': 'es-419',
+        'es-es': 'es-ES',
+        'fr': 'fr-FR',
+        'it': 'it-IT',
+        'pt-br': 'pt-BR',
+        'pt-pt': 'pt-PT',
+        'ru': 'ru-RU',
+        'hi': 'hi-IN',
     }
 
-    def _download_webpage(self, url_or_request, *args, **kwargs):
-        request = (url_or_request if isinstance(url_or_request, compat_urllib_request.Request)
-                   else sanitized_Request(url_or_request))
-        # Accept-Language must be set explicitly to accept any language to avoid issues
-        # similar to https://github.com/ytdl-org/youtube-dl/issues/6797.
-        # Along with IP address Crunchyroll uses Accept-Language to guess whether georestriction
-        # should be imposed or not (from what I can see it just takes the first language
-        # ignoring the priority and requires it to correspond the IP). By the way this causes
-        # Crunchyroll to not work in georestriction cases in some browsers that don't place
-        # the locale lang first in header. However allowing any language seems to workaround the issue.
-        request.add_header('Accept-Language', '*')
-        return super(CrunchyrollBaseIE, self)._download_webpage(request, *args, **kwargs)
+    @property
+    def is_logged_in(self):
+        return bool(self._get_cookies(self._BASE_URL).get('etp_rt'))
 
-    def _decrypt_subtitles(self, data, iv, id):
-        data = bytes_to_intlist(compat_b64decode(data))
-        iv = bytes_to_intlist(compat_b64decode(iv))
-        id = int(id)
+    def _perform_login(self, username, password):
+        if self.is_logged_in:
+            return
 
-        def obfuscate_key_aux(count, modulo, start):
-            output = list(start)
-            for _ in range(count):
-                output.append(output[-1] + output[-2])
-            # cut off start values
-            output = output[2:]
-            output = list(map(lambda x: x % modulo + 33, output))
-            return output
+        upsell_response = self._download_json(
+            f'{self._API_BASE}/get_upsell_data.0.json', None, 'Getting session id',
+            query={
+                'sess_id': 1,
+                'device_id': 'whatvalueshouldbeforweb',
+                'device_type': 'com.crunchyroll.static',
+                'access_token': 'giKq5eY27ny3cqz',
+                'referer': f'{self._BASE_URL}/welcome/login'
+            })
+        if upsell_response['code'] != 'ok':
+            raise ExtractorError('Could not get session id')
+        session_id = upsell_response['data']['session_id']
 
-        def obfuscate_key(key):
-            num1 = int(floor(pow(2, 25) * sqrt(6.9)))
-            num2 = (num1 ^ key) << 5
-            num3 = key ^ num1
-            num4 = num3 ^ (num3 >> 3) ^ num2
-            prefix = intlist_to_bytes(obfuscate_key_aux(20, 97, (1, 2)))
-            shaHash = bytes_to_intlist(sha1(prefix + str(num4).encode('ascii')).digest())
-            # Extend 160 Bit hash to 256 Bit
-            return shaHash + [0] * 12
+        login_response = self._download_json(
+            f'{self._API_BASE}/login.1.json', None, 'Logging in',
+            data=urlencode_postdata({
+                'account': username,
+                'password': password,
+                'session_id': session_id
+            }))
+        if login_response['code'] != 'ok':
+            raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
+        if not self.is_logged_in:
+            raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
-        key = obfuscate_key(id)
+    def _update_auth(self):
+        if CrunchyrollBaseIE._AUTH_HEADERS and CrunchyrollBaseIE._AUTH_REFRESH > time_seconds():
+            return
 
-        decrypted_data = intlist_to_bytes(aes_cbc_decrypt(data, key, iv))
-        return zlib.decompress(decrypted_data)
+        if not CrunchyrollBaseIE._BASIC_AUTH:
+            cx_api_param = self._CLIENT_ID[self.is_logged_in]
+            self.write_debug(f'Using cxApiParam={cx_api_param}')
+            CrunchyrollBaseIE._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
 
-    def _convert_subtitles_to_srt(self, sub_root):
-        output = ''
+        grant_type = 'etp_rt_cookie' if self.is_logged_in else 'client_id'
+        try:
+            auth_response = self._download_json(
+                f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
+                headers={'Authorization': CrunchyrollBaseIE._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 403:
+                raise ExtractorError(
+                    'Request blocked by Cloudflare; navigate to Crunchyroll in your browser, '
+                    'then pass the fresh cookies (with --cookies-from-browser or --cookies) '
+                    'and your browser\'s User-Agent (with --user-agent)', expected=True)
+            raise
 
-        for i, event in enumerate(sub_root.findall('./events/event'), 1):
-            start = event.attrib['start'].replace('.', ',')
-            end = event.attrib['end'].replace('.', ',')
-            text = event.attrib['text'].replace('\\N', '\n')
-            output += '%d\n%s --> %s\n%s\n\n' % (i, start, end, text)
-        return output
+        CrunchyrollBaseIE._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
+        CrunchyrollBaseIE._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
-    def _convert_subtitles_to_ass(self, sub_root):
-        output = ''
+    def _locale_from_language(self, language):
+        config_locale = self._configuration_arg('metadata', ie_key=CrunchyrollBetaIE, casesense=True)
+        return config_locale[0] if config_locale else self._LOCALE_LOOKUP.get(language)
 
-        def ass_bool(strvalue):
-            assvalue = '0'
-            if strvalue == '1':
-                assvalue = '-1'
-            return assvalue
+    def _call_base_api(self, endpoint, internal_id, lang, note=None, query={}):
+        self._update_auth()
 
-        output = '[Script Info]\n'
-        output += 'Title: %s\n' % sub_root.attrib['title']
-        output += 'ScriptType: v4.00+\n'
-        output += 'WrapStyle: %s\n' % sub_root.attrib['wrap_style']
-        output += 'PlayResX: %s\n' % sub_root.attrib['play_res_x']
-        output += 'PlayResY: %s\n' % sub_root.attrib['play_res_y']
-        output += """
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-"""
-        for style in sub_root.findall('./styles/style'):
-            output += 'Style: ' + style.attrib['name']
-            output += ',' + style.attrib['font_name']
-            output += ',' + style.attrib['font_size']
-            output += ',' + style.attrib['primary_colour']
-            output += ',' + style.attrib['secondary_colour']
-            output += ',' + style.attrib['outline_colour']
-            output += ',' + style.attrib['back_colour']
-            output += ',' + ass_bool(style.attrib['bold'])
-            output += ',' + ass_bool(style.attrib['italic'])
-            output += ',' + ass_bool(style.attrib['underline'])
-            output += ',' + ass_bool(style.attrib['strikeout'])
-            output += ',' + style.attrib['scale_x']
-            output += ',' + style.attrib['scale_y']
-            output += ',' + style.attrib['spacing']
-            output += ',' + style.attrib['angle']
-            output += ',' + style.attrib['border_style']
-            output += ',' + style.attrib['outline']
-            output += ',' + style.attrib['shadow']
-            output += ',' + style.attrib['alignment']
-            output += ',' + style.attrib['margin_l']
-            output += ',' + style.attrib['margin_r']
-            output += ',' + style.attrib['margin_v']
-            output += ',' + style.attrib['encoding']
-            output += '\n'
+        if not endpoint.startswith('/'):
+            endpoint = f'/{endpoint}'
 
-        output += """
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-"""
-        for event in sub_root.findall('./events/event'):
-            output += 'Dialogue: 0'
-            output += ',' + event.attrib['start']
-            output += ',' + event.attrib['end']
-            output += ',' + event.attrib['style']
-            output += ',' + event.attrib['name']
-            output += ',' + event.attrib['margin_l']
-            output += ',' + event.attrib['margin_r']
-            output += ',' + event.attrib['margin_v']
-            output += ',' + event.attrib['effect']
-            output += ',' + event.attrib['text']
-            output += '\n'
+        query = query.copy()
+        locale = self._locale_from_language(lang)
+        if locale:
+            query['locale'] = locale
 
-        return output
+        return self._download_json(
+            f'{self._BASE_URL}{endpoint}', internal_id, note or f'Calling API: {endpoint}',
+            headers=CrunchyrollBaseIE._AUTH_HEADERS, query=query)
 
-    def _extract_subtitles(self, subtitle):
-        sub_root = compat_etree_fromstring(subtitle)
-        return [{
-            'ext': 'srt',
-            'data': self._convert_subtitles_to_srt(sub_root),
-        }, {
-            'ext': 'ass',
-            'data': self._convert_subtitles_to_ass(sub_root),
-        }]
+    def _call_api(self, path, internal_id, lang, note='api', query={}):
+        if not path.startswith(f'/content/v2/{self._API_ENDPOINT}/'):
+            path = f'/content/v2/{self._API_ENDPOINT}/{path}'
 
-    def _get_subtitles(self, video_id, webpage):
+        try:
+            result = self._call_base_api(
+                path, internal_id, lang, f'Downloading {note} JSON ({self._API_ENDPOINT})', query=query)
+        except ExtractorError as error:
+            if isinstance(error.cause, HTTPError) and error.cause.status == 404:
+                return None
+            raise
+
+        if not result:
+            raise ExtractorError(f'Unexpected response when downloading {note} JSON')
+        return result
+
+    def _extract_formats(self, stream_response, display_id=None):
+        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
+        available_formats = {}
+        for stream_type, streams in traverse_obj(
+                stream_response, (('streams', ('data', 0)), {dict.items}, ...)):
+            if stream_type not in requested_formats:
+                continue
+            for stream in traverse_obj(streams, lambda _, v: v['url']):
+                hardsub_lang = stream.get('hardsub_locale') or ''
+                format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
+                available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
+
+        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
+        if '' in available_formats and 'all' not in requested_hardsubs:
+            full_format_langs = set(requested_hardsubs)
+            self.to_screen(
+                'To get all formats of a hardsub language, use '
+                '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
+                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
+                only_once=True)
+        else:
+            full_format_langs = set(map(str.lower, available_formats))
+
+        audio_locale = traverse_obj(stream_response, ((None, 'meta'), 'audio_locale'), get_all=False)
+        hardsub_preference = qualities(requested_hardsubs[::-1])
+        formats = []
+        for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
+            if stream_type.endswith('hls'):
+                if hardsub_lang.lower() in full_format_langs:
+                    adaptive_formats = self._extract_m3u8_formats(
+                        stream_url, display_id, 'mp4', m3u8_id=format_id,
+                        fatal=False, note=f'Downloading {format_id} HLS manifest')
+                else:
+                    adaptive_formats = (self._m3u8_meta_format(stream_url, ext='mp4', m3u8_id=format_id),)
+            elif stream_type.endswith('dash'):
+                adaptive_formats = self._extract_mpd_formats(
+                    stream_url, display_id, mpd_id=format_id,
+                    fatal=False, note=f'Downloading {format_id} MPD manifest')
+            else:
+                self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
+                continue
+            for f in adaptive_formats:
+                if f.get('acodec') != 'none':
+                    f['language'] = audio_locale
+                f['quality'] = hardsub_preference(hardsub_lang.lower())
+            formats.extend(adaptive_formats)
+
+        return formats
+
+    def _extract_subtitles(self, data):
         subtitles = {}
-        for sub_id, sub_name in re.findall(r'\bssid=([0-9]+)"[^>]+?\btitle="([^"]+)', webpage):
-            sub_doc = self._call_rpc_api(
-                'Subtitle_GetXml', video_id,
-                'Downloading subtitles for ' + sub_name, data={
-                    'subtitle_script_id': sub_id,
-                })
-            if not isinstance(sub_doc, compat_etree_Element):
-                continue
-            sid = sub_doc.get('id')
-            iv = xpath_text(sub_doc, 'iv', 'subtitle iv')
-            data = xpath_text(sub_doc, 'data', 'subtitle data')
-            if not sid or not iv or not data:
-                continue
-            subtitle = self._decrypt_subtitles(data, iv, sid).decode('utf-8')
-            lang_code = self._search_regex(r'lang_code=["\']([^"\']+)', subtitle, 'subtitle_lang_code', fatal=False)
-            if not lang_code:
-                continue
-            subtitles[lang_code] = self._extract_subtitles(subtitle)
+
+        for locale, subtitle in traverse_obj(data, ((None, 'meta'), 'subtitles', {dict.items}, ...)):
+            subtitles[locale] = [traverse_obj(subtitle, {'url': 'url', 'ext': 'format'})]
+
         return subtitles
 
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
 
-        if mobj.group('prefix') == 'm':
-            mobile_webpage = self._download_webpage(url, video_id, 'Downloading mobile webpage')
-            webpage_url = self._search_regex(r'<link rel="canonical" href="([^"]+)" />', mobile_webpage, 'webpage_url')
-        else:
-            webpage_url = 'http://www.' + mobj.group('url')
+class CrunchyrollCmsBaseIE(CrunchyrollBaseIE):
+    _API_ENDPOINT = 'cms'
+    _CMS_EXPIRY = None
 
-        webpage = self._download_webpage(
-            self._add_skip_wall(webpage_url), video_id,
-            headers=self.geo_verification_headers())
-        note_m = self._html_search_regex(
-            r'<div class="showmedia-trailer-notice">(.+?)</div>',
-            webpage, 'trailer-notice', default='')
-        if note_m:
-            raise ExtractorError(note_m, expected=True)
+    def _call_cms_api_signed(self, path, internal_id, lang, note='api'):
+        if not CrunchyrollCmsBaseIE._CMS_EXPIRY or CrunchyrollCmsBaseIE._CMS_EXPIRY <= time_seconds():
+            response = self._call_base_api('index/v2', None, lang, 'Retrieving signed policy')['cms_web']
+            CrunchyrollCmsBaseIE._CMS_QUERY = {
+                'Policy': response['policy'],
+                'Signature': response['signature'],
+                'Key-Pair-Id': response['key_pair_id'],
+            }
+            CrunchyrollCmsBaseIE._CMS_BUCKET = response['bucket']
+            CrunchyrollCmsBaseIE._CMS_EXPIRY = parse_iso8601(response['expires']) - 10
 
-        mobj = re.search(r'Page\.messaging_box_controller\.addItems\(\[(?P<msg>{.+?})\]\)', webpage)
-        if mobj:
-            msg = json.loads(mobj.group('msg'))
-            if msg.get('type') == 'error':
-                raise ExtractorError('crunchyroll returned error: %s' % msg['message_body'], expected=True)
+        if not path.startswith('/cms/v2'):
+            path = f'/cms/v2{CrunchyrollCmsBaseIE._CMS_BUCKET}/{path}'
 
-        if 'To view this, please log in to verify you are 18 or older.' in webpage:
-            self.raise_login_required()
-
-        media = self._parse_json(self._search_regex(
-            r'vilos\.config\.media\s*=\s*({.+?});',
-            webpage, 'vilos media', default='{}'), video_id)
-        media_metadata = media.get('metadata') or {}
-
-        language = self._search_regex(
-            r'(?:vilos\.config\.player\.language|LOCALE)\s*=\s*(["\'])(?P<lang>(?:(?!\1).)+)\1',
-            webpage, 'language', default=None, group='lang')
-
-        video_title = self._html_search_regex(
-            (r'(?s)<h1[^>]*>((?:(?!<h1).)*?<(?:span[^>]+itemprop=["\']title["\']|meta[^>]+itemprop=["\']position["\'])[^>]*>(?:(?!<h1).)+?)</h1>',
-             r'<title>(.+?),\s+-\s+.+? Crunchyroll'),
-            webpage, 'video_title', default=None)
-        if not video_title:
-            video_title = re.sub(r'^Watch\s+', '', self._og_search_description(webpage))
-        video_title = re.sub(r' {2,}', ' ', video_title)
-        video_description = (self._parse_json(self._html_search_regex(
-            r'<script[^>]*>\s*.+?\[media_id=%s\].+?({.+?"description"\s*:.+?})\);' % video_id,
-            webpage, 'description', default='{}'), video_id) or media_metadata).get('description')
-
-        thumbnails = []
-        thumbnail_url = (self._parse_json(self._html_search_regex(
-            r'<script type="application\/ld\+json">\n\s*(.+?)<\/script>',
-            webpage, 'thumbnail_url', default='{}'), video_id)).get('image')
-        if thumbnail_url:
-            thumbnails.append({
-                'url': thumbnail_url,
-                'width': 1920,
-                'height': 1080
-            })
-
-        if video_description:
-            video_description = lowercase_escape(video_description.replace(r'\r\n', '\n'))
-        video_uploader = self._html_search_regex(
-            # try looking for both an uploader that's a link and one that's not
-            [r'<a[^>]+href="/publisher/[^"]+"[^>]*>([^<]+)</a>', r'<div>\s*Publisher:\s*<span>\s*(.+?)\s*</span>\s*</div>'],
-            webpage, 'video_uploader', default=False)
-
-        formats = []
-        for stream in media.get('streams', []):
-            audio_lang = stream.get('audio_lang')
-            hardsub_lang = stream.get('hardsub_lang')
-            vrv_formats = self._extract_vrv_formats(
-                stream.get('url'), video_id, stream.get('format'),
-                audio_lang, hardsub_lang)
-            for f in vrv_formats:
-                f['language_preference'] = 1 if audio_lang == language else 0
-                f['quality'] = (
-                    1 if not hardsub_lang
-                    else 0 if hardsub_lang == language
-                    else -1)
-            formats.extend(vrv_formats)
-        if not formats:
-            available_fmts = []
-            for a, fmt in re.findall(r'(<a[^>]+token=["\']showmedia\.([0-9]{3,4})p["\'][^>]+>)', webpage):
-                attrs = extract_attributes(a)
-                href = attrs.get('href')
-                if href and '/freetrial' in href:
-                    continue
-                available_fmts.append(fmt)
-            if not available_fmts:
-                for p in (r'token=["\']showmedia\.([0-9]{3,4})p"', r'showmedia\.([0-9]{3,4})p'):
-                    available_fmts = re.findall(p, webpage)
-                    if available_fmts:
-                        break
-            if not available_fmts:
-                available_fmts = self._FORMAT_IDS.keys()
-            video_encode_ids = []
-
-            for fmt in available_fmts:
-                stream_quality, stream_format = self._FORMAT_IDS[fmt]
-                video_format = fmt + 'p'
-                stream_infos = []
-                streamdata = self._call_rpc_api(
-                    'VideoPlayer_GetStandardConfig', video_id,
-                    'Downloading media info for %s' % video_format, data={
-                        'media_id': video_id,
-                        'video_format': stream_format,
-                        'video_quality': stream_quality,
-                        'current_page': url,
-                    })
-                if isinstance(streamdata, compat_etree_Element):
-                    stream_info = streamdata.find('./{default}preload/stream_info')
-                    if stream_info is not None:
-                        stream_infos.append(stream_info)
-                stream_info = self._call_rpc_api(
-                    'VideoEncode_GetStreamInfo', video_id,
-                    'Downloading stream info for %s' % video_format, data={
-                        'media_id': video_id,
-                        'video_format': stream_format,
-                        'video_encode_quality': stream_quality,
-                    })
-                if isinstance(stream_info, compat_etree_Element):
-                    stream_infos.append(stream_info)
-                for stream_info in stream_infos:
-                    video_encode_id = xpath_text(stream_info, './video_encode_id')
-                    if video_encode_id in video_encode_ids:
-                        continue
-                    video_encode_ids.append(video_encode_id)
-
-                    video_file = xpath_text(stream_info, './file')
-                    if not video_file:
-                        continue
-                    if video_file.startswith('http'):
-                        formats.extend(self._extract_m3u8_formats(
-                            video_file, video_id, 'mp4', entry_protocol='m3u8_native',
-                            m3u8_id='hls', fatal=False))
-                        continue
-
-                    video_url = xpath_text(stream_info, './host')
-                    if not video_url:
-                        continue
-                    metadata = stream_info.find('./metadata')
-                    format_info = {
-                        'format': video_format,
-                        'height': int_or_none(xpath_text(metadata, './height')),
-                        'width': int_or_none(xpath_text(metadata, './width')),
-                    }
-
-                    if '.fplive.net/' in video_url:
-                        video_url = re.sub(r'^rtmpe?://', 'http://', video_url.strip())
-                        parsed_video_url = compat_urlparse.urlparse(video_url)
-                        direct_video_url = compat_urlparse.urlunparse(parsed_video_url._replace(
-                            netloc='v.lvlt.crcdn.net',
-                            path='%s/%s' % (remove_end(parsed_video_url.path, '/'), video_file.split(':')[-1])))
-                        if self._is_valid_url(direct_video_url, video_id, video_format):
-                            format_info.update({
-                                'format_id': 'http-' + video_format,
-                                'url': direct_video_url,
-                            })
-                            formats.append(format_info)
-                            continue
-
-                    format_info.update({
-                        'format_id': 'rtmp-' + video_format,
-                        'url': video_url,
-                        'play_path': video_file,
-                        'ext': 'flv',
-                    })
-                    formats.append(format_info)
-        self._sort_formats(formats)
-
-        metadata = self._call_rpc_api(
-            'VideoPlayer_GetMediaMetadata', video_id,
-            note='Downloading media info', data={
-                'media_id': video_id,
-            })
-
-        subtitles = {}
-        for subtitle in media.get('subtitles', []):
-            subtitle_url = subtitle.get('url')
-            if not subtitle_url:
-                continue
-            subtitles.setdefault(subtitle.get('language', 'enUS'), []).append({
-                'url': subtitle_url,
-                'ext': subtitle.get('format', 'ass'),
-            })
-        if not subtitles:
-            subtitles = self.extract_subtitles(video_id, webpage)
-
-        # webpage provide more accurate data than series_title from XML
-        series = self._html_search_regex(
-            r'(?s)<h\d[^>]+\bid=["\']showmedia_about_episode_num[^>]+>(.+?)</h\d',
-            webpage, 'series', fatal=False)
-
-        season = episode = episode_number = duration = None
-
-        if isinstance(metadata, compat_etree_Element):
-            season = xpath_text(metadata, 'series_title')
-            episode = xpath_text(metadata, 'episode_title')
-            episode_number = int_or_none(xpath_text(metadata, 'episode_number'))
-            duration = float_or_none(media_metadata.get('duration'), 1000)
-
-        if not episode:
-            episode = media_metadata.get('title')
-        if not episode_number:
-            episode_number = int_or_none(media_metadata.get('episode_number'))
-        thumbnail_url = try_get(media, lambda x: x['thumbnail']['url'])
-        if thumbnail_url:
-            thumbnails.append({
-                'url': thumbnail_url,
-                'width': 640,
-                'height': 360
-            })
-
-        season_number = int_or_none(self._search_regex(
-            r'(?s)<h\d[^>]+id=["\']showmedia_about_episode_num[^>]+>.+?</h\d>\s*<h4>\s*Season (\d+)',
-            webpage, 'season number', default=None))
-
-        info = self._search_json_ld(webpage, video_id, default={})
-
-        return merge_dicts({
-            'id': video_id,
-            'title': video_title,
-            'description': video_description,
-            'duration': duration,
-            'thumbnails': thumbnails,
-            'uploader': video_uploader,
-            'series': series,
-            'season': season,
-            'season_number': season_number,
-            'episode': episode,
-            'episode_number': episode_number,
-            'subtitles': subtitles,
-            'formats': formats,
-        }, info)
+        return self._call_base_api(
+            path, internal_id, lang, f'Downloading {note} JSON (signed cms)', query=CrunchyrollCmsBaseIE._CMS_QUERY)
 
 
-class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
-    IE_NAME = 'crunchyroll:playlist'
-    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
-
+class CrunchyrollBetaIE(CrunchyrollCmsBaseIE):
+    IE_NAME = 'crunchyroll'
+    _VALID_URL = r'''(?x)
+        https?://(?:beta\.|www\.)?crunchyroll\.com/
+        (?:(?P<lang>\w{2}(?:-\w{2})?)/)?
+        watch/(?!concert|musicvideo)(?P<id>\w+)'''
     _TESTS = [{
-        'url': 'https://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
+        # Premium only
+        'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
         'info_dict': {
-            'id': 'a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
-            'title': 'A Bridge to the Starry Skies - Hoshizora e Kakaru Hashi'
+            'id': 'GY2P1Q98Y',
+            'ext': 'mp4',
+            'duration': 1380.241,
+            'timestamp': 1459632600,
+            'description': 'md5:a022fbec4fbb023d43631032c91ed64b',
+            'title': 'World Trigger Episode 73 – To the Future',
+            'upload_date': '20160402',
+            'series': 'World Trigger',
+            'series_id': 'GR757DMKY',
+            'season': 'World Trigger',
+            'season_id': 'GR9P39NJ6',
+            'season_number': 1,
+            'episode': 'To the Future',
+            'episode_number': 73,
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'chapters': 'count:2',
+            'age_limit': 14,
+            'like_count': int,
+            'dislike_count': int,
         },
-        'playlist_count': 13,
+        'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
-        # geo-restricted (US), 18+ maturity wall, non-premium available
-        'url': 'http://www.crunchyroll.com/cosplay-complex-ova',
+        # Premium only
+        'url': 'https://www.crunchyroll.com/watch/GYE5WKQGR',
         'info_dict': {
-            'id': 'cosplay-complex-ova',
-            'title': 'Cosplay Complex OVA'
+            'id': 'GYE5WKQGR',
+            'ext': 'mp4',
+            'duration': 366.459,
+            'timestamp': 1476788400,
+            'description': 'md5:74b67283ffddd75f6e224ca7dc031e76',
+            'title': 'SHELTER – Porter Robinson presents Shelter the Animation',
+            'upload_date': '20161018',
+            'series': 'SHELTER',
+            'series_id': 'GYGG09WWY',
+            'season': 'SHELTER',
+            'season_id': 'GR09MGK4R',
+            'season_number': 1,
+            'episode': 'Porter Robinson presents Shelter the Animation',
+            'episode_number': 0,
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'age_limit': 14,
+            'like_count': int,
+            'dislike_count': int,
         },
-        'playlist_count': 3,
-        'skip': 'Georestricted',
+        'params': {'skip_download': True},
     }, {
-        # geo-restricted (US), 18+ maturity wall, non-premium will be available since 2015.11.14
-        'url': 'http://www.crunchyroll.com/ladies-versus-butlers?skip_wall=1',
+        'url': 'https://www.crunchyroll.com/watch/GJWU2VKK3/cherry-blossom-meeting-and-a-coming-blizzard',
+        'info_dict': {
+            'id': 'GJWU2VKK3',
+            'ext': 'mp4',
+            'duration': 1420.054,
+            'description': 'md5:2d1c67c0ec6ae514d9c30b0b99a625cd',
+            'title': 'The Ice Guy and His Cool Female Colleague Episode 1 – Cherry Blossom Meeting and a Coming Blizzard',
+            'series': 'The Ice Guy and His Cool Female Colleague',
+            'series_id': 'GW4HM75NP',
+            'season': 'The Ice Guy and His Cool Female Colleague',
+            'season_id': 'GY9PC21VE',
+            'season_number': 1,
+            'episode': 'Cherry Blossom Meeting and a Coming Blizzard',
+            'episode_number': 1,
+            'chapters': 'count:2',
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'timestamp': 1672839000,
+            'upload_date': '20230104',
+            'age_limit': 14,
+            'like_count': int,
+            'dislike_count': int,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/GM8F313NQ',
+        'info_dict': {
+            'id': 'GM8F313NQ',
+            'ext': 'mp4',
+            'title': 'Garakowa -Restore the World-',
+            'description': 'md5:8d2f8b6b9dd77d87810882e7d2ee5608',
+            'duration': 3996.104,
+            'age_limit': 13,
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/G62PEZ2E6',
+        'info_dict': {
+            'id': 'G62PEZ2E6',
+            'description': 'md5:8d2f8b6b9dd77d87810882e7d2ee5608',
+            'age_limit': 13,
+            'duration': 65.138,
+            'title': 'Garakowa -Restore the World-',
+        },
+        'playlist_mincount': 5,
+    }, {
+        'url': 'https://www.crunchyroll.com/de/watch/GY2P1Q98Y',
+        'only_matching': True,
+    }, {
+        'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
+        'only_matching': True,
+    }]
+    # We want to support lazy playlist filtering and movie listings cannot be inside a playlist
+    _RETURN_TYPE = 'video'
+
+    def _real_extract(self, url):
+        lang, internal_id = self._match_valid_url(url).group('lang', 'id')
+
+        # We need to use unsigned API call to allow ratings query string
+        response = traverse_obj(self._call_api(
+            f'objects/{internal_id}', internal_id, lang, 'object info', {'ratings': 'true'}), ('data', 0, {dict}))
+        if not response:
+            raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
+
+        object_type = response.get('type')
+        if object_type == 'episode':
+            result = self._transform_episode_response(response)
+
+        elif object_type == 'movie':
+            result = self._transform_movie_response(response)
+
+        elif object_type == 'movie_listing':
+            first_movie_id = traverse_obj(response, ('movie_listing_metadata', 'first_movie_id'))
+            if not self._yes_playlist(internal_id, first_movie_id):
+                return self.url_result(f'{self._BASE_URL}/{lang}watch/{first_movie_id}', CrunchyrollBetaIE, first_movie_id)
+
+            def entries():
+                movies = self._call_api(f'movie_listings/{internal_id}/movies', internal_id, lang, 'movie list')
+                for movie_response in traverse_obj(movies, ('data', ...)):
+                    yield self.url_result(
+                        f'{self._BASE_URL}/{lang}watch/{movie_response["id"]}',
+                        CrunchyrollBetaIE, **self._transform_movie_response(movie_response))
+
+            return self.playlist_result(entries(), **self._transform_movie_response(response))
+
+        else:
+            raise ExtractorError(f'Unknown object type {object_type}')
+
+        # There might be multiple audio languages for one object (`<object>_metadata.versions`),
+        # so we need to get the id from `streams_link` instead or we dont know which language to choose
+        streams_link = response.get('streams_link')
+        if not streams_link and traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')):
+            message = f'This {object_type} is for premium members only'
+            if self.is_logged_in:
+                raise ExtractorError(message, expected=True)
+            self.raise_login_required(message)
+
+        # We need go from unsigned to signed api to avoid getting soft banned
+        stream_response = self._call_cms_api_signed(remove_start(
+            streams_link, '/content/v2/cms/'), internal_id, lang, 'stream info')
+        result['formats'] = self._extract_formats(stream_response, internal_id)
+        result['subtitles'] = self._extract_subtitles(stream_response)
+
+        # if no intro chapter is available, a 403 without usable data is returned
+        intro_chapter = self._download_json(
+            f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
+            internal_id, note='Downloading chapter info', fatal=False, errnote=False)
+        if isinstance(intro_chapter, dict):
+            result['chapters'] = [{
+                'title': 'Intro',
+                'start_time': float_or_none(intro_chapter.get('startTime')),
+                'end_time': float_or_none(intro_chapter.get('endTime')),
+            }]
+
+        def calculate_count(item):
+            return parse_count(''.join((item['displayed'], item.get('unit') or '')))
+
+        result.update(traverse_obj(response, ('rating', {
+            'like_count': ('up', {calculate_count}),
+            'dislike_count': ('down', {calculate_count}),
+        })))
+
+        return result
+
+    @staticmethod
+    def _transform_episode_response(data):
+        metadata = traverse_obj(data, (('episode_metadata', None), {dict}), get_all=False) or {}
+        return {
+            'id': data['id'],
+            'title': ' \u2013 '.join((
+                ('%s%s' % (
+                    format_field(metadata, 'season_title'),
+                    format_field(metadata, 'episode', ' Episode %s'))),
+                format_field(data, 'title'))),
+            **traverse_obj(data, {
+                'episode': ('title', {str}),
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n')}),
+                'thumbnails': ('images', 'thumbnail', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
+            **traverse_obj(metadata, {
+                'duration': ('duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'timestamp': ('upload_date', {parse_iso8601}),
+                'series': ('series_title', {str}),
+                'series_id': ('series_id', {str}),
+                'season': ('season_title', {str}),
+                'season_id': ('season_id', {str}),
+                'season_number': ('season_number', ({int}, {float_or_none})),
+                'episode_number': ('sequence_number', ({int}, {float_or_none})),
+                'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
+                'language': ('audio_locale', {str}),
+            }, get_all=False),
+        }
+
+    @staticmethod
+    def _transform_movie_response(data):
+        metadata = traverse_obj(data, (('movie_metadata', 'movie_listing_metadata', None), {dict}), get_all=False) or {}
+        return {
+            'id': data['id'],
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n')}),
+                'thumbnails': ('images', 'thumbnail', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+            }),
+            **traverse_obj(metadata, {
+                'duration': ('duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
+            }),
+        }
+
+
+class CrunchyrollBetaShowIE(CrunchyrollCmsBaseIE):
+    IE_NAME = 'crunchyroll:playlist'
+    _VALID_URL = r'''(?x)
+        https?://(?:beta\.|www\.)?crunchyroll\.com/
+        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        series/(?P<id>\w+)'''
+    _TESTS = [{
+        'url': 'https://www.crunchyroll.com/series/GY19NQ2QR/Girl-Friend-BETA',
+        'info_dict': {
+            'id': 'GY19NQ2QR',
+            'title': 'Girl Friend BETA',
+            'description': 'md5:99c1b22ee30a74b536a8277ced8eb750',
+            # XXX: `thumbnail` does not get set from `thumbnails` in playlist
+            #  'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'age_limit': 14,
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url': 'https://beta.crunchyroll.com/it/series/GY19NQ2QR',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        show_id = self._match_id(url)
+        lang, internal_id = self._match_valid_url(url).group('lang', 'id')
 
-        webpage = self._download_webpage(
-            # https:// gives a 403, but http:// does not
-            self._add_skip_wall(url).replace('https://', 'http://'), show_id,
-            headers=self.geo_verification_headers())
-        title = self._html_search_meta('name', webpage, default=None)
+        def entries():
+            seasons_response = self._call_cms_api_signed(f'seasons?series_id={internal_id}', internal_id, lang, 'seasons')
+            for season in traverse_obj(seasons_response, ('items', ..., {dict})):
+                episodes_response = self._call_cms_api_signed(
+                    f'episodes?season_id={season["id"]}', season["id"], lang, 'episode list')
+                for episode_response in traverse_obj(episodes_response, ('items', ..., {dict})):
+                    yield self.url_result(
+                        f'{self._BASE_URL}/{lang}watch/{episode_response["id"]}',
+                        CrunchyrollBetaIE, **CrunchyrollBetaIE._transform_episode_response(episode_response))
 
-        episode_paths = re.findall(
-            r'(?s)<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"',
-            webpage)
-        entries = [
-            self.url_result('http://www.crunchyroll.com' + ep, 'Crunchyroll', ep_id)
-            for ep_id, ep in episode_paths
-        ]
-        entries.reverse()
+        return self.playlist_result(
+            entries(), internal_id,
+            **traverse_obj(self._call_api(f'series/{internal_id}', internal_id, lang, 'series'), ('data', 0, {
+                'title': ('title', {str}),
+                'description': ('description', {lambda x: x.replace(r'\r\n', '\n')}),
+                'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
+                'thumbnails': ('images', ..., ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                })
+            })))
 
+
+class CrunchyrollMusicIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:music'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?crunchyroll\.com/
+        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        watch/(?P<type>concert|musicvideo)/(?P<id>\w+)'''
+    _TESTS = [{
+        'url': 'https://www.crunchyroll.com/de/watch/musicvideo/MV5B02C79',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'MV5B02C79',
+            'display_id': 'egaono-hana',
+            'title': 'Egaono Hana',
+            'track': 'Egaono Hana',
+            'artist': 'Goose house',
+            'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'genre': ['J-Pop'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'MV88BB7F2C',
+            'display_id': 'crossing-field',
+            'title': 'Crossing Field',
+            'track': 'Crossing Field',
+            'artist': 'LiSA',
+            'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'genre': ['Anime'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'MC2E2AC135',
+            'display_id': 'live-is-smile-always-364joker-at-yokohama-arena',
+            'title': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
+            'track': 'LiVE is Smile Always-364+JOKER- at YOKOHAMA ARENA',
+            'artist': 'LiSA',
+            'thumbnail': r're:(?i)^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'description': 'md5:747444e7e6300907b7a43f0a0503072e',
+            'genre': ['J-Pop'],
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.crunchyroll.com/de/watch/musicvideo/MV5B02C79/egaono-hana',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/concert/MC2E2AC135/live-is-smile-always-364joker-at-yokohama-arena',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/musicvideo/MV88BB7F2C/crossing-field',
+        'only_matching': True,
+    }]
+    _API_ENDPOINT = 'music'
+
+    def _real_extract(self, url):
+        lang, internal_id, object_type = self._match_valid_url(url).group('lang', 'id', 'type')
+        path, name = {
+            'concert': ('concerts', 'concert info'),
+            'musicvideo': ('music_videos', 'music video info'),
+        }[object_type]
+        response = traverse_obj(self._call_api(f'{path}/{internal_id}', internal_id, lang, name), ('data', 0, {dict}))
+        if not response:
+            raise ExtractorError(f'No video with id {internal_id} could be found (possibly region locked?)', expected=True)
+
+        streams_link = response.get('streams_link')
+        if not streams_link and response.get('isPremiumOnly'):
+            message = f'This {response.get("type") or "media"} is for premium members only'
+            if self.is_logged_in:
+                raise ExtractorError(message, expected=True)
+            self.raise_login_required(message)
+
+        result = self._transform_music_response(response)
+        stream_response = self._call_api(streams_link, internal_id, lang, 'stream info')
+        result['formats'] = self._extract_formats(stream_response, internal_id)
+
+        return result
+
+    @staticmethod
+    def _transform_music_response(data):
         return {
-            '_type': 'playlist',
-            'id': show_id,
-            'title': title,
-            'entries': entries,
+            'id': data['id'],
+            **traverse_obj(data, {
+                'display_id': 'slug',
+                'title': 'title',
+                'track': 'title',
+                'artist': ('artist', 'name'),
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n') or None}),
+                'thumbnails': ('images', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+                'genre': ('genres', ..., 'displayValue'),
+                'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
+            }),
+        }
+
+
+class CrunchyrollArtistIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:artist'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?crunchyroll\.com/
+        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        artist/(?P<id>\w{10})'''
+    _TESTS = [{
+        'url': 'https://www.crunchyroll.com/artist/MA179CB50D',
+        'info_dict': {
+            'id': 'MA179CB50D',
+            'title': 'LiSA',
+            'genre': ['J-Pop', 'Anime', 'Rock'],
+            'description': 'md5:16d87de61a55c3f7d6c454b73285938e',
+        },
+        'playlist_mincount': 83,
+    }, {
+        'url': 'https://www.crunchyroll.com/artist/MA179CB50D/lisa',
+        'only_matching': True,
+    }]
+    _API_ENDPOINT = 'music'
+
+    def _real_extract(self, url):
+        lang, internal_id = self._match_valid_url(url).group('lang', 'id')
+        response = traverse_obj(self._call_api(
+            f'artists/{internal_id}', internal_id, lang, 'artist info'), ('data', 0))
+
+        def entries():
+            for attribute, path in [('concerts', 'concert'), ('videos', 'musicvideo')]:
+                for internal_id in traverse_obj(response, (attribute, ...)):
+                    yield self.url_result(f'{self._BASE_URL}/watch/{path}/{internal_id}', CrunchyrollMusicIE, internal_id)
+
+        return self.playlist_result(entries(), **self._transform_artist_response(response))
+
+    @staticmethod
+    def _transform_artist_response(data):
+        return {
+            'id': data['id'],
+            **traverse_obj(data, {
+                'title': 'name',
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n')}),
+                'thumbnails': ('images', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+                'genre': ('genres', ..., 'displayValue'),
+            }),
         }

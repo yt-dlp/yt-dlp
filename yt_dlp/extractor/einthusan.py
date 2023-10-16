@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -91,8 +88,6 @@ class EinthusanIE(InfoExtractor):
             formats.append({
                 'url': mp4_url,
             })
-
-        self._sort_formats(formats)
 
         description = get_elements_by_class('synopsis', webpage)[0]
         thumbnail = self._html_search_regex(

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .mtv import MTVServicesInfoExtractor
 from ..utils import unified_strdate
 

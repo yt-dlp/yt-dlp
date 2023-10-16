@@ -1,22 +1,10 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
-    clean_html,
     determine_ext,
     ExtractorError,
-    int_or_none,
-    parse_duration,
+    format_field,
+    parse_iso8601,
     parse_qs,
-    try_get,
-    url_or_none,
-    urljoin,
 )
 from .dailymotion import DailymotionIE
 
@@ -44,6 +32,7 @@ class FranceTVIE(InfoExtractor):
                         (?P<id>[^@]+)(?:@(?P<catalog>.+))?
                     )
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?://)?embed\.francetv\.fr/\?ue=.+?)\1']
 
     _TESTS = [{
         # without catalog
@@ -89,97 +78,81 @@ class FranceTVIE(InfoExtractor):
         # Videos are identified by idDiffusion so catalogue part is optional.
         # However when provided, some extra formats may be returned so we pass
         # it if available.
-        info = self._download_json(
-            'https://sivideo.webservices.francetelevisions.fr/tools/getInfosOeuvre/v2/',
-            video_id, 'Downloading video JSON', query={
-                'idDiffusion': video_id,
-                'catalogue': catalogue or '',
-            })
-
-        if info.get('status') == 'NOK':
-            raise ExtractorError(
-                '%s returned error: %s' % (self.IE_NAME, info['message']),
-                expected=True)
-        allowed_countries = info['videos'][0].get('geoblocage')
-        if allowed_countries:
-            georestricted = True
-            geo_info = self._download_json(
-                'http://geo.francetv.fr/ws/edgescape.json', video_id,
-                'Downloading geo restriction info')
-            country = geo_info['reponse']['geo_info']['country_code']
-            if country not in allowed_countries:
-                raise ExtractorError(
-                    'The video is not available from your location',
-                    expected=True)
-        else:
-            georestricted = False
-
-        def sign(manifest_url, manifest_id):
-            for host in ('hdfauthftv-a.akamaihd.net', 'hdfauth.francetv.fr'):
-                signed_url = url_or_none(self._download_webpage(
-                    'https://%s/esi/TA' % host, video_id,
-                    'Downloading signed %s manifest URL' % manifest_id,
-                    fatal=False, query={
-                        'url': manifest_url,
-                    }))
-                if signed_url:
-                    return signed_url
-            return manifest_url
-
         is_live = None
-
         videos = []
+        title = None
+        subtitle = None
+        image = None
+        duration = None
+        timestamp = None
+        spritesheets = None
 
-        for video in (info.get('videos') or []):
-            if video.get('statut') != 'ONLINE':
+        for device_type in ('desktop', 'mobile'):
+            dinfo = self._download_json(
+                'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
+                video_id, 'Downloading %s video JSON' % device_type, query={
+                    'device_type': device_type,
+                    'browser': 'chrome',
+                }, fatal=False)
+
+            if not dinfo:
                 continue
-            if not video.get('url'):
-                continue
-            videos.append(video)
 
-        if not videos:
-            for device_type in ['desktop', 'mobile']:
-                fallback_info = self._download_json(
-                    'https://player.webservices.francetelevisions.fr/v1/videos/%s' % video_id,
-                    video_id, 'Downloading fallback %s video JSON' % device_type, query={
-                        'device_type': device_type,
-                        'browser': 'chrome',
-                    }, fatal=False)
+            video = dinfo.get('video')
+            if video:
+                videos.append(video)
+                if duration is None:
+                    duration = video.get('duration')
+                if is_live is None:
+                    is_live = video.get('is_live')
+                if spritesheets is None:
+                    spritesheets = video.get('spritesheets')
 
-                if fallback_info and fallback_info.get('video'):
-                    videos.append(fallback_info['video'])
+            meta = dinfo.get('meta')
+            if meta:
+                if title is None:
+                    title = meta.get('title')
+                # XXX: what is meta['pre_title']?
+                if subtitle is None:
+                    subtitle = meta.get('additional_title')
+                if image is None:
+                    image = meta.get('image_url')
+                if timestamp is None:
+                    timestamp = parse_iso8601(meta.get('broadcasted_at'))
 
         formats = []
         subtitles = {}
         for video in videos:
-            video_url = video.get('url')
-            if not video_url:
-                continue
-            if is_live is None:
-                is_live = (try_get(
-                    video, lambda x: x['plages_ouverture'][0]['direct'], bool) is True
-                    or video.get('is_live') is True
-                    or '/live.francetv.fr/' in video_url)
             format_id = video.get('format')
+
+            video_url = None
+            if video.get('workflow') == 'token-akamai':
+                token_url = video.get('token')
+                if token_url:
+                    token_json = self._download_json(
+                        token_url, video_id,
+                        'Downloading signed %s manifest URL' % format_id)
+                    if token_json:
+                        video_url = token_json.get('url')
+            if not video_url:
+                video_url = video.get('url')
+
             ext = determine_ext(video_url)
             if ext == 'f4m':
-                if georestricted:
-                    # See https://github.com/ytdl-org/youtube-dl/issues/3963
-                    # m3u8 urls work fine
-                    continue
                 formats.extend(self._extract_f4m_formats(
-                    sign(video_url, format_id) + '&hdcore=3.7.0&plugin=aasp-3.7.0.39.44',
-                    video_id, f4m_id=format_id, fatal=False))
+                    video_url, video_id, f4m_id=format_id, fatal=False))
             elif ext == 'm3u8':
-                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
-                    sign(video_url, format_id), video_id, 'mp4',
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    video_url, video_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id=format_id,
                     fatal=False)
-                formats.extend(m3u8_fmts)
-                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    sign(video_url, format_id), video_id, mpd_id=format_id, fatal=False))
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    video_url, video_id, mpd_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif video_url.startswith('rtmp'):
                 formats.append({
                     'url': video_url,
@@ -193,28 +166,41 @@ class FranceTVIE(InfoExtractor):
                         'format_id': format_id,
                     })
 
-        self._sort_formats(formats)
+            # XXX: what is video['captions']?
 
-        title = info['titre']
-        subtitle = info.get('sous_titre')
+        for f in formats:
+            if f.get('acodec') != 'none' and f.get('language') in ('qtz', 'qad'):
+                f['language_preference'] = -10
+                f['format_note'] = 'audio description%s' % format_field(f, 'format_note', ', %s')
+
+        if spritesheets:
+            formats.append({
+                'format_id': 'spritesheets',
+                'format_note': 'storyboard',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'url': 'about:invalid',
+                'fragments': [{
+                    'url': sheet,
+                    # XXX: not entirely accurate; each spritesheet seems to be
+                    # a 10×10 grid of thumbnails corresponding to approximately
+                    # 2 seconds of the video; the last spritesheet may be shorter
+                    'duration': 200,
+                } for sheet in spritesheets]
+            })
+
         if subtitle:
             title += ' - %s' % subtitle
         title = title.strip()
 
-        subtitles.setdefault('fr', []).extend(
-            [{
-                'url': subformat['url'],
-                'ext': subformat.get('format'),
-            } for subformat in info.get('subtitles', []) if subformat.get('url')]
-        )
-
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
-            'description': clean_html(info.get('synopsis')),
-            'thumbnail': urljoin('https://sivideo.webservices.francetelevisions.fr', info.get('image')),
-            'duration': int_or_none(info.get('real_duration')) or parse_duration(info.get('duree')),
-            'timestamp': int_or_none(try_get(info, lambda x: x['diffusion']['timestamp'])),
+            'title': title,
+            'thumbnail': image,
+            'duration': duration,
+            'timestamp': timestamp,
             'is_live': is_live,
             'formats': formats,
             'subtitles': subtitles,
@@ -308,35 +294,6 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
         return self._make_url_result(video_id, catalogue)
 
 
-class FranceTVEmbedIE(FranceTVBaseInfoExtractor):
-    _VALID_URL = r'https?://embed\.francetv\.fr/*\?.*?\bue=(?P<id>[^&]+)'
-
-    _TESTS = [{
-        'url': 'http://embed.francetv.fr/?ue=7fd581a2ccf59d2fc5719c5c13cf6961',
-        'info_dict': {
-            'id': 'NI_983319',
-            'ext': 'mp4',
-            'title': 'Le Pen Reims',
-            'upload_date': '20170505',
-            'timestamp': 1493981780,
-            'duration': 16,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'add_ie': [FranceTVIE.ie_key()],
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        video = self._download_json(
-            'http://api-embed.webservices.francetelevisions.fr/key/%s' % video_id,
-            video_id)
-
-        return self._make_url_result(video['video_id'], video.get('catalog'))
-
-
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
     IE_NAME = 'francetvinfo.fr'
     _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.francetvinfo\.fr/(?:[^/]+/)*(?P<id>[^/?#&.]+)'
@@ -412,7 +369,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        dailymotion_urls = DailymotionIE._extract_urls(webpage)
+        dailymotion_urls = tuple(DailymotionIE._extract_embed_urls(url, webpage))
         if dailymotion_urls:
             return self.playlist_result([
                 self.url_result(dailymotion_url, DailymotionIE.ie_key())
@@ -426,139 +383,3 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             webpage, 'video id')
 
         return self._make_url_result(video_id)
-
-
-class FranceTVInfoSportIE(FranceTVBaseInfoExtractor):
-    IE_NAME = 'sport.francetvinfo.fr'
-    _VALID_URL = r'https?://sport\.francetvinfo\.fr/(?:[^/]+/)*(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        'url': 'https://sport.francetvinfo.fr/les-jeux-olympiques/retour-sur-les-meilleurs-moments-de-pyeongchang-2018',
-        'info_dict': {
-            'id': '6e49080e-3f45-11e8-b459-000d3a2439ea',
-            'ext': 'mp4',
-            'title': 'Retour sur les meilleurs moments de Pyeongchang 2018',
-            'timestamp': 1523639962,
-            'upload_date': '20180413',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'add_ie': [FranceTVIE.ie_key()],
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        video_id = self._search_regex(r'data-video="([^"]+)"', webpage, 'video_id')
-        return self._make_url_result(video_id, 'Sport-web')
-
-
-class GenerationWhatIE(InfoExtractor):
-    IE_NAME = 'france2.fr:generation-what'
-    _VALID_URL = r'https?://generation-what\.francetv\.fr/[^/]+/video/(?P<id>[^/?#&]+)'
-
-    _TESTS = [{
-        'url': 'http://generation-what.francetv.fr/portrait/video/present-arms',
-        'info_dict': {
-            'id': 'wtvKYUG45iw',
-            'ext': 'mp4',
-            'title': 'Generation What - Garde à vous - FRA',
-            'uploader': 'Generation What',
-            'uploader_id': 'UCHH9p1eetWCgt4kXBYCb3_w',
-            'upload_date': '20160411',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'add_ie': ['Youtube'],
-    }, {
-        'url': 'http://generation-what.francetv.fr/europe/video/present-arms',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, display_id)
-
-        youtube_id = self._search_regex(
-            r"window\.videoURL\s*=\s*'([0-9A-Za-z_-]{11})';",
-            webpage, 'youtube id')
-
-        return self.url_result(youtube_id, ie='Youtube', video_id=youtube_id)
-
-
-class CultureboxIE(FranceTVBaseInfoExtractor):
-    _VALID_URL = r'https?://(?:m\.)?culturebox\.francetvinfo\.fr/(?:[^/]+/)*(?P<id>[^/?#&]+)'
-
-    _TESTS = [{
-        'url': 'https://culturebox.francetvinfo.fr/opera-classique/musique-classique/c-est-baroque/concerts/cantates-bwv-4-106-et-131-de-bach-par-raphael-pichon-57-268689',
-        'info_dict': {
-            'id': 'EV_134885',
-            'ext': 'mp4',
-            'title': 'Cantates BWV 4, 106 et 131 de Bach par Raphaël Pichon 5/7',
-            'description': 'md5:19c44af004b88219f4daa50fa9a351d4',
-            'upload_date': '20180206',
-            'timestamp': 1517945220,
-            'duration': 5981,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'add_ie': [FranceTVIE.ie_key()],
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, display_id)
-
-        if ">Ce live n'est plus disponible en replay<" in webpage:
-            raise ExtractorError(
-                'Video %s is not available' % display_id, expected=True)
-
-        video_id, catalogue = self._search_regex(
-            r'["\'>]https?://videos\.francetv\.fr/video/([^@]+@.+?)["\'<]',
-            webpage, 'video id').split('@')
-
-        return self._make_url_result(video_id, catalogue)
-
-
-class FranceTVJeunesseIE(FranceTVBaseInfoExtractor):
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?(?:zouzous|ludo)\.fr/heros/(?P<id>[^/?#&]+))'
-
-    _TESTS = [{
-        'url': 'https://www.zouzous.fr/heros/simon',
-        'info_dict': {
-            'id': 'simon',
-        },
-        'playlist_count': 9,
-    }, {
-        'url': 'https://www.ludo.fr/heros/ninjago',
-        'info_dict': {
-            'id': 'ninjago',
-        },
-        'playlist_count': 10,
-    }, {
-        'url': 'https://www.zouzous.fr/heros/simon?abc',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        playlist_id = mobj.group('id')
-
-        playlist = self._download_json(
-            '%s/%s' % (mobj.group('url'), 'playlist'), playlist_id)
-
-        if not playlist.get('count'):
-            raise ExtractorError(
-                '%s is not available' % playlist_id, expected=True)
-
-        entries = []
-        for item in playlist['items']:
-            identity = item.get('identity')
-            if identity and isinstance(identity, compat_str):
-                entries.append(self._make_url_result(identity))
-
-        return self.playlist_result(entries, playlist_id)

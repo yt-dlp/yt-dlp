@@ -1,16 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    int_or_none,
-    PUTRequest,
-)
+from ..networking import PUTRequest
+from ..networking.exceptions import HTTPError
+from ..utils import ExtractorError, clean_html, int_or_none
 
 
 class PlayPlusTVIE(InfoExtractor):
@@ -38,14 +31,10 @@ class PlayPlusTVIE(InfoExtractor):
             'Authorization': 'Bearer ' + self._token,
         }, query=query)
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            self.raise_login_required()
-
+    def _perform_login(self, username, password):
         req = PUTRequest(
             'https://api.playplus.tv/api/web/login', json.dumps({
-                'email': email,
+                'email': username,
                 'password': password,
             }).encode(), {
                 'Content-Type': 'application/json; charset=utf-8',
@@ -54,12 +43,16 @@ class PlayPlusTVIE(InfoExtractor):
         try:
             self._token = self._download_json(req, None)['token']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 raise ExtractorError(self._parse_json(
-                    e.cause.read(), None)['errorMessage'], expected=True)
+                    e.cause.response.read(), None)['errorMessage'], expected=True)
             raise
 
         self._profile = self._call_api('Profiles')['list'][0]['_id']
+
+    def _real_initialize(self):
+        if not self._token:
+            self.raise_login_required(method='password')
 
     def _real_extract(self, url):
         project_id, media_id = self._match_valid_url(url).groups()
@@ -82,7 +75,6 @@ class PlayPlusTVIE(InfoExtractor):
                 'width': int_or_none(file_info.get('width')),
                 'height': int_or_none(file_info.get('height')),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumb in media.get('thumbs', []):

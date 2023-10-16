@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import ExtractorError
 
@@ -20,6 +15,7 @@ class Vbox7IE(InfoExtractor):
                         )
                         (?P<id>[\da-fA-F]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(?P<q>["\'])(?P<url>(?:https?:)?//vbox7\.com/emb/external\.php.+?)(?P=q)']
     _GEO_COUNTRIES = ['BG']
     _TESTS = [{
         'url': 'http://vbox7.com/play:0946fff23c',
@@ -53,14 +49,6 @@ class Vbox7IE(InfoExtractor):
         'url': 'http://i49.vbox7.com/player/ext.swf?vid=0946fff23c&autoplay=1',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=(?P<q>["\'])(?P<url>(?:https?:)?//vbox7\.com/emb/external\.php.+?)(?P=q)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

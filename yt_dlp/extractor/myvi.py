@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from .vimple import SprutoBaseIE
 
@@ -29,6 +24,7 @@ class MyviIE(SprutoBaseIE):
                         )
                         (?P<id>[\da-zA-Z_-]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//myvi\.(?:ru/player|tv)/(?:embed/html|flash)/[^"]+)\1']
     _TESTS = [{
         'url': 'http://myvi.ru/player/embed/html/oOy4euHA6LVwNNAjhD9_Jq5Ha2Qf0rtVMVFMAZav8wObeRTZaCATzucDQIDph8hQU0',
         'md5': '571bbdfba9f9ed229dc6d34cc0f335bf',
@@ -58,13 +54,6 @@ class MyviIE(SprutoBaseIE):
         'url': 'myvi:YwbqszQynUaHPn_s82sx0Q2',
         'only_matching': True,
     }]
-
-    @classmethod
-    def _extract_url(cls, webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//myvi\.(?:ru/player|tv)/(?:embed/html|flash)/[^"]+)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

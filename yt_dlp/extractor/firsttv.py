@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -126,7 +123,6 @@ class FirstTVIE(InfoExtractor):
                     % (path, m3u8_path),
                     display_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
-            self._sort_formats(formats)
 
             thumbnail = item.get('poster') or self._og_search_thumbnail(webpage)
             duration = int_or_none(item.get('duration') or self._html_search_meta(

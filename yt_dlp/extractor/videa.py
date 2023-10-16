@@ -1,11 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import random
-import re
 import string
+import struct
 
 from .common import InfoExtractor
+from ..compat import compat_b64decode, compat_ord
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -16,11 +14,6 @@ from ..utils import (
     urljoin,
     xpath_element,
     xpath_text,
-)
-from ..compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_struct_pack,
 )
 
 
@@ -35,6 +28,7 @@ class VideaIE(InfoExtractor):
                         )
                         (?P<id>[^?#&]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\bv=.+?)\1']
     _TESTS = [{
         'url': 'http://videa.hu/videok/allatok/az-orult-kigyasz-285-kigyot-kigyo-8YfIAjxwWGwT8HVQ',
         'md5': '97a7af41faeaffd9f1fc864a7c7e7603',
@@ -44,6 +38,7 @@ class VideaIE(InfoExtractor):
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:^https?://.*',
             'duration': 21,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/videok/origo/jarmuvek/supercars-elozes-jAHDWfWSJH5XuFhH',
@@ -54,6 +49,7 @@ class VideaIE(InfoExtractor):
             'title': 'Supercars előzés',
             'thumbnail': r're:^https?://.*',
             'duration': 64,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/player?v=8YfIAjxwWGwT8HVQ',
@@ -64,6 +60,7 @@ class VideaIE(InfoExtractor):
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:^https?://.*',
             'duration': 21,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
@@ -79,12 +76,6 @@ class VideaIE(InfoExtractor):
         'only_matching': True,
     }]
     _STATIC_SECRET = 'xHb0ZvME5q8CBcoQi6AngerDu3FGO9fkUlwPmLVY_RTzj2hJIS4NasXWKy1td7p'
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [url for _, url in re.findall(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\bv=.+?)\1',
-            webpage)]
 
     @staticmethod
     def rc4(cipher_text, key):
@@ -105,13 +96,12 @@ class VideaIE(InfoExtractor):
             j = (j + S[i]) % 256
             S[i], S[j] = S[j], S[i]
             k = S[(S[i] + S[j]) % 256]
-            res += compat_struct_pack('B', k ^ compat_ord(cipher_text[m]))
+            res += struct.pack('B', k ^ compat_ord(cipher_text[m]))
 
         return res.decode()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         video_page = self._download_webpage(url, video_id)
 
         if 'videa.hu/player' in url:
@@ -132,12 +122,12 @@ class VideaIE(InfoExtractor):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
         query = parse_qs(player_url)
-        random_seed = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
+        random_seed = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         query['_s'] = random_seed
         query['_t'] = result[:16]
 
         b64_info, handle = self._download_webpage_handle(
-            'http://videa.hu/videaplayer_get_xml.php', video_id, query=query)
+            'http://videa.hu/player/xml', video_id, query=query)
         if b64_info.startswith('<?xml'):
             info = self._parse_xml(b64_info, video_id)
         else:
@@ -146,7 +136,7 @@ class VideaIE(InfoExtractor):
                 compat_b64decode(b64_info), key), video_id)
 
         video = xpath_element(info, './video', 'video')
-        if not video:
+        if video is None:
             raise ExtractorError(xpath_element(
                 info, './error', fatal=True), expected=True)
         sources = xpath_element(
@@ -163,9 +153,9 @@ class VideaIE(InfoExtractor):
             source_exp = source.get('exp')
             if not (source_url and source_name):
                 continue
-            hash_value = None
-            if hash_values:
-                hash_value = xpath_text(hash_values, 'hash_value_' + source_name)
+            hash_value = (
+                xpath_text(hash_values, 'hash_value_' + source_name)
+                if hash_values is not None else None)
             if hash_value and source_exp:
                 source_url = update_url_query(source_url, {
                     'md5': hash_value,
@@ -180,7 +170,6 @@ class VideaIE(InfoExtractor):
                 'height': int_or_none(source.get('height')),
             })
             formats.append(f)
-        self._sort_formats(formats)
 
         thumbnail = self._proto_relative_url(xpath_text(video, './poster_src'))
 

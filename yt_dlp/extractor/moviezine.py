@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 
 
@@ -32,8 +28,6 @@ class MoviezineIE(InfoExtractor):
             'quality': 0,
             'ext': 'mp4',
         }]
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

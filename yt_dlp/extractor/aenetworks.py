@@ -1,18 +1,16 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .theplatform import ThePlatformIE
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
+    remove_start,
+    traverse_obj,
     update_url_query,
     urlencode_postdata,
 )
 
 
-class AENetworksBaseIE(ThePlatformIE):
+class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _BASE_URL_REGEX = r'''(?x)https?://
         (?:(?:www|play|watch)\.)?
         (?P<domain>
@@ -32,14 +30,17 @@ class AENetworksBaseIE(ThePlatformIE):
     }
 
     def _extract_aen_smil(self, smil_url, video_id, auth=None):
-        query = {'mbr': 'true'}
+        query = {
+            'mbr': 'true',
+            'formats': 'M3U+none,MPEG-DASH+none,MPEG4,MP3',
+        }
         if auth:
             query['auth'] = auth
         TP_SMIL_QUERY = [{
             'assetTypes': 'high_video_ak',
-            'switch': 'hls_high_ak'
+            'switch': 'hls_high_ak',
         }, {
-            'assetTypes': 'high_video_s3'
+            'assetTypes': 'high_video_s3',
         }, {
             'assetTypes': 'high_video_s3',
             'switch': 'hls_high_fastly',
@@ -63,7 +64,6 @@ class AENetworksBaseIE(ThePlatformIE):
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
             raise last_e
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,
@@ -74,7 +74,14 @@ class AENetworksBaseIE(ThePlatformIE):
         requestor_id, brand = self._DOMAIN_MAP[domain]
         result = self._download_json(
             'https://feeds.video.aetnd.com/api/v2/%s/videos' % brand,
-            filter_value, query={'filter[%s]' % filter_key: filter_value})['results'][0]
+            filter_value, query={'filter[%s]' % filter_key: filter_value})
+        result = traverse_obj(
+            result, ('results',
+                     lambda k, v: k == 0 and v[filter_key] == filter_value),
+            get_all=False)
+        if not result:
+            raise ExtractorError('Show not found in A&E feed (too new?)', expected=True,
+                                 video_id=remove_start(filter_value, '/'))
         title = result['title']
         video_id = result['id']
         media_url = result['publicUrl']
@@ -125,7 +132,7 @@ class AENetworksIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
-        'skip': 'This video is only available for users of participating TV providers.',
+        'skip': 'Geo-restricted - This content is not available in your location.'
     }, {
         'url': 'http://www.aetv.com/shows/duck-dynasty/season-9/episode-1',
         'info_dict': {
@@ -142,6 +149,7 @@ class AENetworksIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'This video is only available for users of participating TV providers.',
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
         'only_matching': True
@@ -330,6 +338,7 @@ class BiographyIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': '404 Not Found',
     }]
 
     def _real_extract(self, url):

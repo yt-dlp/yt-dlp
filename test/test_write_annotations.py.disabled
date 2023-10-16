@@ -1,27 +1,23 @@
 #!/usr/bin/env python3
-# coding: utf-8
-from __future__ import unicode_literals
 
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import get_params, try_rm, is_download_test
-
-
-import io
 
 import xml.etree.ElementTree
 
-import yt_dlp.YoutubeDL
 import yt_dlp.extractor
+import yt_dlp.YoutubeDL
+from test.helper import get_params, is_download_test, try_rm
 
 
 class YoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, *args, **kwargs):
-        super(YoutubeDL, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.to_stderr = self.to_screen
 
 
@@ -52,7 +48,7 @@ class TestAnnotations(unittest.TestCase):
         ydl.download([TEST_ID])
         self.assertTrue(os.path.exists(ANNOTATIONS_FILE))
         annoxml = None
-        with io.open(ANNOTATIONS_FILE, 'r', encoding='utf-8') as annof:
+        with open(ANNOTATIONS_FILE, encoding='utf-8') as annof:
             annoxml = xml.etree.ElementTree.parse(annof)
         self.assertTrue(annoxml is not None, 'Failed to parse annotations XML')
         root = annoxml.getroot()

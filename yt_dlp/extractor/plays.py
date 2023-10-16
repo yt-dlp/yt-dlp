@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -41,7 +38,6 @@ class PlaysTVIE(InfoExtractor):
                 'format_id': 'http-' + format_id,
                 'height': int_or_none(height),
             })
-        self._sort_formats(formats)
 
         info.update({
             'id': video_id,

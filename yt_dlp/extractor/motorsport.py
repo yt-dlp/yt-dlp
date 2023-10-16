@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_urlparse,
@@ -34,8 +31,13 @@ class MotorsportIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         iframe_path = self._html_search_regex(
-            r'<iframe id="player_iframe"[^>]+src="([^"]+)"', webpage,
-            'iframe path')
+            r'<iframe id="player_iframe"[^>]+src="([^"]+)"', webpage, 'iframe path', default=None)
+
+        if iframe_path is None:
+            iframe_path = self._html_search_regex(
+                r'<iframe [^>]*\bsrc="(https://motorsport\.tv/embed/[^"]+)', webpage, 'embed iframe path')
+            return self.url_result(iframe_path)
+
         iframe = self._download_webpage(
             compat_urlparse.urljoin(url, iframe_path), display_id,
             'Downloading iframe')

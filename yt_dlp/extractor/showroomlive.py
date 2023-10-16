@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -69,11 +66,10 @@ class ShowRoomLiveIE(InfoExtractor):
                     'format_note': stream.get('label'),
                     'quality': int_or_none(stream.get('quality', 100)),
                 })
-        self._sort_formats(formats)
 
         return {
             'id': compat_str(room.get('live_id') or broadcaster_id),
-            'title': self._live_title(title),
+            'title': title,
             'description': room.get('description'),
             'timestamp': int_or_none(room.get('current_live_started_at')),
             'uploader': uploader,

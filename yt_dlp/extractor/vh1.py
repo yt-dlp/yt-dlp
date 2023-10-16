@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .mtv import MTVServicesInfoExtractor
 
 # TODO Remove - Reason: Outdated Site

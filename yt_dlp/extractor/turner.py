@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .adobepass import AdobePassIE
@@ -144,7 +141,7 @@ class TurnerBaseIE(AdobePassIE):
                     m3u8_id=format_id or 'hls', fatal=False)
                 if '/secure/' in video_url and '?hdnea=' in video_url:
                     for f in m3u8_formats:
-                        f['_ffmpeg_args'] = ['-seekable', '0']
+                        f['downloader_options'] = {'ffmpeg_args': ['-seekable', '0']}
                 formats.extend(m3u8_formats)
             elif ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(
@@ -177,7 +174,6 @@ class TurnerBaseIE(AdobePassIE):
                             else:
                                 f['tbr'] = int(mobj.group(1))
                 formats.append(f)
-        self._sort_formats(formats)
 
         for source in video_data.findall('closedCaptions/source'):
             for track in source.findall('track'):
@@ -205,7 +201,7 @@ class TurnerBaseIE(AdobePassIE):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': thumbnails,
@@ -252,7 +248,6 @@ class TurnerBaseIE(AdobePassIE):
                         'start_time': start_time,
                         'end_time': start_time + chapter_duration,
                     })
-        self._sort_formats(formats)
 
         return {
             'formats': formats,

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import json
 
@@ -14,8 +11,9 @@ from ..utils import (
     float_or_none,
     mimetype2ext,
     str_or_none,
+    try_call,
     try_get,
-    unescapeHTML,
+    smuggle_url,
     unsmuggle_url,
     url_or_none,
     urljoin,
@@ -27,6 +25,7 @@ _ID_RE = r'(?:[0-9a-f]{32,34}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 
 class MediasiteIE(InfoExtractor):
     _VALID_URL = r'(?xi)https?://[^/]+/Mediasite/(?:Play|Showcase/[^/#?]+/Presentation)/(?P<id>%s)(?P<query>\?[^#]+|)' % _ID_RE
+    _EMBED_REGEX = [r'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/%s(?:\?.*?)?)\1' % _ID_RE]
     _TESTS = [
         {
             'url': 'https://hitsmediaweb.h-its.org/mediasite/Play/2db6c271681e4f199af3c60d1f82869b1d',
@@ -114,13 +113,10 @@ class MediasiteIE(InfoExtractor):
         5: 'video3',
     }
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            unescapeHTML(mobj.group('url'))
-            for mobj in re.finditer(
-                r'(?xi)<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:(?:https?:)?//[^/]+)?/Mediasite/Play/%s(?:\?.*?)?)\1' % _ID_RE,
-                webpage)]
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            yield smuggle_url(embed_url, {'UrlReferrer': url})
 
     def __extract_slides(self, *, stream_id, snum, Stream, duration, images):
         slide_base_url = Stream['SlideBaseUrl']
@@ -145,11 +141,11 @@ class MediasiteIE(InfoExtractor):
                             'duration': slide['Time'] / 1000,
                         })
 
-            next_time = try_get(None, [
-                lambda _: Stream['Slides'][i + 1]['Time'],
-                lambda _: duration,
-                lambda _: slide['Time'],
-            ], expected_type=(int, float))
+            next_time = try_call(
+                lambda: Stream['Slides'][i + 1]['Time'],
+                lambda: duration,
+                lambda: slide['Time'],
+                expected_type=(int, float))
 
             fragments.append({
                 'path': fname_template.format(slide.get('Number', i + 1)),
@@ -175,7 +171,7 @@ class MediasiteIE(InfoExtractor):
         query = mobj.group('query')
 
         webpage, urlh = self._download_webpage_handle(url, resource_id)  # XXX: add UrlReferrer?
-        redirect_url = urlh.geturl()
+        redirect_url = urlh.url
 
         # XXX: might have also extracted UrlReferrer and QueryString from the html
         service_path = compat_urlparse.urljoin(redirect_url, self._html_search_regex(
@@ -267,8 +263,6 @@ class MediasiteIE(InfoExtractor):
                     'preference': -1 if stream_type != 0 else 0,
                 })
             formats.extend(stream_formats)
-
-        self._sort_formats(formats)
 
         # XXX: Presentation['Presenters']
         # XXX: Presentation['Transcript']

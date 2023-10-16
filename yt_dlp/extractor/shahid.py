@@ -1,12 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import math
 import re
 
 from .aws import AWSIE
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -25,7 +22,7 @@ class ShahidBaseIE(AWSIE):
 
     def _handle_error(self, e):
         fail_data = self._parse_json(
-            e.cause.read().decode('utf-8'), None, fatal=False)
+            e.cause.response.read().decode('utf-8'), None, fatal=False)
         if fail_data:
             faults = fail_data.get('faults', [])
             faults_message = ', '.join([clean_html(fault['userMessage']) for fault in faults if fault.get('userMessage')])
@@ -43,7 +40,7 @@ class ShahidBaseIE(AWSIE):
                 'secret_key': '4WUUJWuFvtTkXbhaWTDv7MhO+0LqoYDWfEnUXoWn',
             }, video_id, query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
+            if isinstance(e.cause, HTTPError):
                 self._handle_error(e)
             raise
 
@@ -79,23 +76,19 @@ class ShahidIE(ShahidBaseIE):
         'only_matching': True
     }]
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
-
+    def _perform_login(self, username, password):
         try:
             user_data = self._download_json(
                 'https://shahid.mbc.net/wd/service/users/login',
                 None, 'Logging in', data=json.dumps({
-                    'email': email,
+                    'email': username,
                     'password': password,
                     'basic': 'false',
                 }).encode('utf-8'), headers={
                     'Content-Type': 'application/json; charset=UTF-8',
                 })['user']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
+            if isinstance(e.cause, HTTPError):
                 self._handle_error(e)
             raise
 
@@ -125,7 +118,6 @@ class ShahidIE(ShahidBaseIE):
             # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
             r'aws\.manifestfilter=[\w:;,-]+&?',
             '', playout['url']), video_id, 'mp4')
-        self._sort_formats(formats)
 
         # video = self._call_api(
         #     'product/id', video_id, {

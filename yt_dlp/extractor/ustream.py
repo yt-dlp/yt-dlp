@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import random
 import re
 
@@ -13,6 +11,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     float_or_none,
+    join_nonempty,
     mimetype2ext,
     str_or_none,
 )
@@ -21,6 +20,7 @@ from ..utils import (
 class UstreamIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/(?P<type>recorded|embed|embed/recorded)/(?P<id>\d+)'
     IE_NAME = 'ustream'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/embed/.+?)\1']
     _TESTS = [{
         'url': 'http://www.ustream.tv/recorded/20274954',
         'md5': '088f151799e8f572f84eb62f17d73e5c',
@@ -71,13 +71,6 @@ class UstreamIE(InfoExtractor):
         'url': 'https://video.ibm.com/embed/recorded/128240221?&autoplay=true&controls=true&volume=100',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/embed/.+?)\1', webpage)
-        if mobj is not None:
-            return mobj.group('url')
 
     def _get_stream_info(self, url, video_id, app_id_ver, extra_note=None):
         def num_to_hex(n):
@@ -139,8 +132,8 @@ class UstreamIE(InfoExtractor):
             content_type = stream['contentType']
             kind = content_type.split('/')[0]
             f = {
-                'format_id': '-'.join(filter(None, [
-                    'dash', kind, str_or_none(stream.get('bitrate'))])),
+                'format_id': join_nonempty(
+                    'dash', kind, str_or_none(stream.get('bitrate'))),
                 'protocol': 'http_dash_segments',
                 # TODO: generate a MPD doc for external players?
                 'url': encode_data_uri(b'<MPD/>', 'text/xml'),
@@ -216,8 +209,6 @@ class UstreamIE(InfoExtractor):
             if dash_streams:
                 formats.extend(self._parse_segmented_mp4(dash_streams))
             '''
-
-        self._sort_formats(formats)
 
         description = video.get('description')
         timestamp = int_or_none(video.get('created_at'))

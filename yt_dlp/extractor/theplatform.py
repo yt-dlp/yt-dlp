@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import time
 import hmac
@@ -10,19 +7,23 @@ import hashlib
 
 from .once import OnceIE
 from .adobepass import AdobePassIE
+from ..networking import Request
 from ..utils import (
     determine_ext,
     ExtractorError,
     float_or_none,
     int_or_none,
     parse_qs,
-    sanitized_Request,
     unsmuggle_url,
     update_url_query,
     xpath_with_ns,
     mimetype2ext,
     find_xpath_attr,
+    traverse_obj,
+    update_url,
+    urlhandle_detect_ext,
 )
+from ..networking import HEADRequest
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})
@@ -48,7 +49,7 @@ class ThePlatformBaseIE(OnceIE):
                     raise ExtractorError(
                         error_element.attrib['abstract'], expected=True)
 
-        smil_formats = self._parse_smil_formats(
+        smil_formats, subtitles = self._parse_smil_formats_and_subtitles(
             meta, smil_url, video_id, namespace=default_ns,
             # the parameters are from syfy.com, other sites may use others,
             # they also work for nbc.com
@@ -67,8 +68,6 @@ class ThePlatformBaseIE(OnceIE):
                         _format['url'] = update_url_query(media_url, {'hdnea3': hdnea2.value})
 
                 formats.append(_format)
-
-        subtitles = self._parse_smil_subtitles(meta, default_ns)
 
         return formats, subtitles
 
@@ -126,6 +125,13 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         (?:https?://(?:link|player)\.theplatform\.com/[sp]/(?P<provider_id>[^/]+)/
            (?:(?:(?:[^/]+/)+select/)?(?P<media>media/(?:guid/\d+/)?)?|(?P<config>(?:[^/\?]+/(?:swf|config)|onsite)/select/))?
          |theplatform:)(?P<id>[^/\?&]+)'''
+    _EMBED_REGEX = [
+        r'''(?x)
+            <meta\s+
+                property=(["'])(?:og:video(?::(?:secure_)?url)?|twitter:player)\1\s+
+                content=(["'])(?P<url>https?://player\.theplatform\.com/p/.+?)\2''',
+        r'(?s)<(?:iframe|script)[^>]+src=(["\'])(?P<url>(?:https?:)?//player\.theplatform\.com/p/.+?)\1'
+    ]
 
     _TESTS = [{
         # from http://www.metacafe.com/watch/cb-e9I_cZgTgIPd/blackberrys_big_bold_z30/
@@ -160,7 +166,8 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
+        'skip': 'CNet no longer uses ThePlatform',
     }, {
         'url': 'https://player.theplatform.com/p/D6x-PC/pulse_preview/embed/select/media/yMBg9E8KFxZD',
         'info_dict': {
@@ -169,7 +176,8 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'description': 'md5:644ad9188d655b742f942bf2e06b002d',
             'title': 'HIGHLIGHTS: USA bag first ever series Cup win',
             'uploader': 'EGSM',
-        }
+        },
+        'skip': 'Dead link',
     }, {
         'url': 'http://player.theplatform.com/p/NnzsPC/widget/select/media/4Y0TlYUr_ZT7',
         'only_matching': True,
@@ -187,6 +195,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             'upload_date': '20150701',
             'uploader': 'NBCU-NEWS',
         },
+        'skip': 'Error: Player PID "nbcNewsOffsite" is disabled',
     }, {
         # From http://www.nbc.com/the-blacklist/video/sir-crispin-crandall/2928790?onid=137781#vc137781=1
         # geo-restricted (US), HLS encrypted with AES-128
@@ -195,22 +204,11 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
     }]
 
     @classmethod
-    def _extract_urls(cls, webpage):
-        m = re.search(
-            r'''(?x)
-                    <meta\s+
-                        property=(["'])(?:og:video(?::(?:secure_)?url)?|twitter:player)\1\s+
-                        content=(["'])(?P<url>https?://player\.theplatform\.com/p/.+?)\2
-            ''', webpage)
-        if m:
-            return [m.group('url')]
-
+    def _extract_embed_urls(cls, url, webpage):
         # Are whitespaces ignored in URLs?
         # https://github.com/ytdl-org/youtube-dl/issues/12044
-        matches = re.findall(
-            r'(?s)<(?:iframe|script)[^>]+src=(["\'])((?:https?:)?//player\.theplatform\.com/p/.+?)\1', webpage)
-        if matches:
-            return [re.sub(r'\s', '', list(zip(*matches))[1][0])]
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            yield re.sub(r'\s', '', embed_url)
 
     @staticmethod
     def _sign_url(url, sig_key, sig_secret, life=600, include_qs=False):
@@ -277,7 +275,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             source_url = smuggled_data.get('source_url')
             if source_url:
                 headers['Referer'] = source_url
-            request = sanitized_Request(url, headers=headers)
+            request = Request(url, headers=headers)
             webpage = self._download_webpage(request, video_id)
             smil_url = self._search_regex(
                 r'<link[^>]+href=(["\'])(?P<url>.+?)\1[^>]+type=["\']application/smil\+xml',
@@ -303,7 +301,17 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             smil_url = self._sign_url(smil_url, sig['key'], sig['secret'])
 
         formats, subtitles = self._extract_theplatform_smil(smil_url, video_id)
-        self._sort_formats(formats)
+
+        # With some sites, manifest URL must be forced to extract HLS formats
+        if not traverse_obj(formats, lambda _, v: v['format_id'].startswith('hls')):
+            m3u8_url = update_url(url, query='mbr=true&manifest=m3u', fragment=None)
+            urlh = self._request_webpage(
+                HEADRequest(m3u8_url), video_id, 'Checking for HLS formats', 'No HLS formats found', fatal=False)
+            if urlh and urlhandle_detect_ext(urlh) == 'm3u8':
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
+                    m3u8_url, video_id, m3u8_id='hls', fatal=False)
+                formats.extend(m3u8_fmts)
+                self._merge_subtitles(m3u8_subs, target=subtitles)
 
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
@@ -372,8 +380,6 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
                     main_smil_url or smil_url, query), video_id, 'Downloading SMIL data for %s' % asset_type)
                 formats.extend(cur_formats)
                 subtitles = self._merge_subtitles(subtitles, cur_subtitles)
-
-        self._sort_formats(formats)
 
         thumbnails = [{
             'url': thumbnail['plfile$url'],

@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import smuggle_url
 
@@ -23,6 +19,7 @@ class CNBCIE(InfoExtractor):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'Dead link',
     }
 
     def _real_extract(self, url):
@@ -53,6 +50,7 @@ class CNBCVideoIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Dead link',
     }
 
     def _real_extract(self, url):

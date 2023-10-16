@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -47,7 +44,6 @@ class MelonVODIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(
             stream_info['encUrl'], video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         artist_list = play_info.get('artistList')
         artist = None
