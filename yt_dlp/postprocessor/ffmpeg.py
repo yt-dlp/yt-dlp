@@ -1046,6 +1046,20 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             destination,
             ['-ss', str(chapter['start_time']),
              '-t', str(chapter['end_time'] - chapter['start_time'])])
+    # FFmpeg adds metadata about all chapters from parent file to all split m4a files.
+    # This is incorrect since there must be only single chapter in each file after split.
+    # Such behavior confuses players who think multiple chapters present
+    def _set_out_opts(self, ext, chapter_title):
+        if ext == 'm4a':
+            return [
+                *self.stream_copy_opts(),
+                # For m4a ffmpeg copies all available parent track chapters to split tracks metadata
+                # And such behavior confuses players
+                # Wipe parent track metadata from split tracks and fill out only title
+                '-metadata', 'title={}'.format(chapter_title),
+                '-map_metadata','-1']
+        else:
+            return self.stream_copy_opts()   
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
@@ -1061,7 +1075,8 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
-            self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])
+            out_file_opts = self._set_out_opts(info['ext'], chapter['title'])
+            self.real_run_ffmpeg([(in_file, opts)], [(destination, out_file_opts)])
         if in_file != info['filepath']:
             self._delete_downloaded_files(in_file, msg=None)
         return [], info
