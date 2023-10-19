@@ -107,7 +107,7 @@ class OnDemandKoreaIE(InfoExtractor):
 
 
 class OnDemandKoreaProgramIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ondemandkorea\.com/(?:en/)?player/vod/(?P<id>[a-z0-9-]+)(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?ondemandkorea\.com/(?:en/)?player/vod/(?P<id>[a-z0-9-]+)(?:$|#)'
     _GEO_COUNTRIES = ['US', 'CA']
 
     _TESTS = [{
