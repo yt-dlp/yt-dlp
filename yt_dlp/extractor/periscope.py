@@ -20,16 +20,20 @@ class PeriscopeBaseIE(InfoExtractor):
         title = broadcast.get('status') or 'Periscope Broadcast'
         uploader = broadcast.get('user_display_name') or broadcast.get('username')
         title = '%s - %s' % (uploader, title) if uploader else title
+        timestamp = parse_iso8601(broadcast.get('created_at'))
         is_live = broadcast.get('state').lower() == 'running'
+
+        if broadcast.get('created_at_ms'):
+            timestamp = int_or_none(broadcast.get('created_at_ms'))
 
         thumbnails = [{
             'url': broadcast[image],
-        } for image in ('image_url', 'image_url_small') if broadcast.get(image)]
+        } for image in ('image_url', 'image_url_medium', 'image_url_small') if broadcast.get(image)]
 
         return {
             'id': broadcast.get('id') or video_id,
             'title': title,
-            'timestamp': parse_iso8601(broadcast.get('created_at')),
+            'timestamp': timestamp,
             'uploader': uploader,
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
             'thumbnails': thumbnails,
