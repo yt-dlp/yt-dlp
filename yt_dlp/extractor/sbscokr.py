@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 class SBSCoKrIE(InfoExtractor):
     IE_NAME = 'sbs.co.kr'
-    _VALID_URL = [r'https?://allvod\.sbs\.co\.kr/allvod/vod(?:Package)?EndPage\.do\?(?:.*&)?mdaId=(?P<id>\d+)',
+    _VALID_URL = [r'https?://allvod\.sbs\.co\.kr/allvod/vod(?:Package)?EndPage\.do\?(?:[^#]+&)?mdaId=(?P<id>\d+)',
                   r'https?://programs\.sbs\.co\.kr/(?:enter|drama|culture|sports|plus|mtv|kth)/[a-z0-9]+/(?:vod|clip|movie)/\d+/(?P<id>(?:OC)?\d+)']
 
     _TESTS = [{
@@ -133,7 +133,7 @@ class SBSCoKrIE(InfoExtractor):
 
 class SBSCoKrAllvodProgramIE(InfoExtractor):
     IE_NAME = 'sbs.co.kr:allvod_program'
-    _VALID_URL = r'https?://allvod\.sbs\.co\.kr/allvod/vod(?:Free)?ProgramDetail\.do\?(?:.*&)?pgmId=(?P<id>P?[0-9]+)'
+    _VALID_URL = r'https?://allvod\.sbs\.co\.kr/allvod/vod(?:Free)?ProgramDetail\.do\?(?:[^#]+&)?pgmId=(?P<id>P?[0-9]+)'
 
     _TESTS = [{
         'url': 'https://allvod.sbs.co.kr/allvod/vodFreeProgramDetail.do?type=legend&pgmId=22000010159&listOrder=vodCntAsc',
