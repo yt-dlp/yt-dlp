@@ -17,8 +17,7 @@ class MaarivIE(InfoExtractor):
 
     @staticmethod
     def extract_resolution(url):
-        pattern = r'(\d{2,4}x\d{2,4})\.mp4$'
-        match = re.search(pattern, url)
+        match = re.search(r'(\d{2,4}x\d{2,4})\.mp4$', url)
         return match.group(1) if match else None
 
     def _real_extract(self, url):
