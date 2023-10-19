@@ -569,6 +569,7 @@ class NhkRadiruIE(InfoExtractor):
         series_meta = traverse_obj(meta, {
             'title': 'program_name',
             'channel': 'media_name',
+            'uploader': 'media_name',
             'thumbnail': (('thumbnail_c', 'thumbnail_p'), {url_or_none}),
         }, get_all=False)
 
