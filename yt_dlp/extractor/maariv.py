@@ -25,7 +25,7 @@ class MaarivIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # Find the correct iframes
-        video_urls = re.findall(r'<iframe .*?poster="(.*?)" src="(.*?)"', webpage)
+        video_urls = re.findall(r'<iframe [^>]?poster="([^"]+)"[^>]+ src="([^"]+)"', webpage)
         video_info_list = []
 
         for thumbnail, src in video_urls:
