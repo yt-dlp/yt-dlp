@@ -6,6 +6,7 @@ from ..utils import (
     bool_or_none,
     float_or_none,
     int_or_none,
+    join_nonempty,
     js_to_json,
     try_call,
     unified_strdate,
@@ -189,8 +190,8 @@ class NetflixIE(InfoExtractor):
         for audio_track in traverse_obj(manifest, ('result', 'audio_tracks'), default=[]):
             for stream in audio_track.get('streams', []):
                 formats.append({
-                    'format_id': f'{stream.get("content_profile")}-{stream.get("language")}-{stream.get("bitrate")}',
-                    'format_note': f'{audio_track.get("languageDescription")}-{audio_track.get("surroundFormatLabel")}',
+                    'format_id': join_nonempty('content_profile', 'language', 'bitrate', from_dict=stream, delim='-'),
+                    'format_note': join_nonempty('languageDescription', 'surroundFormatLabel', from_dict=audio_track, delim='-'),
                     'ext': 'mp4',
                     'vcodec': 'none',
                     'acodec': acodec,
@@ -226,7 +227,7 @@ class NetflixIE(InfoExtractor):
             for video_track in traverse_obj(manifest, ('result', 'video_tracks'), default=[]):
                 for stream in video_track.get('streams', []):
                     formats.append({
-                        'format_id': f'{stream.get("content_profile")}-{stream.get("bitrate")}',
+                        'format_id': join_nonempty('content_profile', 'bitrate', from_dict=stream, delim='-'),
                         'ext': 'mp4',
                         'vcodec': vcodec,
                         'acodec': 'none',
