@@ -31,8 +31,8 @@ class MaarivIE(InfoExtractor):
 
         for thumbnail, src in video_urls:
             media_param = re.search(r'media=(\d+)', src).group(1)
-            info_url = f"https://dal.walla.co.il/media/{media_param}?origin=player.maariv.co.il"
-            info_json = self._download_json(info_url, video_id)
+            info_json = self._download_json(f"https://dal.walla.co.il/media/{media_param}?origin=player.maariv.co.il",
+                                            video_id)
             data = info_json['data']
             main_video_to_download_filename = data['video']['file_name']
             main_video_to_download_url = data['video']['url']
