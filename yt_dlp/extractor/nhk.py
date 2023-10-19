@@ -477,6 +477,7 @@ class NhkRadiruIE(InfoExtractor):
         'skip': 'Episode expired on 2023-04-16',
         'info_dict': {
             'channel': 'NHK-FM',
+            'uploader': 'NHK-FM',
             'description': 'md5:94b08bdeadde81a97df4ec882acce3e9',
             'ext': 'm4a',
             'id': '0449_01_3853544',
@@ -497,6 +498,7 @@ class NhkRadiruIE(InfoExtractor):
             'title': 'ベストオブクラシック',
             'description': '世界中の上質な演奏会をじっくり堪能する本格派クラシック番組。',
             'channel': 'NHK-FM',
+            'uploader': 'NHK-FM',
             'thumbnail': 'https://www.nhk.or.jp/prog/img/458/g458.jpg',
         },
         'playlist_mincount': 3,
@@ -510,6 +512,7 @@ class NhkRadiruIE(InfoExtractor):
             'title': '有島武郎「一房のぶどう」',
             'description': '朗読：川野一宇（ラジオ深夜便アンカー）\r\n\r\n（2016年12月8日放送「ラジオ深夜便『アンカー朗読シリーズ』」より）',
             'channel': 'NHKラジオ第1、NHK-FM',
+            'uploader': 'NHKラジオ第1、NHK-FM',
             'timestamp': 1635757200,
             'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F300/img/corner/box_109_thumbnail.jpg',
             'release_date': '20161207',
@@ -525,6 +528,7 @@ class NhkRadiruIE(InfoExtractor):
             'id': 'F261_01_3855109',
             'ext': 'm4a',
             'channel': 'NHKラジオ第1',
+            'uploader': 'NHKラジオ第1',
             'timestamp': 1681635900,
             'release_date': '20230416',
             'series': 'NHKラジオニュース',
@@ -598,6 +602,7 @@ class NhkRadioNewsPageIE(InfoExtractor):
             'thumbnail': 'https://www.nhk.or.jp/radioondemand/json/F261/img/RADIONEWS_640.jpg',
             'description': 'md5:bf2c5b397e44bc7eb26de98d8f15d79d',
             'channel': 'NHKラジオ第1',
+            'uploader': 'NHKラジオ第1',
             'title': 'NHKラジオニュース',
         }
     }]
