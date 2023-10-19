@@ -181,7 +181,7 @@ class NhkVodIE(NhkBaseIE):
             'ext': 'm4a',
             'title': 'Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines',
             'series': 'Living in Japan',
-            'description': 'md5:850611969932874b4a3309e0cae06c2f',
+            'description': 'md5:0a0e2077d8f07a03071e990a6f51bfab',
             'thumbnail': 'md5:960622fb6e06054a4a1a0c97ea752545',
             'episode': 'Tips for Travelers to Japan / Ramen Vending Machines'
         },
@@ -224,14 +224,13 @@ class NhkVodIE(NhkBaseIE):
         },
         'skip': 'expires 2023-10-15',
     }, {
+        # a one-off (single-episode series). title from the api is just '<p></p>'
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/3004952/',
         'info_dict': {
             'id': 'nw_vod_v_en_3004_952_20230723091000_01_1690074552',
             'ext': 'mp4',
-            'title': 'Barakan Discovers AMAMI OSHIMA: Isson\'s Treasure Island - <p></p>',
+            'title': 'Barakan Discovers AMAMI OSHIMA: Isson\'s Treasure Island',
             'description': 'md5:5db620c46a0698451cc59add8816b797',
-            'series': 'Barakan Discovers AMAMI OSHIMA: Isson\'s Treasure Island',
-            'episode': '<p></p>',
             'thumbnail': 'md5:67d9ff28009ba379bfa85ad1aaa0e2bd',
         },
     }]
