@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
+    get_element_by_class,
     int_or_none,
     join_nonempty,
     parse_duration,
@@ -286,11 +287,11 @@ class NhkVodProgramIE(NhkBaseIE):
             entries.append(self._extract_episode_info(
                 urljoin(url, episode_path), episode))
 
-        program_title = None
-        if entries:
-            program_title = entries[0].get('series')
+        html = self._download_webpage(url, program_id)
+        program_title = clean_html(get_element_by_class('p-programDetail__title', html))
+        program_description = clean_html(get_element_by_class('p-programDetail__text', html))
 
-        return self.playlist_result(entries, program_id, program_title)
+        return self.playlist_result(entries, program_id, program_title, program_description)
 
 
 class NhkForSchoolBangumiIE(InfoExtractor):
