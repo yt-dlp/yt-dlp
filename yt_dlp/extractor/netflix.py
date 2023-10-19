@@ -17,7 +17,7 @@ from ..utils.traversal import traverse_obj
 class NetflixIE(InfoExtractor):
     IE_NAME = 'Netflix'
     IE_DESC = 'DRM-free trailers and teasers from Netflix'
-    _VALID_URL = r'https?://(?:www\.)?netflix\.com/(?:[a-zA-Z_-]*/)?title/\d+\?(?:.*&)?clip=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?netflix\.com/(?:[a-zA-Z_-]*/)?title/\d+\?(?:[^#]+&)?clip=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.netflix.com/title/81040344?clip=81499051',
         'md5': '9032282465b38f310765345edabc7f78',
