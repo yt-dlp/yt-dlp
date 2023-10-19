@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
     int_or_none,
     join_nonempty,
     parse_duration,
@@ -77,11 +78,11 @@ class NhkBaseIE(InfoExtractor):
         if fetch_episode:
             episode = self._call_api(
                 episode_id, lang, is_video, True, episode_id[:4] == '9999')[0]
-        title = episode.get('sub_title_clean') or episode['sub_title']
 
         def get_clean_field(key):
-            return episode.get(key + '_clean') or episode.get(key)
+            return clean_html(episode.get(key + '_clean') or episode.get(key))
 
+        title = get_clean_field('sub_title')
         series = get_clean_field('title')
 
         thumbnails = []
@@ -96,13 +97,23 @@ class NhkBaseIE(InfoExtractor):
                 'url': 'https://www3.nhk.or.jp' + img_path,
             })
 
+        episode_name = title
+        if series and title:
+            title = f'{series} - {title}'
+        elif series and not title:
+            title = series
+            series = None
+            episode_name = None
+        else:  # title, no series
+            episode_name = None
+
         info = {
             'id': episode_id + '-' + lang,
-            'title': '%s - %s' % (series, title) if series and title else title,
+            'title': title,
             'description': get_clean_field('description'),
             'thumbnails': thumbnails,
             'series': series,
-            'episode': title,
+            'episode': episode_name,
         }
         if is_video:
             vod_id = episode['vod_id']
