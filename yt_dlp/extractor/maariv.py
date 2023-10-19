@@ -48,13 +48,11 @@ class MaarivIE(InfoExtractor):
 
             for format_id, stream_url_object in enumerate(data['video']['stream_urls'], start=1):
                 stream_url = stream_url_object['stream_url']
-                resolution = self.extract_resolution(stream_url)
-                format_info = {
+                format_list.append({
                     'format_id': str(format_id),
                     'url': stream_url,
-                    'resolution': resolution,
-                }
-                format_list.append(format_info)
+                    'resolution': self.extract_resolution(stream_url),
+                })
 
             video_info = {
                 'id': media_param,
