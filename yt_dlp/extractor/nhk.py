@@ -248,13 +248,15 @@ class NhkVodProgramIE(NhkBaseIE):
         'info_dict': {
             'id': 'sumo',
             'title': 'GRAND SUMO Highlights',
+            'description': 'md5:fc20d02dc6ce85e4b72e0273aa52fdbf',
         },
-        'playlist_mincount': 12,
+        'playlist_mincount': 0,
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/japanrailway',
         'info_dict': {
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
+            'description': 'md5:ea39d93af7d05835baadf10d1aae0e3f',
         },
         'playlist_mincount': 12,
     }, {
@@ -263,6 +265,7 @@ class NhkVodProgramIE(NhkBaseIE):
         'info_dict': {
             'id': 'japanrailway',
             'title': 'Japan Railway Journal',
+            'description': 'md5:ea39d93af7d05835baadf10d1aae0e3f',
         },
         'playlist_mincount': 5,
     }, {
