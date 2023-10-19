@@ -47,24 +47,32 @@ class NhkBaseIE(InfoExtractor):
         self.cache.store('nhk', 'api_info', api_info)
         return api_info
 
-    def _extract_formats_and_subtitles(self, vod_id):
+    def _extract_stream_info(self, vod_id):
         for refresh in (False, True):
             api_info = self._get_api_info(refresh)
             if not api_info:
                 continue
 
             api_url = api_info.pop('url')
-            stream_url = traverse_obj(
-                self._download_json(
-                    api_url, vod_id, 'Downloading stream url info', fatal=False, query={
-                        **api_info,
-                        'type': 'json',
-                        'optional_id': vod_id,
-                        'active_flg': 1,
-                    }),
-                ('meta', 0, 'movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
+            meta = traverse_obj(self._download_json(api_url, vod_id, 'Downloading stream url info',
+                                fatal=False, query={
+                                    **api_info,
+                                    'type': 'json',
+                                    'optional_id': vod_id,
+                                    'active_flg': 1, }), ('meta', 0))
+
+            stream_url = traverse_obj(meta, ('movie_url', ('mb_auto', 'auto_sp', 'auto_pc'),
+                                      {url_or_none}), get_all=False)
+
+            info = traverse_obj(meta, {
+                'duration': 'duration',
+                'timestamp': ('publication_date', {unified_timestamp}),
+                'release_timestamp': ('insert_date', {unified_timestamp}),
+                'modified_timestamp': ('update_date', {unified_timestamp}),
+            })
+
             if stream_url:
-                return self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
+                return self._extract_m3u8_formats_and_subtitles(stream_url, vod_id), info
 
         raise ExtractorError('Unable to extract stream url')
 
@@ -118,12 +126,13 @@ class NhkBaseIE(InfoExtractor):
         }
         if is_video:
             vod_id = episode['vod_id']
-            formats, subs = self._extract_formats_and_subtitles(vod_id)
+            stream_info, additional_info = self._extract_stream_info(vod_id)
 
             info.update({
                 'id': vod_id,
-                'formats': formats,
-                'subtitles': subs,
+                'formats': stream_info[0],
+                'subtitles': stream_info[1],
+                **additional_info,
             })
 
         else:
