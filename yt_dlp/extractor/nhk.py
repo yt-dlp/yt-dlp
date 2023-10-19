@@ -212,6 +212,17 @@ class NhkVodIE(NhkBaseIE):
             'description': 'md5:9c1d6cbeadb827b955b20e99ab920ff0',
         },
         'skip': 'expires 2023-10-15',
+    }, {
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/3004952/',
+        'info_dict': {
+            'id': 'nw_vod_v_en_3004_952_20230723091000_01_1690074552',
+            'ext': 'mp4',
+            'title': 'Barakan Discovers AMAMI OSHIMA: Isson\'s Treasure Island - <p></p>',
+            'description': 'md5:5db620c46a0698451cc59add8816b797',
+            'series': 'Barakan Discovers AMAMI OSHIMA: Isson\'s Treasure Island',
+            'episode': '<p></p>',
+            'thumbnail': 'md5:67d9ff28009ba379bfa85ad1aaa0e2bd',
+        },
     }]
 
     def _real_extract(self, url):
