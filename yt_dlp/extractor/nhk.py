@@ -169,6 +169,14 @@ class NhkVodIE(NhkBaseIE):
             'thumbnail': 'md5:51bcef4a21936e7fea1ff4e06353f463',
             'episode': 'The Tohoku Shinkansen: Full Speed Ahead',
             'series': 'Japan Railway Journal',
+            'modified_timestamp': 1694243656,
+            'timestamp': 1681428600,
+            'release_timestamp': 1693883728,
+            'duration': 1679,
+            'upload_date': '20230413',
+            'modified_date': '20230909',
+            'release_date': '20230905',
+
         },
     }, {
         # video clip
@@ -182,6 +190,13 @@ class NhkVodIE(NhkBaseIE):
             'thumbnail': 'md5:d6a4d9b6e9be90aaadda0bcce89631ed',
             'series': 'Dining with the Chef',
             'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
+            'duration': 148,
+            'upload_date': '20190816',
+            'release_date': '20230902',
+            'release_timestamp': 1693619292,
+            'modified_timestamp': 1694168033,
+            'modified_date': '20230908',
+            'timestamp': 1565997540,
         },
     }, {
         # radio
@@ -242,6 +257,13 @@ class NhkVodIE(NhkBaseIE):
             'title': 'Barakan Discovers AMAMI OSHIMA: Isson\'s Treasure Island',
             'description': 'md5:5db620c46a0698451cc59add8816b797',
             'thumbnail': 'md5:67d9ff28009ba379bfa85ad1aaa0e2bd',
+            'release_date': '20230905',
+            'timestamp': 1690103400,
+            'duration': 2939,
+            'release_timestamp': 1693898699,
+            'modified_timestamp': 1694223888,
+            'modified_date': '20230909',
+            'upload_date': '20230723',
         },
     }]
 
