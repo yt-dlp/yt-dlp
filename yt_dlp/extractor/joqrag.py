@@ -1,7 +1,7 @@
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import clean_html
+from ..utils import clean_html, urljoin
 
 
 class JoqrAgIE(InfoExtractor):
@@ -44,7 +44,7 @@ class JoqrAgIE(InfoExtractor):
                 note='Downloading player data', errnote='Failed to download player data'),
             'm3u8 url')
         formats = self._extract_m3u8_formats(
-            f'https://www.uniqueradio.jp/{m3u8_path}', video_id, fatal=False)
+            urljoin('https://www.uniqueradio.jp/', m3u8_path), video_id, fatal=False)
 
         return {
             'id': video_id,
