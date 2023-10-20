@@ -1,6 +1,7 @@
 import urllib.parse
 
 from .common import InfoExtractor
+from ..utils import clean_html
 
 
 class JoqrAgIE(InfoExtractor):
@@ -31,10 +32,10 @@ class JoqrAgIE(InfoExtractor):
         metadata = self._download_webpage(
             'https://www.uniqueradio.jp/aandg', video_id,
             note='Downloading metadata', errnote='Failed to download metadata')
-        title = urllib.parse.unquote_plus(
-            self._search_regex(r'var\s+Program_name\s*=\s*["\']([^"\']+)["\']', metadata, 'program title'))
-        desc = urllib.parse.unquote_plus(
-            self._search_regex(r'var\s+Program_text\s*=\s*["\']([^"\']+)["\']', metadata, 'program description'))
+        title = clean_html(urllib.parse.unquote_plus(
+            self._search_regex(r'var\s+Program_name\s*=\s*["\']([^"\']+)["\']', metadata, 'program title')))
+        desc = clean_html(urllib.parse.unquote_plus(
+            self._search_regex(r'var\s+Program_text\s*=\s*["\']([^"\']+)["\']', metadata, 'program description')))
 
         m3u8_path = self._search_regex(
             r'<source\s[^>]*\bsrc="([^"]+)"',
