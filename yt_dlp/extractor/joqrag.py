@@ -6,12 +6,10 @@ from ..utils import clean_html, urljoin
 
 class JoqrAgIE(InfoExtractor):
     IE_DESC = '超!A&G+ 文化放送 Nippon Cultural Broadcasting, Inc. (JOQR)'
-    _VALID_URL = r'''(?x)
-                    (https?://www\.uniqueradio\.jp/agplayer5/player\.php)|
-                    (https?://www\.uniqueradio\.jp/agplayer5/inc-player-hls\.php)|
-                    (https?://(?:www\.)?joqr\.co\.jp/ag/)|
-                    (https?://(?:www\.)?joqr\.co\.jp/qr/(?:agdailyprogram|agregularprogram)/)
-                    '''
+    _VALID_URL = [r'https?://www\.uniqueradio\.jp/agplayer5/player\.php',
+                  r'https?://www\.uniqueradio\.jp/agplayer5/inc-player-hls\.php',
+                  r'https?://(?:www\.)?joqr\.co\.jp/ag/',
+                  r'https?://(?:www\.)?joqr\.co\.jp/qr/(?:agdailyprogram|agregularprogram)/']
     _TESTS = [{
         'url': 'https://www.uniqueradio.jp/agplayer5/player.php',
         'info_dict': {
