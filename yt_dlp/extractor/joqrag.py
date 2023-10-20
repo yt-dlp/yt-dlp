@@ -47,7 +47,8 @@ class JoqrAgIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': f'{title} - 超!A&G+',
+            'title': title,
+            'channel': '超!A&G+',
             'description': desc,
             'formats': formats,
             'live_status': 'is_live',
