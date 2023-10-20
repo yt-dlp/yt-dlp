@@ -15,6 +15,7 @@ class JoqrAgIE(InfoExtractor):
         'info_dict': {
             'id': 'live',
             'title': str,
+            'channel': '超!A&G+',
             'description': str,
             'live_status': 'is_live',
         },
@@ -22,6 +23,18 @@ class JoqrAgIE(InfoExtractor):
             'skip_download': True,
             'ignore_no_formats_error': True,
         },
+    }, {
+        'url': 'https://www.uniqueradio.jp/agplayer5/inc-player-hls.php',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.joqr.co.jp/ag/article/103760/',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.joqr.co.jp/qr/agdailyprogram/',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.joqr.co.jp/qr/agregularprogram/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
