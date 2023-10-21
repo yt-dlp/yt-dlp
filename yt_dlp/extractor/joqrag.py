@@ -37,16 +37,18 @@ class JoqrAgIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _extract_metadata(self, variable, html, name):
+        return clean_html(urllib.parse.unquote_plus(self._search_regex(
+            rf'var\s+{variable}\s*=\s*["\']([^"\']+)["\']', html, name, default=''))) or None
+
     def _real_extract(self, url):
         video_id = 'live'
 
         metadata = self._download_webpage(
             'https://www.uniqueradio.jp/aandg', video_id,
             note='Downloading metadata', errnote='Failed to download metadata')
-        title = clean_html(urllib.parse.unquote_plus(
-            self._search_regex(r'var\s+Program_name\s*=\s*["\']([^"\']+)["\']', metadata, 'program title')))
-        desc = clean_html(urllib.parse.unquote_plus(
-            self._search_regex(r'var\s+Program_text\s*=\s*["\']([^"\']+)["\']', metadata, 'program description')))
+        title = self._extract_metadata('Program_name', metadata, 'program title')
+        desc = self._extract_metadata('Program_text', metadata, 'program description')
 
         if title == '放送休止':
             self.raise_no_formats(f'This stream has not started yet', expected=True)
