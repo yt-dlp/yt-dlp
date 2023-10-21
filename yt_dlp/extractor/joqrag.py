@@ -51,7 +51,7 @@ class JoqrAgIE(InfoExtractor):
         desc = self._extract_metadata('Program_text', metadata, 'program description')
 
         if title == '放送休止':
-            self.raise_no_formats(f'This stream has not started yet', expected=True)
+            self.raise_no_formats('This stream has not started yet', expected=True)
             formats = []
             live_status = 'is_upcoming'
         else:
