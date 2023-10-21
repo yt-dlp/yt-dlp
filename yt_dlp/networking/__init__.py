@@ -13,10 +13,18 @@ from .common import (
 # isort: split
 # TODO: all request handlers should be safely imported
 from . import _urllib
+from ..utils import bug_reports_message
+
+try:
+    from . import _requests
+except ImportError:
+    pass
+except Exception as e:
+    warnings.warn(f'Failed to import "requests" request handler: {e}' + bug_reports_message())
 
 try:
     from . import _curlcffi  # noqa: F401
 except ImportError:
     pass
 except Exception as e:
-    warnings.warn(f'Failed to import curl_cffi handler: {e}')
+    warnings.warn(f'Failed to import "curl_cffi" request handler: {e}' + bug_reports_message())

@@ -59,6 +59,16 @@ except (ImportError, SyntaxError):
     websockets = None
 
 try:
+    import urllib3
+except ImportError:
+    urllib3 = None
+
+try:
+    import requests
+except ImportError:
+    requests = None
+
+try:
     import xattr  # xattr or pyxattr
 except ImportError:
     xattr = None

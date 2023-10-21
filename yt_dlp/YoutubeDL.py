@@ -4097,6 +4097,12 @@ class YoutubeDL:
                     new_req.extensions.pop('impersonate')
                     return _urlopen(new_req)
                 raise
+                """
+                TODO
+                                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                    raise RequestError(
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
+                """
             except SSLError as e:
                 if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
                     raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
@@ -4141,6 +4147,8 @@ class YoutubeDL:
                 }),
             ))
         director.preferences.update(preferences or [])
+        if 'prefer-legacy-http-handler' in self.params['compat_opts']:
+            director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
         return director
 
     def encode(self, s):
@@ -4263,7 +4271,7 @@ class YoutubeDL:
         return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
-        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
+        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error '''
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails, ret = [], []
         if write_all or self.params.get('writethumbnail', False):
@@ -4278,6 +4286,9 @@ class YoutubeDL:
         if thumbnails and not thumb_filename_base:
             self.write_debug(f'Skipping writing {label} thumbnail')
             return ret
+
+        if not self._ensure_dir_exists(filename):
+            return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
             thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')

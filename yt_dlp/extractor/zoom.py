@@ -13,7 +13,7 @@ from ..utils import (
 
 class ZoomIE(InfoExtractor):
     IE_NAME = 'zoom'
-    _VALID_URL = r'(?P<base_url>https?://(?:[^.]+\.)?zoom.us/)rec(?:ording)?/(?P<type>play|share)/(?P<id>[A-Za-z0-9_.-]+)'
+    _VALID_URL = r'(?P<base_url>https?://(?:[^.]+\.)?zoom\.us/)rec(?:ording)?/(?P<type>play|share)/(?P<id>[\w.-]+)'
     _TESTS = [{
         'url': 'https://economist.zoom.us/rec/play/dUk_CNBETmZ5VA2BwEl-jjakPpJ3M1pcfVYAPRsoIbEByGsLjUZtaa4yCATQuOL3der8BlTwxQePl_j0.EImBkXzTIaPvdZO5',
         'md5': 'ab445e8c911fddc4f9adc842c2c5d434',
