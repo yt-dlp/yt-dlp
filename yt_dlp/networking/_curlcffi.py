@@ -37,19 +37,29 @@ class CurlCFFIResponseReader(io.IOBase):
         return True
 
     def read(self, size=None):
-        if self._eof:
-            return b''
+        try:
+            while not self._eof and (size is None or len(self._buffer) < size):
+                chunk = next(self._response.iter_content(), None)
+                if chunk is None:
+                    self._eof = True
+                    break
+                self._buffer += chunk
 
-        while size is None or len(self._buffer) < size:
-            chunk = next(self._response.iter_content(), None)
-            if chunk is None:
-                self._eof = True
-                break
-            self._buffer += chunk
+            if size is None:
+                data = self._buffer
+                self._buffer = b''
+            else:
+                data = self._buffer[:size]
+                self._buffer = self._buffer[size:]
 
-        data = self._buffer[:size]
-        self._buffer = self._buffer[size:]
-        return data
+            # "free" the curl instance if the response is fully read.
+            # curl_cffi doesn't do this automatically and only allows one open response per thread
+            if self._eof and len(self._buffer) == 0:
+                self.close()
+            return data
+        except Exception:
+            self.close()
+            raise
 
     def close(self):
         self._response.close()
