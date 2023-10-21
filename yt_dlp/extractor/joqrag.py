@@ -48,14 +48,20 @@ class JoqrAgIE(InfoExtractor):
         desc = clean_html(urllib.parse.unquote_plus(
             self._search_regex(r'var\s+Program_text\s*=\s*["\']([^"\']+)["\']', metadata, 'program description')))
 
-        m3u8_path = self._search_regex(
-            r'<source\s[^>]*\bsrc="([^"]+)"',
-            self._download_webpage(
-                'https://www.uniqueradio.jp/agplayer5/inc-player-hls.php', video_id,
-                note='Downloading player data', errnote='Failed to download player data'),
-            'm3u8 url')
-        formats = self._extract_m3u8_formats(
-            urljoin('https://www.uniqueradio.jp/', m3u8_path), video_id, fatal=False)
+        if title == '放送休止':
+            self.raise_no_formats(f'This stream has not started yet', expected=True)
+            formats = []
+            live_status = 'is_upcoming'
+        else:
+            m3u8_path = self._search_regex(
+                r'<source\s[^>]*\bsrc="([^"]+)"',
+                self._download_webpage(
+                    'https://www.uniqueradio.jp/agplayer5/inc-player-hls.php', video_id,
+                    note='Downloading player data', errnote='Failed to download player data'),
+                'm3u8 url')
+            formats = self._extract_m3u8_formats(
+                urljoin('https://www.uniqueradio.jp/', m3u8_path), video_id, fatal=False)
+            live_status = 'is_live'
 
         return {
             'id': video_id,
@@ -63,5 +69,5 @@ class JoqrAgIE(InfoExtractor):
             'channel': '超!A&G+',
             'description': desc,
             'formats': formats,
-            'live_status': 'is_live',
+            'live_status': live_status,
         }
