@@ -39,7 +39,7 @@ class LaXarxaMesIE(InfoExtractor):
         authorization = self._get_cookies('https://www.laxarxames.cat/').get('didomi_token')
 
         if not authorization:
-            raise Exception('No authorization token found')
+            raise Exception('No authorization token found. Log in with --netrc or --username and --password')
         mediaplayinfo = self._download_json(
             'https://api.laxarxames.cat/Media/GetMediaPlayInfo',
             video_id,
