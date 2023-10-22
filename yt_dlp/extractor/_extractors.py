@@ -953,6 +953,7 @@ from .lastfm import (
     LastFMPlaylistIE,
     LastFMUserIE,
 )
+from .laxarxames import LaXarxaMesIE
 from .lbry import (
     LBRYIE,
     LBRYChannelIE,
