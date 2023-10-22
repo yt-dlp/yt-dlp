@@ -43,7 +43,7 @@ from .networking.exceptions import (
     _CompatHTTPError,
     network_exceptions,
 )
-from .networking.impersonate import ImpersonateRequestHandler
+from .networking.impersonate import ImpersonateRequestHandler, get_available_impersonate_targets
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -679,21 +679,20 @@ class YoutubeDL:
         self.params['http_headers'].pop('Cookie', None)
         self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
-        # FIXME: the director should make this easier to check (without it being tied to request handler subtypes).
         impersonate_target = self.params.get('impersonate')
         if impersonate_target:
             # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
-            impersonate_handlers = list(
-                filter(lambda x: isinstance(x, ImpersonateRequestHandler), self._request_director.handlers.values()))
-
-            if not impersonate_handlers:
+            results = self._request_director.collect_from_handlers(
+                lambda x: [x.is_target_str_supported(impersonate_target)],
+                [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
+            )
+            print(results)
+            if not results:
                 self.report_warning('Ignoring --impersonate as required dependencies are not installed. ')
 
-            supported_targets = list(
-                itertools.chain.from_iterable(rh.get_supported_targets() for rh in impersonate_handlers))
-            if impersonate_target not in supported_targets:
+            elif not any(results):
                 self.report_warning(f'Impersonate target "{self.params.get("impersonate")}" is not supported. '
-                                    f'Supported targets: {join_nonempty(*supported_targets, delim=", ")}')
+                                    f'Supported targets: {join_nonempty(*get_available_impersonate_targets(self._request_director), delim=", ")}')
 
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()

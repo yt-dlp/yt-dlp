@@ -81,7 +81,18 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
-    _SUPPORTED_IMPERSONATE_TARGETS = curl_cffi.requests.BrowserType._member_names_
+    _SUPPORTED_IMPERSONATE_TARGET_MAP = {
+        ('chrome', '110', 'windows', '10'): curl_cffi.requests.BrowserType.chrome110,
+        ('chrome', '107', 'windows', '10'): curl_cffi.requests.BrowserType.chrome107,
+        ('chrome', '104', 'windows', '10'): curl_cffi.requests.BrowserType.chrome104,
+        ('chrome', '101', 'windows', '10'): curl_cffi.requests.BrowserType.chrome101,
+        ('chrome', '99', 'windows', '10'): curl_cffi.requests.BrowserType.chrome99,
+        ('chrome', '99', 'android', '12'): curl_cffi.requests.BrowserType.chrome99_android,
+        ('edge', '101', 'windows', '10'): curl_cffi.requests.BrowserType.edge101,
+        ('edge', '99', 'windows', '10'): curl_cffi.requests.BrowserType.edge99,
+        ('safari', '15.5', 'macos', '12.4'): curl_cffi.requests.BrowserType.safari15_5,
+        ('safari', '15.3', 'macos', '11.6.4'): curl_cffi.requests.BrowserType.safari15_3,
+    }
 
     def _create_instance(self, cookiejar=None):
         return curl_cffi.requests.Session(cookies=cookiejar)
@@ -133,7 +144,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 verify=self.verify,
                 max_redirects=5,
                 timeout=request.extensions.get('timeout') or self.timeout,
-                impersonate=self._get_impersonate_target(request),
+                impersonate=self._resolve_from_target_str_map(self._get_impersonate_target_str(request)),
                 interface=self.source_address,
                 stream=True
             )

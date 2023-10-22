@@ -5,6 +5,7 @@ import copy
 import enum
 import functools
 import io
+import itertools
 import typing
 import urllib.parse
 import urllib.request
@@ -73,6 +74,25 @@ class RequestDirector:
         """Add a handler. If a handler of the same RH_KEY exists, it will overwrite it"""
         assert isinstance(handler, RequestHandler), 'handler must be a RequestHandler'
         self.handlers[handler.RH_KEY] = handler
+
+    def get_handlers(self, filters=None):
+        """Return filtered handlers
+        @param filters: list of filters in the form of func(key, value) -> bool
+        """
+        if not filters:
+            filters = []
+        a = self.handlers.items()
+        for k, v in self.handlers.items():
+            print(k,v)
+        return dict(filter(lambda x: all(f(x[0], x[1]) for f in filters), self.handlers.items()))
+
+    def collect_from_handlers(self, collect_func, filters=None):
+        """
+        Collects data from handlers
+        @param collect_func: function to collect data from a handler, in the form of func(handler) -> Iterable
+        @param filters: list of filters for get_handlers()
+        """
+        return list(itertools.chain.from_iterable(collect_func(rh) for rh in self.get_handlers(filters).values()))
 
     def _get_handlers(self, request: Request) -> list[RequestHandler]:
         """Sorts handlers by preference, given a request"""
