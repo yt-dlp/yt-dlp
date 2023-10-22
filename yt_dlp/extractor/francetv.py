@@ -47,6 +47,22 @@ class FranceTVIE(InfoExtractor):
             'upload_date': '20170813',
         },
     }, {
+        'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
+        'info_dict': {
+            'id': 'a9050959-eedd-4b4a-9b0d-de6eeaa73e44',
+            'ext': 'mp4',
+            'title': 'Foot2Rue - Duel au vieux port',
+            'episode': 'Duel au vieux port',
+            'series': 'Foot2Rue',
+            'episode_number': 1,
+            'season_number': 1,
+            'timestamp': 1642761360,
+            'upload_date': '20220121',
+            'season': 'Season 1',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 1441,
+        },
+    }, {
         # with catalog
         'url': 'https://sivideo.webservices.francetelevisions.fr/tools/getInfosOeuvre/v2/?idDiffusion=NI_1004933&catalogue=Zouzous&callback=_jsonp_loader_callback_request_4',
         'only_matching': True,
@@ -82,6 +98,8 @@ class FranceTVIE(InfoExtractor):
         videos = []
         title = None
         subtitle = None
+        episode = None
+        series = None
         image = None
         duration = None
         timestamp = None
@@ -98,6 +116,8 @@ class FranceTVIE(InfoExtractor):
             if not dinfo:
                 continue
 
+            print(dinfo)
+
             video = dinfo.get('video')
             if video:
                 videos.append(video)
@@ -112,7 +132,9 @@ class FranceTVIE(InfoExtractor):
             if meta:
                 if title is None:
                     title = meta.get('title')
-                # XXX: what is meta['pre_title']?
+                # meta['pre_title'] contains season and episode number for series in format "S<ID> E<ID>"
+                season_number, episode_number = self._search_regex(
+                        r'S(\d+)\s*E(\d+)', meta.get('pre_title'), 'episode info', group=(1, 2), default=(None, None))
                 if subtitle is None:
                     subtitle = meta.get('additional_title')
                 if image is None:
@@ -191,19 +213,19 @@ class FranceTVIE(InfoExtractor):
                 } for sheet in spritesheets]
             })
 
-        if subtitle:
-            title += ' - %s' % subtitle
-        title = title.strip()
-
         return {
             'id': video_id,
-            'title': title,
+            'title': (title + ' - %s' % subtitle if subtitle else title).strip(),
             'thumbnail': image,
             'duration': duration,
             'timestamp': timestamp,
             'is_live': is_live,
             'formats': formats,
             'subtitles': subtitles,
+            'episode': subtitle if episode_number else None,
+            'series': title if episode_number else None,
+            'episode_number': int(episode_number) if episode_number else None,
+            'season_number': int(season_number) if season_number else None,
         }
 
     def _real_extract(self, url):
