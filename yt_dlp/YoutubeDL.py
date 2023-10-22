@@ -4242,7 +4242,7 @@ class YoutubeDL:
             self.write_debug(f'Skipping writing {label} thumbnail')
             return ret
 
-        if not self._ensure_dir_exists(filename):
+        if thumbnails and not self._ensure_dir_exists(filename):
             return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
