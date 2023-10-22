@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class LaXarxaMesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?laxarxames\.cat/player/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?laxarxames\.cat/(?:[^/]+/)*?(player|movie-details)/(?P<id>[0-9]+)'
     _NETRC_MACHINE = 'laxarxames'
     _IS_LOGGED_IN = False
     _LOGIN_URL = 'https://www.laxarxames.cat/login'
@@ -19,7 +19,6 @@ class LaXarxaMesIE(InfoExtractor):
     }]
 
     def _perform_login(self, username, password):
-        print(b'{"Username":"%s","Password":"%s","Device":{"PlatformCode":"WEB","Name":"Mac OS ()"}}' % (username.encode(), password.encode()))
         login = self._download_json(
             'https://api.laxarxames.cat/Authorization/SignIn', None, note='Logging in', headers={
                 'X-Tenantorigin': 'https://laxarxames.cat',
@@ -33,7 +32,6 @@ class LaXarxaMesIE(InfoExtractor):
         if not login['AuthorizationToken']:
             raise Exception('Login failed')
         else:
-            print(login['AuthorizationToken']['Token'])
             self._set_cookie('www.laxarxames.cat', 'didomi_token', login['AuthorizationToken']['Token'])
 
     def _real_extract(self, url):
@@ -41,7 +39,7 @@ class LaXarxaMesIE(InfoExtractor):
         authorization = self._get_cookies('https://www.laxarxames.cat/').get('didomi_token')
 
         if not authorization:
-            raise Exception('No authorization token found')
+            raise Exception('No authorization token found. Log in with --netrc or --username and --password')
         mediaplayinfo = self._download_json(
             'https://api.laxarxames.cat/Media/GetMediaPlayInfo',
             video_id,
