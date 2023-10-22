@@ -245,8 +245,7 @@ class NPOIE(InfoExtractor):
                     'quality': 'npoplus',
                     'tokenId': player_token,
                     'streamType': 'broadcast',
-                },
-                data=b'')  # by posting empty data we force a POST request
+                }, data=b'')
             if not streams:
                 continue
             stream = streams.get('stream')
