@@ -499,9 +499,10 @@ class IqIE(InfoExtractor):
                     'tm': tm,
                     'qdy': 'a',
                     'qds': 0,
-                    'k_ft1': 141287244169348,
-                    'k_ft4': 34359746564,
-                    'k_ft5': 1,
+                    'k_ft1': '143486267424900',
+                    'k_ft4': '1572868',
+                    'k_ft7': '4',
+                    'k_ft5': '1',
                     'bop': JSON.stringify({
                         'version': '10.0',
                         'dfp': dfp
@@ -529,14 +530,22 @@ class IqIE(InfoExtractor):
         webpack_js_url = self._proto_relative_url(self._search_regex(
             r'<script src="((?:https?:)?//stc\.iqiyipic\.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
         webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
+
         webpack_map = self._search_json(
             r'["\']\s*\+\s*', webpack_js, 'JS locations', video_id,
             contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\da-f]+["\']\s*,?\s*)+}',
             end_pattern=r'\[\w+\]\+["\']\.js', transform_source=js_to_json)
 
+        replacement_map = self._search_json(
+            r'["\']\s*\+\(\s*', webpack_js, 'replacement map', video_id,
+            contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\w.-]+["\']\s*,?\s*)+}',
+            end_pattern=r'\[\w+\]\|\|\w+\)\+["\']\.', transform_source=js_to_json,
+            fatal=False) or {}
+
         for module_index in reversed(webpack_map):
+            real_module = replacement_map.get(module_index) or module_index
             module_js = self._download_webpage(
-                f'https://stc.iqiyipic.com/_next/static/chunks/{module_index}.{webpack_map[module_index]}.js',
+                f'https://stc.iqiyipic.com/_next/static/chunks/{real_module}.{webpack_map[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
             if 'vms request' in module_js:
                 self.cache.store('iq', 'player_js', module_js)

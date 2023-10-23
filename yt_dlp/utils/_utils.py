@@ -825,7 +825,7 @@ class Popen(subprocess.Popen):
         _fix('LD_LIBRARY_PATH')  # Linux
         _fix('DYLD_LIBRARY_PATH')  # macOS
 
-    def __init__(self, *args, env=None, text=False, **kwargs):
+    def __init__(self, args, *remaining, env=None, text=False, shell=False, **kwargs):
         if env is None:
             env = os.environ.copy()
         self._fix_pyinstaller_ld_path(env)
@@ -835,7 +835,21 @@ class Popen(subprocess.Popen):
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        super().__init__(*args, env=env, **kwargs, startupinfo=self._startupinfo)
+
+        if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
+            if not isinstance(args, str):
+                args = ' '.join(compat_shlex_quote(a) for a in args)
+            shell = False
+            args = f'{self.__comspec()} /Q /S /D /V:OFF /C "{args}"'
+
+        super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
+
+    def __comspec(self):
+        comspec = os.environ.get('ComSpec') or os.path.join(
+            os.environ.get('SystemRoot', ''), 'System32', 'cmd.exe')
+        if os.path.isabs(comspec):
+            return comspec
+        raise FileNotFoundError('shell not found: neither %ComSpec% nor %SystemRoot% is set')
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
@@ -2727,9 +2741,10 @@ def js_to_json(code, vars={}, *, strict=False):
     def create_map(mobj):
         return json.dumps(dict(json.loads(js_to_json(mobj.group(1) or '[]', vars=vars))))
 
+    code = re.sub(r'(?:new\s+)?Array\((.*?)\)', r'[\g<1>]', code)
     code = re.sub(r'new Map\((\[.*?\])?\)', create_map, code)
     if not strict:
-        code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
+        code = re.sub(rf'new Date\(({STRING_RE})\)', r'\g<1>', code)
         code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
         code = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', code)
         code = re.sub(r'\(function\([^)]*\)\s*\{[^}]*\}\s*\)\s*\(\s*(["\'][^)]*["\'])\s*\)', r'\1', code)
@@ -4426,10 +4441,12 @@ def write_xattr(path, key, value):
             raise XAttrMetadataError(e.errno, e.strerror)
         return
 
-    # UNIX Method 1. Use xattrs/pyxattrs modules
+    # UNIX Method 1. Use os.setxattr/xattrs/pyxattrs modules
 
     setxattr = None
-    if getattr(xattr, '_yt_dlp__identifier', None) == 'pyxattr':
+    if callable(getattr(os, 'setxattr', None)):
+        setxattr = os.setxattr
+    elif getattr(xattr, '_yt_dlp__identifier', None) == 'pyxattr':
         # Unicode arguments are not supported in pyxattr until version 0.5.0
         # See https://github.com/ytdl-org/youtube-dl/issues/5498
         if version_tuple(xattr.__version__) >= (0, 5, 0):

@@ -60,7 +60,7 @@ class GofileIE(InfoExtractor):
         account_data = self._download_json(
             'https://api.gofile.io/createAccount', None, note='Getting a new guest account')
         self._TOKEN = account_data['data']['token']
-        self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
+        self._set_cookie('.gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
         query_params = {
