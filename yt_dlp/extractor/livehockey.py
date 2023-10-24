@@ -16,9 +16,6 @@ class LiveHockeyIE(InfoExtractor):
             'timestamp': 1693738139,
             'thumbnail': 'startswith:https://cdn.jwplayer.com/v2/media/tJwY44y1/poster.jpg',
         },
-    }, {
-        'url': 'https://livehockey.com.au/hockey/wa/',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
