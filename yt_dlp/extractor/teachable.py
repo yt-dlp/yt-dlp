@@ -2,7 +2,6 @@ import re
 
 from .common import InfoExtractor
 from .hotmart import HotmartIE
-from .wistia import WistiaIE
 from ..utils import (
     clean_html,
     extract_attributes,
@@ -191,8 +190,7 @@ class TeachableIE(TeachableBaseIE):
 
             hotmart_urls.append(hotmart_url)
 
-        wistia_urls = WistiaIE._extract_embed_urls(url, webpage)
-        if not wistia_urls and not hotmart_urls:
+        if not hotmart_urls:
             if any(re.search(p, webpage) for p in (
                     r'class=["\']lecture-contents-locked',
                     r'>\s*Lecture contents locked',
@@ -226,16 +224,6 @@ class TeachableIE(TeachableBaseIE):
                     chapter = sections[chapter_number - 1]
 
         entries = []
-        for wistia_url in wistia_urls:
-            entries.append({
-                '_type': 'url_transparent',
-                'url': wistia_url,
-                'ie_key': WistiaIE.ie_key(),
-                'title': title,
-                'chapter': chapter,
-                'chapter_number': chapter_number,
-            })
-
         for hotmart_url in hotmart_urls:
             entries.append({
                 '_type': 'url_transparent',
