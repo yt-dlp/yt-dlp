@@ -3,6 +3,7 @@ from .jwplatform import JWPlatformIE
 
 
 class LiveHockeyIE(InfoExtractor):
+    IE_DESC = 'Field hockey match recordings from Australia'
     _VALID_URL = r'https?://livehockey\.com\.au/(?:[^/?#]+/)*(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://livehockey.com.au/hockey/wa/mens/03-september-fw1-hockey-wa-pl-mens-hale-v-uwa/',
