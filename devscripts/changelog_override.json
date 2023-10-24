@@ -63,6 +63,40 @@
     {
         "action": "add",
         "when": "1ceb657bdd254ad961489e5060f2ccc7d556b729",
-        "short": "[priority] Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)\n    - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains\n    - Cookies are scoped when passed to external downloaders\n    - Add `cookie` field to info.json and deprecate `http_headers.Cookie`"
+        "short": "[priority] Security: [[CVE-2023-35934](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-35934)] Fix [Cookie leak](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-v8mc-9377-rwjj)\n    - `--add-header Cookie:` is deprecated and auto-scoped to input URL domains\n    - Cookies are scoped when passed to external downloaders\n    - Add `cookies` field to info.json and deprecate `http_headers.Cookie`"
+    },
+    {
+        "action": "change",
+        "when": "b03fa7834579a01cc5fba48c0e73488a16683d48",
+        "short": "[ie/twitter] Revert 92315c03774cfabb3a921884326beb4b981f786b",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "change",
+        "when": "fcd6a76adc49d5cd8783985c7ce35384b72e545f",
+        "short": "[test] Add tests for socks proxies (#7908)",
+        "authors": ["coletdjnz"]
+    },
+    {
+        "action": "change",
+        "when": "4bf912282a34b58b6b35d8f7e6be535770c89c76",
+        "short": "[rh:urllib] Remove dot segments during URL normalization (#7662)",
+        "authors": ["coletdjnz"]
+    },
+    {
+        "action": "change",
+        "when": "59e92b1f1833440bb2190f847eb735cf0f90bc85",
+        "short": "[rh:urllib] Simplify gzip decoding (#7611)",
+        "authors": ["Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "c1d71d0d9f41db5e4306c86af232f5f6220a130b",
+        "short": "[priority] **The minimum *recommended* Python version has been raised to 3.8**\nSince Python 3.7 has reached end-of-life, support for it will be dropped soon. [Read more](https://github.com/yt-dlp/yt-dlp/issues/7803)"
+    },
+    {
+        "action": "add",
+        "when": "61bdf15fc7400601c3da1aa7a43917310a5bf391",
+        "short": "[priority] Security: [[CVE-2023-40581](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-40581)] [Prevent RCE when using `--exec` with `%q` on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-42h4-v29r-42qg)\n    - The shell escape function is now using `\"\"` instead of `\\\"`.\n    - `utils.Popen` has been patched to properly quote commands."
     }
 ]

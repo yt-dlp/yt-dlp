@@ -34,7 +34,7 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import HEADRequest, Request, RequestDirector
-from .networking.common import _REQUEST_HANDLERS
+from .networking.common import _REQUEST_HANDLERS, _RH_PREFERENCES
 from .networking.exceptions import (
     HTTPError,
     NoSupportingHandlers,
@@ -60,7 +60,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, current_git_head, detect_variant
+from .update import REPOSITORY, _get_system_deprecation, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -239,9 +239,9 @@ class YoutubeDL:
                        'selected' (check selected formats),
                        or None (check only if requested by extractor)
     paths:             Dictionary of output paths. The allowed keys are 'home'
-                       'temp' and the keys of OUTTMPL_TYPES (in utils.py)
+                       'temp' and the keys of OUTTMPL_TYPES (in utils/_utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
-                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils/_utils.py).
                        For compatibility with youtube-dl, a single string can also be used
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
@@ -256,8 +256,6 @@ class YoutubeDL:
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
                        and don't overwrite any file if False
-                       For compatibility with youtube-dl,
-                       "nooverwrites" may also be used instead
     playlist_items:    Specific indices of playlist to download.
     playlistrandom:    Download playlist items in random order.
     lazy_playlist:     Process playlist entries as they are received.
@@ -424,7 +422,7 @@ class YoutubeDL:
                          asked whether to download the video.
                        - Raise utils.DownloadCancelled(msg) to abort remaining
                          downloads when a video is rejected.
-                       match_filter_func in utils.py is one example for this.
+                       match_filter_func in utils/_utils.py is one example for this.
     color:             A Dictionary with output stream names as keys
                        and their respective color policy as values.
                        Can also just be a single color policy,
@@ -553,6 +551,7 @@ class YoutubeDL:
                        You can reduce network I/O by disabling it if you don't
                        care about HLS. (only for youtube)
     no_color:          Same as `color='no_color'`
+    no_overwrites:     Same as `overwrites=False`
     """
 
     _NUMERIC_FIELDS = {
@@ -572,7 +571,7 @@ class YoutubeDL:
         'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
-        'preference', 'language', 'language_preference', 'quality', 'source_preference',
+        'preference', 'language', 'language_preference', 'quality', 'source_preference', 'cookies',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
     }
@@ -604,6 +603,7 @@ class YoutubeDL:
         self._playlist_level = 0
         self._playlist_urls = set()
         self.cache = Cache(self)
+        self.__header_cookies = []
 
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
@@ -621,7 +621,8 @@ class YoutubeDL:
 
         if self.params.get('no_color'):
             if self.params.get('color') is not None:
-                self.report_warning('Overwriting params from "color" with "no_color"')
+                self.params.setdefault('_warnings', []).append(
+                    'Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
         term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
@@ -631,7 +632,7 @@ class YoutubeDL:
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
                 return term_allow_color and supports_terminal_sequences(stream)
-            assert policy in ('always', 'never', 'no_color')
+            assert policy in ('always', 'never', 'no_color'), policy
             return {'always': True, 'never': False}.get(policy, policy)
 
         self._allow_colors = Namespace(**{
@@ -639,17 +640,9 @@ class YoutubeDL:
             for name, stream in self._out_files.items_ if name != 'console'
         })
 
-        # The code is left like this to be reused for future deprecations
-        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
-        current_version = sys.version_info[:2]
-        if current_version < MIN_RECOMMENDED:
-            msg = ('Support for Python version %d.%d has been deprecated. '
-                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details.'
-                   '\n                    You will no longer receive updates on this version')
-            if current_version < MIN_SUPPORTED:
-                msg = 'Python version %d.%d is no longer supported'
-            self.deprecated_feature(
-                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
+        system_deprecation = _get_system_deprecation()
+        if system_deprecation:
+            self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
@@ -680,12 +673,10 @@ class YoutubeDL:
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         self.params['http_headers'] = HTTPHeaderDict(std_headers, self.params.get('http_headers'))
-        self.__header_cookies = []
         self._load_cookies(self.params['http_headers'].get('Cookie'))  # compat
         self.params['http_headers'].pop('Cookie', None)
+        self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
-        self._request_director = self.build_request_director(
-            sorted(_REQUEST_HANDLERS.values(), key=lambda rh: rh.RH_NAME.lower()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
@@ -949,7 +940,7 @@ class YoutubeDL:
 
     def save_cookies(self):
         if self.params.get('cookiefile') is not None:
-            self.cookiejar.save(ignore_discard=True, ignore_expires=True)
+            self.cookiejar.save()
 
     def __exit__(self, *args):
         self.restore_console_title()
@@ -1300,15 +1291,15 @@ class YoutubeDL:
                 else:
                     break
 
-            fmt = outer_mobj.group('format')
-            if fmt == 's' and value is not None and last_field in field_size_compat_map.keys():
-                fmt = f'0{field_size_compat_map[last_field]:d}d'
-
             if None not in (value, replacement):
                 try:
                     value = replacement_formatter.format(replacement, value)
                 except ValueError:
                     value, default = None, na
+
+            fmt = outer_mobj.group('format')
+            if fmt == 's' and last_field in field_size_compat_map.keys() and isinstance(value, int):
+                fmt = f'0{field_size_compat_map[last_field]:d}d'
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
@@ -2338,12 +2329,12 @@ class YoutubeDL:
             return new_dict
 
         def _check_formats(formats):
-            if (self.params.get('check_formats') is not None
+            if self.params.get('check_formats') == 'selected':
+                yield from self._check_formats(formats)
+                return
+            elif (self.params.get('check_formats') is not None
                     or self.params.get('allow_unplayable_formats')):
                 yield from formats
-                return
-            elif self.params.get('check_formats') == 'selected':
-                yield from self._check_formats(formats)
                 return
 
             for f in formats:
@@ -2592,7 +2583,7 @@ class YoutubeDL:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
                 # see http://bugs.python.org/issue1646728)
                 with contextlib.suppress(ValueError, OverflowError, OSError):
-                    upload_date = datetime.datetime.utcfromtimestamp(info_dict[ts_key])
+                    upload_date = datetime.datetime.fromtimestamp(info_dict[ts_key], datetime.timezone.utc)
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
 
         live_keys = ('is_live', 'was_live')
@@ -3290,7 +3281,7 @@ class YoutubeDL:
                 fd, success = None, True
                 if info_dict.get('protocol') or info_dict.get('url'):
                     fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
-                    if fd is not FFmpegFD and 'no-direct-merge' not in self.params['compat_opts'] and (
+                    if fd != FFmpegFD and 'no-direct-merge' not in self.params['compat_opts'] and (
                             info_dict.get('section_start') or info_dict.get('section_end')):
                         msg = ('This format cannot be partially downloaded' if FFmpegFD.available()
                                else 'You have requested downloading the video partially, but ffmpeg is not installed')
@@ -3454,7 +3445,8 @@ class YoutubeDL:
                     ) for pp in self._pps['post_process'])
 
                     if not postprocessed_by_ffmpeg:
-                        ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
+                        ffmpeg_fixup(fd != FFmpegFD and ext == 'm4a'
+                                     and info_dict.get('container') == 'm4a_dash',
                                      'writing DASH m4a. Only some players support this container',
                                      FFmpegFixupM4aPP)
                         ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
@@ -3976,7 +3968,7 @@ class YoutubeDL:
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
-        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers)}')
+        write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
@@ -4031,7 +4023,7 @@ class YoutubeDL:
         """
         Get a urllib OpenerDirector from the Urllib handler (deprecated).
         """
-        self.deprecation_warning('YoutubeDL._opener() is deprecated, use YoutubeDL.urlopen()')
+        self.deprecation_warning('YoutubeDL._opener is deprecated, use YoutubeDL.urlopen()')
         handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
@@ -4065,6 +4057,9 @@ class YoutubeDL:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
+                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                    raise RequestError(
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
@@ -4077,9 +4072,9 @@ class YoutubeDL:
         except HTTPError as e:  # TODO: Remove in a future release
             raise _CompatHTTPError(e) from e
 
-    def build_request_director(self, handlers):
+    def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)
-        headers = self.params.get('http_headers').copy()
+        headers = self.params['http_headers'].copy()
         proxies = self.proxies.copy()
         clean_headers(headers)
         clean_proxies(proxies, headers)
@@ -4106,6 +4101,9 @@ class YoutubeDL:
                     },
                 }),
             ))
+        director.preferences.update(preferences or [])
+        if 'prefer-legacy-http-handler' in self.params['compat_opts']:
+            director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
         return director
 
     def encode(self, s):
@@ -4228,7 +4226,7 @@ class YoutubeDL:
         return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
-        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
+        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error '''
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails, ret = [], []
         if write_all or self.params.get('writethumbnail', False):
@@ -4243,6 +4241,9 @@ class YoutubeDL:
         if thumbnails and not thumb_filename_base:
             self.write_debug(f'Skipping writing {label} thumbnail')
             return ret
+
+        if thumbnails and not self._ensure_dir_exists(filename):
+            return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
             thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')

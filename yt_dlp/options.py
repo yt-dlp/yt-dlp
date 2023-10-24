@@ -471,11 +471,12 @@ def create_parser():
                 'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
                 'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
+                'prefer-legacy-http-handler'
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams', '-playlist-match-filter'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat', '-playlist-match-filter'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': ['no-external-downloader-progress', 'playlist-match-filter'],
+                '2022': ['no-external-downloader-progress', 'playlist-match-filter', 'prefer-legacy-http-handler'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -727,7 +728,7 @@ def create_parser():
     authentication.add_option(
         '--video-password',
         dest='videopassword', metavar='PASSWORD',
-        help='Video password (vimeo, youku)')
+        help='Video-specific password')
     authentication.add_option(
         '--ap-mso',
         dest='ap_mso', metavar='MSO',
