@@ -59,12 +59,27 @@ class ZenPornIE(InfoExtractor):
                 'uploader': 'Jackopenass',
                 'age_limit': 18
             }
+        },
+        {
+            'url': 'https://zenporn.com/video/15872038/glad-you-came/',
+            'md5': '296ccab437f5bac6099433768449d8e1',
+            'info_dict': {
+                'id': '15872038',
+                'extr_id': '111585',
+                'ext': 'mp4',
+                'title': 'Glad You Came',
+                'description': '',
+                'thumbnail': 'https://vpim.m3pd.com/contents/videos_screenshots/111000/111585/480x270/1.jpg',
+                'post_date': '2023-10-24 15:50:03',
+                'uploader': 'Martin Rudenko',
+                'age_limit': 18
+            }
         }
     ]
 
     def _extract_embed_info(self, source):
         regex = re.compile(
-            r'https:\/\/(?P<ext_domain>[a-zA-Z.-]+\.[a-zA-z]{3})\/embed\/(?P<extr_id>[0-9]+)\/\?promo')
+            r'https:\/\/(?P<ext_domain>[a-zA-Z.-]+\.[a-zA-z]{3})\/embed\/(?P<extr_id>[0-9]+)\/')
         match = regex.search(source)
 
         if match:
@@ -75,7 +90,7 @@ class ZenPornIE(InfoExtractor):
     def _gen_info_url(self, ext_domain, extr_id, lifetime=86400):
         dyn_a = int_or_none(1e6 * math.floor(int_or_none(extr_id) / 1e6))
         dyn_b = int_or_none(1e3 * math.floor(int_or_none(extr_id) / 1e3))
-        if not dyn_a or not dyn_b:
+        if dyn_a is None or dyn_b is None:
             raise ExtractorError('Unable to generate the ``gen_info_url``.')
 
         return f'https://{ext_domain}/api/json/video/{lifetime}/{dyn_a}/{dyn_b}/{extr_id}.json'
