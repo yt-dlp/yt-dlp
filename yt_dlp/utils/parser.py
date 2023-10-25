@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import re
 import string
 
 
 def create_matcher(separators: str):
-    specials = ''.join(map(re.escape, separators))
+    specials = re.escape(separators)
 
-    main_re = re.compile(rf'(?:\\[{specials}]|[^{specials}])+')
+    main_re = re.compile(rf'(?:\\[\\{specials}]|[^\\{specials}])+')
     escape_re = re.compile(rf'\\([{specials}])')
 
     def matcher(data: str, begin: int) -> tuple[int, str | None]:
@@ -38,7 +40,7 @@ class Parser:
         (?P<width>\d*)  # `*` is not valid
         (?P<precision>(?:\.\d*)?)  # `*` is not valid
         ''', re.VERBOSE)
-    _MATCH_FIELD = create_matcher('.{}>,&|)')
+    _MATCH_FIELD = create_matcher('+-.{}>,&|)')
     _MATCH_DATE_FORMAT = create_matcher(',&|)')
     _MATCH_REPLACEMENT = create_matcher('|)')
     _MATCH_DEFAULT = create_matcher(')')
@@ -102,20 +104,21 @@ class Parser:
             index += 1
             if next_char != '.':
                 last_was_dot = False
+
             if next_char == ')':
                 if in_dict_traversal:
-                    raise ParseError(f'Unexpected key end, did you forget a \'}}\'?', index)
+                    raise ParseError('Unexpected key end, did you forget a \'}\'?', index)
                 if traversal:
                     results.append(traversal)
                 return index, results
 
             elif next_char == '.':
                 if last_was_dot:
-                    raise ParseError(f'Unexpected \'.\', did you add an additional \'.\'?', index)
+                    raise ParseError('Unexpected \'.\', did you add an additional \'.\'?', index)
 
                 last_was_dot = True
                 if in_dict_traversal:
-                    raise ParseError(f'Unexpected \'.\', did you forget a \'}}\'?', index)
+                    raise ParseError('Unexpected \'.\', did you forget a \'}\'?', index)
 
             elif next_char == ',':
                 if in_dict_traversal:
@@ -125,15 +128,18 @@ class Parser:
 
             elif next_char == '{':
                 if in_dict_traversal:
-                    raise ParseError(f'Unexpected nested \'{{\', did you forget a \'}}\'?', index)
+                    raise ParseError('Unexpected nested \'{\', did you forget a \'}\'?', index)
                 in_dict_traversal = True
 
             elif next_char == '}':
                 if not in_dict_traversal:
-                    raise ParseError(f'Unexpected \'}}\', did you forget a \'{{\'?', index)
+                    raise ParseError('Unexpected \'}\', did you forget a \'{\'?', index)
                 in_dict_traversal = False
                 results.append({item: item for item in traversal})
                 traversal.clear()
+
+            else:  # TODO: date (>), maths (+-), replacement (&) and default (|)
+                raise ParseError(f'Parser case not implemented: \'{next_char}\'', index)
 
 
 if __name__ == '__main__':
@@ -150,19 +156,32 @@ if __name__ == '__main__':
         R'%(a,{b}.c})s',
         R'%(a..b)s',
         R'%(a.{{b}}.c)s',
+        R'%(test&({}))s',
+        R'%(test|())s',
         # pass
         R'%(a,b)s [%(id)s].%(ext)s',
         R'%(a\{b\}c.test)s',
         R'%(test.{id,test})s',
         R'%({id,test})s',
+        # pleb parser implementation
+        R'%(test|(\))s',
+        R'%(a>datefmt)s',
+        R'%(test&({}\))s',
+        R'%(+a-2)s',
+        R'%(a-2)s',
     ]
 
     for test in tests:
+        offset = 0
         try:
             results = Parser.parse(test)
         except ParseError as error:
             prefix = 'FAIL: Invalid output template: '
-            print(f'{prefix}{test}\n{"^":>{error.offset + len(prefix)}} {error.msg}')
+            symbol = '^'
+            offset += error.offset
+            results = f' {error.msg}'
         else:
             prefix = 'PASS: '
-            print(f'{prefix}{test}\n{"":>{len(prefix)}}{results}')
+            symbol = ''
+
+        print(f'{prefix}{test}\n{symbol: >{offset + len(prefix)}}{results}')
