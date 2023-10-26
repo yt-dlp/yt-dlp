@@ -1,20 +1,29 @@
 name: Release (nightly)
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - "yt_dlp/**.py"
-      - "!yt_dlp/version.py"
-concurrency:
-  group: release-nightly
-  cancel-in-progress: true
+  schedule:
+    - cron: '23 23 * * *'
 permissions:
   contents: read
 
 jobs:
-  release:
+  check_nightly:
     if: vars.BUILD_NIGHTLY != ''
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.check_for_new_commits.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Check for new commits
+        id: check_for_new_commits
+        run: |
+          relevant_files=("yt_dlp/*.py" ':!yt_dlp/version.py' "setup.py" "pyinst.py")
+          echo "commit=$(git log --format=%H -1 --since=24h -- "${relevant_files[@]}")" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: [check_nightly]
+    if: ${{ needs.check_nightly.outputs.commit }}
     uses: ./.github/workflows/release.yml
     with:
       prerelease: true
