@@ -466,8 +466,11 @@ class FileDownloader:
         # youtube-dl passes the same status object to all the hooks.
         # Some third party scripts seems to be relying on this.
         # So keep this behavior if possible
+        last_tick = 0
         for ph in self._progress_hooks:
-            ph(status)
+            if time.monotonic() - last_tick > 0.5 or last_tick == 0:
+                ph(status)
+            last_tick = time.monotonic()
 
     def add_progress_hook(self, ph):
         # See YoutubeDl.py (search for progress_hooks) for a description of
