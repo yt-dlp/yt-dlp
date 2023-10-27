@@ -258,7 +258,7 @@ class ZenYandexIE(InfoExtractor):
             video_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, video_id, note='Redirecting')
         data_json = self._search_json(
-            r'data\s*=', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
+            r'("data"\s*:|data\s*=)', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
                                          webpage, 'server state').replace('State', 'Settings')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
@@ -375,7 +375,7 @@ class ZenYandexChannelIE(InfoExtractor):
             item_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, item_id, note='Redirecting')
         data = self._search_json(
-            r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
+            r'("data"\s*:|data\s*=)', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
         server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
         server_settings_json = traverse_obj(data, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
 
