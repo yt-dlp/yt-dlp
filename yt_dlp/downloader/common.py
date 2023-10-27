@@ -468,7 +468,7 @@ class FileDownloader:
         # So keep this behavior if possible
         last_tick = 0
         for ph in self._progress_hooks:
-            if time.monotonic() - last_tick > 0.5 or last_tick == 0:
+            if time.monotonic() - last_tick > 0.5 or last_tick == 0 or status['status'] == 'finished':
                 ph(status)
             last_tick = time.monotonic()
 
