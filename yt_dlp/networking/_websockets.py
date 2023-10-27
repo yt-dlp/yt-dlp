@@ -1,28 +1,34 @@
-# Request handler for https://github.com/python-websockets/websockets
-
 from __future__ import annotations
 
-import asyncio
-import atexit
 import io
 import logging
-import urllib.parse
-import sys
 import ssl
+import sys
 
 from ._helper import create_connection
-
-from websockets.uri import parse_uri
-
-from .common import register_rh, Response
-from .exceptions import TransportError, RequestError, CertificateVerifyError, SSLError, HTTPError
-from .websocket import WebSocketResponse, WebSocketRequestHandler
+from .common import Response, register_rh
+from .exceptions import (
+    CertificateVerifyError,
+    HTTPError,
+    RequestError,
+    SSLError,
+    TransportError,
+)
+from .websocket import WebSocketRequestHandler, WebSocketResponse
 from ..dependencies import websockets
+from ..utils import int_or_none
 
 if not websockets:
     raise ImportError('websockets is not installed')
 
+import websockets.version
+
+websockets_version = tuple(map(int_or_none, websockets.version.version.split('.')))
+if websockets_version < (12, 0):
+    raise ImportError('Only websockets>=12.0 is supported')
+
 import websockets.sync.client
+from websockets.uri import parse_uri
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
@@ -63,6 +69,7 @@ class WebsocketsRH(WebSocketRequestHandler):
     """
     Websockets request handler
     https://websockets.readthedocs.io
+    https://github.com/python-websockets/websockets
     """
     _SUPPORTED_URL_SCHEMES = ('wss', 'ws')
     RH_NAME = 'websockets'

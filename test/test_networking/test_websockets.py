@@ -177,8 +177,9 @@ class TestWebsSocketRequestHandlerConformance:
     @pytest.mark.parametrize('status', (200, 204, 301, 302, 303, 400, 500, 511))
     def test_raise_http_error(self, handler, status):
         with handler() as rh:
-            with pytest.raises(HTTPError):
+            with pytest.raises(HTTPError) as exc_info:
                 validate_and_send(rh, Request(f'{self.ws_base_url}/gen_{status}'))
+            assert exc_info.value.status == status
 
     @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     @pytest.mark.parametrize('params,extensions', [
