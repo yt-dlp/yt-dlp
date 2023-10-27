@@ -60,7 +60,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, current_git_head, detect_variant
+from .update import REPOSITORY, _get_system_deprecation, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -239,9 +239,9 @@ class YoutubeDL:
                        'selected' (check selected formats),
                        or None (check only if requested by extractor)
     paths:             Dictionary of output paths. The allowed keys are 'home'
-                       'temp' and the keys of OUTTMPL_TYPES (in utils.py)
+                       'temp' and the keys of OUTTMPL_TYPES (in utils/_utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
-                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils/_utils.py).
                        For compatibility with youtube-dl, a single string can also be used
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
@@ -422,7 +422,7 @@ class YoutubeDL:
                          asked whether to download the video.
                        - Raise utils.DownloadCancelled(msg) to abort remaining
                          downloads when a video is rejected.
-                       match_filter_func in utils.py is one example for this.
+                       match_filter_func in utils/_utils.py is one example for this.
     color:             A Dictionary with output stream names as keys
                        and their respective color policy as values.
                        Can also just be a single color policy,
@@ -640,17 +640,9 @@ class YoutubeDL:
             for name, stream in self._out_files.items_ if name != 'console'
         })
 
-        # The code is left like this to be reused for future deprecations
-        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
-        current_version = sys.version_info[:2]
-        if current_version < MIN_RECOMMENDED:
-            msg = ('Support for Python version %d.%d has been deprecated. '
-                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details.'
-                   '\n                    You will no longer receive updates on this version')
-            if current_version < MIN_SUPPORTED:
-                msg = 'Python version %d.%d is no longer supported'
-            self.deprecated_feature(
-                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
+        system_deprecation = _get_system_deprecation()
+        if system_deprecation:
+            self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
@@ -2591,7 +2583,7 @@ class YoutubeDL:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
                 # see http://bugs.python.org/issue1646728)
                 with contextlib.suppress(ValueError, OverflowError, OSError):
-                    upload_date = datetime.datetime.utcfromtimestamp(info_dict[ts_key])
+                    upload_date = datetime.datetime.fromtimestamp(info_dict[ts_key], datetime.timezone.utc)
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
 
         live_keys = ('is_live', 'was_live')
@@ -4065,6 +4057,9 @@ class YoutubeDL:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
+                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                    raise RequestError(
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
@@ -4107,6 +4102,8 @@ class YoutubeDL:
                 }),
             ))
         director.preferences.update(preferences or [])
+        if 'prefer-legacy-http-handler' in self.params['compat_opts']:
+            director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
         return director
 
     def encode(self, s):
@@ -4229,7 +4226,7 @@ class YoutubeDL:
         return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
-        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
+        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error '''
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails, ret = [], []
         if write_all or self.params.get('writethumbnail', False):
@@ -4244,6 +4241,9 @@ class YoutubeDL:
         if thumbnails and not thumb_filename_base:
             self.write_debug(f'Skipping writing {label} thumbnail')
             return ret
+
+        if thumbnails and not self._ensure_dir_exists(filename):
+            return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
             thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')

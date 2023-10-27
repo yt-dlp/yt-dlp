@@ -28,13 +28,52 @@ class NhkBaseIE(InfoExtractor):
                 m_id, lang, '/all' if is_video else ''),
             m_id, query={'apikey': 'EJfK8jdS57GqlupFgAfAAwr573q01y6k'})['data']['episodes'] or []
 
+    def _get_api_info(self, refresh=True):
+        if not refresh:
+            return self.cache.load('nhk', 'api_info')
+
+        self.cache.store('nhk', 'api_info', {})
+        movie_player_js = self._download_webpage(
+            'https://movie-a.nhk.or.jp/world/player/js/movie-player.js', None,
+            note='Downloading stream API information')
+        api_info = {
+            'url': self._search_regex(
+                r'prod:[^;]+\bapiUrl:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API url'),
+            'token': self._search_regex(
+                r'prod:[^;]+\btoken:\s*[\'"]([^\'"]+)[\'"]', movie_player_js, None, 'stream API token'),
+        }
+        self.cache.store('nhk', 'api_info', api_info)
+        return api_info
+
+    def _extract_formats_and_subtitles(self, vod_id):
+        for refresh in (False, True):
+            api_info = self._get_api_info(refresh)
+            if not api_info:
+                continue
+
+            api_url = api_info.pop('url')
+            stream_url = traverse_obj(
+                self._download_json(
+                    api_url, vod_id, 'Downloading stream url info', fatal=False, query={
+                        **api_info,
+                        'type': 'json',
+                        'optional_id': vod_id,
+                        'active_flg': 1,
+                    }),
+                ('meta', 0, 'movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
+            if stream_url:
+                return self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
+
+        raise ExtractorError('Unable to extract stream url')
+
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
-        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
-        if len(episode_id) == 7:
+        lang, m_type, episode_id = NhkVodIE._match_valid_url(url).group('lang', 'type', 'id')
+        is_video = m_type == 'video'
+
+        if is_video:
             episode_id = episode_id[:4] + '-' + episode_id[4:]
 
-        is_video = m_type == 'video'
         if fetch_episode:
             episode = self._call_api(
                 episode_id, lang, is_video, True, episode_id[:4] == '9999')[0]
@@ -67,12 +106,14 @@ class NhkBaseIE(InfoExtractor):
         }
         if is_video:
             vod_id = episode['vod_id']
+            formats, subs = self._extract_formats_and_subtitles(vod_id)
+
             info.update({
-                '_type': 'url_transparent',
-                'ie_key': 'Piksel',
-                'url': 'https://movie-s.nhk.or.jp/v/refid/nhkworld/prefid/' + vod_id,
                 'id': vod_id,
+                'formats': formats,
+                'subtitles': subs,
             })
+
         else:
             if fetch_episode:
                 audio_path = episode['audio']['audio']
@@ -93,47 +134,46 @@ class NhkBaseIE(InfoExtractor):
 
 class NhkVodIE(NhkBaseIE):
     # the 7-character IDs can have alphabetic chars too: assume [a-z] rather than just [a-f], eg
-    _VALID_URL = r'%s%s(?P<id>[0-9a-z]{7}|[^/]+?-\d{8}-[0-9a-z]+)' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    _VALID_URL = [rf'{NhkBaseIE._BASE_URL_REGEX}/(?P<type>video)/(?P<id>[0-9a-z]+)',
+                  rf'{NhkBaseIE._BASE_URL_REGEX}/(?P<type>audio)/(?P<id>[^/?#]+?-\d{{8}}-[0-9a-z]+)']
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2061601/',
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2049126/',
         'info_dict': {
-            'id': 'yd8322ch',
+            'id': 'nw_vod_v_en_2049_126_20230413233000_01_1681398302',
             'ext': 'mp4',
-            'description': 'md5:109c8b05d67a62d0592f2b445d2cd898',
-            'title': 'GRAND SUMO Highlights - [Recap] May Tournament Day 1 (Opening Day)',
-            'upload_date': '20230514',
-            'timestamp': 1684083791,
-            'series': 'GRAND SUMO Highlights',
-            'episode': '[Recap] May Tournament Day 1 (Opening Day)',
-            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1684084443/4028649.jpg?w=1920&h=1080',
+            'title': 'Japan Railway Journal - The Tohoku Shinkansen: Full Speed Ahead',
+            'description': 'md5:49f7c5b206e03868a2fdf0d0814b92f6',
+            'thumbnail': 'md5:51bcef4a21936e7fea1ff4e06353f463',
+            'episode': 'The Tohoku Shinkansen: Full Speed Ahead',
+            'series': 'Japan Railway Journal',
         },
     }, {
         # video clip
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999011/',
-        'md5': '7a90abcfe610ec22a6bfe15bd46b30ca',
+        'md5': '153c3016dfd252ba09726588149cf0e7',
         'info_dict': {
-            'id': 'a95j5iza',
+            'id': 'lpZXIwaDE6_Z-976CPsFdxyICyWUzlT5',
             'ext': 'mp4',
-            'title': "Dining with the Chef - Chef Saito's Family recipe: MENCHI-KATSU",
+            'title': 'Dining with the Chef - Chef Saito\'s Family recipe: MENCHI-KATSU',
             'description': 'md5:5aee4a9f9d81c26281862382103b0ea5',
-            'timestamp': 1565965194,
-            'upload_date': '20190816',
-            'thumbnail': 'https://mz-edge.stream.co.jp/thumbs/aid/t1567086278/3715195.jpg?w=1920&h=1080',
+            'thumbnail': 'md5:d6a4d9b6e9be90aaadda0bcce89631ed',
             'series': 'Dining with the Chef',
             'episode': 'Chef Saito\'s Family recipe: MENCHI-KATSU',
         },
     }, {
-        # audio clip
-        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/r_inventions-20201104-1/',
+        # radio
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/livinginjapan-20231001-1/',
         'info_dict': {
-            'id': 'r_inventions-20201104-1-en',
+            'id': 'livinginjapan-20231001-1-en',
             'ext': 'm4a',
-            'title': "Japan's Top Inventions - Miniature Video Cameras",
-            'description': 'md5:07ea722bdbbb4936fdd360b6a480c25b',
+            'title': 'Living in Japan - Tips for Travelers to Japan / Ramen Vending Machines',
+            'series': 'Living in Japan',
+            'description': 'md5:850611969932874b4a3309e0cae06c2f',
+            'thumbnail': 'md5:960622fb6e06054a4a1a0c97ea752545',
+            'episode': 'Tips for Travelers to Japan / Ramen Vending Machines'
         },
-        'skip': '404 Not Found',
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/2015173/',
         'only_matching': True,
@@ -159,6 +199,19 @@ class NhkVodIE(NhkBaseIE):
             'timestamp': 1623722008,
         },
         'skip': '404 Not Found',
+    }, {
+        # japanese-language, longer id than english
+        'url': 'https://www3.nhk.or.jp/nhkworld/ja/ondemand/video/0020271111/',
+        'info_dict': {
+            'id': 'nw_ja_v_jvod_ohayou_20231008',
+            'ext': 'mp4',
+            'title': 'おはよう日本（7時台） - 10月8日放送',
+            'series': 'おはよう日本（7時台）',
+            'episode': '10月8日放送',
+            'thumbnail': 'md5:d733b1c8e965ab68fb02b2d347d0e9b4',
+            'description': 'md5:9c1d6cbeadb827b955b20e99ab920ff0',
+        },
+        'skip': 'expires 2023-10-15',
     }]
 
     def _real_extract(self, url):
@@ -166,7 +219,7 @@ class NhkVodIE(NhkBaseIE):
 
 
 class NhkVodProgramIE(NhkBaseIE):
-    _VALID_URL = r'%s/program%s(?P<id>[0-9a-z]+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    _VALID_URL = rf'{NhkBaseIE._BASE_URL_REGEX}/program{NhkBaseIE._TYPE_REGEX}(?P<id>\w+)(?:.+?\btype=(?P<episode_type>clip|(?:radio|tv)Episode))?'
     _TESTS = [{
         # video program episodes
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/program/video/sumo',
@@ -200,8 +253,7 @@ class NhkVodProgramIE(NhkBaseIE):
     }]
 
     def _real_extract(self, url):
-        lang, m_type, program_id, episode_type = self._match_valid_url(url).groups()
-
+        lang, m_type, program_id, episode_type = self._match_valid_url(url).group('lang', 'type', 'id', 'episode_type')
         episodes = self._call_api(
             program_id, lang, m_type == 'video', False, episode_type == 'clip')
 

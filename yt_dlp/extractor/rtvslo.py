@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    int_or_none,
     parse_duration,
     traverse_obj,
     unified_timestamp,
@@ -25,7 +26,7 @@ class RTVSLOIE(InfoExtractor):
             'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
             'info_dict': {
                 'id': '174842550',
-                'ext': 'flv',
+                'ext': 'mp4',
                 'release_timestamp': 1643140032,
                 'upload_date': '20220125',
                 'series': 'Dnevnik',
@@ -69,7 +70,21 @@ class RTVSLOIE(InfoExtractor):
                 'tbr': 128000,
                 'release_date': '20220201',
             },
-
+        }, {
+            'url': 'https://365.rtvslo.si/arhiv/razred-zase/148350750',
+            'info_dict': {
+                'id': '148350750',
+                'ext': 'mp4',
+                'title': 'Prvi šolski dan, mozaična oddaja za mlade',
+                'series': 'Razred zase',
+                'series_id': '148185730',
+                'duration': 1481,
+                'upload_date': '20121019',
+                'timestamp': 1350672122,
+                'release_date': '20121019',
+                'release_timestamp': 1350672122,
+                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/148185730/razred_zase_2014_logo_4d_wide2.jpg',
+            },
         }, {
             'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
             'only_matching': True
@@ -98,13 +113,14 @@ class RTVSLOIE(InfoExtractor):
         media = self._download_json(self._API_BASE.format('getMedia', v_id), v_id, query={'jwt': jwt})['response']
 
         formats = []
+        skip_protocols = ['smil', 'f4m', 'dash']
         adaptive_url = traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=url_or_none)
         if adaptive_url:
-            formats = self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=['smil'])
+            formats = self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=skip_protocols)
 
         adaptive_url = traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec'), expected_type=url_or_none)
         if adaptive_url:
-            for f in self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=['smil']):
+            for f in self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=skip_protocols):
                 formats.append({
                     **f,
                     'format_id': 'sign-' + f['format_id'],
@@ -114,19 +130,19 @@ class RTVSLOIE(InfoExtractor):
                         else f.get('language'))
                 })
 
-        formats.extend(
-            {
-                'url': f['streams'][strm],
-                'ext': traverse_obj(f, 'mediaType', expected_type=str.lower),
-                'width': f.get('width'),
-                'height': f.get('height'),
-                'tbr': f.get('bitrate'),
-                'filesize': f.get('filesize'),
-            }
-            for strm in ('http', 'https')
-            for f in media.get('mediaFiles') or []
-            if traverse_obj(f, ('streams', strm))
-        )
+        for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['https']))):
+            formats.append(traverse_obj(mediafile, {
+                'url': ('streams', 'https'),
+                'ext': ('mediaType', {str.lower}),
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+                'tbr': ('bitrate', {int_or_none}),
+                'filesize': ('filesize', {int_or_none}),
+            }))
+
+        for mediafile in traverse_obj(media, ('mediaFiles', lambda _, v: url_or_none(v['streams']['hls_sec']))):
+            formats.extend(self._extract_wowza_formats(
+                mediafile['streams']['hls_sec'], v_id, skip_protocols=skip_protocols))
 
         if any('intermission.mp4' in x['url'] for x in formats):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
