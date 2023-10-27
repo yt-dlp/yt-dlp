@@ -55,6 +55,8 @@ from yt_dlp.networking.exceptions import (
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict
 
+from .conftest import validate_and_send
+
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -278,11 +280,6 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         self._headers_buffer.append(f'{keyword}: {value}\r\n'.encode())
 
 
-def validate_and_send(rh, req):
-    rh.validate(req)
-    return rh.send(req)
-
-
 class TestRequestHandlerBase:
     @classmethod
     def setup_class(cls):
@@ -296,7 +293,7 @@ class TestRequestHandlerBase:
         cls.http_server_thread.start()
 
         # HTTPS server
-        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        certfn = os.path.join(TEST_DIR, '../testcert.pem')
         cls.https_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -375,6 +372,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests'], indirect=True)
     def test_raise_http_error(self, handler):
         with handler() as rh:
+            # TODO Return HTTP status code url
             for bad_status in (400, 500, 599, 302):
                 with pytest.raises(HTTPError):
                     validate_and_send(rh, Request('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status)))
@@ -696,8 +694,8 @@ class TestClientCertificate:
 
     @classmethod
     def setup_class(cls):
-        certfn = os.path.join(TEST_DIR, 'testcert.pem')
-        cls.certdir = os.path.join(TEST_DIR, 'testdata', 'certificate')
+        certfn = os.path.join(TEST_DIR, '../testcert.pem')
+        cls.certdir = os.path.join(TEST_DIR, '../testdata', 'certificate')
         cacertfn = os.path.join(cls.certdir, 'ca.crt')
         cls.httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -746,82 +744,6 @@ class TestClientCertificate:
             'client_certificate_key': os.path.join(self.certdir, 'clientencrypted.key'),
             'client_certificate_password': 'foobar',
         })
-
-
-@pytest.mark.skipif(not websockets, reason='websockets must be installed to test websocket request handlers')
-class TestWebsockets:
-    @classmethod
-    def setup_class(cls):
-        import websockets.server
-
-        async def echo(websocket):
-            async for message in websocket:
-                if message == b'headers':
-                    await websocket.send(json.dumps(dict(websocket.request_headers)))
-                elif message == 'source_address':
-                    await websocket.send(websocket.remote_address[0])
-                else:
-                    await websocket.send(message)
-
-        def run():
-            async def main():
-                async with websockets.server.serve(echo, "localhost", 8765):
-                    await asyncio.Future()
-            asyncio.run(main())
-
-        cls.ws_server_thread = threading.Thread(target=run)
-        cls.ws_server_thread.daemon = True
-        cls.ws_server_thread.start()
-        time.sleep(1)  # wait for server to start
-
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
-    def test_send_recv(self, handler):
-        with handler() as rh:
-            ws = validate_and_send(rh, Request('ws://127.0.0.1:8765'))
-            ws.send(b'foo')
-            assert ws.recv() == b'foo'
-
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
-    @pytest.mark.parametrize('params,extensions', [
-        ({'timeout': 0.00001}, {}),
-        ({}, {'timeout': 0.00001}),
-    ])
-    def test_timeout(self, handler, params, extensions):
-        with handler(**params) as rh:
-            with pytest.raises(TransportError):
-                validate_and_send(rh, Request('ws://127.0.0.1:8765', extensions=extensions))
-
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
-    def test_cookies(self, handler):
-        cookiejar = YoutubeDLCookieJar()
-        cookiejar.set_cookie(http.cookiejar.Cookie(
-            version=0, name='test', value='ytdlp', port=None, port_specified=False,
-            domain='127.0.0.1', domain_specified=True, domain_initial_dot=False, path='/',
-            path_specified=True, secure=False, expires=None, discard=False, comment=None,
-            comment_url=None, rest={}))
-
-        with handler(cookiejar=cookiejar) as rh:
-            res = validate_and_send(rh, Request('ws://127.0.0.1:8765'))
-            res.send(b'headers')
-            assert json.loads(res.recv())['cookie'] == 'test=ytdlp'
-
-        with handler() as rh:
-            res = validate_and_send(rh, Request('ws://127.0.0.1:8765'))
-            res.send(b'headers')
-            assert 'cookie' not in json.loads(res.recv())
-
-            res = validate_and_send(rh, Request('ws://127.0.0.1:8765', extensions={'cookiejar': cookiejar}))
-            res.send(b'headers')
-            assert json.loads(res.recv())['cookie'] == 'test=ytdlp'
-
-    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
-    def test_source_address(self, handler):
-        source_address = f'127.0.0.{random.randint(5, 255)}'
-        with handler(source_address=source_address) as rh:
-            res = validate_and_send(
-                rh, Request(f'ws://127.0.0.1:8765/source_address'))
-            res.send('source_address')
-            assert source_address == res.recv()
 
 
 class TestUrllibRequestHandler(TestRequestHandlerBase):

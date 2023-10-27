@@ -8,12 +8,14 @@ import io
 import logging
 import urllib.parse
 import sys
+import ssl
+
 from ._helper import create_connection
 
 from websockets.uri import parse_uri
 
-from .common import register_rh
-from .exceptions import TransportError, RequestError
+from .common import register_rh, Response
+from .exceptions import TransportError, RequestError, CertificateVerifyError, SSLError, HTTPError
 from .websocket import WebSocketResponse, WebSocketRequestHandler
 from ..dependencies import websockets
 
@@ -21,7 +23,6 @@ if not websockets:
     raise ImportError('websockets is not installed')
 
 import websockets.sync.client
-from websockets.exceptions import InvalidHandshake, InvalidURI, ConnectionClosed
 
 
 class WebsocketsResponseAdapter(WebSocketResponse):
@@ -44,7 +45,7 @@ class WebsocketsResponseAdapter(WebSocketResponse):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
         try:
             return self.wsw.send(*args)
-        except (ConnectionClosed, RuntimeError) as e:
+        except (websockets.exceptions.ConnectionClosed, RuntimeError) as e:
             raise TransportError(cause=e) from e
         except TypeError as e:
             raise RequestError(cause=e) from e
@@ -53,12 +54,16 @@ class WebsocketsResponseAdapter(WebSocketResponse):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
         try:
             return self.wsw.recv(*args)
-        except (ConnectionClosed, RuntimeError) as e:
+        except (websockets.exceptions.ConnectionClosed, RuntimeError) as e:
             raise TransportError(cause=e) from e
 
 
 @register_rh
 class WebsocketsRH(WebSocketRequestHandler):
+    """
+    Websockets request handler
+    https://websockets.readthedocs.io
+    """
     _SUPPORTED_URL_SCHEMES = ('wss', 'ws')
     RH_NAME = 'websockets'
 
@@ -78,22 +83,6 @@ class WebsocketsRH(WebSocketRequestHandler):
         extensions.pop('cookiejar', None)
 
     def _send(self, request):
-        """
-        https://websockets.readthedocs.io/en/stable/reference/sync/client.html
-        TODO:
-        - Cookie Support
-        - Test Exception Mapping
-        - Timeout handling for closing?
-        - WS Pinging
-        - KeyboardInterrupt doesn't seem to kill websockets
-        """
-        ws_kwargs = {}
-        if urllib.parse.urlparse(request.url).scheme == 'wss':
-            ws_kwargs['ssl_context'] = self._make_sslcontext()
-
-        source_address = self.source_address
-        if source_address is not None:
-            ws_kwargs['source_address'] = source_address
         timeout = float(request.extensions.get('timeout') or self.timeout)
         headers = self._merge_headers(request.headers)
         if 'cookie' not in headers:
@@ -103,24 +92,38 @@ class WebsocketsRH(WebSocketRequestHandler):
                 headers['cookie'] = cookie_header
 
         wsuri = parse_uri(request.url)
-        sock = create_connection(
-            (wsuri.host, wsuri.port),
-            source_address=(self.source_address, 0) if self.source_address else None,
-            timeout=timeout
-        )
         try:
+            sock = create_connection(
+                (wsuri.host, wsuri.port),
+                source_address=(self.source_address, 0) if self.source_address else None,
+                timeout=timeout
+            )
             conn = websockets.sync.client.connect(
                 sock=sock,
                 uri=request.url,
                 additional_headers=headers,
                 open_timeout=timeout,
                 user_agent_header=None,
+                ssl_context=self._make_sslcontext() if wsuri.secure else None,
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
 
         # Exceptions as per https://websockets.readthedocs.io/en/stable/reference/sync/client.html
-        except InvalidURI as e:
+        except websockets.exceptions.InvalidURI as e:
             raise RequestError(cause=e) from e
-        except (OSError, TimeoutError, InvalidHandshake) as e:
+        except ssl.SSLCertVerificationError as e:
+            raise CertificateVerifyError(cause=e) from e
+        except ssl.SSLError as e:
+            raise SSLError(cause=e) from e
+        except websockets.exceptions.InvalidStatus as e:
+            raise HTTPError(
+                Response(
+                    fp=io.BytesIO(e.response.body),
+                    url=request.url,
+                    headers=e.response.headers,
+                    status=e.response.status_code,
+                    reason=e.response.reason_phrase),
+                ) from e
+        except (OSError, TimeoutError, websockets.exceptions.InvalidHandshake) as e:
             raise TransportError(cause=e) from e
 
