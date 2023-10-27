@@ -15,7 +15,7 @@ from ..utils import (
 
 class QDanceIE(InfoExtractor):
     _NETRC_MACHINE = 'qdance'
-    _VALID_URL = r'https?://(?:www\.)?q-dance\.com/network/(?:library|live)/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?q-dance\.com/network/(?:library|live)/(?P<id>[\w-]+)'
     _TESTS = [{
         'note': 'vod',
         'url': 'https://www.q-dance.com/network/library/146542138',
@@ -71,6 +71,9 @@ class QDanceIE(InfoExtractor):
             'thumbnail': 'https://images.q-dance.network/1698158361-230625-135716-defqon-1-aftershock.jpg',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.q-dance.com/network/library/-uRFKXwmRZGVnve7av9uqA',
+        'only_matching': True,
     }]
 
     _access_token = None
