@@ -1035,8 +1035,8 @@ class TestRequestHandlerValidation:
             ('socks5', False),
             ('socks5h', False),
         ]),
-        (NoCheckRH, [('http', False)]),
-        (HTTPSupportedRH, [('http', UnsupportedRequest)]),
+        (NoCheckRH, 'http', [('http', False)]),
+        (HTTPSupportedRH, 'http', [('http', UnsupportedRequest)]),
         ('Websockets', 'ws', [('http', UnsupportedRequest)]),
         (NoCheckRH, 'http', [('http', False)]),
         (HTTPSupportedRH, 'http', [('http', UnsupportedRequest)]),
@@ -1078,7 +1078,7 @@ class TestRequestHandlerValidation:
             ({'somerandom': 'test'}, False),  # but any extension is allowed through
         ]),
         ('Websockets', 'ws', [  # TODO
-            ({'cookiejar': CookieJar()}, False),
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 2}, False),
         ]),
     ]
