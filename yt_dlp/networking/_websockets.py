@@ -5,18 +5,20 @@ import logging
 import ssl
 import sys
 
-from ._helper import create_connection
-from .common import Response, register_rh
+from ._helper import create_connection, select_proxy, make_socks_proxy_opts, create_socks_proxy_socket
+from .common import Response, register_rh, Features
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
     RequestError,
     SSLError,
-    TransportError,
+    TransportError, ProxyError,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
+from ..compat import functools
 from ..dependencies import websockets
 from ..utils import int_or_none
+from ..socks import ProxyError as SocksProxyError
 
 if not websockets:
     raise ImportError('websockets is not installed')
@@ -51,8 +53,10 @@ class WebsocketsResponseAdapter(WebSocketResponse):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
         try:
             return self.wsw.send(*args)
-        except (websockets.exceptions.ConnectionClosed, RuntimeError) as e:
+        except (websockets.exceptions.ConnectionClosed, RuntimeError, TimeoutError) as e:
             raise TransportError(cause=e) from e
+        except SocksProxyError as e:
+            raise ProxyError(cause=e) from e
         except TypeError as e:
             raise RequestError(cause=e) from e
 
@@ -60,7 +64,9 @@ class WebsocketsResponseAdapter(WebSocketResponse):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
         try:
             return self.wsw.recv(*args)
-        except (websockets.exceptions.ConnectionClosed, RuntimeError) as e:
+        except SocksProxyError as e:
+            raise ProxyError(cause=e) from e
+        except (websockets.exceptions.ConnectionClosed, RuntimeError, TimeoutError) as e:
             raise TransportError(cause=e) from e
 
 
@@ -72,6 +78,8 @@ class WebsocketsRH(WebSocketRequestHandler):
     https://github.com/python-websockets/websockets
     """
     _SUPPORTED_URL_SCHEMES = ('wss', 'ws')
+    _SUPPORTED_PROXY_SCHEMES = ('socks4', 'socks4a', 'socks5', 'socks5h')
+    _SUPPORTED_FEATURES = (Features.ALL_PROXY, Features.NO_PROXY)
     RH_NAME = 'websockets'
 
     def __init__(self, *args, **kwargs):
@@ -99,12 +107,25 @@ class WebsocketsRH(WebSocketRequestHandler):
                 headers['cookie'] = cookie_header
 
         wsuri = parse_uri(request.url)
+        create_conn_kwargs = {
+            'source_address': (self.source_address, 0) if self.source_address else None,
+            'timeout': timeout
+        }
+        proxy = select_proxy(request.url, request.proxies or self.proxies or {})
         try:
-            sock = create_connection(
-                (wsuri.host, wsuri.port),
-                source_address=(self.source_address, 0) if self.source_address else None,
-                timeout=timeout
-            )
+            if proxy:
+                socks_proxy_options = make_socks_proxy_opts(proxy)
+                sock = create_connection(
+                    address=(socks_proxy_options['addr'], socks_proxy_options['port']),
+                    _create_socket_func=functools.partial(
+                        create_socks_proxy_socket, (wsuri.host, wsuri.port), socks_proxy_options),
+                    **create_conn_kwargs
+                )
+            else:
+                sock = create_connection(
+                    address=(wsuri.host, wsuri.port),
+                    **create_conn_kwargs
+                )
             conn = websockets.sync.client.connect(
                 sock=sock,
                 uri=request.url,
@@ -116,6 +137,8 @@ class WebsocketsRH(WebSocketRequestHandler):
             return WebsocketsResponseAdapter(conn, url=request.url)
 
         # Exceptions as per https://websockets.readthedocs.io/en/stable/reference/sync/client.html
+        except SocksProxyError as e:
+            raise ProxyError(cause=e) from e
         except websockets.exceptions.InvalidURI as e:
             raise RequestError(cause=e) from e
         except ssl.SSLCertVerificationError as e:

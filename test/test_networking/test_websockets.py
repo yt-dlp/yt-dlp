@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import enum
+
 # Allow direct execution
 import os
 import sys
@@ -12,12 +13,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asyncio
 import functools
-import json
 import gzip
 import http.client
 import http.cookiejar
 import http.server
 import io
+import json
 import pathlib
 import random
 import ssl
@@ -30,6 +31,8 @@ import warnings
 import zlib
 from email.message import Message
 from http.cookiejar import CookieJar
+
+import websockets.sync
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.cookies import YoutubeDLCookieJar
@@ -56,8 +59,9 @@ from yt_dlp.networking.exceptions import (
 )
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict
+
 from .conftest import validate_and_send
-import websockets.sync
+
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
