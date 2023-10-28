@@ -49,7 +49,6 @@ class FileDownloader:
     verbose:            Print additional info to stdout.
     quiet:              Do not print messages to stdout.
     ratelimit:          Download speed limit, in bytes/sec.
-    continuedl:         Attempt to continue downloads if possible
     throttledratelimit: Assume the download is being throttled below this speed (bytes/sec)
     retries:            Number of times to retry for expected network errors.
                         Default is 0 for API, but 10 for CLI
@@ -256,7 +255,8 @@ class FileDownloader:
 
     @wrap_file_access('remove')
     def try_remove(self, filename):
-        os.remove(filename)
+        if os.path.isfile(filename):
+            os.remove(filename)
 
     @wrap_file_access('rename')
     def try_rename(self, old_filename, new_filename):
@@ -419,7 +419,6 @@ class FileDownloader:
         """Download to a filename using the info from info_dict
         Return True on success and False otherwise
         """
-
         nooverwrites_and_exists = (
             not self.params.get('overwrites', True)
             and os.path.exists(encodeFilename(filename))

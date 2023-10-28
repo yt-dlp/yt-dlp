@@ -146,7 +146,6 @@ class PlayVidsIE(PeekVidsBaseIE):
             'uploader': 'Brazzers',
             'age_limit': 18,
             'view_count': int,
-            'age_limit': 18,
             'categories': list,
             'tags': list,
         },
