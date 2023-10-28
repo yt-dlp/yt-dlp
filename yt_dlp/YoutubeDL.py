@@ -1256,9 +1256,9 @@ class YoutubeDL:
         def filename_sanitizer(key, value, restricted=self.params.get('restrictfilenames')):
             return sanitize_filename(
                 str(value), self.params["windowsfilenames"], restricted=restricted, is_id=(
-                bool(re.search(r'(^|[_.])id(\.|$)', key))
-                if 'filename-sanitization' in self.params['compat_opts']
-                else NO_DEFAULT))
+                    bool(re.search(r'(^|[_.])id(\.|$)', key))
+                    if 'filename-sanitization' in self.params['compat_opts']
+                    else NO_DEFAULT))
 
         sanitizer = sanitize if callable(sanitize) else filename_sanitizer
         sanitize = bool(sanitize)

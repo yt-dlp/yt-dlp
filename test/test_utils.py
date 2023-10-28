@@ -203,7 +203,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de', use_win_filenames=True, restricted=True))
         self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|', use_win_filenames=True, restricted=True))
         self.assertEqual('yes_no', sanitize_filename('yes? no', use_win_filenames=True, restricted=True))
-        self.assertEqual('this_-_that', sanitize_filename('this: that', use_win_filenames=True ,restricted=True))
+        self.assertEqual('this_-_that', sanitize_filename('this: that', use_win_filenames=True, restricted=True))
 
         tests = 'aäb\u4e2d\u56fd\u7684c'
         self.assertEqual(sanitize_filename(tests, use_win_filenames=True, restricted=True), 'aab_c')
@@ -222,7 +222,7 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(sanitize_filename(':', use_win_filenames=True, restricted=True) != '')
 
         self.assertEqual(sanitize_filename(
-            'ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ', use_win_filenames=True ,restricted=True),
+            'ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ', use_win_filenames=True, restricted=True),
             'AAAAAAAECEEEEIIIIDNOOOOOOOOEUUUUUYTHssaaaaaaaeceeeeiiiionooooooooeuuuuuythy')
 
     def test_sanitize_ids(self):
