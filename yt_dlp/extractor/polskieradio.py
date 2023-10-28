@@ -281,7 +281,7 @@ class PolskieRadioAuditionIE(InfoExtractor):
                     'timestamp': parse_iso8601(episode.get('datePublic')),
                 }
 
-        for i in itertools.count(1) if has_articles else []:
+        for i in itertools.count(0) if has_articles else []:
             page = self._call_lp3(
                 'Article/GetListByCategoryId', {
                     'categoryId': playlist_id,
