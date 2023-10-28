@@ -146,80 +146,93 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(timeconvert('bougrg') is None)
 
     def test_sanitize_filename(self):
-        self.assertEqual(sanitize_filename(''), '')
-        self.assertEqual(sanitize_filename('abc'), 'abc')
-        self.assertEqual(sanitize_filename('abc_d-e'), 'abc_d-e')
+        self.assertEqual(sanitize_filename('', use_win_filenames=True), '')
+        self.assertEqual(sanitize_filename('abc', use_win_filenames=True), 'abc')
+        self.assertEqual(sanitize_filename('abc_d-e', use_win_filenames=True), 'abc_d-e')
 
-        self.assertEqual(sanitize_filename('123'), '123')
+        self.assertEqual(sanitize_filename('123', use_win_filenames=True), '123')
 
-        self.assertEqual('abc⧸de', sanitize_filename('abc/de'))
-        self.assertFalse('/' in sanitize_filename('abc/de///'))
+        self.assertEqual('abc⧸de', sanitize_filename('abc/de', use_win_filenames=True))
+        self.assertFalse('/' in sanitize_filename('abc/de///', use_win_filenames=True))
 
-        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de', is_id=False))
-        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|', is_id=False))
-        self.assertEqual('yes no', sanitize_filename('yes? no', is_id=False))
-        self.assertEqual('this - that', sanitize_filename('this: that', is_id=False))
+        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de', use_win_filenames=True, is_id=False))
+        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|', use_win_filenames=True, is_id=False))
+        self.assertEqual('yes no', sanitize_filename('yes? no', use_win_filenames=True, is_id=False))
+        self.assertEqual('this - that', sanitize_filename('this: that', use_win_filenames=True, is_id=False))
 
-        self.assertEqual(sanitize_filename('AT&T'), 'AT&T')
+        self.assertEqual('abc_<>\\*|de', sanitize_filename('abc/<>\\*|de', use_win_filenames=False, is_id=False))
+        self.assertEqual('xxx_<>\\*|', sanitize_filename('xxx/<>\\*|', use_win_filenames=False, is_id=False))
+        self.assertEqual('yes? no', sanitize_filename('yes? no', use_win_filenames=False, is_id=False))
+        self.assertEqual('this: that', sanitize_filename('this: that', use_win_filenames=False, is_id=False))
+
+        self.assertEqual(sanitize_filename('AT&T', use_win_filenames=True), 'AT&T')
         aumlaut = 'ä'
-        self.assertEqual(sanitize_filename(aumlaut), aumlaut)
+        self.assertEqual(sanitize_filename(aumlaut, use_win_filenames=True), aumlaut)
         tests = '\u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u0430'
-        self.assertEqual(sanitize_filename(tests), tests)
+        self.assertEqual(sanitize_filename(tests, use_win_filenames=True), tests)
 
         self.assertEqual(
-            sanitize_filename('New World record at 0:12:34'),
+            sanitize_filename('New World record at 0:12:34', use_win_filenames=True),
             'New World record at 0_12_34')
 
-        self.assertEqual(sanitize_filename('--gasdgf'), '--gasdgf')
-        self.assertEqual(sanitize_filename('--gasdgf', is_id=True), '--gasdgf')
-        self.assertEqual(sanitize_filename('--gasdgf', is_id=False), '_-gasdgf')
-        self.assertEqual(sanitize_filename('.gasdgf'), '.gasdgf')
-        self.assertEqual(sanitize_filename('.gasdgf', is_id=True), '.gasdgf')
-        self.assertEqual(sanitize_filename('.gasdgf', is_id=False), 'gasdgf')
+        self.assertEqual(
+            sanitize_filename('New World record at 0:12:34', use_win_filenames=False),
+            'New World record at 0:12:34')
+
+        self.assertEqual(sanitize_filename('--gasdgf', use_win_filenames=True), '--gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf', use_win_filenames=True, is_id=True), '--gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf', use_win_filenames=True, is_id=False), '_-gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf', use_win_filenames=True), '.gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf', use_win_filenames=True, is_id=True), '.gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf', use_win_filenames=True, is_id=False), 'gasdgf')
 
         forbidden = '"\0\\/'
         for fc in forbidden:
             for fbc in forbidden:
-                self.assertTrue(fbc not in sanitize_filename(fc))
+                self.assertTrue(fbc not in sanitize_filename(fc, use_win_filenames=True))
 
     def test_sanitize_filename_restricted(self):
-        self.assertEqual(sanitize_filename('abc', restricted=True), 'abc')
-        self.assertEqual(sanitize_filename('abc_d-e', restricted=True), 'abc_d-e')
+        self.assertEqual(sanitize_filename('abc', use_win_filenames=True, restricted=True), 'abc')
+        self.assertEqual(sanitize_filename('abc_d-e', use_win_filenames=True, restricted=True), 'abc_d-e')
 
-        self.assertEqual(sanitize_filename('123', restricted=True), '123')
+        self.assertEqual(sanitize_filename('123', use_win_filenames=True, restricted=True), '123')
 
-        self.assertEqual('abc_de', sanitize_filename('abc/de', restricted=True))
-        self.assertFalse('/' in sanitize_filename('abc/de///', restricted=True))
+        self.assertEqual('abc_de', sanitize_filename('abc/de', use_win_filenames=True, restricted=True))
+        self.assertFalse('/' in sanitize_filename('abc/de///', use_win_filenames=True, restricted=True))
 
-        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de', restricted=True))
-        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|', restricted=True))
-        self.assertEqual('yes_no', sanitize_filename('yes? no', restricted=True))
-        self.assertEqual('this_-_that', sanitize_filename('this: that', restricted=True))
+        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de', use_win_filenames=True, restricted=True))
+        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|', use_win_filenames=True, restricted=True))
+        self.assertEqual('yes_no', sanitize_filename('yes? no', use_win_filenames=True, restricted=True))
+        self.assertEqual('this_-_that', sanitize_filename('this: that', use_win_filenames=True ,restricted=True))
 
         tests = 'aäb\u4e2d\u56fd\u7684c'
-        self.assertEqual(sanitize_filename(tests, restricted=True), 'aab_c')
-        self.assertTrue(sanitize_filename('\xf6', restricted=True) != '')  # No empty filename
+        self.assertEqual(sanitize_filename(tests, use_win_filenames=True, restricted=True), 'aab_c')
+        self.assertTrue(sanitize_filename('\xf6', use_win_filenames=True, restricted=True) != '')  # No empty filename
 
         forbidden = '"\0\\/&!: \'\t\n()[]{}$;`^,#'
         for fc in forbidden:
             for fbc in forbidden:
-                self.assertTrue(fbc not in sanitize_filename(fc, restricted=True))
+                self.assertTrue(fbc not in sanitize_filename(fc, use_win_filenames=True, restricted=True))
 
         # Handle a common case more neatly
-        self.assertEqual(sanitize_filename('\u5927\u58f0\u5e26 - Song', restricted=True), 'Song')
-        self.assertEqual(sanitize_filename('\u603b\u7edf: Speech', restricted=True), 'Speech')
+        self.assertEqual(sanitize_filename('\u5927\u58f0\u5e26 - Song', use_win_filenames=True, restricted=True), 'Song')
+        self.assertEqual(sanitize_filename('\u603b\u7edf: Speech', use_win_filenames=True, restricted=True), 'Speech')
         # .. but make sure the file name is never empty
-        self.assertTrue(sanitize_filename('-', restricted=True) != '')
-        self.assertTrue(sanitize_filename(':', restricted=True) != '')
+        self.assertTrue(sanitize_filename('-', use_win_filenames=True, restricted=True) != '')
+        self.assertTrue(sanitize_filename(':', use_win_filenames=True, restricted=True) != '')
 
         self.assertEqual(sanitize_filename(
-            'ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ', restricted=True),
+            'ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ', use_win_filenames=True ,restricted=True),
             'AAAAAAAECEEEEIIIIDNOOOOOOOOEUUUUUYTHssaaaaaaaeceeeeiiiionooooooooeuuuuuythy')
 
     def test_sanitize_ids(self):
-        self.assertEqual(sanitize_filename('_n_cd26wFpw', is_id=True), '_n_cd26wFpw')
-        self.assertEqual(sanitize_filename('_BD_eEpuzXw', is_id=True), '_BD_eEpuzXw')
-        self.assertEqual(sanitize_filename('N0Y__7-UOdI', is_id=True), 'N0Y__7-UOdI')
+        self.assertEqual(sanitize_filename('_n_cd26wFpw', use_win_filenames=True, is_id=True), '_n_cd26wFpw')
+        self.assertEqual(sanitize_filename('_BD_eEpuzXw', use_win_filenames=True, is_id=True), '_BD_eEpuzXw')
+        self.assertEqual(sanitize_filename('N0Y__7-UOdI', use_win_filenames=True, is_id=True), 'N0Y__7-UOdI')
+
+        self.assertEqual(sanitize_filename('_n_cd26wFpw', use_win_filenames=False, is_id=True), '_n_cd26wFpw')
+        self.assertEqual(sanitize_filename('_BD_eEpuzXw', use_win_filenames=False, is_id=True), '_BD_eEpuzXw')
+        self.assertEqual(sanitize_filename('N0Y__7-UOdI', use_win_filenames=False, is_id=True), 'N0Y__7-UOdI')
 
     def test_sanitize_path(self):
         if sys.platform != 'win32':
