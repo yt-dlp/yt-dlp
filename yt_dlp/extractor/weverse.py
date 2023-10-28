@@ -46,8 +46,8 @@ class WeverseBaseIE(InfoExtractor):
             'x-clog-user-device-id': str(uuid.uuid4()),
         }
         check_username = self._download_json(
-            f'{self._ACCOUNT_API_BASE}/signup/email/status', None,
-            note='Checking username', query={'email': username}, headers=headers)
+            f'{self._ACCOUNT_API_BASE}/signup/email/status', None, note='Checking username',
+            query={'email': username}, headers=headers, expected_status=(200, 400, 404))
         if not check_username.get('hasPassword'):
             raise ExtractorError('Invalid username provided', expected=True)
 
