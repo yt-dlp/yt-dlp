@@ -958,7 +958,7 @@ class InfoExtractor:
         if len(basen) > trim_length:
             h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
             basen = basen[:trim_length - len(h)] + h
-        filename = sanitize_filename(f'{basen}.dump', self.get_param("windowsfilenames"), restricted=True)
+        filename = sanitize_filename(f'{basen}.dump', self.get_param("windowsfilenames", False), restricted=True)
         # Working around MAX_PATH limitation on Windows (see
         # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
         if compat_os_name == 'nt':
