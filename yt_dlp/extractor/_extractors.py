@@ -23,7 +23,6 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeShortsAudioPivotIE,
     YoutubeConsentRedirectIE,
 )
-
 from .abc import (
     ABCIE,
     ABCIViewIE,
@@ -1578,6 +1577,7 @@ from .radiocanada import (
     RadioCanadaIE,
     RadioCanadaAudioVideoIE,
 )
+from .radiocomercial import RadioComercialIE
 from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
