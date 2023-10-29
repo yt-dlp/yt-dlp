@@ -20,7 +20,7 @@ def get_new_version(version, revision):
         version = datetime.now(timezone.utc).strftime('%Y.%m.%d')
 
     if revision:
-        assert revision.isdigit(), 'Revision must be a number'
+        assert revision.isdecimal(), 'Revision must be a number'
     else:
         old_version = read_version().split('.')
         if version.split('.') == old_version[:3]:

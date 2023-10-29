@@ -96,7 +96,7 @@ jobs:
           auto-activate-base: false
       - name: Install Requirements
         run: |
-          sudo apt-get -y install zip pandoc man sed
+          sudo apt -y install zip pandoc man sed
           python -m pip install -U pip setuptools wheel
           python -m pip install -U Pyinstaller -r requirements.txt
           reqs=$(mktemp)
