@@ -1585,6 +1585,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         if not broadcast:
             raise ExtractorError('Broadcast no longer exists', expected=True)
         info = self._parse_broadcast_data(broadcast, broadcast_id)
+        if info['live_status'] == 'is_upcoming':
+            return info
         media_key = broadcast['media_key']
         source = self._call_api(
             f'live_video_stream/status/{media_key}', media_key)['source']
