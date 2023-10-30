@@ -1,3 +1,6 @@
+import re
+from collections import namedtuple
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -9,9 +12,10 @@ from ..utils import (
 
 class RadioComercialBaseExtractor(InfoExtractor):
     def _extract_page_content(self, url):
+        print(f'processing: {url}')
         video_id = self._match_id(url)
+        print(video_id)
         webpage = self._download_webpage(url, video_id)
-
         title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
         url = self._html_search_regex(r'<a.+?isExclusivePlay=.+?href="(.+?)">', webpage, 'url')
         date = self._html_search_regex(r'<div[^"]+"date">(\d{4}-\d{2}-\d{2})</div>', webpage, 'date')
@@ -61,10 +65,7 @@ class RadioComercialIE(RadioComercialBaseExtractor):
     ]
 
     def _real_extract(self, url):
-        entry = self._extract_page_content(url)
-        if not entry:
-            raise ExtractorError(f'Unable to retrieve media information from the url: "{url}".')
-        return entry
+        return self._extract_page_content(url)
 
 
 class RadioComercialPlaylistIE(RadioComercialBaseExtractor):
@@ -103,7 +104,52 @@ class RadioComercialPlaylistIE(RadioComercialBaseExtractor):
     # the url can have more /s. only the first number should be passed
     # the request needs to include X-Requested-With:XMLHttpRequest
 
+    def _extract_next_url_details(self, source):
+        next_page = namedtuple('next_page', ['path', 'page', 'add_one'])
+        regex = re.compile(
+            r'\sclass="pagination__next"\shref="(?P<path>/podcasts/[^/]+/\w+/)(?P<page>\d+)/*(?P<add_one>\d*)')
+        match = regex.search(source)
+        if match:
+            return next_page(match.group('path'), int_or_none(match.group('page')), int_or_none(match.group('add_one')))
+        else:
+            return next_page(None, None, None)
+
+    def _get_next_page(self, webpage):
+        next_page = self._extract_next_url_details(webpage)
+        if not next_page.path or not next_page.page:
+            return None
+        next_page = f'https://radiocomercial.pt{next_page.path}{next_page.page if not next_page.add_one else next_page.page + 1}'
+        print(f'<<<<Next page: {next_page}')
+        video_id = self._match_id(next_page)
+        return self._download_webpage(next_page, video_id, headers={'X-Requested-With': 'XMLHttpRequest'})
+
+    def _collect_hrefs(self, webpage):
+        regex = re.compile(r'rounded-site-bottom"><a class="tm-ouvir-podcast" href="([^"]+)"')
+        matches = regex.finditer(webpage)
+        hrefs = []
+        for match in matches:
+            hrefs.append(f'https://radiocomercial.pt{match.group(1)}')
+        #for index, item in enumerate(hrefs):
+        #    print(index, " - ", item)
+        return hrefs
 
     def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        list_of_podcasts = set()
+        get_entries = self._collect_hrefs(webpage)
+        if get_entries:
+            list_of_podcasts.update(get_entries)
+        while True:
+            webpage = self._get_next_page(webpage)
+            if not webpage:
+                break
+            get_entries = self._collect_hrefs(webpage)
+            if get_entries:
+                list_of_podcasts.update(get_entries)
 
-        }
+        if list_of_podcasts:
+            print(f'<<< Processing #{len(list_of_podcasts)} items.')
+            for index, url in enumerate(list_of_podcasts):
+                print(f'Processing item #{index + 1} - {url}')
+                yield self._extract_page_content(url)
