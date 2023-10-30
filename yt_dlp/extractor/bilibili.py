@@ -919,7 +919,7 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseIE):
             yield {
                 **self._extract_episode(season_info, ep_id, self._HEADERS),
                 'extractor_key': BilibiliCheeseIE.ie_key(),
-                'extractor': 'BilibiliCheese',
+                'extractor': BilibiliCheeseIE.IE_NAME,
             }
 
     def _real_extract(self, url):
