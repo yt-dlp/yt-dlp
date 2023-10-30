@@ -19,28 +19,31 @@ from ..utils import (
 
 class WeiboBaseIE(InfoExtractor):
     def _update_visitor_cookies(self, visitor_url, video_id):
+        headers = {'Referer': visitor_url}
         chrome_ver = self._search_regex(
-            r'Chrome/(\d+)', traverse_obj(self._downloader.params, ('http_headers', 'User-Agent', {str})),
-            'user agent version', default='90')
+            r'Chrome/(\d+)', self.get_param('http_headers')['User-Agent'], 'user agent version', default='90')
         visitor_data = self._download_json(
             'https://passport.weibo.com/visitor/genvisitor', video_id,
             note='Generating first-visit guest request',
-            headers={'Referer': visitor_url},
-            transform_source=strip_jsonp,
+            headers=headers, transform_source=strip_jsonp,
             data=urlencode_postdata({
                 'cb': 'gen_callback',
-                'fp': f'{{"os":"1","browser":"Chrome{chrome_ver},0,0,0","fonts":"undefined","screenInfo":"1920*1080*24","plugins":""}}',
-            }))['data']
+                'fp': json.dumps({
+                    'os': '1',
+                    'browser': f'Chrome{chrome_ver},0,0,0',
+                    'fonts': 'undefined',
+                    'screenInfo': '1920*1080*24',
+                    'plugins': ''
+                }, separators=(',', ':'))}))['data']
 
         self._download_webpage(
             'https://passport.weibo.com/visitor/visitor', video_id,
             note='Running first-visit callback to get guest cookies',
-            headers={'Referer': visitor_url},
-            query={
+            headers=headers, query={
                 'a': 'incarnate',
                 't': visitor_data['tid'],
                 'w': 3 if visitor_data.get('new_tid') else 2,
-                'c': '%03d' % visitor_data.get('confidence', 100),
+                'c': f'{visitor_data.get("confidence", 100):03d}',
                 'gc': '',
                 'cb': 'cross_domain',
                 'from': 'weibo',
