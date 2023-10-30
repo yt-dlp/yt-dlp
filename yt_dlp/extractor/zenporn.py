@@ -1,5 +1,6 @@
 import re
 import math
+from collections import namedtuple
 
 
 from .common import InfoExtractor
@@ -78,22 +79,23 @@ class ZenPornIE(InfoExtractor):
     ]
 
     def _extract_embed_info(self, source):
+        embed = namedtuple('embed', ['ext_domain', 'extr_id'])
         regex = re.compile(
             r'https:\/\/(?P<ext_domain>[a-zA-Z.-]+\.[a-zA-z]{3})\/embed\/(?P<extr_id>[0-9]+)\/')
         match = regex.search(source)
 
         if match:
-            return match.group('ext_domain'), match.group('extr_id')
+            return embed(match.group('ext_domain'), match.group('extr_id'))
         else:
-            return None
+            return embed(None, None)
 
-    def _gen_info_url(self, ext_domain, extr_id, lifetime=86400):
-        dyn_a = int_or_none(1e6 * math.floor(int_or_none(extr_id) / 1e6))
-        dyn_b = int_or_none(1e3 * math.floor(int_or_none(extr_id) / 1e3))
+    def _gen_info_url(self, embed, lifetime=86400):
+        dyn_a = int_or_none(1e6 * math.floor(int_or_none(embed.extr_id) / 1e6))
+        dyn_b = int_or_none(1e3 * math.floor(int_or_none(embed.extr_id) / 1e3))
         if dyn_a is None or dyn_b is None:
             raise ExtractorError('Unable to generate the ``gen_info_url``.')
 
-        return f'https://{ext_domain}/api/json/video/{lifetime}/{dyn_a}/{dyn_b}/{extr_id}.json'
+        return f'https://{embed.ext_domain}/api/json/video/{lifetime}/{dyn_a}/{dyn_b}/{embed.extr_id}.json'
 
     def _decode_video_url(self, ext_domain, encoded_url):
         cust_char_set = 'АВСDЕFGHIJKLМNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,~'
@@ -132,13 +134,15 @@ class ZenPornIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        ext_domain, extr_id = self._extract_embed_info(webpage)
+        embed = self._extract_embed_info(webpage)
+        if not embed.ext_domain or not embed.extr_id:
+            raise ExtractorError('Unable to retrieve the ``embed`` info.')
 
-        info_url = self._gen_info_url(ext_domain, extr_id)
+        info_url = self._gen_info_url(embed)
         info_json = self._download_json(
             info_url, video_id, note="Downloading JSON metadata for the video info.")
 
-        video_info_url = f'https://{ext_domain}/api/videofile.php?video_id={extr_id}&lifetime=8640000'
+        video_info_url = f'https://{embed.ext_domain}/api/videofile.php?video_id={embed.extr_id}&lifetime=8640000'
         video_json = self._download_json(
             video_info_url, video_id, note="Downloading JSON metadata for the video location.")
 
@@ -146,13 +150,13 @@ class ZenPornIE(InfoExtractor):
         if not encoded_url:
             raise ExtractorError('Unable to retrieve the ``encoded_url``.')
 
-        download_url = self._decode_video_url(ext_domain, encoded_url)
+        download_url = self._decode_video_url(embed.ext_domain, encoded_url)
         if not download_url:
             raise ExtractorError('Unable to retrieve the ``download_url``.')
 
         return {
             'id': video_id,
-            'extr_id': extr_id,
+            'extr_id': embed.extr_id,
             'ext': determine_ext(video_json[0].get('format')),
             'title': traverse_obj(info_json, ('video', 'title')),
             'description': traverse_obj(info_json, ('video', 'description')),
