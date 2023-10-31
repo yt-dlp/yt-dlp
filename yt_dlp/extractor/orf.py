@@ -334,6 +334,42 @@ class ORFRadioIE(InfoExtractor):
             self._entries(data, station or station2), show_id, data.get('title'), clean_html(data.get('subtitle')))
 
 
+class ORFPodcastIE(InfoExtractor):
+    IE_NAME = 'orf:podcast'
+
+    _STATION_RE = 'noe|wie|bgl|ooe|stm|ktn|sbg|tir|vbg|oe3|oe1|tv'
+
+    _VALID_URL = f'https?://sound\.orf\.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[a-zA-Z0-9_-]+)/(?P<id>[a-zA-Z0-9_-]+)'
+
+    _TESTS = [{
+        'url': 'https://sound.orf.at/podcast/oe3/fruehstueck-bei-mir/nicolas-stockhammer-15102023',
+        'md5': '526a5700e03d271a1505386a8721ab9b',
+        'info_dict': {
+            'id': 'nicolas-stockhammer-15102023',
+            'ext': 'mp3',
+            'title': 'Nicolas Stockhammer (15.10.2023)',
+            'duration': 3396.0,
+            'series': 'Frühstück bei mir',
+        },
+        'skip': 'ORF podcasts are only available for a limited time'
+    }]
+
+    def _real_extract(self, url):
+        station, show, show_id = self._match_valid_url(url).group('station', 'show', 'id')
+        data = self._download_json(
+            f'https://audioapi.orf.at/radiothek/api/2.0/podcast/{station}/{show}/{show_id}', show_id)
+
+        return {
+            'id': show_id,
+            'url': data.get('payload').get('enclosures')[0]['url'],
+            'ext': 'mp3',
+            'title': data.get('payload').get('title'),
+            'description': clean_html(data.get('payload').get('description')),
+            'duration': data.get('payload').get('duration') / 1000,
+            'series': data.get('payload').get('podcast').get('title'),
+        }
+
+
 class ORFIPTVIE(InfoExtractor):
     IE_NAME = 'orf:iptv'
     IE_DESC = 'iptv.ORF.at'
