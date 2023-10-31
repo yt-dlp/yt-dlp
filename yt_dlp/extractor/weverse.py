@@ -45,10 +45,10 @@ class WeverseBaseIE(InfoExtractor):
             'x-acc-trace-id': str(uuid.uuid4()),
             'x-clog-user-device-id': str(uuid.uuid4()),
         }
-        check_username = self._download_json(
-            f'{self._ACCOUNT_API_BASE}/signup/email/status', None,
-            note='Checking username', query={'email': username}, headers=headers)
-        if not check_username.get('hasPassword'):
+        valid_username = traverse_obj(self._download_json(
+            f'{self._ACCOUNT_API_BASE}/signup/email/status', None, note='Checking username',
+            query={'email': username}, headers=headers, expected_status=(400, 404)), 'hasPassword')
+        if not valid_username:
             raise ExtractorError('Invalid username provided', expected=True)
 
         headers['content-type'] = 'application/json'
