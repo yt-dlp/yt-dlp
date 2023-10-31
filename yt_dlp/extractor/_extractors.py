@@ -2563,7 +2563,6 @@ from .zee5 import (
     Zee5SeriesIE,
 )
 from .zeenews import ZeeNewsIE
-from .zenporn import ZenPornIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,
