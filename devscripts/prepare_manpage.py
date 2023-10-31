@@ -80,7 +80,7 @@ def filter_options(readme):
         # Pandoc's definition_lists. See http://pandoc.org/README.html
         option = f'{option} *{metavar}*' if metavar else option
         description = f'{description}\n' if description else ''
-        options += f'\n{option}\n:   {description}'
+        options += f'\n`{option}`\n:   {description}'
         continue
 
     return readme.replace(section, options, 1)
