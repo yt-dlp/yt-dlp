@@ -79,6 +79,13 @@ class RadioComercialPlaylistIE(RadioComercialBaseExtractor):
             'title': 'O Homem Que Mordeu o Cão',
         },
         'playlist_mincount': 19
+    }, {
+        'url': 'https://radiocomercial.pt/podcasts/as-minhas-coisas-favoritas',
+        'info_dict': {
+            'id': 'as-minhas-coisas-favoritas',
+            'title': 'As Minhas Coisas Favoritas',
+        },
+        'playlist_mincount': 100
     },
     ]
 
@@ -86,17 +93,19 @@ class RadioComercialPlaylistIE(RadioComercialBaseExtractor):
 
     def _extract_next_url_details(self, source):
         regex = re.compile(
-            r'\sclass="pagination__next"\shref="(?P<path>/podcasts/[^/]+/\w+/)(?P<page>\d+)/*(?P<add_one>\d*)')
+            r'\sclass="pagination__next"\shref="(?P<path>/podcasts/[^/]+?[/\w\d+/]+?/)(?P<page>\d+)/*(?P<add_one>\d*)')
         match = regex.search(source)
         if match:
-            return self.NextPage(match.group('path'), int_or_none(match.group('page')), int_or_none(match.group('add_one')))
+            return self.NextPage(match.group('path'),
+                                 int_or_none(match.group('page')), int_or_none(match.group('add_one')))
         return self.NextPage(None, None, None)
 
     def _get_next_page(self, webpage):
         next_page = self._extract_next_url_details(webpage)
         if not next_page.path or not next_page.page:
             return None
-        next_page = f'https://radiocomercial.pt{next_page.path}{next_page.page if not next_page.add_one else next_page.page + 1}'
+        number_section = f'{next_page.page if not next_page.add_one else next_page.page + 1}'
+        next_page = f'https://radiocomercial.pt{next_page.path}{number_section}'
         video_id = self._match_id(next_page)
         return self._download_webpage(next_page, video_id, headers={'X-Requested-With': 'XMLHttpRequest'})
 
