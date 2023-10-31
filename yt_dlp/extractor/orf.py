@@ -339,7 +339,7 @@ class ORFPodcastIE(InfoExtractor):
 
     _STATION_RE = 'noe|wie|bgl|ooe|stm|ktn|sbg|tir|vbg|oe3|oe1|tv'
 
-    _VALID_URL = f'https?://sound\.orf\.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[a-zA-Z0-9_-]+)/(?P<id>[a-zA-Z0-9_-]+)'
+    _VALID_URL = f'https?://sound.orf.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[a-zA-Z0-9_-]+)/(?P<id>[a-zA-Z0-9_-]+)'
 
     _TESTS = [{
         'url': 'https://sound.orf.at/podcast/oe3/fruehstueck-bei-mir/nicolas-stockhammer-15102023',
