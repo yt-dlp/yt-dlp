@@ -50,7 +50,7 @@ class JoqrAgIE(InfoExtractor):
 
     def _extract_start_timestamp(self, video_id, is_live):
         def __extract_start_timestamp_of_day(date_str):
-            dt = datetime_from_str(date_str, 'day') + datetime.timedelta(hours=9)
+            dt = datetime_from_str(date_str) + datetime.timedelta(hours=9)
             date = dt.strftime("%Y%m%d")
             start_time = self._search_regex(
                 r'<h3\s+class="dailyProgram-itemHeaderTime"\s*>\s*\d{1,2}:\d{1,2}\s*–\s*(?P<time>\d{1,2}:\d{1,2})\s*<\/h3>',
