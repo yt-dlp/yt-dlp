@@ -1,10 +1,12 @@
 import binascii
 import hashlib
+import json
 import re
+import uuid
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_urllib_parse_unquote
+from ..compat import compat_etree_fromstring, compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -18,7 +20,6 @@ from ..utils import (
 )
 
 SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
-
 
 class DRTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
@@ -161,190 +162,53 @@ class DRTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         raw_video_id, is_radio_url = self._match_valid_url(url).group('id', 'radio')
-
         webpage = self._download_webpage(url, raw_video_id)
-
         if '>Programmet er ikke længere tilgængeligt' in webpage:
             raise ExtractorError(
                 'Video %s is not available' % raw_video_id, expected=True)
-
-        video_id = self._search_regex(
-            (r'data-(?:material-identifier|episode-slug)="([^"]+)"',
-             r'data-resource="[^>"]+mu/programcard/expanded/([^"]+)"'),
-            webpage, 'video id', default=None)
-
-        if not video_id:
-            video_id = self._search_regex(
-                r'(urn(?:%3A|:)dr(?:%3A|:)mu(?:%3A|:)programcard(?:%3A|:)[\da-f]+)',
-                webpage, 'urn', default=None)
-            if video_id:
-                video_id = compat_urllib_parse_unquote(video_id)
-
-        _PROGRAMCARD_BASE = 'https://www.dr.dk/mu-online/api/1.4/programcard'
-        query = {'expanded': 'true'}
-
-        if video_id:
-            programcard_url = '%s/%s' % (_PROGRAMCARD_BASE, video_id)
-        else:
-            programcard_url = _PROGRAMCARD_BASE
-            if is_radio_url:
-                video_id = self._search_nextjs_data(
-                    webpage, raw_video_id)['props']['pageProps']['episode']['productionNumber']
-            else:
-                json_data = self._search_json(
-                    r'window\.__data\s*=', webpage, 'data', raw_video_id)
-                video_id = traverse_obj(json_data, (
-                    'cache', 'page', ..., (None, ('entries', 0)), 'item', 'customId',
-                    {lambda x: x.split(':')[-1]}), get_all=False)
-                if not video_id:
-                    raise ExtractorError('Unable to extract video id')
-            query['productionnumber'] = video_id
-
-        data = self._download_json(
-            programcard_url, video_id, 'Downloading video JSON', query=query)
-
-        supplementary_data = {}
-        if re.search(r'_\d+$', raw_video_id):
-            supplementary_data = self._download_json(
-                SERIES_API % f'/episode/{raw_video_id}', raw_video_id, fatal=False) or {}
-
-        title = str_or_none(data.get('Title')) or re.sub(
-            r'\s*\|\s*(?:TV\s*\|\s*DR|DRTV)$', '',
-            self._og_search_title(webpage))
-        description = self._og_search_description(
-            webpage, default=None) or data.get('Description')
-
-        timestamp = unified_timestamp(
-            data.get('PrimaryBroadcastStartTime') or data.get('SortDateTime'))
-
-        thumbnail = None
-        duration = None
-
-        restricted_to_denmark = False
-
+        json_data = self._search_json(r'window\.__data\s*=', webpage, 'data', raw_video_id)
+        item = traverse_obj(json_data, ('cache', 'page', Ellipsis, (None, ('entries', 0)), 'item'), get_all=False)
+        itemId = item.get('id')
+        videoId = item['customId'].split(':')[-1]
+        deviceId = uuid.uuid1()
+        token = self._download_json('https://isl.dr-massive.com/api/authorization/anonymous-sso?device=web_browser&ff=idp%2Cldp&lang=da', videoId, headers={'Content-Type': 'application/json'}, data=json.dumps({'deviceId': str(deviceId), 'scopes': ['Catalog'], 'optout': True}).encode('utf-8'))[0]['value']
+        data = self._download_json('https://production.dr-massive.com/api/account/items/{0}/videos?delivery=stream&device=web_browser&ff=idp%2Cldp%2Crpt&lang=da&resolution=HD-1080&sub=Anonymous'.format(itemId), videoId, headers={'authorization': 'Bearer {0}'.format(token)})
         formats = []
         subtitles = {}
-
-        assets = []
-        primary_asset = data.get('PrimaryAsset')
-        if isinstance(primary_asset, dict):
-            assets.append(primary_asset)
-        secondary_assets = data.get('SecondaryAssets')
-        if isinstance(secondary_assets, list):
-            for secondary_asset in secondary_assets:
-                if isinstance(secondary_asset, dict):
-                    assets.append(secondary_asset)
-
-        def hex_to_bytes(hex):
-            return binascii.a2b_hex(hex.encode('ascii'))
-
-        def decrypt_uri(e):
-            n = int(e[2:10], 16)
-            a = e[10 + n:]
-            data = hex_to_bytes(e[10:10 + n])
-            key = hashlib.sha256(('%s:sRBzYNXBzkKgnjj8pGtkACch' % a).encode('utf-8')).digest()
-            iv = hex_to_bytes(a)
-            decrypted = unpad_pkcs7(aes_cbc_decrypt_bytes(data, key, iv))
-            return decrypted.decode('utf-8').split('?')[0]
-
-        for asset in assets:
-            kind = asset.get('Kind')
-            if kind == 'Image':
-                thumbnail = url_or_none(asset.get('Uri'))
-            elif kind in ('VideoResource', 'AudioResource'):
-                duration = float_or_none(asset.get('DurationInMilliseconds'), 1000)
-                restricted_to_denmark = asset.get('RestrictedToDenmark')
-                asset_target = asset.get('Target')
-                for link in asset.get('Links', []):
-                    uri = link.get('Uri')
-                    if not uri:
-                        encrypted_uri = link.get('EncryptedUri')
-                        if not encrypted_uri:
-                            continue
-                        try:
-                            uri = decrypt_uri(encrypted_uri)
-                        except Exception:
-                            self.report_warning(
-                                'Unable to decrypt EncryptedUri', video_id)
-                            continue
-                    uri = url_or_none(uri)
-                    if not uri:
-                        continue
-                    target = link.get('Target')
-                    format_id = target or ''
-                    if asset_target in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
-                        preference = -1
-                        format_id += '-%s' % asset_target
-                    elif asset_target == 'Default':
-                        preference = 1
-                    else:
-                        preference = None
-                    if target == 'HDS':
-                        f4m_formats = self._extract_f4m_formats(
-                            uri + '?hdcore=3.3.0&plugin=aasp-3.3.0.99.43',
-                            video_id, preference, f4m_id=format_id, fatal=False)
-                        if kind == 'AudioResource':
-                            for f in f4m_formats:
-                                f['vcodec'] = 'none'
-                        formats.extend(f4m_formats)
-                    elif target == 'HLS':
-                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                            uri, video_id, 'mp4', entry_protocol='m3u8_native',
-                            quality=preference, m3u8_id=format_id, fatal=False)
-                        formats.extend(fmts)
-                        self._merge_subtitles(subs, target=subtitles)
-                    else:
-                        bitrate = link.get('Bitrate')
-                        if bitrate:
-                            format_id += '-%s' % bitrate
-                        formats.append({
-                            'url': uri,
-                            'format_id': format_id,
-                            'tbr': int_or_none(bitrate),
-                            'ext': link.get('FileFormat'),
-                            'vcodec': 'none' if kind == 'AudioResource' else None,
-                            'quality': preference,
-                        })
-            subtitles_list = asset.get('SubtitlesList') or asset.get('Subtitleslist')
-            if isinstance(subtitles_list, list):
-                LANGS = {
-                    'Danish': 'da',
-                }
-                for subs in subtitles_list:
-                    if not isinstance(subs, dict):
-                        continue
-                    sub_uri = url_or_none(subs.get('Uri'))
-                    if not sub_uri:
-                        continue
-                    lang = subs.get('Language') or 'da'
-                    subtitles.setdefault(LANGS.get(lang, lang), []).append({
-                        'url': sub_uri,
-                        'ext': mimetype2ext(subs.get('MimeType')) or 'vtt'
-                    })
-
-        if not formats and restricted_to_denmark:
-            self.raise_geo_restricted(
-                'Unfortunately, DR is not allowed to show this program outside Denmark.',
-                countries=self._GEO_COUNTRIES)
-
+        for fmt in data:
+            formatId = fmt['format'] or 'na'
+            accessService = fmt['accessService']
+            preference = None
+            if accessService in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
+                preference = -1
+                formatId += '-%s' % accessService
+            elif accessService == 'StandardVideo':
+                preference = 1
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(fmt['url'], videoId, 'mp4', entry_protocol='m3u8_native', preference=preference, m3u8_id=formatId, fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+            LANGS = {
+                'Danish': 'da',
+            }
+            for subs in fmt['subtitles']:
+                if not isinstance(subs, dict):
+                    continue
+                sub_uri = url_or_none(subs.get('link'))
+                if not sub_uri:
+                    continue
+                lang = subs.get('language') or 'da'
+                subtitles.setdefault(LANGS.get(lang, lang), []).append({
+                    'url': sub_uri,
+                    'ext': mimetype2ext(subs.get('format')) or 'vtt'
+                })
+            
         return {
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'timestamp': timestamp,
-            'duration': duration,
+            'id': videoId,
+            'title': item.get('episodeName'),
+            'description': item.get('description'),
             'formats': formats,
             'subtitles': subtitles,
-            'series': str_or_none(data.get('SeriesTitle')),
-            'season': str_or_none(data.get('SeasonTitle')),
-            'season_number': int_or_none(data.get('SeasonNumber')),
-            'season_id': str_or_none(data.get('SeasonUrn')),
-            'episode': traverse_obj(supplementary_data, ('entries', 0, 'item', 'contextualTitle')) or str_or_none(data.get('EpisodeTitle')),
-            'episode_number': traverse_obj(supplementary_data, ('entries', 0, 'item', 'episodeNumber')) or int_or_none(data.get('EpisodeNumber')),
-            'release_year': int_or_none(data.get('ProductionYear')),
         }
-
 
 class DRTVLiveIE(InfoExtractor):
     IE_NAME = 'drtv:live'
@@ -399,7 +263,6 @@ class DRTVLiveIE(InfoExtractor):
             'formats': formats,
             'is_live': True,
         }
-
 
 class DRTVSeasonIE(InfoExtractor):
     IE_NAME = 'drtv:season'
