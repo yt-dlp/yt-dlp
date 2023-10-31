@@ -34,6 +34,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     update_url_query,
+    urlhandle_detect_ext,
     url_or_none,
     urljoin,
     variadic,
@@ -2459,7 +2460,7 @@ class GenericIE(InfoExtractor):
             self.report_detected('direct video link')
             headers = smuggled_data.get('http_headers', {})
             format_id = str(m.group('format_id'))
-            ext = determine_ext(url)
+            ext = determine_ext(url, default_ext=None) or urlhandle_detect_ext(full_response)
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
@@ -2471,6 +2472,7 @@ class GenericIE(InfoExtractor):
                 formats = [{
                     'format_id': format_id,
                     'url': url,
+                    'ext': ext,
                     'vcodec': 'none' if m.group('type') == 'audio' else None
                 }]
                 info_dict['direct'] = True

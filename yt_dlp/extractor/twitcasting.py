@@ -142,7 +142,7 @@ class TwitCastingIE(InfoExtractor):
             'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
             'Downloading live info', fatal=False)
 
-        is_live = 'data-status="online"' in webpage
+        is_live = any(f'data-{x}' in webpage for x in ['is-onlive="true"', 'live-type="live"', 'status="online"'])
         if not traverse_obj(stream_server_data, 'llfmp4') and is_live:
             self.raise_login_required(method='cookies')
 
