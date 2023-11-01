@@ -178,14 +178,14 @@ class SBSCoKrProgramsVodIE(InfoExtractor):
             '_type': 'playlist',
             'id': '00000210215',
         },
-        'playlist_count': 9782,
+        'playlist_mincount': 9782,
     }, {
         'url': 'https://programs.sbs.co.kr/enter/dongsang2/vods/52006',
         'info_dict': {
             '_type': 'playlist',
             'id': '22000010476',
         },
-        'playlist_count': 312,
+        'playlist_mincount': 312,
     }]
 
     def _real_extract(self, url):
