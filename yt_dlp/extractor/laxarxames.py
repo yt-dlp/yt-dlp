@@ -26,7 +26,14 @@ class LaXarxaMesIE(InfoExtractor):
                 'Accept': 'application/json, text/plain, */*',
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)',
                 'Origin': 'https://www.laxarxames.cat',
-            }, data=b'{"Username":"%s","Password":"%s","Device":{"PlatformCode":"WEB","Name":"Mac OS ()"}}' % (username.encode(), password.encode())
+            }, data=json.dumps({
+                'Username': username,
+                'Password': password,
+                'Device': {
+                    'PlatformCode': 'WEB',
+                    'Name': 'Mac OS ()',
+                },
+            }).encode('utf-8'))
         )
 
         if not login['AuthorizationToken']:
