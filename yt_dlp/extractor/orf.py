@@ -21,6 +21,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ORFTVthekIE(InfoExtractor):
@@ -337,9 +338,9 @@ class ORFRadioIE(InfoExtractor):
 class ORFPodcastIE(InfoExtractor):
     IE_NAME = 'orf:podcast'
 
-    _STATION_RE = 'noe|wie|bgl|ooe|stm|ktn|sbg|tir|vbg|oe3|oe1|tv'
+    _STATION_RE = 'noe|wie|bgl|ooe|stm|ktn|sbg|tir|vbg|oe3|oe1|fm4|tv'
 
-    _VALID_URL = f'https?://sound.orf.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[a-zA-Z0-9_-]+)/(?P<id>[a-zA-Z0-9_-]+)'
+    _VALID_URL = rf'https?://sound\.orf\.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[\w-]+)/(?P<id>[\w-]+)'
 
     _TESTS = [{
         'url': 'https://sound.orf.at/podcast/oe3/fruehstueck-bei-mir/nicolas-stockhammer-15102023',
@@ -361,12 +362,15 @@ class ORFPodcastIE(InfoExtractor):
 
         return {
             'id': show_id,
-            'url': data.get('payload').get('enclosures')[0]['url'],
             'ext': 'mp3',
-            'title': data.get('payload').get('title'),
-            'description': clean_html(data.get('payload').get('description')),
-            'duration': data.get('payload').get('duration') / 1000,
-            'series': data.get('payload').get('podcast').get('title'),
+            'vcodec': 'none',
+            **traverse_obj(data, ('payload', {
+                'url': ('enclosures', 0, 'url'),
+                'title': 'title',
+                'description': ('description', {clean_html}),
+                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'series': ('podcast', 'title'),
+            })),
         }
 
 
