@@ -20,6 +20,7 @@ from ..utils import (
     unified_strdate,
     unsmuggle_url,
     url_or_none,
+    mimetype2ext,
 )
 from ..utils.traversal import traverse_obj
 
@@ -337,11 +338,10 @@ class ORFRadioIE(InfoExtractor):
 
 class ORFPodcastIE(InfoExtractor):
     IE_NAME = 'orf:podcast'
-
-    _STATION_RE = 'noe|wie|bgl|ooe|stm|ktn|sbg|tir|vbg|oe3|oe1|fm4|tv'
-
+    _STATION_RE = '|'.join(map(re.escape, (
+        'bgl', 'fm4', 'ktn', 'noe', 'oe1', 'oe3',
+        'ooe', 'sbg', 'stm', 'tir', 'tv', 'vbg', 'wie')))
     _VALID_URL = rf'https?://sound\.orf\.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[\w-]+)/(?P<id>[\w-]+)'
-
     _TESTS = [{
         'url': 'https://sound.orf.at/podcast/oe3/fruehstueck-bei-mir/nicolas-stockhammer-15102023',
         'md5': '526a5700e03d271a1505386a8721ab9b',
@@ -366,6 +366,7 @@ class ORFPodcastIE(InfoExtractor):
             'vcodec': 'none',
             **traverse_obj(data, ('payload', {
                 'url': ('enclosures', 0, 'url'),
+                'ext': ('enclosures', 0, 'type', {mimetype2ext}),
                 'title': 'title',
                 'description': ('description', {clean_html}),
                 'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
