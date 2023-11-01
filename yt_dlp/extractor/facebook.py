@@ -434,7 +434,7 @@ class FacebookIE(InfoExtractor):
                     captions = sorted(captions, key=lambda c: (c['locale'] != locale, c['locale']))
                 for c in captions:
                     s = {
-                        'ext': self._search_regex(r'\.(\w{3,})\?', c['captions_url'], 'captions_ext', default='srt'),
+                        'ext': determine_ext(c['captions_url'], default_ext='srt'),
                         'url': c['captions_url'],
                         'name': (c['localized_language']
                                  + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
