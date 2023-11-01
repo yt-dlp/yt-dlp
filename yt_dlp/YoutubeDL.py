@@ -2338,7 +2338,7 @@ class YoutubeDL:
                 return
 
             for f in formats:
-                if f.get('has_drm'):
+                if f.get('has_drm') or f.get('__needs_testing'):
                     yield from self._check_formats([f])
                 else:
                     yield f
