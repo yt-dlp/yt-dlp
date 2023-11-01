@@ -5219,6 +5219,7 @@ class FormatSorter:
         'channels': {'convert': 'float_none', 'field': 'audio_channels'},
         'tbr': {'convert': 'float_none'},
         'vbr': {'convert': 'float_none'},
+        'nvbr': {'convert': 'float_none'},
         'abr': {'convert': 'float_none'},
         'asr': {'convert': 'float_none'},
         'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
