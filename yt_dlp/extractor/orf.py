@@ -4,15 +4,16 @@ import re
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
+    InAdvancePagedList,
     clean_html,
     determine_ext,
     float_or_none,
-    InAdvancePagedList,
     int_or_none,
     join_nonempty,
+    make_archive_id,
+    mimetype2ext,
     orderedSet,
     remove_end,
-    make_archive_id,
     smuggle_url,
     strip_jsonp,
     try_call,
@@ -20,7 +21,6 @@ from ..utils import (
     unified_strdate,
     unsmuggle_url,
     url_or_none,
-    mimetype2ext,
 )
 from ..utils.traversal import traverse_obj
 
