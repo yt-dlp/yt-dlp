@@ -176,8 +176,8 @@ class DRTVIE(InfoExtractor):
         formats = []
         subtitles = {}
         for fmt in data:
-            formatId = fmt['format'] or 'na'
-            accessService = fmt['accessService']
+            format_id = fmt.get('format', 'na')
+            access_service = fmt.get('accessService')
             preference = None
             if accessService in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
                 preference = -1
