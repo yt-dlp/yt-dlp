@@ -428,7 +428,7 @@ class FacebookIE(InfoExtractor):
             automatic_captions = {}
             subtitles = {}
             if isinstance(captions, str):
-                subtitles[locale] = [{'ext': self._search_regex(r'\.(\w{3,})\?', captions, 'captions_ext', default='srt'), 'url': captions}]
+                subtitles[locale] = [{'ext': determine_ext(captions, default_ext='srt'), 'url': captions}]
             elif isinstance(captions, list):
                 if len(captions) > 1:
                     captions = sorted(captions, key=lambda c: (c['locale'] != locale, c['locale']))
