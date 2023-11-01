@@ -423,7 +423,7 @@ class FacebookIE(InfoExtractor):
             snippet = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict) or {}
             locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
-            captions = get_first(snippet, ('video_available_captions_locales')) or get_first(snippet, ('captions_url')) or None
+            captions = get_first(snippet, 'video_available_captions_locales', 'captions_url')
             useIsVideoBroadcast = get_first(snippet, ('is_video_broadcast')) or False
             automatic_captions = {}
             subtitles = {}
