@@ -126,7 +126,7 @@ class BitChuteIE(InfoExtractor):
             'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'uploader': clean_html(get_element_by_class('owner', webpage)),
+            'uploader': self._search_regex(r'<p\sclass=\"name.+Channel\">([^<]+)<', webpage, 'uploader'),
             'upload_date': unified_strdate(self._search_regex(
                 r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
             'formats': formats,
@@ -169,7 +169,7 @@ class BitChuteChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'wV9Imujxasw9',
             'title': 'Bruce MacDonald and "The Light of Darkness"',
-            'description': 'md5:04913227d2714af1d36d804aa2ab6b1e',
+            'description': 'md5:747724ef404eebdfc04277714f81863e',
         }
     }]
 
