@@ -44,7 +44,10 @@ def _do_cached_post(s: requests.session,
                },
                json={'path': url}
                )
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        raise ExtractorError("Post to Loma-CMS failed {0}".format(e.__traceback__))
     return r.json()
 
 
@@ -65,6 +68,51 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
             'creator': 'Tele5',
             'tags': [],
             'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/10/02/501fa839-d3ac-3c04-aa61-57f98802c532.jpeg',
+        },
+    }, {
+        'url': 'https://tele5.de/mediathek/giganten-mit-staehlernen-faeusten',
+        'info_dict': {
+            'id': '5561439',
+            'title': 'Giganten mit stählernen Fäusten',
+            'ext': 'mp4',
+            'timestamp': 1697235900,
+            'description': 'md5:80489c885ae763b0f7fb74c65bbbdbde',
+            'creator': 'Tele5',
+            'tags': [],
+            'series': 'Giganten mit stählernen Fäusten',
+            'duration': 4690.68,
+            'upload_date': '20231013',
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/09/28/274524f7-e71d-334b-9971-c0c439eca577.jpeg',
+        },
+    }, {
+        'url': 'https://tele5.de/mediathek/ein-koenigreich-vor-unserer-zeit',
+        'info_dict': {
+            'id': '5467119',
+            'ext': 'mp4',
+            'duration': 4506.6,
+            'description': 'md5:7670c325232d54cb1fb0e1cb91770431',
+            'creator': 'Tele5',
+            'title': 'Ein Königreich vor unserer Zeit',
+            'timestamp': 1695422100,
+            'tags': [],
+            'series': 'Ein Königreich vor unserer Zeit',
+            'upload_date': '20230922',
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/09/13/4fb0ad33-9644-3c9b-8e5e-71db184e029e.jpeg',
+        },
+    }, {
+        'url': 'https://tele5.de/mediathek/im-reich-der-amazonen',
+        'info_dict': {
+            'id': '5503913',
+            'ext': 'mp4',
+            'series': 'Im Reich der Amazonen',
+            'duration': 4811.76,
+            'creator': 'Tele5',
+            'description': 'md5:fb4a571d008806eb09f4818e2240a106',
+            'thumbnail': 'https://eu1-prod-images.disco-api.com/2023/09/18/df0205cd-9dd8-3368-a31b-7f9c28f99021.jpeg',
+            'timestamp': 1696025700,
+            'title': 'Im Reich der Amazonen',
+            'tags': [],
+            'upload_date': '20230929',
         },
     }, {
         'url': 'https://www.tele5.de/mediathek/filme-online/videos?vid=1549416',
@@ -134,7 +182,9 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
         content_regex = re.compile(
             r'https?://(?:www\.)?(?P<environment>[^.]+)\.de/(?P<parent_slug>[^/]+)/(?P<slug>[^/?#&]+)')
         m = content_regex.search(url)
-        if m is not None:
+        if m is None:
+            raise ExtractorError('Could not parse url {0} to environment, parent_slug, slug'.format(url))
+        else:
             environment, parent_slug, slug = m.groups()
             s = requests.session()
             headers_for_origin = {
@@ -148,20 +198,21 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
                 referer=url,
                 url='https://de-api.loma-cms.com/feloma/configurations/?environment={0}'.format(environment))
 
-            site_info = cached_base.get('data').get('settings').get('site')
-            player_info = site_info.get('player')
-
-            sonic_realm = player_info['sonicRealm']
-            sonic_endpoint = compat_urlparse.urlparse(player_info['sonicEndpoint']).hostname
-            country = site_info['info']['country']
-
             cached_video_specific = _do_cached_post(s=s,
                                                     referer=url,
                                                     url=_generate_video_specific_cache_url(
                                                         slug=slug,
                                                         parent_slug=parent_slug))
 
-            video_id = cached_video_specific['data']['blocks'][1]['videoId']
+            try:
+                site_info = cached_base['data']['settings']['site']
+                country = site_info['info']['country']
+                player_info = site_info['player']
+                sonic_realm = player_info['sonicRealm']
+                sonic_endpoint = compat_urlparse.urlparse(player_info['sonicEndpoint']).hostname
+                video_id = cached_video_specific['data']['blocks'][1]['videoId']
+            except (KeyError, TypeError):
+                raise ExtractorError('Could not extract Meta Data from loma-cms')
 
             try:
                 return self._get_disco_api_info(url=url,

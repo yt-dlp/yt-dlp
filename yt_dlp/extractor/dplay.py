@@ -74,13 +74,13 @@ class DPlayBaseIE(InfoExtractor):
         :return: A dictionary with {content_type: url_to_content_type} scheme.
         """
         if api_version == 3:
-            video_playback_info_url = urljoin(base=disco_base, url="playback/v3/videoPlaybackInfo")
+            video_playback_info_url = urljoin(base=disco_base, url='playback/v3/videoPlaybackInfo')
 
             request_json_content = {
-                "deviceInfo": {"adBlocker": False,  # deviceInfo is mandatory, some keys inside are optional!
-                               "drmSupported": False,
+                'deviceInfo': {'adBlocker': False,  # deviceInfo is mandatory, some keys inside are optional!
+                               'drmSupported': False,
                                },
-                "videoId": "{0}".format(video_id),
+                'videoId': '{0}'.format(video_id),
             }
 
             video_playback_response = requests.post(url=video_playback_info_url,
@@ -90,10 +90,9 @@ class DPlayBaseIE(InfoExtractor):
             video_playback_response.raise_for_status()
 
             streaming_list = video_playback_response.json()['data']['attributes']['streaming']
-            streaming_item = streaming_list[0]
-            streaming_item_protection = streaming_item.get("protection")
+            streaming_item_protection = streaming_list[0]['protection']
 
-            assert streaming_item_protection.get("drmEnabled") is False
+            assert streaming_item_protection.get('drmEnabled') is False
         else:
             # old behaviour
             streaming = self._download_json(
@@ -115,9 +114,9 @@ class DPlayBaseIE(InfoExtractor):
         })
         disco_base = 'https://%s/' % disco_host
         if api_version == 3:
-            url_base = "://".join(urlsplit(url)[:2])
+            url_base = '://'.join(urlsplit(url)[:2])
             headers = {
-                'Referer': urljoin(base=url_base, url="/"),
+                'Referer': urljoin(base=url_base, url='/'),
                 'Origin': url_base,
             }
         else:
