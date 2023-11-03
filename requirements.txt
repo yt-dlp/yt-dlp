@@ -9,4 +9,3 @@ urllib3>=1.26.17,<3
 
 # test
 pytest
-pycryptodomex
