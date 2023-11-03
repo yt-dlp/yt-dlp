@@ -19,6 +19,8 @@ def _generate_video_specific_cache_url(slug, parent_slug):
     """
     return 'https://de-api.loma-cms.com/feloma/page/{0}/?environment=tele5&parent_slug={1}&v=2'.format(slug,
                                                                                                        parent_slug)
+
+
 def _do_cached_post(s: requests.session,
                     referer: str,
                     url: str) -> dict:
@@ -44,6 +46,7 @@ def _do_cached_post(s: requests.session,
                )
     r.raise_for_status()
     return r.json()
+
 
 class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?tele5\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)'
@@ -128,19 +131,22 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
     }]
 
     def _real_extract(self, url):
-        content_regex = re.compile(r'https?://(?:www\.)?(?P<environment>[^.]+)\.de/(?P<parent_slug>[^/]+)/(?P<slug>[^/?#&]+)')
+        content_regex = re.compile(
+            r'https?://(?:www\.)?(?P<environment>[^.]+)\.de/(?P<parent_slug>[^/]+)/(?P<slug>[^/?#&]+)')
         m = content_regex.search(url)
         if m is not None:
             environment, parent_slug, slug = m.groups()
             s = requests.session()
-            headers_for_origin = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0'}
+            headers_for_origin = {
+                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0'}
             r = s.get(url=url,
                       headers=headers_for_origin)
             r.raise_for_status()
 
-            cached_base = _do_cached_post(s=s,
-                                               referer=url,
-                                               url='https://de-api.loma-cms.com/feloma/configurations/?environment={0}'.format(environment))
+            cached_base = _do_cached_post(
+                s=s,
+                referer=url,
+                url='https://de-api.loma-cms.com/feloma/configurations/?environment={0}'.format(environment))
 
             site_info = cached_base.get('data').get('settings').get('site')
             player_info = site_info.get('player')
@@ -149,10 +155,11 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
             sonic_endpoint = compat_urlparse.urlparse(player_info['sonicEndpoint']).hostname
             country = site_info['info']['country']
 
-            cached_video_specific = _do_cached_post(s=s, referer=url,
-                                                         url=_generate_video_specific_cache_url(
-                                                             slug=slug,
-                                                             parent_slug=parent_slug))
+            cached_video_specific = _do_cached_post(s=s,
+                                                    referer=url,
+                                                    url=_generate_video_specific_cache_url(
+                                                        slug=slug,
+                                                        parent_slug=parent_slug))
 
             video_id = cached_video_specific['data']['blocks'][1]['videoId']
 
