@@ -81,7 +81,7 @@ class ZenPornIE(InfoExtractor):
     def _extract_embed_info(self, source):
         embed = namedtuple('embed', ['ext_domain', 'extr_id'])
         regex = re.compile(
-            r'https:\/\/(?P<ext_domain>[a-zA-Z.-]+\.[a-zA-z]{3})\/embed\/(?P<extr_id>[0-9]+)\/')
+                r'https:\/\/(?P<ext_domain>[\w.-]+\.\w{3})\/embed\/(?P<extr_id>\d+)\/')
         match = regex.search(source)
 
         if match:
