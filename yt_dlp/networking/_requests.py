@@ -255,7 +255,8 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         handler.setFormatter(logging.Formatter('requests: %(message)s'))
         handler.addFilter(Urllib3LoggingFilter())
         logger.addHandler(handler)
-        logger.setLevel(logging.WARNING)
+        # Use ERROR to suppress pool reuse warning (could filter instead?)
+        logger.setLevel(logging.ERROR)
 
         if self.verbose:
             # Setting this globally is not ideal, but is easier than hacking with urllib3.
