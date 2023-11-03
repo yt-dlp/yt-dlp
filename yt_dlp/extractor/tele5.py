@@ -7,7 +7,10 @@ from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
 )
+from ..version import __version__ as package_version
 
+def get_default_user_agent() -> str:
+    return 'yt-dpl {0}'.format(package_version)
 
 def _generate_video_specific_cache_url(slug, parent_slug):
     """
@@ -36,11 +39,8 @@ def _do_cached_post(s: requests.session,
     """
     r = s.post(url='https://tele5.de/cached',
                headers={
-                   'Origin': 'https://tele5.de',
                    'Referer': referer,
-                   # Referer is a mandatory key,
-                   'User-Agent': 'Youtube-DL',
-                   # User-Agent is a mandatory key, it can be anything!
+                   'User-Agent': get_default_user_agent(),
                },
                json={'path': url}
                )
@@ -188,7 +188,7 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
             environment, parent_slug, slug = m.groups()
             s = requests.session()
             headers_for_origin = {
-                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0'}
+                'User-Agent': get_default_user_agent()}
             r = s.get(url=url,
                       headers=headers_for_origin)
             r.raise_for_status()
