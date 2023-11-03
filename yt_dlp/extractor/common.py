@@ -2339,7 +2339,7 @@ class InfoExtractor:
         imgs_count = 0
 
         srcs = set()
-        media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
+        media = [el for arg in ['.//video', './/audio', './/media'] for el in smil.findall(self._xpath_ns(arg, namespace))]
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:
