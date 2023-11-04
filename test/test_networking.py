@@ -52,7 +52,7 @@ from yt_dlp.networking.exceptions import (
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict
 
-from .conftest import validate_and_send
+from test.conftest import validate_and_send
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -996,7 +996,7 @@ class TestRequestHandlerValidation:
             ({'cookiejar': 'notacookiejar'}, False),
             ({'somerandom': 'test'}, False),  # but any extension is allowed through
         ]),
-        ('Websockets', 'ws', [  # TODO
+        ('Websockets', 'ws', [
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 2}, False),
         ]),
