@@ -5,7 +5,6 @@ import urllib.parse
 import urllib.request
 
 from .gigya import GigyaBaseIE
-# from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -105,18 +104,14 @@ class VRTBaseIE(GigyaBaseIE):
         #   'kid': self._JWT_KEY_ID
         #   }).decode()
 
-#         headers = { 'Content-Type': 'application/json' }
-#
-#         data = { 'identityToken': id_token or self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_vt").value }
-
         json_response = self._download_json(
             f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
-            None, 'Downloading player token', headers={ 'Content-Type': 'application/json' }, data=json.dumps({ 'identityToken': id_token or self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_vt").value }).encode())
+            None, 'Downloading player token', 'Failed to download player token', headers={ 'Content-Type': 'application/json' }, data=json.dumps({ 'identityToken': id_token or self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_vt").value }).encode())
         player_token = json_response['vrtPlayerToken']
 
         return self._download_json(
             f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/videos/{video_id}',
-            video_id, 'Downloading API JSON', query={
+            video_id, 'Downloading API JSON', 'Failed to download API JSON', query={
                 'vrtPlayerToken': player_token,
                 'client': client,
             })
@@ -242,15 +237,6 @@ class VRTIE(VRTBaseIE):
         }
 
 
-class NoRedirect(urllib.request.HTTPRedirectHandler):
-
-    def http_error_302(self, req, fp, code, msg, headers):
-        result = urllib.error.HTTPError(req.get_full_url(), code, msg, headers, fp)
-        return result
-
-    http_error_301 = http_error_303 = http_error_307 = http_error_302
-
-
 class VrtNUIE(VRTBaseIE):
     IE_DESC = 'VRT MAX'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/(vrtmax|vrtnu)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
@@ -307,8 +293,7 @@ class VrtNUIE(VRTBaseIE):
 
     def _perform_login(self, username, password):
 
-        # sepro proposal
-        login_page = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None)
+        login_page = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting session cookies', errnote='Failed to get session cookies')
 
         res = self._download_json(
             'https://login.vrt.be/perform_login', None, data=json.dumps({
@@ -318,7 +303,7 @@ class VrtNUIE(VRTBaseIE):
                 }).encode(), headers={
                     'Content-Type': 'application/json',
                     'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-                    })
+                    }, note='Logging in', errnote='Login failed')
         self._authenticated = True
         return
 
@@ -327,7 +312,7 @@ class VrtNUIE(VRTBaseIE):
         parsed_url = urllib.parse.urlparse(url)
 
         # 1. Obtain/refresh 'vrtnu-site_profile' tokens
-        res = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Obtaining tokens', errnote='Failed to obtain tokens')
+        res = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting tokens', errnote='Failed to get tokens')
 
         # 2. Perform GraphQL query to obtain video metadata
         headers = {
