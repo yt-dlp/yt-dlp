@@ -152,7 +152,7 @@ def main():
         url='https://github.com/yt-dlp/yt-dlp',
         packages=packages(),
         install_requires=REQUIREMENTS,
-        extras_require={'curl_cffi': ['curl-cffi >= 0.5.9b5']},
+        extras_require={'curl_cffi': ['curl-cffi >= 0.5.10b3']},
         python_requires='>=3.7',
         project_urls={
             'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',

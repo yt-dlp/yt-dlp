@@ -32,11 +32,13 @@ class CurlCFFIResponseReader(io.IOBase):
         self._response = response
         self._buffer = b''
         self._eof = False
+        self.bytes_read = 0
 
     def readable(self):
         return True
 
     def read(self, size=None):
+        exception_raised = True
         try:
             while not self._eof and (size is None or len(self._buffer) < size):
                 chunk = next(self._response.iter_content(), None)
@@ -44,6 +46,7 @@ class CurlCFFIResponseReader(io.IOBase):
                     self._eof = True
                     break
                 self._buffer += chunk
+                self.bytes_read += len(self._buffer)
 
             if size is None:
                 data = self._buffer
@@ -56,10 +59,11 @@ class CurlCFFIResponseReader(io.IOBase):
             # curl_cffi doesn't do this automatically and only allows one open response per thread
             if self._eof and len(self._buffer) == 0:
                 self.close()
+            exception_raised = False
             return data
-        except Exception:
-            self.close()
-            raise
+        finally:
+            if exception_raised and not self.closed:
+                self.close()
 
     def close(self):
         self._response.close()
@@ -67,12 +71,26 @@ class CurlCFFIResponseReader(io.IOBase):
 
 
 class CurlCFFIResponseAdapter(Response):
+    fp: CurlCFFIResponseReader
+
     def __init__(self, response: curl_cffi.requests.Response):
         super().__init__(
             fp=CurlCFFIResponseReader(response),
             headers=response.headers,
             url=response.url,
             status=response.status_code)
+
+    def read(self, amt=None):
+        try:
+            return self.fp.read(amt)
+        except curl_cffi.requests.errors.RequestsError as e:
+            if e.code == CurlECode.PARTIAL_FILE:
+                content_length = int_or_none(e.response.headers.get('Content-Length'))
+                raise IncompleteRead(
+                    partial=self.fp.bytes_read,
+                    expected=content_length - self.fp.bytes_read if content_length is not None else None,
+                    cause=e) from e
+            raise
 
 
 @register_rh
