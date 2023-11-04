@@ -107,6 +107,21 @@ def create_wss_websocket_server():
     return create_websocket_server(ssl_context=sslctx)
 
 
+MTLS_CERT_DIR = os.path.join(TEST_DIR, 'testdata', 'certificate')
+
+
+def create_mtls_wss_websocket_server():
+    certfn = os.path.join(TEST_DIR, 'testcert.pem')
+    cacertfn = os.path.join(MTLS_CERT_DIR, 'ca.crt')
+
+    sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    sslctx.verify_mode = ssl.CERT_REQUIRED
+    sslctx.load_verify_locations(cafile=cacertfn)
+    sslctx.load_cert_chain(certfn, None)
+
+    return create_websocket_server(ssl_context=sslctx)
+
+
 @pytest.mark.skipif(not websockets, reason='websockets must be installed to test websocket request handlers')
 class TestWebsSocketRequestHandlerConformance:
     @classmethod
@@ -119,6 +134,9 @@ class TestWebsSocketRequestHandlerConformance:
 
         cls.bad_wss_thread, cls.bad_wss_port = create_websocket_server(ssl_context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER))
         cls.bad_wss_host = f'wss://127.0.0.1:{cls.bad_wss_port}'
+
+        cls.mtls_wss_thread, cls.mtls_wss_port = create_mtls_wss_websocket_server()
+        cls.mtls_wss_base_url = f'wss://127.0.0.1:{cls.mtls_wss_port}'
 
     @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_basic_websockets(self, handler):
@@ -255,3 +273,29 @@ class TestWebsSocketRequestHandlerConformance:
             assert headers['test2'] == 'changed'
             assert headers['test3'] == 'test3'
             ws.close()
+
+    @pytest.mark.parametrize('client_cert', (
+        {'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithkey.crt')},
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
+            'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'client.key'),
+        },
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithencryptedkey.crt'),
+            'client_certificate_password': 'foobar',
+        },
+        {
+            'client_certificate': os.path.join(MTLS_CERT_DIR, 'client.crt'),
+            'client_certificate_key': os.path.join(MTLS_CERT_DIR, 'clientencrypted.key'),
+            'client_certificate_password': 'foobar',
+        }
+    ))
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    def test_mtls(self, handler, client_cert):
+        with handler(
+            # Disable client-side validation of unacceptable self-signed testcert.pem
+            # The test is of a check on the server side, so unaffected
+            verify=False,
+            client_cert=client_cert
+        ) as rh:
+            validate_and_send(rh, Request(self.mtls_wss_base_url))
