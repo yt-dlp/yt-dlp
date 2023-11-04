@@ -1563,7 +1563,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
     IE_NAME = 'twitter:broadcast'
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/broadcasts/(?P<id>[0-9a-zA-Z]{13})'
 
-    _TEST = {
+    _TESTS = [{
         # untitled Periscope video
         'url': 'https://twitter.com/i/broadcasts/1yNGaQLWpejGj',
         'info_dict': {
@@ -1572,12 +1572,41 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'title': 'Andrea May Sahouri - Periscope Broadcast',
             'uploader': 'Andrea May Sahouri',
             'uploader_id': 'andreamsahouri',
+            'uploader_url': 'https://twitter.com/andreamsahouri',
             'timestamp': 1590973638,
             'upload_date': '20200601',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
         },
-    }
+    }, {
+        'url': 'https://twitter.com/i/broadcasts/1ZkKzeyrPbaxv',
+        'info_dict': {
+            'id': '1ZkKzeyrPbaxv',
+            'ext': 'mp4',
+            'title': 'Starship | SN10 | High-Altitude Flight Test',
+            'uploader': 'SpaceX',
+            'uploader_id': 'SpaceX',
+            'uploader_url': 'https://twitter.com/SpaceX',
+            'timestamp': 1614812942,
+            'upload_date': '20210303',
+            'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
+            'view_count': int,
+        },
+    }, {
+        'url': 'https://twitter.com/i/broadcasts/1OyKAVQrgzwGb',
+        'info_dict': {
+            'id': '1OyKAVQrgzwGb',
+            'ext': 'mp4',
+            'title': 'Starship Flight Test',
+            'uploader': 'SpaceX',
+            'uploader_id': 'SpaceX',
+            'uploader_url': 'https://twitter.com/SpaceX',
+            'timestamp': 1681993964,
+            'upload_date': '20230420',
+            'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
+            'view_count': int,
+        },
+    }]
 
     def _real_extract(self, url):
         broadcast_id = self._match_id(url)
