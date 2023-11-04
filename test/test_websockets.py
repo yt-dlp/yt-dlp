@@ -37,18 +37,19 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def websocket_handler(websocket):
     for message in websocket:
-        if message == 'headers':
-            return websocket.send(json.dumps(dict(websocket.request.headers)))
-        elif message == 'path':
-            return websocket.send(websocket.request.path)
-        elif message == 'source_address':
-            return websocket.send(websocket.remote_address[0])
-        elif message == 'str':
-            return websocket.send('1')
-        elif message == b'bytes':
-            return websocket.send('2')
-        else:
-            return websocket.send(message)
+        if isinstance(message, bytes):
+            if message == b'bytes':
+                return websocket.send('2')
+        elif isinstance(message, str):
+            if message == 'headers':
+                return websocket.send(json.dumps(dict(websocket.request.headers)))
+            elif message == 'path':
+                return websocket.send(websocket.request.path)
+            elif message == 'source_address':
+                return websocket.send(websocket.remote_address[0])
+            elif message == 'str':
+                return websocket.send('1')
+        return websocket.send(message)
 
 
 def process_request(self, request):
