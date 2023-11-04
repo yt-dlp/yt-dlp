@@ -428,7 +428,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.adminforge\.de',
         r'(?:www\.)?watch\.whatevertinfoil\.de',
         r'(?:www\.)?piped\.qdi\.fi',
-        r'(?:www\.)?piped\.video',
+        r'(?:(?:www|cf)\.)?piped\.video',
         r'(?:www\.)?piped\.aeong\.one',
         r'(?:www\.)?piped\.moomoo\.me',
         r'(?:www\.)?piped\.chauvet\.pro',
