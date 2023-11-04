@@ -29,7 +29,8 @@ class PeriscopeBaseIE(InfoExtractor):
         return {
             'id': broadcast.get('id') or video_id,
             'title': title,
-            'timestamp': int_or_none(broadcast.get('created_at_ms'), scale=1000) or parse_iso8601(broadcast.get('created_at')),
+            'timestamp': parse_iso8601(broadcast.get('created_at')) or int_or_none(
+                broadcast.get('created_at_ms'), scale=1000),
             'uploader': uploader,
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
             'thumbnails': thumbnails,
