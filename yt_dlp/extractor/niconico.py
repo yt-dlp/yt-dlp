@@ -947,17 +947,13 @@ class NiconicoLiveIE(InfoExtractor):
         })
 
         hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
-        cookies = try_get(urlh.url, self._downloader._calc_cookies)
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
             latency = 'high'
 
-        ws = self._request_webpage(Request(ws_url, headers={
-            'Cookies': str_or_none(cookies) or '',
-            'Origin': f'https://{hostname}',
-            'Accept': '*/*',
-            'User-Agent': self.get_param('http_headers')['User-Agent'],
-        }), video_id=video_id, note='Connecting to WebSocket server')
+        ws = self._request_webpage(
+            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
+            video_id=video_id, note='Connecting to WebSocket server')
 
         self.write_debug('[debug] Sending HLS server request')
         ws.send(json.dumps({
@@ -1031,7 +1027,6 @@ class NiconicoLiveIE(InfoExtractor):
                 'protocol': 'niconico_live',
                 'ws': ws,
                 'video_id': video_id,
-                'cookies': cookies,
                 'live_latency': latency,
                 'origin': hostname,
             })

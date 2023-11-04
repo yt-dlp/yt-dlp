@@ -133,6 +133,7 @@ class WebsocketsRH(WebSocketRequestHandler):
                 open_timeout=timeout,
                 user_agent_header=None,
                 ssl_context=self._make_sslcontext() if wsuri.secure else None,
+                close_timeout=0,  # not ideal, but prevents yt-dlp hanging
             )
             return WebsocketsResponseAdapter(conn, url=request.url)
 
