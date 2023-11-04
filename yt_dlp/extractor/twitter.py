@@ -1571,7 +1571,9 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'ext': 'mp4',
             'title': 'Andrea May Sahouri - Periscope Broadcast',
             'uploader': 'Andrea May Sahouri',
-            'uploader_id': '1PXEdBZWpGwKe',
+            'uploader_id': 'andreamsahouri',
+            'timestamp': 1590973638,
+            'upload_date': '20200601',
             'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
             'view_count': int,
         },
@@ -1586,8 +1588,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             raise ExtractorError('Broadcast no longer exists', expected=True)
         info = self._parse_broadcast_data(broadcast, broadcast_id)
         info['title'] = broadcast.get('status') or info.get('title')
-        info['uploader_id'] = broadcast.get('twitter_user_id') or info.get('uploader_id')
-        info['uploader'] = broadcast.get('twitter_username') or info.get('uploader')
+        info['uploader_id'] = broadcast.get('twitter_username') or info.get('uploader_id')
         media_key = broadcast['media_key']
         source = self._call_api(
             f'live_video_stream/status/{media_key}', media_key)['source']
