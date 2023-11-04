@@ -1589,8 +1589,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         info = self._parse_broadcast_data(broadcast, broadcast_id)
         info['title'] = broadcast.get('status') or info.get('title')
         info['uploader_id'] = broadcast.get('twitter_username') or info.get('uploader_id')
-        info['channel'] = info.get('uploader')
-        info['channel_id'] = info.get('uploader_id')
+        info['uploader_url'] = format_field(broadcast, 'twitter_username', 'https://twitter.com/%s', default=None)
         media_key = broadcast['media_key']
         source = self._call_api(
             f'live_video_stream/status/{media_key}', media_key)['source']
