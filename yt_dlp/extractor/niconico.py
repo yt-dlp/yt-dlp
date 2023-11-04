@@ -13,7 +13,6 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    WebSocketsWrapper,
     bug_reports_message,
     clean_html,
     float_or_none,

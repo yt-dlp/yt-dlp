@@ -274,6 +274,7 @@ class WebSocketSocksTestProxyContext(SocksProxyTestContext):
         ws.close()
         return json.loads(socks_info)
 
+
 CTX_MAP = {
     'http': HTTPSocksTestProxyContext,
     'ws': WebSocketSocksTestProxyContext,

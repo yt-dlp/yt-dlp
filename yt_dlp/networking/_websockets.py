@@ -153,7 +153,6 @@ class WebsocketsRH(WebSocketRequestHandler):
                     headers=e.response.headers,
                     status=e.response.status_code,
                     reason=e.response.reason_phrase),
-                ) from e
+            ) from e
         except (OSError, TimeoutError, websockets.exceptions.InvalidHandshake) as e:
             raise TransportError(cause=e) from e
-

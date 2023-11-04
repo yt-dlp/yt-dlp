@@ -1,62 +1,34 @@
 #!/usr/bin/env python3
-import enum
 
 # Allow direct execution
 import os
 import sys
-from queue import Queue
 
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import asyncio
-import functools
-import gzip
 import http.client
 import http.cookiejar
 import http.server
-import io
 import json
-import pathlib
 import random
 import ssl
-import tempfile
 import threading
-import time
-import urllib.error
-import urllib.request
-import warnings
-import zlib
-from email.message import Message
-from http.cookiejar import CookieJar
 
 import websockets.sync
 
-from test.helper import FakeYDL, http_server_port
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.dependencies import brotli, requests, urllib3, websockets
+from yt_dlp.dependencies import websockets
 from yt_dlp.networking import (
-    HEADRequest,
-    PUTRequest,
     Request,
-    RequestDirector,
-    RequestHandler,
-    Response,
 )
-from yt_dlp.networking._urllib import UrllibRH
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
-    IncompleteRead,
-    NoSupportingHandlers,
-    ProxyError,
-    RequestError,
     SSLError,
     TransportError,
-    UnsupportedRequest,
 )
-from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict
 
 from .conftest import validate_and_send

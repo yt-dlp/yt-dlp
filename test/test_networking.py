@@ -8,9 +8,6 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import asyncio
-import functools
-import json
 import gzip
 import http.client
 import http.cookiejar
@@ -31,7 +28,7 @@ from http.cookiejar import CookieJar
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.dependencies import brotli, requests, urllib3, websockets
+from yt_dlp.dependencies import brotli, requests, urllib3
 from yt_dlp.networking import (
     HEADRequest,
     PUTRequest,

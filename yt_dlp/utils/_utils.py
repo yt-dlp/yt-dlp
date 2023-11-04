@@ -1,5 +1,3 @@
-import asyncio
-import atexit
 import base64
 import binascii
 import calendar
@@ -54,7 +52,7 @@ from ..compat import (
     compat_os_name,
     compat_shlex_quote,
 )
-from ..dependencies import websockets, xattr
+from ..dependencies import xattr
 
 __name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
 
