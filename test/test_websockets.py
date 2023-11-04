@@ -7,7 +7,6 @@ import sys
 from queue import Queue
 
 import pytest
-from websockets.datastructures import Headers
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -102,7 +101,7 @@ def create_ws_websocket_server():
 
 
 def create_wss_websocket_server():
-    certfn = os.path.join(TEST_DIR, '../testcert.pem')
+    certfn = os.path.join(TEST_DIR, 'testcert.pem')
     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     sslctx.load_cert_chain(certfn, None)
     return create_websocket_server(ssl_context=sslctx)

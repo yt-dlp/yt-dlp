@@ -293,7 +293,7 @@ class TestRequestHandlerBase:
         cls.http_server_thread.start()
 
         # HTTPS server
-        certfn = os.path.join(TEST_DIR, '../testcert.pem')
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
         cls.https_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -694,8 +694,8 @@ class TestClientCertificate:
 
     @classmethod
     def setup_class(cls):
-        certfn = os.path.join(TEST_DIR, '../testcert.pem')
-        cls.certdir = os.path.join(TEST_DIR, '../testdata', 'certificate')
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        cls.certdir = os.path.join(TEST_DIR, 'testdata', 'certificate')
         cacertfn = os.path.join(cls.certdir, 'ca.crt')
         cls.httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
