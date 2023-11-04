@@ -53,7 +53,7 @@ class WebsocketsResponseAdapter(WebSocketResponse):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
         try:
             return self.wsw.send(*args)
-        except (websockets.exceptions.ConnectionClosed, RuntimeError, TimeoutError) as e:
+        except (websockets.exceptions.WebSocketException, RuntimeError, TimeoutError) as e:
             raise TransportError(cause=e) from e
         except SocksProxyError as e:
             raise ProxyError(cause=e) from e
@@ -66,7 +66,7 @@ class WebsocketsResponseAdapter(WebSocketResponse):
             return self.wsw.recv(*args)
         except SocksProxyError as e:
             raise ProxyError(cause=e) from e
-        except (websockets.exceptions.ConnectionClosed, RuntimeError, TimeoutError) as e:
+        except (websockets.exceptions.WebSocketException, RuntimeError, TimeoutError) as e:
             raise TransportError(cause=e) from e
 
 
@@ -155,5 +155,5 @@ class WebsocketsRH(WebSocketRequestHandler):
                     status=e.response.status_code,
                     reason=e.response.reason_phrase),
             ) from e
-        except (OSError, TimeoutError, websockets.exceptions.InvalidHandshake) as e:
+        except (OSError, TimeoutError, websockets.exceptions.WebSocketException) as e:
             raise TransportError(cause=e) from e

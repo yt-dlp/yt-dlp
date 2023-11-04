@@ -18,14 +18,15 @@ import threading
 
 import websockets.sync
 
+from yt_dlp import socks
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import websockets
-from yt_dlp.networking import (
-    Request,
-)
+from yt_dlp.networking import Request
 from yt_dlp.networking.exceptions import (
     CertificateVerifyError,
     HTTPError,
+    ProxyError,
+    RequestError,
     SSLError,
     TransportError,
 )
@@ -271,3 +272,95 @@ class TestWebsSocketRequestHandlerConformance:
             client_cert=client_cert
         ) as rh:
             validate_and_send(rh, Request(self.mtls_wss_base_url))
+
+
+def create_fake_ws_connection(raised):
+    import websockets.sync.client
+
+    class FakeWsConnection(websockets.sync.client.ClientConnection):
+        def __init__(self, *args, **kwargs):
+            class FakeResponse:
+                body = b''
+                headers = {}
+                status_code = 101
+                reason_phrase = 'test'
+
+            self.response = FakeResponse()
+
+        def send(self, *args, **kwargs):
+            raise raised()
+
+        def recv(self, *args, **kwargs):
+            raise raised()
+
+        def close(self, *args, **kwargs):
+            return
+
+    return FakeWsConnection()
+
+
+@pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+class TestWebsocketsRequestHandler:
+    @pytest.mark.parametrize('raised,expected', [
+        # https://websockets.readthedocs.io/en/stable/reference/exceptions.html
+        (lambda: websockets.exceptions.InvalidURI(msg='test', uri='test://'), RequestError),
+        # Requires a response object. Should be covered by HTTP error tests.
+        # (lambda: websockets.exceptions.InvalidStatus(), TransportError),
+        (lambda: websockets.exceptions.InvalidHandshake(), TransportError),
+        # These are subclasses of InvalidHandshake
+        (lambda: websockets.exceptions.InvalidHeader(name='test'), TransportError),
+        (lambda: websockets.exceptions.NegotiationError(), TransportError),
+        # Catch-all
+        (lambda: websockets.exceptions.WebSocketException(), TransportError),
+        (lambda: TimeoutError(), TransportError),
+        # These may be raised by our create_connection implementation, which should also be caught
+        (lambda: OSError(), TransportError),
+        (lambda: ssl.SSLError(), SSLError),
+        (lambda: ssl.SSLCertVerificationError(), CertificateVerifyError),
+        (lambda: socks.ProxyError(), ProxyError),
+    ])
+    def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
+        import websockets.sync.client
+
+        import yt_dlp.networking._websockets
+        with handler() as rh:
+            def fake_connect(*args, **kwargs):
+                raise raised()
+            monkeypatch.setattr(yt_dlp.networking._websockets, 'create_connection', lambda *args, **kwargs: None)
+            monkeypatch.setattr(websockets.sync.client, 'connect', fake_connect)
+            with pytest.raises(expected) as exc_info:
+                rh.send(Request('ws://fake-url'))
+            assert exc_info.type is expected
+
+    @pytest.mark.parametrize('raised,expected,match', [
+        # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
+        (lambda: websockets.exceptions.ConnectionClosed(None, None), TransportError, None),
+        (lambda: RuntimeError(), TransportError, None),
+        (lambda: TimeoutError(), TransportError, None),
+        (lambda: TypeError(), RequestError, None),
+        (lambda: socks.ProxyError(), ProxyError, None),
+        # Catch-all
+        (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
+    ])
+    def test_ws_send_error_mapping(self, handler, monkeypatch, raised, expected, match):
+        from yt_dlp.networking._websockets import WebsocketsResponseAdapter
+        ws = WebsocketsResponseAdapter(create_fake_ws_connection(raised), url='ws://fake-url')
+        with pytest.raises(expected, match=match) as exc_info:
+            ws.send('test')
+        assert exc_info.type is expected
+
+    @pytest.mark.parametrize('raised,expected,match', [
+        # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
+        (lambda: websockets.exceptions.ConnectionClosed(None, None), TransportError, None),
+        (lambda: RuntimeError(), TransportError, None),
+        (lambda: TimeoutError(), TransportError, None),
+        (lambda: socks.ProxyError(), ProxyError, None),
+        # Catch-all
+        (lambda: websockets.exceptions.WebSocketException(), TransportError, None),
+    ])
+    def test_ws_recv_error_mapping(self, handler, monkeypatch, raised, expected, match):
+        from yt_dlp.networking._websockets import WebsocketsResponseAdapter
+        ws = WebsocketsResponseAdapter(create_fake_ws_connection(raised), url='ws://fake-url')
+        with pytest.raises(expected, match=match) as exc_info:
+            ws.recv()
+        assert exc_info.type is expected

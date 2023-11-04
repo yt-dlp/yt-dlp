@@ -869,8 +869,9 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
     ])
     @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
-        from urllib3.response import HTTPResponse as Urllib3Response
         from requests.models import Response as RequestsResponse
+        from urllib3.response import HTTPResponse as Urllib3Response
+
         from yt_dlp.networking._requests import RequestsResponseAdapter
         requests_res = RequestsResponse()
         requests_res.raw = Urllib3Response(body=b'', status=200)
