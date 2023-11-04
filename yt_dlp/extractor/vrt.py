@@ -1,6 +1,5 @@
 import functools
 import json
-from http.cookiejar import CookieJar
 import urllib.parse
 import urllib.request
 
@@ -25,12 +24,14 @@ from ..utils import (
     urlencode_postdata,
 )
 
+
 def parse_year(timestamp):
     """ Return the first 4 characters as an int """
     if isinstance(timestamp, str) and len(timestamp) >= 4:
         return int_or_none(timestamp[:4])
     else:
         return None
+
 
 class VRTBaseIE(GigyaBaseIE):
     _GEO_BYPASS = False
@@ -106,7 +107,7 @@ class VRTBaseIE(GigyaBaseIE):
 
         json_response = self._download_json(
             f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
-            None, 'Downloading player token', 'Failed to download player token', headers={ 'Content-Type': 'application/json' }, data=json.dumps({ 'identityToken': id_token or self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_vt").value }).encode())
+            None, 'Downloading player token', 'Failed to download player token', headers={'Content-Type': 'application/json'}, data=json.dumps({'identityToken': id_token or self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_vt").value}).encode())
         player_token = json_response['vrtPlayerToken']
 
         return self._download_json(
@@ -293,17 +294,17 @@ class VrtNUIE(VRTBaseIE):
 
     def _perform_login(self, username, password):
 
-        login_page = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting session cookies', errnote='Failed to get session cookies')
+        self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting session cookies', errnote='Failed to get session cookies')
 
-        res = self._download_json(
+        self._download_json(
             'https://login.vrt.be/perform_login', None, data=json.dumps({
                 "loginID": username,
                 "password": password,
                 "clientId": "vrtnu-site"
-                }).encode(), headers={
-                    'Content-Type': 'application/json',
-                    'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-                    }, note='Logging in', errnote='Login failed')
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+            }, note='Logging in', errnote='Login failed')
         self._authenticated = True
         return
 
@@ -312,7 +313,7 @@ class VrtNUIE(VRTBaseIE):
         parsed_url = urllib.parse.urlparse(url)
 
         # 1. Obtain/refresh 'vrtnu-site_profile' tokens
-        res = self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting tokens', errnote='Failed to get tokens')
+        self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting tokens', errnote='Failed to get tokens')
 
         # 2. Perform GraphQL query to obtain video metadata
         headers = {
