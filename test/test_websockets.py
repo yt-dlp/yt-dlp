@@ -16,8 +16,6 @@ import random
 import ssl
 import threading
 
-import websockets.sync
-
 from yt_dlp import socks
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import websockets
