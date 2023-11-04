@@ -1084,6 +1084,22 @@ class FakeRHYDL(FakeYDL):
         self._request_director = self.build_request_director([FakeRH])
 
 
+class AllUnsupportedRHYDL(FakeYDL):
+
+    def __init__(self, *args, **kwargs):
+
+        class UnsupportedRH(RequestHandler):
+            def _send(self, request: Request):
+                pass
+
+            _SUPPORTED_FEATURES = ()
+            _SUPPORTED_PROXY_SCHEMES = ()
+            _SUPPORTED_URL_SCHEMES = ()
+
+        super().__init__(*args, **kwargs)
+        self._request_director = self.build_request_director([UnsupportedRH])
+
+
 class TestRequestDirector:
 
     def test_handler_operations(self):
@@ -1242,6 +1258,12 @@ class TestYoutubeDLNetworking:
         with FakeYDL() as ydl:
             with pytest.raises(RequestError, match=r'file:// URLs are disabled by default'):
                 ydl.urlopen('file://')
+
+    @pytest.mark.parametrize('scheme', (['ws', 'wss']))
+    def test_websocket_unavailable_error(self, scheme):
+        with AllUnsupportedRHYDL() as ydl:
+            with pytest.raises(RequestError, match=r'This request requires WebSocket support'):
+                ydl.urlopen(f'{scheme}://')
 
     def test_legacy_server_connect_error(self):
         with FakeRHYDL() as ydl:
