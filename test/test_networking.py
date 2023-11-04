@@ -369,7 +369,6 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests'], indirect=True)
     def test_raise_http_error(self, handler):
         with handler() as rh:
-            # TODO Return HTTP status code url
             for bad_status in (400, 500, 599, 302):
                 with pytest.raises(HTTPError):
                     validate_and_send(rh, Request('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status)))
