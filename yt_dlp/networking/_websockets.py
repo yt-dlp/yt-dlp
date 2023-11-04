@@ -37,22 +37,22 @@ class WebsocketsResponseAdapter(WebSocketResponse):
 
     def __init__(self, wsw: websockets.sync.client.ClientConnection, url):
         super().__init__(
-            fp=io.BytesIO(wsw.response.body or b''),  # TODO: test
+            fp=io.BytesIO(wsw.response.body or b''),
             url=url,
-            headers=wsw.response.headers,  # TODO: test multiple headers (may need to use raw_items())
+            headers=wsw.response.headers,
             status=wsw.response.status_code,
             reason=wsw.response.reason_phrase,
         )
         self.wsw = wsw
 
-    def close(self, status=None):
+    def close(self):
         self.wsw.close()
         super().close()
 
-    def send(self, *args):
+    def send(self, message):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
         try:
-            return self.wsw.send(*args)
+            return self.wsw.send(message)
         except (websockets.exceptions.WebSocketException, RuntimeError, TimeoutError) as e:
             raise TransportError(cause=e) from e
         except SocksProxyError as e:
@@ -60,10 +60,10 @@ class WebsocketsResponseAdapter(WebSocketResponse):
         except TypeError as e:
             raise RequestError(cause=e) from e
 
-    def recv(self, *args):
+    def recv(self):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.recv
         try:
-            return self.wsw.recv(*args)
+            return self.wsw.recv()
         except SocksProxyError as e:
             raise ProxyError(cause=e) from e
         except (websockets.exceptions.WebSocketException, RuntimeError, TimeoutError) as e:

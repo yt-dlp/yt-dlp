@@ -43,6 +43,10 @@ def websocket_handler(websocket):
             return websocket.send(websocket.request.path)
         elif message == 'source_address':
             return websocket.send(websocket.remote_address[0])
+        elif message == 'str':
+            return websocket.send('1')
+        elif message == b'bytes':
+            return websocket.send('2')
         else:
             return websocket.send(message)
 
@@ -117,6 +121,16 @@ class TestWebsSocketRequestHandlerConformance:
             assert ws.status == 101
             ws.send('foo')
             assert ws.recv() == 'foo'
+            ws.close()
+
+    # https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+    @pytest.mark.parametrize('msg,opcode', [('str', 1), (b'bytes', 2)])
+    @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
+    def test_send_types(self, handler, msg, opcode):
+        with handler() as rh:
+            ws = validate_and_send(rh, Request(self.ws_base_url))
+            ws.send(msg)
+            assert int(ws.recv()) == opcode
             ws.close()
 
     @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
