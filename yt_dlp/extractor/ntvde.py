@@ -32,17 +32,14 @@ class NTVDeIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        info = self._parse_json(self._search_regex(
-            r'(?s)article:\s*(\{.+?\})', webpage, 'info'),
-            video_id, transform_source=js_to_json)
-        timestamp = int_or_none(info.get('publishedDateAsUnixTimeStamp'))
+        info = self._search_json(
+            r'article:\s*', webpage, 'info', video_id, transform_source=js_to_json)
 
-        player_data = self._parse_json(self._search_regex(
-            r'(?s)\$\(\s*"\#playerwrapper"\s*\)\s*\.data\(\s*"player",\s*(\{.*?\})\);',
-            webpage, 'player data'), video_id,
-            transform_source=lambda s: js_to_json(re.sub(r'ivw:\s*.+', '', s)))
+        player_data = self._search_json(
+            r'\$\(\s*"\#playerwrapper"\s*\)\s*\.data\(\s*"player",\s*',
+            webpage, 'player data', video_id,
+            transform_source=lambda s: js_to_json(re.sub(r'ivw:[^},]+', '', s)))
         vdata = traverse_obj(player_data, ('setup', 'source'))
-        duration = int_or_none(vdata.get('length'))
 
         formats = []
         if vdata.get('progressive'):
@@ -56,13 +53,18 @@ class NTVDeIE(InfoExtractor):
                 quality=1, m3u8_id='hls', fatal=False))
         if vdata.get('dash'):
             formats.extend(self._extract_mpd_formats(vdata['dash'], video_id, fatal=False))
+
         return {
             'id': video_id,
-            'title': info['headline'],
-            'description': info.get('intro'),
-            'alt_title': info.get('kicker'),
-            'timestamp': timestamp,
-            'thumbnail': vdata.get('poster'),
-            'duration': duration,
+            **traverse_obj(info, {
+                'title': 'headline',
+                'description': 'intro',
+                'alt_title': 'kicker',
+                'timestamp': ('publishedDateAsUnixTimeStamp', {int_or_none}),
+            }),
+            **traverse_obj(vdata, {
+                'thumbnail': 'poster',
+                'duration': ('length', {int_or_none}),
+            }),
             'formats': formats,
         }
