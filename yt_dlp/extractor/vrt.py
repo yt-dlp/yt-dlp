@@ -1,6 +1,5 @@
 import functools
 import json
-# import time
 from http.cookiejar import CookieJar
 import urllib.parse
 import urllib.request
@@ -396,7 +395,7 @@ class VrtNUIE(VRTBaseIE):
 
         return {
             **traverse_obj(metadata, {
-                'description': ('seo', 'description', {clean_html}),
+                'description': ('seo', 'description', {str_or_none}),
                 'timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
                 'release_timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
                 'series': ('episode', 'program', 'title'),
