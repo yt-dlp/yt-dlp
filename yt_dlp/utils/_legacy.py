@@ -30,7 +30,6 @@ from ..networking._urllib import (  # noqa: F401
 )
 from ..networking.exceptions import HTTPError, network_exceptions  # noqa: F401
 
-
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
 
