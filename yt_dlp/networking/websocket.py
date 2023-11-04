@@ -1,7 +1,6 @@
 import abc
 
 from .common import Response, RequestHandler
-from .exceptions import TransportError
 
 
 class WebSocketResponse(Response):
@@ -11,10 +10,6 @@ class WebSocketResponse(Response):
 
     def recv(self, *args):
         raise NotImplementedError
-
-
-class WebSocketException(TransportError):
-    pass
 
 
 class WebSocketRequestHandler(RequestHandler, abc.ABC):
