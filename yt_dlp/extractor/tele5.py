@@ -1,6 +1,7 @@
 import re
-
 import requests
+
+from traceback import format_exception
 
 from .dplay import DPlayIE
 from ..compat import compat_urlparse
@@ -49,7 +50,7 @@ def _do_cached_post(s: requests.session,
     try:
         r.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        raise ExtractorError("Post to Loma-CMS failed {0}".format(e.__traceback__))
+        raise ExtractorError("Post to Loma-CMS failed {0}".format(format_exception(e)))
     return r.json()
 
 
