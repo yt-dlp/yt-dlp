@@ -7,10 +7,9 @@ from ..utils.traversal import traverse_obj
 
 
 class LaXarxaMesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?laxarxames\.cat/(?:[^/]+/)*?(player|movie-details)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?laxarxames\.cat/(?:[^/?#]+/)*?(player|movie-details)/(?P<id>\d+)'
     _NETRC_MACHINE = 'laxarxames'
     _TOKEN = None
-    _LOGIN_URL = 'https://www.laxarxames.cat/login'
     _TESTS = [{
         'url': 'https://www.laxarxames.cat/player/3459421',
         'md5': '0966f46c34275934c19af78f3df6e2bc',
@@ -43,35 +42,30 @@ class LaXarxaMesIE(InfoExtractor):
                     'PlatformCode': 'WEB',
                     'Name': 'Mac OS ()',
                 },
-            }).encode('utf-8'),
-            expected_status=401,
-        )
+            }).encode('utf-8'), expected_status=401)
 
-        if not traverse_obj(login, ('AuthorizationToken', 'Token')):
+        if not traverse_obj(login, ('AuthorizationToken', 'Token', {str})):
             raise ExtractorError('Login failed', expected=True)
-        else:
-            self._TOKEN = login['AuthorizationToken']['Token']
+        self._TOKEN = login['AuthorizationToken']['Token']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         if not self._TOKEN:
             self.raise_login_required()
-        mediaplayinfo = self._download_json(
+        media_play_info = self._download_json(
             'https://api.laxarxames.cat/Media/GetMediaPlayInfo', video_id,
             data=json.dumps({
                 'MediaId': int(video_id),
                 'StreamType': 'MAIN'
-            }).encode('utf-8'),
-            headers={
-                'Authorization': 'Bearer ' + self._TOKEN,
+            }).encode('utf-8'), headers={
+                'Authorization': f'Bearer {self._TOKEN}',
                 'X-Tenantorigin': 'https://laxarxames.cat',
                 'Content-Type': 'application/json',
-            }
-        )
+            })
 
-        if not mediaplayinfo.get('ContentUrl'):
+        if not traverse_obj(media_play_info, ('ContentUrl', {str})):
             self.raise_no_formats('No video found', expected=True)
         return self.url_result(
-            f'http://players.brightcove.net/5779379807001/default_default/index.html?videoId={mediaplayinfo["ContentUrl"]}',
-            BrightcoveNewIE, video_id, mediaplayinfo.get('Title'))
+            f'https://players.brightcove.net/5779379807001/default_default/index.html?videoId={media_play_info["ContentUrl"]}',
+            BrightcoveNewIE, video_id, media_play_info.get('Title'))
