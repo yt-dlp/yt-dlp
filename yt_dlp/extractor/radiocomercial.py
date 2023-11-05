@@ -1,36 +1,23 @@
-import re
-from collections import namedtuple
+import functools
 
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    unified_strdate,
+    get_element_by_class,
+    get_element_html_by_class,
+    extract_attributes,
+    try_call,
+    get_element_text_and_html_by_tag,
+    join_nonempty,
+    get_elements_html_by_class,
+    traverse_obj,
+    OnDemandPagedList
 )
 
 
-class RadioComercialBaseExtractor(InfoExtractor):
-    def _extract_page_content(self, url):
-        video_id = RadioComercialIE._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-        url = self._html_search_regex(r'<a.+?isExclusivePlay=.+?href="(.+?)">', webpage, 'url')
-        date = self._html_search_regex(r'<div[^"]+"date">(\d{4}-\d{2}-\d{2})</div>', webpage, 'date')
-        thumbnail = self._html_search_regex(r'<source[^"]+"image/jpeg[^/]+(.+?)\">', webpage, 'thumbnail')
-        season = int_or_none(self._html_search_regex(r'<h2>\w+\s(\d+)</h2>', webpage, 'season'))
-        episode_id = int_or_none(self._html_search_regex(r'episodeid=(\d+)&', url, 'episode_id'))
-
-        return {
-            'id': video_id,
-            'title': title,
-            'date': date,
-            'thumbnail': thumbnail,
-            'season': season,
-            'episode_id': episode_id,
-            'url': url
-        }
-
-
-class RadioComercialIE(RadioComercialBaseExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/]+/\w\d+/(?P<id>[-\w]+)/*$'
+class RadioComercialIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/]+/\w(?P<season>\d+)/(?P<id>[-\w]+)/*$'
     _TESTS = [{
         'url': 'https://radiocomercial.pt/podcasts/o-homem-que-mordeu-o-cao/t6/taylor-swift-entranhando-se-que-nem-uma-espada-no-ventre-dos-fas',
         'md5': '5f4fe8e485b29d2e8fd495605bc2c7e4',
@@ -38,10 +25,10 @@ class RadioComercialIE(RadioComercialBaseExtractor):
             'id': 'taylor-swift-entranhando-se-que-nem-uma-espada-no-ventre-dos-fas',
             'ext': 'mp3',
             'title': 'Taylor Swift entranhando-se que nem uma espada no ventre dos fãs.',
-            'date': '2023-10-25',
-            'thumbnail': r're:/upload/[^.]+.jpg',
-            'season': 6,
-            'episode_id': 220899
+            'description': '',
+            'release_date': '20231025',
+            'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
+            'season': 6
         }
     },
         {
@@ -51,20 +38,45 @@ class RadioComercialIE(RadioComercialBaseExtractor):
             'id': 'convenca-me-num-minuto-que-os-lobisomens-existem',
             'ext': 'mp3',
             'title': 'Convença-me num minuto que os lobisomens existem',
-            'date': '2023-10-26',
-            'thumbnail': r're:/upload/[^.]+.jpg',
-            'season': 3,
-            'episode_id': 221210
+            'description': '',
+            'release_date': '20231026',
+            'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
+            'season': 3
+        }
+    },
+        {
+        'url': 'https://radiocomercial.pt/podcasts/inacreditavel-by-ines-castel-branco/t2/o-desastre-de-aviao',
+        'md5': '69be64255420fec23b7259955d771e54',
+        'info_dict': {
+            'id': 'o-desastre-de-aviao',
+            'ext': 'mp3',
+            'title': 'O desastre de avião',
+            'description': 'md5:8a82beeb372641614772baab7246245f',
+            'release_date': '20231101',
+            'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
+            'season': 2
         }
     },
     ]
 
     def _real_extract(self, url):
-        return self._extract_page_content(url)
+        video_id, season = self._match_valid_url(url).group('id', 'season')
+        webpage = self._download_webpage(url, video_id)
+        return {
+            'id': video_id,
+            'title': self._html_extract_title(webpage),
+            'description': self._og_search_description(webpage, default=''),
+            'release_date': unified_strdate(
+                get_element_by_class('date', get_element_html_by_class('descriptions', webpage))),
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'season': int_or_none(season),
+            'url': extract_attributes(get_element_html_by_class('audiofile', webpage) or '').get('href'),
+        }
 
 
-class RadioComercialPlaylistIE(RadioComercialBaseExtractor):
+class RadioComercialPlaylistIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/(?P<id>[-\w]+)[/\w\d+]*$'
+    _PAGE_SIZE = 19
     _TESTS = [{
         'url': 'https://radiocomercial.pt/podcasts/convenca-me-num-minuto/t3',
         'info_dict': {
@@ -85,57 +97,27 @@ class RadioComercialPlaylistIE(RadioComercialBaseExtractor):
             'id': 'as-minhas-coisas-favoritas',
             'title': 'As Minhas Coisas Favoritas',
         },
-        'playlist_mincount': 100
+        'playlist_mincount': 131
     },
     ]
 
-    NextPage = namedtuple('NextPage', ['path', 'page', 'add_one'])
-
-    def _extract_next_url_details(self, source):
-        regex = re.compile(
-            r'\sclass="pagination__next"\shref="(?P<path>/podcasts/[^/]+?[/\w\d+/]+?/)(?P<page>\d+)/*(?P<add_one>\d*)')
-        match = regex.search(source)
-        if match:
-            return self.NextPage(match.group('path'),
-                                 int_or_none(match.group('page')), int_or_none(match.group('add_one')))
-        return self.NextPage(None, None, None)
-
-    def _get_next_page(self, webpage):
-        next_page = self._extract_next_url_details(webpage)
-        if not next_page.path or not next_page.page:
-            return None
-        number_section = f'{next_page.page if not next_page.add_one else next_page.page + 1}'
-        next_page = f'https://radiocomercial.pt{next_page.path}{number_section}'
-        video_id = self._match_id(next_page)
-        return self._download_webpage(next_page, video_id, headers={'X-Requested-With': 'XMLHttpRequest'})
-
-    def _collect_hrefs(self, webpage):
-        regex = re.compile(r'rounded-site-bottom"><a class="tm-ouvir-podcast" href="([^"]+)"')
-        matches = regex.finditer(webpage)
-        for match in matches:
-            yield f'https://radiocomercial.pt{match.group(1)}'
-
-    def _generate_sorted_entries(self, list_of_podcasts):
-        entries = [self._extract_page_content(item) for item in list_of_podcasts]
-        sorted_entries = sorted(entries, key=lambda x: x['date'], reverse=True)
-        for entry in sorted_entries:
-            yield entry
+    def _fetch_page(self, url, season, page):
+        page += 1
+        next_page = f'{url}{"/" + str(page) if page > 1 else ""}'
+        webpage = self._download_webpage(next_page, season, headers={'X-Requested-With': 'XMLHttpRequest'},
+                                         note=f'Downloading page: {next_page}')
+        episodes = set(traverse_obj(get_elements_html_by_class('tm-ouvir-podcast', webpage),
+                                    (..., {extract_attributes}, 'href')))
+        for entry in episodes:
+            yield self.url_result(f'https://radiocomercial.pt{entry}', RadioComercialIE)
 
     def _real_extract(self, url):
         podcast = self._match_id(url)
         webpage = self._download_webpage(url, podcast)
 
-        podcast_name = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'name')
-        podcast_season = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'season')
-        podcast_title = podcast_name if podcast_name == podcast_season else f'{podcast_name} - {podcast_season}'
+        name = try_call(lambda: get_element_text_and_html_by_tag('h1', webpage)[0])
+        season = self._html_extract_title(webpage)
+        title = name if name == season else join_nonempty(name, season, delim=' - ')
 
-        list_of_podcasts = set()
-        while True:
-            get_entries = self._collect_hrefs(webpage)
-            if get_entries:
-                list_of_podcasts.update(get_entries)
-            webpage = self._get_next_page(webpage)
-            if not webpage:
-                break
-
-        return self.playlist_result(self._generate_sorted_entries(list_of_podcasts), podcast, podcast_title)
+        return self.playlist_result(OnDemandPagedList(functools.partial(self._fetch_page, url, season),
+                                                      self._PAGE_SIZE), podcast, title)
