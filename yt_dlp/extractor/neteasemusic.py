@@ -253,12 +253,15 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'formats': formats,
             'alt_title': '/'.join(traverse_obj(info, (('transNames', 'alias'), ...))) or None,
             'creator': ' / '.join(traverse_obj(info, ('artists', ..., 'name'))) or None,
+            'album_artist': ' / '.join(traverse_obj(info, ('album', 'artists', ..., 'name'))) or None,
             **lyric_data,
             **traverse_obj(info, {
                 'title': ('name', {str}),
                 'timestamp': ('album', 'publishTime', {self.kilo_or_none}),
-                'thumbnail': ('album', 'picUrl', {url_or_none}),
                 'duration': ('duration', {self.kilo_or_none}),
+                'album': ('album', 'name', {str_or_none}),
+                'thumbnail': ('album', 'picUrl', {str_or_none}),
+                'average_rating': ('score', {int_or_none}),
             }),
         }
 
