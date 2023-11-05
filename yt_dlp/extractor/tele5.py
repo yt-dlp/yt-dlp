@@ -231,12 +231,12 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
             for video_id in video_ids:
                 try:
                     video_info = self._get_disco_api_info(url=url,
-                                                    display_id=video_id,
-                                                    disco_host=sonic_endpoint,
-                                                    realm=sonic_realm,
-                                                    country=country,
-                                                    api_version=3,
-                                                    )
+                                                          display_id=video_id,
+                                                          disco_host=sonic_endpoint,
+                                                          realm=sonic_realm,
+                                                          country=country,
+                                                          api_version=3,
+                                                          )
                     entries.append(video_info)
                 except ExtractorError as e:
                     if getattr(e, 'message', '') == 'Missing deviceId in context':
