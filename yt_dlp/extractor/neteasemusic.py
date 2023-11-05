@@ -259,7 +259,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
                 'title': ('name', {str}),
                 'timestamp': ('album', 'publishTime', {self.kilo_or_none}),
                 'duration': ('duration', {self.kilo_or_none}),
-                'album': ('album', 'name', {str_or_none}),
+                'album': ('album', 'name', {url_or_none}),
                 'thumbnail': ('album', 'picUrl', {str_or_none}),
                 'average_rating': ('score', {int_or_none}),
             }),
