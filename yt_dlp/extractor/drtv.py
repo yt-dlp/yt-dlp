@@ -1,31 +1,19 @@
-<<<<<<< Updated upstream
-import binascii
-import hashlib
-import json
-import re
-import uuid
-
-from .common import InfoExtractor
-from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_etree_fromstring, compat_urllib_parse_unquote
-=======
-import datetime
 import json
 
 from .common import InfoExtractor
->>>>>>> Stashed changes
 from ..utils import (
-    ExtractorError,
     int_or_none,
     mimetype2ext,
-    str_or_none,
-    traverse_obj,
+    parse_iso8601,
+    random_uuidv4,
+    try_call,
     update_url_query,
     url_or_none,
-    random_uuidv4
 )
+from ..utils.traversal import traverse_obj
 
 SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
+
 
 class DRTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
@@ -61,24 +49,38 @@ class DRTVIE(InfoExtractor):
         'expected_warnings': ['Unable to download f4m manifest'],
         'skip': 'this video has been removed',
     }, {
-        # with SignLanguage formats
-        'url': 'https://www.dr.dk/drtv/se/tegnsprogsmagasinet-udsyn_365039',
+        # embed
+        'url': 'https://www.dr.dk/nyheder/indland/live-christianias-rydning-af-pusher-street-er-i-gang',
         'info_dict': {
-            'id': '00922307010',
+            'id': 'urn:dr:mu:programcard:57c926176187a50a9c6e83c6',
             'ext': 'mp4',
-            'title': '1. episode',
-            'description': 'md5:a94679ee27debca33655986b78e2f8e5',
-            'timestamp': 1674842400,
-            'upload_date': '20230127',
-            'duration': 1816,
-            'formats': 'mincount:10',
-            'release_year': 2023,
-            'season_id': 365038,
+            'title': 'christiania pusher street ryddes drdkrjpo',
+            'description': 'md5:2a71898b15057e9b97334f61d04e6eb5',
+            'timestamp': 1472800279,
+            'upload_date': '20160902',
+            'duration': 131.4,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'expected_warnings': ['Unable to download f4m manifest'],
+    }, {
+        # with SignLanguage formats
+        'url': 'https://www.dr.dk/tv/se/historien-om-danmark/-/historien-om-danmark-stenalder',
+        'info_dict': {
+            'id': '00831690010',
+            'ext': 'mp4',
+            'title': 'Historien om Danmark: Stenalder',
+            'description': 'md5:8c66dcbc1669bbc6f873879880f37f2a',
+            'timestamp': 1546628400,
+            'upload_date': '20190104',
+            'duration': 3504.619,
+            'formats': 'mincount:20',
+            'release_year': 2017,
+            'season_id': 'urn:dr:mu:bundle:5afc03ad6187a4065ca5fd35',
             'season_number': 1,
-            'season': 'Tegnsprogsmagasinet Udsyn',
-            'series': 'Tegnsprogsmagasinet Udsyn',
-            'episode': 'Tegnsprogsmagasinet Udsyn',
-            'episode_number': 1
+            'season': 'Historien om Danmark',
+            'series': 'Historien om Danmark',
         },
         'params': {
             'skip_download': True,
@@ -87,22 +89,22 @@ class DRTVIE(InfoExtractor):
         'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/p4-nyheder-2019-06-26-17-30-9',
         'only_matching': True,
     }, {
-        'url': 'https://www.dr.dk/drtv/se/spise-med-price_-pasta-selv_397445',
+        'url': 'https://www.dr.dk/drtv/se/bonderoeven_71769',
         'info_dict': {
-            'id': '00212301010',
+            'id': '00951930010',
             'ext': 'mp4',
-            'title': '1. Pasta Selv',
-            'description': 'md5:2da9060524fed707810d71080b3d0cd8',
-            'timestamp': 1691373600,
-            'upload_date': '20230807',
-            'duration': 1750,
-            'season': 'Spise med Price',
-            'season_id': 397440,
-            'release_year': 2022,
-            'season_number': 15,
-            'series': 'Spise med Price',
+            'title': 'Bonderøven 2019 (1:8)',
+            'description': 'md5:b6dcfe9b6f0bea6703e9a0092739a5bd',
+            'timestamp': 1654856100,
+            'upload_date': '20220610',
+            'duration': 2576.6,
+            'season': 'Bonderøven 2019',
+            'season_id': 'urn:dr:mu:bundle:5c201667a11fa01ca4528ce5',
+            'release_year': 2019,
+            'season_number': 2019,
+            'series': 'Frank & Kastaniegaarden',
             'episode_number': 1,
-            'episode': 'Spise med Price: Pasta Selv',
+            'episode': 'Episode 1',
         },
         'params': {
             'skip_download': True,
@@ -116,14 +118,51 @@ class DRTVIE(InfoExtractor):
     }, {
         'url': 'https://www.dr.dk/drtv/program/jagten_220924',
         'only_matching': True,
+    }, {
+        'url': 'https://www.dr.dk/lyd/p4aarhus/regionale-nyheder-ar4/regionale-nyheder-2022-05-05-12-30-3',
+        'info_dict': {
+            'id': 'urn:dr:mu:programcard:6265cb2571401424d0360113',
+            'title': "Regionale nyheder",
+            'ext': 'mp4',
+            'duration': 120.043,
+            'series': 'P4 Østjylland regionale nyheder',
+            'timestamp': 1651746600,
+            'season': 'Regionale nyheder',
+            'release_year': 0,
+            'season_id': 'urn:dr:mu:bundle:61c26889539f0201586b73c5',
+            'description': '',
+            'upload_date': '20220505',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'this video has been removed',
+    }, {
+        'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/regionale-nyheder-2023-03-14-10-30-9',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '14802310112',
+            'timestamp': 1678786200,
+            'duration': 120.043,
+            'season_id': 'urn:dr:mu:bundle:63a4f7c87140143504b6710f',
+            'series': 'P4 København regionale nyheder',
+            'upload_date': '20230314',
+            'release_year': 0,
+            'description': 'Hør seneste regionale nyheder fra P4 København.',
+            'season': 'Regionale nyheder',
+            'title': 'Regionale nyheder',
+        },
     }]
 
-    def _get_token(self, video_id):
-        return self._download_json(
-            'https://isl.dr-massive.com/api/authorization/anonymous-sso?device=web_browser&ff=idp%2Cldp&lang=da',
-            video_id,
-            headers={
-                'Content-Type': 'application/json'
+    _TOKEN = None
+
+    def _real_initialize(self):
+        if self._TOKEN:
+            return
+        token_response = self._download_json(
+            'https://production.dr-massive.com/api/authorization/anonymous-sso', None,
+            note='Downloading anonymous token', headers={
+                'content-type': 'application/json',
             },
             query={
                 'device': 'web_browser',
@@ -132,83 +171,56 @@ class DRTVIE(InfoExtractor):
                 'supportFallbackToken': 'true',
             },
             data=json.dumps({
-                'deviceId': str(random_uuidv4()),
-                'scopes': ['Catalog'],
-                'optout': True
-            }).encode('utf-8'))[0]['value']
+                'deviceId': random_uuidv4(),
+                'scopes': [
+                    'Catalog',
+                ],
+                'optout': True,
+            }).encode('utf-8'))
+
+        self._TOKEN = traverse_obj(
+            token_response, (lambda _, x: x['type'] == 'UserAccount', 'value'), get_all=False)
 
     def _real_extract(self, url):
-<<<<<<< Updated upstream
-        raw_video_id, is_radio_url = self._match_valid_url(url).group('id', 'radio')
-=======
         raw_video_id = self._match_valid_url(url).group('id')
->>>>>>> Stashed changes
         webpage = self._download_webpage(url, raw_video_id)
-        if '>Programmet er ikke længere tilgængeligt' in webpage:
-            raise ExtractorError(
-                'Video %s is not available' % raw_video_id, expected=True)
-        json_data = self._search_json(r'window\.__data\s*=', webpage, 'data', raw_video_id)
-        item = traverse_obj(json_data, ('cache', 'page', Ellipsis, (None, ('entries', 0)), 'item'), get_all=False)
-<<<<<<< Updated upstream
-        itemId = item.get('id')
-        videoId = item['customId'].split(':')[-1]
-        deviceId = uuid.uuid1()
-        token = self._download_json('https://isl.dr-massive.com/api/authorization/anonymous-sso?device=web_browser&ff=idp%2Cldp&lang=da', videoId, headers={'Content-Type': 'application/json'}, data=json.dumps({'deviceId': str(deviceId), 'scopes': ['Catalog'], 'optout': True}).encode('utf-8'))[0]['value']
-        data = self._download_json('https://production.dr-massive.com/api/account/items/{0}/videos?delivery=stream&device=web_browser&ff=idp%2Cldp%2Crpt&lang=da&resolution=HD-1080&sub=Anonymous'.format(itemId), videoId, headers={'authorization': 'Bearer {0}'.format(token)})
-        formats = []
-        subtitles = {}
-=======
-        item_id = item.get('id')
-        video_id = item['customId'].split(':')[-1]
-        season = item.get('season')
-        show = season.get('show') if season is not None else None
-        season_number = int_or_none(season.get('seasonNumber') if season is not None else None)
-        # episodes_in_season = int_or_none(season.get('episodeCount') if season is not None else None)
-        available_from_str = item.get('customFields').get('AvailableFrom')
-        available_from_dt = datetime.datetime.strptime(available_from_str[:-2], '%Y-%m-%dT%H:%M:%S.%f')
-        available_from_unix = available_from_dt.timestamp()
-        available_from_date = available_from_dt.strftime('%Y%m%d')
-        token = self._get_token(video_id)
-        data = self._download_json(
-            'https://production.dr-massive.com/api/account/items/{0}/videos?delivery=stream&device=web_browser&ff=idp%2Cldp%2Crpt&lang=da&resolution=HD-1080&sub=Anonymous'.format(item_id),
-            video_id,
-            headers={
-                'authorization': 'Bearer {0}'.format(token)
-            })
-        formats = []
-        subtitles = {}
 
->>>>>>> Stashed changes
-        for fmt in data:
+        json_data = self._search_json(r'window\.__data\s*=\s*', webpage, 'data', raw_video_id)
+        item = traverse_obj(json_data, ('cache', 'page', ..., (None, ('entries', 0)), 'item'), get_all=False) or {}
+        item_id = item.get('id') or raw_video_id.rsplit('_', 1)[-1]
+        video_id = try_call(item['customId'].split(':')[-1]) or item_id
+
+        stream_data = self._download_json(
+            f'https://production.dr-massive.com/api/account/items/{item_id}/videos', video_id, query={
+                'delivery': 'stream',
+                'device': 'web_browser',
+                'ff': 'idp,ldp,rpt',
+                'lang': 'da',
+                'resolution': 'HD-1080',
+                'sub': 'Anonymous',
+            },
+            headers={
+                'authorization': f'Bearer {self._TOKEN}',
+            })
+
+        formats = []
+        subtitles = {}
+        for fmt in stream_data:
             format_id = fmt.get('format', 'na')
             access_service = fmt.get('accessService')
             preference = None
-<<<<<<< Updated upstream
-            if accessService in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
-                preference = -1
-                formatId += '-%s' % accessService
-            elif accessService == 'StandardVideo':
-                preference = 1
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(fmt['url'], videoId, 'mp4', entry_protocol='m3u8_native', preference=preference, m3u8_id=formatId, fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-            LANGS = {
-                'Danish': 'da',
-            }
-=======
             if access_service in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
                 preference = -1
                 format_id += '-%s' % access_service
             elif access_service == 'StandardVideo':
                 preference = 1
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(fmt['url'], video_id, 'mp4', entry_protocol='m3u8_native', preference=preference, m3u8_id=format_id, fatal=False)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(fmt['url'], video_id, preference=preference, m3u8_id=format_id, fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
             LANGS = {
                 'DanishLanguageSubtitles': 'da',
             }
 
->>>>>>> Stashed changes
             for subs in fmt['subtitles']:
                 if not isinstance(subs, dict):
                     continue
@@ -220,34 +232,27 @@ class DRTVIE(InfoExtractor):
                     'url': sub_uri,
                     'ext': mimetype2ext(subs.get('format')) or 'vtt'
                 })
-<<<<<<< Updated upstream
-            
-        return {
-            'id': videoId,
-            'title': item.get('episodeName'),
-            'description': item.get('description'),
-            'formats': formats,
-            'subtitles': subtitles,
-=======
 
         return {
             'id': video_id,
-            'title': item.get('contextualTitle'),
-            'description': item.get('description'),
             'formats': formats,
             'subtitles': subtitles,
-            'duration': item.get('duration'),
-            'release_year': int_or_none(item.get('releaseYear')),
-            'timestamp': available_from_unix,
-            'upload_date': available_from_date,
-            'series': str_or_none(show.get('title') if show is not None else None),
-            'season': str_or_none(season.get('title') if season is not None else None),
-            'season_number': season_number,
-            'season_id': int_or_none(season.get('id') if season is not None else None),
-            'episode': str_or_none(item.get('episodeName')),
-            'episode_number': item.get('episodeNumber')
->>>>>>> Stashed changes
+            **traverse_obj(item, {
+                'title': 'title',
+                'description': 'description',
+                'thumbnail': ('images', 'wallpaper'),
+                'timestamp': ('customFields', 'BroadcastTimeDK', {parse_iso8601}),
+                'duration': 'duration',
+                'series': ('season', 'title'),
+                'season': ('season', 'show', 'title'),
+                'season_number': ('season', 'seasonNumber', {int_or_none}),
+                'season_id': 'seasonId',
+                'episode': 'episodeName',
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'release_year': 'releaseYear',
+            }),
         }
+
 
 class DRTVLiveIE(InfoExtractor):
     IE_NAME = 'drtv:live'
@@ -302,6 +307,7 @@ class DRTVLiveIE(InfoExtractor):
             'formats': formats,
             'is_live': True,
         }
+
 
 class DRTVSeasonIE(InfoExtractor):
     IE_NAME = 'drtv:season'
