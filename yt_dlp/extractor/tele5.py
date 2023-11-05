@@ -58,6 +58,13 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?tele5\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _GEO_COUNTRIES = ['DE']
     _TESTS = [{
+        'url': 'https://tele5.de/mediathek/schlefaz',
+        'info_dict': {
+            'id': '61b09a6bb0ed8d9799911e98',
+            'title': 'SchleFaZ',
+        },
+        'playlist_mincount': 4,
+    }, {
         'url': 'https://tele5.de/mediathek/sorority-babes-in-the-slimeball-bowl-o-rama',
         'info_dict': {
             'id': '5582852',
@@ -213,19 +220,33 @@ class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
                 player_info = site_info['player']
                 sonic_realm = player_info['sonicRealm']
                 sonic_endpoint = compat_urlparse.urlparse(player_info['sonicEndpoint']).hostname
-                video_id = cached_video_specific['data']['blocks'][1]['videoId']
-            except (KeyError, TypeError):
+
+                video_ids = [block['videoId'] for block in cached_video_specific['data']['blocks'] if
+                             block['type'] == 'sonicVideoBlock']
+                assert len(video_ids) > 0
+            except (KeyError, TypeError, AssertionError):
                 raise ExtractorError('Could not extract Meta Data from loma-cms')
 
-            try:
-                return self._get_disco_api_info(url=url,
-                                                display_id=video_id,
-                                                disco_host=sonic_endpoint,
-                                                realm=sonic_realm,
-                                                country=country,
-                                                api_version=3,
-                                                )
-            except ExtractorError as e:
-                if getattr(e, 'message', '') == 'Missing deviceId in context':
-                    self.report_drm(video_id)
-                raise
+            entries = []
+            for video_id in video_ids:
+                try:
+                    video_info = self._get_disco_api_info(url=url,
+                                                    display_id=video_id,
+                                                    disco_host=sonic_endpoint,
+                                                    realm=sonic_realm,
+                                                    country=country,
+                                                    api_version=3,
+                                                    )
+                    entries.append(video_info)
+                except ExtractorError as e:
+                    if getattr(e, 'message', '') == 'Missing deviceId in context':
+                        self.report_drm(video_id)
+                    raise
+
+            if len(video_ids) == 1:
+                return entries[0]
+            else:
+                return {'_type': 'playlist',
+                        'id': cached_video_specific['data']['uid'],
+                        'title': cached_video_specific['data']['title'],
+                        'entries': entries}
