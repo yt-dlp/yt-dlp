@@ -2,10 +2,12 @@ import json
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
+from ..utils import ExtractorError
+from ..utils.traversal import traverse_obj
 
 
 class LaXarxaMesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?laxarxames\.cat/(?:[^/]+/)*?(player|movie-details)/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?laxarxames\.cat/(?:[^/]+/)*?(player|movie-details)/(?P<id>\d+)'
     _NETRC_MACHINE = 'laxarxames'
     _TOKEN = None
     _LOGIN_URL = 'https://www.laxarxames.cat/login'
@@ -13,10 +15,16 @@ class LaXarxaMesIE(InfoExtractor):
         'url': 'https://www.laxarxames.cat/player/3459421',
         'md5': '0966f46c34275934c19af78f3df6e2bc',
         'info_dict': {
-            'id': '3459421',
+            'id': '6339612436112',
             'ext': 'mp4',
             'title': 'Resum | UA Horta — UD Viladecans',
-            'type': 'video/mp4',
+            'timestamp': 1697905186,
+            'thumbnail': r're:https?://.*\.jpg',
+            'description': '',
+            'upload_date': '20231021',
+            'duration': 129.44,
+            'tags': ['ott', 'esports', '23-24', ' futbol', ' futbol-partits', 'elit', 'resum'],
+            'uploader_id': '5779379807001',
         },
         'skip': 'Requires login',
     }]
@@ -28,8 +36,6 @@ class LaXarxaMesIE(InfoExtractor):
             'https://api.laxarxames.cat/Authorization/SignIn', None, note='Logging in', headers={
                 'X-Tenantorigin': 'https://laxarxames.cat',
                 'Content-Type': 'application/json',
-                'Accept': 'application/json, text/plain, */*',
-                'Origin': 'https://www.laxarxames.cat',
             }, data=json.dumps({
                 'Username': username,
                 'Password': password,
@@ -37,11 +43,12 @@ class LaXarxaMesIE(InfoExtractor):
                     'PlatformCode': 'WEB',
                     'Name': 'Mac OS ()',
                 },
-            }).encode('utf-8')
+            }).encode('utf-8'),
+            expected_status=401,
         )
 
-        if not login['AuthorizationToken']:
-            raise Exception('Login failed')
+        if not traverse_obj(login, ('AuthorizationToken', 'Token')):
+            raise ExtractorError('Login failed', expected=True)
         else:
             self._TOKEN = login['AuthorizationToken']['Token']
 
@@ -51,8 +58,7 @@ class LaXarxaMesIE(InfoExtractor):
         if not self._TOKEN:
             self.raise_login_required()
         mediaplayinfo = self._download_json(
-            'https://api.laxarxames.cat/Media/GetMediaPlayInfo',
-            video_id,
+            'https://api.laxarxames.cat/Media/GetMediaPlayInfo', video_id,
             data=json.dumps({
                 'MediaId': int(video_id),
                 'StreamType': 'MAIN'
@@ -61,14 +67,11 @@ class LaXarxaMesIE(InfoExtractor):
                 'Authorization': 'Bearer ' + self._TOKEN,
                 'X-Tenantorigin': 'https://laxarxames.cat',
                 'Content-Type': 'application/json',
-                'Accept': 'application/json, text/plain, */*',
-                'Origin': 'https://www.laxarxames.cat',
             }
         )
 
-        content_url = mediaplayinfo['ContentUrl']
-        video_title = mediaplayinfo['Title']
-
+        if not mediaplayinfo.get('ContentUrl'):
+            self.raise_no_formats('No video found', expected=True)
         return self.url_result(
-            f'http://players.brightcove.net/5779379807001/default_default/index.html?videoId={content_url}',
-            BrightcoveNewIE, video_id, video_title)
+            f'http://players.brightcove.net/5779379807001/default_default/index.html?videoId={mediaplayinfo["ContentUrl"]}',
+            BrightcoveNewIE, video_id, mediaplayinfo.get('Title'))
