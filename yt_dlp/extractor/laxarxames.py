@@ -45,9 +45,9 @@ class LaXarxaMesIE(InfoExtractor):
                 },
             }).encode(), expected_status=401)
 
-        if not traverse_obj(login, ('AuthorizationToken', 'Token', {str})):
+        self._TOKEN = traverse_obj(login, ('AuthorizationToken', 'Token', {str}))
+        if not self._TOKEN:
             raise ExtractorError('Login failed', expected=True)
-        self._TOKEN = login['AuthorizationToken']['Token']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
