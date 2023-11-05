@@ -127,7 +127,7 @@ class ZenPornIE(InfoExtractor):
             r'https:\/\/(?P<ext_domain>[\w.-]+\.\w{3})\/embed\/(?P<extr_id>\d+)\/',
             webpage, 'embed_info', group=('ext_domain', 'extr_id'))
 
-        info_json = self._download_json(self._gen_info_url(ext_domain, extr_id), 
+        info_json = self._download_json(self._gen_info_url(ext_domain, extr_id),
                                         video_id, note="Downloading JSON metadata for the video info.")
         if not info_json:
             raise ExtractorError('Unable to retrieve the video info.')
