@@ -258,9 +258,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             **traverse_obj(info, {
                 'title': ('name', {str}),
                 'timestamp': ('album', 'publishTime', {self.kilo_or_none}),
+                'thumbnail': ('album', 'picUrl', {url_or_none}),
                 'duration': ('duration', {self.kilo_or_none}),
-                'album': ('album', 'name', {url_or_none}),
-                'thumbnail': ('album', 'picUrl', {str_or_none}),
+                'album': ('album', 'name', {str}),
                 'average_rating': ('score', {int_or_none}),
             }),
         }
