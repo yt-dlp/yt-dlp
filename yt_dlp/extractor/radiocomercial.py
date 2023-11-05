@@ -77,7 +77,6 @@ class RadioComercialIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, season = self._match_valid_url(url).group('id', 'season')
         webpage = self._download_webpage(url, video_id)
-        print(self._og_search_description(webpage, default=None))
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage),
