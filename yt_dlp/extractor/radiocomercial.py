@@ -2,18 +2,18 @@ import functools
 
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
-    unified_strdate,
+    OnDemandPagedList,
+    extract_attributes,
     get_element_by_class,
     get_element_html_by_class,
-    extract_attributes,
-    try_call,
     get_element_text_and_html_by_tag,
-    join_nonempty,
     get_elements_html_by_class,
-    traverse_obj,
-    OnDemandPagedList
+    int_or_none,
+    join_nonempty,
+    try_call,
+    unified_strdate,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RadioComercialIE(InfoExtractor):
