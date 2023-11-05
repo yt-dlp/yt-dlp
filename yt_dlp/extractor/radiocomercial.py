@@ -57,7 +57,10 @@ class RadioComercialIE(InfoExtractor):
                 'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
                 'season': 2
             },
-            'skip': 'inconsistent md5',
+            'params': {
+                # inconsistant md5
+                'skip_download': True,
+            },
         },
         {
             'url': 'https://radiocomercial.pt/podcasts/tnt-todos-no-top/2023/t-n-t-29-de-outubro',
