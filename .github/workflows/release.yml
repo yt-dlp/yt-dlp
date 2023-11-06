@@ -300,24 +300,28 @@ jobs:
 
       - name: Generate release notes
         env:
-          channel: ${{ needs.prepare.outputs.channel }}
           head_sha: ${{ needs.prepare.outputs.head_sha }}
+          target_repo: ${{ needs.prepare.outputs.target_repo }}
+          target_tag: ${{ needs.prepare.outputs.target_tag }}
         run: |
           printf '%s' \
             '[![Installation](https://img.shields.io/badge/-Which%20file%20should%20I%20download%3F-white.svg?style=for-the-badge)]' \
-              '(https://github.com/yt-dlp/yt-dlp#installation "Installation instructions") ' \
+              '(https://github.com/${{ github.repository }}#installation "Installation instructions") ' \
             '[![Documentation](https://img.shields.io/badge/-Docs-brightgreen.svg?style=for-the-badge&logo=GitBook&labelColor=555555)]' \
-              '(https://github.com/yt-dlp/yt-dlp/tree/2023.03.04#readme "Documentation") ' \
+              '(https://github.com/${{ github.repository }}' \
+              '${{ env.target_repo == github.repository && format('/tree/{0}', env.target_tag) || '' }}#readme "Documentation") ' \
             '[![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)]' \
               '(https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators "Donate") ' \
             '[![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)]' \
               '(https://discord.gg/H5MNcFW63r "Discord") ' \
-            ${{ env.channel == 'stable' && '"[![Nightly](https://img.shields.io/badge/Get%20nightly%20builds-purple.svg?style=for-the-badge)]" \
-              "(https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest \"Nightly builds\")"' || '' }} \
-            > ./RELEASE_NOTES
+            ${{ env.target_repo == 'yt-dlp/yt-dlp' && '\
+              "[![Nightly](https://img.shields.io/badge/Get%20nightly%20builds-purple.svg?style=for-the-badge)]" \
+              "(https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest \"Nightly builds\") " \
+              "[![Master](https://img.shields.io/badge/Get%20master%20builds-lightblue.svg?style=for-the-badge)]" \
+              "(https://github.com/yt-dlp/yt-dlp-master-builds/releases/latest \"Master builds\")"' || '' }} > ./RELEASE_NOTES
           printf '\n\n' >> ./RELEASE_NOTES
           cat >> ./RELEASE_NOTES << EOF
-          #### A description of the various files are in the [README](https://github.com/yt-dlp/yt-dlp#release-files)
+          #### A description of the various files are in the [README](https://github.com/${{ github.repository }}#release-files)
           ---
           $(python ./devscripts/make_changelog.py -vv --collapsible)
           EOF
