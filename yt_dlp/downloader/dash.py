@@ -17,9 +17,9 @@ class DashSegmentsFD(FragmentFD):
     def real_download(self, filename, info_dict):
         if set(info_dict['protocol'].split('+')) == {'http_dash_segments_generator'}:
             real_downloader = None
-        elif info_dict.get('is_live'):
-            self.report_error('Live DASH videos are not supported')
         else:
+            if info_dict.get('is_live'):
+                self.report_error('Live DASH videos are not supported')
             real_downloader = get_suitable_downloader(
                 info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
