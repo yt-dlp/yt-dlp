@@ -145,7 +145,6 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'album': '偶像练习生 表演曲目合集',
             'average_rating': int,
             'album_artist': '偶像练习生',
-
         },
     }, {
         'note': 'No lyrics.',
@@ -160,7 +159,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'duration': 263,
             'thumbnail': r're:^http.*\.jpg',
             'album': 'Piano Solos Vol. 2',
-            'album_artist': "Dustin O'Halloran",
+            'album_artist': 'Dustin O\'Halloran',
             'average_rating': int,
         },
     }, {
@@ -179,6 +178,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'alt_title': '伴唱:现代人乐队 合唱:总政歌舞团',
             'thumbnail': r're:^http.*\.jpg',
             'average_rating': int,
+            'album': '红色摇滚',
             'album_artist': '侯牧人',
         },
     }, {
