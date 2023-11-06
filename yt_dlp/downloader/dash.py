@@ -16,7 +16,7 @@ class DashSegmentsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         if set(info_dict['protocol'].split('+')) == {'http_dash_segments_generator'}:
-            real_downloader = None
+            real_downloader = None  # No external FD can support --live-from-start
         else:
             if info_dict.get('is_live'):
                 self.report_error('Live DASH videos are not supported')
