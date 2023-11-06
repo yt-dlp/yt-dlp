@@ -46,6 +46,8 @@ VARIANT = None
 UPDATE_HINT = None
 
 CHANNEL = {channel!r}
+
+ORIGIN = {origin!r}
 '''
 
 if __name__ == '__main__':
@@ -53,6 +55,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '-c', '--channel', default='stable',
         help='Select update channel (default: %(default)s)')
+    parser.add_argument(
+        '-r', '--origin', default='local',
+        help='Select origin/repository (default: %(default)s)')
     parser.add_argument(
         '-o', '--output', default='yt_dlp/version.py',
         help='The output file to write to (default: %(default)s)')
@@ -66,6 +71,6 @@ if __name__ == '__main__':
         args.version if args.version and '.' in args.version
         else get_new_version(None, args.version))
     write_file(args.output, VERSION_TEMPLATE.format(
-        version=version, git_head=git_head, channel=args.channel))
+        version=version, git_head=git_head, channel=args.channel, origin=args.origin))
 
     print(f'version={version} ({args.channel}), head={git_head}')

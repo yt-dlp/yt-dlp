@@ -9,3 +9,5 @@ VARIANT = None
 UPDATE_HINT = None
 
 CHANNEL = 'stable'
+
+ORIGIN = 'yt-dlp/yt-dlp'
