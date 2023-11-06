@@ -88,7 +88,7 @@ class RadioComercialIE(InfoExtractor):
 
 
 class RadioComercialPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/(?P<id>[\w-]+)(?:\D*(?P<season>\d+))?/*$'
+    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/(?P<id>[\w-]+)(?:/\D*(?P<season>\d+))?/?(?:$|[?#])'
     _PAGE_SIZE = 19
     _TESTS = [{
         'url': 'https://radiocomercial.pt/podcasts/convenca-me-num-minuto/t3',
