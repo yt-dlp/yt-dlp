@@ -160,7 +160,7 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'duration': 263,
             'thumbnail': r're:^http.*\.jpg',
             'album': 'Piano Solos Vol. 2',
-            'album_artist': 'Dustin O'Halloran',
+            'album_artist': "Dustin O'Halloran",
             'average_rating': int,
         },
     }, {
