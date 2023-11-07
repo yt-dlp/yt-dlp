@@ -184,7 +184,7 @@ class DRTVIE(InfoExtractor):
                 'DanishLanguageSubtitles': 'da',
             }
 
-            for subs in fmt['subtitles']:
+            for subs in fmt.get('subtitles', []):
                 if not isinstance(subs, dict):
                     continue
                 sub_uri = url_or_none(subs.get('link'))
