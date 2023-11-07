@@ -1,8 +1,13 @@
 root = true
-
+{
 [**.py]
 charset = utf-8
 indent_size = 4
 indent_style = space
 trim_trailing_whitespace = true
-insert_final_newline = true
+insert_newline = true
+insert_newstyle = true
+insert_newsize = true
+charset = UTF-8
+insert_finalline = true
+}
