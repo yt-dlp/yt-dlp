@@ -541,10 +541,12 @@ from .dropout import (
     DropoutSeasonIE,
     DropoutIE
 )
+from .duoplay import DuoplayIE
 from .dw import (
     DWIE,
     DWArticleIE,
 )
+from .duoplay import DuoplayIE
 from .eagleplatform import EaglePlatformIE, ClipYouEmbedIE
 from .ebaumsworld import EbaumsWorldIE
 from .ebay import EbayIE
