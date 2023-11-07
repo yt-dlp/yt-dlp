@@ -14,7 +14,7 @@ class BrilliantpalaBaseIE(InfoExtractor):
 
     def _initialize_pre_login(self):
         self._HOMEPAGE = f'https://{self._DOMAIN}'
-        self._LOGIN_API = f'{self._HOMEPAGE}/login/?next='
+        self._LOGIN_API = f'{self._HOMEPAGE}/login/'
         self._LOGOUT_DEVICES_API = f'{self._HOMEPAGE}/logout_devices/?next=/'
         self._CONTENT_API = f'{self._HOMEPAGE}/api/v2.4/contents/{{content_id}}/'
         self._HLS_AES_URI = f'{self._HOMEPAGE}/api/v2.5/video_contents/{{content_id}}/key/'
