@@ -98,41 +98,6 @@ class DRTVIE(InfoExtractor):
     }, {
         'url': 'https://www.dr.dk/drtv/program/jagten_220924',
         'only_matching': True,
-    }, {
-        'url': 'https://www.dr.dk/lyd/p4aarhus/regionale-nyheder-ar4/regionale-nyheder-2022-05-05-12-30-3',
-        'info_dict': {
-            'id': 'urn:dr:mu:programcard:6265cb2571401424d0360113',
-            'title': 'Regionale nyheder',
-            'ext': 'mp4',
-            'duration': 120.043,
-            'series': 'P4 Østjylland regionale nyheder',
-            'timestamp': 1651746600,
-            'season': 'Regionale nyheder',
-            'release_year': 0,
-            'season_id': 'urn:dr:mu:bundle:61c26889539f0201586b73c5',
-            'description': '',
-            'upload_date': '20220505',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'this video has been removed',
-    }, {
-        'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/regionale-nyheder-2023-03-14-10-30-9',
-        'info_dict': {
-            'ext': 'mp4',
-            'id': '14802310112',
-            'timestamp': 1678786200,
-            'duration': 120.043,
-            'season_id': 'urn:dr:mu:bundle:63a4f7c87140143504b6710f',
-            'series': 'P4 København regionale nyheder',
-            'upload_date': '20230314',
-            'release_year': 0,
-            'description': 'Hør seneste regionale nyheder fra P4 København.',
-            'season': 'Regionale nyheder',
-            'title': 'Regionale nyheder',
-        },
-        'skip': 'this video has been removed',
     }]
 
     _TOKEN = None
