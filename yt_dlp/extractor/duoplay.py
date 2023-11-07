@@ -40,7 +40,7 @@ class DuoplayIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': join_nonempty(traverse_obj(ep, 'title'), traverse_obj(ep, 'subtitle'), delim=' - '),
+            'title': traverse_obj(ep, 'subtitle'),
             'description': traverse_obj(ep, 'synopsis'),
             'thumbnail': traverse_obj(ep, ('images', 'original')),
             'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
