@@ -34,17 +34,12 @@ class DuoplayIE(InfoExtractor):
         manifest_url = self._search_regex(r'<video-player[^>]+manifest-url="([^"]+)"', webpage, 'video-player')
         episode_attr = self._search_regex(r'<video-player[^>]+:episode="([^"]+)"', webpage, 'episode data')
         ep = self._parse_json(episode_attr, video_id, decode_quot)
-        print(f"manifest_url: {manifest_url}")
-        from pprint import pprint
-        pprint(ep)
 
-        res = {
+        return {
             'id': video_id,
             'title': join_nonempty(traverse_obj(ep, 'title'), traverse_obj(ep, 'subtitle'), delim=' / '),
             'description': traverse_obj(ep, 'synopsis'),
             'thumbnail': traverse_obj(ep, ('images', 'original')),
-            # 'formats': self.get_formats(playlist, video_id),
+            'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
             'timestamp': unified_timestamp(traverse_obj(ep, 'airtime') + ' +0200'),
         }
-        print(res)
-        return
