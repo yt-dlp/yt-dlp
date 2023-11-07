@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    join_nonempty,
     traverse_obj,
     unified_timestamp,
 )
