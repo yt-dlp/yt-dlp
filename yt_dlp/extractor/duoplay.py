@@ -14,7 +14,7 @@ class DuoplayIE(InfoExtractor):
         'info_dict': {
             'id': '4312',
             'ext': 'mp4',
-            'title': 'Siberi võmm - Operatsioon "Öö"',
+            'title': 'Operatsioon "Öö"',
             'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
             'description': 'md5:8ef98f38569d6b8b78f3d350ccc6ade8',
             'upload_date': '20170523',
