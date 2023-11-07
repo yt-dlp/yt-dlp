@@ -26,16 +26,25 @@ class DuoplayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        def decode_quot(s: str):
+            return s.replace("&quot;", '"')
+
         video_id = self._match_id(url)
-        print(f"id: {video_id}")
         webpage = self._download_webpage(url, video_id)
-        # find "<video-player>" tag
         manifest_url = self._search_regex(r'<video-player[^>]+manifest-url="([^"]+)"', webpage, 'video-player')
         episode_attr = self._search_regex(r'<video-player[^>]+:episode="([^"]+)"', webpage, 'episode data')
-        def transform_source(s: str):
-            return s.replace("&quot;", '"')
-        episode_data = self._parse_json(episode_attr, video_id, transform_source)
+        ep = self._parse_json(episode_attr, video_id, decode_quot)
         print(f"manifest_url: {manifest_url}")
         from pprint import pprint
-        pprint(episode_data)
+        pprint(ep)
+
+        res = {
+            'id': video_id,
+            'title': join_nonempty(traverse_obj(ep, 'title'), traverse_obj(ep, 'subtitle'), delim=' / '),
+            'description': traverse_obj(ep, 'synopsis'),
+            'thumbnail': traverse_obj(ep, ('images', 'original')),
+            # 'formats': self.get_formats(playlist, video_id),
+            'timestamp': unified_timestamp(traverse_obj(ep, 'airtime') + ' +0200'),
+        }
+        print(res)
         return
