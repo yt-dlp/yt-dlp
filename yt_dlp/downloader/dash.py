@@ -15,7 +15,7 @@ class DashSegmentsFD(FragmentFD):
     FD_NAME = 'dashsegments'
 
     def real_download(self, filename, info_dict):
-        if set(info_dict['protocol'].split('+')) == {'http_dash_segments_generator'}:
+        if 'http_dash_segments_generator' in info_dict['protocol'].split('+'):
             real_downloader = None  # No external FD can support --live-from-start
         else:
             if info_dict.get('is_live'):
