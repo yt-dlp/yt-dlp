@@ -2764,7 +2764,8 @@ class YoutubeDL:
                 format['dynamic_range'] = 'SDR'
             if format.get('aspect_ratio') is None:
                 format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
-            if (not format.get('manifest_url')  # For fragmented formats, "tbr" is often max bitrate and not average
+            # For fragmented formats, "tbr" is often max bitrate and not average
+            if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
