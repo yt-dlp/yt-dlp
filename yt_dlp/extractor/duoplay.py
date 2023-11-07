@@ -9,17 +9,18 @@ from ..utils import (
 class DuoplayIE(InfoExtractor):
     _VALID_URL = r'https://duoplay\.ee/(?P<id>\d+)/'
     _TESTS = [{
-        'note': 'S02E12',
+        'note': 'Siberi võmm S02E12',
         'url': 'https://duoplay.ee/4312/siberi-vomm?ep=24',
-        'md5': '7ea7b16266ec1798743777df241883dd',
+        'md5': '1ff59d535310ac9c5cf5f287d8f91b2d',
         'info_dict': {
-            'id': '40792',
+            'id': '4312',
             'ext': 'mp4',
-            'title': 'Osa 12 - Operatsioon "Öö"',
-            'thumbnail': r're:https?://.*\.jpg$',
-            'description': 'md5:53cabf3c5d73150d594747f727431248',
-            'upload_date': '20160805',
-            'timestamp': 1470420000,
+            'title': 'Siberi võmm / Operatsioon "Öö"',
+            'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
+            # 'description': 'md5:53cabf3c5d73150d594747f727431248',
+            'description': 'md5:8ef98f38569d6b8b78f3d350ccc6ade8',
+            'upload_date': '20170523',
+            'timestamp': 1495567800,
         },
     }]
 
