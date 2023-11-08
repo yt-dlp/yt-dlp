@@ -69,6 +69,7 @@ class DuoplayIE(InfoExtractor):
             'series_id': traverse_obj(ep, 'telecast_id'),
             'season_number': traverse_obj(ep, 'season_id'),
             'episode': traverse_obj(ep, 'subtitle'),
-            'episode_number': traverse_obj(ep, 'episode_nr'),
+            # fallback to absolute "episode_id" value
+            'episode_number': traverse_obj(ep, 'episode_nr') or traverse_obj(ep, 'episode_id'),
             'episode_id': traverse_obj(ep, 'episode_id'),
         }
