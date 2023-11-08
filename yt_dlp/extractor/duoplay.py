@@ -24,25 +24,26 @@ class DuoplayIE(InfoExtractor):
             'season_number': 2,
             'episode': 'Operatsioon "Öö"',
             'episode_number': 12,
-        }, {
-            'note': 'Empty title',
-            'url': 'https://duoplay.ee/17/uhikarotid?ep=14',
-            'md5': '6aca68be71112314738dd17cced7f8bf',
-            'info_dict': {
-                'id': '17',
-                'ext': 'mp4',
-                'title': 'Episode 14',
-                'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
-                'description': 'md5:4719b418e058c209def41d48b601276e',
-                'upload_date': '20100916',
-                'timestamp': 1284661800,
-                'series': 'Ühikarotid',
-                'series_id': 17,
-                'season': 'Season 2',
-                'season_number': 2,
-                'episode_id': 14,
-            }
-        }]
+        }
+    }, {
+        'note': 'Empty title',
+        'url': 'https://duoplay.ee/17/uhikarotid?ep=14',
+        'md5': '6aca68be71112314738dd17cced7f8bf',
+        'info_dict': {
+            'id': '17',
+            'ext': 'mp4',
+            'title': 'Episode 14',
+            'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
+            'description': 'md5:4719b418e058c209def41d48b601276e',
+            'upload_date': '20100916',
+            'timestamp': 1284661800,
+            'series': 'Ühikarotid',
+            'series_id': 17,
+            'season': 'Season 2',
+            'season_number': 2,
+            'episode_id': 14,
+        },
+    }]
 
     def _real_extract(self, url):
         def decode_quot(s: str):
