@@ -46,7 +46,9 @@ class DuoplayIE(InfoExtractor):
             'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
             'timestamp': unified_timestamp(traverse_obj(ep, 'airtime') + ' +0200'),
             'series': traverse_obj(ep, 'title'),
+            'series_id': traverse_obj(ep, 'telecast_id'),
             'season_number': traverse_obj(ep, 'season_id'),
             'episode': traverse_obj(ep, 'subtitle'),
             'episode_number': traverse_obj(ep, 'episode_nr'),
+            'episode_id': traverse_obj(ep, 'episode_id'),
         }
