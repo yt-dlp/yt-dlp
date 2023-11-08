@@ -56,7 +56,7 @@ class OnDemandKoreaIE(InfoExtractor):
 
         data = self._download_json(f'https://odkmedia.io/odx/api/v3/playback/{video_id}/', video_id,
                                    fatal=False, headers={'service-name': 'odk'},
-                                   query={'did': random_uuidv4()}, expected_status=(200, 403))
+                                   query={'did': random_uuidv4()}, expected_status=403)
         if not data.get('result'):
             raise ExtractorError(traverse_obj(data, ('messages', '__default'), 'title'), expected=True)
 
