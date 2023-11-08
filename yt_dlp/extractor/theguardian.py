@@ -70,5 +70,5 @@ class TheGuardianPodcastIE(InfoExtractor):
             'creator': self._html_search_meta('author', webpage),
             'thumbnail': self._og_search_thumbnail(webpage),
             'release_date': unified_strdate(self._html_search_meta('article:published_time', webpage)),
-            'url': extract_attributes(get_element_html_by_class('podcast__player', webpage)).get('data-source'),
+            'url': extract_attributes(get_element_html_by_class('podcast__player', webpage) or '').get('data-source'),
         }
