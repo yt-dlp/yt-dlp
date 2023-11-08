@@ -28,7 +28,7 @@ class JupiterIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        content_url = f"https://services.err.ee/api/v2/vodContent/getContentPageData?contentId={video_id}&rootId=3905"
+        content_url = f"https://services.err.ee/api/v2/vodContent/getContentPageData?contentId={video_id}"
         data = traverse_obj(self._download_json(content_url, video_id), 'data')
         formats = []
         for url in traverse_obj(data, ('mainContent', 'medias', ..., 'src', 'hls')):
