@@ -39,7 +39,8 @@ class DuoplayIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': traverse_obj(ep, 'subtitle'),
+            # fallback to absolute "episode_id" value
+            'title': traverse_obj(ep, 'subtitle') or f"Episode {traverse_obj(ep, 'episode_id')}",
             'description': traverse_obj(ep, 'synopsis'),
             'thumbnail': traverse_obj(ep, ('images', 'original')),
             'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
