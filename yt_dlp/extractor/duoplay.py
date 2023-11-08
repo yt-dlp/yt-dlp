@@ -20,11 +20,13 @@ class DuoplayIE(InfoExtractor):
             'upload_date': '20170523',
             'timestamp': 1495567800,
             'series': 'Siberi võmm',
+            'series_id': 4312,
             'season': 'Season 2',
             'season_number': 2,
             'episode': 'Operatsioon "Öö"',
             'episode_number': 12,
-        }
+            'episode_id': 24,
+        },
     }, {
         'note': 'Empty title',
         'url': 'https://duoplay.ee/17/uhikarotid?ep=14',
