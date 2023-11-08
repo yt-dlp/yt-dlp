@@ -29,7 +29,7 @@ class OnDemandKoreaIE(InfoExtractor):
             'id': '686471',
             'ext': 'mp4',
             'title': 'Ask Us Anything: Jung Sung-ho, Park Seul-gi, Kim Bo-min, Yang Seung-won',
-            'thumbnail': 'https://sp.ondemandkorea.com/wp-content/themes/ondemandkorea/uploads/thumbnail/1891035_20220924_1.jpg',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
             'duration': 5486.955,
             'release_date': '20220924',
             'series': 'Ask Us Anything',
@@ -38,16 +38,31 @@ class OnDemandKoreaIE(InfoExtractor):
             'episode': 'Jung Sung-ho, Park Seul-gi, Kim Bo-min, Yang Seung-won',
         },
     }, {
-        'url': 'https://www.ondemandkorea.com/en/player/vod/joint-security-area?contentId=464622',
+        'url': 'https://www.ondemandkorea.com/player/vod/breakup-probation-a-week?contentId=1595796',
         'md5': '44e274d2b04977e03fc7f3941fbcb355',
         'info_dict': {
-            'id': '464622',
+            'id': '1595796',
             'ext': 'mp4',
-            'title': 'Joint Security Area: Main Movie',
-            'thumbnail': 'https://sp.ondemandkorea.com/wp-content/themes/ondemandkorea/uploads/thumbnail/jsa.1080p.4896k_3410.901645.jpg',
-            'age_limit': 15,
-            'duration': 6525.0,
-            'release_date': '20200114',
+            'title': 'Breakup Probation, A Week: E08',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
+            'duration': 1586.0,
+            'release_date': '20231001',
+            'series': 'Breakup Probation, A Week',
+            'series_id': 22912,
+            'episode_number': 8,
+            'episode': 'E08',
+        },
+    }, {
+        'url': 'https://www.ondemandkorea.com/player/vod/the-outlaws?contentId=369531',
+        'md5': 'fa5523b87aa1f6d74fc622a97f2b47cd',
+        'info_dict': {
+            'id': '369531',
+            'ext': 'mp4',
+            'release_date': '20220519',
+            'duration': 7267.0,
+            'title': 'The Outlaws: Main Movie',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
+            'age_limit': 18,
         },
     }]
 
@@ -56,11 +71,11 @@ class OnDemandKoreaIE(InfoExtractor):
 
         data = self._download_json(f'https://odkmedia.io/odx/api/v3/playback/{video_id}/', video_id,
                                    fatal=False, headers={'service-name': 'odk'},
-                                   query={'did': random_uuidv4()}, expected_status=403)
+                                   query={'did': random_uuidv4()}, expected_status=(403, 404))
         if not data.get('result'):
             raise ExtractorError(traverse_obj(data, ('messages', '__default'), 'title'), expected=True)
 
-        potential_urls = traverse_obj(data, ('result', 'sources', ..., 'url'), ('result', 'manifests', ..., 'url'))
+        potential_urls = traverse_obj(data, ('result', ('sources', 'manifest'), ..., 'url'))
         # Try to bypass geo-restricted ad proxy
         potential_urls = [
             alt_url if (alt_url := traverse_obj(url, ({parse_qs}, 'stream_url', 0, {url_or_none}))) else url
@@ -115,13 +130,13 @@ class OnDemandKoreaProgramIE(InfoExtractor):
         'info_dict': {
             'id': 'uskn-news',
         },
-        'playlist_count': 755,
+        'playlist_mincount': 755,
     }, {
-        'url': 'https://www.ondemandkorea.com/en/player/vod/joint-security-area',
+        'url': 'https://www.ondemandkorea.com/en/player/vod/the-land',
         'info_dict': {
-            'id': 'joint-security-area',
+            'id': 'the-land',
         },
-        'playlist_count': 2,
+        'playlist_count': 52,
     }]
 
     _PAGE_SIZE = 100
