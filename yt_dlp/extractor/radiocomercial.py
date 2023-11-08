@@ -12,6 +12,7 @@ from ..utils import (
     join_nonempty,
     try_call,
     unified_strdate,
+    urljoin
 )
 from ..utils.traversal import traverse_obj
 
@@ -75,12 +76,13 @@ class RadioComercialIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, season = self._match_valid_url(url).group('id', 'season')
         webpage = self._download_webpage(url, video_id)
+
+        date_html = get_element_html_by_class('descriptions', webpage) or ''
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage),
             'description': self._og_search_description(webpage, default=None),
-            'release_date': unified_strdate(
-                get_element_by_class('date', get_element_html_by_class('descriptions', webpage))),
+            'release_date': unified_strdate(get_element_by_class('date', date_html)),
             'thumbnail': self._og_search_thumbnail(webpage),
             'season': int_or_none(season),
             'url': extract_attributes(get_element_html_by_class('audiofile', webpage) or '').get('href'),
@@ -115,14 +117,14 @@ class RadioComercialPlaylistIE(InfoExtractor):
 
     def _fetch_page(self, podcast, season, page):
         page += 1
-        url = f'https://radiocomercial.pt/podcasts/{podcast}' + (f'/t{season}' if season else '') + f'/{page}'
+        url = urljoin('https://radiocomercial.pt/podcasts/', podcast + (f'/t{season}' if season else '') + f'/{page}')
         playlist_id = join_nonempty(podcast, season, delim='_')
         webpage = self._download_webpage(url, playlist_id, note=f'Downloading page: {page}')
 
         episodes = set(traverse_obj(get_elements_html_by_class('tm-ouvir-podcast', webpage),
                                     (..., {extract_attributes}, 'href')))
         for entry in episodes:
-            yield self.url_result(f'https://radiocomercial.pt{entry}', RadioComercialIE)
+            yield self.url_result(urljoin('https://radiocomercial.pt', entry), RadioComercialIE)
 
     def _real_extract(self, url):
         podcast, season = self._match_valid_url(url).group('id', 'season')
