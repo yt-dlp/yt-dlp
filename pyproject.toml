@@ -3,3 +3,71 @@ build-backend = 'setuptools.build_meta'
 # https://github.com/yt-dlp/yt-dlp/issues/5941
 # https://github.com/pypa/distutils/issues/17
 requires = ['setuptools > 50']
+
+[project]
+name = "yt-dlp"
+maintainers = [
+    {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
+    {name = "Grub4K", email = "contact@grub4k.xyz"},
+]
+description = "A youtube-dl fork with additional features and patches"
+requires-python = ">=3.7"
+keywords = [
+    "youtube-dl",
+    "video-downloader",
+    "youtube-downloader",
+    "sponsorblock",
+    "youtube-dlc",
+    "yt-dlp",
+]
+license = {file = "LICENSE"}
+classifiers = [
+    "Topic :: Multimedia :: Video",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: Public Domain",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version", "readme"]
+
+dependencies = [
+    "pycryptodomex",
+    "websockets",
+    "brotli; implementation_name=='cpython'",
+    "brotlicffi; implementation_name!='cpython'",
+    "certifi",
+    "secretstorage; sys_platform=='linux' and (implementation_name!='pypy' or python_version>='3.10')",
+]
+
+[project.optional-dependencies]
+requests = [
+    "requests>=2.31.0,<3",
+    "urllib3>=1.26.17,<3",
+]
+mutagen = ["mutagen"]
+
+[project.urls]
+Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
+Repository = "https://github.com/yt-dlp/yt-dlp"
+Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
+Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators"
+
+[tool.setuptools]
+packages = ["yt_dlp"]
+
+[tool.setuptools.dynamic]
+version = {attr = "yt_dlp.version.__version__"}
+readme = {file = ["README.md"], content-type = "text/markdown"}
+
+[project.scripts]
+yt-dlp = "yt_dlp:main"
