@@ -7,8 +7,10 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
+    extract_attributes,
     get_element_by_class,
     get_element_by_id,
+    get_element_html_by_class,
     get_elements_html_by_class,
     int_or_none,
     orderedSet,
@@ -21,7 +23,7 @@ from ..utils import (
 
 
 class BitChuteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'(?P<base_url>https?://(?:www\.)?bitchute\.com)/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
@@ -34,6 +36,8 @@ class BitChuteIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20170103',
+            'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
         },
     }, {
         # video not downloadable in browser, but we can recover it
@@ -48,6 +52,8 @@ class BitChuteIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20181113',
+            'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
         },
         'params': {'check_formats': None},
     }, {
@@ -100,13 +106,18 @@ class BitChuteIE(InfoExtractor):
             self.raise_geo_restricted(reason)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        base_url, video_id = self._match_valid_url(url).group('base_url', 'id')
         webpage = self._download_webpage(
             f'https://www.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
 
         self._raise_if_restricted(webpage)
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
         entries = self._parse_html5_media_entries(url, webpage, video_id)
+        details = get_element_by_class('details', webpage) or ''
+        uploader_path = extract_attributes(
+            get_element_html_by_class('spa', get_element_html_by_class('creator', details)) or '').get('href')
+        channel_path = extract_attributes(
+            get_element_html_by_class('spa', get_element_html_by_class('name', details)) or '').get('href')
 
         formats = []
         for format_ in traverse_obj(entries, (0, 'formats', ...)):
@@ -126,9 +137,11 @@ class BitChuteIE(InfoExtractor):
             'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'uploader': self._search_regex(r'<p\sclass=\"name.+Channel\">([^<]+)<', webpage, 'uploader'),
+            'uploader': clean_html(get_element_by_class('name', details)),
             'upload_date': unified_strdate(self._search_regex(
                 r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
+            'uploader_url': f'{base_url}{uploader_path}' if uploader_path else None,
+            'channel_url': f'{base_url}{channel_path}' if channel_path else None,
             'formats': formats,
         }
 
@@ -154,6 +167,8 @@ class BitChuteChannelIE(InfoExtractor):
                     'thumbnail': r're:^https?://.*\.jpg$',
                     'uploader': 'BitChute',
                     'upload_date': '20170103',
+                    'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+                    'channel_url': 'https://www.bitchute.com/channel/bitchute/',
                     'duration': 16,
                     'view_count': int,
                 },
