@@ -872,6 +872,7 @@ from .jtbc import (
     JTBCIE,
     JTBCProgramIE,
 )
+from .jupiter import JupiterIE
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
