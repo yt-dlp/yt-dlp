@@ -178,8 +178,9 @@ class BilibiliBaseIE(InfoExtractor):
             note='Downloading season info', query={'season_id': ss_id},
             headers={'Referer': url, **self.geo_verification_headers()})
 
-        for entry in traverse_obj(season_info, ('result', 'main_section', 'episodes',
-                                                lambda _, v: url_or_none(v['share_url']) and v['id'])):
+        for entry in traverse_obj(season_info, (
+                'result', 'main_section', 'episodes',
+                lambda _, v: url_or_none(v['share_url']) and v['id'])):
             yield self.url_result(entry['share_url'], BiliBiliBangumiIE, f'ep{entry["id"]}')
 
     def _enc_wbi(self, params: dict, video_id=None):
