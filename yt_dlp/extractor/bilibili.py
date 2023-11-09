@@ -66,6 +66,7 @@ class BilibiliBaseIE(InfoExtractor):
                 formats.append({
                     'fragments': segments,
                     'url': traverse_obj(video[0], 'url'),
+                    'protocol': 'http_dash_segments',
                     'format_id': str(qn),
                     'duration': float_or_none(play_info.get('timelength'), scale=1000),
                     'resolution': format_names.get(qn),
@@ -189,9 +190,9 @@ class BilibiliBaseIE(InfoExtractor):
         session_data = self._download_json('https://api.bilibili.com/x/web-interface/nav',
                                            video_id, note='wbi signature...', fatal=False)
 
-        lookup = traverse_obj(session_data, (
+        lookup = ''.join(traverse_obj(session_data, (
             'data', 'wbi_img', ('img_url', 'sub_url'),
-            {lambda x: x.rpartition('/')[2].partition('.')[0]}))
+            {lambda x: x.rpartition('/')[2].partition('.')[0]})))
 
         mixin_key_enc_tab = [
             46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
@@ -199,7 +200,7 @@ class BilibiliBaseIE(InfoExtractor):
             61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11,
             36, 20, 34, 44, 52
         ]
-        mixin_key = ''.join((lookup[0] + lookup[1])[i] for i in mixin_key_enc_tab)[:32]
+        mixin_key = ''.join(lookup[i] for i in mixin_key_enc_tab)[:32]
 
         params['wts'] = round(time.time())
         params = {
