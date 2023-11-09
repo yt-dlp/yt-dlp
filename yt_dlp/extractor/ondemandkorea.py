@@ -65,6 +65,9 @@ class OnDemandKoreaIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
             'age_limit': 18,
         },
+    }, {
+        'url': 'https://www.ondemandkorea.com/en/player/vod/capture-the-moment-how-is-that-possible?contentId=1605006',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
