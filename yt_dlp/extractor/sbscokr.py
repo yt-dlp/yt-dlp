@@ -165,7 +165,7 @@ class SBSCoKrAllvodProgramIE(InfoExtractor):
             })
 
         return self.playlist_result(
-            [self.url_result(f'https://allvod.sbs.co.kr/allvod/vodEndPage.do?mdaId={video_id}', SBSCoKrIE),
+            [self.url_result(f'https://allvod.sbs.co.kr/allvod/vodEndPage.do?mdaId={video_id}', SBSCoKrIE)
              for video_id in traverse_obj(details, ('list', ..., 'mdaId'))], program_id)
 
 
