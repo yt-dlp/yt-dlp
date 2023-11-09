@@ -31,7 +31,6 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
-    try_call,
     unified_timestamp,
     unsmuggle_url,
     url_or_none,
@@ -91,21 +90,21 @@ class BilibiliBaseIE(InfoExtractor):
             } for audio in audios]
 
             formats.extend({
-                               'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
-                               'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
-                               'fps': float_or_none(traverse_obj(video, 'frameRate', 'frame_rate')),
-                               'width': int_or_none(video.get('width')),
-                               'height': int_or_none(video.get('height')),
-                               'vcodec': video.get('codecs'),
-                               'acodec': 'none' if audios else None,
-                               'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(int_or_none(video.get('id'))),
-                               'tbr': float_or_none(video.get('bandwidth'), scale=1000),
-                               'filesize': int_or_none(video.get('size')),
-                               'quality': int_or_none(video.get('id')),
-                               'format_id': traverse_obj(
-                                   video, (('baseUrl', 'base_url'), {self._FORMAT_ID_RE.search}, 1),
-                                   ('id', {str_or_none}), get_all=False),
-                               'format': format_names.get(video.get('id')),
+                           'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
+                           'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
+                           'fps': float_or_none(traverse_obj(video, 'frameRate', 'frame_rate')),
+                           'width': int_or_none(video.get('width')),
+                           'height': int_or_none(video.get('height')),
+                           'vcodec': video.get('codecs'),
+                           'acodec': 'none' if audios else None,
+                           'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(int_or_none(video.get('id'))),
+                           'tbr': float_or_none(video.get('bandwidth'), scale=1000),
+                           'filesize': int_or_none(video.get('size')),
+                           'quality': int_or_none(video.get('id')),
+                           'format_id': traverse_obj(
+                               video, (('baseUrl', 'base_url'), {self._FORMAT_ID_RE.search}, 1),
+                               ('id', {str_or_none}), get_all=False),
+                           'format': format_names.get(video.get('id')),
                            } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 
             missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
@@ -179,16 +178,15 @@ class BilibiliBaseIE(InfoExtractor):
             note='Downloading season info', query={'season_id': ss_id},
             headers={'Referer': url, **self.geo_verification_headers()})
 
-        for entry in traverse_obj(season_info, (
-                'result', 'main_section', 'episodes',
-                lambda _, v: url_or_none(v['share_url']) and v['id'])):
+        for entry in traverse_obj(season_info, ('result', 'main_section', 'episodes',
+                                                lambda _, v: url_or_none(v['share_url']) and v['id'])):
             yield self.url_result(entry['share_url'], BiliBiliBangumiIE, f'ep{entry["id"]}')
 
     def _enc_wbi(self, params: dict, video_id=None):
         if video_id is None:
             video_id = 0
-        session_data = self._download_json('https://api.bilibili.com/x/web-interface/nav'
-                                           , video_id, note='wbi signature...', fatal=False)
+        session_data = self._download_json('https://api.bilibili.com/x/web-interface/nav',
+                                           video_id, note='wbi signature...', fatal=False)
 
         key_from_url = lambda x: x[x.rfind('/') + 1:].split('.')[0]
         img_key = traverse_obj(
@@ -1381,7 +1379,8 @@ class BiliIntlBaseIE(InfoExtractor):
         public_key = Cryptodome.RSA.importKey(key_data['key'])
         password_hash = Cryptodome.PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
         login_post = self._download_json(
-            'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None, data=urlencode_postdata({
+            'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None,
+            data=urlencode_postdata({
                 'username': username,
                 'password': base64.b64encode(password_hash).decode('ascii'),
                 'keep_me': 'true',
@@ -1567,7 +1566,8 @@ class BiliIntlIE(BiliIntlBaseIE):
             self._search_json(r'window\.__INITIAL_(?:DATA|STATE)__\s*=', webpage, 'preload state', video_id, default={})
             or self._search_nuxt_data(webpage, video_id, '__initialState', fatal=False, traverse=None))
         video_data = traverse_obj(
-            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict) or {}
+            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'),
+            expected_type=dict) or {}
 
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
@@ -1720,7 +1720,8 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
-        series_info = self._call_api(f'/web/v2/ogv/play/season_info?season_id={series_id}&platform=web', series_id).get('season') or {}
+        series_info = self._call_api(f'/web/v2/ogv/play/season_info?season_id={series_id}&platform=web', series_id).get(
+            'season') or {}
         return self.playlist_result(
             self._entries(series_id), series_id, series_info.get('title'), series_info.get('description'),
             categories=traverse_obj(series_info, ('styles', ..., 'title'), expected_type=str_or_none),
