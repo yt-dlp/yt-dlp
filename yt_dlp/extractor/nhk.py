@@ -54,15 +54,16 @@ class NhkBaseIE(InfoExtractor):
                 continue
 
             api_url = api_info.pop('url')
-            meta = traverse_obj(self._download_json(api_url, vod_id, 'Downloading stream url info',
-                                fatal=False, query={
-                                    **api_info,
-                                    'type': 'json',
-                                    'optional_id': vod_id,
-                                    'active_flg': 1, }), ('meta', 0))
-
-            stream_url = traverse_obj(meta, ('movie_url', ('mb_auto', 'auto_sp', 'auto_pc'),
-                                      {url_or_none}), get_all=False)
+            meta = traverse_obj(
+                self._download_json(
+                    api_url, vod_id, 'Downloading stream url info', fatal=False, query={
+                        **api_info,
+                        'type': 'json',
+                        'optional_id': vod_id,
+                        'active_flg': 1,
+                    }), ('meta', 0))
+            stream_url = traverse_obj(
+                meta, ('movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
 
             info = traverse_obj(meta, {
                 'duration': 'duration',
@@ -72,8 +73,17 @@ class NhkBaseIE(InfoExtractor):
             })
 
             if stream_url:
-                return self._extract_m3u8_formats_and_subtitles(stream_url, vod_id), info
-
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
+                return {
+                    **traverse_obj(meta, {
+                        'duration': ('duration', {int_or_none}),
+                        'timestamp': ('publication_date', {unified_timestamp}),
+                        'release_timestamp': ('insert_date', {unified_timestamp}),
+                        'modified_timestamp': ('update_date', {unified_timestamp}),
+                    }),
+                    'formats': formats,
+                    'subtitles': subtitles,
+                }
         raise ExtractorError('Unable to extract stream url')
 
     def _extract_episode_info(self, url, episode=None):
@@ -124,15 +134,12 @@ class NhkBaseIE(InfoExtractor):
             'series': series,
             'episode': episode_name,
         }
+
         if is_video:
             vod_id = episode['vod_id']
-            stream_info, additional_info = self._extract_stream_info(vod_id)
-
             info.update({
+                **self._extract_stream_info(vod_id),
                 'id': vod_id,
-                'formats': stream_info[0],
-                'subtitles': stream_info[1],
-                **additional_info,
             })
 
         else:
@@ -261,8 +268,8 @@ class NhkVodIE(NhkBaseIE):
             'timestamp': 1690103400,
             'duration': 2939,
             'release_timestamp': 1693898699,
-            'modified_timestamp': 1694223888,
-            'modified_date': '20230909',
+            'modified_timestamp': 1698057495,
+            'modified_date': '20231023',
             'upload_date': '20230723',
         },
     }]
