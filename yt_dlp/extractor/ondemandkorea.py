@@ -69,11 +69,14 @@ class OnDemandKoreaIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        data = self._download_json(f'https://odkmedia.io/odx/api/v3/playback/{video_id}/', video_id,
-                                   fatal=False, headers={'service-name': 'odk'},
-                                   query={'did': random_uuidv4()}, expected_status=(403, 404))
-        if not data.get('result'):
-            raise ExtractorError(traverse_obj(data, ('messages', '__default'), 'title'), expected=True)
+        data = self._download_json(
+            f'https://odkmedia.io/odx/api/v3/playback/{video_id}/', video_id, fatal=False,
+            headers={'service-name': 'odk'}, query={'did': str(uuid.uuid4())}, expected_status=(403, 404))
+        if not traverse_obj(data, ('result', {dict}))):
+            msg = traverse_obj(data, ('messages', '__default'), 'title', expected_type=str)
+            raise ExtractorError(msg or 'Got empty response from playback API', expected=True)
+
+        data = data['result']
 
         potential_urls = traverse_obj(data, ('result', ('sources', 'manifest'), ..., 'url'))
         # Try to bypass geo-restricted ad proxy
@@ -94,7 +97,7 @@ class OnDemandKoreaIE(InfoExtractor):
             formats.extend(self._extract_m3u8_formats(url, video_id, fatal=False))
 
         subtitles = {}
-        for track in traverse_obj(data, ('result', 'text_tracks', lambda _, v: url_or_none(v['url']))):
+        for track in traverse_obj(data, ('text_tracks', lambda _, v: url_or_none(v['url']))):
             subtitles.setdefault(track.get('language', 'und'), []).append({
                 'url': track['url'],
                 'ext': track.get('codec'),
@@ -104,18 +107,18 @@ class OnDemandKoreaIE(InfoExtractor):
         return {
             'id': video_id,
             'title': join_nonempty(
-                ('result', 'episode', 'program', 'title'),
-                ('result', 'episode', 'title'), from_dict=data, delim=': '),
-            **traverse_obj(data, ('result', {
+                ('episode', 'program', 'title'),
+                ('episode', 'title'), from_dict=data, delim=': '),
+            **traverse_obj(data, {
                 'thumbnail': ('episode', 'images', 'thumbnail', {url_or_none}),
                 'release_date': ('episode', 'release_date', {lambda x: x.replace('-', '')}, {unified_strdate}),
                 'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
                 'age_limit': ('age_rating', 'name', {lambda x: x.replace('R', '')}, {parse_age_limit}),
-                'series': ('episode', {lambda x: x['program'] if x['kind'] == 'series' else None}, 'title'),
-                'series_id': ('episode', {lambda x: x['program'] if x['kind'] == 'series' else None}, 'id'),
-                'episode': ('episode', {lambda x: x['title'] if x['kind'] == 'series' else None},),
-                'episode_number': ('episode', {lambda x: x['number'] if x['kind'] == 'series' else None}, {int_or_none}),
-            }), get_all=False),
+                'series': ('episode', {if_series(key='program')}, 'title'),
+                'series_id': ('episode', {if_series(key='program')}, 'id'),
+                'episode': ('episode', {if_series(key='title')}),
+                'episode_number': ('episode', {if_series(key='number')}, {int_or_none}),
+            }, get_all=False),
             'formats': formats,
             'subtitles': subtitles,
         }
@@ -149,11 +152,10 @@ class OnDemandKoreaProgramIE(InfoExtractor):
                 'page': page,
                 'page_size': self._PAGE_SIZE,
             }, note=f'Downloading page {page}')
-        for episode in traverse_obj(page_data, ('result', 'results')):
+        for episode in traverse_obj(page_data, ('result', 'results', ...)):
             yield self.url_result(
                 f'https://www.ondemandkorea.com/player/vod/{display_id}?contentId={episode["id"]}',
-                ie=OnDemandKoreaIE, video_title=episode.get('title')
-            )
+                ie=OnDemandKoreaIE, video_title=episode.get('title'))
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
