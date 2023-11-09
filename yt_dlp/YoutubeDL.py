@@ -4064,7 +4064,7 @@ class YoutubeDL:
 
                 elif (
                     re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
-                    and not set(self._request_director.handlers.keys()).intersection({'websockets'})
+                    and 'websockets' not in self._request_director.handlers
                 ):
                     raise RequestError(
                         'This request requires WebSocket support. '
