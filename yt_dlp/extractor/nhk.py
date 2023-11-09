@@ -65,13 +65,6 @@ class NhkBaseIE(InfoExtractor):
             stream_url = traverse_obj(
                 meta, ('movie_url', ('mb_auto', 'auto_sp', 'auto_pc'), {url_or_none}), get_all=False)
 
-            info = traverse_obj(meta, {
-                'duration': 'duration',
-                'timestamp': ('publication_date', {unified_timestamp}),
-                'release_timestamp': ('insert_date', {unified_timestamp}),
-                'modified_timestamp': ('update_date', {unified_timestamp}),
-            })
-
             if stream_url:
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, vod_id)
                 return {
