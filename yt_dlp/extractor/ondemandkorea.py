@@ -157,7 +157,7 @@ class OnDemandKoreaProgramIE(InfoExtractor):
             headers={'service-name': 'odk'}, query={
                 'page': page,
                 'page_size': self._PAGE_SIZE,
-            }, note=f'Downloading page {page}')
+            }, note=f'Downloading page {page}', expected_status=404)
         for episode in traverse_obj(page_data, ('result', 'results', ...)):
             yield self.url_result(
                 f'https://www.ondemandkorea.com/player/vod/{display_id}?contentId={episode["id"]}',
