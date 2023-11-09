@@ -81,19 +81,17 @@ class OnDemandKoreaIE(InfoExtractor):
 
         data = data['result']
 
-        potential_urls = traverse_obj(data, (None, ('sources', 'manifest'), ..., 'url'))
-        # Try to bypass geo-restricted ad proxy
-        potential_urls = [
-            alt_url if (alt_url := traverse_obj(url, ({parse_qs}, 'stream_url', 0, {url_or_none}))) else url
-            for url in potential_urls
-        ]
-        # Try to upgrade quality
-        potential_urls = [
-            mod_url if self._request_webpage(
-                HEADRequest(mod_url := re.sub(r'_720(p?)\.m3u8', r'_1080\1.m3u8', url)), video_id,
-                note='Checking if higher quality format is available', fatal=False) else url
-            for url in potential_urls
-        ]
+        def try_geo_bypass(url):
+            return traverse_obj(url, ({parse_qs}, 'stream_url', 0, {url_or_none})) or url
+
+        def try_upgrade_quality(url):
+            mod_url = re.sub(r'_720(p?)\.m3u8', r'_1080\1.m3u8', url)
+            return mod_url if mod_url != url and self._request_webpage(
+                HEADRequest(mod_url), video_id, note='Checking for higher quality format',
+                errnote='No higher quality format found', fatal=False) else url
+
+        potential_urls = traverse_obj(
+            data, (('sources', 'manifest'), ..., 'url', {url_or_none}, {try_geo_bypass}, {try_upgrade_quality}))
 
         formats = []
         for url in potential_urls:
