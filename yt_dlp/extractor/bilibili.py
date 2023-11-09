@@ -51,7 +51,7 @@ class BilibiliBaseIE(InfoExtractor):
         if not is_dash:
             formats = []
             for qn in traverse_obj(play_info, 'videos'):
-                video = traverse_obj(play_info, 'videos').get(qn)
+                video = traverse_obj(play_info, ('videos', qn, ...))
 
                 segments = []
                 file_total_size = 0
@@ -72,7 +72,7 @@ class BilibiliBaseIE(InfoExtractor):
                     'filesize': int_or_none(file_total_size)
                 })
 
-            missing_formats = format_names.keys() - set(traverse_obj(play_info, 'accept_quality'))
+            missing_formats = format_names.keys() - set(traverse_obj(play_info, ('accept_quality', ...)))
 
         else:
             audios = traverse_obj(play_info, ('dash', (None, 'dolby'), 'audio', ..., {dict}))
@@ -90,22 +90,22 @@ class BilibiliBaseIE(InfoExtractor):
             } for audio in audios]
 
             formats.extend({
-                           'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
-                           'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
-                           'fps': float_or_none(traverse_obj(video, 'frameRate', 'frame_rate')),
-                           'width': int_or_none(video.get('width')),
-                           'height': int_or_none(video.get('height')),
-                           'vcodec': video.get('codecs'),
-                           'acodec': 'none' if audios else None,
-                           'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(int_or_none(video.get('id'))),
-                           'tbr': float_or_none(video.get('bandwidth'), scale=1000),
-                           'filesize': int_or_none(video.get('size')),
-                           'quality': int_or_none(video.get('id')),
-                           'format_id': traverse_obj(
-                               video, (('baseUrl', 'base_url'), {self._FORMAT_ID_RE.search}, 1),
-                               ('id', {str_or_none}), get_all=False),
-                           'format': format_names.get(video.get('id')),
-                           } for video in traverse_obj(play_info, ('dash', 'video', ...)))
+                'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
+                'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
+                'fps': float_or_none(traverse_obj(video, 'frameRate', 'frame_rate')),
+                'width': int_or_none(video.get('width')),
+                'height': int_or_none(video.get('height')),
+                'vcodec': video.get('codecs'),
+                'acodec': 'none' if audios else None,
+                'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(int_or_none(video.get('id'))),
+                'tbr': float_or_none(video.get('bandwidth'), scale=1000),
+                'filesize': int_or_none(video.get('size')),
+                'quality': int_or_none(video.get('id')),
+                'format_id': traverse_obj(
+                    video, (('baseUrl', 'base_url'), {self._FORMAT_ID_RE.search}, 1),
+                    ('id', {str_or_none}), get_all=False),
+                'format': format_names.get(video.get('id')),
+            } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 
             missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
         if missing_formats:
@@ -188,11 +188,9 @@ class BilibiliBaseIE(InfoExtractor):
         session_data = self._download_json('https://api.bilibili.com/x/web-interface/nav',
                                            video_id, note='wbi signature...', fatal=False)
 
-        key_from_url = lambda x: x[x.rfind('/') + 1:].split('.')[0]
-        img_key = traverse_obj(
-            session_data, ('data', 'wbi_img', 'img_url', {key_from_url}))
-        sub_key = traverse_obj(
-            session_data, ('data', 'wbi_img', 'sub_url', {key_from_url}))
+        key_from_url = lambda x: x.rpartition('/')[2].partition('.')[0]
+        lookup = traverse_obj(
+            session_data, ('data', 'wbi_img', ('img_url', 'sub_url'), {key_from_url}, ...))
 
         mixin_key_enc_tab = [
             46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
@@ -200,13 +198,11 @@ class BilibiliBaseIE(InfoExtractor):
             61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11,
             36, 20, 34, 44, 52
         ]
-        mixin_key = functools.reduce(lambda s, i: s + (img_key + sub_key)[i], mixin_key_enc_tab, '')[:32]
+        mixin_key = ''.join(lookup[i] for i in mixin_key_enc_tab)[:32]
         params['wts'] = round(time.time())
-        params = dict(sorted(params.items()))
         params = {
-            k: ''.join(filter(lambda char: char not in "!'()*", str(v)))
-            for k, v
-            in params.items()
+            k: ''.join(filter('!\'()*'.__contains__, str(v)))
+            for k, v in sorted(params.items())
         }
         query = urllib.parse.urlencode(params)
         params['w_rid'] = hashlib.md5((query + mixin_key).encode()).hexdigest()
