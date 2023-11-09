@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
     unified_timestamp,
+    strip_or_none,
 )
 
 
@@ -61,7 +62,7 @@ class DuoplayIE(InfoExtractor):
             'id': video_id,
             # fallback to absolute "episode_id" value
             'title': traverse_obj(ep, 'subtitle') or f"Episode {traverse_obj(ep, 'episode_id')}",
-            'description': traverse_obj(ep, 'synopsis'),
+            'description': strip_or_none(traverse_obj(ep, 'synopsis')),
             'thumbnail': traverse_obj(ep, ('images', 'original')),
             'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
             'timestamp': unified_timestamp(traverse_obj(ep, 'airtime') + ' +0200'),
