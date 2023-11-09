@@ -44,6 +44,17 @@ class ZoomIE(InfoExtractor):
             'title': 'Timea Andrea Lelik\'s Personal Meeting Room',
         },
         'skip': 'This recording has expired',
+    }, {
+        # view_with_share URL
+        'url': 'https://cityofdetroit.zoom.us/rec/share/VjE-5kW3xmgbEYqR5KzRgZ1OFZvtMtiXk5HyRJo5kK4m5PYE6RF4rF_oiiO_9qaM.UTAg1MI7JSnF3ZjX',
+        'md5': 'bdc7867a5934c151957fb81321b3c024',
+        'info_dict': {
+            'id': 'VjE-5kW3xmgbEYqR5KzRgZ1OFZvtMtiXk5HyRJo5kK4m5PYE6RF4rF_oiiO_9qaM.UTAg1MI7JSnF3ZjX',
+            'ext': 'mp4',
+            'title': 'February 2022 Detroit Revenue Estimating Conference',
+            'duration': 7299,
+            'formats': 'mincount:3',
+        },
     }]
 
     def _get_page_data(self, webpage, video_id):
