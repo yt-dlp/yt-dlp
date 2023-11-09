@@ -112,7 +112,6 @@ class SBSCoKrIE(InfoExtractor):
             })
 
         caption_url = traverse_obj(details, ('vod', 'source', 'subtitle', {url_or_none}))
-        subtitles = {'ko': [{'url': caption_url}]} if caption_url else None
 
         return {
             'id': video_id,
@@ -130,7 +129,7 @@ class SBSCoKrIE(InfoExtractor):
                 'thumbnail': ('source', 'thumbnail', 'origin', {url_or_none}),
             }), get_all=False),
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': {'ko': [{'url': caption_url}]} if caption_url else None,
         }
 
 
