@@ -949,7 +949,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         main_rm = next(main_retries)
         # Manual retry loop for multiple RetryManagers
         # The proper RetryManager MUST be advanced after an error
-        # and it's result MUST be checked if the manager is non fatal
+        # and its result MUST be checked if the manager is non fatal
         while True:
             try:
                 response = self._call_api(
@@ -4559,6 +4559,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             upload_date = strftime_or_none(
                 self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
         info['upload_date'] = upload_date
+
+        if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
+            # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=datetime.timezone.utc)
+            if upload_datetime >= datetime_from_str('today-1day'):
+                for fmt in info['formats']:
+                    if fmt.get('protocol') == 'm3u8_native':
+                        fmt['__needs_testing'] = True
 
         for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
             v = info.get(s_k)

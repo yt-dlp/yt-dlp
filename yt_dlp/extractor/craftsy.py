@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class CraftsyIE(InfoExtractor):
-    _VALID_URL = r'https?://www.craftsy.com/class/(?P<id>[a-z0-9_-]+)/'
+    _VALID_URL = r'https?://www\.craftsy\.com/class/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.craftsy.com/class/the-midnight-quilt-show-season-5/',
         'info_dict': {

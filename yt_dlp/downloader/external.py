@@ -335,7 +335,7 @@ class Aria2cFD(ExternalFD):
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
-            cmd += ['--file-allocation=none', '--uri-selector=inorder']
+            cmd += ['--uri-selector=inorder']
             url_list_file = '%s.frag.urls' % tmpfilename
             url_list = []
             for frag_index, fragment in enumerate(info_dict['fragments']):

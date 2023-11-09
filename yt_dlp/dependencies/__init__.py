@@ -58,6 +58,15 @@ except (ImportError, SyntaxError):
     # See https://github.com/yt-dlp/yt-dlp/issues/2633
     websockets = None
 
+try:
+    import urllib3
+except ImportError:
+    urllib3 = None
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 try:
     import xattr  # xattr or pyxattr

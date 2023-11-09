@@ -4,3 +4,5 @@ websockets
 brotli; platform_python_implementation=='CPython'
 brotlicffi; platform_python_implementation!='CPython'
 certifi
+requests>=2.31.0,<3
+urllib3>=1.26.17,<3

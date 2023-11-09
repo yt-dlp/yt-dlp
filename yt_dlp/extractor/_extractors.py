@@ -904,6 +904,10 @@ from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
 from .joj import JojIE
 from .jstream import JStreamIE
+from .jtbc import (
+    JTBCIE,
+    JTBCProgramIE,
+)
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
@@ -1061,6 +1065,7 @@ from .markiza import (
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
+from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
 from .mediaite import MediaiteIE
