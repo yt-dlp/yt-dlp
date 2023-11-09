@@ -90,12 +90,9 @@ class OnDemandKoreaIE(InfoExtractor):
                 HEADRequest(mod_url), video_id, note='Checking for higher quality format',
                 errnote='No higher quality format found', fatal=False) else url
 
-        potential_urls = traverse_obj(
-            data, (('sources', 'manifest'), ..., 'url', {url_or_none}, {try_geo_bypass}, {try_upgrade_quality}))
-
         formats = []
-        for url in potential_urls:
-            formats.extend(self._extract_m3u8_formats(url, video_id, fatal=False))
+        for m3u8_url in traverse_obj(data, (('sources', 'manifest'), ..., 'url', {url_or_none}, {try_geo_bypass}):
+            formats.extend(self._extract_m3u8_formats(try_upgrade_quality(m3u8_url), video_id, fatal=False))
 
         subtitles = {}
         for track in traverse_obj(data, ('text_tracks', lambda _, v: url_or_none(v['url']))):
