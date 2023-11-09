@@ -12,21 +12,21 @@ from ..utils import (
     join_nonempty,
     try_call,
     unified_strdate,
+    update_url,
     urljoin
 )
 from ..utils.traversal import traverse_obj
 
 
 class RadioComercialIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/]+/\D*(?P<season>\d+)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/?#]+/t?(?P<season>\d+)/(?P<id>[\w-]+)(?:$|[?#|/])'
     _TESTS = [{
-        'url': 'https://radiocomercial.pt/podcasts/o-homem-que-mordeu-o-cao/t6/taylor-swift-entranhando-se-que-nem-uma-espada-no-ventre-dos-fas',
+        'url': 'https://radiocomercial.pt/podcasts/o-homem-que-mordeu-o-cao/t6/taylor-swift-entranhando-se-que-nem-uma-espada-no-ventre-dos-fas#page-content-wrapper',
         'md5': '5f4fe8e485b29d2e8fd495605bc2c7e4',
         'info_dict': {
             'id': 'taylor-swift-entranhando-se-que-nem-uma-espada-no-ventre-dos-fas',
             'ext': 'mp3',
             'title': 'Taylor Swift entranhando-se que nem uma espada no ventre dos fãs.',
-            'description': None,
             'release_date': '20231025',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
             'season': 6
@@ -38,7 +38,6 @@ class RadioComercialIE(InfoExtractor):
             'id': 'convenca-me-num-minuto-que-os-lobisomens-existem',
             'ext': 'mp3',
             'title': 'Convença-me num minuto que os lobisomens existem',
-            'description': None,
             'release_date': '20231026',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
             'season': 3
@@ -66,7 +65,6 @@ class RadioComercialIE(InfoExtractor):
             'id': 't-n-t-29-de-outubro',
             'ext': 'mp3',
             'title': 'T.N.T 29 de outubro',
-            'description': None,
             'release_date': '20231029',
             'thumbnail': r're:https://radiocomercial.pt/upload/[^.]+.jpg',
             'season': 2023
@@ -76,13 +74,12 @@ class RadioComercialIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, season = self._match_valid_url(url).group('id', 'season')
         webpage = self._download_webpage(url, video_id)
-
-        date_html = get_element_html_by_class('descriptions', webpage) or ''
+        print(season)
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage),
             'description': self._og_search_description(webpage, default=None),
-            'release_date': unified_strdate(get_element_by_class('date', date_html)),
+            'release_date': unified_strdate(get_element_by_class('date', get_element_html_by_class('descriptions', webpage) or '')),
             'thumbnail': self._og_search_thumbnail(webpage),
             'season': int_or_none(season),
             'url': extract_attributes(get_element_html_by_class('audiofile', webpage) or '').get('href'),
@@ -90,12 +87,12 @@ class RadioComercialIE(InfoExtractor):
 
 
 class RadioComercialPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/(?P<id>[\w-]+)(?:/\D*(?P<season>\d+))?/?(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/(?P<id>[\w-]+)(?:/t?(?P<season>\d+))?/?(?:$|[?#|/])'
     _PAGE_SIZE = 19
     _TESTS = [{
         'url': 'https://radiocomercial.pt/podcasts/convenca-me-num-minuto/t3',
         'info_dict': {
-            'id': 'convenca-me-num-minuto',
+            'id': 'convenca-me-num-minuto_t3',
             'title': 'Convença-me num Minuto - Temporada 3',
         },
         'playlist_mincount': 32
@@ -113,25 +110,38 @@ class RadioComercialPlaylistIE(InfoExtractor):
             'title': 'As Minhas Coisas Favoritas',
         },
         'playlist_mincount': 131
+    }, {
+        'url': 'https://radiocomercial.pt/podcasts/tnt-todos-no-top/t2023',
+        'info_dict': {
+            'id': 'tnt-todos-no-top_t2023',
+            'title': 'TNT - Todos No Top - Temporada 2023',
+        },
+        'playlist_mincount': 41
     }]
 
-    def _fetch_page(self, podcast, season, page):
+    def _fetch_page(self, url, playlist_id, page):
         page += 1
-        url = urljoin('https://radiocomercial.pt/podcasts/', podcast + (f'/t{season}' if season else '') + f'/{page}')
-        playlist_id = join_nonempty(podcast, season, delim='_')
-        webpage = self._download_webpage(url, playlist_id, note=f'Downloading page: {page}')
+        webpage = self._download_webpage(
+            f'{url}/{page}', playlist_id, note=f'Downloading page: {page}', expected_status=404)
 
-        episodes = set(traverse_obj(get_elements_html_by_class('tm-ouvir-podcast', webpage),
-                                    (..., {extract_attributes}, 'href')))
+        # Note: episodes not available will default to the URL https://radiocomercial.pt/podcasts/<season>.
+        episodies_html = ''.join(get_elements_html_by_class('position-relative', webpage) or '')
+        episodes = traverse_obj(
+            get_elements_html_by_class('tm-ouvir-podcast', episodies_html),
+            (..., {extract_attributes}, 'href'))
+
         for entry in episodes:
             yield self.url_result(urljoin('https://radiocomercial.pt', entry), RadioComercialIE)
 
     def _real_extract(self, url):
         podcast, season = self._match_valid_url(url).group('id', 'season')
-        webpage = self._download_webpage(url, podcast)
+        playlist_id = join_nonempty(podcast, season, delim='_t')
+        url = update_url(url, query=None, fragment=None)
+        webpage = self._download_webpage(url, playlist_id)
 
         name = try_call(lambda: get_element_text_and_html_by_tag('h1', webpage)[0])
         title = name if name == season else join_nonempty(name, season, delim=' - Temporada ')
 
-        return self.playlist_result(OnDemandPagedList(functools.partial(self._fetch_page, podcast, season),
-                                                      self._PAGE_SIZE), podcast, title)
+        return self.playlist_result(OnDemandPagedList(
+            functools.partial(self._fetch_page, url, playlist_id), self._PAGE_SIZE),
+            playlist_id, title)
