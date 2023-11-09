@@ -1,5 +1,6 @@
 import functools
 import re
+import uuid
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -39,7 +40,7 @@ class OnDemandKoreaIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.ondemandkorea.com/player/vod/breakup-probation-a-week?contentId=1595796',
-        'md5': '44e274d2b04977e03fc7f3941fbcb355',
+        'md5': '57266c720006962be7ff415b24775caa',
         'info_dict': {
             'id': '1595796',
             'ext': 'mp4',
@@ -72,13 +73,13 @@ class OnDemandKoreaIE(InfoExtractor):
         data = self._download_json(
             f'https://odkmedia.io/odx/api/v3/playback/{video_id}/', video_id, fatal=False,
             headers={'service-name': 'odk'}, query={'did': str(uuid.uuid4())}, expected_status=(403, 404))
-        if not traverse_obj(data, ('result', {dict}))):
+        if not traverse_obj(data, ('result', {dict})):
             msg = traverse_obj(data, ('messages', '__default'), 'title', expected_type=str)
             raise ExtractorError(msg or 'Got empty response from playback API', expected=True)
 
         data = data['result']
 
-        potential_urls = traverse_obj(data, ('result', ('sources', 'manifest'), ..., 'url'))
+        potential_urls = traverse_obj(data, (None, ('sources', 'manifest'), ..., 'url'))
         # Try to bypass geo-restricted ad proxy
         potential_urls = [
             alt_url if (alt_url := traverse_obj(url, ({parse_qs}, 'stream_url', 0, {url_or_none}))) else url
@@ -103,6 +104,9 @@ class OnDemandKoreaIE(InfoExtractor):
                 'ext': track.get('codec'),
                 'name': track.get('label'),
             })
+
+        def if_series(key=None):
+            return lambda obj: obj[key] if key and obj['kind'] == 'series' else None
 
         return {
             'id': video_id,
