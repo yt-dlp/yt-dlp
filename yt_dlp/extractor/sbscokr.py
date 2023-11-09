@@ -73,7 +73,7 @@ class SBSCoKrIE(InfoExtractor):
         },
     }]
 
-    def request_details(self, video_id, rscuse=''):
+    def _call_api(self, video_id, rscuse=''):
         return self._download_json(
             f'https://api.play.sbs.co.kr/1.0/sbs_vodall/{video_id}', video_id,
             note=f'Downloading m3u8 information {rscuse}',
@@ -89,19 +89,22 @@ class SBSCoKrIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        details = self.request_details(video_id)
-        source = traverse_obj(details, ('vod', 'source', 'mediasource'))
+        details = self._call_api(video_id)
+        source = traverse_obj(details, ('vod', 'source', 'mediasource', {dict})) or {}
 
         formats = []
-        for stream in traverse_obj(details, ('vod', 'source', 'mediasourcelist'), default=[source]):
+        for stream in traverse_obj(details, (
+            'vod', 'source', 'mediasourcelist', lambda _, v: v['mediaurl'] or v['mediarscuse']
+        ), default=[source]):
             if not stream.get('mediaurl'):
-                alt_details = self.request_details(video_id, rscuse=stream.get('mediarscuse'))
-                new_source = traverse_obj(alt_details, ('vod', 'source', 'mediasource'))
+                new_source = traverse_obj(
+                    self._call_api(video_id, rscuse=stream['mediarscuse']),
+                    ('vod', 'source', 'mediasource', {dict})) or {}
                 if new_source.get('mediarscuse') == source.get('mediarscuse') or not new_source.get('mediaurl'):
                     continue
                 stream = new_source
             formats.append({
-                'url': stream.get('mediaurl'),
+                'url': stream['mediaurl'],
                 'format_id': stream.get('mediarscuse'),
                 'format_note': stream.get('medianame'),
                 **parse_resolution(stream.get('quality')),
@@ -133,7 +136,7 @@ class SBSCoKrIE(InfoExtractor):
 
 class SBSCoKrAllvodProgramIE(InfoExtractor):
     IE_NAME = 'sbs.co.kr:allvod_program'
-    _VALID_URL = r'https?://allvod\.sbs\.co\.kr/allvod/vod(?:Free)?ProgramDetail\.do\?(?:[^#]+&)?pgmId=(?P<id>P?[0-9]+)'
+    _VALID_URL = r'https?://allvod\.sbs\.co\.kr/allvod/vod(?:Free)?ProgramDetail\.do\?(?:[^#]+&)?pgmId=(?P<id>P?\d+)'
 
     _TESTS = [{
         'url': 'https://allvod.sbs.co.kr/allvod/vodFreeProgramDetail.do?type=legend&pgmId=22000010159&listOrder=vodCntAsc',
@@ -163,9 +166,8 @@ class SBSCoKrAllvodProgramIE(InfoExtractor):
             })
 
         return self.playlist_result(
-            [self.url_result(
-                'https://allvod.sbs.co.kr/allvod/vodEndPage.do?mdaId=' + video_id, SBSCoKrIE
-            ) for video_id in traverse_obj(details, ('list', ..., 'mdaId'), default=[])], program_id)
+            [self.url_result(f'https://allvod.sbs.co.kr/allvod/vodEndPage.do?mdaId={video_id}', SBSCoKrIE),
+             for video_id in traverse_obj(details, ('list', ..., 'mdaId'))], program_id)
 
 
 class SBSCoKrProgramsVodIE(InfoExtractor):
@@ -191,10 +193,9 @@ class SBSCoKrProgramsVodIE(InfoExtractor):
     def _real_extract(self, url):
         program_slug = self._match_id(url)
 
-        menu_data = self._download_json(
+        program_id = self._download_json(
             f'https://static.apis.sbs.co.kr/program-api/1.0/menu/{program_slug}', program_slug,
-            note='Downloading program menu data')
+            note='Downloading program menu data')['program']['programid']
 
         return self.url_result(
-            'https://allvod.sbs.co.kr/allvod/vodProgramDetail.do?pgmId=' + traverse_obj(
-                menu_data, ('program', 'programid')), SBSCoKrAllvodProgramIE)
+            f'https://allvod.sbs.co.kr/allvod/vodProgramDetail.do?pgmId={program_id}', SBSCoKrAllvodProgramIE)
