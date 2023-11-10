@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class TheGuardianPodcastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/audio/\d{4}/\w{3}/\d{1,2}/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/audio/\d{4}/\w{3}/\d{1,2}/(?P<id>[\w-]+)(?:$|[?#])'
     _TESTS = [{
         'url': 'https://www.theguardian.com/news/audio/2023/nov/03/we-are-just-getting-started-the-plastic-eating-bacteria-that-could-change-the-world-podcast',
         'md5': 'd1771744681789b4cd7da2a08e487702',
