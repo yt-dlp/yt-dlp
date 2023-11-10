@@ -65,17 +65,7 @@ class ThisOldHouseIE(InfoExtractor):
         urlh = self._request_webpage(
             'https://www.thisoldhouse.com/wp-login.php', None, 'Requesting login info',
             errnote='Unable to login', query={'redirect_to': 'https://www.thisoldhouse.com/insider'})
-        login_info = traverse_obj(parse_qs(urlh.url), {
-            'state': ('state', 0),
-            'client_id': ('client', 0),
-            'protocol': ('protocol', 0),
-            'connection': ('connection', 0),
-            'scope': ('scope', 0),
-            'nonce': ('nonce', 0),
-            'response_type': ('response_type', 0),
-            'response_mode': ('response_mode', 0),
-            'redirect_uri': ('redirect_uri', 0),
-        })
+        login_info = {('client_id' if k == 'client' else k): v[0] for k, v in parse_qs(urlh.url).items()}
 
         try:
             auth_form = self._download_webpage(
