@@ -79,7 +79,7 @@ class StacommuBaseIE(WrestleUniverseBaseIE):
 
 
 class StacommuVODIE(StacommuBaseIE):
-    _VALID_URL = r'https?://www\.stacommu\.jp/videos/episodes/(?P<id>[\da-zA-Z]+)'
+    _VALID_URL = r'https?://www\.stacommu\.jp/(?:en/)?videos/episodes/(?P<id>[\da-zA-Z]+)'
     _TESTS = [{
         # not encrypted
         'url': 'https://www.stacommu.jp/videos/episodes/aXcVKjHyAENEjard61soZZ',
@@ -118,6 +118,9 @@ class StacommuVODIE(StacommuBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+    }, {
+        'url': 'https://www.stacommu.jp/en/videos/episodes/aXcVKjHyAENEjard61soZZ',
+        'only_matching': True,
     }]
 
     _API_PATH = 'videoEpisodes'
@@ -127,7 +130,7 @@ class StacommuVODIE(StacommuBaseIE):
 
 
 class StacommuLiveIE(StacommuBaseIE):
-    _VALID_URL = r'https?://www\.stacommu\.jp/live/(?P<id>[\da-zA-Z]+)'
+    _VALID_URL = r'https?://www\.stacommu\.jp/(?:en/)?live/(?P<id>[\da-zA-Z]+)'
     _TESTS = [{
         'url': 'https://www.stacommu.jp/live/d2FJ3zLnndegZJCAEzGM3m',
         'info_dict': {
@@ -146,6 +149,9 @@ class StacommuLiveIE(StacommuBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+    }, {
+        'url': 'https://www.stacommu.jp/en/live/d2FJ3zLnndegZJCAEzGM3m',
+        'only_matching': True,
     }]
 
     _API_PATH = 'events'
