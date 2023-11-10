@@ -1,6 +1,7 @@
 import json
 
 from .common import InfoExtractor
+from .zype import ZypeIE
 from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -113,4 +114,4 @@ class ThisOldHouseIE(InfoExtractor):
             webpage, 'video url', group=(1, 2))
         video_url = self._request_webpage(HEADRequest(video_url), video_id, 'Resolving Zype URL').url
 
-        return self.url_result(video_url, 'Zype', video_id)
+        return self.url_result(video_url, ZypeIE, video_id)
