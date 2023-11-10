@@ -49,14 +49,15 @@ class DuoplayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        def decode_quot(s: str):
-            return s.replace("&quot;", '"')
-
-        video_id = self._match_id(url)
+        telecast_id, episode = self._match_valid_url(url).groups('id', 'ep')
+        video_id = join_nonempty(telecast_id, episode, delim='_')
         webpage = self._download_webpage(url, video_id)
-        manifest_url = self._search_regex(r'<video-player[^>]+manifest-url="([^"]+)"', webpage, 'video-player')
-        episode_attr = self._search_regex(r'<video-player[^>]+:episode="([^"]+)"', webpage, 'episode data')
-        ep = self._parse_json(episode_attr, video_id, decode_quot)
+        video_player = try_call(lambda: extract_attributes(
+            get_element_text_and_html_by_tag('video-player', webpage)[1]))
+        if not video_player or not video_player.get('manifest-url'):
+            self.raise_no_formats('No video found', expected=True)
+
+        episode_attr = self._parse_json(video_player.get(':episode') or '', video_id, fatal=False) or {}
 
         return {
             'id': video_id,
