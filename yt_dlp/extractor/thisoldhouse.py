@@ -1,5 +1,4 @@
 import json
-import time
 
 from .common import InfoExtractor
 from ..networking import HEADRequest
@@ -8,7 +7,6 @@ from ..utils import (
     ExtractorError,
     filter_dict,
     parse_qs,
-    strip_jsonp,
     try_call,
     urlencode_postdata,
 )
@@ -75,18 +73,14 @@ class ThisOldHouseIE(InfoExtractor):
             'redirect_uri': ('redirect_uri', 0),
         })
 
-        headers = {'Referer': urlh.url}
-        auth_info = self._download_json(
-            f'https://login.thisoldhouse.com/client/{login_info["client_id"]}.js?t{int(time.time() * 1000)}',
-            None, 'Downloading auth info JSON', headers=headers, transform_source=strip_jsonp)
-
-        headers['Content-Type'] = 'application/json'
         try:
             auth_form = self._download_webpage(
-                self._LOGIN_URL, None, 'Submitting credentials', headers=headers,
-                data=json.dumps(filter_dict({
+                self._LOGIN_URL, None, 'Submitting credentials', headers={
+                    'Content-Type': 'application/json',
+                    'Referer': urlh.url,
+                }, data=json.dumps(filter_dict({
                     **login_info,
-                    'tenant': traverse_obj(auth_info, ('tenant', {str})) or 'thisoldhouse',
+                    'tenant': 'thisoldhouse',
                     'username': username,
                     'password': password,
                     'popup_options': {},
