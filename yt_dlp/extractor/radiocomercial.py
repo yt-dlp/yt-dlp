@@ -1,8 +1,9 @@
-import functools
+import itertools
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    OnDemandPagedList,
+    ExtractorError,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_class,
@@ -19,7 +20,7 @@ from ..utils.traversal import traverse_obj
 
 
 class RadioComercialIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/?#]+/t?(?P<season>\d+)/(?P<id>[\w-]+)(?:$|[?#|/])'
+    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/?#]+/t?(?P<season>\d+)/(?P<id>[\w-]+)(?:$|[?#])'
     _TESTS = [{
         'url': 'https://radiocomercial.pt/podcasts/o-homem-que-mordeu-o-cao/t6/taylor-swift-entranhando-se-que-nem-uma-espada-no-ventre-dos-fas#page-content-wrapper',
         'md5': '5f4fe8e485b29d2e8fd495605bc2c7e4',
@@ -74,12 +75,12 @@ class RadioComercialIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, season = self._match_valid_url(url).group('id', 'season')
         webpage = self._download_webpage(url, video_id)
-        print(season)
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage),
             'description': self._og_search_description(webpage, default=None),
-            'release_date': unified_strdate(get_element_by_class('date', get_element_html_by_class('descriptions', webpage) or '')),
+            'release_date': unified_strdate(get_element_by_class(
+                'date', get_element_html_by_class('descriptions', webpage) or '')),
             'thumbnail': self._og_search_thumbnail(webpage),
             'season': int_or_none(season),
             'url': extract_attributes(get_element_html_by_class('audiofile', webpage) or '').get('href'),
@@ -87,8 +88,7 @@ class RadioComercialIE(InfoExtractor):
 
 
 class RadioComercialPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/(?P<id>[\w-]+)(?:/t?(?P<season>\d+))?/?(?:$|[?#|/])'
-    _PAGE_SIZE = 19
+    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/(?P<id>[\w-]+)(?:/t?(?P<season>\d+))?/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://radiocomercial.pt/podcasts/convenca-me-num-minuto/t3',
         'info_dict': {
@@ -116,22 +116,25 @@ class RadioComercialPlaylistIE(InfoExtractor):
             'id': 'tnt-todos-no-top_t2023',
             'title': 'TNT - Todos No Top - Temporada 2023',
         },
-        'playlist_mincount': 41
+        'playlist_mincount': 39
     }]
 
-    def _fetch_page(self, url, playlist_id, page):
-        page += 1
-        webpage = self._download_webpage(
-            f'{url}/{page}', playlist_id, note=f'Downloading page: {page}', expected_status=404)
-
-        # Note: episodes not available will default to the URL https://radiocomercial.pt/podcasts/<season>.
-        episodies_html = ''.join(get_elements_html_by_class('position-relative', webpage) or '')
-        episodes = traverse_obj(
-            get_elements_html_by_class('tm-ouvir-podcast', episodies_html),
-            (..., {extract_attributes}, 'href'))
-
-        for entry in episodes:
-            yield self.url_result(urljoin('https://radiocomercial.pt', entry), RadioComercialIE)
+    def _entries(self, url, playlist_id):
+        for page in itertools.count(1):
+            try:
+                webpage, urlh = self._download_webpage_handle(
+                    f'{url}/{page}', playlist_id, f'Downloading page {page}')
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                    break
+                raise
+            if 'radiocomercial.pt/podcasts' not in urlh.url:
+                break
+            episodes = get_elements_html_by_class('tm-ouvir-podcast', webpage)
+            for url_path in traverse_obj(episodes, (..., {extract_attributes}, 'href')):
+                episode_url = urljoin(url, url_path)
+                if RadioComercialIE.suitable(episode_url):
+                    yield episode_url
 
     def _real_extract(self, url):
         podcast, season = self._match_valid_url(url).group('id', 'season')
@@ -142,6 +145,5 @@ class RadioComercialPlaylistIE(InfoExtractor):
         name = try_call(lambda: get_element_text_and_html_by_tag('h1', webpage)[0])
         title = name if name == season else join_nonempty(name, season, delim=' - Temporada ')
 
-        return self.playlist_result(OnDemandPagedList(
-            functools.partial(self._fetch_page, url, playlist_id), self._PAGE_SIZE),
-            playlist_id, title)
+        return self.playlist_from_matches(
+            self._entries(url, playlist_id), playlist_id, title, ie=RadioComercialIE)
