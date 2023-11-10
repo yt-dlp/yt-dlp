@@ -266,17 +266,20 @@ class ZenYandexIE(InfoExtractor):
         uploader_name = extract_attributes(uploader).get('aria-label')
         video_json = try_get(data_json, lambda x: x[serverstate]['exportData']['video'], dict)
         stream_urls = try_get(video_json, lambda x: x['video']['streams'])
-        formats = []
+        formats, subtitles = [], {}
         for s_url in stream_urls:
             ext = determine_ext(s_url)
             if ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(s_url, video_id, mpd_id='dash'))
+                fmts, subs = self._extract_mpd_formats_and_subtitles(s_url, video_id, mpd_id='dash')
             elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(s_url, video_id, 'mp4'))
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(s_url, video_id, 'mp4')
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
         return {
             'id': video_id,
             'title': video_json.get('title') or self._og_search_title(webpage),
             'formats': formats,
+            'subtitles': subtitles,
             'duration': int_or_none(video_json.get('duration')),
             'view_count': int_or_none(video_json.get('views')),
             'timestamp': int_or_none(video_json.get('publicationDate')),
