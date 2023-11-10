@@ -1,10 +1,15 @@
-from .common import InfoExtractor
+import functools
 
+from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_class,
-    unified_strdate
+    get_elements_html_by_class,
+    traverse_obj,
+    unified_strdate,
+    urljoin
 )
 
 
@@ -70,5 +75,60 @@ class TheGuardianPodcastIE(InfoExtractor):
             'creator': self._html_search_meta('author', webpage),
             'thumbnail': self._og_search_thumbnail(webpage),
             'release_date': unified_strdate(self._html_search_meta('article:published_time', webpage)),
-            'url': extract_attributes(get_element_html_by_class('podcast__player', webpage) or '').get('data-source'),
+            'url': extract_attributes(get_element_html_by_class(
+                'podcast__player', webpage) or '').get('data-source'),
         }
+
+
+class TheGuardianPodcastPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/series/(?P<id>[\w-]+)/?(?:$|[?#])'
+    _PAGE_SIZE = 20
+    _TESTS = [{
+        'url': 'https://www.theguardian.com/football/series/theguardianswomensfootballweekly',
+        'info_dict': {
+            'id': 'theguardianswomensfootballweekly',
+            'title': "The Guardian's Women's Football Weekly | Football | The Guardian",
+            'description': 'md5:e2cc021311e582d29935a73614a43f51'
+        },
+        'playlist_mincount': 69
+    }, {
+        'url': 'https://www.theguardian.com/news/series/todayinfocus',
+        'info_dict': {
+            'id': 'todayinfocus',
+            'title': 'Today in Focus | News | The Guardian',
+            'description': 'md5:0f097764fc0d359e0b6eb537be0387e2'
+        },
+        'playlist_mincount': 37
+    }, {
+        'url': 'https://www.theguardian.com/news/series/the-audio-long-read',
+        'info_dict': {
+            'id': 'the-audio-long-read',
+            'title': 'The Audio Long Read | News | The Guardian',
+            'description': 'md5:5462994a27527309562b25b6defc4ef3'
+        },
+        'playlist_mincount': 1008
+    }]
+
+    def _fetch_page(self, url, playlist_id, page):
+        page += 1
+        webpage = self._download_webpage(
+            f'{url}?page={page}', playlist_id, note=f'Downloading page: {page}', expected_status=404)
+
+        episodes = traverse_obj(
+            get_elements_html_by_class('fc-item--type-media', webpage),
+            (..., {extract_attributes}, 'data-id'))
+
+        for entry in episodes:
+            yield self.url_result(urljoin('https://www.theguardian.com', entry), TheGuardianPodcastIE)
+
+    def _real_extract(self, url):
+        podcast_id = self._match_id(url)
+        webpage = self._download_webpage(url, podcast_id)
+
+        title = self._generic_title(url, webpage, default='')
+        description = self._og_search_description(webpage) or get_element_by_class(
+            'header__description', webpage)
+
+        return self.playlist_result(OnDemandPagedList(
+            functools.partial(self._fetch_page, url, podcast_id), self._PAGE_SIZE),
+            podcast_id, title, description)

@@ -2004,7 +2004,10 @@ from .tenplay import (
 from .testurl import TestURLIE
 from .tf1 import TF1IE
 from .tfo import TFOIE
-from .theguardian import TheGuardianPodcastIE
+from .theguardian import (
+    TheGuardianPodcastIE,
+    TheGuardianPodcastPlaylistIE,
+)
 from .theholetv import TheHoleTvIE
 from .theintercept import TheInterceptIE
 from .theplatform import (
