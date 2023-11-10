@@ -60,17 +60,16 @@ class DuoplayIE(InfoExtractor):
 
         return {
             'id': video_id,
-            # fallback to absolute "episode_id" value
-            'title': traverse_obj(ep, 'subtitle') or f"Episode {traverse_obj(ep, 'episode_id')}",
-            'description': strip_or_none(traverse_obj(ep, 'synopsis')),
-            'thumbnail': traverse_obj(ep, ('images', 'original')),
-            'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4'),
-            'timestamp': unified_timestamp(traverse_obj(ep, 'airtime') + ' +0200'),
-            'series': traverse_obj(ep, 'title'),
-            'series_id': traverse_obj(ep, 'telecast_id'),
-            'season_number': traverse_obj(ep, 'season_id'),
-            'episode': traverse_obj(ep, 'subtitle'),
-            # fallback to absolute "episode_id" value
-            'episode_number': traverse_obj(ep, 'episode_nr') or traverse_obj(ep, 'episode_id'),
-            'episode_id': traverse_obj(ep, 'episode_id'),
+            'formats': self._extract_m3u8_formats(video_player['manifest-url'], video_id, 'mp4'),
+            **traverse_obj(episode_attr, {
+                'title': (None, ('subtitle', ('episode_id', {lambda x: f'Episode {x}'}))),
+                'description': 'synopsis',
+                'thumbnail': ('images', 'original'),
+                'timestamp': ('airtime', {lambda x: unified_timestamp(x + ' +0200')}),
+                'series': 'title',
+                'series_id': ('telecast_id', {str_or_none}),
+                'season_number': ('season_id', {int_or_none}),
+                'episode': 'subtitle',
+                'episode_number': (None, ('episode_nr', 'episode_id'), {int_or_none}),
+            }, get_all=False),
         }
