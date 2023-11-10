@@ -4,9 +4,10 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     js_to_json,
-    traverse_obj,
+    url_or_none,
 )
 
+from ..utils import traverse_obj
 
 class NTVDeIE(InfoExtractor):
     IE_NAME = 'n-tv.de'
@@ -36,10 +37,10 @@ class NTVDeIE(InfoExtractor):
             r'article:\s*', webpage, 'info', video_id, transform_source=js_to_json)
 
         player_data = self._search_json(
-            r'\$\(\s*"\#playerwrapper"\s*\)\s*\.data\(\s*"player",\s*',
+            r'\$\(\s*"#playerwrapper"\s*\)\s*\.data\(\s*"player",\s*',
             webpage, 'player data', video_id,
             transform_source=lambda s: js_to_json(re.sub(r'ivw:[^},]+', '', s)))
-        vdata = traverse_obj(player_data, ('setup', 'source'))
+        vdata = traverse_obj(player_data, ('setup', 'source')) or {}
 
         formats = []
         if vdata.get('progressive'):
@@ -49,8 +50,7 @@ class NTVDeIE(InfoExtractor):
             })
         if vdata.get('hls'):
             formats.extend(self._extract_m3u8_formats(
-                vdata['hls'], video_id, ext='mp4', entry_protocol='m3u8_native',
-                quality=1, m3u8_id='hls', fatal=False))
+                vdata['hls'], video_id, 'mp4', m3u8_id='hls', fatal=False))
         if vdata.get('dash'):
             formats.extend(self._extract_mpd_formats(vdata['dash'], video_id, fatal=False))
 
@@ -63,7 +63,7 @@ class NTVDeIE(InfoExtractor):
                 'timestamp': ('publishedDateAsUnixTimeStamp', {int_or_none}),
             }),
             **traverse_obj(vdata, {
-                'thumbnail': 'poster',
+                'thumbnail': ('poster', {url_or_none}),
                 'duration': ('length', {int_or_none}),
             }),
             'formats': formats,
