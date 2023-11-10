@@ -11,7 +11,6 @@ from ..utils import (
     try_call,
     urlencode_postdata,
 )
-from ..utils.traversal import traverse_obj
 
 
 class ThisOldHouseIE(InfoExtractor):
