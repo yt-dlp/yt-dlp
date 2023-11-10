@@ -841,6 +841,8 @@ class ERRTVIE(ERRBaseIE):
                 name.append(info['season'])
             if json_has_value(info, 'episode'):
                 name.append(info['episode'])
+            elif json_has_value(info, 'alt_title'):
+                name.append(info['alt_title'])
             if len(name) > 1:
                 info['title'] = ' - '.join(name)
         info['title'] = sanitize_title(info['title'])
@@ -1403,14 +1405,14 @@ class ERRArhiivIE(ERRTVIE):
             'ext': 'mp4',
             'title': 'Tallinn. Mai-juuni 1976',
             'thumbnail':
-            'https://arhiiv-images.err.ee/public/thumbnails/1976-085466-0001_0002_D10_TALLINN-MAI-JUUNI-1976.jpg',
+            'https://arhiiv-images.err.ee/public/thumbnails/2023/4829h4786_thumb.jpg',
             'upload_date': '19760917',
             'timestamp': 211766400,
             'episode': 'Tallinn. Mai-juuni 1976',
             'media_type': 'video',
-            'creator': 'md5:c6d7712c445f2ed37191b26437e88d89',
+            'creator': 'md5:c93c6c13a1b22ed52ea0cf509e74fd4e',
             'duration': 857.0,
-            'description': 'md5:0c38f25160ad06f066254325de829694',
+            'description': 'md5:b9e4722c4b7d47b0b6de38ef56e1c558',
             'chapters': 'count:12',
             'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
         },
