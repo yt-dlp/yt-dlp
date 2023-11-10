@@ -93,7 +93,7 @@ class ThisOldHouseIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         if 'To Unlock This content' in webpage:
             self.raise_login_required(
-                'This video is only available for registered users. '
+                'This video is only available for subscribers. '
                 'Note that --cookies-from-browser may not work due to this site using session cookies')
 
         video_url, video_id = self._search_regex(
