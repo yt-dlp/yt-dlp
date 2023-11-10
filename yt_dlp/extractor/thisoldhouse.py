@@ -60,11 +60,9 @@ class ThisOldHouseIE(InfoExtractor):
     def _perform_login(self, username, password):
         self._request_webpage(
             HEADRequest('https://www.thisoldhouse.com/insider'), None, 'Requesting session cookies')
-
         urlh = self._request_webpage(
             'https://www.thisoldhouse.com/wp-login.php', None, 'Requesting login info',
             errnote='Unable to login', query={'redirect_to': 'https://www.thisoldhouse.com/insider'})
-        login_info = {('client_id' if k == 'client' else k): v[0] for k, v in parse_qs(urlh.url).items()}
 
         try:
             auth_form = self._download_webpage(
@@ -72,7 +70,7 @@ class ThisOldHouseIE(InfoExtractor):
                     'Content-Type': 'application/json',
                     'Referer': urlh.url,
                 }, data=json.dumps(filter_dict({
-                    **login_info,
+                    **{('client_id' if k == 'client' else k): v[0] for k, v in parse_qs(urlh.url).items()},
                     'tenant': 'thisoldhouse',
                     'username': username,
                     'password': password,
