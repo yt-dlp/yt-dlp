@@ -20,7 +20,7 @@ from ..utils.traversal import traverse_obj
 
 
 class RadioComercialIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/?#]+/t?(?P<season>\d+)/(?P<id>[\w-]+)(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?radiocomercial\.pt/podcasts/[^/?#]+/t?(?P<season>\d+)/(?P<id>[\w-]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://radiocomercial.pt/podcasts/o-homem-que-mordeu-o-cao/t6/taylor-swift-entranhando-se-que-nem-uma-espada-no-ventre-dos-fas#page-content-wrapper',
         'md5': '5f4fe8e485b29d2e8fd495605bc2c7e4',
@@ -122,15 +122,16 @@ class RadioComercialPlaylistIE(InfoExtractor):
     def _entries(self, url, playlist_id):
         for page in itertools.count(1):
             try:
-                webpage, urlh = self._download_webpage_handle(
+                webpage = self._download_webpage(
                     f'{url}/{page}', playlist_id, f'Downloading page {page}')
             except ExtractorError as e:
                 if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     break
                 raise
-            if 'radiocomercial.pt/podcasts' not in urlh.url:
-                break
+
             episodes = get_elements_html_by_class('tm-ouvir-podcast', webpage)
+            if not episodes:
+                break
             for url_path in traverse_obj(episodes, (..., {extract_attributes}, 'href')):
                 episode_url = urljoin(url, url_path)
                 if RadioComercialIE.suitable(episode_url):
