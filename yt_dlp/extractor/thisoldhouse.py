@@ -15,7 +15,7 @@ from ..utils.traversal import traverse_obj
 
 class ThisOldHouseIE(InfoExtractor):
     _NETRC_MACHINE = 'thisoldhouse'
-    _VALID_URL = r'https?://(?:www\.)?thisoldhouse\.com/(?:watch|how-to|tv-episode|(?:[^/]+/)?\d+)/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?thisoldhouse\.com/(?:watch|how-to|tv-episode|(?:[^/?#]+/)?\d+)/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.thisoldhouse.com/furniture/21017078/how-to-build-a-storage-bench',
         'info_dict': {
