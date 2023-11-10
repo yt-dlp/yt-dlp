@@ -7,7 +7,8 @@ from ..utils import (
     url_or_none,
 )
 
-from ..utils import traverse_obj
+from ..utils.traversal import traverse_obj
+
 
 class NTVDeIE(InfoExtractor):
     IE_NAME = 'n-tv.de'
