@@ -1,11 +1,11 @@
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     mimetype2ext,
     parse_iso8601,
-    random_uuidv4,
     try_call,
     update_url_query,
     url_or_none,
@@ -90,6 +90,30 @@ class DRTVIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        # Foreign and Regular subtitle track
+        'url': 'https://www.dr.dk/drtv/se/spise-med-price_-pasta-selv_397445',
+        'info_dict': {
+            'id': '00212301010',
+            'ext': 'mp4',
+            'episode_number': 1,
+            'title': 'Spise med Price: Pasta Selv',
+            'release_date': '20230807',
+            'description': 'md5:2da9060524fed707810d71080b3d0cd8',
+            'duration': 1750,
+            'season': 'Spise med Price',
+            'release_timestamp': 1691438400,
+            'season_id': '397440',
+            'episode': 'Spise med Price: Pasta Selv',
+            'thumbnail': r're:https?://.+',
+            'season_number': 15,
+            'series': 'Spise med Price',
+            'release_year': 2022,
+            'subtitles': 'mincount:2',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
         'url': 'https://www.dr.dk/drtv/episode/bonderoeven_71769',
         'only_matching': True,
     }, {
@@ -101,6 +125,12 @@ class DRTVIE(InfoExtractor):
     }]
 
     _TOKEN = None
+
+    SUBTITLE_LANGS = {
+        'DanishLanguageSubtitles': 'da',
+        'ForeignLanguageSubtitles': 'da_foreign-only',
+        'CombinedLanguageSubtitles': 'da_all',
+    }
 
     def _real_initialize(self):
         if self._TOKEN:
@@ -117,7 +147,7 @@ class DRTVIE(InfoExtractor):
                 'supportFallbackToken': 'true',
             },
             data=json.dumps({
-                'deviceId': random_uuidv4(),
+                'deviceId': str(uuid.uuid4()),
                 'scopes': [
                     'Catalog',
                 ],
@@ -125,7 +155,7 @@ class DRTVIE(InfoExtractor):
             }).encode())
 
         self._TOKEN = traverse_obj(
-            token_response, (lambda _, x: x['type'] == 'UserAccount', 'value'), get_all=False)
+            token_response, (lambda _, x: x['type'] == 'UserAccount', 'value', {str}), get_all=False)
 
     def _real_extract(self, url):
         url_slug = self._match_id(url)
@@ -149,8 +179,7 @@ class DRTVIE(InfoExtractor):
                     'segments': 'drtv,optedout',
                     'sub': 'Anonymous',
                 })
-
-        video_id = try_call(lambda: item['customId'].split(':')[-1]) or item_id
+        video_id = try_call(lambda: item['customId'].rsplit(':', 1)[-1]) or item_id
         stream_data = self._download_json(
             f'https://production.dr-massive.com/api/account/items/{item_id}/videos', video_id,
             note='Downloading stream data', query={
@@ -167,7 +196,7 @@ class DRTVIE(InfoExtractor):
 
         formats = []
         subtitles = {}
-        for fmt in stream_data:
+        for fmt in traverse_obj(stream_data, (lambda _, x: x['url'], {dict})):
             format_id = fmt.get('format', 'na')
             access_service = fmt.get('accessService')
             preference = None
@@ -180,20 +209,12 @@ class DRTVIE(InfoExtractor):
                 fmt.get('url'), video_id, preference=preference, m3u8_id=format_id, fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
-            LANGS = {
-                'DanishLanguageSubtitles': 'da',
-            }
 
-            for subs in fmt.get('subtitles', []):
-                if not isinstance(subs, dict):
-                    continue
-                sub_uri = url_or_none(subs.get('link'))
-                if not sub_uri:
-                    continue
-                lang = subs.get('language') or 'da'
-                subtitles.setdefault(LANGS.get(lang, lang), []).append({
-                    'url': sub_uri,
-                    'ext': mimetype2ext(subs.get('format')) or 'vtt'
+            for sub_track in traverse_obj(fmt, ('subtitles', lambda _, v: url_or_none(v['link']), {dict})):
+                lang = sub_track.get('language') or 'da'
+                subtitles.setdefault(self.SUBTITLE_LANGS.get(lang, lang), []).append({
+                    'url': sub_track['link'],
+                    'ext': mimetype2ext(sub_track.get('format')) or 'vtt'
                 })
 
         return {
@@ -205,14 +226,14 @@ class DRTVIE(InfoExtractor):
                 'description': 'description',
                 'thumbnail': ('images', 'wallpaper'),
                 'release_timestamp': ('customFields', 'BroadcastTimeDK', {parse_iso8601}),
-                'duration': 'duration',
+                'duration': ('duration', {int_or_none}),
                 'series': ('season', 'show', 'title'),
                 'season': ('season', 'title'),
                 'season_number': ('season', 'seasonNumber', {int_or_none}),
                 'season_id': 'seasonId',
                 'episode': 'episodeName',
                 'episode_number': ('episodeNumber', {int_or_none}),
-                'release_year': 'releaseYear',
+                'release_year': ('releaseYear', {int_or_none}),
             }),
         }
 
@@ -283,6 +304,7 @@ class DRTVSeasonIE(InfoExtractor):
             'display_id': 'frank-and-kastaniegaarden',
             'title': 'Frank & Kastaniegaarden',
             'series': 'Frank & Kastaniegaarden',
+            'season_number': 2008,
         },
         'playlist_mincount': 8
     }, {
@@ -292,6 +314,7 @@ class DRTVSeasonIE(InfoExtractor):
             'display_id': 'frank-and-kastaniegaarden',
             'title': 'Frank & Kastaniegaarden',
             'series': 'Frank & Kastaniegaarden',
+            'season_number': 2009,
         },
         'playlist_mincount': 19
     }]
