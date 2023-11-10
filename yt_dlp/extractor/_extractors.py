@@ -1902,6 +1902,8 @@ from .srmediathek import SRMediathekIE
 from .stacommu import (
     StacommuLiveIE,
     StacommuVODIE,
+    TheaterComplexTownVODIE,
+    TheaterComplexTownPPVIE,
 )
 from .stanfordoc import StanfordOpenClassroomIE
 from .startv import StarTVIE
