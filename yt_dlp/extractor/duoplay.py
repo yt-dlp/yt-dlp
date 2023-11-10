@@ -1,9 +1,14 @@
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
+    extract_attributes,
+    get_element_text_and_html_by_tag,
+    int_or_none,
+    join_nonempty,
+    str_or_none,
+    try_call,
     unified_timestamp,
-    strip_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class DuoplayIE(InfoExtractor):
