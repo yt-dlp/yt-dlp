@@ -77,7 +77,7 @@ class NebulaBaseIE(InfoExtractor):
                 })
         except ExtractorError as e:
             if isinstance(e.cause, urllib.error.HTTPError) and e.cause.status == 401:
-                self.raise_login_required()
+                self.raise_login_required('This video is only available for users with an active subscription')
             if fatal or not isinstance(e.cause, urllib.error.HTTPError) or e.cause.status != 403:
                 raise
             self.to_screen('Reautherizing with Nebula and retrying, because fetching video resulted in error')
@@ -90,7 +90,7 @@ class NebulaBaseIE(InfoExtractor):
         channel_url = traverse_obj(
             episode, (('channel_slug', 'class_slug'), {lambda x: urljoin('https://nebula.tv/', x)}), get_all=False)
         return {
-            'id': episode['id'].split(':', 1)[1],
+            'id': episode['id'].split(':', 1)[-1],
             **traverse_obj(episode, {
                 'display_id': 'slug',
                 'title': 'title',
@@ -347,10 +347,10 @@ class NebulaChannelIE(NebulaBaseIE):
         'playlist_count': 23,
     }]
 
-    def _generate_playlist_entries(self, collection_id):
+    def _generate_playlist_entries(self, collection_id, collection_slug):
         next_url = f'https://content.api.nebula.app/video_channels/{collection_id}/video_episodes/?ordering=-published_at'
         for page_num in itertools.count(1):
-            episodes = self._call_api(next_url, collection_id, note=f'Retrieving channel page {page_num}')
+            episodes = self._call_api(next_url, collection_slug, note=f'Retrieving channel page {page_num}')
             for episode in episodes['results']:
                 metadata = self._extract_video_metadata(episode)
                 yield self.url_result(smuggle_url(
@@ -376,7 +376,7 @@ class NebulaChannelIE(NebulaBaseIE):
         if channel.get('type') == 'class':
             entries = self._generate_playlist_entries_class(channel)
         else:
-            entries = self._generate_playlist_entries(channel['id'])
+            entries = self._generate_playlist_entries(channel['id'], collection_slug)
 
         return self.playlist_result(
             entries=entries,
