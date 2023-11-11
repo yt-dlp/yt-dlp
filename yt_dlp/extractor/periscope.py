@@ -24,12 +24,13 @@ class PeriscopeBaseIE(InfoExtractor):
 
         thumbnails = [{
             'url': broadcast[image],
-        } for image in ('image_url', 'image_url_small') if broadcast.get(image)]
+        } for image in ('image_url', 'image_url_medium', 'image_url_small') if broadcast.get(image)]
 
         return {
             'id': broadcast.get('id') or video_id,
             'title': title,
-            'timestamp': parse_iso8601(broadcast.get('created_at')),
+            'timestamp': parse_iso8601(broadcast.get('created_at')) or int_or_none(
+                broadcast.get('created_at_ms'), scale=1000),
             'uploader': uploader,
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
             'thumbnails': thumbnails,

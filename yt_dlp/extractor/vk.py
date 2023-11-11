@@ -97,12 +97,12 @@ class VKIE(VKBaseIE):
                         (?:
                             (?:
                                 (?:(?:m|new)\.)?vk\.com/video_|
-                                (?:www\.)?daxab.com/
+                                (?:www\.)?daxab\.com/
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
                                 (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?(?:video|clip)|
-                                (?:www\.)?daxab.com/embed/
+                                (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
                         )
