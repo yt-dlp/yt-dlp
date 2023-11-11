@@ -6,7 +6,6 @@ from ..utils import (
     js_to_json,
     url_or_none,
 )
-
 from ..utils.traversal import traverse_obj
 
 
