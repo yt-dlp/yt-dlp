@@ -194,7 +194,7 @@ class ZenYandexIE(InfoExtractor):
             'id': '60c7c443da18892ebfe85ed7',
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
-            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'description': 'md5:8684912f6086f298f8078d4af0e8a600',
             'thumbnail': 're:^https://avatars.dzeninfra.ru/',
             'uploader': 'AcademeG DailyStream'
         },
@@ -209,7 +209,7 @@ class ZenYandexIE(InfoExtractor):
             'id': '60c7c443da18892ebfe85ed7',
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
-            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'description': 'md5:8684912f6086f298f8078d4af0e8a600',
             'thumbnail': r're:^https://avatars\.dzeninfra\.ru/',
             'uploader': 'AcademeG DailyStream',
             'upload_date': '20191111',
@@ -284,7 +284,7 @@ class ZenYandexIE(InfoExtractor):
             'view_count': int_or_none(video_json.get('views')),
             'timestamp': int_or_none(video_json.get('publicationDate')),
             'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
-            'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
+            'description': video_json.get('description') or self._og_search_description(webpage),
             'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
         }
 
@@ -321,7 +321,7 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/jony_me',
         'info_dict': {
             'id': 'jony_me',
-            'description': 'md5:a2c62b4ef5cf3e3efb13d25f61f739e1',
+            'description': 'md5:ce0a5cad2752ab58701b5497835b2cc5',
             'title': 'JONY ',
         },
         'playlist_count': 20,
@@ -331,7 +331,7 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/tatyanareva',
         'info_dict': {
             'id': 'tatyanareva',
-            'description': 'md5:296b588d60841c3756c9105f237b70c6',
+            'description': 'md5:40a1e51f174369ec3ba9d657734ac31f',
             'title': 'Татьяна Рева',
             'entries': 'maxcount:200',
         },
