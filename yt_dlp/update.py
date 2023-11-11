@@ -475,7 +475,9 @@ class Updater:
                     f'The requested tag {self.requested_repo}@{update_info.tag} does not exist', True)
             return self._report_network_error(f'fetch updates: {e}', tag=update_info.tag)
 
-        if hashlib.sha256(newcontent).hexdigest() != update_info.checksum:
+        if not update_info.checksum:
+            self._block_restart('Automatically restarting into unverified builds is disabled for security reasons')
+        elif hashlib.sha256(newcontent).hexdigest() != update_info.checksum:
             return self._report_network_error('verify the new executable', tag=update_info.tag)
 
         try:
