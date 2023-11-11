@@ -23,7 +23,7 @@ class PeriscopeBaseIE(InfoExtractor):
         title = '%s - %s' % (uploader, title) if uploader else title
         thumbnails = [{
             'url': broadcast[image],
-        } for image in ('image_url', 'image_url_small') if broadcast.get(image)]
+        } for image in ('image_url', 'image_url_medium', 'image_url_small') if broadcast.get(image)]
 
         return {
             'id': broadcast.get('id') or video_id,
