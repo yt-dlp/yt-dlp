@@ -1,12 +1,13 @@
-import functools
+import itertools
 
 from .common import InfoExtractor
 from ..utils import (
-    OnDemandPagedList,
+    clean_html,
     extract_attributes,
     get_element_by_class,
     get_element_html_by_class,
     get_elements_html_by_class,
+    int_or_none,
     traverse_obj,
     unified_strdate,
     urljoin
@@ -14,7 +15,7 @@ from ..utils import (
 
 
 class TheGuardianPodcastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/audio/\d{4}/\w{3}/\d{1,2}/(?P<id>[\w-]+)(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/audio/\d{4}/\w{3}/\d{1,2}/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.theguardian.com/news/audio/2023/nov/03/we-are-just-getting-started-the-plastic-eating-bacteria-that-could-change-the-world-podcast',
         'md5': 'd1771744681789b4cd7da2a08e487702',
@@ -81,54 +82,56 @@ class TheGuardianPodcastIE(InfoExtractor):
 
 
 class TheGuardianPodcastPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/series/(?P<id>[\w-]+)/?(?:$|[?#])'
-    _PAGE_SIZE = 20
+    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/series/(?P<id>[\w-]+)(?:\?page=(?P<page>\d+))?'
     _TESTS = [{
         'url': 'https://www.theguardian.com/football/series/theguardianswomensfootballweekly',
         'info_dict': {
             'id': 'theguardianswomensfootballweekly',
-            'title': "The Guardian's Women's Football Weekly | Football | The Guardian",
+            'title': "The Guardian's Women's Football Weekly",
             'description': 'md5:e2cc021311e582d29935a73614a43f51'
         },
         'playlist_mincount': 69
     }, {
-        'url': 'https://www.theguardian.com/news/series/todayinfocus',
+        'url': 'https://www.theguardian.com/news/series/todayinfocus?page=2',
         'info_dict': {
             'id': 'todayinfocus',
-            'title': 'Today in Focus | News | The Guardian',
+            'title': 'Today in Focus | Page 2 of 66 | News | The Guardian',
             'description': 'md5:0f097764fc0d359e0b6eb537be0387e2'
         },
-        'playlist_mincount': 37
+        'playlist_mincount': 1261
     }, {
         'url': 'https://www.theguardian.com/news/series/the-audio-long-read',
         'info_dict': {
             'id': 'the-audio-long-read',
-            'title': 'The Audio Long Read | News | The Guardian',
+            'title': 'The Audio Long Read',
             'description': 'md5:5462994a27527309562b25b6defc4ef3'
         },
-        'playlist_mincount': 1008
+        'playlist_mincount': 996
     }]
 
-    def _fetch_page(self, url, playlist_id, page):
-        page += 1
-        webpage = self._download_webpage(
-            f'{url}?page={page}', playlist_id, note=f'Downloading page: {page}', expected_status=404)
+    def _entries(self, url, page, playlist_id):
+        for page in itertools.count(int_or_none(page) or 1):
+            webpage, urlh = self._download_webpage_handle(
+                url, playlist_id, f'Downloading page {page}', query={'page': page})
+            if '?' not in urlh.url:
+                break
 
-        episodes = traverse_obj(
-            get_elements_html_by_class('fc-item--type-media', webpage),
-            (..., {extract_attributes}, 'data-id'))
-
-        for entry in episodes:
-            yield self.url_result(urljoin('https://www.theguardian.com', entry), TheGuardianPodcastIE)
+            episodes = get_elements_html_by_class('fc-item--type-media', webpage)
+            for url_path in traverse_obj(episodes, (..., {extract_attributes}, 'data-id')):
+                episode_url = urljoin('https://www.theguardian.com', url_path)
+                if TheGuardianPodcastIE.suitable(episode_url):
+                    yield episode_url
 
     def _real_extract(self, url):
-        podcast_id = self._match_id(url)
+        podcast_id, page = self._match_valid_url(url).group('id', 'page')
+
         webpage = self._download_webpage(url, podcast_id)
 
-        title = self._generic_title(url, webpage, default='')
-        description = self._og_search_description(webpage) or get_element_by_class(
-            'header__description', webpage)
+        title = (clean_html(get_element_by_class(
+            'index-page-header__title', webpage)) or self._generic_title(url, webpage))
+        description = self._og_search_description(webpage) or self._html_search_meta(
+            'description', webpage)
 
-        return self.playlist_result(OnDemandPagedList(
-            functools.partial(self._fetch_page, url, podcast_id), self._PAGE_SIZE),
-            podcast_id, title, description)
+        return self.playlist_from_matches(
+            self._entries(url, page, podcast_id), podcast_id, title, description=description,
+            ie=TheGuardianPodcastIE)
