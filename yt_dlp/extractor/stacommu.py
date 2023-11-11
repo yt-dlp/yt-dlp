@@ -167,7 +167,7 @@ class TheaterComplexTownBaseIE(StacommuBaseIE):
     _LOGIN_HEADERS = {
         'Accept': '*/*',
         'Content-Type': 'application/json',
-        'X-Client-Version': 'Chrome/JsCore/9.9.4/FirebaseCore-web',
+        'X-Client-Version': 'Chrome/JsCore/9.23.0/FirebaseCore-web',
         'Referer': 'https://www.theater-complex.town/',
         'Origin': 'https://www.theater-complex.town',
     }
