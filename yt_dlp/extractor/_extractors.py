@@ -1387,7 +1387,10 @@ from .oftv import (
 from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
 from .on24 import On24IE
-from .ondemandkorea import OnDemandKoreaIE
+from .ondemandkorea import (
+    OnDemandKoreaIE,
+    OnDemandKoreaProgramIE,
+)
 from .onefootball import OneFootballIE
 from .onenewsnz import OneNewsNZIE
 from .oneplace import OnePlacePodcastIE
