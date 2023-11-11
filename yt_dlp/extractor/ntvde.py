@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 class NTVDeIE(InfoExtractor):
     IE_NAME = 'n-tv.de'
-    _VALID_URL = r'https?://(?:www\.)?n-tv\.de/mediathek/videos/[^/?#]+/[^/?#]+-article(?P<id>[^/?#]+)\.html'
+    _VALID_URL = r'https?://(?:www\.)?n-tv\.de/mediathek/(?:videos|magazine)/[^/?#]+/[^/?#]+-article(?P<id>[^/?#]+)\.html'
 
     _TESTS = [{
         'url': 'http://www.n-tv.de/mediathek/videos/panorama/Schnee-und-Glaette-fuehren-zu-zahlreichen-Unfaellen-und-Staus-article14438086.html',
@@ -26,6 +26,21 @@ class NTVDeIE(InfoExtractor):
             'duration': 67,
             'timestamp': 1422892797,
             'upload_date': '20150202',
+        },
+    },
+    {
+        'url': 'https://www.n-tv.de/mediathek/magazine/auslandsreport/Juedische-Siedler-wollten-Rache-die-wollten-nur-toeten-article24523089.html',
+        'md5': 'c5c6014c014ccc3359470e1d34472bfd',
+        'info_dict': {
+            'id': '24523089',
+            'ext': 'mp4',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'Jüdische Siedler "wollten Rache, die wollten nur töten"',
+            'alt_title': 'Israelische Gewalt fern von Gaza',
+            'description': 'Vier Tage nach dem Massaker der Hamas greifen jüdische Siedler das Haus einer palästinensischen Familie im Westjordanland an. Die Überlebenden berichten, sie waren unbewaffnet, die Angreifer seien nur auf "Rache und Töten" aus gewesen. Als die Toten beerdigt werden sollen, eröffnen die Siedler erneut das Feuer.',
+            'duration': 326,
+            'timestamp': 1699688294,
+            'upload_date': '20231111',
         },
     }]
 
