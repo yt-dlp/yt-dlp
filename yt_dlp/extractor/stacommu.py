@@ -200,7 +200,7 @@ class TheaterComplexTownVODIE(TheaterComplexTownBaseIE):
     _API_PATH = 'videoEpisodes'
 
     def _real_extract(self, url):
-        return self._extract_ppv(url)
+        return self._extract_vod(url)
 
 
 class TheaterComplexTownPPVIE(TheaterComplexTownBaseIE):
@@ -228,4 +228,4 @@ class TheaterComplexTownPPVIE(TheaterComplexTownBaseIE):
     _API_PATH = 'events'
 
     def _real_extract(self, url):
-        return self._extract_vod(url)
+        return self._extract_ppv(url)
