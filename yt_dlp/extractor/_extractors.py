@@ -948,6 +948,7 @@ from .lcp import (
 from .lecture2go import Lecture2GoIE
 from .lecturio import (
     LecturioIE,
+    LecturioDeIE,
     LecturioCourseIE,
     LecturioDeCourseIE,
 )

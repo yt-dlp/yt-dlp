@@ -14,64 +14,9 @@ from ..utils import (
 )
 
 
-class LecturioBaseIE(InfoExtractor):
-    _API_BASE_URL = 'https://app.lecturio.com/api/en/latest/html5/'
-    _DE_API_BASE_URL = 'https://lecturio.de/api/de/latest/html5/'
-    _LOGIN_URL = 'https://app.lecturio.com/en/login'
-    _DE_LOGIN_URL = 'https://www.lecturio.de/anmelden.html'
-    _NETRC_MACHINE = 'lecturio'
+class LecturioIE(InfoExtractor):
+    _VALID_URL = r'https://app\.lecturio\.com/([^/]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))'
 
-    is_DE = None
-
-    # Find out if url is german before starting anything else
-    def extract(self, url):
-        self.is_DE = True if re.match(r"https://(?:www\.)?lecturio\.de/", url) else False
-        return super().extract(url)
-
-    def _perform_login(self, username, password):
-
-        login_url = self._DE_LOGIN_URL if self.is_DE else self._LOGIN_URL
-        # Sets some cookies
-        _, urlh = self._download_webpage_handle(
-            login_url, None, 'Downloading login popup')
-
-        def is_logged(url_handle):
-            return login_url not in url_handle.geturl()
-
-        # Already logged in
-        if is_logged(urlh):
-            return
-
-        login_form = {
-            'signin[email]': username,
-            'signin[password]': password,
-            'signin[remember]': 'on',
-        }
-
-        response, urlh = self._download_webpage_handle(
-            login_url, None, 'Logging in',
-            data=urlencode_postdata(login_form))
-
-        # Logged in successfully
-        if is_logged(urlh):
-            return
-
-        errors = self._html_search_regex(
-            r'(?s)<ul[^>]+class=["\']error_list[^>]+>(.+?)</ul>', response,
-            'errors', default=None)
-        if errors:
-            raise ExtractorError('Unable to login: %s' % errors, expected=True)
-        raise ExtractorError('Unable to log in')
-
-
-class LecturioIE(LecturioBaseIE):
-    _VALID_URL = r'''(?x)
-                    https://
-                        (?:
-                            app\.lecturio\.com/([^/]+/(?P<nt>[^/?#&]+)\.lecture|(?:\#/)?lecture/c/\d+/(?P<id>\d+))|
-                            (?:www\.)?lecturio\.de/[^/]+/(?P<nt_de>[^/?#&]+)\.vortrag
-                        )
-                    '''
     _TESTS = [{
         'url': 'https://app.lecturio.com/medical-courses/important-concepts-and-terms-introduction-to-microbiology.lecture#tab/videos',
         'md5': '9a42cf1d8282a6311bf7211bbde26fde',
@@ -82,12 +27,14 @@ class LecturioIE(LecturioBaseIE):
         },
         'skip': 'Requires lecturio account credentials',
     }, {
-        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
-        'only_matching': True,
-    }, {
         'url': 'https://app.lecturio.com/#/lecture/c/6434/39634',
         'only_matching': True,
     }]
+
+    _API_BASE_URL = 'https://app.lecturio.com/api/en/latest/html5/'
+    _LOGIN_URL = 'https://app.lecturio.com/en/login'
+
+    _NETRC_MACHINE = 'lecturio'
 
     _CC_LANGS = {
         'Arabic': 'ar',
@@ -103,15 +50,48 @@ class LecturioIE(LecturioBaseIE):
         'Russian': 'ru',
     }
 
+    def _perform_login(self, username, password):
+
+        # Sets some cookies
+        _, urlh = self._download_webpage_handle(
+            self._LOGIN_URL, None, 'Downloading login popup')
+
+        def is_logged(url_handle):
+            return self._LOGIN_URL not in url_handle.geturl()
+
+        # Already logged in
+        if is_logged(urlh):
+            return
+
+        login_form = {
+            'signin[email]': username,
+            'signin[password]': password,
+            'signin[remember]': 'on',
+        }
+
+        response, urlh = self._download_webpage_handle(
+            self._LOGIN_URL, None, 'Logging in',
+            data=urlencode_postdata(login_form))
+
+        # Logged in successfully
+        if is_logged(urlh):
+            return
+
+        errors = self._html_search_regex(
+            r'(?s)<ul[^>]+class=["\']error_list[^>]+>(.+?)</ul>', response,
+            'errors', default=None)
+        if errors:
+            raise ExtractorError('Unable to login: %s' % errors, expected=True)
+        raise ExtractorError('Unable to log in')
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        nt = mobj.group('nt') or mobj.group('nt_de')
+        nt = mobj.group('nt')
         lecture_id = mobj.group('id')
         display_id = nt or lecture_id
         api_path = 'lectures/' + lecture_id if lecture_id else 'lecture/' + nt + '.json'
 
-        video = self._download_json(
-            (self._DE_API_BASE_URL if self.is_DE else self._API_BASE_URL) + api_path, display_id)
+        video = self._download_json(self._API_BASE_URL + api_path, display_id)
         title = video['title'].strip()
         if not lecture_id:
             pid = video.get('productId') or video.get('uid')
@@ -179,8 +159,20 @@ class LecturioIE(LecturioBaseIE):
             'automatic_captions': automatic_captions,
         }
 
+# German Lecturio simply requires different URLs
+class LecturioDeIE(LecturioIE):
+    _VALID_URL = r'https://www\.lecturio\.de/[^/]+/(?P<nt>[^/?#&]+)\.vortrag'
 
-class LecturioCourseIE(LecturioBaseIE):
+    _TESTS = [{
+        'url': 'https://www.lecturio.de/jura/oeffentliches-recht-staatsexamen.vortrag',
+        'only_matching': True,
+    }]
+
+    _API_BASE_URL = 'https://lecturio.de/api/de/latest/html5/'
+    _LOGIN_URL = 'https://www.lecturio.de/anmelden.html'
+
+
+class LecturioCourseIE(LecturioIE):
     _VALID_URL = r'https://app\.lecturio\.com/(?:[^/]+/(?P<nt>[^/?#&]+)\.course|(?:#/)?course/c/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://app.lecturio.com/medical-courses/microbiology-introduction.course#/',
@@ -217,12 +209,12 @@ class LecturioCourseIE(LecturioBaseIE):
             clean_html(course.get('description')))
 
 
-class LecturioDeCourseIE(LecturioBaseIE):
+class LecturioDeCourseIE(LecturioDeIE):
     _VALID_URL = r'https://(?:www\.)?lecturio\.de/[^/]+/(?P<id>[^/?#&]+)\.kurs'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.lecturio.de/jura/grundrechte.kurs',
         'only_matching': True,
-    }
+    }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
