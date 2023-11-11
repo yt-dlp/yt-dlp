@@ -128,8 +128,8 @@ class DRTVIE(InfoExtractor):
 
     SUBTITLE_LANGS = {
         'DanishLanguageSubtitles': 'da',
-        'ForeignLanguageSubtitles': 'da_foreign-only',
-        'CombinedLanguageSubtitles': 'da_all',
+        'ForeignLanguageSubtitles': 'da_foreign',
+        'CombinedLanguageSubtitles': 'da_combined',
     }
 
     def _real_initialize(self):
@@ -200,19 +200,24 @@ class DRTVIE(InfoExtractor):
             format_id = fmt.get('format', 'na')
             access_service = fmt.get('accessService')
             preference = None
+            subtitle_sufix = ''
             if access_service in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
                 preference = -1
                 format_id += f'-{access_service}'
+                subtitle_sufix = f'-{access_service}'
             elif access_service == 'StandardVideo':
                 preference = 1
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 fmt.get('url'), video_id, preference=preference, m3u8_id=format_id, fatal=False)
             formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
 
-            for sub_track in traverse_obj(fmt, ('subtitles', lambda _, v: url_or_none(v['link']), {dict})):
+            api_subtitles = traverse_obj(fmt, ('subtitles', lambda _, v: url_or_none(v['link']), {dict}))
+            if not api_subtitles:
+                self._merge_subtitles(subs, target=subtitles)
+
+            for sub_track in api_subtitles:
                 lang = sub_track.get('language') or 'da'
-                subtitles.setdefault(self.SUBTITLE_LANGS.get(lang, lang), []).append({
+                subtitles.setdefault(self.SUBTITLE_LANGS.get(lang, lang) + subtitle_sufix, []).append({
                     'url': sub_track['link'],
                     'ext': mimetype2ext(sub_track.get('format')) or 'vtt'
                 })
