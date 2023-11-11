@@ -215,7 +215,7 @@ def sanitize_got_info_dict(got_dict):
     test_info_dict = {
         key: sanitize(key, value) for key, value in got_dict.items()
         if value is not None and key not in IGNORED_FIELDS and (
-            not any(key.startswith(f'{prefix}_')for prefix in IGNORED_PREFIXES)
+            not any(key.startswith(f'{prefix}_') for prefix in IGNORED_PREFIXES)
             or key == '_old_archive_ids')
     }
 
