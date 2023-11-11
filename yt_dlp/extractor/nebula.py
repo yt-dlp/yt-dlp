@@ -1,5 +1,6 @@
 import itertools
 import json
+import urllib.error
 
 from .common import InfoExtractor
 from ..utils import (
@@ -11,6 +12,8 @@ from ..utils import (
     smuggle_url,
     traverse_obj,
     unsmuggle_url,
+    update_url_query,
+    url_or_none,
 )
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
@@ -23,7 +26,7 @@ class NebulaBaseIE(InfoExtractor):
     def _perform_login(self, username, password):
         try:
             response = self._download_json(
-                'https://api.watchnebula.com/api/v1/auth/login/', None,
+                'https://nebula.tv/auth/login/', None,
                 'Logging in to Nebula', 'Login failed',
                 data=json.dumps({'email': username, 'password': password}).encode(),
                 headers={
@@ -31,7 +34,7 @@ class NebulaBaseIE(InfoExtractor):
                     'cookie': ''  # 'sessionid' cookie causes 403
                 })
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 400:
+            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.status == 400:
                 raise ExtractorError('Login failed: Invalid username or password', expected=True)
             raise
         self._api_token = response.get('key')
@@ -44,33 +47,40 @@ class NebulaBaseIE(InfoExtractor):
         try:
             return self._download_json(*args, **kwargs)
         except ExtractorError as exc:
-            if not isinstance(exc.cause, urllib.error.HTTPError) or exc.cause.code not in (401, 403):
+            if not isinstance(exc.cause, urllib.error.HTTPError) or exc.cause.status not in (401, 403):
                 raise
             username, password = self._get_login_info()
             if not username:
                 self.raise_login_required(method='password')
 
             self.to_screen(f'Reauthenticating to Nebula and retrying, '
-                           f'because last API call resulted in error {exc.cause.code}')
+                           f'because last API call resulted in error {exc.cause.status}')
             self._perform_login(username, password)
             self._real_initialize()
+            if self._token:
+                kwargs.setdefault('headers', {})['Authorization'] = f'Bearer {self._token}'
             return self._download_json(*args, **kwargs)
 
     def _real_initialize(self):
         self._token = self._download_json(
-            'https://api.watchnebula.com/api/v1/authorization/', None,
+            'https://users.api.nebula.app/api/v1/authorization/', None,
             headers={'Authorization': f'Token {self._api_token}'} if self._api_token else None,
             note='Authorizing to Nebula', data=b'')['token']
 
-    def _extract_formats(self, slug):
-        stream_info = self._call_api(
-            f'https://content.watchnebula.com/video/{slug}/stream/',
-            slug, note='Fetching video stream info')
-        fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug, 'mp4')
+    def _extract_formats(self, content_id, slug):
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+            f'https://content.api.nebula.app/video_episodes/{content_id}/manifest.m3u8',
+            slug, 'mp4', fatal=False, query={
+                'token': self._token,
+                'app_version': '23.10.0',
+                'platform': 'ios',
+            })
+        if not fmts:
+            self.raise_login_required(method='password')
         return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
-        channel_url = format_field(episode, 'channel_slug', 'https://nebula.app/%s')
+        channel_url = format_field(episode, 'channel_slug', 'https://nebula.tv/%s')
         return {
             'id': remove_start(episode['id'], 'video_episode:'),
             **traverse_obj(episode, {
@@ -85,17 +95,13 @@ class NebulaBaseIE(InfoExtractor):
                 'uploader': 'channel_title',
                 'series': 'channel_title',
                 'creator': 'channel_title',
+                'thumbnail': ('images', 'thumbnail', 'src', {url_or_none}),
                 # Old code was wrongly setting extractor_key from NebulaSubscriptionsIE
                 '_old_archive_ids': ('zype_id', {lambda x: [
                     make_archive_id(NebulaIE, x), make_archive_id(NebulaSubscriptionsIE, x)]}),
             }),
             'channel_url': channel_url,
             'uploader_url': channel_url,
-            'thumbnails': [{
-                # 'id': tn.get('name'),  # this appears to be null
-                'url': tn['original'],
-                'height': key,
-            } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
         }
 
 
@@ -121,7 +127,8 @@ class NebulaIE(NebulaBaseIE):
                 'channel_url': r're:https://nebula\.(tv|app)/lindsayellis',
                 'creator': 'Lindsay Ellis',
                 'duration': 2212,
-                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
+                '_old_archive_ids': ['nebula 5c271b40b13fd613090034fd', 'nebulasubscriptions 5c271b40b13fd613090034fd'],
             },
             'params': {'skip_download': 'm3u8'},
         },
@@ -145,8 +152,10 @@ class NebulaIE(NebulaBaseIE):
                 'duration': 841,
                 'channel_url': 'https://nebula.tv/d-day',
                 'uploader_url': 'https://nebula.tv/d-day',
-                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
+                '_old_archive_ids': ['nebula 5e7e78171aaf320001fbd6be', 'nebulasubscriptions 5e7e78171aaf320001fbd6be'],
             },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             'url': 'https://nebula.tv/videos/money-episode-1-the-draw',
@@ -167,9 +176,11 @@ class NebulaIE(NebulaBaseIE):
                 'channel_url': 'https://nebula.tv/tom-scott-presents-money',
                 'series': 'Tom Scott Presents: Money',
                 'display_id': 'money-episode-1-the-draw',
-                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
                 'creator': 'Tom Scott Presents: Money',
+                '_old_archive_ids': ['nebula 5e779ebdd157bc0001d1c75a', 'nebulasubscriptions 5e779ebdd157bc0001d1c75a'],
             },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
@@ -192,9 +203,9 @@ class NebulaIE(NebulaBaseIE):
                 'duration': 524,
                 'channel_url': r're:https://nebula\.(tv|app)/tldrnewseu',
                 'series': 'TLDR News EU',
-                'thumbnail': r're:https?://.*\.jpeg',
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
                 'creator': 'TLDR News EU',
-                '_old_archive_ids': ['nebula 63f64c74366fcd00017c1513'],
+                '_old_archive_ids': ['nebula 63f64c74366fcd00017c1513', 'nebulasubscriptions 63f64c74366fcd00017c1513'],
             },
             'params': {'skip_download': 'm3u8'},
         },
@@ -212,20 +223,21 @@ class NebulaIE(NebulaBaseIE):
                 'id': smuggled_data['id'],
                 'display_id': slug,
                 'title': '',
-                **self._extract_formats(slug),
+                **self._extract_formats(smuggled_data['id'], slug),
             }
 
+        metadata = self._call_api(
+            f'https://content.api.nebula.app/content/videos/{slug}',
+            slug, note='Fetching video metadata')
         return {
-            **self._extract_video_metadata(self._call_api(
-                f'https://content.watchnebula.com/video/{slug}/',
-                slug, note='Fetching video metadata')),
-            **self._extract_formats(slug),
+            **self._extract_video_metadata(metadata),
+            **self._extract_formats(metadata['id'], slug),
         }
 
 
 class NebulaSubscriptionsIE(NebulaBaseIE):
     IE_NAME = 'nebula:subscriptions'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>myshows)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>myshows|library/latest-videos)'
     _TESTS = [
         {
             'url': 'https://nebula.tv/myshows',
@@ -237,7 +249,11 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
     ]
 
     def _generate_playlist_entries(self):
-        next_url = 'https://content.watchnebula.com/library/video/?page_size=100'
+        next_url = update_url_query('https://content.api.nebula.app/video_episodes/', {
+            'following': 'true',
+            'include': 'engagement',
+            'ordering': '-published_at',
+        })
         for page_num in itertools.count(1):
             channel = self._call_api(
                 next_url, 'myshows', note=f'Retrieving subscriptions page {page_num}')
@@ -245,7 +261,7 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
                 metadata = self._extract_video_metadata(episode)
                 yield self.url_result(smuggle_url(
                     f'https://nebula.tv/videos/{metadata["display_id"]}',
-                    {'id': metadata['id']}), NebulaIE, url_transparent=True, **metadata)
+                    {'id': episode['id']}), NebulaIE, url_transparent=True, **metadata)
             next_url = channel.get('next')
             if not next_url:
                 return
@@ -256,7 +272,7 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
 
 class NebulaChannelIE(NebulaBaseIE):
     IE_NAME = 'nebula:channel'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|videos/)(?P<id>[-\w]+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://nebula.tv/tom-scott-presents-money',
@@ -285,26 +301,27 @@ class NebulaChannelIE(NebulaBaseIE):
         },
     ]
 
-    def _generate_playlist_entries(self, collection_id, channel):
-        for page_num in itertools.count(2):
-            for episode in channel['episodes']['results']:
+    def _generate_playlist_entries(self, collection_id):
+        next_url = f'https://content.api.nebula.app/video_channels/{collection_id}/video_episodes/?ordering=-published_at'
+        for page_num in itertools.count(1):
+            episodes = self._call_api(next_url, collection_id, note=f'Retrieving channel page {page_num}')
+            for episode in episodes['results']:
                 metadata = self._extract_video_metadata(episode)
                 yield self.url_result(smuggle_url(
                     episode.get('share_url') or f'https://nebula.tv/videos/{metadata["display_id"]}',
-                    {'id': metadata['id']}), NebulaIE, url_transparent=True, **metadata)
-            next_url = channel['episodes'].get('next')
+                    {'id': episode['id']}), NebulaIE, url_transparent=True, **metadata)
+            next_url = episodes.get('next')
             if not next_url:
                 break
-            channel = self._call_api(next_url, collection_id, note=f'Retrieving channel page {page_num}')
 
     def _real_extract(self, url):
-        collection_id = self._match_id(url)
+        collection_slug = self._match_id(url)
         channel = self._call_api(
-            f'https://content.watchnebula.com/video/channels/{collection_id}/',
-            collection_id, note='Retrieving channel')
+            f'https://content.api.nebula.app/content/{collection_slug}/',
+            collection_slug, note='Retrieving channel')
 
         return self.playlist_result(
-            entries=self._generate_playlist_entries(collection_id, channel),
-            playlist_id=collection_id,
-            playlist_title=traverse_obj(channel, ('details', 'title')),
-            playlist_description=traverse_obj(channel, ('details', 'description')))
+            entries=self._generate_playlist_entries(channel['id']),
+            playlist_id=collection_slug,
+            playlist_title=channel.get('title'),
+            playlist_description=channel.get('description'))
