@@ -1420,6 +1420,7 @@ from .orf import (
     ORFTVthekIE,
     ORFFM4StoryIE,
     ORFRadioIE,
+    ORFPodcastIE,
     ORFIPTVIE,
 )
 from .outsidetv import OutsideTVIE
