@@ -109,113 +109,107 @@ class NebulaBaseIE(InfoExtractor):
 
 class NebulaIE(NebulaBaseIE):
     _VALID_URL = rf'{_BASE_URL_RE}/videos/(?P<id>[-\w]+)'
-    _TESTS = [
-        {
-            'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
-            'info_dict': {
-                'id': '84ed544d-4afd-4723-8cd5-2b95261f0abf',
-                'ext': 'mp4',
-                'title': 'That Time Disney Remade Beauty and the Beast',
-                'description': 'md5:2aae3c4cfc5ee09a1ecdff0909618cf4',
-                'upload_date': '20180731',
-                'timestamp': 1533009600,
-                'channel': 'Lindsay Ellis',
-                'channel_id': 'lindsayellis',
-                'uploader': 'Lindsay Ellis',
-                'uploader_id': 'lindsayellis',
-                'uploader_url': r're:https://nebula\.(tv|app)/lindsayellis',
-                'series': 'Lindsay Ellis',
-                'display_id': 'that-time-disney-remade-beauty-and-the-beast',
-                'channel_url': r're:https://nebula\.(tv|app)/lindsayellis',
-                'creator': 'Lindsay Ellis',
-                'duration': 2212,
-                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
-                '_old_archive_ids': ['nebula 5c271b40b13fd613090034fd', 'nebulasubscriptions 5c271b40b13fd613090034fd'],
-            },
-            'params': {'skip_download': 'm3u8'},
+    _TESTS = [{
+        'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
+        'info_dict': {
+            'id': '84ed544d-4afd-4723-8cd5-2b95261f0abf',
+            'ext': 'mp4',
+            'title': 'That Time Disney Remade Beauty and the Beast',
+            'description': 'md5:2aae3c4cfc5ee09a1ecdff0909618cf4',
+            'upload_date': '20180731',
+            'timestamp': 1533009600,
+            'channel': 'Lindsay Ellis',
+            'channel_id': 'lindsayellis',
+            'uploader': 'Lindsay Ellis',
+            'uploader_id': 'lindsayellis',
+            'uploader_url': r're:https://nebula\.(tv|app)/lindsayellis',
+            'series': 'Lindsay Ellis',
+            'display_id': 'that-time-disney-remade-beauty-and-the-beast',
+            'channel_url': r're:https://nebula\.(tv|app)/lindsayellis',
+            'creator': 'Lindsay Ellis',
+            'duration': 2212,
+            'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
+            '_old_archive_ids': ['nebula 5c271b40b13fd613090034fd', 'nebulasubscriptions 5c271b40b13fd613090034fd'],
         },
-        {
-            'url': 'https://nebula.tv/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
-            'md5': 'd05739cf6c38c09322422f696b569c23',
-            'info_dict': {
-                'id': '7e623145-1b44-4ca3-aa0b-ed25a247ea34',
-                'ext': 'mp4',
-                'title': 'Landing Craft - How The Allies Got Ashore',
-                'description': r're:^In this episode we explore the unsung heroes of D-Day, the landing craft.',
-                'upload_date': '20200327',
-                'timestamp': 1585348140,
-                'channel': 'Real Engineering — The Logistics of D-Day',
-                'channel_id': 'd-day',
-                'uploader': 'Real Engineering — The Logistics of D-Day',
-                'uploader_id': 'd-day',
-                'series': 'Real Engineering — The Logistics of D-Day',
-                'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
-                'creator': 'Real Engineering — The Logistics of D-Day',
-                'duration': 841,
-                'channel_url': 'https://nebula.tv/d-day',
-                'uploader_url': 'https://nebula.tv/d-day',
-                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
-                '_old_archive_ids': ['nebula 5e7e78171aaf320001fbd6be', 'nebulasubscriptions 5e7e78171aaf320001fbd6be'],
-            },
-            'params': {'skip_download': 'm3u8'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://nebula.tv/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
+        'md5': 'd05739cf6c38c09322422f696b569c23',
+        'info_dict': {
+            'id': '7e623145-1b44-4ca3-aa0b-ed25a247ea34',
+            'ext': 'mp4',
+            'title': 'Landing Craft - How The Allies Got Ashore',
+            'description': r're:^In this episode we explore the unsung heroes of D-Day, the landing craft.',
+            'upload_date': '20200327',
+            'timestamp': 1585348140,
+            'channel': 'Real Engineering — The Logistics of D-Day',
+            'channel_id': 'd-day',
+            'uploader': 'Real Engineering — The Logistics of D-Day',
+            'uploader_id': 'd-day',
+            'series': 'Real Engineering — The Logistics of D-Day',
+            'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
+            'creator': 'Real Engineering — The Logistics of D-Day',
+            'duration': 841,
+            'channel_url': 'https://nebula.tv/d-day',
+            'uploader_url': 'https://nebula.tv/d-day',
+            'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
+            '_old_archive_ids': ['nebula 5e7e78171aaf320001fbd6be', 'nebulasubscriptions 5e7e78171aaf320001fbd6be'],
         },
-        {
-            'url': 'https://nebula.tv/videos/money-episode-1-the-draw',
-            'md5': 'ebe28a7ad822b9ee172387d860487868',
-            'info_dict': {
-                'id': 'b96c5714-9e2b-4ec3-b3f1-20f6e89cc553',
-                'ext': 'mp4',
-                'title': 'Episode 1: The Draw',
-                'description': r'contains:There’s free money on offer… if the players can all work together.',
-                'upload_date': '20200323',
-                'timestamp': 1584980400,
-                'channel': 'Tom Scott Presents: Money',
-                'channel_id': 'tom-scott-presents-money',
-                'uploader': 'Tom Scott Presents: Money',
-                'uploader_id': 'tom-scott-presents-money',
-                'uploader_url': 'https://nebula.tv/tom-scott-presents-money',
-                'duration': 825,
-                'channel_url': 'https://nebula.tv/tom-scott-presents-money',
-                'series': 'Tom Scott Presents: Money',
-                'display_id': 'money-episode-1-the-draw',
-                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
-                'creator': 'Tom Scott Presents: Money',
-                '_old_archive_ids': ['nebula 5e779ebdd157bc0001d1c75a', 'nebulasubscriptions 5e779ebdd157bc0001d1c75a'],
-            },
-            'params': {'skip_download': 'm3u8'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://nebula.tv/videos/money-episode-1-the-draw',
+        'md5': 'ebe28a7ad822b9ee172387d860487868',
+        'info_dict': {
+            'id': 'b96c5714-9e2b-4ec3-b3f1-20f6e89cc553',
+            'ext': 'mp4',
+            'title': 'Episode 1: The Draw',
+            'description': r'contains:There’s free money on offer… if the players can all work together.',
+            'upload_date': '20200323',
+            'timestamp': 1584980400,
+            'channel': 'Tom Scott Presents: Money',
+            'channel_id': 'tom-scott-presents-money',
+            'uploader': 'Tom Scott Presents: Money',
+            'uploader_id': 'tom-scott-presents-money',
+            'uploader_url': 'https://nebula.tv/tom-scott-presents-money',
+            'duration': 825,
+            'channel_url': 'https://nebula.tv/tom-scott-presents-money',
+            'series': 'Tom Scott Presents: Money',
+            'display_id': 'money-episode-1-the-draw',
+            'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
+            'creator': 'Tom Scott Presents: Money',
+            '_old_archive_ids': ['nebula 5e779ebdd157bc0001d1c75a', 'nebulasubscriptions 5e779ebdd157bc0001d1c75a'],
         },
-        {
-            'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
-            'only_matching': True,
-        }, {
-            'url': 'https://nebula.tv/videos/tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
-            'info_dict': {
-                'id': 'e389af9d-1dab-44f2-8788-ee24deb7ff0d',
-                'ext': 'mp4',
-                'display_id': 'tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
-                'title': 'Did the US Really Blow Up the NordStream Pipelines?',
-                'description': 'md5:b4e2a14e3ff08f546a3209c75261e789',
-                'upload_date': '20230223',
-                'timestamp': 1677144070,
-                'channel': 'TLDR News EU',
-                'channel_id': 'tldrnewseu',
-                'uploader': 'TLDR News EU',
-                'uploader_id': 'tldrnewseu',
-                'uploader_url': r're:https://nebula\.(tv|app)/tldrnewseu',
-                'duration': 524,
-                'channel_url': r're:https://nebula\.(tv|app)/tldrnewseu',
-                'series': 'TLDR News EU',
-                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
-                'creator': 'TLDR News EU',
-                '_old_archive_ids': ['nebula 63f64c74366fcd00017c1513', 'nebulasubscriptions 63f64c74366fcd00017c1513'],
-            },
-            'params': {'skip_download': 'm3u8'},
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
+        'only_matching': True,
+    }, {
+        'url': 'https://nebula.tv/videos/tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
+        'info_dict': {
+            'id': 'e389af9d-1dab-44f2-8788-ee24deb7ff0d',
+            'ext': 'mp4',
+            'display_id': 'tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
+            'title': 'Did the US Really Blow Up the NordStream Pipelines?',
+            'description': 'md5:b4e2a14e3ff08f546a3209c75261e789',
+            'upload_date': '20230223',
+            'timestamp': 1677144070,
+            'channel': 'TLDR News EU',
+            'channel_id': 'tldrnewseu',
+            'uploader': 'TLDR News EU',
+            'uploader_id': 'tldrnewseu',
+            'uploader_url': r're:https://nebula\.(tv|app)/tldrnewseu',
+            'duration': 524,
+            'channel_url': r're:https://nebula\.(tv|app)/tldrnewseu',
+            'series': 'TLDR News EU',
+            'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+',
+            'creator': 'TLDR News EU',
+            '_old_archive_ids': ['nebula 63f64c74366fcd00017c1513', 'nebulasubscriptions 63f64c74366fcd00017c1513'],
         },
-        {
-            'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
-            'only_matching': True,
-        },
-    ]
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         slug = self._match_id(url)
@@ -239,24 +233,22 @@ class NebulaIE(NebulaBaseIE):
 
 class NebulaClassIE(NebulaBaseIE):
     _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>[-\w]+)/(?P<ep>\d+)'
-    _TESTS = [
-        {
-            'url': 'https://nebula.tv/copyright-for-fun-and-profit/14',
-            'info_dict': {
-                'id': 'd7432cdc-c608-474d-942c-f74345daed7b',
-                'ext': 'mp4',
-                'display_id': '14',
-                'channel_url': 'https://nebula.tv/copyright-for-fun-and-profit',
-                'episode_number': 14,
-                'thumbnail': 'https://dj423fildxgac.cloudfront.net/d533718d-9307-42d4-8fb0-e283285e99c9',
-                'uploader_url': 'https://nebula.tv/copyright-for-fun-and-profit',
-                'duration': 646,
-                'episode': 'Episode 14',
-                'title': 'Photos, Sculpture, and Video',
-            },
-            'params': {'skip_download': 'm3u8'},
+    _TESTS = [{
+        'url': 'https://nebula.tv/copyright-for-fun-and-profit/14',
+        'info_dict': {
+            'id': 'd7432cdc-c608-474d-942c-f74345daed7b',
+            'ext': 'mp4',
+            'display_id': '14',
+            'channel_url': 'https://nebula.tv/copyright-for-fun-and-profit',
+            'episode_number': 14,
+            'thumbnail': 'https://dj423fildxgac.cloudfront.net/d533718d-9307-42d4-8fb0-e283285e99c9',
+            'uploader_url': 'https://nebula.tv/copyright-for-fun-and-profit',
+            'duration': 646,
+            'episode': 'Episode 14',
+            'title': 'Photos, Sculpture, and Video',
         },
-    ]
+        'params': {'skip_download': 'm3u8'},
+    }]
 
     def _real_extract(self, url):
         slug, episode = self._match_valid_url(url).group('id', 'ep')
@@ -281,15 +273,13 @@ class NebulaClassIE(NebulaBaseIE):
 class NebulaSubscriptionsIE(NebulaBaseIE):
     IE_NAME = 'nebula:subscriptions'
     _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>myshows|library/latest-videos)'
-    _TESTS = [
-        {
-            'url': 'https://nebula.tv/myshows',
-            'playlist_mincount': 1,
-            'info_dict': {
-                'id': 'myshows',
-            },
+    _TESTS = [{
+        'url': 'https://nebula.tv/myshows',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': 'myshows',
         },
-    ]
+    }]
 
     def _generate_playlist_entries(self):
         next_url = update_url_query('https://content.api.nebula.app/video_episodes/', {
@@ -316,41 +306,39 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
 class NebulaChannelIE(NebulaBaseIE):
     IE_NAME = 'nebula:channel'
     _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)/?(?:$|[?#])'
-    _TESTS = [
-        {
-            'url': 'https://nebula.tv/tom-scott-presents-money',
-            'info_dict': {
-                'id': 'tom-scott-presents-money',
-                'title': 'Tom Scott Presents: Money',
-                'description': 'Tom Scott hosts a series all about trust, negotiation and money.',
-            },
-            'playlist_count': 5,
-        }, {
-            'url': 'https://nebula.tv/lindsayellis',
-            'info_dict': {
-                'id': 'lindsayellis',
-                'title': 'Lindsay Ellis',
-                'description': 'Enjoy these hottest of takes on Disney, Transformers, and Musicals.',
-            },
-            'playlist_mincount': 2,
-        }, {
-            'url': 'https://nebula.tv/johnnyharris',
-            'info_dict': {
-                'id': 'johnnyharris',
-                'title': 'Johnny Harris',
-                'description': 'I make videos about maps and many other things.',
-            },
-            'playlist_mincount': 90,
-        }, {
-            'url': 'https://nebula.tv/copyright-for-fun-and-profit',
-            'info_dict': {
-                'id': 'copyright-for-fun-and-profit',
-                'title': 'Copyright for Fun and Profit',
-                'description': 'md5:6690248223eed044a9f11cd5a24f9742',
-            },
-            'playlist_count': 23,
-        }
-    ]
+    _TESTS = [{
+        'url': 'https://nebula.tv/tom-scott-presents-money',
+        'info_dict': {
+            'id': 'tom-scott-presents-money',
+            'title': 'Tom Scott Presents: Money',
+            'description': 'Tom Scott hosts a series all about trust, negotiation and money.',
+        },
+        'playlist_count': 5,
+    }, {
+        'url': 'https://nebula.tv/lindsayellis',
+        'info_dict': {
+            'id': 'lindsayellis',
+            'title': 'Lindsay Ellis',
+            'description': 'Enjoy these hottest of takes on Disney, Transformers, and Musicals.',
+        },
+        'playlist_mincount': 2,
+    }, {
+        'url': 'https://nebula.tv/johnnyharris',
+        'info_dict': {
+            'id': 'johnnyharris',
+            'title': 'Johnny Harris',
+            'description': 'I make videos about maps and many other things.',
+        },
+        'playlist_mincount': 90,
+    }, {
+        'url': 'https://nebula.tv/copyright-for-fun-and-profit',
+        'info_dict': {
+            'id': 'copyright-for-fun-and-profit',
+            'title': 'Copyright for Fun and Profit',
+            'description': 'md5:6690248223eed044a9f11cd5a24f9742',
+        },
+        'playlist_count': 23,
+    }]
 
     def _generate_playlist_entries(self, collection_id):
         next_url = f'https://content.api.nebula.app/video_channels/{collection_id}/video_episodes/?ordering=-published_at'
