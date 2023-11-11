@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 class NTVDeIE(InfoExtractor):
     IE_NAME = 'n-tv.de'
-    _VALID_URL = r'https?://(?:www\.)?n-tv\.de/mediathek/videos/[^/?#]+/[^/?#]+-article(?P<id>.+)\.html'
+    _VALID_URL = r'https?://(?:www\.)?n-tv\.de/mediathek/videos/[^/?#]+/[^/?#]+-article(?P<id>[^/?#]+)\.html'
 
     _TESTS = [{
         'url': 'http://www.n-tv.de/mediathek/videos/panorama/Schnee-und-Glaette-fuehren-zu-zahlreichen-Unfaellen-und-Staus-article14438086.html',
@@ -34,25 +34,24 @@ class NTVDeIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         info = self._search_json(
-            r'article:\s*', webpage, 'info', video_id, transform_source=js_to_json)
+            r'article:', webpage, 'info', video_id, transform_source=js_to_json)
 
-        player_data = self._search_json(
-            r'\$\(\s*"#playerwrapper"\s*\)\s*\.data\(\s*"player",\s*',
+        vdata = self._search_json(
+            r'\$\(\s*"#playerwrapper"\s*\)\s*\.data\(\s*"player",',
             webpage, 'player data', video_id,
-            transform_source=lambda s: js_to_json(re.sub(r'ivw:[^},]+', '', s)))
-        vdata = traverse_obj(player_data, ('setup', 'source')) or {}
+            transform_source=lambda s: js_to_json(re.sub(r'ivw:[^},]+', '', s)))['setup']['source']
 
         formats = []
         if vdata.get('progressive'):
             formats.append({
-                'format_id': 'mp4-0',
+                'format_id': 'http',
                 'url': vdata['progressive'],
             })
         if vdata.get('hls'):
             formats.extend(self._extract_m3u8_formats(
                 vdata['hls'], video_id, 'mp4', m3u8_id='hls', fatal=False))
         if vdata.get('dash'):
-            formats.extend(self._extract_mpd_formats(vdata['dash'], video_id, fatal=False))
+            formats.extend(self._extract_mpd_formats(vdata['dash'], video_id, fatal=False, mpd_id='dash'))
 
         return {
             'id': video_id,
