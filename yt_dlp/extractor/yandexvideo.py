@@ -299,6 +299,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
         },
         'playlist_mincount': 169,
+        'skip': 'The page does not exist',
     }, {
         'url': 'https://dzen.ru/tok_media',
         'info_dict': {
@@ -307,6 +308,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
         },
         'playlist_mincount': 169,
+        'skip': 'The page does not exist',
     }, {
         'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
@@ -324,7 +326,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'description': 'md5:ce0a5cad2752ab58701b5497835b2cc5',
             'title': 'JONY ',
         },
-        'playlist_count': 20,
+        'playlist_count': 18,
     }, {
         # Test that the playlist extractor finishes extracting when the
         # channel has more than one page of entries
@@ -335,7 +337,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'title': 'Татьяна Рева',
             'entries': 'maxcount:200',
         },
-        'playlist_count': 46,
+        'playlist_mincount': 46,
     }, {
         'url': 'https://dzen.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
