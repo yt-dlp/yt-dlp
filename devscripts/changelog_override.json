@@ -104,5 +104,10 @@
         "when": "8a8b54523addf46dfd50ef599761a81bc22362e6",
         "short": "[rh:requests] Add handler for `requests` HTTP library (#3668)\n\n\tAdds support for HTTPS proxies and persistent connections (keep-alive)",
         "authors": ["bashonly", "coletdjnz", "Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "1d03633c5a1621b9f3a756f0a4f9dc61fab3aeaa",
+        "short": "[priority] **The release channels have been adjusted!**\n\t* [`master`](https://github.com/yt-dlp/yt-dlp-master-builds) builds are made after each push, containing the latest fixes (but also possibly bugs). This was previously the `nightly` channel.\n\t* [`nightly`](https://github.com/yt-dlp/yt-dlp-nightly-builds) builds are now made once a day, if there were any changes."
     }
 ]
