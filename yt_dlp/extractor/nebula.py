@@ -5,16 +5,15 @@ import urllib.error
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    format_field,
     make_archive_id,
     parse_iso8601,
-    remove_start,
     smuggle_url,
-    traverse_obj,
     unsmuggle_url,
     update_url_query,
     url_or_none,
+    urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
@@ -68,8 +67,9 @@ class NebulaBaseIE(InfoExtractor):
             note='Authorizing to Nebula', data=b'')['token']
 
     def _extract_formats(self, content_id, slug):
+        api_path = 'lessons' if content_id.startswith('lesson:') else 'video_episodes'
         fmts, subs = self._extract_m3u8_formats_and_subtitles(
-            f'https://content.api.nebula.app/video_episodes/{content_id}/manifest.m3u8',
+            f'https://content.api.nebula.app/{api_path}/{content_id}/manifest.m3u8',
             slug, 'mp4', fatal=False, query={
                 'token': self._token,
                 'app_version': '23.10.0',
@@ -80,9 +80,10 @@ class NebulaBaseIE(InfoExtractor):
         return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
-        channel_url = format_field(episode, 'channel_slug', 'https://nebula.tv/%s')
+        channel_url = traverse_obj(
+            episode, (('channel_slug', 'class_slug'), {lambda x: urljoin('https://nebula.tv/', x)}), get_all=False)
         return {
-            'id': remove_start(episode['id'], 'video_episode:'),
+            'id': episode['id'].split(':', 1)[1],
             **traverse_obj(episode, {
                 'display_id': 'slug',
                 'title': 'title',
@@ -96,6 +97,7 @@ class NebulaBaseIE(InfoExtractor):
                 'series': 'channel_title',
                 'creator': 'channel_title',
                 'thumbnail': ('images', 'thumbnail', 'src', {url_or_none}),
+                'episode_number': 'order',
                 # Old code was wrongly setting extractor_key from NebulaSubscriptionsIE
                 '_old_archive_ids': ('zype_id', {lambda x: [
                     make_archive_id(NebulaIE, x), make_archive_id(NebulaSubscriptionsIE, x)] if x else None}),
@@ -235,6 +237,47 @@ class NebulaIE(NebulaBaseIE):
         }
 
 
+class NebulaClassIE(NebulaBaseIE):
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>[-\w]+)/(?P<ep>\d+)'
+    _TESTS = [
+        {
+            'url': 'https://nebula.tv/copyright-for-fun-and-profit/14',
+            'info_dict': {
+                'id': 'd7432cdc-c608-474d-942c-f74345daed7b',
+                'ext': 'mp4',
+                'display_id': '14',
+                'channel_url': 'https://nebula.tv/copyright-for-fun-and-profit',
+                'episode_number': 14,
+                'thumbnail': 'https://dj423fildxgac.cloudfront.net/d533718d-9307-42d4-8fb0-e283285e99c9',
+                'uploader_url': 'https://nebula.tv/copyright-for-fun-and-profit',
+                'duration': 646,
+                'episode': 'Episode 14',
+                'title': 'Photos, Sculpture, and Video',
+            },
+            'params': {'skip_download': 'm3u8'},
+        },
+    ]
+
+    def _real_extract(self, url):
+        slug, episode = self._match_valid_url(url).group('id', 'ep')
+        url, smuggled_data = unsmuggle_url(url, {})
+        if smuggled_data.get('id'):
+            return {
+                'id': smuggled_data['id'],
+                'display_id': slug,
+                'title': '',
+                **self._extract_formats(smuggled_data['id'], slug),
+            }
+
+        metadata = self._call_api(
+            f'https://content.api.nebula.app/content/{slug}/{episode}/?include=lessons',
+            slug, note='Fetching video metadata')
+        return {
+            **self._extract_video_metadata(metadata),
+            **self._extract_formats(metadata['id'], slug),
+        }
+
+
 class NebulaSubscriptionsIE(NebulaBaseIE):
     IE_NAME = 'nebula:subscriptions'
     _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>myshows|library/latest-videos)'
@@ -272,7 +315,7 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
 
 class NebulaChannelIE(NebulaBaseIE):
     IE_NAME = 'nebula:channel'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)/?(?:$|[?#])'
     _TESTS = [
         {
             'url': 'https://nebula.tv/tom-scott-presents-money',
@@ -298,7 +341,15 @@ class NebulaChannelIE(NebulaBaseIE):
                 'description': 'I make videos about maps and many other things.',
             },
             'playlist_mincount': 90,
-        },
+        }, {
+            'url': 'https://nebula.tv/copyright-for-fun-and-profit',
+            'info_dict': {
+                'id': 'copyright-for-fun-and-profit',
+                'title': 'Copyright for Fun and Profit',
+                'description': 'md5:6690248223eed044a9f11cd5a24f9742',
+            },
+            'playlist_count': 23,
+        }
     ]
 
     def _generate_playlist_entries(self, collection_id):
@@ -314,14 +365,26 @@ class NebulaChannelIE(NebulaBaseIE):
             if not next_url:
                 break
 
+    def _generate_playlist_entries_class(self, channel):
+        for lesson in channel['lessons']:
+            metadata = self._extract_video_metadata(lesson)
+            yield self.url_result(smuggle_url(
+                lesson.get('share_url') or f'https://nebula.tv/videos/{metadata["display_id"]}',
+                {'id': lesson['id']}), NebulaClassIE, url_transparent=True, **metadata)
+
     def _real_extract(self, url):
         collection_slug = self._match_id(url)
         channel = self._call_api(
-            f'https://content.api.nebula.app/content/{collection_slug}/',
+            f'https://content.api.nebula.app/content/{collection_slug}/?include=lessons',
             collection_slug, note='Retrieving channel')
 
+        if channel.get('type') == 'class':
+            entries = self._generate_playlist_entries_class(channel)
+        else:
+            entries = self._generate_playlist_entries(channel['id'])
+
         return self.playlist_result(
-            entries=self._generate_playlist_entries(channel['id']),
+            entries=entries,
             playlist_id=collection_slug,
             playlist_title=channel.get('title'),
             playlist_description=channel.get('description'))
