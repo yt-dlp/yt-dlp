@@ -99,7 +99,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
-    _SUPPORTED_IMPERSONATE_TARGET_MAP = {
+    _SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP = {
         ('chrome', '110', 'windows', '10'): curl_cffi.requests.BrowserType.chrome110,
         ('chrome', '107', 'windows', '10'): curl_cffi.requests.BrowserType.chrome107,
         ('chrome', '104', 'windows', '10'): curl_cffi.requests.BrowserType.chrome104,
@@ -162,7 +162,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 verify=self.verify,
                 max_redirects=5,
                 timeout=request.extensions.get('timeout') or self.timeout,
-                impersonate=self._resolve_from_target_str_map(self._get_impersonate_target_str(request)),
+                impersonate=self._get_mapped_target(request),
                 interface=self.source_address,
                 stream=True
             )

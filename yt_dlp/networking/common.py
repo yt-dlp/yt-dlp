@@ -81,9 +81,6 @@ class RequestDirector:
         """
         if not filters:
             filters = []
-        a = self.handlers.items()
-        for k, v in self.handlers.items():
-            print(k,v)
         return dict(filter(lambda x: all(f(x[0], x[1]) for f in filters), self.handlers.items()))
 
     def collect_from_handlers(self, collect_func, filters=None):

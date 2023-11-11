@@ -683,10 +683,9 @@ class YoutubeDL:
         if impersonate_target:
             # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
             results = self._request_director.collect_from_handlers(
-                lambda x: [x.is_target_str_supported(impersonate_target)],
+                lambda x: [x.is_supported_target(impersonate_target)],
                 [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
             )
-            print(results)
             if not results:
                 self.report_warning('Ignoring --impersonate as required dependencies are not installed. ')
 
