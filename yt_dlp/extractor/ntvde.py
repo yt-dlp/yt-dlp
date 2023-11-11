@@ -27,8 +27,7 @@ class NTVDeIE(InfoExtractor):
             'timestamp': 1422892797,
             'upload_date': '20150202',
         },
-    },
-    {
+    }, {
         'url': 'https://www.n-tv.de/mediathek/magazine/auslandsreport/Juedische-Siedler-wollten-Rache-die-wollten-nur-toeten-article24523089.html',
         'md5': 'c5c6014c014ccc3359470e1d34472bfd',
         'info_dict': {
