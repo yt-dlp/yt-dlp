@@ -8,6 +8,7 @@ from ..utils import (
     make_archive_id,
     parse_iso8601,
     smuggle_url,
+    try_call,
     unsmuggle_url,
     update_url_query,
     url_or_none,
@@ -45,38 +46,44 @@ class NebulaBaseIE(InfoExtractor):
             kwargs.setdefault('headers', {})['Authorization'] = f'Bearer {self._token}'
         try:
             return self._download_json(*args, **kwargs)
-        except ExtractorError as exc:
-            if not isinstance(exc.cause, urllib.error.HTTPError) or exc.cause.status not in (401, 403):
+        except ExtractorError as e:
+            if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.status not in (401, 403):
                 raise
-            username, password = self._get_login_info()
-            if not username:
-                self.raise_login_required(method='password')
-
-            self.to_screen(f'Reauthenticating to Nebula and retrying, '
-                           f'because last API call resulted in error {exc.cause.status}')
-            self._perform_login(username, password)
+            self.to_screen(f'Reautherizing with Nebula and retrying, '
+                           f'because last API call resulted in error {e.cause.status}')
             self._real_initialize()
             if self._token:
                 kwargs.setdefault('headers', {})['Authorization'] = f'Bearer {self._token}'
             return self._download_json(*args, **kwargs)
 
     def _real_initialize(self):
+        if not self._api_token:
+            self._api_token = try_call(
+                lambda: self._get_cookies('https://nebula.tv')['nebula_auth.apiToken'].value)
         self._token = self._download_json(
             'https://users.api.nebula.app/api/v1/authorization/', None,
             headers={'Authorization': f'Token {self._api_token}'} if self._api_token else None,
             note='Authorizing to Nebula', data=b'')['token']
 
-    def _extract_formats(self, content_id, slug):
+    def _extract_formats(self, content_id, slug, fatal=False):
         api_path = 'lessons' if content_id.startswith('lesson:') else 'video_episodes'
-        fmts, subs = self._extract_m3u8_formats_and_subtitles(
-            f'https://content.api.nebula.app/{api_path}/{content_id}/manifest.m3u8',
-            slug, 'mp4', fatal=False, query={
-                'token': self._token,
-                'app_version': '23.10.0',
-                'platform': 'ios',
-            })
-        if not fmts:
-            self.raise_login_required(method='password')
+        try:
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                f'https://content.api.nebula.app/{api_path}/{content_id}/manifest.m3u8',
+                slug, 'mp4', query={
+                    'token': self._token,
+                    'app_version': '23.10.0',
+                    'platform': 'ios',
+                })
+        except ExtractorError as e:
+            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.status == 401:
+                self.raise_login_required()
+            if fatal or not isinstance(e.cause, urllib.error.HTTPError) or e.cause.status != 403:
+                raise
+            self.to_screen('Reautherizing with Nebula and retrying, because fetching video resulted in error')
+            self._real_initialize()
+            return self._extract_formats(content_id, slug, fatal=True)
+
         return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
