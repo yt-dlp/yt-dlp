@@ -1583,6 +1583,10 @@ from .radiocanada import (
     RadioCanadaIE,
     RadioCanadaAudioVideoIE,
 )
+from .radiocomercial import (
+    RadioComercialIE,
+    RadioComercialPlaylistIE,
+)
 from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
