@@ -718,9 +718,8 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
 
     def _real_extract(self, url):
         term = urllib.parse.unquote_plus(self._match_id(url))
-        entries = OnDemandPagedList(functools.partial(
-            self._fetch_page, term), self._PAGE_SIZE)
-        return self.playlist_result(entries, term, 'Dailymotion search of %s' % term)
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(self._fetch_page, term), self._PAGE_SIZE), term, term)
 
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):
