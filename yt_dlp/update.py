@@ -247,6 +247,8 @@ class Updater:
                     f'Invalid update channel {self.requested_channel!r} requested. '
                     f'Valid channels are {", ".join(UPDATE_SOURCES)}', True)
 
+        self._identifier = f'{detect_variant()} {system_identifier()}'
+
     @property
     def current_version(self):
         """Current version"""
@@ -315,7 +317,6 @@ class Updater:
     def _process_update_spec(self, lockfile: str, resolved_tag: str):
         lines = lockfile.splitlines()
         is_version2 = any(line.startswith('lockV2 ') for line in lines)
-        identifier = f'{detect_variant()} {system_identifier()}'
 
         for line in lines:
             if is_version2:
@@ -327,7 +328,7 @@ class Updater:
                     continue
                 _, tag, pattern = line.split(' ', 2)
 
-            if re.match(pattern, identifier):
+            if re.match(pattern, self._identifier):
                 if _VERSION_RE.fullmatch(tag):
                     if not self._exact:
                         return tag
