@@ -72,5 +72,6 @@ class AltCensoredChannelIE(InfoExtractor):
             items = [self.url_result('https://www.altcensored.com' + key, AltCensoredIE) for key, _group in groupby(items)]
             return items
 
-        entries = InAdvancePagedList(page_func, page_count, self._PAGE_SIZE)
-        return self.playlist_result(entries, playlist_id=channel_id, playlist_title=title)
+        return self.playlist_result(
+            InAdvancePagedList(page_func, page_count, self._PAGE_SIZE),
+            playlist_id=channel_id, playlist_title=title)
