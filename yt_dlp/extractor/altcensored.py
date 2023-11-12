@@ -68,9 +68,8 @@ class AltCensoredChannelIE(InfoExtractor):
                 channel_id, note=f'Downloading page {page_num}')
 
             items = re.findall(r'<a[^>]+href="(/watch\?v=[^"]+)', webpage)
-            # deduplicate consecutive items (multiple <a> per video)
-            items = [self.url_result('https://www.altcensored.com' + key, AltCensoredIE) for key, _group in groupby(items)]
-            return items
+            return [self.url_result(urljoin('https://www.altcensored.com', path), AltCensoredIE)
+                    for path in orderedSet(items)]
 
         return self.playlist_result(
             InAdvancePagedList(page_func, page_count, self._PAGE_SIZE),
