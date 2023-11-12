@@ -58,7 +58,8 @@ class AltCensoredChannelIE(InfoExtractor):
         webpage = self._download_webpage(url, channel_id, note='Download channel info',
                                          errnote='Unable to get channel info')
         title = self._html_search_meta('og:title', webpage)
-        page_count = int(self._html_search_regex(r'<a href="/channel/\w+/page/(\d+)">(?:\1)</a>', webpage, 'page count'))
+        page_count = int_or_none(self._html_search_regex(
+            r'<a[^>]+href="/channel/\w+/page/(\d+)">(?:\1)</a>', webpage, 'page count', default='1'))
 
         def page_func(page_num):
             webpage = self._download_webpage(
