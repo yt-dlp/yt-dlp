@@ -62,11 +62,10 @@ class AltCensoredChannelIE(InfoExtractor):
             r'<a[^>]+href="/channel/\w+/page/(\d+)">(?:\1)</a>', webpage, 'page count', default='1'))
 
         def page_func(page_num):
+            page_num += 1
             webpage = self._download_webpage(
-                'https://altcensored.com/channel/%s/page/%d' % (channel_id, page_num + 1),
-                channel_id, note='Download page #%d' % (page_num + 1),
-                errnote='Unable to get page #%d' % (page_num + 1),
-            )
+                f'https://altcensored.com/channel/{channel_id}/page/{page_num}',
+                channel_id, note=f'Downloading page {page_num}')
 
             items = re.findall(r'<a[^>]+href="(/watch\?v=[^"]+)', webpage)
             # deduplicate consecutive items (multiple <a> per video)
