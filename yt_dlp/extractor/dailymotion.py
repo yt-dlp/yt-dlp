@@ -92,310 +92,6 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
             raise ExtractorError(resp['errors'][0]['message'], expected=True)
         return obj
 
-    def _call_search_api(self, term, page, note):
-        search_query = 'fragment VIDEO_BASE_FRAGMENT on Video { id xid title createdAt stats { id views { id total __typename } __typename } channel { id xid name displayName accountType __typename } duration thumbnailx60: thumbnailURL(size: "x60") thumbnailx120: thumbnailURL(size: "x120") thumbnailx240: thumbnailURL(size: "x240") thumbnailx720: thumbnailURL(size: "x720") aspectRatio __typename } fragment VIDEO_FAVORITES_FRAGMENT on Media { __typename ... on Video { id isInWatchLater __typename } ... on Live { id isInWatchLater __typename } } fragment CHANNEL_BASE_FRAG on Channel { accountType id xid name displayName isFollowed thumbnailx60: logoURL(size: "x60") thumbnailx120: logoURL(size: "x120") thumbnailx240: logoURL(size: "x240") thumbnailx720: logoURL(size: "x720") __typename } fragment PLAYLIST_BASE_FRAG on Collection { id xid name channel { id xid name displayName accountType __typename } description thumbnailx60: thumbnailURL(size: "x60") thumbnailx120: thumbnailURL(size: "x120") thumbnailx240: thumbnailURL(size: "x240") thumbnailx720: thumbnailURL(size: "x720") stats { id videos { id total __typename } __typename } __typename } fragment TOPIC_BASE_FRAG on Topic { id xid name videos(sort: "recent", first: 5) { pageInfo { hasNextPage nextPage __typename } edges { node { id ...VIDEO_BASE_FRAGMENT ...VIDEO_FAVORITES_FRAGMENT __typename } __typename } __typename } stats { id videos { id total __typename } __typename } __typename } query SEARCH_QUERY($query: String!, $shouldIncludeVideos: Boolean!, $shouldIncludeChannels: Boolean!, $shouldIncludePlaylists: Boolean!, $shouldIncludeTopics: Boolean!, $shouldIncludeLives: Boolean!, $page: Int, $limit: Int, $sortByVideos: SearchVideoSort, $durationMinVideos: Int, $durationMaxVideos: Int, $createdAfterVideos: DateTime) { search { id videos( query: $query first: $limit page: $page sort: $sortByVideos durationMin: $durationMinVideos durationMax: $durationMaxVideos createdAfter: $createdAfterVideos ) @include(if: $shouldIncludeVideos) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...VIDEO_BASE_FRAGMENT ...VIDEO_FAVORITES_FRAGMENT __typename } __typename } __typename } hasLives: lives(query: $query, first: $limit, page: $page) { totalCount __typename } lives(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeLives) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id xid title thumbnail: thumbnailURL(size: "x240") thumbnailx60: thumbnailURL(size: "x60") thumbnailx120: thumbnailURL(size: "x120") thumbnailx240: thumbnailURL(size: "x240") thumbnailx720: thumbnailURL(size: "x720") audienceCount aspectRatio isOnAir channel { id xid name displayName accountType __typename } __typename } __typename } __typename } channels(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeChannels) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...CHANNEL_BASE_FRAG __typename } __typename } __typename } playlists: collections(query: $query, first: $limit, page: $page) @include(if: $shouldIncludePlaylists) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...PLAYLIST_BASE_FRAG __typename } __typename } __typename } topics(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeTopics) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...TOPIC_BASE_FRAG __typename } __typename } __typename } __typename } }'
-fragment VIDEO_BASE_FRAGMENT on Video {
-  id
-  xid
-  title
-  createdAt
-  stats {
-    id
-    views {
-      id
-      total
-      __typename
-    }
-    __typename
-  }
-  channel {
-    id
-    xid
-    name
-    displayName
-    accountType
-    __typename
-  }
-  duration
-  thumbnailx60: thumbnailURL(size: "x60")
-  thumbnailx120: thumbnailURL(size: "x120")
-  thumbnailx240: thumbnailURL(size: "x240")
-  thumbnailx720: thumbnailURL(size: "x720")
-  aspectRatio
-  __typename
-}
-
-fragment VIDEO_FAVORITES_FRAGMENT on Media {
-  __typename
-  ... on Video {
-    id
-    isInWatchLater
-    __typename
-  }
-  ... on Live {
-    id
-    isInWatchLater
-    __typename
-  }
-}
-
-fragment CHANNEL_BASE_FRAG on Channel {
-  accountType
-  id
-  xid
-  name
-  displayName
-  isFollowed
-  thumbnailx60: logoURL(size: "x60")
-  thumbnailx120: logoURL(size: "x120")
-  thumbnailx240: logoURL(size: "x240")
-  thumbnailx720: logoURL(size: "x720")
-  __typename
-}
-
-fragment PLAYLIST_BASE_FRAG on Collection {
-  id
-  xid
-  name
-  channel {
-    id
-    xid
-    name
-    displayName
-    accountType
-    __typename
-  }
-  description
-  thumbnailx60: thumbnailURL(size: "x60")
-  thumbnailx120: thumbnailURL(size: "x120")
-  thumbnailx240: thumbnailURL(size: "x240")
-  thumbnailx720: thumbnailURL(size: "x720")
-  stats {
-    id
-    videos {
-      id
-      total
-      __typename
-    }
-    __typename
-  }
-  __typename
-}
-
-fragment TOPIC_BASE_FRAG on Topic {
-  id
-  xid
-  name
-  videos(sort: "recent", first: 5) {
-    pageInfo {
-      hasNextPage
-      nextPage
-      __typename
-    }
-    edges {
-      node {
-        id
-        ...VIDEO_BASE_FRAGMENT
-        ...VIDEO_FAVORITES_FRAGMENT
-        __typename
-      }
-      __typename
-    }
-    __typename
-  }
-  stats {
-    id
-    videos {
-      id
-      total
-      __typename
-    }
-    __typename
-  }
-  __typename
-}
-
-query SEARCH_QUERY($query: String!, $shouldIncludeVideos: Boolean!, $shouldIncludeChannels: Boolean!, $shouldIncludePlaylists: Boolean!, $shouldIncludeTopics: Boolean!, $shouldIncludeLives: Boolean!, $page: Int, $limit: Int, $sortByVideos: SearchVideoSort, $durationMinVideos: Int, $durationMaxVideos: Int, $createdAfterVideos: DateTime) {
-  search {
-    id
-    videos(
-      query: $query
-      first: $limit
-      page: $page
-      sort: $sortByVideos
-      durationMin: $durationMinVideos
-      durationMax: $durationMaxVideos
-      createdAfter: $createdAfterVideos
-    ) @include(if: $shouldIncludeVideos) {
-      metadata {
-        algorithm {
-          uuid
-          __typename
-        }
-        __typename
-      }
-      pageInfo {
-        hasNextPage
-        nextPage
-        __typename
-      }
-      totalCount
-      edges {
-        node {
-          id
-          ...VIDEO_BASE_FRAGMENT
-          ...VIDEO_FAVORITES_FRAGMENT
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-    hasLives: lives(query: $query, first: $limit, page: $page) {
-      totalCount
-      __typename
-    }
-    lives(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeLives) {
-      metadata {
-        algorithm {
-          uuid
-          __typename
-        }
-        __typename
-      }
-      pageInfo {
-        hasNextPage
-        nextPage
-        __typename
-      }
-      totalCount
-      edges {
-        node {
-          id
-          xid
-          title
-          thumbnail: thumbnailURL(size: "x240")
-          thumbnailx60: thumbnailURL(size: "x60")
-          thumbnailx120: thumbnailURL(size: "x120")
-          thumbnailx240: thumbnailURL(size: "x240")
-          thumbnailx720: thumbnailURL(size: "x720")
-          audienceCount
-          aspectRatio
-          isOnAir
-          channel {
-            id
-            xid
-            name
-            displayName
-            accountType
-            __typename
-          }
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-    channels(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeChannels) {
-      metadata {
-        algorithm {
-          uuid
-          __typename
-        }
-        __typename
-      }
-      pageInfo {
-        hasNextPage
-        nextPage
-        __typename
-      }
-      totalCount
-      edges {
-        node {
-          id
-          ...CHANNEL_BASE_FRAG
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-    playlists: collections(query: $query, first: $limit, page: $page) @include(if: $shouldIncludePlaylists) {
-      metadata {
-        algorithm {
-          uuid
-          __typename
-        }
-        __typename
-      }
-      pageInfo {
-        hasNextPage
-        nextPage
-        __typename
-      }
-      totalCount
-      edges {
-        node {
-          id
-          ...PLAYLIST_BASE_FRAG
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-    topics(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeTopics) {
-      metadata {
-        algorithm {
-          uuid
-          __typename
-        }
-        __typename
-      }
-      pageInfo {
-        hasNextPage
-        nextPage
-        __typename
-      }
-      totalCount
-      edges {
-        node {
-          id
-          ...TOPIC_BASE_FRAG
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-    __typename
-  }
-}
-'''
-
-        if not self._HEADERS.get('Authorization'):
-            self._HEADERS['Authorization'] = f'Bearer {self._get_token(term)}'
-        resp = self._download_json(
-            'https://graphql.api.dailymotion.com/', None, note, data=json.dumps({
-                'operationName': 'SEARCH_QUERY',
-                'query': payload_living_horror,
-                'variables': {
-                    'limit': 20,
-                    'page': page,
-                    'query': term,
-                    'shouldIncludeChannels': False,
-                    'shouldIncludeLives': False,
-                    'shouldIncludePlaylists': False,
-                    'shouldIncludeTopics': False,
-                    'shouldIncludeVideos': True
-                }
-            }).encode(), headers=self._HEADERS)
-        obj = traverse_obj(resp, ('data', 'search', {dict}))
-        if not obj:
-            raise ExtractorError(traverse_obj(resp, ('errors', 0, 'message'))
-                                 or 'Could not fetch search data', expected=True)
-        return obj
-
 
 class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
@@ -699,10 +395,36 @@ class DailymotionSearchIE(DailymotionPlaylistBaseIE):
         'url': 'http://www.dailymotion.com/search/king of turtles/videos',
         'info_dict': {
             'id': 'king of turtles',
-            'title': 'Dailymotion search of king of turtles',
+            'title': 'king of turtles',
         },
         'playlist_mincount': 90,
     }]
+
+    def _call_search_api(self, term, page, note):
+        search_query = 'fragment VIDEO_BASE_FRAGMENT on Video { id xid title createdAt stats { id views { id total __typename } __typename } channel { id xid name displayName accountType __typename } duration thumbnailx60: thumbnailURL(size: "x60") thumbnailx120: thumbnailURL(size: "x120") thumbnailx240: thumbnailURL(size: "x240") thumbnailx720: thumbnailURL(size: "x720") aspectRatio __typename } fragment VIDEO_FAVORITES_FRAGMENT on Media { __typename ... on Video { id isInWatchLater __typename } ... on Live { id isInWatchLater __typename } } fragment CHANNEL_BASE_FRAG on Channel { accountType id xid name displayName isFollowed thumbnailx60: logoURL(size: "x60") thumbnailx120: logoURL(size: "x120") thumbnailx240: logoURL(size: "x240") thumbnailx720: logoURL(size: "x720") __typename } fragment PLAYLIST_BASE_FRAG on Collection { id xid name channel { id xid name displayName accountType __typename } description thumbnailx60: thumbnailURL(size: "x60") thumbnailx120: thumbnailURL(size: "x120") thumbnailx240: thumbnailURL(size: "x240") thumbnailx720: thumbnailURL(size: "x720") stats { id videos { id total __typename } __typename } __typename } fragment TOPIC_BASE_FRAG on Topic { id xid name videos(sort: "recent", first: 5) { pageInfo { hasNextPage nextPage __typename } edges { node { id ...VIDEO_BASE_FRAGMENT ...VIDEO_FAVORITES_FRAGMENT __typename } __typename } __typename } stats { id videos { id total __typename } __typename } __typename } query SEARCH_QUERY($query: String!, $shouldIncludeVideos: Boolean!, $shouldIncludeChannels: Boolean!, $shouldIncludePlaylists: Boolean!, $shouldIncludeTopics: Boolean!, $shouldIncludeLives: Boolean!, $page: Int, $limit: Int, $sortByVideos: SearchVideoSort, $durationMinVideos: Int, $durationMaxVideos: Int, $createdAfterVideos: DateTime) { search { id videos( query: $query first: $limit page: $page sort: $sortByVideos durationMin: $durationMinVideos durationMax: $durationMaxVideos createdAfter: $createdAfterVideos ) @include(if: $shouldIncludeVideos) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...VIDEO_BASE_FRAGMENT ...VIDEO_FAVORITES_FRAGMENT __typename } __typename } __typename } hasLives: lives(query: $query, first: $limit, page: $page) { totalCount __typename } lives(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeLives) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id xid title thumbnail: thumbnailURL(size: "x240") thumbnailx60: thumbnailURL(size: "x60") thumbnailx120: thumbnailURL(size: "x120") thumbnailx240: thumbnailURL(size: "x240") thumbnailx720: thumbnailURL(size: "x720") audienceCount aspectRatio isOnAir channel { id xid name displayName accountType __typename } __typename } __typename } __typename } channels(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeChannels) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...CHANNEL_BASE_FRAG __typename } __typename } __typename } playlists: collections(query: $query, first: $limit, page: $page) @include(if: $shouldIncludePlaylists) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...PLAYLIST_BASE_FRAG __typename } __typename } __typename } topics(query: $query, first: $limit, page: $page) @include(if: $shouldIncludeTopics) { metadata { algorithm { uuid __typename } __typename } pageInfo { hasNextPage nextPage __typename } totalCount edges { node { id ...TOPIC_BASE_FRAG __typename } __typename } __typename } __typename } }'
+
+        if not self._HEADERS.get('Authorization'):
+            self._HEADERS['Authorization'] = f'Bearer {self._get_token(term)}'
+        resp = self._download_json(
+            'https://graphql.api.dailymotion.com/', None, note, data=json.dumps({
+                'operationName': 'SEARCH_QUERY',
+                'query': search_query,
+                'variables': {
+                    'limit': 20,
+                    'page': page,
+                    'query': term,
+                    'shouldIncludeChannels': False,
+                    'shouldIncludeLives': False,
+                    'shouldIncludePlaylists': False,
+                    'shouldIncludeTopics': False,
+                    'shouldIncludeVideos': True
+                }
+            }).encode(), headers=self._HEADERS)
+        obj = traverse_obj(resp, ('data', 'search', {dict}))
+        if not obj:
+            raise ExtractorError(traverse_obj(resp, ('errors', 0, 'message'))
+                                 or 'Could not fetch search data', expected=True)
+        return obj
 
     def _fetch_page(self, term, page):
         page += 1
