@@ -211,20 +211,24 @@ class UpdateInfo:
 
 
 class Updater:
+    # XXX: use class variables to simplify testing
+    _channel = CHANNEL
+    _origin = ORIGIN
+
     def __init__(self, ydl, target: str | None = None):
         self.ydl = ydl
         # For backwards compat, target needs to be treated as if it could be None
-        self.requested_channel, sep, self.requested_tag = (target or CHANNEL).rpartition('@')
+        self.requested_channel, sep, self.requested_tag = (target or self._channel).rpartition('@')
         # Check if requested_tag is actually the requested repo/channel
         if not sep and ('/' in self.requested_tag or self.requested_tag in UPDATE_SOURCES):
             self.requested_channel = self.requested_tag
             self.requested_tag: str = None  # type: ignore (we set it later)
         elif not self.requested_channel:
             # User did not specify a channel, so we are requesting the default channel
-            self.requested_channel = CHANNEL.partition('@')[0]
+            self.requested_channel = self._channel.partition('@')[0]
 
         # --update should not be treated as an exact tag request even if CHANNEL has a @tag
-        self._exact = bool(target) and target != CHANNEL
+        self._exact = bool(target) and target != self._channel
         if not self.requested_tag:
             # User did not specify a tag, so we request 'latest' and track that no exact tag was passed
             self.requested_tag = 'latest'
@@ -233,7 +237,7 @@ class Updater:
         if '/' in self.requested_channel:
             # requested_channel is actually a repository
             self.requested_repo = self.requested_channel
-            if not self.requested_repo.startswith('yt-dlp/') and self.requested_repo != ORIGIN:
+            if not self.requested_repo.startswith('yt-dlp/') and self.requested_repo != self._origin:
                 self.ydl.report_warning(
                     f'You are switching to an {self.ydl._format_err("unofficial", "red")} executable '
                     f'from {self.ydl._format_err(self.requested_repo, self.ydl.Styles.EMPHASIS)}. '
@@ -365,7 +369,7 @@ class Updater:
             self._report_network_error(f'obtain version info ({e})', delim='; Please try again later or')
             return None
 
-        if self._exact and ORIGIN != self.requested_repo:
+        if self._exact and self._origin != self.requested_repo:
             has_update = True
         elif requested_version:
             if self._exact:
@@ -377,16 +381,18 @@ class Updater:
         else:
             has_update = False
 
-        current_label = _make_label(ORIGIN, CHANNEL.partition("@")[2] or self.current_version, self.current_version)
+        resolved_tag = requested_version if self.requested_tag == 'latest' else self.requested_tag
+        current_label = _make_label(self._origin, self._channel.partition("@")[2] or self.current_version, self.current_version)
+        requested_label = _make_label(self.requested_repo, resolved_tag, requested_version)
+        latest_or_requested = f'{"Latest" if self.requested_tag == "latest" else "Requested"} version: {requested_label}'
         if not has_update:
             if _output:
-                self.ydl.to_screen(f'yt-dlp is up to date ({current_label})')
+                self.ydl.to_screen(f'{latest_or_requested}\nyt-dlp is up to date ({current_label})')
             return None
 
         update_spec = self._download_update_spec(('latest', None) if requested_version else (None,))
         if not update_spec:
             return None
-        resolved_tag = requested_version if self.requested_tag == 'latest' else self.requested_tag
         # `result_` prefixed vars == post-_process_update_spec() values
         result_tag = self._process_update_spec(update_spec, resolved_tag)
         if not result_tag or result_tag == self.current_version:
@@ -417,11 +423,9 @@ class Updater:
                     self.ydl.report_warning('The hash could not be found in the checksum file, skipping verification')
 
         if _output:
-            requested_label = _make_label(self.requested_repo, resolved_tag, requested_version)
             update_label = _make_label(self.requested_repo, result_tag, result_version)
             self.ydl.to_screen(
-                f'Current version: {current_label}\n'
-                + f'{"Latest" if self.requested_tag == "latest" else "Requested"} version: {requested_label}'
+                f'Current version: {current_label}\n{latest_or_requested}'
                 + (f'\nUpgradable to: {update_label}' if update_label != requested_label else ''))
 
         return UpdateInfo(
