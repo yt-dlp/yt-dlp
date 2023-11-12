@@ -134,7 +134,8 @@ jobs:
 
           revision="${{ (inputs.prerelease || !vars.PUSH_VERSION_COMMIT) && '$(date -u +"%H%M%S")' || '' }}"
           version="$(
-            python devscripts/update-version.py -c "${resolved_source}" ${{ inputs.version || '$revision' }} | \
+            python devscripts/update-version.py \
+            -c "${resolved_source}" -r "${{ github.repository }}" ${{ inputs.version || '$revision' }} | \
             grep -Po "version=\K\d+\.\d+\.\d+(\.\d+)?")"
 
           if [[ "${target_repo}" ]]; then
@@ -240,6 +241,7 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       channel: ${{ needs.prepare.outputs.channel }}
+      origin: ${{ needs.prepare.outputs.target_repo }}
     permissions:
       contents: read
       packages: write # For package cache
