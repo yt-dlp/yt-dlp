@@ -443,8 +443,6 @@ class Updater:
             return False
 
         self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
-        if not update_info.checksum:
-            self._block_restart('Automatically restarting into unverified builds is disabled for security reasons')
 
         update_label = _make_label(self.requested_repo, update_info.tag, update_info.version)
         self.ydl.to_screen(f'Updating to {update_label} ...')
