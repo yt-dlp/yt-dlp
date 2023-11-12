@@ -1,16 +1,18 @@
 import re
-from itertools import groupby
 
 from .common import InfoExtractor
 from .archiveorg import ArchiveOrgIE
 from ..utils import (
+    int_or_none,
+    orderedSet,
+    urljoin,
     InAdvancePagedList,
 )
 
 
 class AltCensoredIE(InfoExtractor):
     IE_NAME = 'altcensored'
-    _VALID_URL = r'https?://(?:www\.)altcensored\.com/(?:watch\?v=|embed/)(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?altcensored\.com/(?:watch\?v=|embed/)(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.altcensored.com/watch?v=k0srjLSkga8',
         'info_dict': {
@@ -28,28 +30,42 @@ class AltCensoredIE(InfoExtractor):
             'track': 'k0srjLSkga8',
             'duration': 926.09,
             'thumbnail': 'https://archive.org/download/youtube-k0srjLSkga8/youtube-k0srjLSkga8.thumbs/k0srjLSkga8_000925.jpg',
+            'yt_views': 30402,
+            'category': 'News & Politics',
         }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        res = self.url_result(f'https://archive.org/details/youtube-{video_id}', ArchiveOrgIE)
-        # Extractor indirection doesn't allow merging info from the original extractor.
-        # Youtube view count or thumbnail extracted from altcensored can't be merge back
-        # into underlying archive.org info json
+        # Use most data from archive.org (extractor indirection)
+        # But try first to gather a couple of useful information from altcensored
+        webpage = self._download_webpage(url, video_id)
+        yt_views = int_or_none(self._html_search_regex(
+            r'YouTube Views:.*?([0-9,.]+)', webpage, 'view count', default='0').replace(',', ''))
+        category = self._html_search_regex(r'<a href="/category/.*?\n\s+([^<]+)', webpage, 'category')
+        # Hardcoded (very unlikely to need a change in a foreseeable future)
+        res = self.url_result(f'https://archive.org/details/youtube-{video_id}', ArchiveOrgIE, url_transparent=True,
+                              yt_views=yt_views, category=category)
         return res
 
 
 class AltCensoredChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)altcensored\.com/channel/(?!page|table)(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?altcensored\.com/channel/(?!page|table)(?P<id>[^/?#]+)'
     _PAGE_SIZE = 24
     _TESTS = [{
         'url': 'https://www.altcensored.com/channel/UCFPTO55xxHqFqkzRZHu4kcw',
         'info_dict': {
-            'title': 'Virginie Vota Channel (91 Censored Videos)',
+            'title': 'Virginie Vota',
             'id': 'UCFPTO55xxHqFqkzRZHu4kcw',
         },
         'playlist_count': 91
+    }, {
+        'url': 'https://altcensored.com/channel/UC9CcJ96HKMWn0LZlcxlpFTw',
+        'info_dict': {
+            'title': 'yukikaze775',
+            'id': 'UC9CcJ96HKMWn0LZlcxlpFTw',
+        },
+        'playlist_count': 4
     }]
 
     def _real_extract(self, url):
