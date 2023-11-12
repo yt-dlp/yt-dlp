@@ -364,7 +364,7 @@ class NebulaChannelIE(NebulaBaseIE):
         for lesson in channel['lessons']:
             metadata = self._extract_video_metadata(lesson)
             yield self.url_result(smuggle_url(
-                lesson.get('share_url') or f'https://nebula.tv/videos/{metadata["display_id"]}',
+                lesson.get('share_url') or f'https://nebula.tv/{metadata["class_slug"]}/{metadata["slug"]}',
                 {'id': lesson['id']}), NebulaClassIE, url_transparent=True, **metadata)
 
     def _real_extract(self, url):
