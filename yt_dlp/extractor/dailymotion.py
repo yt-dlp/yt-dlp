@@ -77,8 +77,7 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
 
     def _call_api(self, object_type, xid, object_fields, note, filter_extra=None):
         if not self._HEADERS.get('Authorization'):
-            token = self._get_token(xid)
-            self._HEADERS['Authorization'] = 'Bearer ' + token
+            self._HEADERS['Authorization'] = f'Bearer {self._get_token(xid)}'
 
         resp = self._download_json(
             'https://graphql.api.dailymotion.com/', xid, note, data=json.dumps({
