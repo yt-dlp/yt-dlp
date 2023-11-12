@@ -30,7 +30,6 @@ class HTML5MediaEmbedIE(InfoExtractor):
                     make_archive_id('generic', f'{video_id}-{num}' if len(entries) > 1 else video_id),
                 ],
             })
-            self._sort_formats(entry['formats'])
             yield entry
 
 

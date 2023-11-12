@@ -74,7 +74,6 @@ class PlayvidIE(InfoExtractor):
                         'height': height,
                         'url': val,
                     })
-        self._sort_formats(formats)
 
         # Extract title - should be in the flashvars; if not, look elsewhere
         if video_title is None:

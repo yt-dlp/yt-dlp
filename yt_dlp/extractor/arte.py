@@ -48,23 +48,29 @@ class ArteTVIE(ArteTVBaseIE):
     }, {
         'note': 'No alt_title',
         'url': 'https://www.arte.tv/fr/videos/110371-000-A/la-chaleur-supplice-des-arbres-de-rue/',
-        'info_dict': {
-            'id': '110371-000-A',
-            'ext': 'mp4',
-            'upload_date': '20220718',
-            'duration': 154,
-            'timestamp': 1658162460,
-            'description': 'md5:5890f36fe7dccfadb8b7c0891de54786',
-            'title': 'La chaleur, supplice des arbres de rue',
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/CPE2sQDtD8GLQgt8DuYHLf/940x530',
-        },
-        'params': {'skip_download': 'm3u8'}
+        'only_matching': True,
     }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
     }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/LIVE',
         'only_matching': True,
+    }, {
+        'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
+        'only_matching': True,
+    }, {
+        'note': 'age-restricted',
+        'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
+        'info_dict': {
+            'id': '006785-000-A',
+            'description': 'md5:c2f94fdfefc8a280e4dab68ab96ab0ba',
+            'title': 'The Element of Crime',
+            'timestamp': 1696111200,
+            'duration': 5849,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
+            'upload_date': '20230930',
+            'ext': 'mp4',
+        }
     }]
 
     _GEO_BYPASS = True
@@ -121,7 +127,9 @@ class ArteTVIE(ArteTVBaseIE):
         lang = mobj.group('lang') or mobj.group('lang_2')
         langauge_code = self._LANG_MAP.get(lang)
 
-        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id)
+        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id, headers={
+            'x-validated-age': '18'
+        })
 
         geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
         if geoblocking.get('restrictedArea'):
@@ -154,7 +162,7 @@ class ArteTVIE(ArteTVBaseIE):
                 )))
 
             short_label = traverse_obj(stream_version, 'shortLabel', expected_type=str, default='?')
-            if stream['protocol'].startswith('HLS'):
+            if 'HLS' in stream['protocol']:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
                 for fmt in fmts:
@@ -180,13 +188,8 @@ class ArteTVIE(ArteTVBaseIE):
             else:
                 self.report_warning(f'Skipping stream with unknown protocol {stream["protocol"]}')
 
-            # TODO: chapters from stream['segments']?
-            # The JS also looks for chapters in config['data']['attributes']['chapters'],
-            # but I am yet to find a video having those
-
         formats.extend(secondary_formats)
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         metadata = config['data']['attributes']['metadata']
 
@@ -206,6 +209,11 @@ class ArteTVIE(ArteTVBaseIE):
                 {'url': image['url'], 'id': image.get('caption')}
                 for image in metadata.get('images') or [] if url_or_none(image.get('url'))
             ],
+            # TODO: chapters may also be in stream['segments']?
+            'chapters': traverse_obj(config, ('data', 'attributes', 'chapters', 'elements', ..., {
+                'start_time': 'startTime',
+                'title': 'title',
+            })) or None,
         }
 
 

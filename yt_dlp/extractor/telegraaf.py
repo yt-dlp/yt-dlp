@@ -75,8 +75,6 @@ class TelegraafIE(InfoExtractor):
                 'format_id': 'http' + ('-%s' % label if label else ''),
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

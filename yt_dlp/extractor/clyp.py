@@ -9,22 +9,22 @@ from ..utils import (
 class ClypIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?clyp\.it/(?P<id>[a-z0-9]+)'
     _TESTS = [{
-        'url': 'https://clyp.it/ojz2wfah',
-        'md5': '1d4961036c41247ecfdcc439c0cddcbb',
+        'url': 'https://clyp.it/iynkjk4b',
+        'md5': '4bc6371c65210e7b372097fce4d92441',
         'info_dict': {
-            'id': 'ojz2wfah',
-            'ext': 'mp3',
-            'title': 'Krisson80 - bits wip wip',
-            'description': '#Krisson80BitsWipWip #chiptune\n#wip',
-            'duration': 263.21,
-            'timestamp': 1443515251,
-            'upload_date': '20150929',
+            'id': 'iynkjk4b',
+            'ext': 'ogg',
+            'title': 'research',
+            'description': '#Research',
+            'duration': 51.278,
+            'timestamp': 1435524981,
+            'upload_date': '20150628',
         },
     }, {
         'url': 'https://clyp.it/b04p1odi?token=b0078e077e15835845c528a44417719d',
         'info_dict': {
             'id': 'b04p1odi',
-            'ext': 'mp3',
+            'ext': 'ogg',
             'title': 'GJ! (Reward Edit)',
             'description': 'Metal Resistance (THE ONE edition)',
             'duration': 177.789,
@@ -33,6 +33,17 @@ class ClypIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
+        },
+    }, {
+        'url': 'https://clyp.it/v42214lc',
+        'md5': '4aca4dfc3236fb6d6ddc4ea08314f33f',
+        'info_dict': {
+            'id': 'v42214lc',
+            'ext': 'wav',
+            'title': 'i dont wanna go (old version)',
+            'duration': 113.528,
+            'timestamp': 1607348505,
+            'upload_date': '20201207',
         },
     }]
 
@@ -59,8 +70,19 @@ class ClypIE(InfoExtractor):
                         'url': format_url,
                         'format_id': format_id,
                         'vcodec': 'none',
+                        'acodec': ext.lower(),
                     })
-        self._sort_formats(formats)
+
+        page = self._download_webpage(url, video_id=audio_id)
+        wav_url = self._html_search_regex(
+            r'var\s*wavStreamUrl\s*=\s*["\'](?P<url>https?://[^\'"]+)', page, 'url', default=None)
+        if wav_url:
+            formats.append({
+                'url': wav_url,
+                'format_id': 'wavStreamUrl',
+                'vcodec': 'none',
+                'acodec': 'wav',
+            })
 
         title = metadata['Title']
         description = metadata.get('Description')

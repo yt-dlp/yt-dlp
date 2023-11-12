@@ -62,7 +62,6 @@ class RadLiveIE(InfoExtractor):
             raise ExtractorError('Unable to extract video info, make sure the URL is valid')
 
         formats = self._extract_m3u8_formats(video_info['assets']['videos'][0]['url'], video_id)
-        self._sort_formats(formats)
 
         data = video_info.get('structured_data', {})
 
@@ -94,7 +93,7 @@ class RadLiveIE(InfoExtractor):
         return result
 
 
-class RadLiveSeasonIE(RadLiveIE):
+class RadLiveSeasonIE(RadLiveIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'radlive:season'
     _VALID_URL = r'https?://(?:www\.)?rad\.live/content/season/(?P<id>[a-f0-9-]+)'
     _TESTS = [{
@@ -134,7 +133,7 @@ class RadLiveSeasonIE(RadLiveIE):
         return self.playlist_result(entries, season_id, video_info.get('title'))
 
 
-class RadLiveChannelIE(RadLiveIE):
+class RadLiveChannelIE(RadLiveIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'radlive:channel'
     _VALID_URL = r'https?://(?:www\.)?rad\.live/content/channel/(?P<id>[a-f0-9-]+)'
     _TESTS = [{

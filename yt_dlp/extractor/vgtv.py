@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class VGTVIE(XstreamIE):
+class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'VGTV, BTTV, FTV, Aftenposten and Aftonbladet'
     _GEO_BYPASS = False
 
@@ -237,8 +237,6 @@ class VGTVIE(XstreamIE):
             if properties and 'geoblocked' in properties:
                 raise self.raise_geo_restricted(
                     countries=[host.rpartition('.')[-1].partition('/')[0].upper()])
-
-        self._sort_formats(info['formats'])
 
         info.update({
             'id': video_id,

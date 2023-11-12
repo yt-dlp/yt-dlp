@@ -38,6 +38,7 @@ class VideaIE(InfoExtractor):
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:^https?://.*',
             'duration': 21,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/videok/origo/jarmuvek/supercars-elozes-jAHDWfWSJH5XuFhH',
@@ -48,6 +49,7 @@ class VideaIE(InfoExtractor):
             'title': 'Supercars előzés',
             'thumbnail': r're:^https?://.*',
             'duration': 64,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/player?v=8YfIAjxwWGwT8HVQ',
@@ -58,6 +60,7 @@ class VideaIE(InfoExtractor):
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:^https?://.*',
             'duration': 21,
+            'age_limit': 0,
         },
     }, {
         'url': 'http://videa.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
@@ -119,12 +122,12 @@ class VideaIE(InfoExtractor):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
         query = parse_qs(player_url)
-        random_seed = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
+        random_seed = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         query['_s'] = random_seed
         query['_t'] = result[:16]
 
         b64_info, handle = self._download_webpage_handle(
-            'http://videa.hu/videaplayer_get_xml.php', video_id, query=query)
+            'http://videa.hu/player/xml', video_id, query=query)
         if b64_info.startswith('<?xml'):
             info = self._parse_xml(b64_info, video_id)
         else:
@@ -167,7 +170,6 @@ class VideaIE(InfoExtractor):
                 'height': int_or_none(source.get('height')),
             })
             formats.append(f)
-        self._sort_formats(formats)
 
         thumbnail = self._proto_relative_url(xpath_text(video, './poster_src'))
 

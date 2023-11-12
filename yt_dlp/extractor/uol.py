@@ -107,7 +107,6 @@ class UOLIE(InfoExtractor):
                 'url': f_url,
                 'quality': quality(format_id),
             })
-        self._sort_formats(formats)
 
         tags = []
         for tag in video_data.get('tags', []):

@@ -18,7 +18,7 @@ body:
           required: true
         - label: I've checked that none of provided URLs [violate any copyrights](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy) or contain any [DRM](https://en.wikipedia.org/wiki/Digital_rights_management) to the best of my knowledge
           required: true
-        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
+        - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766) and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
           required: true
         - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
           required: true

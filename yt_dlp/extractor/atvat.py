@@ -49,7 +49,6 @@ class ATVAtIE(InfoExtractor):
                     'url': source_url,
                     'format_id': protocol,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': clip_id,

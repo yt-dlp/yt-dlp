@@ -38,7 +38,6 @@ class RadioDeIE(InfoExtractor):
             'abr': stream['bitRate'],
             'asr': stream['sampleRate']
         } for stream in broadcast['streamUrls']]
-        self._sort_formats(formats)
 
         return {
             'id': radio_id,

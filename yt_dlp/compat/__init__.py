@@ -1,14 +1,11 @@
 import os
 import sys
-import warnings
 import xml.etree.ElementTree as etree
 
-from ._deprecated import *  # noqa: F401, F403
 from .compat_utils import passthrough_module
 
-# XXX: Implement this the same way as other DeprecationWarnings without circular import
-passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
-    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=3))
+passthrough_module(__name__, '._deprecated')
+del passthrough_module
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
@@ -33,7 +30,7 @@ compat_os_name = os._name if os.name == 'java' else os.name
 if compat_os_name == 'nt':
     def compat_shlex_quote(s):
         import re
-        return s if re.match(r'^[-_\w./]+$', s) else '"%s"' % s.replace('"', '\\"')
+        return s if re.match(r'^[-_\w./]+$', s) else s.replace('"', '""').join('""')
 else:
     from shlex import quote as compat_shlex_quote  # noqa: F401
 
@@ -72,7 +69,11 @@ else:
     compat_expanduser = os.path.expanduser
 
 
-# NB: Add modules that are imported dynamically here so that PyInstaller can find them
-# See https://github.com/pyinstaller/pyinstaller-hooks-contrib/issues/438
-if False:
-    from . import _legacy  # noqa: F401
+def urllib_req_to_req(urllib_request):
+    """Convert urllib Request to a networking Request"""
+    from ..networking import Request
+    from ..utils.networking import HTTPHeaderDict
+    return Request(
+        urllib_request.get_full_url(), data=urllib_request.data, method=urllib_request.get_method(),
+        headers=HTTPHeaderDict(urllib_request.headers, urllib_request.unredirected_hdrs),
+        extensions={'timeout': urllib_request.timeout} if hasattr(urllib_request, 'timeout') else None)

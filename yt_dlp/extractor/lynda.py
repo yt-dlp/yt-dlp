@@ -157,7 +157,6 @@ class LyndaIE(LyndaBaseIE):
                         'format_id': '%s-%s' % (cdn, format_id) if cdn else format_id,
                         'height': int_or_none(format_id),
                     })
-            self._sort_formats(formats)
 
             conviva = self._download_json(
                 'https://www.lynda.com/ajax/player/conviva', video_id,
@@ -207,7 +206,6 @@ class LyndaIE(LyndaBaseIE):
                 } for format_id, video_url in prioritized_stream.items()])
 
         self._check_formats(formats, video_id)
-        self._sort_formats(formats)
 
         subtitles = self.extract_subtitles(video_id)
 

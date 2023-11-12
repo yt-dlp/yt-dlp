@@ -116,7 +116,6 @@ class ViddlerIE(InfoExtractor):
                 f['format_id'] = format_id + '-html5'
                 f['source_preference'] = 0
                 formats.append(f)
-        self._sort_formats(formats)
 
         categories = [
             t.get('text') for t in data.get('tags', []) if 'text' in t]

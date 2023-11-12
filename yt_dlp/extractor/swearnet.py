@@ -62,7 +62,7 @@ class SwearnetEpisodeIE(InfoExtractor):
             'id': str(json_data['videoId']),
             'title': json_data.get('name') or self._html_search_meta(['og:title', 'twitter:title'], webpage),
             'description': (json_data.get('description')
-                            or self._html_search_meta(['og:description', 'twitter:description'])),
+                            or self._html_search_meta(['og:description', 'twitter:description'], webpage)),
             'duration': int_or_none(json_data.get('seconds')),
             'formats': formats,
             'subtitles': subtitles,

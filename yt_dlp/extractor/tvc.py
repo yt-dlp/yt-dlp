@@ -41,7 +41,6 @@ class TVCIE(InfoExtractor):
                 'height': int_or_none(info.get('height')),
                 'tbr': int_or_none(info.get('bitrate')),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

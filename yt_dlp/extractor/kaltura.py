@@ -518,8 +518,6 @@ class KalturaIE(InfoExtractor):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        self._sort_formats(formats)
-
         if captions:
             for caption in captions.get('objects', []):
                 # Continue if caption is not ready

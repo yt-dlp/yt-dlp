@@ -111,8 +111,6 @@ class LinkedInIE(LinkedInBaseIE):
             'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
         } for source in sources]
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,
@@ -187,10 +185,6 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
                 streaming_url, video_slug, 'mp4',
                 'm3u8_native', m3u8_id='hls', fatal=False))
 
-        # It seems like this would be correctly handled by default
-        # However, unless someone can confirm this, the old
-        # behaviour is being kept as-is
-        self._sort_formats(formats, ('res', 'source_preference'))
         subtitles = {}
         duration = int_or_none(video_data.get('durationInSeconds'))
         transcript_lines = try_get(video_data, lambda x: x['transcript']['lines'], expected_type=list)
@@ -208,6 +202,10 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             'timestamp': float_or_none(video_data.get('publishedOn'), 1000),
             'duration': duration,
             'subtitles': subtitles,
+            # It seems like this would be correctly handled by default
+            # However, unless someone can confirm this, the old
+            # behaviour is being kept as-is
+            '_format_sort_fields': ('res', 'source_preference')
         }
 
 

@@ -125,7 +125,7 @@ class FancodeVodIE(InfoExtractor):
         }
 
 
-class FancodeLiveIE(FancodeVodIE):
+class FancodeLiveIE(FancodeVodIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'fancode:live'
 
     _VALID_URL = r'https?://(www\.)?fancode\.com/match/(?P<id>[0-9]+).+'

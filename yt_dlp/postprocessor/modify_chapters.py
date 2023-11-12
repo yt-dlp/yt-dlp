@@ -23,6 +23,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        self._fixup_chapters(info)
         # Chapters must be preserved intact when downloading multiple formats of the same video.
         chapters, sponsor_chapters = self._mark_chapters_to_remove(
             copy.deepcopy(info.get('chapters')) or [],

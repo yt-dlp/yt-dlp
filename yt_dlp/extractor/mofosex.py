@@ -7,7 +7,7 @@ from ..utils import (
 from .keezmovies import KeezMoviesIE
 
 
-class MofosexIE(KeezMoviesIE):
+class MofosexIE(KeezMoviesIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?mofosex\.com/videos/(?P<id>\d+)/(?P<display_id>[^/?#&.]+)\.html'
     _TESTS = [{
         'url': 'http://www.mofosex.com/videos/318131/amateur-teen-playing-and-masturbating-318131.html',

@@ -33,14 +33,15 @@ from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
 from .sponsorblock import SponsorBlockPP
 from .xattrpp import XAttrMetadataPP
-from ..utils import load_plugins
+from ..plugins import load_plugins
 
-_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP', globals())
+_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP')
 
 
 def get_postprocessor(key):
     return globals()[key + 'PP']
 
 
+globals().update(_PLUGIN_CLASSES)
 __all__ = [name for name in globals().keys() if name.endswith('PP')]
 __all__.extend(('PostProcessor', 'FFmpegPostProcessor'))

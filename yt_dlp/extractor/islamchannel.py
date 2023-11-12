@@ -41,7 +41,6 @@ class IslamChannelIE(InfoExtractor):
             traverse_obj(show_stream, ('response', 'tokenization', 'url')), video_id,
             headers=headers)
         formats, subs = self._extract_m3u8_formats_and_subtitles(traverse_obj(streams, ('Streams', 'Adaptive')), video_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

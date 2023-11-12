@@ -244,8 +244,6 @@ class RuutuIE(InfoExtractor):
             if ns_st_cds != 'free':
                 raise ExtractorError('This video is %s.' % ns_st_cds, expected=True)
 
-        self._sort_formats(formats)
-
         themes = pv('themes')
 
         return {

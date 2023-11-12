@@ -182,7 +182,6 @@ class XFileShareIE(InfoExtractor):
                         'url': video_url,
                         'format_id': 'sd',
                     })
-        self._sort_formats(formats)
 
         thumbnail = self._search_regex(
             [

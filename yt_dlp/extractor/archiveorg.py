@@ -4,11 +4,12 @@ import urllib.parse
 
 from .common import InfoExtractor
 from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
-from ..compat import compat_HTTPError, compat_urllib_parse_unquote
+from ..compat import compat_urllib_parse_unquote
+from ..networking import HEADRequest
+from ..networking.exceptions import HTTPError
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
-    HEADRequest,
     bug_reports_message,
     clean_html,
     dict_get,
@@ -312,7 +313,7 @@ class ArchiveOrgIE(InfoExtractor):
                 })
 
         for entry in entries.values():
-            self._sort_formats(entry['formats'], ('source', ))
+            entry['_format_sort_fields'] = ('source', )
 
         if len(entries) == 1:
             # If there's only one item, use it as the main info dict
@@ -897,7 +898,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     video_id, note='Fetching archived video file url', expected_status=True)
             except ExtractorError as e:
                 # HTTP Error 404 is expected if the video is not saved.
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
                     self.raise_no_formats(
                         'The requested video is not archived, indexed, or there is an issue with web.archive.org (try again later)', expected=True)
                 else:
@@ -924,7 +925,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         if urlh:
-            url = compat_urllib_parse_unquote(urlh.geturl())
+            url = compat_urllib_parse_unquote(urlh.url)
             video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url & response headers
             format = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}

@@ -210,8 +210,6 @@ class UstreamIE(InfoExtractor):
                 formats.extend(self._parse_segmented_mp4(dash_streams))
             '''
 
-        self._sort_formats(formats)
-
         description = video.get('description')
         timestamp = int_or_none(video.get('created_at'))
         duration = float_or_none(video.get('length'))

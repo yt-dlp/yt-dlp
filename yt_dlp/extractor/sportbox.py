@@ -65,7 +65,6 @@ class SportBoxIE(InfoExtractor):
                 formats.append({
                     'url': src,
                 })
-        self._sort_formats(formats)
 
         player = self._parse_json(
             self._search_regex(

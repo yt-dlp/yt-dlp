@@ -47,7 +47,6 @@ class CinchcastIE(InfoExtractor):
                 'format_id': 'backup',
                 'url': backup_url,
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

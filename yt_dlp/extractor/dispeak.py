@@ -117,7 +117,6 @@ class DigitallySpeakingIE(InfoExtractor):
         video_formats = self._parse_mp4(metadata)
         if video_formats is None:
             video_formats = self._parse_flv(metadata)
-        self._sort_formats(video_formats)
 
         return {
             'id': video_id,

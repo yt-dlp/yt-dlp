@@ -55,7 +55,6 @@ class PornoVoisinesIE(InfoExtractor):
                         'height': item.get('height'),
                         'bitrate': item.get('bitrate'),
                     })
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(url, video_id)
 

@@ -90,8 +90,6 @@ class UDNEmbedIE(InfoExtractor):
                     })
                 formats.append(a_format)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,

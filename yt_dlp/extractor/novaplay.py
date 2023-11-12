@@ -3,7 +3,7 @@ from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class NovaPlayIE(InfoExtractor):
-    _VALID_URL = r'https://play.nova\.bg/video/.*/(?P<id>\d+)'
+    _VALID_URL = r'https://play\.nova\.bg/video/[^?#]+/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://play.nova.bg/video/ochakvaite/season-0/ochakvaite-2022-07-22-sybudi-se-sat/606627',
@@ -55,7 +55,6 @@ class NovaPlayIE(InfoExtractor):
                 'Authorization': f'Bearer {self._access_token}'
             })[0]['links']['play']['href']
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

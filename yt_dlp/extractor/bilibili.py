@@ -1,51 +1,66 @@
 import base64
 import functools
+import hashlib
 import itertools
 import math
-import urllib.error
+import re
+import time
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
+from ..dependencies import Cryptodome
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     InAdvancePagedList,
     OnDemandPagedList,
+    bool_or_none,
     filter_dict,
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     make_archive_id,
+    merge_dicts,
     mimetype2ext,
     parse_count,
     parse_qs,
     qualities,
+    smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    try_call,
+    unified_timestamp,
+    unsmuggle_url,
     url_or_none,
     urlencode_postdata,
+    variadic,
 )
 
 
 class BilibiliBaseIE(InfoExtractor):
+    _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
+
     def extract_formats(self, play_info):
         format_names = {
             r['quality']: traverse_obj(r, 'new_description', 'display_desc')
             for r in traverse_obj(play_info, ('support_formats', lambda _, v: v['quality']))
         }
 
-        audios = traverse_obj(play_info, ('dash', 'audio', ...))
+        audios = traverse_obj(play_info, ('dash', (None, 'dolby'), 'audio', ..., {dict}))
         flac_audio = traverse_obj(play_info, ('dash', 'flac', 'audio'))
         if flac_audio:
             audios.append(flac_audio)
         formats = [{
             'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
             'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
-            'acodec': audio.get('codecs'),
+            'acodec': traverse_obj(audio, ('codecs', {str.lower})),
             'vcodec': 'none',
             'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
-            'filesize': int_or_none(audio.get('size'))
+            'filesize': int_or_none(audio.get('size')),
+            'format_id': str_or_none(audio.get('id')),
         } for audio in audios]
 
         formats.extend({
@@ -56,18 +71,21 @@ class BilibiliBaseIE(InfoExtractor):
             'height': int_or_none(video.get('height')),
             'vcodec': video.get('codecs'),
             'acodec': 'none' if audios else None,
+            'dynamic_range': {126: 'DV', 125: 'HDR10'}.get(int_or_none(video.get('id'))),
             'tbr': float_or_none(video.get('bandwidth'), scale=1000),
             'filesize': int_or_none(video.get('size')),
             'quality': int_or_none(video.get('id')),
+            'format_id': traverse_obj(
+                video, (('baseUrl', 'base_url'), {self._FORMAT_ID_RE.search}, 1),
+                ('id', {str_or_none}), get_all=False),
             'format': format_names.get(video.get('id')),
         } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 
         missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
         if missing_formats:
             self.to_screen(f'Format(s) {", ".join(format_names[i] for i in missing_formats)} are missing; '
-                           'you have to login or become premium member to download them')
+                           f'you have to login or become premium member to download them. {self._login_hint()}')
 
-        self._sort_formats(formats)
         return formats
 
     def json2srt(self, json_data):
@@ -78,7 +96,7 @@ class BilibiliBaseIE(InfoExtractor):
                          f'{line["content"]}\n\n')
         return srt_data
 
-    def _get_subtitles(self, video_id, initial_state, cid):
+    def _get_subtitles(self, video_id, aid, cid):
         subtitles = {
             'danmaku': [{
                 'ext': 'xml',
@@ -86,7 +104,8 @@ class BilibiliBaseIE(InfoExtractor):
             }]
         }
 
-        for s in traverse_obj(initial_state, ('videoData', 'subtitle', 'list')) or []:
+        video_info_json = self._download_json(f'https://api.bilibili.com/x/player/v2?aid={aid}&cid={cid}', video_id)
+        for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
@@ -127,9 +146,20 @@ class BilibiliBaseIE(InfoExtractor):
         for children in map(self._get_all_children, traverse_obj(reply, ('replies', ...))):
             yield from children
 
+    def _get_episodes_from_season(self, ss_id, url):
+        season_info = self._download_json(
+            'https://api.bilibili.com/pgc/web/season/section', ss_id,
+            note='Downloading season info', query={'season_id': ss_id},
+            headers={'Referer': url, **self.geo_verification_headers()})
+
+        for entry in traverse_obj(season_info, (
+                'result', 'main_section', 'episodes',
+                lambda _, v: url_or_none(v['share_url']) and v['id'])):
+            yield self.url_result(entry['share_url'], BiliBiliBangumiIE, f'ep{entry["id"]}')
+
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://www\.bilibili\.com/video/[aAbB][vV](?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -225,7 +255,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'description': 'md5:afde2b7ba9025c01d9e3dde10de221e4',
             'duration': 313.557,
             'upload_date': '20220709',
-            'uploader': '小夫Tech',
+            'uploader': '小夫太渴',
             'timestamp': 1657347907,
             'uploader_id': '1326814124',
             'comment_count': int,
@@ -277,19 +307,60 @@ class BiliBiliIE(BilibiliBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
         },
         'params': {'skip_download': True},
+    }, {
+        'note': 'video redirects to festival page',
+        'url': 'https://www.bilibili.com/video/BV1wP4y1P72h',
+        'info_dict': {
+            'id': 'BV1wP4y1P72h',
+            'ext': 'mp4',
+            'title': '牛虎年相交之际，一首传统民族打击乐《牛斗虎》祝大家新春快乐，虎年大吉！【bilibili音乐虎闹新春】',
+            'timestamp': 1643947497,
+            'upload_date': '20220204',
+            'description': 'md5:8681a0d4d2c06b4ae27e59c8080a7fe6',
+            'uploader': '叨叨冯聊音乐',
+            'duration': 246.719,
+            'uploader_id': '528182630',
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
+    }, {
+        'note': 'newer festival video',
+        'url': 'https://www.bilibili.com/festival/2023honkaiimpact3gala?bvid=BV1ay4y1d77f',
+        'info_dict': {
+            'id': 'BV1ay4y1d77f',
+            'ext': 'mp4',
+            'title': '【崩坏3新春剧场】为特别的你送上祝福！',
+            'timestamp': 1674273600,
+            'upload_date': '20230121',
+            'description': 'md5:58af66d15c6a0122dc30c8adfd828dd8',
+            'uploader': '果蝇轰',
+            'duration': 1111.722,
+            'uploader_id': '8469526',
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
 
-        video_data = initial_state['videoData']
+        is_festival = 'videoData' not in initial_state
+        if is_festival:
+            video_data = initial_state['videoInfo']
+        else:
+            play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+            video_data = initial_state['videoData']
+
         video_id, title = video_data['bvid'], video_data.get('title')
 
         # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        page_list_json = traverse_obj(
+        page_list_json = not is_festival and traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
                 fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
@@ -304,107 +375,144 @@ class BiliBiliIE(BilibiliBaseIE):
                 getter=lambda entry: f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}')
 
         if is_anthology:
-            title += f' p{part_id:02d} {traverse_obj(page_list_json, ((part_id or 1) - 1, "part")) or ""}'
+            part_id = part_id or 1
+            title += f' p{part_id:02d} {traverse_obj(page_list_json, (part_id - 1, "part")) or ""}'
 
         aid = video_data.get('aid')
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
 
         cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
+        festival_info = {}
+        if is_festival:
+            play_info = self._download_json(
+                'https://api.bilibili.com/x/player/playurl', video_id,
+                query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
+                note='Extracting festival video formats')['data']
+
+            festival_info = traverse_obj(initial_state, {
+                'uploader': ('videoInfo', 'upName'),
+                'uploader_id': ('videoInfo', 'upMid', {str_or_none}),
+                'like_count': ('videoStatus', 'like', {int_or_none}),
+                'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
+            }, get_all=False)
+
         return {
+            **traverse_obj(initial_state, {
+                'uploader': ('upData', 'name'),
+                'uploader_id': ('upData', 'mid', {str_or_none}),
+                'like_count': ('videoData', 'stat', 'like', {int_or_none}),
+                'tags': ('tags', ..., 'tag_name'),
+                'thumbnail': ('videoData', 'pic', {url_or_none}),
+            }),
+            **festival_info,
+            **traverse_obj(video_data, {
+                'description': 'desc',
+                'timestamp': ('pubdate', {int_or_none}),
+                'view_count': (('viewCount', ('stat', 'view')), {int_or_none}),
+                'comment_count': ('stat', 'reply', {int_or_none}),
+            }, get_all=False),
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             'formats': self.extract_formats(play_info),
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
-            'description': traverse_obj(initial_state, ('videoData', 'desc')),
-            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
-            'uploader': traverse_obj(initial_state, ('upData', 'name')),
-            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
-            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
-            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
-            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
-            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
-            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'chapters': self._get_chapters(aid, cid),
-            'subtitles': self.extract_subtitles(video_id, initial_state, cid),
+            'subtitles': self.extract_subtitles(video_id, aid, cid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
         }
 
 
 class BiliBiliBangumiIE(BilibiliBaseIE):
-    _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/(?P<id>(?:ss|ep)\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/play/(?P<id>ep\d+)'
 
     _TESTS = [{
-        'url': 'https://www.bilibili.com/bangumi/play/ss897',
+        'url': 'https://www.bilibili.com/bangumi/play/ep267851',
         'info_dict': {
-            'id': 'ss897',
+            'id': '267851',
             'ext': 'mp4',
-            'series': '神的记事本',
-            'season': '神的记事本',
-            'season_id': 897,
+            'series': '鬼灭之刃',
+            'series_id': '4358',
+            'season': '鬼灭之刃',
+            'season_id': '26801',
             'season_number': 1,
-            'episode': '你与旅行包',
-            'episode_number': 2,
-            'title': '神的记事本：第2话 你与旅行包',
-            'duration': 1428.487,
-            'timestamp': 1310809380,
-            'upload_date': '20110716',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'episode': '残酷',
+            'episode_id': '267851',
+            'episode_number': 1,
+            'title': '1 残酷',
+            'duration': 1425.256,
+            'timestamp': 1554566400,
+            'upload_date': '20190406',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$'
         },
-    }, {
-        'url': 'https://www.bilibili.com/bangumi/play/ep508406',
-        'only_matching': True,
+        'skip': 'According to the copyright owner\'s request, you may only watch the video after you are premium member.'
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        episode_id = video_id[2:]
         webpage = self._download_webpage(url, video_id)
 
         if '您所在的地区无法观看本片' in webpage:
             raise GeoRestrictedError('This video is restricted')
-        elif ('开通大会员观看' in webpage and '__playinfo__' not in webpage
-                or '正在观看预览，大会员免费看全片' in webpage):
+        elif '正在观看预览，大会员免费看全片' in webpage:
             self.raise_login_required('This video is for premium members only')
 
-        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+        headers = {'Referer': url, **self.geo_verification_headers()}
+        play_info = self._download_json(
+            'https://api.bilibili.com/pgc/player/web/v2/playurl', video_id,
+            'Extracting episode', query={'fnval': '4048', 'ep_id': episode_id},
+            headers=headers)
+        premium_only = play_info.get('code') == -10403
+        play_info = traverse_obj(play_info, ('result', 'video_info', {dict})) or {}
+
         formats = self.extract_formats(play_info)
-        if (not formats and '成为大会员抢先看' in webpage
-                and play_info.get('durl') and not play_info.get('dash')):
+        if not formats and (premium_only or '成为大会员抢先看' in webpage or '开通大会员观看' in webpage):
             self.raise_login_required('This video is for premium members only')
 
-        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        bangumi_info = self._download_json(
+            'https://api.bilibili.com/pgc/view/web/season', video_id, 'Get episode details',
+            query={'ep_id': episode_id}, headers=headers)['result']
 
-        season_id = traverse_obj(initial_state, ('mediaInfo', 'season_id'))
+        episode_number, episode_info = next((
+            (idx, ep) for idx, ep in enumerate(traverse_obj(
+                bangumi_info, ('episodes', ..., {dict})), 1)
+            if str_or_none(ep.get('id')) == episode_id), (1, {}))
+
+        season_id = bangumi_info.get('season_id')
         season_number = season_id and next((
             idx + 1 for idx, e in enumerate(
-                traverse_obj(initial_state, ('mediaInfo', 'seasons', ...)))
+                traverse_obj(bangumi_info, ('seasons', ...)))
             if e.get('season_id') == season_id
         ), None)
+
+        aid = episode_info.get('aid')
 
         return {
             'id': video_id,
             'formats': formats,
-            'title': traverse_obj(initial_state, 'h1Title'),
-            'episode': traverse_obj(initial_state, ('epInfo', 'long_title')),
-            'episode_number': int_or_none(traverse_obj(initial_state, ('epInfo', 'title'))),
-            'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
-            'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
-            'season_id': season_id,
+            **traverse_obj(bangumi_info, {
+                'series': ('series', 'series_title', {str}),
+                'series_id': ('series', 'series_id', {str_or_none}),
+                'thumbnail': ('square_cover', {url_or_none}),
+            }),
+            'title': join_nonempty('title', 'long_title', delim=' ', from_dict=episode_info),
+            'episode': episode_info.get('long_title'),
+            'episode_id': episode_id,
+            'episode_number': int_or_none(episode_info.get('title')) or episode_number,
+            'season_id': str_or_none(season_id),
             'season_number': season_number,
-            'thumbnail': traverse_obj(initial_state, ('epInfo', 'cover')),
-            'timestamp': traverse_obj(initial_state, ('epInfo', 'pub_time')),
+            'timestamp': int_or_none(episode_info.get('pub_time')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'subtitles': self.extract_subtitles(
-                video_id, initial_state, traverse_obj(initial_state, ('epInfo', 'cid'))),
-            '__post_extractor': self.extract_comments(traverse_obj(initial_state, ('epInfo', 'aid'))),
-            'http_headers': {'Referer': url, **self.geo_verification_headers()},
+            'subtitles': self.extract_subtitles(video_id, aid, episode_info.get('cid')),
+            '__post_extractor': self.extract_comments(aid),
+            'http_headers': headers,
         }
 
 
-class BiliBiliBangumiMediaIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.bilibili\.com/bangumi/media/md(?P<id>\d+)'
+class BiliBiliBangumiMediaIE(BilibiliBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/bangumi/media/md(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/bangumi/media/md24097891',
         'info_dict': {
@@ -416,16 +524,26 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
     def _real_extract(self, url):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
+        ss_id = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)['mediaInfo']['season_id']
 
-        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
-        episode_list = self._download_json(
-            'https://api.bilibili.com/pgc/web/season/section', media_id,
-            query={'season_id': initial_state['mediaInfo']['season_id']},
-            note='Downloading season info')['result']['main_section']['episodes']
+        return self.playlist_result(self._get_episodes_from_season(ss_id, url), media_id)
 
-        return self.playlist_result((
-            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'])
-            for entry in episode_list), media_id)
+
+class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
+    _VALID_URL = r'(?x)https?://(?:www\.)?bilibili\.com/bangumi/play/ss(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/bangumi/play/ss26801',
+        'info_dict': {
+            'id': '26801'
+        },
+        'playlist_mincount': 26
+    }]
+
+    def _real_extract(self, url):
+        ss_id = self._match_id(url)
+
+        return self.playlist_result(self._get_episodes_from_season(ss_id, url), ss_id)
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
@@ -448,7 +566,36 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             'id': '3985676',
         },
         'playlist_mincount': 178,
+    }, {
+        'url': 'https://space.bilibili.com/313580179/video',
+        'info_dict': {
+            'id': '313580179',
+        },
+        'playlist_mincount': 92,
     }]
+
+    def _extract_signature(self, playlist_id):
+        session_data = self._download_json('https://api.bilibili.com/x/web-interface/nav', playlist_id, fatal=False)
+
+        key_from_url = lambda x: x[x.rfind('/') + 1:].split('.')[0]
+        img_key = traverse_obj(
+            session_data, ('data', 'wbi_img', 'img_url', {key_from_url})) or '34478ba821254d9d93542680e3b86100'
+        sub_key = traverse_obj(
+            session_data, ('data', 'wbi_img', 'sub_url', {key_from_url})) or '7e16a90d190a4355a78fd00b32a38de6'
+
+        session_key = img_key + sub_key
+
+        signature_values = []
+        for position in (
+            46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39,
+            12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63,
+            57, 62, 11, 36, 20, 34, 44, 52
+        ):
+            char_at_position = try_call(lambda: session_key[position])
+            if char_at_position:
+                signature_values.append(char_at_position)
+
+        return ''.join(signature_values)[:32]
 
     def _real_extract(self, url):
         playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
@@ -456,13 +603,28 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
                            'To download audios, add a "/audio" to the URL')
 
+        signature = self._extract_signature(playlist_id)
+
         def fetch_page(page_idx):
+            query = {
+                'keyword': '',
+                'mid': playlist_id,
+                'order': 'pubdate',
+                'order_avoided': 'true',
+                'platform': 'web',
+                'pn': page_idx + 1,
+                'ps': 30,
+                'tid': 0,
+                'web_location': 1550101,
+                'wts': int(time.time()),
+            }
+            query['w_rid'] = hashlib.md5(f'{urllib.parse.urlencode(query)}{signature}'.encode()).hexdigest()
+
             try:
-                response = self._download_json('https://api.bilibili.com/x/space/arc/search',
-                                               playlist_id, note=f'Downloading page {page_idx}',
-                                               query={'mid': playlist_id, 'pn': page_idx + 1, 'jsonp': 'jsonp'})
+                response = self._download_json('https://api.bilibili.com/x/space/wbi/arc/search',
+                                               playlist_id, note=f'Downloading page {page_idx}', query=query)
             except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 412:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 412:
                     raise ExtractorError(
                         'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
                 raise
@@ -490,9 +652,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
     _TESTS = [{
-        'url': 'https://space.bilibili.com/3985676/audio',
+        'url': 'https://space.bilibili.com/313580179/audio',
         'info_dict': {
-            'id': '3985676',
+            'id': '313580179',
         },
         'playlist_mincount': 1,
     }]
@@ -520,13 +682,35 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
         return self.playlist_result(paged_list, playlist_id)
 
 
-class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail\?sid=(?P<sid>\d+)'
+class BilibiliSpaceListBaseIE(BilibiliSpaceBaseIE):
+    def _get_entries(self, page_data, bvid_keys, ending_key='bvid'):
+        for bvid in traverse_obj(page_data, (*variadic(bvid_keys, (str, bytes, dict, set)), ..., ending_key, {str})):
+            yield self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE, bvid)
+
+    def _get_uploader(self, uid, playlist_id):
+        webpage = self._download_webpage(f'https://space.bilibili.com/{uid}', playlist_id, fatal=False)
+        return self._search_regex(r'(?s)<title\b[^>]*>([^<]+)的个人空间-', webpage, 'uploader', fatal=False)
+
+    def _extract_playlist(self, fetch_page, get_metadata, get_entries):
+        metadata, page_list = super()._extract_playlist(fetch_page, get_metadata, get_entries)
+        metadata.pop('page_count', None)
+        metadata.pop('page_size', None)
+        return metadata, page_list
+
+
+class BilibiliCollectionListIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail/?\?sid=(?P<sid>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
         'info_dict': {
             'id': '2142762_57445',
-            'title': '《底特律 变人》'
+            'title': '【完结】《底特律 变人》全结局流程解说',
+            'description': '',
+            'uploader': '老戴在此',
+            'uploader_id': '2142762',
+            'timestamp': int,
+            'upload_date': str,
+            'thumbnail': 'https://archive.biliimg.com/bfs/archive/e0e543ae35ad3df863ea7dea526bc32e70f4c091.jpg',
         },
         'playlist_mincount': 31,
     }]
@@ -547,22 +731,251 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'title': traverse_obj(page_data, ('meta', 'name'))
+                'uploader': self._get_uploader(mid, playlist_id),
+                **traverse_obj(page_data, {
+                    'title': ('meta', 'name', {str}),
+                    'description': ('meta', 'description', {str}),
+                    'uploader_id': ('meta', 'mid', {str_or_none}),
+                    'timestamp': ('meta', 'ptime', {int_or_none}),
+                    'thumbnail': ('meta', 'cover', {url_or_none}),
+                })
             }
 
         def get_entries(page_data):
-            for entry in page_data.get('archives', []):
-                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
-                                      BiliBiliIE, entry['bvid'])
+            return self._get_entries(page_data, 'archives')
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
-        return self.playlist_result(paged_list, playlist_id, metadata['title'])
+        return self.playlist_result(paged_list, playlist_id, **metadata)
+
+
+class BilibiliSeriesListIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<mid>\d+)/channel/seriesdetail/?\?\bsid=(?P<sid>\d+)'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/1958703906/channel/seriesdetail?sid=547718&ctype=0',
+        'info_dict': {
+            'id': '1958703906_547718',
+            'title': '直播回放',
+            'description': '直播回放',
+            'uploader': '靡烟miya',
+            'uploader_id': '1958703906',
+            'timestamp': 1637985853,
+            'upload_date': '20211127',
+            'modified_timestamp': int,
+            'modified_date': str,
+        },
+        'playlist_mincount': 513,
+    }]
+
+    def _real_extract(self, url):
+        mid, sid = self._match_valid_url(url).group('mid', 'sid')
+        playlist_id = f'{mid}_{sid}'
+        playlist_meta = traverse_obj(self._download_json(
+            f'https://api.bilibili.com/x/series/series?series_id={sid}', playlist_id, fatal=False
+        ), {
+            'title': ('data', 'meta', 'name', {str}),
+            'description': ('data', 'meta', 'description', {str}),
+            'uploader_id': ('data', 'meta', 'mid', {str_or_none}),
+            'timestamp': ('data', 'meta', 'ctime', {int_or_none}),
+            'modified_timestamp': ('data', 'meta', 'mtime', {int_or_none}),
+        })
+
+        def fetch_page(page_idx):
+            return self._download_json(
+                'https://api.bilibili.com/x/series/archives',
+                playlist_id, note=f'Downloading page {page_idx}',
+                query={'mid': mid, 'series_id': sid, 'pn': page_idx + 1, 'ps': 30})['data']
+
+        def get_metadata(page_data):
+            page_size = page_data['page']['size']
+            entry_count = page_data['page']['total']
+            return {
+                'page_count': math.ceil(entry_count / page_size),
+                'page_size': page_size,
+                'uploader': self._get_uploader(mid, playlist_id),
+                **playlist_meta
+            }
+
+        def get_entries(page_data):
+            return self._get_entries(page_data, 'archives')
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, playlist_id, **metadata)
+
+
+class BilibiliFavoritesListIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://(?:space\.bilibili\.com/\d+/favlist/?\?fid=|(?:www\.)?bilibili\.com/medialist/detail/ml)(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/84912/favlist?fid=1103407912&ftype=create',
+        'info_dict': {
+            'id': '1103407912',
+            'title': '【V2】（旧）',
+            'description': '',
+            'uploader': '晓月春日',
+            'uploader_id': '84912',
+            'timestamp': 1604905176,
+            'upload_date': '20201109',
+            'modified_timestamp': int,
+            'modified_date': str,
+            'thumbnail': r"re:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg",
+            'view_count': int,
+            'like_count': int,
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/detail/ml1103407912',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        fid = self._match_id(url)
+
+        list_info = self._download_json(
+            f'https://api.bilibili.com/x/v3/fav/resource/list?media_id={fid}&pn=1&ps=20',
+            fid, note='Downloading favlist metadata')
+        if list_info['code'] == -403:
+            self.raise_login_required(msg='This is a private favorites list. You need to log in as its owner')
+
+        entries = self._get_entries(self._download_json(
+            f'https://api.bilibili.com/x/v3/fav/resource/ids?media_id={fid}',
+            fid, note='Download favlist entries'), 'data')
+
+        return self.playlist_result(entries, fid, **traverse_obj(list_info, ('data', 'info', {
+            'title': ('title', {str}),
+            'description': ('intro', {str}),
+            'uploader': ('upper', 'name', {str}),
+            'uploader_id': ('upper', 'mid', {str_or_none}),
+            'timestamp': ('ctime', {int_or_none}),
+            'modified_timestamp': ('mtime', {int_or_none}),
+            'thumbnail': ('cover', {url_or_none}),
+            'view_count': ('cnt_info', 'play', {int_or_none}),
+            'like_count': ('cnt_info', 'thumb_up', {int_or_none}),
+        })))
+
+
+class BilibiliWatchlaterIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/watchlater/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/watchlater/#/list',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }]
+
+    def _real_extract(self, url):
+        list_id = getattr(self._get_cookies(url).get('DedeUserID'), 'value', 'watchlater')
+        watchlater_info = self._download_json(
+            'https://api.bilibili.com/x/v2/history/toview/web?jsonp=jsonp', list_id)
+        if watchlater_info['code'] == -101:
+            self.raise_login_required(msg='You need to login to access your watchlater list')
+        entries = self._get_entries(watchlater_info, ('data', 'list'))
+        return self.playlist_result(entries, id=list_id, title='稍后再看')
+
+
+class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:medialist/play|list)/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/list/1958703906?sid=547718',
+        'info_dict': {
+            'id': '5_547718',
+            'title': '直播回放',
+            'uploader': '靡烟miya',
+            'uploader_id': '1958703906',
+            'timestamp': 1637985853,
+            'upload_date': '20211127',
+        },
+        'playlist_mincount': 513,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/1958703906?business=space_series&business_id=547718&desc=1',
+        'info_dict': {
+            'id': '5_547718',
+        },
+        'playlist_mincount': 513,
+        'skip': 'redirect url',
+    }, {
+        'url': 'https://www.bilibili.com/list/ml1103407912',
+        'info_dict': {
+            'id': '3_1103407912',
+            'title': '【V2】（旧）',
+            'uploader': '晓月春日',
+            'uploader_id': '84912',
+            'timestamp': 1604905176,
+            'upload_date': '20201109',
+            'thumbnail': r"re:http://i\d\.hdslb\.com/bfs/archive/14b83c62aa8871b79083df1e9ab4fbc699ad16fe\.jpg",
+        },
+        'playlist_mincount': 22,
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/ml1103407912',
+        'info_dict': {
+            'id': '3_1103407912',
+        },
+        'playlist_mincount': 22,
+        'skip': 'redirect url',
+    }, {
+        'url': 'https://www.bilibili.com/list/watchlater',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }, {
+        'url': 'https://www.bilibili.com/medialist/play/watchlater',
+        'info_dict': {'id': 'watchlater'},
+        'playlist_mincount': 0,
+        'skip': 'login required',
+    }]
+
+    def _extract_medialist(self, query, list_id):
+        for page_num in itertools.count(1):
+            page_data = self._download_json(
+                'https://api.bilibili.com/x/v2/medialist/resource/list',
+                list_id, query=query, note=f'getting playlist {query["biz_id"]} page {page_num}'
+            )['data']
+            yield from self._get_entries(page_data, 'media_list', ending_key='bv_id')
+            query['oid'] = traverse_obj(page_data, ('media_list', -1, 'id'))
+            if not page_data.get('has_more', False):
+                break
+
+    def _real_extract(self, url):
+        list_id = self._match_id(url)
+        webpage = self._download_webpage(url, list_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', list_id)
+        if traverse_obj(initial_state, ('error', 'code', {int_or_none})) != 200:
+            error_code = traverse_obj(initial_state, ('error', 'trueCode', {int_or_none}))
+            error_message = traverse_obj(initial_state, ('error', 'message', {str_or_none}))
+            if error_code == -400 and list_id == 'watchlater':
+                self.raise_login_required('You need to login to access your watchlater playlist')
+            elif error_code == -403:
+                self.raise_login_required('This is a private playlist. You need to login as its owner')
+            elif error_code == 11010:
+                raise ExtractorError('Playlist is no longer available', expected=True)
+            raise ExtractorError(f'Could not access playlist: {error_code} {error_message}')
+
+        query = {
+            'ps': 20,
+            'with_current': False,
+            **traverse_obj(initial_state, {
+                'type': ('playlist', 'type', {int_or_none}),
+                'biz_id': ('playlist', 'id', {int_or_none}),
+                'tid': ('tid', {int_or_none}),
+                'sort_field': ('sortFiled', {int_or_none}),
+                'desc': ('desc', {bool_or_none}, {str_or_none}, {str.lower}),
+            })
+        }
+        metadata = {
+            'id': f'{query["type"]}_{query["biz_id"]}',
+            **traverse_obj(initial_state, ('mediaListInfo', {
+                'title': ('title', {str}),
+                'uploader': ('upper', 'name', {str}),
+                'uploader_id': ('upper', 'mid', {str_or_none}),
+                'timestamp': ('ctime', {int_or_none}),
+                'thumbnail': ('cover', {url_or_none}),
+            })),
+        }
+        return self.playlist_result(self._extract_medialist(query, list_id), **metadata)
 
 
 class BilibiliCategoryIE(InfoExtractor):
     IE_NAME = 'Bilibili category extractor'
     _MAX_RESULTS = 1000000
-    _VALID_URL = r'https?://www\.bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/v/[a-zA-Z]+\/[a-zA-Z]+'
     _TESTS = [{
         'url': 'https://www.bilibili.com/v/kichiku/mad',
         'info_dict': {
@@ -879,38 +1292,26 @@ class BiliIntlBaseIE(InfoExtractor):
                 'filesize': aud.get('size'),
             })
 
-        self._sort_formats(formats)
         return formats
 
-    def _extract_video_info(self, video_data, *, ep_id=None, aid=None):
+    def _parse_video_metadata(self, video_data):
         return {
-            'id': ep_id or aid,
             'title': video_data.get('title_display') or video_data.get('title'),
             'thumbnail': video_data.get('cover'),
             'episode_number': int_or_none(self._search_regex(
                 r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
-            'formats': self._get_formats(ep_id=ep_id, aid=aid),
-            'subtitles': self._get_subtitles(ep_id=ep_id, aid=aid),
-            'extractor_key': BiliIntlIE.ie_key(),
         }
 
     def _perform_login(self, username, password):
-        try:
-            from Cryptodome.PublicKey import RSA
-            from Cryptodome.Cipher import PKCS1_v1_5
-        except ImportError:
-            try:
-                from Crypto.PublicKey import RSA
-                from Crypto.Cipher import PKCS1_v1_5
-            except ImportError:
-                raise ExtractorError('pycryptodomex not found. Please install', expected=True)
+        if not Cryptodome.RSA:
+            raise ExtractorError('pycryptodomex not found. Please install', expected=True)
 
         key_data = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/key?lang=en-US', None,
             note='Downloading login key', errnote='Unable to download login key')['data']
 
-        public_key = RSA.importKey(key_data['key'])
-        password_hash = PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
+        public_key = Cryptodome.RSA.importKey(key_data['key'])
+        password_hash = Cryptodome.PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
         login_post = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None, data=urlencode_postdata({
                 'username': username,
@@ -937,6 +1338,23 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'E2 - The First Night',
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 2,
+            'upload_date': '20201009',
+            'episode': 'Episode 2',
+            'timestamp': 1602259500,
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 76.242,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 76.242,
+                'end_time': 161.161,
+                'title': 'Intro'
+            }, {
+                'start_time': 1325.742,
+                'end_time': 1403.903,
+                'title': 'Outro'
+            }],
         }
     }, {
         # Non-Bstation page
@@ -947,6 +1365,23 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'E3 - Who?',
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 3,
+            'description': 'md5:e1a775e71a35c43f141484715470ad09',
+            'episode': 'Episode 3',
+            'upload_date': '20211219',
+            'timestamp': 1639928700,
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 88.0,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 88.0,
+                'end_time': 156.0,
+                'title': 'Intro'
+            }, {
+                'start_time': 1173.0,
+                'end_time': 1259.535,
+                'title': 'Outro'
+            }],
         }
     }, {
         # Subtitle with empty content
@@ -959,6 +1394,78 @@ class BiliIntlIE(BiliIntlBaseIE):
             'episode_number': 140,
         },
         'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
+    }, {
+        'url': 'https://www.bilibili.tv/en/video/2041863208',
+        'info_dict': {
+            'id': '2041863208',
+            'ext': 'mp4',
+            'timestamp': 1670874843,
+            'description': 'Scheduled for April 2023.\nStudio: ufotable',
+            'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
+            'upload_date': '20221212',
+            'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
+        },
+    }, {
+        # episode comment extraction
+        'url': 'https://www.bilibili.tv/en/play/34580/340317',
+        'info_dict': {
+            'id': '340317',
+            'ext': 'mp4',
+            'timestamp': 1604057820,
+            'upload_date': '20201030',
+            'episode_number': 5,
+            'title': 'E5 - My Own Steel',
+            'description': 'md5:2b17ab10aebb33e3c2a54da9e8e487e2',
+            'thumbnail': r're:https?://pic\.bstarstatic\.com/ogv/.+\.png$',
+            'episode': 'Episode 5',
+            'comment_count': int,
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 61.0,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 61.0,
+                'end_time': 134.0,
+                'title': 'Intro'
+            }, {
+                'start_time': 1290.0,
+                'end_time': 1379.0,
+                'title': 'Outro'
+            }],
+        },
+        'params': {
+            'getcomments': True
+        }
+    }, {
+        # user generated content comment extraction
+        'url': 'https://www.bilibili.tv/en/video/2045730385',
+        'info_dict': {
+            'id': '2045730385',
+            'ext': 'mp4',
+            'description': 'md5:693b6f3967fb4e7e7764ea817857c33a',
+            'timestamp': 1667891924,
+            'upload_date': '20221108',
+            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan - Bstation',
+            'comment_count': int,
+            'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
+        },
+        'params': {
+            'getcomments': True
+        }
+    }, {
+        # episode id without intro and outro
+        'url': 'https://www.bilibili.tv/en/play/1048837/11246489',
+        'info_dict': {
+            'id': '11246489',
+            'ext': 'mp4',
+            'title': 'E1 - Operation \'Strix\' <Owl>',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'timestamp': 1649516400,
+            'thumbnail': 'https://pic.bstarstatic.com/ogv/62cb1de23ada17fb70fbe7bdd6ff29c29da02a64.png',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'upload_date': '20220409',
+        },
     }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
         'only_matching': True,
@@ -976,42 +1483,156 @@ class BiliIntlIE(BiliIntlBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
-        video_id = ep_id or aid
+    def _make_url(video_id, series_id=None):
+        if series_id:
+            return f'https://www.bilibili.tv/en/play/{series_id}/{video_id}'
+        return f'https://www.bilibili.tv/en/video/{video_id}'
+
+    def _extract_video_metadata(self, url, video_id, season_id):
+        url, smuggled_data = unsmuggle_url(url, {})
+        if smuggled_data.get('title'):
+            return smuggled_data
+
         webpage = self._download_webpage(url, video_id)
         # Bstation layout
         initial_data = (
             self._search_json(r'window\.__INITIAL_(?:DATA|STATE)__\s*=', webpage, 'preload state', video_id, default={})
             or self._search_nuxt_data(webpage, video_id, '__initialState', fatal=False, traverse=None))
         video_data = traverse_obj(
-            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict)
+            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict) or {}
 
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
             season_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={season_id}&platform=web', video_id)
-            video_data = traverse_obj(season_json,
-                                      ('sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == ep_id),
-                                      expected_type=dict, get_all=False)
-        return self._extract_video_info(video_data or {}, ep_id=ep_id, aid=aid)
+            video_data = traverse_obj(season_json, (
+                'sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == video_id
+            ), expected_type=dict, get_all=False)
+
+        # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
+        return merge_dicts(
+            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id, fatal=False), {
+                'title': self._html_search_meta('og:title', webpage),
+                'description': self._html_search_meta('og:description', webpage)
+            })
+
+    def _get_comments_reply(self, root_id, next_id=0, display_id=None):
+        comment_api_raw_data = self._download_json(
+            'https://api.bilibili.tv/reply/web/detail', display_id,
+            note=f'Downloading reply comment of {root_id} - {next_id}',
+            query={
+                'platform': 'web',
+                'ps': 20,  # comment's reply per page (default: 3)
+                'root': root_id,
+                'next': next_id,
+            })
+
+        for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)):
+            yield {
+                'author': traverse_obj(replies, ('member', 'name')),
+                'author_id': traverse_obj(replies, ('member', 'mid')),
+                'author_thumbnail': traverse_obj(replies, ('member', 'face')),
+                'text': traverse_obj(replies, ('content', 'message')),
+                'id': replies.get('rpid'),
+                'like_count': int_or_none(replies.get('like_count')),
+                'parent': replies.get('parent'),
+                'timestamp': unified_timestamp(replies.get('ctime_text'))
+            }
+
+        if not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
+            yield from self._get_comments_reply(
+                root_id, comment_api_raw_data['data']['cursor']['next'], display_id)
+
+    def _get_comments(self, video_id, ep_id):
+        for i in itertools.count(0):
+            comment_api_raw_data = self._download_json(
+                'https://api.bilibili.tv/reply/web/root', video_id,
+                note=f'Downloading comment page {i + 1}',
+                query={
+                    'platform': 'web',
+                    'pn': i,  # page number
+                    'ps': 20,  # comment per page (default: 20)
+                    'oid': video_id,
+                    'type': 3 if ep_id else 1,  # 1: user generated content, 3: series content
+                    'sort_type': 1,  # 1: best, 2: recent
+                })
+
+            for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)):
+                yield {
+                    'author': traverse_obj(replies, ('member', 'name')),
+                    'author_id': traverse_obj(replies, ('member', 'mid')),
+                    'author_thumbnail': traverse_obj(replies, ('member', 'face')),
+                    'text': traverse_obj(replies, ('content', 'message')),
+                    'id': replies.get('rpid'),
+                    'like_count': int_or_none(replies.get('like_count')),
+                    'timestamp': unified_timestamp(replies.get('ctime_text')),
+                    'author_is_uploader': bool(traverse_obj(replies, ('member', 'type'))),
+                }
+                if replies.get('count'):
+                    yield from self._get_comments_reply(replies.get('rpid'), display_id=video_id)
+
+            if traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
+                break
+
+    def _real_extract(self, url):
+        season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
+        video_id = ep_id or aid
+        chapters = None
+
+        if ep_id:
+            intro_ending_json = self._call_api(
+                f'/web/v2/ogv/play/episode?episode_id={ep_id}&platform=web',
+                video_id, fatal=False) or {}
+            if intro_ending_json.get('skip'):
+                # FIXME: start time and end time seems a bit off a few second even it corrext based on ogv.*.js
+                # ref: https://p.bstarstatic.com/fe-static/bstar-web-new/assets/ogv.2b147442.js
+                chapters = [{
+                    'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_start_time')), 1000),
+                    'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_end_time')), 1000),
+                    'title': 'Intro'
+                }, {
+                    'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_start_time')), 1000),
+                    'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_end_time')), 1000),
+                    'title': 'Outro'
+                }]
+
+        return {
+            'id': video_id,
+            **self._extract_video_metadata(url, video_id, season_id),
+            'formats': self._get_formats(ep_id=ep_id, aid=aid),
+            'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
+            'chapters': chapters,
+            '__post_extractor': self.extract_comments(video_id, ep_id)
+        }
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
+    IE_NAME = 'biliIntl:series'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?(?:play|media)/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
         'info_dict': {
             'id': '34613',
-            'title': 'Fly Me to the Moon',
-            'description': 'md5:a861ee1c4dc0acfad85f557cc42ac627',
-            'categories': ['Romance', 'Comedy', 'Slice of life'],
+            'title': 'TONIKAWA: Over the Moon For You',
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'categories': ['Slice of life', 'Comedy', 'Romance'],
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'view_count': int,
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.bilibili.tv/en/media/1048837',
+        'info_dict': {
+            'id': '1048837',
+            'title': 'SPY×FAMILY',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'categories': ['Adventure', 'Action', 'Comedy'],
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.jpg$',
+            'view_count': int,
+        },
+        'playlist_mincount': 25,
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
         'only_matching': True,
@@ -1022,9 +1643,12 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
     def _entries(self, series_id):
         series_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={series_id}&platform=web', series_id)
-        for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict, default=[]):
-            episode_id = str(episode.get('episode_id'))
-            yield self._extract_video_info(episode, ep_id=episode_id)
+        for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict):
+            episode_id = str(episode['episode_id'])
+            yield self.url_result(smuggle_url(
+                BiliIntlIE._make_url(episode_id, series_id),
+                self._parse_video_metadata(episode)
+            ), BiliIntlIE, episode_id)
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
@@ -1036,7 +1660,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
 
 class BiliLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://live.bilibili.com/(?P<id>\d+)'
+    _VALID_URL = r'https?://live\.bilibili\.com/(?:blanc/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://live.bilibili.com/196',
@@ -1051,6 +1675,9 @@ class BiliLiveIE(InfoExtractor):
         'skip': 'not live'
     }, {
         'url': 'https://live.bilibili.com/196?broadcast_type=0&is_room_feed=1?spm_id_from=333.999.space_home.strengthen_live_card.click',
+        'only_matching': True
+    }, {
+        'url': 'https://live.bilibili.com/blanc/196',
         'only_matching': True
     }]
 
@@ -1105,7 +1732,6 @@ class BiliLiveIE(InfoExtractor):
             })
             for fmt in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream', ..., 'format', ...)) or []:
                 formats.extend(self._parse_formats(qn, fmt))
-        self._sort_formats(formats)
 
         return {
             'id': room_id,
@@ -1114,6 +1740,7 @@ class BiliLiveIE(InfoExtractor):
             'thumbnail': room_data.get('user_cover'),
             'timestamp': stream_data.get('live_time'),
             'formats': formats,
+            'is_live': True,
             'http_headers': {
                 'Referer': url,
             },

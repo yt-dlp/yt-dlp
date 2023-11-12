@@ -105,7 +105,6 @@ class VeohIE(InfoExtractor):
                     'quality': q(f_id),
                     'url': f_url,
                 })
-        self._sort_formats(formats)
 
         categories = metadata.get('categoryPath')
         if not categories:
@@ -130,7 +129,7 @@ class VeohIE(InfoExtractor):
         }
 
 
-class VeohUserIE(VeohIE):
+class VeohUserIE(VeohIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?veoh\.com/users/(?P<id>[\w-]+)'
     IE_NAME = 'veoh:user'
 

@@ -71,7 +71,6 @@ class KUSIIE(InfoExtractor):
                 'width': int_or_none(quality.attrib.get('width')),
                 'vbr': float_or_none(quality.attrib.get('bitratebits'), scale=1000),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -68,7 +68,6 @@ class TV24UAVideoIE(InfoExtractor):
             self._search_json(
                 r'var\s*vPlayConfig\s*=\s*', webpage, 'thumbnail',
                 video_id, default=None, transform_source=js_to_json), 'poster')
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,

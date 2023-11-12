@@ -62,7 +62,6 @@ class PlaywireIE(InfoExtractor):
         for a_format in formats:
             if not dict_get(a_format, ['tbr', 'width', 'height']):
                 a_format['quality'] = 1 if '-hd.' in a_format['url'] else 0
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

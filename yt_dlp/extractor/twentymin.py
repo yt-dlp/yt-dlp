@@ -57,7 +57,6 @@ class TwentyMinutenIE(InfoExtractor):
             'url': 'http://podcast.20min-tv.ch/podcast/20min/%s%s.mp4' % (video_id, p),
             'quality': quality,
         } for quality, (format_id, p) in enumerate([('sd', ''), ('hd', 'h')])]
-        self._sort_formats(formats)
 
         description = video.get('lead')
         thumbnail = video.get('thumbnail')
