@@ -279,16 +279,14 @@ class Updater:
     def _get_version_info(self, tag: str) -> tuple[str | None, str | None]:
         if _VERSION_RE.fullmatch(tag):
             return tag, None
-        elif self._exact and tag != 'latest':
-            return None, None
 
         api_info = self._call_api(tag)
 
         if tag == 'latest':
             requested_version = api_info['tag_name']
         else:
-            match = _VERSION_RE.search(api_info.get('name', ''))
-            requested_version = match[0] if match else None
+            match = re.search(rf'\s+(?P<version>{_VERSION_RE.pattern})$', api_info.get('name', ''))
+            requested_version = match.group('version') if match else None
 
         if re.fullmatch(_HASH_PATTERN, api_info.get('target_commitish', '')):
             target_commitish = api_info['target_commitish']
@@ -376,7 +374,7 @@ class Updater:
         elif target_commitish:
             has_update = target_commitish != self.current_commit
         else:
-            has_update = True
+            has_update = False
 
         current_label = _make_label(ORIGIN, CHANNEL.partition("@")[2] or self.current_version, self.current_version)
         if not has_update:
