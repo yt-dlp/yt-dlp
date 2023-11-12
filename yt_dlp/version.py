@@ -11,3 +11,5 @@ UPDATE_HINT = None
 CHANNEL = 'stable'
 
 ORIGIN = 'yt-dlp/yt-dlp'
+
+_pkg_version = '2023.10.13'

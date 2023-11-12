@@ -63,6 +63,7 @@ jobs:
       target_repo_token: ${{ steps.setup_variables.outputs.target_repo_token }}
       target_tag: ${{ steps.setup_variables.outputs.target_tag }}
       pypi_project: ${{ steps.setup_variables.outputs.pypi_project }}
+      pypi_suffix: ${{ steps.setup_variables.outputs.pypi_suffix }}
       pypi_token: ${{ steps.setup_variables.outputs.pypi_token }}
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
@@ -151,6 +152,7 @@ jobs:
               target_repo_token='${{ env.target_repo }}_archive_repo_token'
               ${{ !!secrets[format('{0}_archive_repo_token', env.target_repo)] }} || fallback_token
               pypi_project='${{ vars[format('{0}_pypi_project', env.target_repo)] }}'
+              pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.target_repo)] }}'
               ${{ !secrets[format('{0}_pypi_token', env.target_repo)] }} || pypi_token='${{ env.target_repo }}_pypi_token'
             fi
           else
@@ -160,6 +162,7 @@ jobs:
               target_repo_token='${{ env.source_repo }}_archive_repo_token'
               ${{ !!secrets[format('{0}_archive_repo_token', env.source_repo)] }} || fallback_token
               pypi_project='${{ vars[format('{0}_pypi_project', env.source_repo)] }}'
+              pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.source_repo)] }}'
               ${{ !secrets[format('{0}_pypi_token', env.source_repo)] }} || pypi_token='${{ env.source_repo }}_pypi_token'
             else
               target_repo='${{ github.repository }}'
@@ -171,10 +174,10 @@ jobs:
           fi
           if [[ -z "${pypi_token}" && "${pypi_project}" ]]; then
             if ${{ !secrets.PYPI_TOKEN }}; then
-              echo "::error::No PYPI_TOKEN for use with ${pypi_project} found"
-              exit 1
+              pypi_token=OIDC
+            else
+              pypi_token=PYPI_TOKEN
             fi
-            pypi_token=PYPI_TOKEN
           fi
 
           echo "::group::Output variables"
@@ -185,6 +188,7 @@ jobs:
           target_repo_token=${target_repo_token}
           target_tag=${target_tag}
           pypi_project=${pypi_project}
+          pypi_suffix=${pypi_suffix}
           pypi_token=${pypi_token}
           EOF
           echo "::endgroup::"
@@ -248,6 +252,8 @@ jobs:
     needs: [prepare, build]
     if: ${{ needs.prepare.outputs.pypi_project }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # mandatory for trusted publishing
 
     steps:
       - uses: actions/checkout@v4
@@ -264,24 +270,37 @@ jobs:
       - name: Prepare
         env:
           version: ${{ needs.prepare.outputs.version }}
+          suffix: ${{ needs.prepare.outputs.pypi_suffix }}
           channel: ${{ needs.prepare.outputs.channel }}
           target_repo: ${{ needs.prepare.outputs.target_repo }}
-        run: |
-          python devscripts/update-version.py -c "${{ env.channel }}" -r "${{ env.target_repo }}" "${{ env.version }}"
-          python devscripts/make_lazy_extractors.py
-
-      - name: Build and publish on PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets[needs.prepare.outputs.pypi_token] }}
           pypi_project: ${{ needs.prepare.outputs.pypi_project }}
         run: |
-          rm -rf dist/*
+          python devscripts/update-version.py -c "${{ env.channel }}" -r "${{ env.target_repo }}" -s "${{ env.suffix }}" "${{ env.version }}"
+          python devscripts/make_lazy_extractors.py
           sed -i -E "s/(name=')[^']+(',  # package name)/\1${{ env.pypi_project }}\2/" setup.py
+
+      - name: Build
+        run: |
+          rm -rf dist/*
           make pypi-files
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
           python setup.py sdist bdist_wheel
+
+      - name: Publish to PyPI via token
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets[needs.prepare.outputs.pypi_token] }}
+        if: |
+          needs.prepare.outputs.pypi_token != 'OIDC' && env.TWINE_PASSWORD
+        run: |
           twine upload dist/*
+
+      - name: Publish to PyPI via trusted publishing
+        if: |
+          needs.prepare.outputs.pypi_token == 'OIDC'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
 
   publish:
     needs: [prepare, build]

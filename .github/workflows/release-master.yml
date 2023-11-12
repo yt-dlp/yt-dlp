@@ -24,4 +24,5 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write  # mandatory for trusted publishing
     secrets: inherit

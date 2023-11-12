@@ -18,7 +18,7 @@ except ImportError:
 
 from devscripts.utils import read_file, read_version
 
-VERSION = read_version()
+VERSION = read_version(varname='_pkg_version')
 
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
