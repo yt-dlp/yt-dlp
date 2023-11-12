@@ -375,8 +375,7 @@ query SEARCH_QUERY($query: String!, $shouldIncludeVideos: Boolean!, $shouldInclu
 '''
 
         if not self._HEADERS.get('Authorization'):
-            token = self._get_token(term)
-            self._HEADERS['Authorization'] = 'Bearer ' + token
+            self._HEADERS['Authorization'] = f'Bearer {self._get_token(term)}'
         resp = self._download_json(
             'https://graphql.api.dailymotion.com/', None, note, data=json.dumps({
                 'operationName': 'SEARCH_QUERY',
