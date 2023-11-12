@@ -19,7 +19,7 @@ jobs:
         id: check_for_new_commits
         run: |
           relevant_files=("yt_dlp/*.py" ':!yt_dlp/version.py' "setup.py" "pyinst.py")
-          echo "commit=$(git log --format=%H -1 --since=24h -- "${relevant_files[@]}")" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
   release:
     needs: [check_nightly]
