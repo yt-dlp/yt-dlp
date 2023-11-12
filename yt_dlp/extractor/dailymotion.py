@@ -391,9 +391,10 @@ query SEARCH_QUERY($query: String!, $shouldIncludeVideos: Boolean!, $shouldInclu
                     'shouldIncludeVideos': True
                 }
             }).encode(), headers=self._HEADERS)
-        obj = resp['data']['search']
+        obj = traverse_obj(resp, ('data', 'search', {dict}))
         if not obj:
-            raise ExtractorError(resp['errors'][0]['message'], expected=True)
+            raise ExtractorError(traverse_obj(resp, ('errors', 0, 'message'))
+                                 or 'Could not fetch search data', expected=True)
         return obj
 
 
