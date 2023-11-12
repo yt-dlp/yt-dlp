@@ -33,7 +33,7 @@ class AltCensoredIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        res = self.url_result('https://archive.org/details/youtube-%s' % video_id, ArchiveOrgIE)
+        res = self.url_result(f'https://archive.org/details/youtube-{video_id}', ArchiveOrgIE)
         # Extractor indirection doesn't allow merging info from the original extractor.
         # Youtube view count or thumbnail extracted from altcensored can't be merge back
         # into underlying archive.org info json
