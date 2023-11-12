@@ -399,7 +399,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'entries': [self.url_result(episode['shareUrl'])
-                        for episode in series['_embedded']['videoEpisodes']],
+                        for episode in series['_embedded']['videoEpisodes']['items']],
             'id': series.get('id'),
             'title': dict_get(series, ('title', 'displaySubtitle')),
             'description': series.get('description'),
