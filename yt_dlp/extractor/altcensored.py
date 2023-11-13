@@ -31,8 +31,8 @@ class AltCensoredIE(InfoExtractor):
             'track': 'k0srjLSkga8',
             'duration': 926.09,
             'thumbnail': 'https://archive.org/download/youtube-k0srjLSkga8/youtube-k0srjLSkga8.thumbs/k0srjLSkga8_000925.jpg',
-            'yt_views': 30402,
-            'category': 'News & Politics',
+            'view_count': 30402,
+            'categories': ['News & Politics'],
         }
     }]
 
