@@ -78,6 +78,7 @@ class DuoplayIE(InfoExtractor):
                 'season_number': ('season_id', {int_or_none}),
                 'episode': 'subtitle',
                 'episode_number': ('episode_nr', {int_or_none}),
+                'episode_id': ('episode_id', {int_or_none}),
                 'cast': ('cast', {lambda x: x.split(', ')}),
             }),
         }
