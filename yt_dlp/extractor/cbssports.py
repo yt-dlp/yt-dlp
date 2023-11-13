@@ -40,7 +40,6 @@ class CBSSportsEmbedIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             metadata['files'][0]['url'], video_id, 'mp4',
             'm3u8_native', m3u8_id='hls', fatal=False)
-        self._sort_formats(formats)
 
         image = video.get('image')
         thumbnails = None

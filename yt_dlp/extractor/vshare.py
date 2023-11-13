@@ -22,7 +22,7 @@ class VShareIE(InfoExtractor):
         packed = self._search_regex(
             r'(eval\(function.+)', webpage, 'packed code')
         unpacked = decode_packed_codes(packed)
-        digits = self._search_regex(r'\[((?:\d+,?)+)\]', unpacked, 'digits')
+        digits = self._search_regex(r'\[([\d,]+)\]', unpacked, 'digits')
         digits = [int(digit) for digit in digits.split(',')]
         key_digit = self._search_regex(
             r'fromCharCode\(.+?(\d+)\)}', unpacked, 'key digit')
@@ -48,8 +48,6 @@ class VShareIE(InfoExtractor):
         info = self._parse_html5_media_entries(
             url, '<video>%s</video>' % self._extract_packed(webpage),
             video_id)[0]
-
-        self._sort_formats(info['formats'])
 
         info.update({
             'id': video_id,

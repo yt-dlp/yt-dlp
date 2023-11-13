@@ -67,7 +67,6 @@ class IxiguaIE(InfoExtractor):
         json_data = self._get_json_data(webpage, video_id)['anyVideo']['gidInformation']['packerData']['video']
 
         formats = list(self._media_selector(json_data.get('videoResource')))
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': json_data.get('title'),

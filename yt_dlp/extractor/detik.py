@@ -146,7 +146,6 @@ class DetikEmbedIE(InfoExtractor):
             }
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
-        self._sort_formats(formats)
 
         json_ld_data = self._search_json_ld(webpage, display_id, default={})
         yield merge_dicts(json_ld_data, extra_info_dict, {

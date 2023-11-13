@@ -49,7 +49,6 @@ class Screen9IE(InfoExtractor):
             'format': 'mp4',
         })
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': traverse_obj(

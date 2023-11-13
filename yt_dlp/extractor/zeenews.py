@@ -48,7 +48,6 @@ class ZeeNewsIE(InfoExtractor):
             raise ExtractorError('No video found', expected=True)
 
         formats = self._extract_m3u8_formats(embed_url, content_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             **self._json_ld(json_ld_list, display_id),

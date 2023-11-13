@@ -76,7 +76,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'title': 'Arma 3 - Zeus Games #5',
                 'uploader': 'SovietWomble',
                 'thumbnail': r're:^https?://.*\.b-cdn\.net/c0e5e76f-3a93-40b4-bf01-12343c2eec5d/thumbnail\.jpg$',
-                'uploader': 'SovietWomble',
                 'creator': 'SovietWomble',
                 'release_timestamp': 1461157200,
                 'release_date': '20160420',
@@ -104,7 +103,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         thumbnail_url = self._search_regex(r'(https?://.*?thumbnail\.jpg)', iframe, 'thumbnail url')
 
         m3u8_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.MEDIADELIVERY_REFERER)
-        self._sort_formats(m3u8_formats)
 
         if not m3u8_formats:
             duration = None

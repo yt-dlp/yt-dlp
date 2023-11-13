@@ -29,7 +29,6 @@ class FourZeroStudioArchiveIE(InfoExtractor):
             'ssrRefs', lambda _, v: v['__typename'] == 'PublicUser', 'id'), get_all=False)
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(pcb['archiveUrl'], video_id, ext='mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

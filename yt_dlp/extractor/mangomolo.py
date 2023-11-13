@@ -44,7 +44,6 @@ class MangomoloBaseIE(InfoExtractor):
             ], webpage, 'format url')
         formats = self._extract_wowza_formats(
             format_url, page_id, m3u8_entry_protocol, ['smil'])
-        self._sort_formats(formats)
 
         return {
             'id': page_id,

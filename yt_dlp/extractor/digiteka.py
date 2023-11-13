@@ -81,8 +81,6 @@ class DigitekaIE(InfoExtractor):
                 'format_id': source.get('label'),
             })
 
-        self._sort_formats(formats)
-
         title = deliver_info['title']
         thumbnail = jwconf.get('image')
         duration = int_or_none(deliver_info.get('duration'))

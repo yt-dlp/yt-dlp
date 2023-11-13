@@ -7,7 +7,7 @@ from ..utils import (
 from .keezmovies import KeezMoviesIE
 
 
-class Tube8IE(KeezMoviesIE):
+class Tube8IE(KeezMoviesIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?tube8\.com/(?:[^/]+/)+(?P<display_id>[^/]+)/(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?tube8\.com/embed/(?:[^/]+/)+\d+)']
     _TESTS = [{

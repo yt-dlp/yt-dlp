@@ -50,7 +50,6 @@ class DiscoveryGoBaseIE(InfoExtractor):
             elif stream_kind == 'hds':
                 formats.extend(self._extract_f4m_formats(
                     stream_url, display_id, f4m_id=stream_kind, fatal=False))
-        self._sort_formats(formats)
 
         video_id = video.get('id') or display_id
         description = video.get('description', {}).get('detailed')

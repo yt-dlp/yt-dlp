@@ -118,7 +118,6 @@ class HitboxIE(InfoExtractor):
                     'tbr': bitrate,
                     'format_note': label,
                 })
-        self._sort_formats(formats)
 
         metadata = self._extract_metadata(
             'https://www.smashcast.tv/api/media/video', video_id)
@@ -127,7 +126,7 @@ class HitboxIE(InfoExtractor):
         return metadata
 
 
-class HitboxLiveIE(HitboxIE):
+class HitboxLiveIE(HitboxIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'hitbox:live'
     _VALID_URL = r'https?://(?:www\.)?(?:hitbox|smashcast)\.tv/(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -200,7 +199,6 @@ class HitboxLiveIE(HitboxIE):
                             'page_url': url,
                             'player_url': 'http://www.hitbox.tv/static/player/flowplayer/flowplayer.commercial-3.2.16.swf',
                         })
-        self._sort_formats(formats)
 
         metadata = self._extract_metadata(
             'https://www.smashcast.tv/api/media/live', video_id)

@@ -63,7 +63,6 @@ class DailyMailIE(InfoExtractor):
                 'protocol': protocol,
                 'ext': 'mp4' if is_hls else None,
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
-
+from ..utils.networking import clean_proxies
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..utils import (
@@ -22,80 +22,26 @@ from ..utils import (
     int_or_none,
     intlist_to_bytes,
     OnDemandPagedList,
-    request_to_url,
     time_seconds,
     traverse_obj,
     update_url_query,
 )
 
-# NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
-
-def add_opener(ydl, handler):
-    ''' Add a handler for opening URLs, like _download_webpage '''
+def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
+    """Add a handler for opening URLs, like _download_webpage"""
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    ydl._opener.add_handler(handler)
-
-
-def remove_opener(ydl, handler):
-    '''
-    Remove handler(s) for opening URLs
-    @param handler Either handler object itself or handler type.
-    Specifying handler type will remove all handler which isinstance returns True.
-    '''
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    opener = ydl._opener
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    if isinstance(handler, (type, tuple)):
-        find_cp = lambda x: isinstance(x, handler)
-    else:
-        find_cp = lambda x: x is handler
-
-    removed = []
-    for meth in dir(handler):
-        if meth in ["redirect_request", "do_open", "proxy_open"]:
-            # oops, coincidental match
-            continue
-
-        i = meth.find("_")
-        protocol = meth[:i]
-        condition = meth[i + 1:]
-
-        if condition.startswith("error"):
-            j = condition.find("_") + i + 1
-            kind = meth[j + 1:]
-            try:
-                kind = int(kind)
-            except ValueError:
-                pass
-            lookup = opener.handle_error.get(protocol, {})
-            opener.handle_error[protocol] = lookup
-        elif condition == "open":
-            kind = protocol
-            lookup = opener.handle_open
-        elif condition == "response":
-            kind = protocol
-            lookup = opener.process_response
-        elif condition == "request":
-            kind = protocol
-            lookup = opener.process_request
-        else:
-            continue
-
-        handlers = lookup.setdefault(kind, [])
-        if handlers:
-            handlers[:] = [x for x in handlers if not find_cp(x)]
-
-        removed.append(x for x in handlers if find_cp(x))
-
-    if removed:
-        for x in opener.handlers:
-            if find_cp(x):
-                x.add_parent(None)
-        opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
+    rh = ydl._request_director.handlers['Urllib']
+    if 'abematv-license' in rh._SUPPORTED_URL_SCHEMES:
+        return
+    headers = ydl.params['http_headers'].copy()
+    proxies = ydl.proxies.copy()
+    clean_proxies(proxies, headers)
+    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=proxies)
+    assert isinstance(opener, urllib.request.OpenerDirector)
+    opener.add_handler(handler)
+    rh._SUPPORTED_URL_SCHEMES = (*rh._SUPPORTED_URL_SCHEMES, 'abematv-license')
 
 
 class AbemaLicenseHandler(urllib.request.BaseHandler):
@@ -137,11 +83,11 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
         return intlist_to_bytes(aes_ecb_decrypt(encvideokey, enckey))
 
     def abematv_license_open(self, url):
-        url = request_to_url(url)
+        url = url.get_full_url() if isinstance(url, urllib.request.Request) else url
         ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={
-            'Content-Length': len(response_data),
+            'Content-Length': str(len(response_data)),
         }, url=url, code=200)
 
 
@@ -156,7 +102,7 @@ class AbemaTVBaseIE(InfoExtractor):
     def _generate_aks(cls, deviceid):
         deviceid = deviceid.encode('utf-8')
         # add 1 hour and then drop minute and secs
-        ts_1hour = int((time_seconds(hours=9) // 3600 + 1) * 3600)
+        ts_1hour = int((time_seconds() // 3600 + 1) * 3600)
         time_struct = time.gmtime(ts_1hour)
         ts_1hour_str = str(ts_1hour).encode('utf-8')
 
@@ -190,6 +136,16 @@ class AbemaTVBaseIE(InfoExtractor):
         if self._USERTOKEN:
             return self._USERTOKEN
 
+        username, _ = self._get_login_info()
+        AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
+        if AbemaTVBaseIE._USERTOKEN:
+            # try authentication with locally stored token
+            try:
+                self._get_media_token(True)
+                return
+            except ExtractorError as e:
+                self.report_warning(f'Failed to login with cached user token; obtaining a fresh one ({e})')
+
         AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
         aks = self._generate_aks(self._DEVICE_ID)
         user_data = self._download_json(
@@ -203,10 +159,7 @@ class AbemaTVBaseIE(InfoExtractor):
             })
         AbemaTVBaseIE._USERTOKEN = user_data['token']
 
-        # don't allow adding it 2 times or more, though it's guarded
-        remove_opener(self._downloader, AbemaLicenseHandler)
         add_opener(self._downloader, AbemaLicenseHandler(self))
-
         return self._USERTOKEN
 
     def _get_media_token(self, invalidate=False, to_show=True):
@@ -300,6 +253,11 @@ class AbemaTVIE(AbemaTVBaseIE):
     _TIMETABLE = None
 
     def _perform_login(self, username, password):
+        self._get_device_token()
+        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
+            self.write_debug('Skipping logging in')
+            return
+
         if '@' in username:  # don't strictly check if it's email address or not
             ep, method = 'user/email', 'email'
         else:
@@ -319,6 +277,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         AbemaTVBaseIE._USERTOKEN = login_response['token']
         self._get_media_token(True)
+        self.cache.store(self._NETRC_MACHINE, username, AbemaTVBaseIE._USERTOKEN)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
@@ -416,10 +375,20 @@ class AbemaTVIE(AbemaTVBaseIE):
                 f'https://api.abema.io/v1/video/programs/{video_id}', video_id,
                 note='Checking playability',
                 headers=headers)
-            ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'), default=[])
+            ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'))
             if 3 not in ondemand_types:
                 # cannot acquire decryption key for these streams
                 self.report_warning('This is a premium-only stream')
+            info.update(traverse_obj(api_response, {
+                'series': ('series', 'title'),
+                'season': ('season', 'title'),
+                'season_number': ('season', 'sequence'),
+                'episode_number': ('episode', 'number'),
+            }))
+            if not title:
+                title = traverse_obj(api_response, ('episode', 'title'))
+            if not description:
+                description = traverse_obj(api_response, ('episode', 'content'))
 
             m3u8_url = f'https://vod-abematv.akamaized.net/program/{video_id}/playlist.m3u8'
         elif video_type == 'slots':
@@ -489,7 +458,7 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
             })
         yield from (
             self.url_result(f'https://abema.tv/video/episode/{x}')
-            for x in traverse_obj(programs, ('programs', ..., 'id'), default=[]))
+            for x in traverse_obj(programs, ('programs', ..., 'id')))
 
     def _entries(self, playlist_id, series_version):
         return OnDemandPagedList(

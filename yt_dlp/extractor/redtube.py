@@ -110,7 +110,6 @@ class RedTubeIE(InfoExtractor):
             video_url = self._html_search_regex(
                 r'<source src="(.+?)" type="video/mp4">', webpage, 'video URL')
             formats.append({'url': video_url, 'ext': 'mp4'})
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage)
         upload_date = unified_strdate(self._search_regex(

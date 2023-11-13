@@ -4,7 +4,9 @@ from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     int_or_none,
+    merge_dicts,
     str_to_int,
+    traverse_obj,
     unified_strdate,
     url_or_none,
 )
@@ -64,35 +66,52 @@ class YouPornIE(InfoExtractor):
     }, {
         'url': 'https://www.youporn.com/watch/13922959/femdom-principal/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.youporn.com/watch/16290308/tinderspecial-trailer1/',
+        'info_dict': {
+            'id': '16290308',
+            'age_limit': 18,
+            'categories': [],
+            'description': 'md5:00ea70f642f431c379763c17c2f396bc',
+            'display_id': 'tinderspecial-trailer1',
+            'duration': 298.0,
+            'ext': 'mp4',
+            'upload_date': '20201123',
+            'uploader': 'Ersties',
+            'tags': [],
+            'thumbnail': 'https://fi1.ypncdn.com/202011/23/16290308/original/8/tinderspecial-trailer1-8(m=eaAaaEPbaaaa).jpg',
+            'timestamp': 1606089600,
+            'title': 'Tinder In Real Life',
+            'view_count': int,
+        }
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-        display_id = mobj.group('display_id') or video_id
-
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         definitions = self._download_json(
-            'https://www.youporn.com/api/video/media_definitions/%s/' % video_id,
-            display_id)
+            f'https://www.youporn.com/api/video/media_definitions/{video_id}/', display_id or video_id)
+
+        def get_format_data(data, f):
+            return traverse_obj(data, lambda _, v: v['format'] == f and url_or_none(v['videoUrl']))
 
         formats = []
-        for definition in definitions:
-            if not isinstance(definition, dict):
-                continue
-            video_url = url_or_none(definition.get('videoUrl'))
-            if not video_url:
-                continue
-            f = {
-                'url': video_url,
-                'filesize': int_or_none(definition.get('videoSize')),
-            }
+        # Try to extract only the actual master m3u8 first, avoiding the duplicate single resolution "master" m3u8s
+        for hls_url in traverse_obj(get_format_data(definitions, 'hls'), (
+                lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
+            formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
+
+        for definition in get_format_data(definitions, 'mp4'):
+            f = traverse_obj(definition, {
+                'url': 'videoUrl',
+                'filesize': ('videoSize', {int_or_none})
+            })
             height = int_or_none(definition.get('quality'))
             # Video URL's path looks like this:
             #  /201012/17/505835/720p_1500k_505835/YouPorn%20-%20Sex%20Ed%20Is%20It%20Safe%20To%20Masturbate%20Daily.mp4
             #  /201012/17/505835/vl_240p_240k_505835/YouPorn%20-%20Sex%20Ed%20Is%20It%20Safe%20To%20Masturbate%20Daily.mp4
             #  /videos/201703/11/109285532/1080P_4000K_109285532.mp4
             # We will benefit from it by extracting some metadata
-            mobj = re.search(r'(?P<height>\d{3,4})[pP]_(?P<bitrate>\d+)[kK]_\d+', video_url)
+            mobj = re.search(r'(?P<height>\d{3,4})[pP]_(?P<bitrate>\d+)[kK]_\d+', definition['videoUrl'])
             if mobj:
                 if not height:
                     height = int(mobj.group('height'))
@@ -103,7 +122,6 @@ class YouPornIE(InfoExtractor):
                 })
             f['height'] = height
             formats.append(f)
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(
             'http://www.youporn.com/watch/%s' % video_id, display_id,
@@ -160,7 +178,9 @@ class YouPornIE(InfoExtractor):
             r'(?s)Tags:.*?</div>\s*<div[^>]+class=["\']tagBoxContent["\'][^>]*>(.+?)</div>',
             'tags')
 
-        return {
+        data = self._search_json_ld(webpage, video_id, expected_type='VideoObject', fatal=False)
+        data.pop('url', None)
+        return merge_dicts(data, {
             'id': video_id,
             'display_id': display_id,
             'title': title,
@@ -175,4 +195,4 @@ class YouPornIE(InfoExtractor):
             'tags': tags,
             'age_limit': age_limit,
             'formats': formats,
-        }
+        })

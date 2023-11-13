@@ -194,8 +194,8 @@ def sanitize_got_info_dict(got_dict):
         'formats', 'thumbnails', 'subtitles', 'automatic_captions', 'comments', 'entries',
 
         # Auto-generated
-        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch',
-        'fulltitle', 'extractor', 'extractor_key', 'filepath', 'infojson_filename', 'original_url', 'n_entries',
+        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch', 'n_entries',
+        'fulltitle', 'extractor', 'extractor_key', 'filename', 'filepath', 'infojson_filename', 'original_url',
 
         # Only live_status needs to be checked
         'is_live', 'was_live',
@@ -254,14 +254,11 @@ def expect_info_dict(self, got_dict, expected_dict):
                 return v.__name__
             else:
                 return repr(v)
-        info_dict_str = ''
-        if len(missing_keys) != len(expected_dict):
-            info_dict_str += ''.join(
-                f'    {_repr(k)}: {_repr(v)},\n'
-                for k, v in test_info_dict.items() if k not in missing_keys)
-
-            if info_dict_str:
-                info_dict_str += '\n'
+        info_dict_str = ''.join(
+            f'    {_repr(k)}: {_repr(v)},\n'
+            for k, v in test_info_dict.items() if k not in missing_keys)
+        if info_dict_str:
+            info_dict_str += '\n'
         info_dict_str += ''.join(
             f'    {_repr(k)}: {_repr(test_info_dict[k])},\n'
             for k in missing_keys)

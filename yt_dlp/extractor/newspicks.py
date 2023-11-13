@@ -29,7 +29,6 @@ class NewsPicksIE(InfoExtractor):
         if not entries:
             raise ExtractorError('No HTML5 media elements found')
         info = entries[0]
-        self._sort_formats(info['formats'])
 
         title = self._html_search_meta('og:title', webpage, fatal=False)
         description = self._html_search_meta(

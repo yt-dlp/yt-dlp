@@ -3,9 +3,9 @@ import itertools
 import json
 import re
 import time
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     decode_base_n,
@@ -155,7 +155,6 @@ class InstagramBaseIE(InfoExtractor):
         } for format in videos_list or []]
         if dash_manifest_raw:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         thumbnails = [{
             'url': thumbnail.get('url'),
@@ -443,7 +442,7 @@ class InstagramIE(InstagramBaseIE):
             shared_data = self._search_json(
                 r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False) or {}
 
-            if shared_data and self._LOGIN_URL not in urlh.geturl():
+            if shared_data and self._LOGIN_URL not in urlh.url:
                 media.update(traverse_obj(
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
@@ -494,7 +493,6 @@ class InstagramIE(InstagramBaseIE):
         dash = traverse_obj(media, ('dash_info', 'video_dash_manifest'))
         if dash:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
         comments = [{
@@ -591,7 +589,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 except ExtractorError as e:
                     # if it's an error caused by a bad query, and there are
                     # more GIS templates to try, ignore it and keep trying
-                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 403:
                         if gis_tmpl != gis_tmpls[-1]:
                             continue
                     raise

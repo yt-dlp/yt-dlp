@@ -64,7 +64,6 @@ class CCCIE(InfoExtractor):
                 'language': language,
                 'vcodec': vcodec,
             })
-        self._sort_formats(formats)
 
         return {
             'id': event_id,
@@ -91,10 +90,17 @@ class CCCPlaylistIE(InfoExtractor):
             'id': '30c3',
         },
         'playlist_count': 135,
+    }, {
+        'url': 'https://media.ccc.de/c/DS2023',
+        'info_dict': {
+            'title': 'Datenspuren 2023',
+            'id': 'DS2023',
+        },
+        'playlist_count': 37
     }]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url).lower()
+        playlist_id = self._match_id(url)
 
         conf = self._download_json(
             'https://media.ccc.de/public/conferences/' + playlist_id,

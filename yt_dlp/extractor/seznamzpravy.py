@@ -93,7 +93,6 @@ class SeznamZpravyIE(InfoExtractor):
                 urljoin(sdn_url, hls_rel_url), video_id, ext='mp4',
                 m3u8_id='hls', fatal=False))
 
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):

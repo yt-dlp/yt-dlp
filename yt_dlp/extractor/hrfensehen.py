@@ -58,8 +58,6 @@ class HRFernsehenIE(InfoExtractor):
                 stream_format['tbr'] = int_or_none(quality_information.group(4))
 
             stream_formats.append(stream_format)
-
-        self._sort_formats(stream_formats)
         return stream_formats
 
     def _real_extract(self, url):

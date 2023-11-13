@@ -94,8 +94,6 @@ class RTL2IE(InfoExtractor):
         if m3u8_url:
             formats.extend(self._extract_akamai_formats(m3u8_url, display_id))
 
-        self._sort_formats(formats)
-
         return {
             'id': display_id,
             'title': title,
@@ -142,7 +140,6 @@ class RTL2YouIE(RTL2YouBaseIE):
             raise ExtractorError('video not found', expected=True)
 
         formats = self._extract_m3u8_formats(stream_url.decode(), video_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
 
         video_data = self._download_json(
             self._BACKWERK_BASE_URL + 'video/' + video_id, video_id)

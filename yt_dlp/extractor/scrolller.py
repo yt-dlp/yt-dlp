@@ -93,8 +93,6 @@ class ScrolllerIE(InfoExtractor):
         if not formats:
             self.raise_no_formats('There is no video.', expected=True, video_id=video_id)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': video_data.get('title'),

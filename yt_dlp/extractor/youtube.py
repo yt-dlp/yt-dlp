@@ -1,5 +1,6 @@
 import base64
 import calendar
+import collections
 import copy
 import datetime
 import enum
@@ -14,13 +15,13 @@ import sys
 import threading
 import time
 import traceback
-import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
+from ..networking.exceptions import HTTPError, network_exceptions
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -40,7 +41,6 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
-    network_exceptions,
     orderedSet,
     parse_codecs,
     parse_count,
@@ -65,6 +65,7 @@ from ..utils import (
     variadic,
 )
 
+STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
     'web': {
@@ -247,11 +248,16 @@ def _split_innertube_client(client_name):
     return client_name, base, variant[0] if variant else None
 
 
+def short_client_name(client_name):
+    main, *parts = _split_innertube_client(client_name)[0].replace('embedscreen', 'e_s').split('_')
+    return join_nonempty(main[:4], ''.join(x[0] for x in parts)).upper()
+
+
 def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('android', 'web', 'tv', 'ios', 'mweb')
+    BASE_CLIENTS = ('ios', 'android', 'web', 'tv', 'mweb')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -285,13 +291,14 @@ class BadgeType(enum.Enum):
     AVAILABILITY_PREMIUM = enum.auto()
     AVAILABILITY_SUBSCRIPTION = enum.auto()
     LIVE_NOW = enum.auto()
+    VERIFIED = enum.auto()
 
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
     """Provide base functions for Youtube extractors"""
 
     _RESERVED_NAMES = (
-        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
+        r'channel|c|user|playlist|watch|w|v|embed|e|live|watch_popup|clip|'
         r'shorts|movies|results|search|shared|hashtag|trending|explore|feed|feeds|'
         r'browse|oembed|get_video_info|iframe_api|s/player|source|'
         r'storefront|oops|index|account|t/terms|about|upload|signin|logout')
@@ -311,6 +318,40 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?invidious\.pussthecat\.org',
         r'(?:www\.)?invidious\.zee\.li',
         r'(?:www\.)?invidious\.ethibox\.fr',
+        r'(?:www\.)?iv\.ggtyler\.dev',
+        r'(?:www\.)?inv\.vern\.i2p',
+        r'(?:www\.)?am74vkcrjp2d5v36lcdqgsj2m6x36tbrkhsruoegwfcizzabnfgf5zyd\.onion',
+        r'(?:www\.)?inv\.riverside\.rocks',
+        r'(?:www\.)?invidious\.silur\.me',
+        r'(?:www\.)?inv\.bp\.projectsegfau\.lt',
+        r'(?:www\.)?invidious\.g4c3eya4clenolymqbpgwz3q3tawoxw56yhzk4vugqrl6dtu3ejvhjid\.onion',
+        r'(?:www\.)?invidious\.slipfox\.xyz',
+        r'(?:www\.)?invidious\.esmail5pdn24shtvieloeedh7ehz3nrwcdivnfhfcedl7gf4kwddhkqd\.onion',
+        r'(?:www\.)?inv\.vernccvbvyi5qhfzyqengccj7lkove6bjot2xhh5kajhwvidqafczrad\.onion',
+        r'(?:www\.)?invidious\.tiekoetter\.com',
+        r'(?:www\.)?iv\.odysfvr23q5wgt7i456o5t3trw2cw5dgn56vbjfbq2m7xsc5vqbqpcyd\.onion',
+        r'(?:www\.)?invidious\.nerdvpn\.de',
+        r'(?:www\.)?invidious\.weblibre\.org',
+        r'(?:www\.)?inv\.odyssey346\.dev',
+        r'(?:www\.)?invidious\.dhusch\.de',
+        r'(?:www\.)?iv\.melmac\.space',
+        r'(?:www\.)?watch\.thekitty\.zone',
+        r'(?:www\.)?invidious\.privacydev\.net',
+        r'(?:www\.)?ng27owmagn5amdm7l5s3rsqxwscl5ynppnis5dqcasogkyxcfqn7psid\.onion',
+        r'(?:www\.)?invidious\.drivet\.xyz',
+        r'(?:www\.)?vid\.priv\.au',
+        r'(?:www\.)?euxxcnhsynwmfidvhjf6uzptsmh4dipkmgdmcmxxuo7tunp3ad2jrwyd\.onion',
+        r'(?:www\.)?inv\.vern\.cc',
+        r'(?:www\.)?invidious\.esmailelbob\.xyz',
+        r'(?:www\.)?invidious\.sethforprivacy\.com',
+        r'(?:www\.)?yt\.oelrichsgarcia\.de',
+        r'(?:www\.)?yt\.artemislena\.eu',
+        r'(?:www\.)?invidious\.flokinet\.to',
+        r'(?:www\.)?invidious\.baczek\.me',
+        r'(?:www\.)?y\.com\.sb',
+        r'(?:www\.)?invidious\.epicsite\.xyz',
+        r'(?:www\.)?invidious\.lidarshield\.cloud',
+        r'(?:www\.)?yt\.funami\.tech',
         r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
         r'(?:www\.)?osbivz6guyeahrwp2lnwyjk2xos342h4ocsxyqrlaopqjuhwn2djiiyd\.onion',
         r'(?:www\.)?u2cvlit75owumwpy4dj2hsmvkq7nvrclkpht7xgyye2pyoxhpmclkrad\.onion',
@@ -387,6 +428,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.adminforge\.de',
         r'(?:www\.)?watch\.whatevertinfoil\.de',
         r'(?:www\.)?piped\.qdi\.fi',
+        r'(?:www\.)?piped\.video',
+        r'(?:www\.)?piped\.aeong\.one',
+        r'(?:www\.)?piped\.moomoo\.me',
+        r'(?:www\.)?piped\.chauvet\.pro',
+        r'(?:www\.)?watch\.leptons\.xyz',
+        r'(?:www\.)?pd\.vern\.cc',
+        r'(?:www\.)?piped\.hostux\.net',
+        r'(?:www\.)?piped\.lunar\.icu',
+        # Hyperpipe instances from https://hyperpipe.codeberg.page/
+        r'(?:www\.)?hyperpipe\.surge\.sh',
+        r'(?:www\.)?hyperpipe\.esmailelbob\.xyz',
+        r'(?:www\.)?listen\.whatever\.social',
+        r'(?:www\.)?music\.adminforge\.de',
     )
 
     # extracted from account/account_menu ep
@@ -402,6 +456,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     ]
 
     _IGNORED_WARNINGS = {'Unavailable videos will be hidden during playback'}
+
+    _YT_HANDLE_RE = r'@[\w.-]{3,30}'  # https://support.google.com/youtube/answer/11585688?hl=en
+    _YT_CHANNEL_UCID_RE = r'UC[\w-]{22}'
+
+    def ucid_or_none(self, ucid):
+        return self._search_regex(rf'^({self._YT_CHANNEL_UCID_RE})$', ucid, 'UC-id', default=None)
+
+    def handle_or_none(self, handle):
+        return self._search_regex(rf'^({self._YT_HANDLE_RE})$', handle, '@-handle', default=None)
+
+    def handle_from_url(self, url):
+        return self._search_regex(rf'^(?:https?://(?:www\.)?youtube\.com)?/({self._YT_HANDLE_RE})',
+                                  url, 'channel handle', default=None)
+
+    def ucid_from_url(self, url):
+        return self._search_regex(rf'^(?:https?://(?:www\.)?youtube\.com)?/({self._YT_CHANNEL_UCID_RE})',
+                                  url, 'channel id', default=None)
 
     @functools.cached_property
     def _preferred_lang(self):
@@ -425,16 +496,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         cookies = self._get_cookies('https://www.youtube.com/')
         if cookies.get('__Secure-3PSID'):
             return
-        consent_id = None
-        consent = cookies.get('CONSENT')
-        if consent:
-            if 'YES' in consent.value:
-                return
-            consent_id = self._search_regex(
-                r'PENDING\+(\d+)', consent.value, 'consent', default=None)
-        if not consent_id:
-            consent_id = random.randint(100, 999)
-        self._set_cookie('.youtube.com', 'CONSENT', 'YES+cb.20210328-17-p0.en+FX+%s' % consent_id)
+        socs = cookies.get('SOCS')
+        if socs and not socs.value.startswith('CAA'):  # not consented
+            return
+        self._set_cookie('.youtube.com', 'SOCS', 'CAI', secure=True)  # accept all (required for mixes)
 
     def _initialize_pref(self):
         cookies = self._get_cookies('https://www.youtube.com/')
@@ -720,17 +785,26 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
-    def _extract_badges(self, renderer: dict):
-        privacy_icon_map = {
+    def _extract_badges(self, badge_list: list):
+        """
+        Extract known BadgeType's from a list of badge renderers.
+        @returns [{'type': BadgeType}]
+        """
+        icon_type_map = {
             'PRIVACY_UNLISTED': BadgeType.AVAILABILITY_UNLISTED,
             'PRIVACY_PRIVATE': BadgeType.AVAILABILITY_PRIVATE,
-            'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC
+            'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC,
+            'CHECK_CIRCLE_THICK': BadgeType.VERIFIED,
+            'OFFICIAL_ARTIST_BADGE': BadgeType.VERIFIED,
+            'CHECK': BadgeType.VERIFIED,
         }
 
         badge_style_map = {
             'BADGE_STYLE_TYPE_MEMBERS_ONLY': BadgeType.AVAILABILITY_SUBSCRIPTION,
             'BADGE_STYLE_TYPE_PREMIUM': BadgeType.AVAILABILITY_PREMIUM,
-            'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW
+            'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW,
+            'BADGE_STYLE_TYPE_VERIFIED': BadgeType.VERIFIED,
+            'BADGE_STYLE_TYPE_VERIFIED_ARTIST': BadgeType.VERIFIED,
         }
 
         label_map = {
@@ -738,13 +812,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'private': BadgeType.AVAILABILITY_PRIVATE,
             'members only': BadgeType.AVAILABILITY_SUBSCRIPTION,
             'live': BadgeType.LIVE_NOW,
-            'premium': BadgeType.AVAILABILITY_PREMIUM
+            'premium': BadgeType.AVAILABILITY_PREMIUM,
+            'verified': BadgeType.VERIFIED,
+            'official artist channel': BadgeType.VERIFIED,
         }
 
         badges = []
-        for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer'), default=[]):
+        for badge in traverse_obj(badge_list, (..., lambda key, _: re.search(r'[bB]adgeRenderer$', key))):
             badge_type = (
-                privacy_icon_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
+                icon_type_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
                 or badge_style_map.get(traverse_obj(badge, 'style'))
             )
             if badge_type:
@@ -752,11 +828,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 continue
 
             # fallback, won't work in some languages
-            label = traverse_obj(badge, 'label', expected_type=str, default='')
+            label = traverse_obj(
+                badge, 'label', ('accessibilityData', 'label'), 'tooltip', 'iconTooltip', get_all=False, expected_type=str, default='')
             for match, label_badge_type in label_map.items():
                 if match in label.lower():
-                    badges.append({'type': badge_type})
-                    continue
+                    badges.append({'type': label_badge_type})
+                    break
 
         return badges
 
@@ -782,7 +859,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     runs = item
 
                 runs = runs[:min(len(runs), max_runs or len(runs))]
-                text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str, default=[]))
+                text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str))
                 if text:
                     return text
 
@@ -802,7 +879,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         """
         thumbnails = []
         for path in path_list or [()]:
-            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...), default=[]):
+            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...)):
                 thumbnail_url = url_or_none(thumbnail.get('url'))
                 if not thumbnail_url:
                     continue
@@ -822,9 +899,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def extract_relative_time(relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
-        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today'
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
         """
-        mobj = re.search(r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+
+        # XXX: this could be moved to a general function in utils/_utils.py
+        # The relative time text strings are roughly the same as what
+        # Javascript's Intl.RelativeTimeFormat function generates.
+        # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
+        mobj = re.search(
+            r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>sec(?:ond)?|s|min(?:ute)?|h(?:our|r)?|d(?:ay)?|w(?:eek|k)?|mo(?:nth)?|y(?:ear|r)?)s?\s*ago',
+            relative_time_text)
         if mobj:
             start = mobj.group('start')
             if start:
@@ -857,7 +941,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='web'):
-        for retry in self.RetryManager():
+        raise_for_incomplete = bool(self._configuration_arg('raise_incomplete_data', ie_key=YoutubeIE))
+        # Incomplete Data should be a warning by default when retries are exhausted, while other errors should be fatal.
+        icd_retries = iter(self.RetryManager(fatal=raise_for_incomplete))
+        icd_rm = next(icd_retries)
+        main_retries = iter(self.RetryManager())
+        main_rm = next(main_retries)
+        # Manual retry loop for multiple RetryManagers
+        # The proper RetryManager MUST be advanced after an error
+        # and its result MUST be checked if the manager is non fatal
+        while True:
             try:
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
@@ -868,47 +961,53 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ExtractorError as e:
                 if not isinstance(e.cause, network_exceptions):
                     return self._error_or_warning(e, fatal=fatal)
-                elif not isinstance(e.cause, urllib.error.HTTPError):
-                    retry.error = e
+                elif not isinstance(e.cause, HTTPError):
+                    main_rm.error = e
+                    next(main_retries)
                     continue
 
-                first_bytes = e.cause.read(512)
+                first_bytes = e.cause.response.read(512)
                 if not is_html(first_bytes):
                     yt_error = try_get(
                         self._parse_json(
-                            self._webpage_read_content(e.cause, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
+                            self._webpage_read_content(e.cause.response, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
                         lambda x: x['error']['message'], str)
                     if yt_error:
                         self._report_alerts([('ERROR', yt_error)], fatal=False)
                 # Downloading page may result in intermittent 5xx HTTP error
-                # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                # Sometimes a 404 is also received. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                 # We also want to catch all other network exceptions since errors in later pages can be troublesome
                 # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
-                if e.cause.code not in (403, 429):
-                    retry.error = e
+                if e.cause.status not in (403, 429):
+                    main_rm.error = e
+                    next(main_retries)
                     continue
                 return self._error_or_warning(e, fatal=fatal)
 
             try:
                 self._extract_and_report_alerts(response, only_once=True)
             except ExtractorError as e:
-                # YouTube servers may return errors we want to retry on in a 200 OK response
+                # YouTube's servers may return errors we want to retry on in a 200 OK response
                 # See: https://github.com/yt-dlp/yt-dlp/issues/839
                 if 'unknown error' in e.msg.lower():
-                    retry.error = e
+                    main_rm.error = e
+                    next(main_retries)
                     continue
                 return self._error_or_warning(e, fatal=fatal)
             # Youtube sometimes sends incomplete data
             # See: https://github.com/ytdl-org/youtube-dl/issues/28194
             if not traverse_obj(response, *variadic(check_get_keys)):
-                retry.error = ExtractorError('Incomplete data received', expected=True)
+                icd_rm.error = ExtractorError('Incomplete data received', expected=True)
+                should_retry = next(icd_retries, None)
+                if not should_retry:
+                    return None
                 continue
 
             return response
 
     @staticmethod
     def is_music_url(url):
-        return re.match(r'https?://music\.youtube\.com/', url) is not None
+        return re.match(r'(https?://)?music\.youtube\.com/', url) is not None
 
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
@@ -937,11 +1036,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not channel_id:
             channel_id = traverse_obj(reel_header_renderer, ('channelNavigationEndpoint', 'browseEndpoint', 'browseId'))
 
+        channel_id = self.ucid_or_none(channel_id)
+
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
             get_all=False, expected_type=str)
-        badges = self._extract_badges(renderer)
-
+        badges = self._extract_badges(traverse_obj(renderer, 'badges'))
+        owner_badges = self._extract_badges(traverse_obj(renderer, 'ownerBadges'))
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
             renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
             expected_type=str)) or ''
@@ -965,6 +1066,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                       else self._get_count({'simpleText': view_count_text}))
         view_count_field = 'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count'
 
+        channel = (self._get_text(renderer, 'ownerText', 'shortBylineText')
+                   or self._get_text(reel_header_renderer, 'channelTitleText'))
+
+        channel_handle = traverse_obj(renderer, (
+            'shortBylineText', 'runs', ..., 'navigationEndpoint',
+            (('commandMetadata', 'webCommandMetadata', 'url'), ('browseEndpoint', 'canonicalBaseUrl'))),
+            expected_type=self.handle_from_url, get_all=False)
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -974,9 +1082,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'description': description,
             'duration': duration,
             'channel_id': channel_id,
-            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')
-                        or self._get_text(reel_header_renderer, 'channelTitleText')),
+            'channel': channel,
             'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
+            'uploader': channel,
+            'uploader_id': channel_handle,
+            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
                           if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
@@ -990,7 +1100,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
             view_count_field: view_count,
-            'live_status': live_status
+            'live_status': live_status,
+            'channel_is_verified': True if self._has_badge(owner_badges, BadgeType.VERIFIED) else None
         }
 
 
@@ -1009,7 +1120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             youtube\.googleapis\.com)/                        # the various hostnames, with wildcard subdomains
                          (?:.*?\#/)?                                          # handle anchor (#/) redirect urls
                          (?:                                                  # the various things that can precede the ID:
-                             (?:(?:v|embed|e|shorts)/(?!videoseries|live_stream))  # v/ or embed/ or e/ or shorts/
+                             (?:(?:v|embed|e|shorts|live)/(?!videoseries|live_stream))  # v/ or embed/ or e/ or shorts/
                              |(?:                                             # or the v= param in all its forms
                                  (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?  # preceding watch(_popup|.php) or nothing (like /?v=xxxx)
                                  (?:\?|\#!?)                                  # the params delimiter ? or # or #!
@@ -1050,6 +1161,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             <a\s[^>]*\bhref="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"
             \s[^>]*\bclass="[^"]*\blazy-load-youtube''',
     ]
+    _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
@@ -1177,9 +1289,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'BaW_jenozKc',
                 'ext': 'mp4',
                 'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-                'uploader': 'Philipp Hagemeister',
-                'uploader_id': 'phihag',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/phihag',
                 'channel': 'Philipp Hagemeister',
                 'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
                 'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
@@ -1198,7 +1307,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'start_time': 1,
                 'end_time': 9,
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Philipp Hagemeister',
+                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
+                'uploader_id': '@PhilippHagemeister',
+                'heatmap': 'count:100',
             }
         },
         {
@@ -1210,9 +1323,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20120608',
                 'title': 'Principal Sexually Assaults A Teacher - Episode 117 - 8th June 2012',
                 'description': 'md5:09b78bd971f1e3e289601dfba15ca4f7',
-                'uploader': 'SET India',
-                'uploader_id': 'setindia',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/setindia',
                 'age_limit': 18,
             },
             'skip': 'Private video',
@@ -1224,9 +1334,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'BaW_jenozKc',
                 'ext': 'mp4',
                 'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-                'uploader': 'Philipp Hagemeister',
-                'uploader_id': 'phihag',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/phihag',
                 'channel': 'Philipp Hagemeister',
                 'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
                 'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
@@ -1243,7 +1350,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'live_status': 'not_live',
                 'age_limit': 0,
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Philipp Hagemeister',
+                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
+                'uploader_id': '@PhilippHagemeister',
+                'heatmap': 'count:100',
             },
             'params': {
                 'skip_download': True,
@@ -1256,10 +1367,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'a9LDPn-MO4I',
                 'ext': 'm4a',
                 'upload_date': '20121002',
-                'uploader_id': '8KVIDEO',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/8KVIDEO',
                 'description': '',
-                'uploader': '8KVIDEO',
                 'title': 'UHDTV TEST 8K VIDEO.mp4'
             },
             'params': {
@@ -1277,8 +1385,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Afrojack, Spree Wilson - The Spark (Official Music Video) ft. Spree Wilson',
                 'description': 'md5:8f5e2b82460520b619ccac1f509d43bf',
                 'duration': 244,
-                'uploader': 'AfrojackVEVO',
-                'uploader_id': 'AfrojackVEVO',
                 'upload_date': '20131011',
                 'abr': 129.495,
                 'like_count': int,
@@ -1290,13 +1396,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'live_status': 'not_live',
                 'thumbnail': 'https://i.ytimg.com/vi_webp/IB3lcPjvWLA/maxresdefault.webp',
                 'channel': 'Afrojack',
-                'uploader_url': 'http://www.youtube.com/user/AfrojackVEVO',
                 'tags': 'count:19',
                 'availability': 'public',
                 'categories': ['Music'],
                 'age_limit': 0,
                 'alt_title': 'The Spark',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Afrojack',
+                'uploader_url': 'https://www.youtube.com/@Afrojack',
+                'uploader_id': '@Afrojack',
             },
             'params': {
                 'youtube_include_dash_manifest': True,
@@ -1313,9 +1421,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'The Witcher 3: Wild Hunt - The Sword Of Destiny Trailer',
                 'description': r're:(?s).{100,}About the Game\n.*?The Witcher 3: Wild Hunt.{100,}',
                 'duration': 142,
-                'uploader': 'The Witcher',
-                'uploader_id': 'WitcherGame',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/WitcherGame',
                 'upload_date': '20140605',
                 'age_limit': 18,
                 'categories': ['Gaming'],
@@ -1329,7 +1434,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_id': 'UCzybXLxv08IApdjdN0mJhEg',
                 'playable_in_embed': True,
                 'view_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'The Witcher',
+                'uploader_url': 'https://www.youtube.com/@thewitcher',
+                'uploader_id': '@thewitcher',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
         },
         {
@@ -1341,12 +1452,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Godzilla 2 (Official Video)',
                 'description': 'md5:bf77e03fcae5529475e500129b05668a',
                 'upload_date': '20200408',
-                'uploader_id': 'FlyingKitty900',
-                'uploader': 'FlyingKitty',
                 'age_limit': 18,
                 'availability': 'needs_auth',
                 'channel_id': 'UCYQT13AtrJC0gsM1far_zJg',
-                'uploader_url': 'http://www.youtube.com/user/FlyingKitty900',
                 'channel': 'FlyingKitty',
                 'channel_url': 'https://www.youtube.com/channel/UCYQT13AtrJC0gsM1far_zJg',
                 'view_count': int,
@@ -1357,7 +1465,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'duration': 177,
                 'playable_in_embed': True,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'FlyingKitty',
+                'uploader_url': 'https://www.youtube.com/@FlyingKitty900',
+                'uploader_id': '@FlyingKitty900',
+                'comment_count': int,
+                'channel_is_verified': True,
             },
         },
         {
@@ -1368,13 +1481,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
                 'ext': 'mp4',
                 'upload_date': '20191228',
-                'uploader_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
-                'uploader': 'Projekt Melody',
                 'description': 'md5:17eccca93a786d51bc67646756894066',
                 'age_limit': 18,
                 'like_count': int,
                 'availability': 'needs_auth',
-                'uploader_url': 'http://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
                 'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
                 'view_count': int,
                 'thumbnail': 'https://i.ytimg.com/vi_webp/Tq92D6wQ1mg/sddefault.webp',
@@ -1386,7 +1496,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 106,
                 'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Projekt Melody',
+                'uploader_url': 'https://www.youtube.com/@ProjektMelody',
+                'uploader_id': '@ProjektMelody',
             },
         },
         {
@@ -1396,8 +1509,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'MeJVWBSsPAY',
                 'ext': 'mp4',
                 'title': 'OOMPH! - Such Mich Find Mich (Lyrics)',
-                'uploader': 'Herr Lurik',
-                'uploader_id': 'st3in234',
                 'description': 'Fan Video. Music & Lyrics by OOMPH!.',
                 'upload_date': '20130730',
                 'track': 'Such mich find mich',
@@ -1414,11 +1525,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_id': 'UCdR3RSDPqub28LjZx0v9-aA',
                 'categories': ['Music'],
                 'availability': 'public',
-                'uploader_url': 'http://www.youtube.com/user/st3in234',
                 'channel_url': 'https://www.youtube.com/channel/UCdR3RSDPqub28LjZx0v9-aA',
                 'live_status': 'not_live',
                 'artist': 'OOMPH!',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Herr Lurik',
+                'uploader_url': 'https://www.youtube.com/@HerrLurik',
+                'uploader_id': '@HerrLurik',
             },
         },
         {
@@ -1435,11 +1548,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': 'mp4',
                 'duration': 266,
                 'upload_date': '20100430',
-                'uploader_id': 'deadmau5',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/deadmau5',
                 'creator': 'deadmau5',
                 'description': 'md5:6cbcd3a92ce1bc676fc4d6ab4ace2336',
-                'uploader': 'deadmau5',
                 'title': 'Deadmau5 - Some Chords (HD)',
                 'alt_title': 'Some Chords',
                 'availability': 'public',
@@ -1457,7 +1567,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UCYEK6xds6eo-3tr4xRdflmQ',
                 'categories': ['Music'],
                 'album': 'Some Chords',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'deadmau5',
+                'uploader_url': 'https://www.youtube.com/@deadmau5',
+                'uploader_id': '@deadmau5',
             },
             'expected_warnings': [
                 'DASH manifest missing',
@@ -1471,10 +1584,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': 'mp4',
                 'duration': 6085,
                 'upload_date': '20150827',
-                'uploader_id': 'olympic',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/olympic',
                 'description': 'md5:04bbbf3ccceb6795947572ca36f45904',
-                'uploader': 'Olympics',
                 'title': 'Hockey - Women -  GER-AUS - London 2012 Olympic Games',
                 'like_count': int,
                 'release_timestamp': 1343767800,
@@ -1490,7 +1600,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'live_status': 'was_live',
                 'view_count': int,
                 'channel_url': 'https://www.youtube.com/channel/UCTl3QQTvqHFjurroKxexy2Q',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Olympics',
+                'uploader_url': 'https://www.youtube.com/@Olympics',
+                'uploader_id': '@Olympics',
+                'channel_is_verified': True,
             },
             'params': {
                 'skip_download': 'requires avconv',
@@ -1505,10 +1619,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'stretched_ratio': 16 / 9.,
                 'duration': 85,
                 'upload_date': '20110310',
-                'uploader_id': 'AllenMeow',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/AllenMeow',
                 'description': 'made by Wacom from Korea | 字幕&加油添醋 by TY\'s Allen | 感謝heylisa00cavey1001同學熱情提供梗及翻譯',
-                'uploader': '孫ᄋᄅ',
                 'title': '[A-made] 變態妍字幕版 太妍 我就是這樣的人',
                 'playable_in_embed': True,
                 'channel': '孫ᄋᄅ',
@@ -1523,7 +1634,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'live_status': 'not_live',
                 'availability': 'unlisted',
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': '孫ᄋᄅ',
+                'uploader_url': 'https://www.youtube.com/@AllenMeow',
+                'uploader_id': '@AllenMeow',
             },
         },
         # url_encoded_fmt_stream_map is empty string
@@ -1535,8 +1649,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Обсуждение судебной практики по выборам 14 сентября 2014 года в Санкт-Петербурге',
                 'description': '',
                 'upload_date': '20150404',
-                'uploader_id': 'spbelect',
-                'uploader': 'Наблюдатели Петербурга',
             },
             'params': {
                 'skip_download': 'requires avconv',
@@ -1553,9 +1665,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:116377fd2963b81ec4ce64b542173306',
                 'duration': 220,
                 'upload_date': '20150625',
-                'uploader_id': 'dorappi2000',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/dorappi2000',
-                'uploader': 'dorappi2000',
                 'formats': 'mincount:31',
             },
             'skip': 'not actual anymore',
@@ -1568,9 +1677,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'CsmdDsKjzN8',
                 'ext': 'mp4',
                 'upload_date': '20150501',  # According to '<meta itemprop="datePublished"', but in other places it's 20150510
-                'uploader': 'Airtek',
                 'description': 'Retransmisión en directo de la XVIII media maratón de Zaragoza.',
-                'uploader_id': 'UCzTzUmjXxxacNnL8I3m4LnQ',
                 'title': 'Retransmisión XVIII Media maratón Zaragoza 2015',
             },
             'params': {
@@ -1580,66 +1687,100 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'skip': 'This live event has ended.',
         },
         {
-            # Multifeed videos (multiple cameras), URL is for Main Camera
-            'url': 'https://www.youtube.com/watch?v=jvGDaLqkpTg',
+            # Multifeed videos (multiple cameras), URL can be of any Camera
+            # TODO: fix multifeed titles
+            'url': 'https://www.youtube.com/watch?v=zaPI8MvL8pg',
             'info_dict': {
-                'id': 'jvGDaLqkpTg',
-                'title': 'Tom Clancy Free Weekend Rainbow Whatever',
-                'description': 'md5:e03b909557865076822aa169218d6a5d',
+                'id': 'zaPI8MvL8pg',
+                'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04',
+                'description': 'md5:563ccbc698b39298481ca3c571169519',
             },
             'playlist': [{
                 'info_dict': {
-                    'id': 'jvGDaLqkpTg',
+                    'id': 'j5yGuxZ8lLU',
                     'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Main Camera)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10643,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
+                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Chris)',
+                    'description': 'md5:563ccbc698b39298481ca3c571169519',
+                    'duration': 10120,
+                    'channel_follower_count': int,
+                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
+                    'availability': 'public',
+                    'playable_in_embed': True,
+                    'upload_date': '20131105',
+                    'categories': ['Gaming'],
+                    'live_status': 'was_live',
+                    'tags': 'count:24',
+                    'release_timestamp': 1383701910,
+                    'thumbnail': 'https://i.ytimg.com/vi/j5yGuxZ8lLU/maxresdefault.jpg',
+                    'comment_count': int,
+                    'age_limit': 0,
+                    'like_count': int,
+                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
+                    'channel': 'WiiLikeToPlay',
+                    'view_count': int,
+                    'release_date': '20131106',
+                    'uploader': 'WiiLikeToPlay',
+                    'uploader_id': '@WLTP',
+                    'uploader_url': 'https://www.youtube.com/@WLTP',
                 },
             }, {
                 'info_dict': {
-                    'id': '3AKt1R1aDnw',
+                    'id': 'zaPI8MvL8pg',
                     'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Camera 2)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10991,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
+                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Tyson)',
+                    'availability': 'public',
+                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
+                    'channel': 'WiiLikeToPlay',
+                    'channel_follower_count': int,
+                    'description': 'md5:563ccbc698b39298481ca3c571169519',
+                    'duration': 10108,
+                    'age_limit': 0,
+                    'like_count': int,
+                    'tags': 'count:24',
+                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
+                    'release_timestamp': 1383701915,
+                    'comment_count': int,
+                    'upload_date': '20131105',
+                    'thumbnail': 'https://i.ytimg.com/vi/zaPI8MvL8pg/maxresdefault.jpg',
+                    'release_date': '20131106',
+                    'playable_in_embed': True,
+                    'live_status': 'was_live',
+                    'categories': ['Gaming'],
+                    'view_count': int,
+                    'uploader': 'WiiLikeToPlay',
+                    'uploader_id': '@WLTP',
+                    'uploader_url': 'https://www.youtube.com/@WLTP',
                 },
             }, {
                 'info_dict': {
-                    'id': 'RtAMM00gpVc',
+                    'id': 'R7r3vfO7Hao',
                     'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Camera 3)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10995,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
-                },
-            }, {
-                'info_dict': {
-                    'id': '6N2fdlP3C5U',
-                    'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Camera 4)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10990,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
+                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Spencer)',
+                    'thumbnail': 'https://i.ytimg.com/vi/R7r3vfO7Hao/maxresdefault.jpg',
+                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
+                    'like_count': int,
+                    'availability': 'public',
+                    'playable_in_embed': True,
+                    'upload_date': '20131105',
+                    'description': 'md5:563ccbc698b39298481ca3c571169519',
+                    'channel_follower_count': int,
+                    'tags': 'count:24',
+                    'release_date': '20131106',
+                    'comment_count': int,
+                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
+                    'channel': 'WiiLikeToPlay',
+                    'categories': ['Gaming'],
+                    'release_timestamp': 1383701914,
+                    'live_status': 'was_live',
+                    'age_limit': 0,
+                    'duration': 10128,
+                    'view_count': int,
+                    'uploader': 'WiiLikeToPlay',
+                    'uploader_id': '@WLTP',
+                    'uploader_url': 'https://www.youtube.com/@WLTP',
                 },
             }],
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'Not multifeed anymore',
+            'params': {'skip_download': True},
         },
         {
             # Multifeed video with comma in title (see https://github.com/ytdl-org/youtube-dl/issues/8536)
@@ -1673,9 +1814,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:8085699c11dc3f597ce0410b0dcbb34a',
                 'duration': 133,
                 'upload_date': '20151119',
-                'uploader_id': 'IronSoulElf',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/IronSoulElf',
-                'uploader': 'IronSoulElf',
                 'creator': 'Todd Haberman;\nDaniel Law Heath and Aaron Kaplan',
                 'track': 'Dark Walk',
                 'artist': 'Todd Haberman;\nDaniel Law Heath and Aaron Kaplan',
@@ -1712,8 +1850,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Clash Of Clans#14 Dicas De Ataque Para CV 4',
                 'description': 'md5:ee18a25c350637c8faff806845bddee9',
                 'upload_date': '20151107',
-                'uploader_id': 'UCCr7TALkRbo3EtFzETQF1LA',
-                'uploader': 'CH GAMER DROID',
             },
             'params': {
                 'skip_download': True,
@@ -1735,9 +1871,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:a677553cf0840649b731a3024aeff4cc',
                 'duration': 721,
                 'upload_date': '20150128',
-                'uploader_id': 'BerkmanCenter',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/BerkmanCenter',
-                'uploader': 'The Berkman Klein Center for Internet & Society',
                 'license': 'Creative Commons Attribution license (reuse allowed)',
                 'channel_id': 'UCuLGmD72gJDBwmLw06X58SA',
                 'channel_url': 'https://www.youtube.com/channel/UCuLGmD72gJDBwmLw06X58SA',
@@ -1751,16 +1884,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'thumbnail': 'https://i.ytimg.com/vi_webp/M4gD1WSo5mA/maxresdefault.webp',
                 'live_status': 'not_live',
                 'playable_in_embed': True,
-                'comment_count': int,
                 'channel_follower_count': int,
                 'chapters': list,
+                'uploader': 'The Berkman Klein Center for Internet & Society',
+                'uploader_id': '@BKCHarvard',
+                'uploader_url': 'https://www.youtube.com/@BKCHarvard',
             },
             'params': {
                 'skip_download': True,
             },
         },
         {
-            # Channel-like uploader_url
             'url': 'https://www.youtube.com/watch?v=eQcmzGIKrzg',
             'info_dict': {
                 'id': 'eQcmzGIKrzg',
@@ -1769,9 +1903,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:13a2503d7b5904ef4b223aa101628f39',
                 'duration': 4060,
                 'upload_date': '20151120',
-                'uploader': 'Bernie Sanders',
-                'uploader_id': 'UCH1dpzjCEiGAt8CXkryhkZg',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCH1dpzjCEiGAt8CXkryhkZg',
                 'license': 'Creative Commons Attribution license (reuse allowed)',
                 'playable_in_embed': True,
                 'tags': 'count:12',
@@ -1788,6 +1919,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_follower_count': int,
                 'chapters': list,
+                'uploader': 'Bernie Sanders',
+                'uploader_url': 'https://www.youtube.com/@BernieSanders',
+                'uploader_id': '@BernieSanders',
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {
                 'skip_download': True,
@@ -1811,9 +1947,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Piku - Trailer',
                 'description': 'md5:c36bd60c3fd6f1954086c083c72092eb',
                 'upload_date': '20150811',
-                'uploader': 'FlixMatrix',
-                'uploader_id': 'FlixMatrixKaravan',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/FlixMatrixKaravan',
                 'license': 'Standard YouTube License',
             },
             'params': {
@@ -1831,9 +1964,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:f540112edec5d09fc8cc752d3d4ba3cd',
                 'duration': 2085,
                 'upload_date': '20170118',
-                'uploader': 'Vsauce',
-                'uploader_id': 'Vsauce',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/Vsauce',
                 'series': 'Mind Field',
                 'season_number': 1,
                 'episode_number': 1,
@@ -1851,7 +1981,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'playable_in_embed': True,
                 'live_status': 'not_live',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Vsauce',
+                'uploader_url': 'https://www.youtube.com/@Vsauce',
+                'uploader_id': '@Vsauce',
+                'comment_count': int,
+                'channel_is_verified': True,
             },
             'params': {
                 'skip_download': True,
@@ -1871,9 +2006,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:5d161533167390427a1f8ee89a1fc6f1',
                 'duration': 965,
                 'upload_date': '20140124',
-                'uploader': 'New Century Foundation',
-                'uploader_id': 'UCEJYpZGqgUob0zVVEaLhvVg',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCEJYpZGqgUob0zVVEaLhvVg',
             },
             'params': {
                 'skip_download': True,
@@ -1918,9 +2050,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
                 'duration': 433,
                 'upload_date': '20130923',
-                'uploader': 'Amelia Putri Harwita',
-                'uploader_id': 'UCpOxM49HJxmC1qCalXyB3_Q',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCpOxM49HJxmC1qCalXyB3_Q',
                 'formats': 'maxcount:10',
             },
             'params': {
@@ -1931,6 +2060,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         },
         {
             # Youtube Music Auto-generated description
+            # TODO: fix metadata extraction
             'url': 'https://music.youtube.com/watch?v=MgNrAu2pzNs',
             'info_dict': {
                 'id': 'MgNrAu2pzNs',
@@ -1938,8 +2068,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Voyeur Girl',
                 'description': 'md5:7ae382a65843d6df2685993e90a8628f',
                 'upload_date': '20190312',
-                'uploader': 'Stephen - Topic',
-                'uploader_id': 'UC-pWHpBjdGG69N9mM2auIAA',
                 'artist': 'Stephen',
                 'track': 'Voyeur Girl',
                 'album': 'it\'s too much love to know my dear',
@@ -1947,12 +2075,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'release_year': 2019,
                 'alt_title': 'Voyeur Girl',
                 'view_count': int,
-                'uploader_url': 'http://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
                 'playable_in_embed': True,
                 'like_count': int,
                 'categories': ['Music'],
                 'channel_url': 'https://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
-                'channel': 'Stephen',
+                'channel': 'Stephen',  # TODO: should be "Stephen - Topic"
+                'uploader': 'Stephen',
                 'availability': 'public',
                 'creator': 'Stephen',
                 'duration': 169,
@@ -1980,9 +2108,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Panjabi MC - Mundian To Bach Ke (The Dictator Soundtrack)',
                 'description': 'md5:bf577a41da97918e94fa9798d9228825',
                 'upload_date': '20090125',
-                'uploader': 'Prochorowka',
-                'uploader_id': 'Prochorowka',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/Prochorowka',
                 'artist': 'Panjabi MC',
                 'track': 'Beware of the Boys (Mundian to Bach Ke) - Motivo Hi-Lectro Remix',
                 'album': 'Beware of the Boys (Mundian To Bach Ke)',
@@ -2001,11 +2126,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'IMG 3456',
                 'description': '',
                 'upload_date': '20170613',
-                'uploader_id': 'ElevageOrVert',
-                'uploader': 'ElevageOrVert',
                 'view_count': int,
                 'thumbnail': 'https://i.ytimg.com/vi_webp/x41yOUIvK2k/maxresdefault.webp',
-                'uploader_url': 'http://www.youtube.com/user/ElevageOrVert',
                 'like_count': int,
                 'channel_id': 'UCo03ZQPBW5U4UC3regpt1nw',
                 'tags': [],
@@ -2016,8 +2138,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 7,
                 'playable_in_embed': True,
                 'live_status': 'not_live',
-                'channel': 'ElevageOrVert',
-                'channel_follower_count': int
+                'channel': 'l\'Or Vert asbl',
+                'channel_follower_count': int,
+                'uploader': 'l\'Or Vert asbl',
+                'uploader_url': 'https://www.youtube.com/@ElevageOrVert',
+                'uploader_id': '@ElevageOrVert',
             },
             'params': {
                 'skip_download': True,
@@ -2035,11 +2160,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Part 77   Sort a list of simple types in c#',
                 'description': 'md5:b8746fa52e10cdbf47997903f13b20dc',
                 'upload_date': '20130831',
-                'uploader_id': 'kudvenkat',
-                'uploader': 'kudvenkat',
                 'channel_id': 'UCCTVrRB5KpIiK6V2GGVsR1Q',
                 'like_count': int,
-                'uploader_url': 'http://www.youtube.com/user/kudvenkat',
                 'channel_url': 'https://www.youtube.com/channel/UCCTVrRB5KpIiK6V2GGVsR1Q',
                 'live_status': 'not_live',
                 'categories': ['Education'],
@@ -2054,6 +2176,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'comment_count': int,
                 'channel_follower_count': int,
                 'chapters': list,
+                'uploader': 'kudvenkat',
+                'uploader_url': 'https://www.youtube.com/@Csharp-video-tutorialsBlogspot',
+                'uploader_id': '@Csharp-video-tutorialsBlogspot',
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {
                 'skip_download': True,
@@ -2077,9 +2204,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Burn Out',
                 'description': 'md5:8d07b84dcbcbfb34bc12a56d968b6131',
                 'upload_date': '20141120',
-                'uploader': 'The Cinematic Orchestra - Topic',
-                'uploader_id': 'UCIzsJBIyo8hhpFm1NK0uLgw',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCIzsJBIyo8hhpFm1NK0uLgw',
                 'artist': 'The Cinematic Orchestra',
                 'track': 'Burn Out',
                 'album': 'Every Day',
@@ -2098,7 +2222,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'thumbnail': 'https://i.ytimg.com/vi/OtqTfy26tG0/maxresdefault.jpg',
                 'categories': ['Music'],
                 'playable_in_embed': True,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'The Cinematic Orchestra',
+                'comment_count': int,
             },
             'params': {
                 'skip_download': True,
@@ -2117,13 +2243,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': 'mp4',
                 'title': 'San Diego teen commits suicide after bullying over embarrassing video',
                 'channel_id': 'UC-SJ6nODDmufqBzPBwCvYvQ',
-                'uploader': 'CBS Mornings',
-                'uploader_id': 'CBSThisMorning',
                 'upload_date': '20140716',
                 'description': 'md5:acde3a73d3f133fc97e837a9f76b53b7',
                 'duration': 170,
                 'categories': ['News & Politics'],
-                'uploader_url': 'http://www.youtube.com/user/CBSThisMorning',
                 'view_count': int,
                 'channel': 'CBS Mornings',
                 'tags': ['suicide', 'bullying', 'video', 'cbs', 'news'],
@@ -2134,7 +2257,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'live_status': 'not_live',
                 'playable_in_embed': True,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'CBS Mornings',
+                'uploader_url': 'https://www.youtube.com/@CBSMornings',
+                'uploader_id': '@CBSMornings',
+                'comment_count': int,
+                'channel_is_verified': True,
             }
         },
         {
@@ -2146,9 +2274,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': '4K Ueno Okachimachi  Street  Scenes  上野御徒町歩き',
                 'description': 'md5:ea770e474b7cd6722b4c95b833c03630',
                 'upload_date': '20201120',
-                'uploader': 'Walk around Japan',
-                'uploader_id': 'UC3o_t8PzBmXf5S9b7GLx1Mw',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UC3o_t8PzBmXf5S9b7GLx1Mw',
                 'duration': 1456,
                 'categories': ['Travel & Events'],
                 'channel_id': 'UC3o_t8PzBmXf5S9b7GLx1Mw',
@@ -2161,7 +2286,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UC3o_t8PzBmXf5S9b7GLx1Mw',
                 'live_status': 'not_live',
                 'playable_in_embed': True,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Walk around Japan',
+                'uploader_url': 'https://www.youtube.com/@walkaroundjapan7124',
+                'uploader_id': '@walkaroundjapan7124',
             },
             'params': {
                 'skip_download': True,
@@ -2187,13 +2315,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': '3gp',
                 'upload_date': '20210624',
                 'channel_id': 'UCp68_FLety0O-n9QU6phsgw',
-                'uploader': 'colinfurze',
-                'uploader_id': 'colinfurze',
                 'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCp68_FLety0O-n9QU6phsgw',
                 'description': 'md5:5d5991195d599b56cd0c4148907eec50',
                 'duration': 596,
                 'categories': ['Entertainment'],
-                'uploader_url': 'http://www.youtube.com/user/colinfurze',
                 'view_count': int,
                 'channel': 'colinfurze',
                 'tags': ['Colin', 'furze', 'Terry', 'tunnel', 'underground', 'bunker'],
@@ -2205,6 +2330,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'playable_in_embed': True,
                 'channel_follower_count': int,
                 'chapters': list,
+                'uploader': 'colinfurze',
+                'uploader_url': 'https://www.youtube.com/@colinfurze',
+                'uploader_id': '@colinfurze',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             },
             'params': {
                 'format': '17',  # 3gp format available on android
@@ -2230,10 +2361,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': 'mhtml',
                 'format_id': 'sb0',
                 'title': 'Your Brain is Plastic',
-                'uploader_id': 'scishow',
                 'description': 'md5:89cd86034bdb5466cd87c6ba206cd2bc',
                 'upload_date': '20140324',
-                'uploader': 'SciShow',
                 'like_count': int,
                 'channel_id': 'UCZYTClx2T1of7BRZ86-8fow',
                 'channel_url': 'https://www.youtube.com/channel/UCZYTClx2T1of7BRZ86-8fow',
@@ -2241,7 +2370,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'thumbnail': 'https://i.ytimg.com/vi/5KLPxDtMqe8/maxresdefault.jpg',
                 'playable_in_embed': True,
                 'tags': 'count:12',
-                'uploader_url': 'http://www.youtube.com/user/scishow',
                 'availability': 'public',
                 'channel': 'SciShow',
                 'live_status': 'not_live',
@@ -2250,6 +2378,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'age_limit': 0,
                 'channel_follower_count': int,
                 'chapters': list,
+                'uploader': 'SciShow',
+                'uploader_url': 'https://www.youtube.com/@SciShow',
+                'uploader_id': '@SciShow',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             }, 'params': {'format': 'mhtml', 'skip_download': True}
         }, {
             # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
@@ -2259,9 +2393,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': 'mp4',
                 'title': 'The NP that test your phone performance 🙂',
                 'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
-                'uploader': 'Leon Nguyen',
-                'uploader_id': 'VNSXIII',
-                'uploader_url': 'http://www.youtube.com/user/VNSXIII',
                 'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
                 'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
                 'duration': 21,
@@ -2277,7 +2408,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel': 'Leon Nguyen',
                 'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Leon Nguyen',
+                'uploader_url': 'https://www.youtube.com/@LeonNguyen',
+                'uploader_id': '@LeonNguyen',
+                'heatmap': 'count:100',
             }
         }, {
             # Same video as above, but with --compat-opt no-youtube-prefer-utc-upload-date
@@ -2287,9 +2422,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ext': 'mp4',
                 'title': 'The NP that test your phone performance 🙂',
                 'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
-                'uploader': 'Leon Nguyen',
-                'uploader_id': 'VNSXIII',
-                'uploader_url': 'http://www.youtube.com/user/VNSXIII',
                 'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
                 'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
                 'duration': 21,
@@ -2305,7 +2437,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel': 'Leon Nguyen',
                 'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Leon Nguyen',
+                'uploader_url': 'https://www.youtube.com/@LeonNguyen',
+                'uploader_id': '@LeonNguyen',
+                'heatmap': 'count:100',
             },
             'params': {'compat_opts': ['no-youtube-prefer-utc-upload-date']}
         }, {
@@ -2315,10 +2451,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'mzZzzBU6lrM',
                 'ext': 'mp4',
                 'title': 'I Met GeorgeNotFound In Real Life...',
-                'description': 'md5:cca98a355c7184e750f711f3a1b22c84',
-                'uploader': 'Quackity',
-                'uploader_id': 'QuackityHQ',
-                'uploader_url': 'http://www.youtube.com/user/QuackityHQ',
+                'description': 'md5:978296ec9783a031738b684d4ebf302d',
                 'channel_id': 'UC_8NknAFiyhOUaZqHR3lq3Q',
                 'channel_url': 'https://www.youtube.com/channel/UC_8NknAFiyhOUaZqHR3lq3Q',
                 'duration': 955,
@@ -2335,7 +2468,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'availability': 'public',
                 'channel': 'Quackity',
                 'thumbnail': 'https://i.ytimg.com/vi/mzZzzBU6lrM/maxresdefault.jpg',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Quackity',
+                'uploader_id': '@Quackity',
+                'uploader_url': 'https://www.youtube.com/@Quackity',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
             }
         },
         {   # continuous livestream. Microformat upload date should be preferred.
@@ -2353,47 +2492,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
                 'live_status': 'is_live',
                 'thumbnail': 'https://i.ytimg.com/vi/kgx4WGK0oNU/maxresdefault.jpg',
-                'uploader': '阿鲍Abao',
-                'uploader_url': 'http://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
                 'channel': 'Abao in Tokyo',
                 'channel_follower_count': int,
                 'release_date': '20211127',
                 'tags': 'count:39',
                 'categories': ['People & Blogs'],
                 'like_count': int,
-                'uploader_id': 'UC84whx2xxsiA1gXHXXqKGOA',
                 'view_count': int,
                 'playable_in_embed': True,
                 'description': 'md5:2ef1d002cad520f65825346e2084e49d',
                 'concurrent_view_count': int,
+                'uploader': 'Abao in Tokyo',
+                'uploader_url': 'https://www.youtube.com/@abaointokyo',
+                'uploader_id': '@abaointokyo',
             },
             'params': {'skip_download': True}
-        }, {
-            # Story. Requires specific player params to work.
-            'url': 'https://www.youtube.com/watch?v=vv8qTUWmulI',
-            'info_dict': {
-                'id': 'vv8qTUWmulI',
-                'ext': 'mp4',
-                'availability': 'unlisted',
-                'view_count': int,
-                'channel_id': 'UCzIZ8HrzDgc-pNQDUG6avBA',
-                'upload_date': '20220526',
-                'categories': ['Education'],
-                'title': 'Story',
-                'channel': 'IT\'S HISTORY',
-                'description': '',
-                'uploader_id': 'BlastfromthePast',
-                'duration': 12,
-                'uploader': 'IT\'S HISTORY',
-                'playable_in_embed': True,
-                'age_limit': 0,
-                'live_status': 'not_live',
-                'tags': [],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/vv8qTUWmulI/maxresdefault.webp',
-                'uploader_url': 'http://www.youtube.com/user/BlastfromthePast',
-                'channel_url': 'https://www.youtube.com/channel/UCzIZ8HrzDgc-pNQDUG6avBA',
-            },
-            'skip': 'stories get removed after some period of time',
         }, {
             'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
             'info_dict': {
@@ -2403,11 +2516,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20220323',
                 'like_count': int,
                 'availability': 'unlisted',
-                'channel': 'nao20010128nao',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/tjjjtzRLHvA/maxresdefault.webp',
+                'channel': 'Lesmiscore',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 0,
-                'uploader': 'nao20010128nao',
-                'uploader_id': 'nao20010128nao',
                 'categories': ['Music'],
                 'view_count': int,
                 'description': '',
@@ -2418,7 +2529,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int,
                 'duration': 6,
                 'tags': [],
-                'uploader_url': 'http://www.youtube.com/user/nao20010128nao',
+                'uploader_id': '@lesmiscore',
+                'uploader': 'Lesmiscore',
+                'uploader_url': 'https://www.youtube.com/@lesmiscore',
             }
         }, {
             # Prefer primary title+description language metadata by default
@@ -2436,16 +2549,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'playable_in_embed': True,
                 'availability': 'unlisted',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/el3E4MbxRqQ/maxresdefault.webp',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 0,
                 'duration': 5,
-                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
-                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
                 'live_status': 'not_live',
                 'upload_date': '20220908',
                 'categories': ['People & Blogs'],
-                'uploader': 'cole-dlp-test-acc',
                 'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'https://www.youtube.com/@coletdjnz',
+                'uploader_id': '@coletdjnz',
+                'uploader': 'cole-dlp-test-acc',
             },
             'params': {'skip_download': True}
         }, {
@@ -2460,18 +2573,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'live_status': 'not_live',
                 'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
                 'upload_date': '20220728',
-                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
                 'view_count': int,
                 'categories': ['People & Blogs'],
-                'thumbnail': 'https://i.ytimg.com/vi_webp/gHKT4uU8Zng/maxresdefault.webp',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'title': 'dlp test video title translated (fr)',
                 'availability': 'public',
-                'uploader': 'cole-dlp-test-acc',
                 'age_limit': 0,
                 'description': 'dlp test video description translated (fr)',
                 'playable_in_embed': True,
                 'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'https://www.youtube.com/@coletdjnz',
+                'uploader_id': '@coletdjnz',
+                'uploader': 'cole-dlp-test-acc',
             },
             'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
             'expected_warnings': [r'Preferring "fr" translated fields'],
@@ -2479,7 +2592,135 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'note': '6 channel audio',
             'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
             'only_matching': True,
-        }
+        }, {
+            'note': 'Multiple HLS formats with same itag',
+            'url': 'https://www.youtube.com/watch?v=kX3nB4PpJko',
+            'info_dict': {
+                'id': 'kX3nB4PpJko',
+                'ext': 'mp4',
+                'categories': ['Entertainment'],
+                'description': 'md5:e8031ff6e426cdb6a77670c9b81f6fa6',
+                'live_status': 'not_live',
+                'duration': 937,
+                'channel_follower_count': int,
+                'thumbnail': 'https://i.ytimg.com/vi_webp/kX3nB4PpJko/maxresdefault.webp',
+                'title': 'Last To Take Hand Off Jet, Keeps It!',
+                'channel': 'MrBeast',
+                'playable_in_embed': True,
+                'view_count': int,
+                'upload_date': '20221112',
+                'channel_url': 'https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA',
+                'age_limit': 0,
+                'availability': 'public',
+                'channel_id': 'UCX6OQ3DkcsbYNE6H8uQQuVA',
+                'like_count': int,
+                'tags': [],
+                'uploader': 'MrBeast',
+                'uploader_url': 'https://www.youtube.com/@MrBeast',
+                'uploader_id': '@MrBeast',
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
+            },
+            'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
+        }, {
+            'note': 'Audio formats with Dynamic Range Compression',
+            'url': 'https://www.youtube.com/watch?v=Tq92D6wQ1mg',
+            'info_dict': {
+                'id': 'Tq92D6wQ1mg',
+                'ext': 'webm',
+                'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
+                'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'channel_follower_count': int,
+                'description': 'md5:17eccca93a786d51bc67646756894066',
+                'upload_date': '20191228',
+                'tags': ['mmd', 'dance', 'mikumikudance', 'kpop', 'vtuber'],
+                'playable_in_embed': True,
+                'like_count': int,
+                'categories': ['Entertainment'],
+                'thumbnail': 'https://i.ytimg.com/vi/Tq92D6wQ1mg/sddefault.jpg',
+                'age_limit': 18,
+                'channel': 'Projekt Melody',
+                'view_count': int,
+                'availability': 'needs_auth',
+                'comment_count': int,
+                'live_status': 'not_live',
+                'duration': 106,
+                'uploader': 'Projekt Melody',
+                'uploader_id': '@ProjektMelody',
+                'uploader_url': 'https://www.youtube.com/@ProjektMelody',
+            },
+            'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
+        },
+        {
+            'url': 'https://www.youtube.com/live/qVv6vCqciTM',
+            'info_dict': {
+                'id': 'qVv6vCqciTM',
+                'ext': 'mp4',
+                'age_limit': 0,
+                'comment_count': int,
+                'chapters': 'count:13',
+                'upload_date': '20221223',
+                'thumbnail': 'https://i.ytimg.com/vi/qVv6vCqciTM/maxresdefault.jpg',
+                'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+                'like_count': int,
+                'release_date': '20221223',
+                'tags': ['Vtuber', '月ノ美兎', '名取さな', 'にじさんじ', 'クリスマス', '3D配信'],
+                'title': '【 #インターネット女クリスマス 】3Dで歌ってはしゃぐインターネットの女たち【月ノ美兎/名取さな】',
+                'view_count': int,
+                'playable_in_embed': True,
+                'duration': 4438,
+                'availability': 'public',
+                'channel_follower_count': int,
+                'channel_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+                'categories': ['Entertainment'],
+                'live_status': 'was_live',
+                'release_timestamp': 1671793345,
+                'channel': 'さなちゃんねる',
+                'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
+                'uploader': 'さなちゃんねる',
+                'uploader_url': 'https://www.youtube.com/@sana_natori',
+                'uploader_id': '@sana_natori',
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
+            },
+        },
+        {
+            # Fallbacks when webpage and web client is unavailable
+            'url': 'https://www.youtube.com/watch?v=wSSmNUl9Snw',
+            'info_dict': {
+                'id': 'wSSmNUl9Snw',
+                'ext': 'mp4',
+                # 'categories': ['Science & Technology'],
+                'view_count': int,
+                'chapters': 'count:2',
+                'channel': 'Scott Manley',
+                'like_count': int,
+                'age_limit': 0,
+                # 'availability': 'public',
+                'channel_follower_count': int,
+                'live_status': 'not_live',
+                'upload_date': '20170831',
+                'duration': 682,
+                'tags': 'count:8',
+                'uploader_url': 'https://www.youtube.com/@scottmanley',
+                'description': 'md5:f4bed7b200404b72a394c2f97b782c02',
+                'uploader': 'Scott Manley',
+                'uploader_id': '@scottmanley',
+                'title': 'The Computer Hack That Saved Apollo 14',
+                'channel_id': 'UCxzC4EngIsMrPmbm6Nxvb-A',
+                'thumbnail': r're:^https?://.*\.webp',
+                'channel_url': 'https://www.youtube.com/channel/UCxzC4EngIsMrPmbm6Nxvb-A',
+                'playable_in_embed': True,
+                'comment_count': int,
+                'channel_is_verified': True,
+                'heatmap': 'count:100',
+            },
+            'params': {
+                'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
+            },
+        },
     ]
 
     _WEBPAGE_TESTS = [
@@ -2493,8 +2734,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Feynman: Mirrors FUN TO IMAGINE 6',
                 'upload_date': '20080526',
                 'description': 'md5:873c81d308b979f0e23ee7e620b312a3',
-                'uploader': 'Christopher Sykes',
-                'uploader_id': 'ChristopherJSykes',
                 'age_limit': 0,
                 'tags': ['feynman', 'mirror', 'science', 'physics', 'imagination', 'fun', 'cool', 'puzzle'],
                 'channel_id': 'UCCeo--lls1vna5YJABWAcVA',
@@ -2510,7 +2749,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'view_count': int,
                 'categories': ['Science & Technology'],
                 'channel_follower_count': int,
-                'uploader_url': 'http://www.youtube.com/user/ChristopherJSykes',
+                'uploader': 'Christopher Sykes',
+                'uploader_url': 'https://www.youtube.com/@ChristopherSykesDocumentaries',
+                'uploader_id': '@ChristopherSykesDocumentaries',
+                'heatmap': 'count:100',
             },
             'params': {
                 'skip_download': True,
@@ -2543,11 +2785,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
 
             _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
-            video_details = traverse_obj(
-                prs, (..., 'videoDetails'), expected_type=dict, default=[])
+            video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
-                expected_type=dict, default=[])
+                expected_type=dict)
             _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
             is_live = live_status == 'is_live'
             start_time = time.time()
@@ -2556,18 +2797,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
-            with lock:
-                refetch_manifest(format_id, delay)
+            for retry in self.RetryManager(fatal=False):
+                with lock:
+                    refetch_manifest(format_id, delay)
 
-            f = next((f for f in formats if f['format_id'] == format_id), None)
-            if not f:
-                if not is_live:
-                    self.to_screen(f'{video_id}: Video is no longer live')
-                else:
-                    self.report_warning(
-                        f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}')
-                return None
-            return f['manifest_url'], f['manifest_stream_number'], is_live
+                f = next((f for f in formats if f['format_id'] == format_id), None)
+                if not f:
+                    if not is_live:
+                        retry.error = f'{video_id}: Video is no longer live'
+                    else:
+                        retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
+                    continue
+                return f['manifest_url'], f['manifest_stream_number'], is_live
+            return None
 
         for f in formats:
             f['is_live'] = is_live
@@ -2603,7 +2845,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
-            expire_fast = immediate or last_error and isinstance(last_error, urllib.error.HTTPError) and last_error.code == 403
+            expire_fast = immediate or last_error and isinstance(last_error, HTTPError) and last_error.status == 403
             mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
@@ -2802,17 +3044,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
              r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*encodeURIComponent\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bm=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(h\.s\)\)',
              r'\bc&&\(c=(?P<sig>[a-zA-Z0-9$]{2,})\(decodeURIComponent\(c\)\)',
-             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\);[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\)',
-             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',
+             r'(?:\b|[^a-zA-Z0-9$])(?P<sig>[a-zA-Z0-9$]{2,})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)(?:;[a-zA-Z0-9$]{2}\.[a-zA-Z0-9$]{2}\(a,\d+\))?',
              r'(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*""\s*\)',
              # Obsolete patterns
-             r'(["\'])signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
+             r'("|\')signature\1\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\.sig\|\|(?P<sig>[a-zA-Z0-9$]+)\(',
              r'yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?:encodeURIComponent\s*\()?\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[cs]\s*&&\s*[adf]\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\b[a-zA-Z0-9]+\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*a\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
-             r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(',
              r'\bc\s*&&\s*[a-zA-Z0-9]+\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\('),
             jscode, 'Initial JS player signature function name', group='sig')
 
@@ -2886,7 +3125,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return funcname
 
         return json.loads(js_to_json(self._search_regex(
-            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\]);', jscode,
+            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\])\s*[,;]', jscode,
             f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
 
     def _extract_n_function_code(self, video_id, player_url):
@@ -3035,11 +3274,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'decoratedPlayerBarRenderer', 'playerBar', 'chapteredPlayerBarRenderer', 'chapters'
             ), expected_type=list)
 
-        return self._extract_chapters(
+        return self._extract_chapters_helper(
             chapter_list,
-            chapter_time=lambda chapter: float_or_none(
+            start_function=lambda chapter: float_or_none(
                 traverse_obj(chapter, ('chapterRenderer', 'timeRangeStartMillis')), scale=1000),
-            chapter_title=lambda chapter: traverse_obj(
+            title_function=lambda chapter: traverse_obj(
                 chapter, ('chapterRenderer', 'title', 'simpleText'), expected_type=str),
             duration=duration)
 
@@ -3047,83 +3286,73 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         content_list = traverse_obj(
             data,
             ('engagementPanels', ..., 'engagementPanelSectionListRenderer', 'content', 'macroMarkersListRenderer', 'contents'),
-            expected_type=list, default=[])
+            expected_type=list)
         chapter_time = lambda chapter: parse_duration(self._get_text(chapter, 'timeDescription'))
         chapter_title = lambda chapter: self._get_text(chapter, 'title')
 
         return next(filter(None, (
-            self._extract_chapters(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
-                                   chapter_time, chapter_title, duration)
+            self._extract_chapters_helper(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
+                                          chapter_time, chapter_title, duration)
             for contents in content_list)), [])
 
-    def _extract_chapters_from_description(self, description, duration):
-        duration_re = r'(?:\d+:)?\d{1,2}:\d{2}'
-        sep_re = r'(?m)^\s*(%s)\b\W*\s(%s)\s*$'
-        return self._extract_chapters(
-            re.findall(sep_re % (duration_re, r'.+?'), description or ''),
-            chapter_time=lambda x: parse_duration(x[0]), chapter_title=lambda x: x[1],
-            duration=duration, strict=False) or self._extract_chapters(
-            re.findall(sep_re % (r'.+?', duration_re), description or ''),
-            chapter_time=lambda x: parse_duration(x[1]), chapter_title=lambda x: x[0],
-            duration=duration, strict=False)
-
-    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration, strict=True):
-        if not duration:
-            return
-        chapter_list = [{
-            'start_time': chapter_time(chapter),
-            'title': chapter_title(chapter),
-        } for chapter in chapter_list or []]
-        if not strict:
-            chapter_list.sort(key=lambda c: c['start_time'] or 0)
-
-        chapters = [{'start_time': 0}]
-        for idx, chapter in enumerate(chapter_list):
-            if chapter['start_time'] is None:
-                self.report_warning(f'Incomplete chapter {idx}')
-            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
-                chapters.append(chapter)
-            elif chapter not in chapters:
-                self.report_warning(
-                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
-        return chapters[1:]
+    def _extract_heatmap(self, data):
+        return traverse_obj(data, (
+            'frameworkUpdates', 'entityBatchUpdate', 'mutations',
+            lambda _, v: v['payload']['macroMarkersListEntity']['markersList']['markerType'] == 'MARKER_TYPE_HEATMAP',
+            'payload', 'macroMarkersListEntity', 'markersList', 'markers', ..., {
+                'start_time': ('startMillis', {functools.partial(float_or_none, scale=1000)}),
+                'end_time': {lambda x: (int(x['startMillis']) + int(x['durationMillis'])) / 1000},
+                'value': ('intensityScoreNormalized', {float_or_none}),
+            })) or None
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
             return
 
-        text = self._get_text(comment_renderer, 'contentText')
+        info = {
+            'id': comment_id,
+            'text': self._get_text(comment_renderer, 'contentText'),
+            'like_count': self._get_count(comment_renderer, 'voteCount'),
+            'author_id': traverse_obj(comment_renderer, ('authorEndpoint', 'browseEndpoint', 'browseId', {self.ucid_or_none})),
+            'author': self._get_text(comment_renderer, 'authorText'),
+            'author_thumbnail': traverse_obj(comment_renderer, ('authorThumbnail', 'thumbnails', -1, 'url', {url_or_none})),
+            'parent': parent or 'root',
+        }
 
         # Timestamp is an estimate calculated from the current time and time_text
         time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
         timestamp = self._parse_time_text(time_text)
 
-        author = self._get_text(comment_renderer, 'authorText')
-        author_id = try_get(comment_renderer,
-                            lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
-
-        votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                       lambda x: x['likeCount']), str)) or 0
-        author_thumbnail = try_get(comment_renderer,
-                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], str)
-
-        author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
-        is_favorited = 'creatorHeart' in (try_get(
-            comment_renderer, lambda x: x['actionButtons']['commentActionButtonsRenderer'], dict) or {})
-        return {
-            'id': comment_id,
-            'text': text,
+        info.update({
+            # FIXME: non-standard, but we need a way of showing that it is an estimate.
+            '_time_text': time_text,
             'timestamp': timestamp,
-            'time_text': time_text,
-            'like_count': votes,
-            'is_favorited': is_favorited,
-            'author': author,
-            'author_id': author_id,
-            'author_thumbnail': author_thumbnail,
-            'author_is_uploader': author_is_uploader,
-            'parent': parent or 'root'
-        }
+        })
+
+        info['author_url'] = urljoin(
+            'https://www.youtube.com', traverse_obj(comment_renderer, ('authorEndpoint', (
+                ('browseEndpoint', 'canonicalBaseUrl'), ('commandMetadata', 'webCommandMetadata', 'url'))),
+                expected_type=str, get_all=False))
+
+        author_is_uploader = traverse_obj(comment_renderer, 'authorIsChannelOwner')
+        if author_is_uploader is not None:
+            info['author_is_uploader'] = author_is_uploader
+
+        comment_abr = traverse_obj(
+            comment_renderer, ('actionButtons', 'commentActionButtonsRenderer'), expected_type=dict)
+        if comment_abr is not None:
+            info['is_favorited'] = 'creatorHeart' in comment_abr
+
+        badges = self._extract_badges([traverse_obj(comment_renderer, 'authorCommentBadge')])
+        if self._has_badge(badges, BadgeType.VERIFIED):
+            info['author_is_verified'] = True
+
+        is_pinned = traverse_obj(comment_renderer, 'pinnedCommentBadge')
+        if is_pinned:
+            info['is_pinned'] = True
+
+        return info
 
     def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
 
@@ -3136,7 +3365,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 expected_comment_count = self._get_count(
                     comments_header_renderer, 'countText', 'commentsCount')
 
-                if expected_comment_count:
+                if expected_comment_count is not None:
                     tracker['est_total'] = expected_comment_count
                     self.to_screen(f'Downloading ~{expected_comment_count} comments')
                 comment_sort_index = int(get_single_config_arg('comment_sort') != 'top')  # 1 = new, 0 = top
@@ -3171,6 +3400,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
+                comment_id = comment['id']
+                if comment.get('is_pinned'):
+                    tracker['pinned_comment_ids'].add(comment_id)
+                # Sometimes YouTube may break and give us infinite looping comments.
+                # See: https://github.com/yt-dlp/yt-dlp/issues/6290
+                if comment_id in tracker['seen_comment_ids']:
+                    if comment_id in tracker['pinned_comment_ids'] and not comment.get('is_pinned'):
+                        # Pinned comments may appear a second time in newest first sort
+                        # See: https://github.com/yt-dlp/yt-dlp/issues/6712
+                        continue
+                    self.report_warning(
+                        'Detected YouTube comments looping. Stopping comment extraction '
+                        f'{"for this thread" if parent else ""} as we probably cannot get any more.')
+                    yield
+                else:
+                    tracker['seen_comment_ids'].add(comment['id'])
 
                 tracker['running_total'] += 1
                 tracker['total_reply_comments' if parent else 'total_parent_comments'] += 1
@@ -3192,10 +3437,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not tracker:
             tracker = dict(
                 running_total=0,
-                est_total=0,
+                est_total=None,
                 current_page_thread=0,
                 total_parent_comments=0,
-                total_reply_comments=0)
+                total_reply_comments=0,
+                seen_comment_ids=set(),
+                pinned_comment_ids=set()
+            )
 
         # TODO: Deprecated
         # YouTube comments have a max depth of 2
@@ -3222,11 +3470,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             continuation = self._build_api_continuation_query(self._generate_comment_continuation(video_id))
             is_forced_continuation = True
 
+        continuation_items_path = (
+            'onResponseReceivedEndpoints', ..., ('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems')
         for page_num in itertools.count(0):
             if not continuation:
                 break
             headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=self._extract_visitor_data(response))
-            comment_prog_str = f"({tracker['running_total']}/{tracker['est_total']})"
+            comment_prog_str = f"({tracker['running_total']}/~{tracker['est_total']})"
             if page_num == 0:
                 if is_first_continuation:
                     note_prefix = 'Downloading comment section API JSON'
@@ -3237,31 +3487,37 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
+
+            # Do a deep check for incomplete data as sometimes YouTube may return no comments for a continuation
+            # Ignore check if YouTube says the comment count is 0.
+            check_get_keys = None
+            if not is_forced_continuation and not (tracker['est_total'] == 0 and tracker['running_total'] == 0):
+                check_get_keys = [[*continuation_items_path, ..., (
+                    'commentsHeaderRenderer' if is_first_continuation else ('commentThreadRenderer', 'commentRenderer'))]]
             try:
                 response = self._extract_response(
                     item_id=None, query=continuation,
                     ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                    check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+                    check_get_keys=check_get_keys)
             except ExtractorError as e:
                 # Ignore incomplete data error for replies if retries didn't work.
                 # This is to allow any other parent comments and comment threads to be downloaded.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/4669
-                if 'incomplete data' in str(e).lower() and parent and self.get_param('ignoreerrors') is True:
-                    self.report_warning(
-                        'Received incomplete data for a comment reply thread and retrying did not help. '
-                        'Ignoring to let other comments be downloaded.')
-                else:
-                    raise
+                if 'incomplete data' in str(e).lower() and parent:
+                    if self.get_param('ignoreerrors') in (True, 'only_download'):
+                        self.report_warning(
+                            'Received incomplete data for a comment reply thread and retrying did not help. '
+                            'Ignoring to let other comments be downloaded. Pass --no-ignore-errors to not ignore.')
+                        return
+                    else:
+                        raise ExtractorError(
+                            'Incomplete data received for comment reply thread. '
+                            'Pass --ignore-errors to ignore and allow rest of comments to download.',
+                            expected=True)
+                raise
             is_forced_continuation = False
-            continuation_contents = traverse_obj(
-                response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
-
             continuation = None
-            for continuation_section in continuation_contents:
-                continuation_items = traverse_obj(
-                    continuation_section,
-                    (('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems'),
-                    get_all=False, expected_type=list) or []
+            for continuation_items in traverse_obj(response, continuation_items_path, expected_type=list, default=[]):
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
                     is_first_continuation = False
@@ -3324,7 +3580,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')):
             return True
 
-        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
+        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')))
         AGE_GATE_REASONS = (
             'confirm your age', 'age-restricted', 'inappropriate',  # reason
             'age_verification_required', 'age_check_required',  # status
@@ -3334,8 +3590,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     @staticmethod
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
-
-    _STORY_PLAYER_PARAMS = '8AEB'
 
     def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data):
 
@@ -3348,8 +3602,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         yt_query = {
             'videoId': video_id,
         }
-        if smuggled_data.get('is_story') or _split_innertube_client(client)[0] == 'android':
-            yt_query['params'] = self._STORY_PLAYER_PARAMS
+        if _split_innertube_client(client)[0] == 'android':
+            yt_query['params'] = 'CgIQBg=='
+
+        pp_arg = self._configuration_arg('player_params', [None], casesense=True)[0]
+        if pp_arg:
+            yt_query['params'] = pp_arg
 
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
@@ -3361,7 +3619,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
-        default = ['android', 'web']
+        default = ['ios', 'android', 'web']
         allowed_clients = sorted(
             (client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'),
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
@@ -3448,6 +3706,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self.report_warning(
                         f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
                 else:
+                    # Save client name for introspection later
+                    name = short_client_name(client)
+                    sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+                    sd[STREAMING_DATA_CLIENT_NAME] = name
+                    for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
+                        f[STREAMING_DATA_CLIENT_NAME] = name
                     prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
@@ -3467,11 +3731,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _needs_live_processing(self, live_status, duration):
         if (live_status == 'is_live' and self.get_param('live_from_start')
-                or live_status == 'post_live' and (duration or 0) > 4 * 3600):
+                or live_status == 'post_live' and (duration or 0) > 2 * 3600):
             return live_status
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
-        itags, stream_ids = {}, []
+        CHUNK_SIZE = 10 << 20
+        itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
@@ -3480,7 +3745,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'audio_quality_ultralow', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
-        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
+        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...))
+        format_types = self._configuration_arg('formats')
+        all_formats = 'duplicate' in format_types
+        if self._configuration_arg('include_duplicate_formats'):
+            all_formats = True
+            self._downloader.deprecated_feature('[youtube] include_duplicate_formats extractor argument is deprecated. '
+                                                'Use formats=duplicate extractor argument instead')
+
+        def build_fragments(f):
+            return LazyList({
+                'url': update_url_query(f['url'], {
+                    'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, f["filesize"])}'
+                })
+            } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec'):
@@ -3488,9 +3766,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             itag = str_or_none(fmt.get('itag'))
             audio_track = fmt.get('audioTrack') or {}
-            stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
-            if stream_id in stream_ids:
-                continue
+            stream_id = (itag, audio_track.get('id'), fmt.get('isDrc'))
+            if not all_formats:
+                if stream_id in stream_ids:
+                    continue
 
             quality = fmt.get('quality')
             height = int_or_none(fmt.get('height'))
@@ -3553,10 +3832,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             video_id=video_id, only_once=True)
                     throttled = True
 
-            if itag:
-                itags[itag] = 'https'
-                stream_ids.append(stream_id)
-
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             language_preference = (
                 10 if audio_track.get('audioIsDefault') and 10
@@ -3570,29 +3845,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if is_damaged:
                 self.report_warning(
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+
+            client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
+            name = fmt.get('qualityLabel') or quality.replace('audio_quality_', '') or ''
+            fps = int_or_none(fmt.get('fps')) or 0
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
-                'format_id': itag,
+                'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
-                    '%s%s' % (audio_track.get('displayName') or '',
-                              ' (default)' if language_preference > 0 else ''),
-                    fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
+                    join_nonempty(audio_track.get('displayName'),
+                                  language_preference > 0 and ' (default)', delim=''),
+                    name, fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
+                    throttled and 'THROTTLED', is_damaged and 'DAMAGED',
+                    (self.get_param('verbose') or all_formats) and client_name,
+                    delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
-                'source_preference': -10 if throttled else -5 if itag == '22' else -1,
-                'fps': int_or_none(fmt.get('fps')) or None,
+                'source_preference': ((-10 if throttled else -5 if itag == '22' else -1)
+                                      + (100 if 'Premium' in name else 0)),
+                'fps': fps if fps > 1 else None,  # For some formats, fps is wrongly returned as 1
                 'audio_channels': fmt.get('audioChannels'),
                 'height': height,
-                'quality': q(quality),
+                'quality': q(quality) - bool(fmt.get('isDrc')) / 2,
                 'has_drm': bool(fmt.get('drmFamilies')),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
                 'language': join_nonempty(audio_track.get('id', '').split('.')[0],
-                                          'desc' if language_preference < -1 else ''),
+                                          'desc' if language_preference < -1 else '') or None,
                 'language_preference': language_preference,
                 # Strictly de-prioritize damaged and 3gp formats
                 'preference': -10 if is_damaged else -2 if itag == '17' else None,
@@ -3602,23 +3884,30 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if mime_mobj:
                 dct['ext'] = mimetype2ext(mime_mobj.group(1))
                 dct.update(parse_codecs(mime_mobj.group(2)))
-            no_audio = dct.get('acodec') == 'none'
-            no_video = dct.get('vcodec') == 'none'
-            if no_audio:
-                dct['vbr'] = tbr
-            if no_video:
-                dct['abr'] = tbr
-            if no_audio or no_video:
-                dct['downloader_options'] = {
-                    # Youtube throttles chunks >~10M
-                    'http_chunk_size': 10485760,
+            if itag:
+                itags[itag].add(('https', dct.get('language')))
+                stream_ids.append(stream_id)
+            single_stream = 'none' in (dct.get('acodec'), dct.get('vcodec'))
+            if single_stream and dct.get('ext'):
+                dct['container'] = dct['ext'] + '_dash'
+
+            if (all_formats or 'dashy' in format_types) and dct['filesize']:
+                yield {
+                    **dct,
+                    'format_id': f'{dct["format_id"]}-dashy' if all_formats else dct['format_id'],
+                    'protocol': 'http_dash_segments',
+                    'fragments': build_fragments(dct),
                 }
-                if dct.get('ext'):
-                    dct['container'] = dct['ext'] + '_dash'
-            yield dct
+            if all_formats or 'dashy' not in format_types:
+                dct['downloader_options'] = {'http_chunk_size': CHUNK_SIZE}
+                yield dct
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
-        skip_bad_formats = not self._configuration_arg('include_incomplete_formats')
+        skip_bad_formats = 'incomplete' not in format_types
+        if self._configuration_arg('include_incomplete_formats'):
+            skip_bad_formats = False
+            self._downloader.deprecated_feature('[youtube] include_incomplete_formats extractor argument is deprecated. '
+                                                'Use formats=incomplete extractor argument instead')
 
         skip_manifests = set(self._configuration_arg('skip'))
         if (not self.get_param('youtube_include_hls_manifest', True)
@@ -3630,33 +3919,54 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             skip_manifests.add('dash')
         if self._configuration_arg('include_live_dash'):
             self._downloader.deprecated_feature('[youtube] include_live_dash extractor argument is deprecated. '
-                                                'Use include_incomplete_formats extractor argument instead')
+                                                'Use formats=incomplete extractor argument instead')
         elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
-        def process_manifest_format(f, proto, itag):
-            if itag in itags:
-                if itags[itag] == proto or f'{itag}-{proto}' in itags:
-                    return False
-                itag = f'{itag}-{proto}'
-            if itag:
+        def process_manifest_format(f, proto, client_name, itag):
+            key = (proto, f.get('language'))
+            if not all_formats and key in itags[itag]:
+                return False
+            itags[itag].add(key)
+
+            if itag and all_formats:
+                f['format_id'] = f'{itag}-{proto}'
+            elif any(p != proto for p, _ in itags[itag]):
+                f['format_id'] = f'{itag}-{proto}'
+            elif itag:
                 f['format_id'] = itag
-                itags[itag] = proto
+
+            if f.get('source_preference') is None:
+                f['source_preference'] = -1
+
+            if itag in ('616', '235'):
+                f['format_note'] = join_nonempty(f.get('format_note'), 'Premium', delim=' ')
+                f['source_preference'] += 100
 
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
                 f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
+            if self.get_param('verbose') or all_formats:
+                f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
+            if f.get('fps') and f['fps'] <= 1:
+                del f['fps']
+
+            if proto == 'hls' and f.get('has_drm'):
+                f['has_drm'] = 'maybe'
+                f['source_preference'] -= 5
             return True
 
         subtitles = {}
         for sd in streaming_data:
+            client_name = sd.get(STREAMING_DATA_CLIENT_NAME)
+
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
-                    if process_manifest_format(f, 'hls', self._search_regex(
+                    if process_manifest_format(f, 'hls', client_name, self._search_regex(
                             r'/itag/(\d+)', f['url'], 'itag', default=None)):
                         yield f
 
@@ -3665,7 +3975,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
-                    if process_manifest_format(f, 'dash', f['format_id']):
+                    if process_manifest_format(f, 'dash', client_name, f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                         if needs_live_processing:
@@ -3716,8 +4026,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             query = {'bpctr': '9999999999', 'has_verified': '1'}
-            if smuggled_data.get('is_story'):
-                query['pp'] = self._STORY_PLAYER_PARAMS
+            pp = self._configuration_arg('player_params', [None], casesense=True)[0]
+            if pp:
+                query['pp'] = pp
             webpage = self._download_webpage(
                 webpage_url, video_id, fatal=False, query=query)
 
@@ -3743,8 +4054,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                        else 'was_live' if live_content
                        else 'not_live' if False in (is_live, live_content)
                        else None)
-        streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
+        streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
+        if all(f.get('has_drm') for f in formats):
+            # If there are no formats that definitely don't have DRM, all have DRM
+            for f in formats:
+                f['has_drm'] = True
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
 
@@ -3758,7 +4073,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
 
         playability_statuses = traverse_obj(
-            player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])
+            player_responses, (..., 'playabilityStatus'), expected_type=dict)
 
         trailer_video_id = get_first(
             playability_statuses,
@@ -3771,11 +4086,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
                        if webpage else (lambda x: None))
 
-        video_details = traverse_obj(
-            player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
+        video_details = traverse_obj(player_responses, (..., 'videoDetails'), expected_type=dict)
         microformats = traverse_obj(
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
-            expected_type=dict, default=[])
+            expected_type=dict)
 
         translated_title = self._get_text(microformats, (..., 'title'))
         video_title = (self._preferred_lang and translated_title
@@ -3908,10 +4222,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._downloader._sort_thumbnails(original_thumbnails)
 
         category = get_first(microformats, 'category') or search_meta('genre')
-        channel_id = str_or_none(
+        channel_id = self.ucid_or_none(str_or_none(
             get_first(video_details, 'channelId')
             or get_first(microformats, 'externalChannelId')
-            or search_meta('channelId'))
+            or search_meta('channelId')))
         owner_profile_url = get_first(microformats, 'ownerProfileUrl')
 
         live_start_time = parse_iso8601(get_first(live_broadcast_details, 'startTimestamp'))
@@ -3930,7 +4244,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for fmt in filter(is_bad_format, formats):
             fmt['preference'] = (fmt.get('preference') or -1) - 10
-            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 4 hours)', delim=' ')
+            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 2 hours)', delim=' ')
 
         if needs_live_processing:
             self._prepare_live_from_start_formats(
@@ -3938,9 +4252,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
-        # source_preference is lower for throttled/potentially damaged formats
-        self._sort_formats(formats, (
-            'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'))
+        channel_handle = self.handle_from_url(owner_profile_url)
 
         info = {
             'id': video_id,
@@ -3951,11 +4263,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # URL checking if user don't care about getting the best possible thumbnail
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
-            'uploader': get_first(video_details, 'author'),
-            'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
-            'uploader_url': owner_profile_url,
             'channel_id': channel_id,
-            'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s'),
+            'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s', default=None),
             'duration': duration,
             'view_count': int_or_none(
                 get_first((video_details, microformats), (..., 'viewCount'))
@@ -3971,6 +4280,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
             'live_status': live_status,
             'release_timestamp': live_start_time,
+            '_format_sort_fields': (  # source_preference is lower for throttled/potentially damaged formats
+                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto')
         }
 
         subtitles = {}
@@ -3983,10 +4294,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Converted into dicts to remove duplicates
             captions = {
                 get_lang_code(sub): sub
-                for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
+                for sub in traverse_obj(pctr, (..., 'captionTracks', ...))}
             translation_languages = {
                 lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
+                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...))}
 
             def process_language(container, base_url, lang_code, sub_name, query):
                 lang_subs = container.setdefault(lang_code, [])
@@ -4020,14 +4331,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not trans_code:
                         continue
                     orig_trans_code = trans_code
-                    if caption_track.get('kind') != 'asr':
+                    if caption_track.get('kind') != 'asr' and trans_code != 'und':
                         if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, None, ' from %s')
-                    # Add an "-orig" label to the original language so that it can be distinguished.
-                    # The subs are returned without "-orig" as well for compatibility
                     if lang_code == f'a-{orig_trans_code}':
+                        # Set audio language based on original subtitles
+                        for f in formats:
+                            if f.get('acodec') != 'none' and not f.get('language'):
+                                f['language'] = orig_trans_code
+                        # Add an "-orig" label to the original language so that it can be distinguished.
+                        # The subs are returned without "-orig" as well for compatibility
                         process_language(
                             automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {})
                     # Setting tlang=lang returns damaged subtitles.
@@ -4047,15 +4362,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         info[d_k] = parse_duration(query[k][0])
 
         # Youtube Music Auto-generated description
-        if video_description:
+        if (video_description or '').strip().endswith('\nAuto-generated by YouTube.'):
+            # XXX: Causes catastrophic backtracking if description has "·"
+            # E.g. https://www.youtube.com/watch?v=DoPaAxMQoiI
+            # Simulating atomic groups:  (?P<a>[^xy]+)x  =>  (?=(?P<a>[^xy]+))(?P=a)x
+            # reduces it, but does not fully fix it. https://regex101.com/r/8Ssf2h/2
             mobj = re.search(
                 r'''(?xs)
-                    (?P<track>[^·\n]+)·(?P<artist>[^\n]+)\n+
-                    (?P<album>[^\n]+)
+                    (?=(?P<track>[^\n·]+))(?P=track)·
+                    (?=(?P<artist>[^\n]+))(?P=artist)\n+
+                    (?=(?P<album>[^\n]+))(?P=album)\n
                     (?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?
                     (?:.+?Released on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
-                    (.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+))?
-                    .+\nAuto-generated\ by\ YouTube\.\s*$
+                    (.+?\nArtist\s*:\s*
+                        (?=(?P<clean_artist>[^\n]+))(?P=clean_artist)\n
+                    )?.+\nAuto-generated\ by\ YouTube\.\s*$
                 ''', video_description)
             if mobj:
                 release_year = mobj.group('release_year')
@@ -4075,22 +4396,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         initial_data = None
         if webpage:
             initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
+            if not traverse_obj(initial_data, 'contents'):
+                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
+                initial_data = None
         if not initial_data:
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
-                ytcfg=master_ytcfg, query=query,
+                ytcfg=master_ytcfg, query=query, check_get_keys='contents',
                 headers=self.generate_api_headers(ytcfg=master_ytcfg),
                 note='Downloading initial data API JSON')
 
         info['comment_count'] = traverse_obj(initial_data, (
             'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'itemSectionRenderer',
-            'contents', ..., 'commentsEntryPointHeaderRenderer', 'commentCount', 'simpleText'
+            'contents', ..., 'commentsEntryPointHeaderRenderer', 'commentCount'
         ), (
             'engagementPanels', lambda _, v: v['engagementPanelSectionListRenderer']['panelIdentifier'] == 'comment-item-section',
-            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo', 'runs', ..., 'text'
-        ), expected_type=int_or_none, get_all=False)
+            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo'
+        ), expected_type=self._get_count, get_all=False)
 
         try:  # This will error if there is no livechat
             initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
@@ -4112,6 +4436,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_chapters_from_engagement_panel(initial_data, duration)
                 or self._extract_chapters_from_description(video_description, duration)
                 or None)
+
+            info['heatmap'] = self._extract_heatmap(initial_data)
 
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
@@ -4140,9 +4466,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     list) or []):
                 tbrs = variadic(
                     traverse_obj(
-                        tlb, 'toggleButtonRenderer',
-                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer'),
-                        default=[]))
+                        tlb, ('toggleButtonRenderer', ...),
+                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer')))
                 for tbr in tbrs:
                     for getter, regex in [(
                             lambda x: x['defaultText']['accessibility']['accessibilityData'],
@@ -4180,6 +4505,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel': self._get_text(vor, 'title'),
                 'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
 
+            if not channel_handle:
+                channel_handle = self.handle_from_url(
+                    traverse_obj(vor, (
+                        ('navigationEndpoint', ('title', 'runs', ..., 'navigationEndpoint')),
+                        (('commandMetadata', 'webCommandMetadata', 'url'), ('browseEndpoint', 'canonicalBaseUrl')),
+                        {str}), get_all=False))
+
             rows = try_get(
                 vsir,
                 lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'],
@@ -4205,13 +4537,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         info['artist'] = mrr_contents_text
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
+            owner_badges = self._extract_badges(traverse_obj(vsir, ('owner', 'videoOwnerRenderer', 'badges')))
+            if self._has_badge(owner_badges, BadgeType.VERIFIED):
+                info['channel_is_verified'] = True
 
-        fallbacks = {
-            'channel': 'uploader',
-            'channel_id': 'uploader_id',
-            'channel_url': 'uploader_url',
-        }
-
+        info.update({
+            'uploader': info.get('channel'),
+            'uploader_id': channel_handle,
+            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
+        })
         # The upload date for scheduled, live and past live streams / premieres in microformats
         # may be different from the stream date. Although not in UTC, we will prefer it in this case.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
@@ -4223,19 +4557,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
         ):
             upload_date = strftime_or_none(
-                self._parse_time_text(self._get_text(vpir, 'dateText')), '%Y%m%d') or upload_date
+                self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
         info['upload_date'] = upload_date
 
-        for to, frm in fallbacks.items():
-            if not info.get(to):
-                info[to] = info.get(frm)
+        if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
+            # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=datetime.timezone.utc)
+            if upload_datetime >= datetime_from_str('today-1day'):
+                for fmt in info['formats']:
+                    if fmt.get('protocol') == 'm3u8_native':
+                        fmt['__needs_testing'] = True
 
         for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
             v = info.get(s_k)
             if v:
                 info[d_k] = v
 
-        badges = self._extract_badges(traverse_obj(contents, (..., 'videoPrimaryInfoRenderer'), get_all=False))
+        badges = self._extract_badges(traverse_obj(vpir, 'badges'))
 
         is_private = (self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
                       or get_first(video_details, 'isPrivate', expected_type=bool))
@@ -4263,15 +4601,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
-
     @staticmethod
     def passthrough_smuggled_data(func):
-        def _smuggle(entries, smuggled_data):
-            for entry in entries:
-                # TODO: Convert URL to music.youtube instead.
-                # Do we need to passthrough any other smuggled_data?
-                entry['url'] = smuggle_url(entry['url'], smuggled_data)
-                yield entry
+        def _smuggle(info, smuggled_data):
+            if info.get('_type') not in ('url', 'url_transparent'):
+                return info
+            if smuggled_data.get('is_music_url'):
+                parsed_url = urllib.parse.urlparse(info['url'])
+                if parsed_url.netloc in ('www.youtube.com', 'music.youtube.com'):
+                    smuggled_data.pop('is_music_url')
+                    info['url'] = urllib.parse.urlunparse(parsed_url._replace(netloc='music.youtube.com'))
+            if smuggled_data:
+                info['url'] = smuggle_url(info['url'], smuggled_data)
+            return info
 
         @functools.wraps(func)
         def wrapper(self, url):
@@ -4279,23 +4621,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if self.is_music_url(url):
                 smuggled_data['is_music_url'] = True
             info_dict = func(self, url, smuggled_data)
-            if smuggled_data and info_dict.get('entries'):
-                info_dict['entries'] = _smuggle(info_dict['entries'], smuggled_data)
+            if smuggled_data:
+                _smuggle(info_dict, smuggled_data)
+                if info_dict.get('entries'):
+                    info_dict['entries'] = (_smuggle(i, smuggled_data.copy()) for i in info_dict['entries'])
             return info_dict
         return wrapper
-
-    def _extract_channel_id(self, webpage):
-        channel_id = self._html_search_meta(
-            'channelId', webpage, 'channel id', default=None)
-        if channel_id:
-            return channel_id
-        channel_url = self._html_search_meta(
-            ('og:url', 'al:ios:url', 'al:android:url', 'al:web:url',
-             'twitter:url', 'twitter:app:url:iphone', 'twitter:app:url:ipad',
-             'twitter:app:url:googleplay'), webpage, 'channel url')
-        return self._search_regex(
-            r'https?://(?:www\.)?youtube\.com/channel/([^/?#&])+',
-            channel_url, 'channel id')
 
     @staticmethod
     def _extract_basic_item_renderer(item):
@@ -4310,6 +4641,44 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 return renderer
             elif key.startswith('grid') and key.endswith('Renderer'):
                 return renderer
+
+    def _extract_channel_renderer(self, renderer):
+        channel_id = self.ucid_or_none(renderer['channelId'])
+        title = self._get_text(renderer, 'title')
+        channel_url = format_field(channel_id, None, 'https://www.youtube.com/channel/%s', default=None)
+        channel_handle = self.handle_from_url(
+            traverse_obj(renderer, (
+                'navigationEndpoint', (('commandMetadata', 'webCommandMetadata', 'url'),
+                                       ('browseEndpoint', 'canonicalBaseUrl')),
+                {str}), get_all=False))
+        if not channel_handle:
+            # As of 2023-06-01, YouTube sets subscriberCountText to the handle in search
+            channel_handle = self.handle_or_none(self._get_text(renderer, 'subscriberCountText'))
+        return {
+            '_type': 'url',
+            'url': channel_url,
+            'id': channel_id,
+            'ie_key': YoutubeTabIE.ie_key(),
+            'channel': title,
+            'uploader': title,
+            'channel_id': channel_id,
+            'channel_url': channel_url,
+            'title': title,
+            'uploader_id': channel_handle,
+            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
+            # See above. YouTube sets videoCountText to the subscriber text in search channel renderers.
+            # However, in feed/channels this is set correctly to the subscriber count
+            'channel_follower_count': traverse_obj(
+                renderer, 'subscriberCountText', 'videoCountText', expected_type=self._get_count),
+            'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
+            'playlist_count': (
+                # videoCountText may be the subscriber count
+                self._get_count(renderer, 'videoCountText')
+                if self._get_count(renderer, 'subscriberCountText') is not None else None),
+            'description': self._get_text(renderer, 'descriptionSnippet'),
+            'channel_is_verified': True if self._has_badge(
+                self._extract_badges(traverse_obj(renderer, 'ownerBadges')), BadgeType.VERIFIED) else None,
+        }
 
     def _grid_entries(self, grid_renderer):
         for item in grid_renderer['items']:
@@ -4336,9 +4705,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # channel
             channel_id = renderer.get('channelId')
             if channel_id:
-                yield self.url_result(
-                    'https://www.youtube.com/channel/%s' % channel_id,
-                    ie=YoutubeTabIE.ie_key(), video_title=title)
+                yield self._extract_channel_renderer(renderer)
                 continue
             # generic endpoint URL support
             ep_url = urljoin('https://www.youtube.com/', try_get(
@@ -4354,8 +4721,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _music_reponsive_list_entry(self, renderer):
         video_id = traverse_obj(renderer, ('playlistItemData', 'videoId'))
         if video_id:
+            title = traverse_obj(renderer, (
+                'flexColumns', 0, 'musicResponsiveListItemFlexColumnRenderer',
+                'text', 'runs', 0, 'text'))
             return self.url_result(f'https://music.youtube.com/watch?v={video_id}',
-                                   ie=YoutubeIE.ie_key(), video_id=video_id)
+                                   ie=YoutubeIE.ie_key(), video_id=video_id, title=title)
         playlist_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'playlistId'))
         if playlist_id:
             video_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'videoId'))
@@ -4414,11 +4784,19 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _rich_entries(self, rich_grid_renderer):
         renderer = traverse_obj(
-            rich_grid_renderer, ('content', ('videoRenderer', 'reelItemRenderer')), get_all=False) or {}
+            rich_grid_renderer,
+            ('content', ('videoRenderer', 'reelItemRenderer', 'playlistRenderer')), get_all=False) or {}
         video_id = renderer.get('videoId')
-        if not video_id:
+        if video_id:
+            yield self._extract_video(renderer)
             return
-        yield self._extract_video(renderer)
+        playlist_id = renderer.get('playlistId')
+        if playlist_id:
+            yield self.url_result(
+                f'https://www.youtube.com/playlist?list={playlist_id}',
+                ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
+                video_title=self._get_text(renderer, 'title'))
+            return
 
     def _video_entry(self, video_renderer):
         video_id = video_renderer.get('videoId')
@@ -4534,7 +4912,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'videoRenderer': lambda x: [self._video_entry(x)],
                     'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
                     'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
-                    'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)]
+                    'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)],
+                    'richGridRenderer': lambda x: self._extract_entries(x, continuation_list),
                 }
                 for key, renderer in isr_content.items():
                     if key not in known_renderers:
@@ -4562,10 +4941,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             or try_get(tab_content, lambda x: x['richGridRenderer'], dict) or {})
         yield from extract_entries(parent_renderer)
         continuation = continuation_list[0]
-
+        seen_continuations = set()
         for page_num in itertools.count(1):
             if not continuation:
                 break
+            continuation_token = continuation.get('continuation')
+            if continuation_token is not None and continuation_token in seen_continuations:
+                self.write_debug('Detected YouTube feed looping - assuming end of feed.')
+                break
+            seen_continuations.add(continuation_token)
             headers = self.generate_api_headers(
                 ytcfg=ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
             response = self._extract_response(
@@ -4628,28 +5012,34 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             response, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs', ..., ('tabRenderer', 'expandableTabRenderer')), expected_type=dict)
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
-        playlist_id = title = description = channel_url = channel_name = channel_id = None
-        tags = []
+        metadata = self._extract_metadata_from_tabs(item_id, data)
 
         selected_tab = self._extract_selected_tab(tabs)
-        # Deprecated - remove when layout discontinued
-        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
-        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
-        metadata_renderer = try_get(
-            data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
-        if metadata_renderer:
-            channel_name = metadata_renderer.get('title')
-            channel_url = metadata_renderer.get('channelUrl')
-            channel_id = metadata_renderer.get('externalId')
-        else:
-            metadata_renderer = try_get(
-                data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
+        metadata['title'] += format_field(selected_tab, 'title', ' - %s')
+        metadata['title'] += format_field(selected_tab, 'expandedText', ' - %s')
 
+        return self.playlist_result(
+            self._entries(
+                selected_tab, metadata['id'], ytcfg,
+                self._extract_account_syncid(ytcfg, data),
+                self._extract_visitor_data(data, ytcfg)),
+            **metadata)
+
+    def _extract_metadata_from_tabs(self, item_id, data):
+        info = {'id': item_id}
+
+        metadata_renderer = traverse_obj(data, ('metadata', 'channelMetadataRenderer'), expected_type=dict)
         if metadata_renderer:
-            title = metadata_renderer.get('title')
-            description = metadata_renderer.get('description', '')
-            playlist_id = channel_id
-            tags = metadata_renderer.get('keywords', '').split()
+            channel_id = traverse_obj(metadata_renderer, ('externalId', {self.ucid_or_none}),
+                                      ('channelUrl', {self.ucid_from_url}))
+            info.update({
+                'channel': metadata_renderer.get('title'),
+                'channel_id': channel_id,
+            })
+            if info['channel_id']:
+                info['id'] = info['channel_id']
+        else:
+            metadata_renderer = traverse_obj(data, ('metadata', 'playlistMetadataRenderer'), expected_type=dict)
 
         # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
         # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
@@ -4667,7 +5057,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 })
 
         channel_banners = self._extract_thumbnails(
-            data, ('header', ..., ['banner', 'mobileBanner', 'tvBanner']))
+            data, ('header', ..., ('banner', 'mobileBanner', 'tvBanner')))
         for banner in channel_banners:
             banner['preference'] = -10
 
@@ -4680,78 +5070,82 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'preference': -5
                 })
 
-        # Deprecated - remove when old layout is discontinued
+        # Deprecated - remove primary_sidebar_renderer when layout discontinued
+        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
+
         primary_thumbnails = self._extract_thumbnails(
             primary_sidebar_renderer, ('thumbnailRenderer', ('playlistVideoThumbnailRenderer', 'playlistCustomThumbnailRenderer'), 'thumbnail'))
-
         playlist_thumbnails = self._extract_thumbnails(
             playlist_header_renderer, ('playlistHeaderBanner', 'heroPlaylistThumbnailRenderer', 'thumbnail'))
 
-        if playlist_id is None:
-            playlist_id = item_id
+        info.update({
+            'title': (traverse_obj(metadata_renderer, 'title')
+                      or self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag'))
+                      or info['id']),
+            'availability': self._extract_availability(data),
+            'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
+            'description': try_get(metadata_renderer, lambda x: x.get('description', '')),
+            'tags': try_get(metadata_renderer or {}, lambda x: x.get('keywords', '').split()),
+            'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
+        })
 
-        # Deprecated - remove primary_sidebar_renderer when old layout discontinued
+        channel_handle = (
+            traverse_obj(metadata_renderer, (('vanityChannelUrl', ('ownerUrls', ...)), {self.handle_from_url}), get_all=False)
+            or traverse_obj(data, ('header', ..., 'channelHandleText', {self.handle_or_none}), get_all=False))
+
+        if channel_handle:
+            info.update({
+                'uploader_id': channel_handle,
+                'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
+            })
+
+        channel_badges = self._extract_badges(traverse_obj(data, ('header', ..., 'badges'), get_all=False))
+        if self._has_badge(channel_badges, BadgeType.VERIFIED):
+            info['channel_is_verified'] = True
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
         playlist_stats = get_first(
-            (primary_sidebar_renderer, playlist_header_renderer), (('stats', 'briefStats', 'numVideosText'),))
+            (primary_sidebar_renderer, playlist_header_renderer), (('stats', 'briefStats', 'numVideosText'), ))
+
         last_updated_unix = self._parse_time_text(
             self._get_text(playlist_stats, 2)  # deprecated, remove when old layout discontinued
             or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text')))
+        info['modified_date'] = strftime_or_none(last_updated_unix)
 
-        view_count = self._get_count(playlist_stats, 1)
-        if view_count is None:
-            view_count = self._get_count(playlist_header_renderer, 'viewCountText')
+        info['view_count'] = self._get_count(playlist_stats, 1)
+        if info['view_count'] is None:  # 0 is allowed
+            info['view_count'] = self._get_count(playlist_header_renderer, 'viewCountText')
+        if info['view_count'] is None:
+            info['view_count'] = self._get_count(data, (
+                'contents', 'twoColumnBrowseResultsRenderer', 'tabs', ..., 'tabRenderer', 'content', 'sectionListRenderer',
+                'contents', ..., 'itemSectionRenderer', 'contents', ..., 'channelAboutFullMetadataRenderer', 'viewCountText'))
 
-        playlist_count = self._get_count(playlist_stats, 0)
-        if playlist_count is None:
-            playlist_count = self._get_count(playlist_header_renderer, ('byline', 0, 'playlistBylineRenderer', 'text'))
+        info['playlist_count'] = self._get_count(playlist_stats, 0)
+        if info['playlist_count'] is None:  # 0 is allowed
+            info['playlist_count'] = self._get_count(playlist_header_renderer, ('byline', 0, 'playlistBylineRenderer', 'text'))
 
-        if title is None:
-            title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
-        title += format_field(selected_tab, 'title', ' - %s')
-        title += format_field(selected_tab, 'expandedText', ' - %s')
-
-        metadata = {
-            'playlist_id': playlist_id,
-            'playlist_title': title,
-            'playlist_description': description,
-            'uploader': channel_name,
-            'uploader_id': channel_id,
-            'uploader_url': channel_url,
-            'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
-            'tags': tags,
-            'view_count': view_count,
-            'availability': self._extract_availability(data),
-            'modified_date': strftime_or_none(last_updated_unix, '%Y%m%d'),
-            'playlist_count': playlist_count,
-            'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
-        }
-        if not channel_id:
+        if not info.get('channel_id'):
             owner = traverse_obj(playlist_header_renderer, 'ownerText')
-            if not owner:
-                # Deprecated
+            if not owner:  # Deprecated
                 owner = traverse_obj(
                     self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer'),
                     ('videoOwner', 'videoOwnerRenderer', 'title'))
             owner_text = self._get_text(owner)
             browse_ep = traverse_obj(owner, ('runs', 0, 'navigationEndpoint', 'browseEndpoint')) or {}
-            metadata.update(filter_dict({
-                'uploader': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
-                'uploader_id': browse_ep.get('browseId'),
-                'uploader_url': urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl'))
-            }))
+            info.update({
+                'channel': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
+                'channel_id': self.ucid_or_none(browse_ep.get('browseId')),
+                'uploader_id': self.handle_from_url(urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl')))
+            })
 
-        metadata.update({
-            'channel': metadata['uploader'],
-            'channel_id': metadata['uploader_id'],
-            'channel_url': metadata['uploader_url']})
-        return self.playlist_result(
-            self._entries(
-                selected_tab, playlist_id, ytcfg,
-                self._extract_account_syncid(ytcfg, data),
-                self._extract_visitor_data(data, ytcfg)),
-            **metadata)
+        info.update({
+            'uploader': info['channel'],
+            'channel_url': format_field(info.get('channel_id'), None, 'https://www.youtube.com/channel/%s', default=None),
+            'uploader_url': format_field(info.get('uploader_id'), None, 'https://www.youtube.com/%s', default=None),
+        })
+
+        return info
 
     def _extract_inline_playlist(self, playlist, playlist_id, data, ytcfg):
         first_id = last_id = response = None
@@ -4817,7 +5211,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer')) or {}
         player_header_privacy = playlist_header_renderer.get('privacy')
 
-        badges = self._extract_badges(sidebar_renderer)
+        badges = self._extract_badges(traverse_obj(sidebar_renderer, 'badges'))
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
         privacy_setting_icon = get_first(
@@ -4889,7 +5283,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
-                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
+                    if not isinstance(e.cause, HTTPError) or e.cause.status not in (403, 429):
                         retry.error = e
                         continue
                 self._error_or_warning(e, fatal=fatal)
@@ -4998,7 +5392,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     IE_DESC = 'YouTube Tabs'
     _VALID_URL = r'''(?x:
         https?://
-            (?:\w+\.)?
+            (?!consent\.)(?:\w+\.)?
             (?:
                 youtube(?:kids)?\.com|
                 %(invidious)s
@@ -5027,12 +5421,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'Igor Kleiner - Playlists',
             'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
             'uploader': 'Igor Kleiner',
-            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
+            'uploader_id': '@IgorDataScience',
+            'uploader_url': 'https://www.youtube.com/@IgorDataScience',
             'channel': 'Igor Kleiner',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
-            'uploader_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int
         },
     }, {
@@ -5043,9 +5437,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor Kleiner - Playlists',
             'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'uploader': 'Igor Kleiner',
-            'uploader_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
+            'uploader_id': '@IgorDataScience',
+            'uploader_url': 'https://www.youtube.com/@IgorDataScience',
             'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'channel': 'Igor Kleiner',
@@ -5060,14 +5454,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Playlists',
             'description': 'md5:e1384e8a133307dd10edee76e875d62f',
-            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
-            'uploader': '3Blue1Brown',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
-            'uploader_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'channel': '3Blue1Brown',
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'uploader_id': '@3blue1brown',
+            'uploader_url': 'https://www.youtube.com/@3blue1brown',
+            'uploader': '3Blue1Brown',
             'tags': ['Mathematics'],
-            'channel_follower_count': int
+            'channel_follower_count': int,
+            'channel_is_verified': True,
         },
     }, {
         'note': 'playlists, singlepage',
@@ -5078,10 +5473,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'ThirstForScience - Playlists',
             'description': 'md5:609399d937ea957b0f53cbffb747a14c',
             'uploader': 'ThirstForScience',
-            'uploader_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
-            'uploader_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
-            'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
+            'uploader_url': 'https://www.youtube.com/@ThirstForScience',
+            'uploader_id': '@ThirstForScience',
             'channel_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
+            'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
             'tags': 'count:13',
             'channel': 'ThirstForScience',
             'channel_follower_count': int
@@ -5093,8 +5488,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'note': 'basic, single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'info_dict': {
-            'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader': 'Sergey M.',
             'id': 'PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
             'title': 'youtube-dl public playlist',
             'description': '',
@@ -5103,17 +5496,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'modified_date': '20201130',
             'channel': 'Sergey M.',
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'availability': 'public',
+            'uploader': 'Sergey M.',
+            'uploader_url': 'https://www.youtube.com/@sergeym.6173',
+            'uploader_id': '@sergeym.6173',
         },
         'playlist_count': 1,
     }, {
         'note': 'empty playlist',
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
         'info_dict': {
-            'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader': 'Sergey M.',
             'id': 'PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
             'title': 'youtube-dl empty playlist',
             'tags': [],
@@ -5122,8 +5515,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'modified_date': '20160902',
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'availability': 'public',
+            'uploader_url': 'https://www.youtube.com/@sergeym.6173',
+            'uploader_id': '@sergeym.6173',
+            'uploader': 'Sergey M.',
         },
         'playlist_count': 0,
     }, {
@@ -5134,10 +5529,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'lex will - Home',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
             'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'uploader_id': '@lexwill718',
             'channel': 'lex will',
             'tags': ['bible', 'history', 'prophesy'],
-            'uploader_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
+            'uploader_url': 'https://www.youtube.com/@lexwill718',
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_follower_count': int
@@ -5151,11 +5546,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'lex will - Videos',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
             'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'uploader_id': '@lexwill718',
             'tags': ['bible', 'history', 'prophesy'],
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'uploader_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
+            'uploader_url': 'https://www.youtube.com/@lexwill718',
             'channel': 'lex will',
             'channel_follower_count': int
         },
@@ -5168,9 +5563,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'lex will - Videos',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
             'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'uploader_id': '@lexwill718',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'uploader_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
+            'uploader_url': 'https://www.youtube.com/@lexwill718',
             'channel': 'lex will',
             'tags': ['bible', 'history', 'prophesy'],
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -5185,8 +5580,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'lex will - Playlists',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
             'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'uploader_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
+            'uploader_id': '@lexwill718',
+            'uploader_url': 'https://www.youtube.com/@lexwill718',
             'channel': 'lex will',
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
@@ -5201,14 +5596,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Community',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'uploader_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel': 'lex will',
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'tags': ['bible', 'history', 'prophesy'],
-            'channel_follower_count': int
+            'channel_follower_count': int,
+            'uploader_url': 'https://www.youtube.com/@lexwill718',
+            'uploader_id': '@lexwill718',
+            'uploader': 'lex will',
         },
         'playlist_mincount': 18,
     }, {
@@ -5218,14 +5613,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'title': 'lex will - Channels',
             'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'uploader_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel': 'lex will',
             'channel_url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w',
             'channel_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
             'tags': ['bible', 'history', 'prophesy'],
-            'channel_follower_count': int
+            'channel_follower_count': int,
+            'uploader_url': 'https://www.youtube.com/@lexwill718',
+            'uploader_id': '@lexwill718',
+            'uploader': 'lex will',
         },
         'playlist_mincount': 12,
     }, {
@@ -5236,14 +5631,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Search - linear algebra',
             'description': 'md5:e1384e8a133307dd10edee76e875d62f',
-            'uploader': '3Blue1Brown',
-            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
-            'uploader_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'tags': ['Mathematics'],
             'channel': '3Blue1Brown',
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
-            'channel_follower_count': int
+            'channel_follower_count': int,
+            'uploader_url': 'https://www.youtube.com/@3blue1brown',
+            'uploader_id': '@3blue1brown',
+            'uploader': '3Blue1Brown',
+            'channel_is_verified': True,
         },
     }, {
         'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
@@ -5260,17 +5656,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'title': '29C3: Not my department',
             'id': 'PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
-            'uploader': 'Christiaan008',
-            'uploader_id': 'UCEPzS1rYsrkqzSLNp76nrcg',
             'description': 'md5:a14dc1a8ef8307a9807fe136a0660268',
             'tags': [],
-            'uploader_url': 'https://www.youtube.com/c/ChRiStIaAn008',
             'view_count': int,
             'modified_date': '20150605',
             'channel_id': 'UCEPzS1rYsrkqzSLNp76nrcg',
-            'channel_url': 'https://www.youtube.com/c/ChRiStIaAn008',
+            'channel_url': 'https://www.youtube.com/channel/UCEPzS1rYsrkqzSLNp76nrcg',
             'channel': 'Christiaan008',
             'availability': 'public',
+            'uploader_id': '@ChRiStIaAn008',
+            'uploader': 'Christiaan008',
+            'uploader_url': 'https://www.youtube.com/@ChRiStIaAn008',
         },
         'playlist_count': 96,
     }, {
@@ -5279,17 +5675,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'title': 'Uploads from Cauchemar',
             'id': 'UUBABnxM4Ar9ten8Mdjj1j0Q',
-            'uploader': 'Cauchemar',
-            'uploader_id': 'UCBABnxM4Ar9ten8Mdjj1j0Q',
-            'channel_url': 'https://www.youtube.com/c/Cauchemar89',
+            'channel_url': 'https://www.youtube.com/channel/UCBABnxM4Ar9ten8Mdjj1j0Q',
             'tags': [],
             'modified_date': r're:\d{8}',
             'channel': 'Cauchemar',
-            'uploader_url': 'https://www.youtube.com/c/Cauchemar89',
             'view_count': int,
             'description': '',
             'channel_id': 'UCBABnxM4Ar9ten8Mdjj1j0Q',
             'availability': 'public',
+            'uploader_id': '@Cauchemar89',
+            'uploader': 'Cauchemar',
+            'uploader_url': 'https://www.youtube.com/@Cauchemar89',
         },
         'playlist_mincount': 1123,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5303,17 +5699,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'title': 'Uploads from Interstellar Movie',
             'id': 'UUXw-G3eDE9trcvY2sBMM_aA',
-            'uploader': 'Interstellar Movie',
-            'uploader_id': 'UCXw-G3eDE9trcvY2sBMM_aA',
-            'uploader_url': 'https://www.youtube.com/c/InterstellarMovie',
             'tags': [],
             'view_count': int,
             'channel_id': 'UCXw-G3eDE9trcvY2sBMM_aA',
-            'channel_url': 'https://www.youtube.com/c/InterstellarMovie',
+            'channel_url': 'https://www.youtube.com/channel/UCXw-G3eDE9trcvY2sBMM_aA',
             'channel': 'Interstellar Movie',
             'description': '',
             'modified_date': r're:\d{8}',
             'availability': 'public',
+            'uploader_id': '@InterstellarMovie',
+            'uploader': 'Interstellar Movie',
+            'uploader_url': 'https://www.youtube.com/@InterstellarMovie',
         },
         'playlist_mincount': 21,
     }, {
@@ -5322,17 +5718,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'title': 'Uploads from Phim Siêu Nhân Nhật Bản',
             'id': 'UUTYLiWFZy8xtPwxFwX9rV7Q',
-            'uploader': 'Phim Siêu Nhân Nhật Bản',
-            'uploader_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
             'view_count': int,
             'channel': 'Phim Siêu Nhân Nhật Bản',
             'tags': [],
-            'uploader_url': 'https://www.youtube.com/channel/UCTYLiWFZy8xtPwxFwX9rV7Q',
             'description': '',
             'channel_url': 'https://www.youtube.com/channel/UCTYLiWFZy8xtPwxFwX9rV7Q',
             'channel_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
             'modified_date': r're:\d{8}',
             'availability': 'public',
+            'uploader_url': 'https://www.youtube.com/@phimsieunhannhatban',
+            'uploader_id': '@phimsieunhannhatban',
+            'uploader': 'Phim Siêu Nhân Nhật Bản',
         },
         'playlist_mincount': 200,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5342,17 +5738,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'title': 'Uploads from BlankTV',
             'id': 'UU8l9frL61Yl5KFOl87nIm2w',
-            'uploader': 'BlankTV',
-            'uploader_id': 'UC8l9frL61Yl5KFOl87nIm2w',
             'channel': 'BlankTV',
-            'channel_url': 'https://www.youtube.com/c/blanktv',
+            'channel_url': 'https://www.youtube.com/channel/UC8l9frL61Yl5KFOl87nIm2w',
             'channel_id': 'UC8l9frL61Yl5KFOl87nIm2w',
             'view_count': int,
             'tags': [],
-            'uploader_url': 'https://www.youtube.com/c/blanktv',
             'modified_date': r're:\d{8}',
             'description': '',
             'availability': 'public',
+            'uploader_id': '@blanktv',
+            'uploader': 'BlankTV',
+            'uploader_url': 'https://www.youtube.com/@blanktv',
         },
         'playlist_mincount': 1000,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5362,17 +5758,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'title': 'Data Analysis with Dr Mike Pound',
             'id': 'PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
-            'uploader_id': 'UC9-y-6csu5WGm29I7JiwpnA',
-            'uploader': 'Computerphile',
             'description': 'md5:7f567c574d13d3f8c0954d9ffee4e487',
-            'uploader_url': 'https://www.youtube.com/user/Computerphile',
             'tags': [],
             'view_count': int,
             'channel_id': 'UC9-y-6csu5WGm29I7JiwpnA',
-            'channel_url': 'https://www.youtube.com/user/Computerphile',
+            'channel_url': 'https://www.youtube.com/channel/UC9-y-6csu5WGm29I7JiwpnA',
             'channel': 'Computerphile',
             'availability': 'public',
             'modified_date': '20190712',
+            'uploader_id': '@Computerphile',
+            'uploader': 'Computerphile',
+            'uploader_url': 'https://www.youtube.com/@Computerphile',
         },
         'playlist_mincount': 11,
     }, {
@@ -5385,9 +5781,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'FqZTN594JQw',
             'ext': 'webm',
             'title': "Smiley's People 01 detective, Adventure Series, Action",
-            'uploader': 'STREEM',
-            'uploader_id': 'UCyPhqAZgwYWZfxElWVbVJng',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCyPhqAZgwYWZfxElWVbVJng',
             'upload_date': '20150526',
             'license': 'Standard YouTube License',
             'description': 'md5:507cdcb5a49ac0da37a920ece610be80',
@@ -5410,12 +5803,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'Wq15eF5vCbI',  # This will keep changing
+            'id': 'hGkQjiJLjWQ',  # This will keep changing
             'ext': 'mp4',
             'title': str,
-            'uploader': 'Sky News',
-            'uploader_id': 'skynews',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/skynews',
             'upload_date': r're:\d{8}',
             'description': str,
             'categories': ['News & Politics'],
@@ -5434,6 +5824,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ',
             'channel_follower_count': int,
             'concurrent_view_count': int,
+            'uploader_url': 'https://www.youtube.com/@SkyNews',
+            'uploader_id': '@SkyNews',
+            'uploader': 'Sky News',
+            'channel_is_verified': True,
         },
         'params': {
             'skip_download': True,
@@ -5445,9 +5839,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'a48o2S1cPoo',
             'ext': 'mp4',
             'title': 'The Young Turks - Live Main Show',
-            'uploader': 'The Young Turks',
-            'uploader_id': 'TheYoungTurks',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/TheYoungTurks',
             'upload_date': '20150715',
             'license': 'Standard YouTube License',
             'description': 'md5:438179573adcdff3c97ebb1ee632b891',
@@ -5528,45 +5919,40 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
         'info_dict': {
             'id': 'PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
-            'uploader': 'NoCopyrightSounds',
             'description': 'Providing you with copyright free / safe music for gaming, live streaming, studying and more!',
-            'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
             'title': 'NCS : All Releases 💿',
-            'uploader_url': 'https://www.youtube.com/c/NoCopyrightSounds',
-            'channel_url': 'https://www.youtube.com/c/NoCopyrightSounds',
+            'channel_url': 'https://www.youtube.com/channel/UC_aEa8K-EOJ3D6gOs7HcyNg',
             'modified_date': r're:\d{8}',
             'view_count': int,
             'channel_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
             'tags': [],
             'channel': 'NoCopyrightSounds',
             'availability': 'public',
+            'uploader_url': 'https://www.youtube.com/@NoCopyrightSounds',
+            'uploader': 'NoCopyrightSounds',
+            'uploader_id': '@NoCopyrightSounds',
         },
         'playlist_mincount': 166,
-        'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
+        'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden', 'YouTube Music is not directly supported'],
     }, {
+        # TODO: fix 'unviewable' issue with this playlist when reloading with unavailable videos
         'note': 'Topic, should redirect to playlist?list=UU...',
         'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
         'info_dict': {
             'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
-            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
             'title': 'Uploads from Royalty Free Music - Topic',
-            'uploader': 'Royalty Free Music - Topic',
             'tags': [],
             'channel_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
             'channel': 'Royalty Free Music - Topic',
             'view_count': int,
             'channel_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
-            'channel_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
             'modified_date': r're:\d{8}',
-            'uploader_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
             'description': '',
             'availability': 'public',
+            'uploader': 'Royalty Free Music - Topic',
         },
-        'expected_warnings': [
-            'The URL does not have a videos tab',
-            r'[Uu]navailable videos (are|will be) hidden',
-        ],
         'playlist_mincount': 101,
+        'expected_warnings': ['YouTube Music is not directly supported', r'[Uu]navailable videos (are|will be) hidden'],
     }, {
         # Destination channel with only a hidden self tab (tab id is UCtFRv9O2AHqOZjjynzrv-xg)
         # Treat as a general feed
@@ -5590,12 +5976,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'modified_date': r're:\d{8}',
         },
         'playlist_count': 50,
+        'expected_warnings': ['YouTube Music is not directly supported'],
     }, {
         'note': 'unlisted single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
         'info_dict': {
-            'uploader_id': 'UC9zHu_mHU96r19o-wV5Qs1Q',
-            'uploader': 'colethedj',
             'id': 'PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
             'title': 'yt-dlp unlisted playlist test',
             'availability': 'unlisted',
@@ -5604,11 +5989,31 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'colethedj',
             'view_count': int,
             'description': '',
-            'uploader_url': 'https://www.youtube.com/channel/UC9zHu_mHU96r19o-wV5Qs1Q',
             'channel_id': 'UC9zHu_mHU96r19o-wV5Qs1Q',
             'channel_url': 'https://www.youtube.com/channel/UC9zHu_mHU96r19o-wV5Qs1Q',
+            'uploader_url': 'https://www.youtube.com/@colethedj1894',
+            'uploader_id': '@colethedj1894',
+            'uploader': 'colethedj',
         },
+        'playlist': [{
+            'info_dict': {
+                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
+                'id': 'BaW_jenozKc',
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'duration': 10,
+                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
+                'channel_url': 'https://www.youtube.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
+                'view_count': int,
+                'url': 'https://www.youtube.com/watch?v=BaW_jenozKc',
+                'channel': 'Philipp Hagemeister',
+                'uploader_id': '@PhilippHagemeister',
+                'uploader_url': 'https://www.youtube.com/@PhilippHagemeister',
+                'uploader': 'Philipp Hagemeister',
+            }
+        }],
         'playlist_count': 1,
+        'params': {'extract_flat': True},
     }, {
         'note': 'API Fallback: Recommended - redirects to home page. Requires visitorData',
         'url': 'https://www.youtube.com/feed/recommended',
@@ -5629,13 +6034,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
             'title': 'Cody\'sLab - Videos',
             'description': 'md5:d083b7c2f0c67ee7a6c74c3e9b4243fa',
-            'uploader': 'Cody\'sLab',
-            'uploader_id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
             'channel': 'Cody\'sLab',
             'channel_id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
             'tags': [],
             'channel_url': 'https://www.youtube.com/channel/UCu6mSoMNzHQiBIOCkHUa2Aw',
-            'uploader_url': 'https://www.youtube.com/channel/UCu6mSoMNzHQiBIOCkHUa2Aw',
             'channel_follower_count': int
         },
         'playlist_mincount': 650,
@@ -5649,9 +6051,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
         'info_dict': {
             'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
-            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
             'title': 'Uploads from Royalty Free Music - Topic',
-            'uploader': 'Royalty Free Music - Topic',
             'modified_date': r're:\d{8}',
             'channel_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
             'description': '',
@@ -5659,14 +6059,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'channel': 'Royalty Free Music - Topic',
             'view_count': int,
-            'uploader_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
             'availability': 'public',
+            'uploader': 'Royalty Free Music - Topic',
         },
         'playlist_mincount': 101,
         'params': {
             'skip_download': True,
             'extractor_args': {'youtubetab': {'skip': ['webpage']}}
         },
+        'expected_warnings': ['YouTube Music is not directly supported', r'[Uu]navailable videos (are|will be) hidden'],
     }, {
         'note': 'non-standard redirect to regional channel',
         'url': 'https://www.youtube.com/channel/UCwVVpHQ2Cs9iGJfpdFngePQ',
@@ -5679,15 +6080,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'modified_date': '20220407',
             'channel_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
             'tags': [],
-            'uploader_id': 'UCKcqXmCcyqnhgpA5P0oHH_Q',
-            'uploader': 'pukkandan',
             'availability': 'unlisted',
             'channel_id': 'UCKcqXmCcyqnhgpA5P0oHH_Q',
             'channel': 'pukkandan',
             'description': 'Test for collaborative playlist',
             'title': 'yt-dlp test - collaborative playlist',
             'view_count': int,
-            'uploader_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
+            'uploader_url': 'https://www.youtube.com/@pukkandan',
+            'uploader_id': '@pukkandan',
+            'uploader': 'pukkandan',
         },
         'playlist_mincount': 2
     }, {
@@ -5696,15 +6097,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCiu-3thuViMebBjw_5nWYrA',
             'tags': [],
-            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             'description': 'test description',
             'title': 'cole-dlp-test-acc - 再生リスト',
-            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-            'uploader': 'cole-dlp-test-acc',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
-            'channel_follower_count': int,
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'uploader_id': '@coletdjnz',
+            'uploader': 'cole-dlp-test-acc',
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
@@ -5718,14 +6118,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'view_count': int,
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-            'uploader': 'cole-dlp-test-acc',
-            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'description': 'test',
-            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             'title': 'dlp test playlist',
             'availability': 'public',
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'uploader_id': '@coletdjnz',
+            'uploader': 'cole-dlp-test-acc',
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
@@ -5773,24 +6173,34 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
         'info_dict': {
             'id': 'UCK9V2B22uJYu3N7eR_BT9QA',
-            'title': 'Uploads for UCK9V2B22uJYu3N7eR_BT9QA'
+            'title': 'Polka Ch. 尾丸ポルカ',
+            'channel_follower_count': int,
+            'channel_id': 'UCK9V2B22uJYu3N7eR_BT9QA',
+            'channel_url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
+            'description': 'md5:e56b74b5bb7e9c701522162e9abfb822',
+            'channel': 'Polka Ch. 尾丸ポルカ',
+            'tags': 'count:35',
+            'uploader_url': 'https://www.youtube.com/@OmaruPolka',
+            'uploader': 'Polka Ch. 尾丸ポルカ',
+            'uploader_id': '@OmaruPolka',
         },
         'playlist_count': 3,
     }, {
         # Shorts tab with channel with handle
+        # TODO: fix channel description
         'url': 'https://www.youtube.com/@NotJustBikes/shorts',
         'info_dict': {
             'id': 'UC0intLFzLaudFG-xAvUEO-A',
             'title': 'Not Just Bikes - Shorts',
             'tags': 'count:12',
-            'uploader': 'Not Just Bikes',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:7513148b1f02b924783157d84c4ea555',
+            'description': 'md5:26bc55af26855a608a5cf89dfa595c8d',
             'channel_follower_count': int,
-            'uploader_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
-            'uploader_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
             'channel': 'Not Just Bikes',
+            'uploader_url': 'https://www.youtube.com/@NotJustBikes',
+            'uploader': 'Not Just Bikes',
+            'uploader_id': '@NotJustBikes',
         },
         'playlist_mincount': 10,
     }, {
@@ -5802,12 +6212,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': 'count:7',
             'channel_id': 'UC3eYAvjCVwNHgkaGbXX3sig',
             'channel_url': 'https://www.youtube.com/channel/UC3eYAvjCVwNHgkaGbXX3sig',
-            'uploader_id': 'UC3eYAvjCVwNHgkaGbXX3sig',
             'channel': '中村悠一',
-            'uploader_url': 'https://www.youtube.com/channel/UC3eYAvjCVwNHgkaGbXX3sig',
             'channel_follower_count': int,
-            'uploader': '中村悠一',
             'description': 'md5:e744f6c93dafa7a03c0c6deecb157300',
+            'uploader_url': 'https://www.youtube.com/@Yuichi-Nakamura',
+            'uploader_id': '@Yuichi-Nakamura',
+            'uploader': '中村悠一',
         },
         'playlist_mincount': 60,
     }, {
@@ -5826,15 +6236,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCgJ5_1F6yJhYLnyMszUdmUg',
             'title': 'Shorts Break - Shorts',
-            'tags': 'count:32',
+            'tags': 'count:48',
             'channel_id': 'UCgJ5_1F6yJhYLnyMszUdmUg',
             'channel': 'Shorts Break',
-            'description': 'md5:a6c234cf3d50d878ef8721e34457cd11',
-            'uploader': 'Shorts Break',
+            'description': 'md5:6de33c5e7ba686e5f3efd4e19c7ef499',
             'channel_follower_count': int,
-            'uploader_id': 'UCgJ5_1F6yJhYLnyMszUdmUg',
-            'uploader_url': 'https://www.youtube.com/channel/UCgJ5_1F6yJhYLnyMszUdmUg',
             'channel_url': 'https://www.youtube.com/channel/UCgJ5_1F6yJhYLnyMszUdmUg',
+            'uploader_url': 'https://www.youtube.com/@ShortsBreak_Official',
+            'uploader': 'Shorts Break',
+            'uploader_id': '@ShortsBreak_Official',
         },
         'playlist_mincount': 30,
     }, {
@@ -5857,31 +6267,28 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 30,
     }, {
         # Shorts url result in shorts tab
+        # TODO: Fix channel id extraction
         'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/shorts',
         'info_dict': {
             'id': 'UCiu-3thuViMebBjw_5nWYrA',
             'title': 'cole-dlp-test-acc - Shorts',
-            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
-            'channel_follower_count': int,
             'description': 'test description',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             'tags': [],
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'uploader_id': '@coletdjnz',
             'uploader': 'cole-dlp-test-acc',
-            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-
         },
         'playlist': [{
             'info_dict': {
+                # Channel data is not currently available for short renderers (as of 2023-03-01)
                 '_type': 'url',
                 'ie_key': 'Youtube',
                 'url': 'https://www.youtube.com/shorts/sSM9J5YH_60',
                 'id': 'sSM9J5YH_60',
-                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
                 'title': 'SHORT short',
-                'channel': 'cole-dlp-test-acc',
-                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
                 'view_count': int,
                 'thumbnails': list,
             }
@@ -5907,10 +6314,124 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'channel_url': str,
                 'concurrent_view_count': int,
                 'channel': str,
+                'uploader': str,
+                'uploader_url': str,
+                'uploader_id': str,
+                'channel_is_verified': bool,  # this will keep changing
+            }
+        }],
+        'params': {'extract_flat': True, 'playlist_items': '1'},
+        'playlist_mincount': 1
+    }, {
+        # Channel renderer metadata. Contains number of videos on the channel
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/channels',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'cole-dlp-test-acc - Channels',
+            'channel': 'cole-dlp-test-acc',
+            'description': 'test description',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader_url': 'https://www.youtube.com/@coletdjnz',
+            'uploader_id': '@coletdjnz',
+            'uploader': 'cole-dlp-test-acc',
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'ie_key': 'YoutubeTab',
+                'url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'channel_id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'title': 'PewDiePie',
+                'channel': 'PewDiePie',
+                'channel_url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'thumbnails': list,
+                'channel_follower_count': int,
+                'playlist_count': int,
+                'uploader': 'PewDiePie',
+                'uploader_url': 'https://www.youtube.com/@PewDiePie',
+                'uploader_id': '@PewDiePie',
+                'channel_is_verified': True,
             }
         }],
         'params': {'extract_flat': True},
-        'playlist_mincount': 1
+    }, {
+        'url': 'https://www.youtube.com/@3blue1brown/about',
+        'info_dict': {
+            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'tags': ['Mathematics'],
+            'title': '3Blue1Brown - About',
+            'channel_follower_count': int,
+            'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'channel': '3Blue1Brown',
+            'view_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
+            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'uploader_url': 'https://www.youtube.com/@3blue1brown',
+            'uploader_id': '@3blue1brown',
+            'uploader': '3Blue1Brown',
+            'channel_is_verified': True,
+        },
+        'playlist_count': 0,
+    }, {
+        # Podcasts tab, with rich entry playlistRenderers
+        'url': 'https://www.youtube.com/@99percentinvisiblepodcast/podcasts',
+        'info_dict': {
+            'id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'channel_id': 'UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'uploader_url': 'https://www.youtube.com/@99percentinvisiblepodcast',
+            'description': 'md5:3a0ed38f1ad42a68ef0428c04a15695c',
+            'title': '99 Percent Invisible - Podcasts',
+            'uploader': '99 Percent Invisible',
+            'channel_follower_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCVMF2HD4ZgC0QHpU9Yq5Xrw',
+            'tags': [],
+            'channel': '99 Percent Invisible',
+            'uploader_id': '@99percentinvisiblepodcast',
+        },
+        'playlist_count': 1,
+    }, {
+        # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
+        'url': 'https://www.youtube.com/@AHimitsu/releases',
+        'info_dict': {
+            'id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel': 'A Himitsu',
+            'uploader_url': 'https://www.youtube.com/@AHimitsu',
+            'title': 'A Himitsu - Releases',
+            'uploader_id': '@AHimitsu',
+            'uploader': 'A Himitsu',
+            'channel_id': 'UCgFwu-j5-xNJml2FtTrrB3A',
+            'tags': 'count:16',
+            'description': 'I make music',
+            'channel_url': 'https://www.youtube.com/channel/UCgFwu-j5-xNJml2FtTrrB3A',
+            'channel_follower_count': int,
+            'channel_is_verified': True,
+        },
+        'playlist_mincount': 10,
+    }, {
+        # Playlist with only shorts, shown as reel renderers
+        # FIXME: future: YouTube currently doesn't give continuation for this,
+        # may do in future.
+        'url': 'https://www.youtube.com/playlist?list=UUxqPAgubo4coVn9Lx1FuKcg',
+        'info_dict': {
+            'id': 'UUxqPAgubo4coVn9Lx1FuKcg',
+            'channel_url': 'https://www.youtube.com/channel/UCxqPAgubo4coVn9Lx1FuKcg',
+            'view_count': int,
+            'uploader_id': '@BangyShorts',
+            'description': '',
+            'uploader_url': 'https://www.youtube.com/@BangyShorts',
+            'channel_id': 'UCxqPAgubo4coVn9Lx1FuKcg',
+            'channel': 'Bangy Shorts',
+            'uploader': 'Bangy Shorts',
+            'tags': [],
+            'availability': 'public',
+            'modified_date': '20230626',
+            'title': 'Uploads from Bangy Shorts',
+        },
+        'playlist_mincount': 100,
+        'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }]
 
     @classmethod
@@ -5929,15 +6450,18 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tab_url = urljoin(base_url, traverse_obj(
             tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
 
-        tab_id = (traverse_obj(tab, 'tabIdentifier', expected_type=str)
-                  or tab_url and self._get_url_mobj(tab_url)['tab'][1:])
+        tab_id = (tab_url and self._get_url_mobj(tab_url)['tab'][1:]
+                  or traverse_obj(tab, 'tabIdentifier', expected_type=str))
         if tab_id:
-            return tab_id, tab_name
+            return {
+                'TAB_ID_SPONSORSHIPS': 'membership',
+            }.get(tab_id, tab_id), tab_name
 
         # Fallback to tab name if we cannot get the tab id.
         # XXX: should we strip non-ascii letters? e.g. in case of 'let's play' tab example on special gaming channel
         # Note that in the case of translated tab name this may result in an empty string, which we don't want.
-        self.write_debug(f'Falling back to selected tab name: {tab_name}')
+        if tab_name:
+            self.write_debug(f'Falling back to selected tab name: {tab_name}')
         return {
             'home': 'featured',
             'live': 'streams',
@@ -5955,47 +6479,45 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         mobj = self._get_url_mobj(url)
         pre, tab, post, is_channel = mobj['pre'], mobj['tab'], mobj['post'], not mobj['not_channel']
-        if is_channel:
-            if smuggled_data.get('is_music_url'):
-                if item_id[:2] == 'VL':  # Youtube music VL channels have an equivalent playlist
-                    item_id = item_id[2:]
-                    pre, tab, post, is_channel = f'https://www.youtube.com/playlist?list={item_id}', '', '', False
-                elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
-                    mdata = self._extract_tab_endpoint(
-                        f'https://music.youtube.com/channel/{item_id}', item_id, default_client='web_music')
-                    murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
-                                        get_all=False, expected_type=str)
-                    if not murl:
-                        raise ExtractorError('Failed to resolve album to playlist')
-                    return self.url_result(murl, YoutubeTabIE)
-                elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
-                    pre = f'https://www.youtube.com/channel/{item_id}'
+        if is_channel and smuggled_data.get('is_music_url'):
+            if item_id[:2] == 'VL':  # Youtube music VL channels have an equivalent playlist
+                return self.url_result(
+                    f'https://music.youtube.com/playlist?list={item_id[2:]}', YoutubeTabIE, item_id[2:])
+            elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
+                mdata = self._extract_tab_endpoint(
+                    f'https://music.youtube.com/channel/{item_id}', item_id, default_client='web_music')
+                murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
+                                    get_all=False, expected_type=str)
+                if not murl:
+                    raise ExtractorError('Failed to resolve album to playlist')
+                return self.url_result(murl, YoutubeTabIE)
+            elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
+                return self.url_result(
+                    f'https://music.youtube.com/channel/{item_id}{tab}{post}', YoutubeTabIE, item_id)
 
-        original_tab_id = tab[1:]
+        original_tab_id, display_id = tab[1:], f'{item_id}{tab}'
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
-            tab = '/videos'
-
-        url = ''.join((pre, tab, post))
-        mobj = self._get_url_mobj(url)
+            url = f'{pre}/videos{post}'
+        if smuggled_data.get('is_music_url'):
+            self.report_warning(f'YouTube Music is not directly supported. Redirecting to {url}')
 
         # Handle both video/playlist URLs
         qs = parse_qs(url)
-        video_id, playlist_id = (qs.get(key, [None])[0] for key in ('v', 'list'))
-
+        video_id, playlist_id = [traverse_obj(qs, (key, 0)) for key in ('v', 'list')]
         if not video_id and mobj['not_channel'].startswith('watch'):
             if not playlist_id:
                 # If there is neither video or playlist ids, youtube redirects to home page, which is undesirable
-                raise ExtractorError('Unable to recognize tab page')
+                raise ExtractorError('A video URL was given without video ID', expected=True)
             # Common mistake: https://www.youtube.com/watch?list=playlist_id
             self.report_warning(f'A video URL was given without video ID. Trying to download playlist {playlist_id}')
-            url = f'https://www.youtube.com/playlist?list={playlist_id}'
-            mobj = self._get_url_mobj(url)
+            return self.url_result(
+                f'https://www.youtube.com/playlist?list={playlist_id}', YoutubeTabIE, playlist_id)
 
         if not self._yes_playlist(playlist_id, video_id):
             return self.url_result(
                 f'https://www.youtube.com/watch?v={video_id}', YoutubeIE, video_id)
 
-        data, ytcfg = self._extract_data(url, item_id)
+        data, ytcfg = self._extract_data(url, display_id)
 
         # YouTube may provide a non-standard redirect to the regional channel
         # See: https://github.com/yt-dlp/yt-dlp/issues/2694
@@ -6003,28 +6525,26 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         redirect_url = traverse_obj(
             data, ('onResponseReceivedActions', ..., 'navigateAction', 'endpoint', 'commandMetadata', 'webCommandMetadata', 'url'), get_all=False)
         if redirect_url and 'no-youtube-channel-redirect' not in compat_opts:
-            redirect_url = ''.join((
-                urljoin('https://www.youtube.com', redirect_url), mobj['tab'], mobj['post']))
+            redirect_url = ''.join((urljoin('https://www.youtube.com', redirect_url), tab, post))
             self.to_screen(f'This playlist is likely not available in your region. Following conditional redirect to {redirect_url}')
             return self.url_result(redirect_url, YoutubeTabIE)
 
-        tab_results = []
-        tabs = self._extract_tab_renderers(data)
+        tabs, extra_tabs = self._extract_tab_renderers(data), []
         if is_channel and tabs and 'no-youtube-channel-redirect' not in compat_opts:
             selected_tab = self._extract_selected_tab(tabs)
             selected_tab_id, selected_tab_name = self._extract_tab_id_and_name(selected_tab, url)  # NB: Name may be translated
             self.write_debug(f'Selected tab: {selected_tab_id!r} ({selected_tab_name}), Requested tab: {original_tab_id!r}')
 
             if not original_tab_id and selected_tab_name:
-                self.to_screen('Channel URLs download all uploads of the channel. '
+                self.to_screen('Downloading all uploads of the channel. '
                                'To download only the videos in a specific tab, pass the tab\'s URL')
                 if self._has_tab(tabs, 'streams'):
-                    tab_results.append(self.url_result(''.join((pre, '/streams', post))))
+                    extra_tabs.append(''.join((pre, '/streams', post)))
                 if self._has_tab(tabs, 'shorts'):
-                    tab_results.append(self.url_result(''.join((pre, '/shorts', post))))
+                    extra_tabs.append(''.join((pre, '/shorts', post)))
                 # XXX: Members-only tab should also be extracted
 
-                if not tab_results and selected_tab_id != 'videos':
+                if not extra_tabs and selected_tab_id != 'videos':
                     # Channel does not have streams, shorts or videos tabs
                     if item_id[:2] != 'UC':
                         raise ExtractorError('This channel has no uploads', expected=True)
@@ -6041,43 +6561,53 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                         self.to_screen(
                             f'The channel does not have a videos, shorts, or live tab. Redirecting to playlist {pl_id} instead')
 
-                elif tab_results and selected_tab_id != 'videos':
+                elif extra_tabs and selected_tab_id != 'videos':
                     # When there are shorts/live tabs but not videos tab
-                    url, data = ''.join((pre, post)), None
+                    url, data = f'{pre}{post}', None
 
             elif (original_tab_id or 'videos') != selected_tab_id:
                 if original_tab_id == 'live':
                     # Live tab should have redirected to the video
                     # Except in the case the channel has an actual live tab
                     # Example: https://www.youtube.com/channel/UCEH7P7kyJIkS_gJf93VYbmg/live
-                    raise UserNotLive(video_id=mobj['id'])
+                    raise UserNotLive(video_id=item_id)
                 elif selected_tab_name:
                     raise ExtractorError(f'This channel does not have a {original_tab_id} tab', expected=True)
 
                 # For channels such as https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg
                 url = f'{pre}{post}'
 
-        self.write_debug(f'Final URL: {url}')
-
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
-            data = self._reload_with_unavailable_videos(item_id, data, ytcfg) or data
+            data = self._reload_with_unavailable_videos(display_id, data, ytcfg) or data
         self._extract_and_report_alerts(data, only_once=True)
 
-        tabs = self._extract_tab_renderers(data)
+        tabs, entries = self._extract_tab_renderers(data), []
         if tabs:
-            tab_results[:0] = [self._extract_from_tabs(item_id, ytcfg, data, tabs)]
-            tab_results[0].update({
+            entries = [self._extract_from_tabs(item_id, ytcfg, data, tabs)]
+            entries[0].update({
                 'extractor_key': YoutubeTabIE.ie_key(),
                 'extractor': YoutubeTabIE.IE_NAME,
                 'webpage_url': url,
             })
+        if self.get_param('playlist_items') == '0':
+            entries.extend(self.url_result(u, YoutubeTabIE) for u in extra_tabs)
+        else:  # Users expect to get all `video_id`s even with `--flat-playlist`. So don't return `url_result`
+            entries.extend(map(self._real_extract, extra_tabs))
 
-        if len(tab_results) == 1:
-            return tab_results[0]
-        elif len(tab_results) > 1:
-            return self.playlist_result(tab_results, item_id, title=f'Uploads for {item_id}')
+        if len(entries) == 1:
+            return entries[0]
+        elif entries:
+            metadata = self._extract_metadata_from_tabs(item_id, data)
+            uploads_url = 'the Uploads (UU) playlist URL'
+            if try_get(metadata, lambda x: x['channel_id'].startswith('UC')):
+                uploads_url = f'https://www.youtube.com/playlist?list=UU{metadata["channel_id"][2:]}'
+            self.to_screen(
+                'Downloading as multiple playlists, separated by tabs. '
+                f'To download as a single playlist instead, pass {uploads_url}')
+            return self.playlist_result(entries, item_id, **metadata)
 
+        # Inline playlist
         playlist = traverse_obj(
             data, ('contents', 'twoColumnWatchNextResults', 'playlist', 'playlist'), expected_type=dict)
         if playlist:
@@ -6086,7 +6616,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         video_id = traverse_obj(
             data, ('currentVideoEndpoint', 'watchEndpoint', 'videoId'), expected_type=str) or video_id
         if video_id:
-            if mobj['tab'] != '/live':  # live tab is expected to redirect to video
+            if tab != '/live':  # live tab is expected to redirect to video
                 self.report_warning(f'Unable to recognize playlist. Downloading just video {video_id}')
             return self.url_result(f'https://www.youtube.com/watch?v={video_id}', YoutubeIE, video_id)
 
@@ -6118,15 +6648,15 @@ class YoutubePlaylistIE(InfoExtractor):
             'title': '[OLD]Team Fortress 2 (Class-based LP)',
             'id': 'PLBB231211A4F62143',
             'uploader': 'Wickman',
-            'uploader_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
+            'uploader_id': '@WickmanVT',
             'description': 'md5:8fa6f52abb47a9552002fa3ddfc57fc2',
             'view_count': int,
-            'uploader_url': 'https://www.youtube.com/c/WickmanVT',
+            'uploader_url': 'https://www.youtube.com/@WickmanVT',
             'modified_date': r're:\d{8}',
             'channel_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
             'channel': 'Wickman',
             'tags': [],
-            'channel_url': 'https://www.youtube.com/c/WickmanVT',
+            'channel_url': 'https://www.youtube.com/channel/UCKSpbfbl5kRQpTdL7kMc-1Q',
             'availability': 'public',
         },
         'playlist_mincount': 29,
@@ -6146,7 +6676,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'title': 'JODA15',
             'id': 'PL6IaIsEjSbf96XFRuNccS_RuEXwNdsoEu',
             'uploader': 'milan',
-            'uploader_id': 'UCEI1-PVPcYXjB73Hfelbmaw',
+            'uploader_id': '@milan5503',
             'description': '',
             'channel_url': 'https://www.youtube.com/channel/UCEI1-PVPcYXjB73Hfelbmaw',
             'tags': [],
@@ -6154,7 +6684,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'view_count': int,
             'channel': 'milan',
             'channel_id': 'UCEI1-PVPcYXjB73Hfelbmaw',
-            'uploader_url': 'https://www.youtube.com/channel/UCEI1-PVPcYXjB73Hfelbmaw',
+            'uploader_url': 'https://www.youtube.com/@milan5503',
             'availability': 'public',
         },
         'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden'],
@@ -6165,13 +6695,13 @@ class YoutubePlaylistIE(InfoExtractor):
             'title': '2018 Chinese New Singles (11/6 updated)',
             'id': 'PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
             'uploader': 'LBK',
-            'uploader_id': 'UC21nz3_MesPLqtDqwdvnoxA',
+            'uploader_id': '@music_king',
             'description': 'md5:da521864744d60a198e3a88af4db0d9d',
             'channel': 'LBK',
             'view_count': int,
-            'channel_url': 'https://www.youtube.com/c/愛低音的國王',
+            'channel_url': 'https://www.youtube.com/channel/UC21nz3_MesPLqtDqwdvnoxA',
             'tags': [],
-            'uploader_url': 'https://www.youtube.com/c/愛低音的國王',
+            'uploader_url': 'https://www.youtube.com/@music_king',
             'channel_id': 'UC21nz3_MesPLqtDqwdvnoxA',
             'modified_date': r're:\d{8}',
             'availability': 'public',
@@ -6217,8 +6747,8 @@ class YoutubeYtBeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Small Scale Baler and Braiding Rugs',
             'uploader': 'Backus-Page House Museum',
-            'uploader_id': 'backuspagemuseum',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/backuspagemuseum',
+            'uploader_id': '@backuspagemuseum',
+            'uploader_url': r're:https?://(?:www\.)?youtube\.com/@backuspagemuseum',
             'upload_date': '20161008',
             'description': 'md5:800c0c78d5eb128500bffd4f0b4f2e8a',
             'categories': ['Nonprofits & Activism'],
@@ -6226,7 +6756,7 @@ class YoutubeYtBeIE(InfoExtractor):
             'like_count': int,
             'age_limit': 0,
             'playable_in_embed': True,
-            'thumbnail': 'https://i.ytimg.com/vi_webp/yeWKywCrFtk/maxresdefault.webp',
+            'thumbnail': r're:^https?://.*\.webp',
             'channel': 'Backus-Page House Museum',
             'channel_id': 'UCEfMCQ9bs3tjvjy1s451zaw',
             'live_status': 'not_live',
@@ -6284,9 +6814,7 @@ class YoutubeYtUserIE(InfoExtractor):
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
-        return self.url_result(
-            'https://www.youtube.com/user/%s/videos' % user_id,
-            ie=YoutubeTabIE.ie_key(), video_id=user_id)
+        return self.url_result(f'https://www.youtube.com/user/{user_id}', YoutubeTabIE, user_id)
 
 
 class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
@@ -6344,7 +6872,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         if not video_id:
             browse_ep = traverse_obj(
                 notification, ('navigationEndpoint', 'browseEndpoint'), expected_type=dict)
-            channel_id = traverse_obj(browse_ep, 'browseId', expected_type=str)
+            channel_id = self.ucid_or_none(traverse_obj(browse_ep, 'browseId', expected_type=str))
             post_id = self._search_regex(
                 r'/post/(.+)', traverse_obj(browse_ep, 'canonicalBaseUrl', expected_type=str),
                 'post id', default=None)
@@ -6374,6 +6902,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
             'title': title,
             'channel_id': channel_id,
             'channel': channel,
+            'uploader': channel,
             'thumbnails': self._extract_thumbnails(notification, 'videoThumbnail'),
             'timestamp': timestamp,
         }
@@ -6459,6 +6988,36 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             #     'title': '#cats',
             # }],
         },
+    }, {
+        # Channel results
+        'url': 'https://www.youtube.com/results?search_query=kurzgesagt&sp=EgIQAg%253D%253D',
+        'info_dict': {
+            'id': 'kurzgesagt',
+            'title': 'kurzgesagt',
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'id': 'UCsXVk37bltHxD1rDPwtNM8Q',
+                'url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
+                'ie_key': 'YoutubeTab',
+                'channel': 'Kurzgesagt – In a Nutshell',
+                'description': 'md5:4ae48dfa9505ffc307dad26342d06bfc',
+                'title': 'Kurzgesagt – In a Nutshell',
+                'channel_id': 'UCsXVk37bltHxD1rDPwtNM8Q',
+                # No longer available for search as it is set to the handle.
+                # 'playlist_count': int,
+                'channel_url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
+                'thumbnails': list,
+                'uploader_id': '@kurzgesagt',
+                'uploader_url': 'https://www.youtube.com/@kurzgesagt',
+                'uploader': 'Kurzgesagt – In a Nutshell',
+                'channel_is_verified': True,
+                'channel_follower_count': int,
+            }
+        }],
+        'params': {'extract_flat': True, 'playlist_items': '1'},
+        'playlist_mincount': 1,
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,
@@ -6597,22 +7156,6 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
     }]
 
 
-class YoutubeStoriesIE(InfoExtractor):
-    IE_DESC = 'YouTube channel stories; "ytstories:" prefix'
-    IE_NAME = 'youtube:stories'
-    _VALID_URL = r'ytstories:UC(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
-    _TESTS = [{
-        'url': 'ytstories:UCwFCb4jeqaKWnciAYM-ZVHg',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        playlist_id = f'RLTD{self._match_id(url)}'
-        return self.url_result(
-            smuggle_url(f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1', {'is_story': True}),
-            ie=YoutubeTabIE, video_id=playlist_id)
-
-
 class YoutubeShortsAudioPivotIE(InfoExtractor):
     IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video)'
     IE_NAME = 'youtube:shorts:pivot:audio'
@@ -6712,11 +7255,14 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'title': 'Mobile Games on Console - Scott The Woz',
             'upload_date': '20210920',
             'uploader': 'Scott The Woz',
-            'uploader_id': 'scottthewoz',
-            'uploader_url': 'http://www.youtube.com/user/scottthewoz',
+            'uploader_id': '@ScottTheWoz',
+            'uploader_url': 'https://www.youtube.com/@ScottTheWoz',
             'view_count': int,
             'live_status': 'not_live',
-            'channel_follower_count': int
+            'channel_follower_count': int,
+            'chapters': 'count:20',
+            'comment_count': int,
+            'heatmap': 'count:100',
         }
     }]
 
@@ -6742,6 +7288,53 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'section_start': int(clip_data['startTimeMs']) / 1000,
             'section_end': int(clip_data['endTimeMs']) / 1000,
         }
+
+
+class YoutubeConsentRedirectIE(YoutubeBaseInfoExtractor):
+    IE_NAME = 'youtube:consent'
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://consent\.youtube\.com/m\?'
+    _TESTS = [{
+        'url': 'https://consent.youtube.com/m?continue=https%3A%2F%2Fwww.youtube.com%2Flive%2FqVv6vCqciTM%3Fcbrd%3D1&gl=NL&m=0&pc=yt&hl=en&src=1',
+        'info_dict': {
+            'id': 'qVv6vCqciTM',
+            'ext': 'mp4',
+            'age_limit': 0,
+            'uploader_id': '@sana_natori',
+            'comment_count': int,
+            'chapters': 'count:13',
+            'upload_date': '20221223',
+            'thumbnail': 'https://i.ytimg.com/vi/qVv6vCqciTM/maxresdefault.jpg',
+            'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+            'uploader_url': 'https://www.youtube.com/@sana_natori',
+            'like_count': int,
+            'release_date': '20221223',
+            'tags': ['Vtuber', '月ノ美兎', '名取さな', 'にじさんじ', 'クリスマス', '3D配信'],
+            'title': '【 #インターネット女クリスマス 】3Dで歌ってはしゃぐインターネットの女たち【月ノ美兎/名取さな】',
+            'view_count': int,
+            'playable_in_embed': True,
+            'duration': 4438,
+            'availability': 'public',
+            'channel_follower_count': int,
+            'channel_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+            'categories': ['Entertainment'],
+            'live_status': 'was_live',
+            'release_timestamp': 1671793345,
+            'channel': 'さなちゃんねる',
+            'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
+            'uploader': 'さなちゃんねる',
+            'channel_is_verified': True,
+            'heatmap': 'count:100',
+        },
+        'add_ie': ['Youtube'],
+        'params': {'skip_download': 'Youtube'},
+    }]
+
+    def _real_extract(self, url):
+        redirect_url = url_or_none(parse_qs(url).get('continue', [None])[-1])
+        if not redirect_url:
+            raise ExtractorError('Invalid cookie consent redirect URL', expected=True)
+        return self.url_result(redirect_url)
 
 
 class YoutubeTruncatedIDIE(InfoExtractor):

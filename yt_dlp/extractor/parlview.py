@@ -44,7 +44,6 @@ class ParlviewIE(InfoExtractor):
         elif stream.get('streamType') != 'VOD':
             self.raise_no_formats('Unknown type of stream was detected: "%s"' % str(stream.get('streamType')))
         formats = self._extract_m3u8_formats(stream['url'], video_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
 
         media_info = self._download_webpage(
             self._MEDIA_INFO_URL % video_id, video_id, note='Downloading media info', fatal=False)

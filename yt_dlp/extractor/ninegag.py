@@ -116,7 +116,6 @@ class NineGagIE(InfoExtractor):
                     'format_id': image_id,
                 })
                 formats.append(common)
-        self._sort_formats(formats)
 
         section = traverse_obj(post, ('postSection', 'name'))
 

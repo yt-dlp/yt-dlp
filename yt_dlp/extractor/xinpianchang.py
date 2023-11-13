@@ -72,8 +72,6 @@ class XinpianchangIE(InfoExtractor):
                     'ext': 'mp4',
                 } for prog in v if prog.get('url') or []])
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': data.get('title'),

@@ -43,7 +43,6 @@ class FreeTvMoviesIE(FreeTvBaseIE):
 
         video_id, video_url = api_response['displayMeta']['contentID'], api_response['displayMeta']['streamURLVideo']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -106,7 +105,6 @@ class FreeTvIE(FreeTvBaseIE):
         for episode in episodes:
             video_id = str(episode['contentID'])
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(episode['streamURL'], video_id, 'mp4')
-            self._sort_formats(formats)
 
             yield {
                 'id': video_id,

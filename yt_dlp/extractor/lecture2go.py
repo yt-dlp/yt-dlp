@@ -49,8 +49,6 @@ class Lecture2GoIE(InfoExtractor):
                     'url': url,
                 })
 
-        self._sort_formats(formats)
-
         creator = self._html_search_regex(
             r'<div[^>]+id="description">([^<]+)</div>', webpage, 'creator', fatal=False)
         duration = parse_duration(self._html_search_regex(

@@ -47,8 +47,6 @@ class CamsodaIE(InfoExtractor):
         if not formats:
             self.raise_no_formats('No active streams found', expected=True)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage),

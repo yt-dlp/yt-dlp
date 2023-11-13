@@ -38,8 +38,6 @@ class FczenitIE(InfoExtractor):
             'height': int_or_none(q.get('label')),
         } for q in msi_data['qualities'] if q.get('url')]
 
-        self._sort_formats(formats)
-
         tags = [tag['label'] for tag in msi_data.get('tags', []) if tag.get('label')]
 
         return {

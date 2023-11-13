@@ -73,8 +73,6 @@ class PornComIE(InfoExtractor):
             thumbnail = None
             duration = None
 
-        self._sort_formats(formats)
-
         view_count = str_to_int(self._search_regex(
             (r'Views:\s*</span>\s*<span>\s*([\d,.]+)',
              r'class=["\']views["\'][^>]*><p>([\d,.]+)'), webpage,

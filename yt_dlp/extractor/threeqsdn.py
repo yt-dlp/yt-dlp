@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -90,7 +90,7 @@ class ThreeQSDNIE(InfoExtractor):
             config = self._download_json(
                 url.replace('://playout.3qsdn.com/', '://playout.3qsdn.com/config/'), video_id)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 self.raise_geo_restricted()
             raise
 
@@ -128,10 +128,6 @@ class ThreeQSDNIE(InfoExtractor):
                         'vcodec': 'none' if height == 0 else None,
                         'width': int(height * aspect) if height and aspect else None,
                     })
-        # It seems like this would be correctly handled by default
-        # However, unless someone can confirm this, the old
-        # behaviour is being kept as-is
-        self._sort_formats(formats, ('res', 'source_preference'))
 
         for subtitle in (config.get('subtitles') or []):
             src = subtitle.get('src')
@@ -153,4 +149,8 @@ class ThreeQSDNIE(InfoExtractor):
             'is_live': live,
             'formats': formats,
             'subtitles': subtitles,
+            # It seems like this would be correctly handled by default
+            # However, unless someone can confirm this, the old
+            # behaviour is being kept as-is
+            '_format_sort_fields': ('res', 'source_preference')
         }

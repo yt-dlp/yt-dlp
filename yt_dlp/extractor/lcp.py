@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from .arkena import ArkenaIE
 
 
-class LcpPlayIE(ArkenaIE):
+class LcpPlayIE(ArkenaIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://play\.lcp\.fr/embed/(?P<id>[^/]+)/(?P<account_id>[^/]+)/[^/]+/[^/]+'
     _TESTS = [{
         'url': 'http://play.lcp.fr/embed/327336/131064/darkmatter/0',

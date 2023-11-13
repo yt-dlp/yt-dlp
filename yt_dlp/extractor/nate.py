@@ -68,7 +68,6 @@ class NateIE(InfoExtractor):
             'height': self._QUALITY.get(f_url[-2:]),
             'quality': int_or_none(f_url[-2:]),
         } for f_url in video_data.get('smcUriList') or []]
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': video_data.get('clipTitle'),

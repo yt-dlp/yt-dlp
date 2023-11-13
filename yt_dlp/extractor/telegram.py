@@ -113,7 +113,6 @@ class TelegramEmbedIE(InfoExtractor):
                 'url': video_url,
                 'ext': 'mp4',
             }]
-            self._sort_formats(formats)
             videos.append({
                 'id': url_basename(webpage_url),
                 'webpage_url': update_url_query(webpage_url, {'single': True}),

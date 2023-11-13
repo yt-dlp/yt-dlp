@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class AolIE(YahooIE):
+class AolIE(YahooIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'aol.com'
     _VALID_URL = r'(?:aol-video:|https?://(?:www\.)?aol\.(?:com|ca|co\.uk|de|jp)/video/(?:[^/]+/)*)(?P<id>\d{9}|[0-9a-f]{24}|[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})'
 
@@ -119,7 +119,6 @@ class AolIE(YahooIE):
                         'height': int_or_none(qs.get('h', [None])[0]),
                     })
                 formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

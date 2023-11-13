@@ -3,7 +3,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -68,9 +68,9 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
                         None, 'Downloading Access Token',
                         data=urlencode_postdata(data))['access_token']
                 except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                         raise ExtractorError(self._parse_json(
-                            e.cause.read().decode(), xid)['error_description'], expected=True)
+                            e.cause.response.read().decode(), xid)['error_description'], expected=True)
                     raise
                 self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
             self._HEADERS['Authorization'] = 'Bearer ' + token
@@ -293,7 +293,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             f['url'] = f['url'].split('#')[0]
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
-        self._sort_formats(formats)
 
         subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}

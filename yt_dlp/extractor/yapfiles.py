@@ -79,7 +79,6 @@ class YapFilesIE(InfoExtractor):
                 'quality': quality_key(format_id),
                 'height': hd_height if is_hd else None,
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

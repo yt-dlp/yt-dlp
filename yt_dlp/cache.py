@@ -1,10 +1,10 @@
 import contextlib
-import errno
 import json
 import os
 import re
 import shutil
 import traceback
+import urllib.parse
 
 from .utils import expand_path, traverse_obj, version_tuple, write_json_file
 from .version import __version__
@@ -22,11 +22,9 @@ class Cache:
         return expand_path(res)
 
     def _get_cache_fn(self, section, key, dtype):
-        assert re.match(r'^[a-zA-Z0-9_.-]+$', section), \
-            'invalid section %r' % section
-        assert re.match(r'^[a-zA-Z0-9_.-]+$', key), 'invalid key %r' % key
-        return os.path.join(
-            self._get_root_dir(), section, f'{key}.{dtype}')
+        assert re.match(r'^[\w.-]+$', section), f'invalid section {section!r}'
+        key = urllib.parse.quote(key, safe='').replace('%', ',')  # encode non-ascii characters
+        return os.path.join(self._get_root_dir(), section, f'{key}.{dtype}')
 
     @property
     def enabled(self):
@@ -40,11 +38,7 @@ class Cache:
 
         fn = self._get_cache_fn(section, key, dtype)
         try:
-            try:
-                os.makedirs(os.path.dirname(fn))
-            except OSError as ose:
-                if ose.errno != errno.EEXIST:
-                    raise
+            os.makedirs(os.path.dirname(fn), exist_ok=True)
             self._ydl.write_debug(f'Saving {section}.{key} to cache')
             write_json_file({'yt-dlp_version': __version__, 'data': data}, fn)
         except Exception:

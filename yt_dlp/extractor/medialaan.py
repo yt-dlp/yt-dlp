@@ -100,7 +100,6 @@ class MedialaanIE(InfoExtractor):
                     'ext': ext,
                     'url': src,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': production_id,

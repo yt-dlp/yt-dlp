@@ -53,7 +53,6 @@ class TurboIE(InfoExtractor):
                     'url': child.text,
                     'quality': get_quality(quality),
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

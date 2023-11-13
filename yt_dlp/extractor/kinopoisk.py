@@ -44,7 +44,6 @@ class KinoPoiskIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             data['playlistEntity']['uri'], video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         description = dict_get(
             film, ('descriptscription', 'description',

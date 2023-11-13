@@ -39,20 +39,28 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'(?:[\w\.]+\.)?mech-plus\.com',
         r'aha\.video',
         r'mubi\.com',
-        r'vootkids\.com'
+        r'vootkids\.com',
+        r'nowtv\.it/watch',
+        r'tv\.apple\.com',
+        r'primevideo\.com',
+        r'hulu\.com',
+        r'resource\.inkryptvideos\.com',
+        r'joyn\.de',
+        r'amazon\.(?:\w{2}\.)?\w+/gp/video',
+        r'music\.amazon\.(?:\w{2}\.)?\w+',
     )
 
     _TESTS = [{
         # https://github.com/yt-dlp/yt-dlp/issues/4309
-        'url': 'https://www.peacocktv.com',
+        'url': 'https://peacocktv.com/watch/playback/vod/GMO_00000000073159_01/f9d03003-eb04-3c7f-a7b6-a83ab7eb55bc',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/1719,
-        'url': 'https://www.channel4.com',
+        'url': 'https://www.channel4.com/programmes/gurren-lagann/on-demand/69960-001',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/1548
-        'url': 'https://www.channel5.com',
+        'url': 'https://www.channel5.com/show/uk-s-strongest-man-2021/season-2021/episode-1',
         'only_matching': True,
     }, {
         'url': r'https://hsesn.apps.disneyplus.com',
@@ -67,39 +75,71 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         'url': 'https://open.spotify.com/track/',
         'only_matching': True,
     }, {
-        # TVNZ: https://github.com/yt-dlp/yt-dlp/issues/4122
-        'url': 'https://tvnz.co.nz',
+        # https://github.com/yt-dlp/yt-dlp/issues/4122
+        'url': 'https://www.tvnz.co.nz/shows/ice-airport-alaska/episodes/s1-e1',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/1922
-        'url': 'https://www.oneplus.ch',
+        'url': 'https://www.oneplus.ch/play/1008188',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/1140
-        'url': 'https://www.artstation.com/learning/courses/',
+        'url': 'https://www.artstation.com/learning/courses/dqQ/character-design-masterclass-with-serge-birault/chapters/Rxn3/introduction',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/3544
-        'url': 'https://www.philo.com',
+        'url': 'https://www.philo.com/player/player/vod/Vk9EOjYwODU0ODg5OTY0ODY0OTQ5NA',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/3533
-        'url': 'https://www.mech-plus.com/',
+        'url': 'https://www.mech-plus.com/player/24892/stream?assetType=episodes&playlist_id=6',
         'only_matching': True,
     }, {
-        'url': 'https://watch.mech-plus.com/',
+        'url': 'https://watch.mech-plus.com/details/25240?playlist_id=6',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/2934
-        'url': 'https://www.aha.video',
+        'url': 'https://www.aha.video/player/movie/lucky-man',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/2743
-        'url': 'https://mubi.com',
+        'url': 'https://mubi.com/films/the-night-doctor',
         'only_matching': True,
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/3287
-        'url': 'https://www.vootkids.com',
+        'url': 'https://www.vootkids.com/movies/chhota-bheem-the-rise-of-kirmada/764459',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/2744
+        'url': 'https://www.nowtv.it/watch/home/asset/and-just-like-that/skyserie_f8fe979772e8437d8a61ab83b6d293e9/seasons/1/episodes/8/R_126182_HD',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/5557
+        'url': 'https://tv.apple.com/it/show/loot---una-fortuna/umc.cmc.5erbujil1mpazuerhr1udnk45?ctx_brand=tvs.sbd.4000',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/3072
+        'url': 'https://www.joyn.de/play/serien/clannad/1-1-wo-die-kirschblueten-fallen',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7323
+        'url': 'https://music.amazon.co.jp/albums/B088Y368TK',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/7323
+        'url': 'https://www.amazon.co.jp/gp/video/detail/B09X5HBYRS/',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/6125
+        'url': 'https://www.primevideo.com/region/eu/detail/0H3DDB4KBJFNDCKKLHNRLRLVKQ/ref=atv_br_def_r_br_c_unkc_1_10',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/5740
+        'url': 'https://resource.inkryptvideos.com/v2-a83ns52/iframe/index.html#video_id=7999ea0f6e03439eb40d056258c2d736&otp=xxx',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/5767
+        'url': 'https://www.hulu.com/movie/anthem-6b25fac9-da2b-45a3-8e09-e4156b0471cc',
         'only_matching': True,
     }]
 
@@ -119,11 +159,19 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
     """
 
     URLS = (
-        r'dood\.(?:to|watch|so|pm|wf|ru)',
+        r'dood\.(?:to|watch|so|pm|wf|re)',
+        # Sites youtube-dl supports, but we won't
+        r'viewsb\.com',
+        r'filemoon\.sx',
+        r'hentai\.animestigma\.com',
+        r'thisav\.com',
     )
 
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
+        'only_matching': True,
+    }, {
+        'url': 'https://thisav.com/en/terms',
         'only_matching': True,
     }]
 

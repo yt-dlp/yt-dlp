@@ -79,8 +79,6 @@ class BoxIE(InfoExtractor):
                 'url': update_url_query(authenticated_download_url, query),
             })
 
-        self._sort_formats(formats)
-
         creator = f.get('created_by') or {}
 
         return {

@@ -76,8 +76,6 @@ class BeegIE(InfoExtractor):
                 f['height'] = height
             formats.extend(current_formats)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'display_id': first_fact.get('id'),

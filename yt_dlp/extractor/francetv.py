@@ -191,8 +191,6 @@ class FranceTVIE(InfoExtractor):
                 } for sheet in spritesheets]
             })
 
-        self._sort_formats(formats)
-
         if subtitle:
             title += ' - %s' % subtitle
         title = title.strip()

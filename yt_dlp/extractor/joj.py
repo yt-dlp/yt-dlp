@@ -23,8 +23,18 @@ class JojIE(InfoExtractor):
             'id': 'a388ec4c-6019-4a4a-9312-b1bee194e932',
             'ext': 'mp4',
             'title': 'NOVÉ BÝVANIE',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.*?$',
             'duration': 3118,
+        }
+    }, {
+        'url': 'https://media.joj.sk/embed/CSM0Na0l0p1',
+        'info_dict': {
+            'id': 'CSM0Na0l0p1',
+            'ext': 'mp4',
+            'height': 576,
+            'title': 'Extrémne rodiny 2 - POKRAČOVANIE (2012/04/09 21:30:00)',
+            'duration': 3937,
+            'thumbnail': r're:^https?://.*?$',
         }
     }, {
         'url': 'https://media.joj.sk/embed/9i1cxv',
@@ -43,10 +53,10 @@ class JojIE(InfoExtractor):
         webpage = self._download_webpage(
             'https://media.joj.sk/embed/%s' % video_id, video_id)
 
-        title = self._search_regex(
-            (r'videoTitle\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1',
-             r'<title>(?P<title>[^<]+)'), webpage, 'title',
-            default=None, group='title') or self._og_search_title(webpage)
+        title = (self._search_json(r'videoTitle\s*:', webpage, 'title', video_id,
+                                   contains_pattern=r'["\'].+["\']', default=None)
+                 or self._html_extract_title(webpage, default=None)
+                 or self._og_search_title(webpage))
 
         bitrates = self._parse_json(
             self._search_regex(
@@ -58,11 +68,13 @@ class JojIE(InfoExtractor):
         for format_url in try_get(bitrates, lambda x: x['mp4'], list) or []:
             if isinstance(format_url, compat_str):
                 height = self._search_regex(
-                    r'(\d+)[pP]\.', format_url, 'height', default=None)
+                    r'(\d+)[pP]|(pal)\.', format_url, 'height', default=None)
+                if height == 'pal':
+                    height = 576
                 formats.append({
                     'url': format_url,
                     'format_id': format_field(height, None, '%sp'),
-                    'height': int(height),
+                    'height': int_or_none(height),
                 })
         if not formats:
             playlist = self._download_xml(
@@ -81,7 +93,6 @@ class JojIE(InfoExtractor):
                         r'(\d+)[pP]', format_id or path, 'height',
                         default=None)),
                 })
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage)
 

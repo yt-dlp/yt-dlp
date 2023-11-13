@@ -55,7 +55,6 @@ class WyborczaVideoIE(InfoExtractor):
         if meta['files'].get('dash'):
             formats.extend(self._extract_mpd_formats(base_url + meta['files']['dash'], video_id))
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,
@@ -179,7 +178,6 @@ class TokFMPodcastIE(InfoExtractor):
                     'acodec': ext,
                 })
 
-        self._sort_formats(formats)
         return {
             'id': media_id,
             'formats': formats,
