@@ -254,7 +254,7 @@ class TwitCastingLiveIE(InfoExtractor):
              r'tw-sound-flag-open-link" data-id="(\d+)" style=',
              r'data-movie-id="(\d+)"',),
             webpage, 'current live ID', default=None)
-        if not current_live:
+        if is_live and not current_live:
             # fetch unfiltered /show to find running livestreams; we can't get ID of the password-protected livestream above
             webpage = self._download_webpage(
                 f'https://twitcasting.tv/{uploader_id}/show/', uploader_id,
