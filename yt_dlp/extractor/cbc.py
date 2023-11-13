@@ -387,7 +387,7 @@ class CBCGemIE(InfoExtractor):
         url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
 
         secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
-        if not secret_xml:
+        if secret_xml is None:
             return
 
         for child in secret_xml:
