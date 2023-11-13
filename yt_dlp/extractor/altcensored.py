@@ -37,13 +37,10 @@ class AltCensoredIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        # Use most data from archive.org (extractor indirection)
-        # But try first to gather a couple of useful information from altcensored
         webpage = self._download_webpage(url, video_id)
-        yt_views = int_or_none(self._html_search_regex(
-            r'YouTube Views:.*?([0-9,.]+)', webpage, 'view count', default='0').replace(',', ''))
-        category = self._html_search_regex(r'<a href="/category/.*?\n\s+([^<]+)', webpage, 'category')
-        # Hardcoded (very unlikely to need a change in a foreseeable future)
+        yt_views = str_to_int(self._html_search_regex(r'YouTube Views:(?:\s|&nbsp;)*([\d,]+)', webpage, 'view count', default=''))
+        category = self._html_search_regex(r'<a href="/category/\d+">\s*\n?\s*([^<]+)</a>', webpage, 'category', fatal=False)
+
         return self.url_result(f'https://archive.org/details/youtube-{video_id}', ArchiveOrgIE, url_transparent=True,
                                view_count=yt_views, categories=[category])
 
