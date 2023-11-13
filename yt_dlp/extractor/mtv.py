@@ -137,7 +137,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         mediagen_doc = self._download_xml(
             mediagen_url, video_id, 'Downloading video urls', fatal=False)
 
-        if mediagen_doc is False:
+        if mediagen_doc is None:
             return None
 
         item = mediagen_doc.find('./video/item')
