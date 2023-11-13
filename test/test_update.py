@@ -70,19 +70,19 @@ TEST_API_DATA = {
 
 TEST_LOCKFILE_V1 = '''# This file is used for regulating self-update
 lock 2022.08.18.36 .+ Python 3.6
-lock 2023.11.12 .+ Python 3.7
+lock 2023.11.13 .+ Python 3.7
 '''
 
 TEST_LOCKFILE_V2 = '''# This file is used for regulating self-update
 lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3.6
-lockV2 yt-dlp/yt-dlp 2023.11.12 .+ Python 3.7
+lockV2 yt-dlp/yt-dlp 2023.11.13 .+ Python 3.7
 '''
 
 TEST_LOCKFILE_V1_V2 = '''# This file is used for regulating self-update
 lock 2022.08.18.36 .+ Python 3.6
-lock 2023.11.12 .+ Python 3.7
+lock 2023.11.13 .+ Python 3.7
 lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3.6
-lockV2 yt-dlp/yt-dlp 2023.11.12 .+ Python 3.7
+lockV2 yt-dlp/yt-dlp 2023.11.13 .+ Python 3.7
 lockV2 fork/yt-dlp pr0000 .+ Python 3.6
 lockV2 fork/yt-dlp pr1234 .+ Python 3.7
 lockV2 fork/yt-dlp pr9999 .+ Python 3.11
@@ -124,26 +124,26 @@ class TestUpdate(unittest.TestCase):
                 f'{identifier!r} requesting {repo}@{input_tag} (exact={exact}) '
                 f'returned {result!r} instead of {expect_tag!r}')
 
-        test(TEST_LOCKFILE_V1, 'zip Python 3.11.0', '2023.11.12', '2023.11.12')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.11.0', '2023.11.12', '2023.11.12', exact=True)
-        test(TEST_LOCKFILE_V1, 'zip Python 3.6.0', '2023.11.12', '2022.08.18.36')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.6.0', '2023.11.12', None, exact=True)
-        test(TEST_LOCKFILE_V1, 'zip Python 3.7.0', '2023.11.12', '2023.11.12')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.7.1', '2023.11.12', '2023.11.12')
-        test(TEST_LOCKFILE_V1, 'zip Python 3.7.1', '2023.12.31', '2023.11.12')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.7.1', '2023.12.31', '2023.11.12')
+        test(TEST_LOCKFILE_V1, 'zip Python 3.11.0', '2023.11.13', '2023.11.13')
+        test(TEST_LOCKFILE_V1, 'zip stable Python 3.11.0', '2023.11.13', '2023.11.13', exact=True)
+        test(TEST_LOCKFILE_V1, 'zip Python 3.6.0', '2023.11.13', '2022.08.18.36')
+        test(TEST_LOCKFILE_V1, 'zip stable Python 3.6.0', '2023.11.13', None, exact=True)
+        test(TEST_LOCKFILE_V1, 'zip Python 3.7.0', '2023.11.13', '2023.11.13')
+        test(TEST_LOCKFILE_V1, 'zip stable Python 3.7.1', '2023.11.13', '2023.11.13')
+        test(TEST_LOCKFILE_V1, 'zip Python 3.7.1', '2023.12.31', '2023.11.13')
+        test(TEST_LOCKFILE_V1, 'zip stable Python 3.7.1', '2023.12.31', '2023.11.13')
 
-        test(TEST_LOCKFILE_V2, 'zip Python 3.11.1', '2023.11.12', '2023.11.12')
+        test(TEST_LOCKFILE_V2, 'zip Python 3.11.1', '2023.11.13', '2023.11.13')
         test(TEST_LOCKFILE_V2, 'zip stable Python 3.11.1', '2023.12.31', '2023.12.31')
-        test(TEST_LOCKFILE_V2, 'zip Python 3.6.1', '2023.11.12', '2022.08.18.36')
-        test(TEST_LOCKFILE_V2, 'zip stable Python 3.7.2', '2023.11.12', '2023.11.12')
-        test(TEST_LOCKFILE_V2, 'zip Python 3.7.2', '2023.12.31', '2023.11.12')
+        test(TEST_LOCKFILE_V2, 'zip Python 3.6.1', '2023.11.13', '2022.08.18.36')
+        test(TEST_LOCKFILE_V2, 'zip stable Python 3.7.2', '2023.11.13', '2023.11.13')
+        test(TEST_LOCKFILE_V2, 'zip Python 3.7.2', '2023.12.31', '2023.11.13')
 
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.11.2', '2023.11.12', '2023.11.12')
+        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.11.2', '2023.11.13', '2023.11.13')
         test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.11.2', '2023.12.31', '2023.12.31')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.6.2', '2023.11.12', '2022.08.18.36')
-        test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.7.3', '2023.11.12', '2023.11.12')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.7.3', '2023.12.31', '2023.11.12')
+        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.6.2', '2023.11.13', '2022.08.18.36')
+        test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.7.3', '2023.11.13', '2023.11.13')
+        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.7.3', '2023.12.31', '2023.11.13')
         test(TEST_LOCKFILE_V1_V2, 'zip Python 3.6.3', 'pr0000', None, repo='fork/yt-dlp')
         test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.7.4', 'pr0000', 'pr0000', repo='fork/yt-dlp')
         test(TEST_LOCKFILE_V1_V2, 'zip Python 3.6.4', 'pr0000', None, repo='fork/yt-dlp')
