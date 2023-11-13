@@ -3,7 +3,7 @@ from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class NovaPlayIE(InfoExtractor):
-    _VALID_URL = r'https://play.nova\.bg/video/.*/(?P<id>\d+)'
+    _VALID_URL = r'https://play\.nova\.bg/video/[^?#]+/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://play.nova.bg/video/ochakvaite/season-0/ochakvaite-2022-07-22-sybudi-se-sat/606627',

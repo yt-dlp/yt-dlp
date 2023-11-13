@@ -44,7 +44,7 @@ def _js_arith_op(op):
 
 
 def _js_div(a, b):
-    if JS_Undefined in (a, b) or not (a and b):
+    if JS_Undefined in (a, b) or not (a or b):
         return float('nan')
     return (a or 0) / b if b else float('inf')
 
@@ -779,7 +779,7 @@ class JSInterpreter:
         obj = {}
         obj_m = re.search(
             r'''(?x)
-                (?<!this\.)%s\s*=\s*{\s*
+                (?<!\.)%s\s*=\s*{\s*
                     (?P<fields>(%s\s*:\s*function\s*\(.*?\)\s*{.*?}(?:,\s*)?)*)
                 }\s*;
             ''' % (re.escape(objname), _FUNC_NAME_RE),
@@ -812,9 +812,9 @@ class JSInterpreter:
                 \((?P<args>[^)]*)\)\s*
                 (?P<code>{.+})''' % {'name': re.escape(funcname)},
             self.code)
-        code, _ = self._separate_at_paren(func_m.group('code'))
         if func_m is None:
             raise self.Exception(f'Could not find JS function "{funcname}"')
+        code, _ = self._separate_at_paren(func_m.group('code'))
         return [x.strip() for x in func_m.group('args').split(',')], code
 
     def extract_function(self, funcname):

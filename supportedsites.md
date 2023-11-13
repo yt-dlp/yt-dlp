@@ -77,7 +77,7 @@
  - **AnimalPlanet**
  - **ant1newsgr:article**: ant1news.gr articles
  - **ant1newsgr:embed**: ant1news.gr embedded videos
- - **ant1newsgr:watch**: ant1news.gr videos
+ - **antenna:watch**: antenna.gr and ant1news.gr videos
  - **Anvato**
  - **aol.com**: Yahoo screen and movies
  - **APA**
@@ -98,8 +98,6 @@
  - **ArteTVCategory**
  - **ArteTVEmbed**
  - **ArteTVPlaylist**
- - **AsianCrush**
- - **AsianCrushPlaylist**
  - **AtresPlayer**: [*atresplayer*](## "netrc machine")
  - **AtScaleConfEvent**
  - **ATTTechChannel**
@@ -118,6 +116,7 @@
  - **awaan:live**
  - **awaan:season**
  - **awaan:video**
+ - **axs.tv**
  - **AZMedien**: AZ Medien videos
  - **BaiduVideo**: 百度视频
  - **BanBye**
@@ -150,7 +149,9 @@
  - **bfmtv**
  - **bfmtv:article**
  - **bfmtv:live**
- - **BibelTV**
+ - **bibeltv:live**: BibelTV live program
+ - **bibeltv:series**: BibelTV series playlist
+ - **bibeltv:video**: BibelTV single video
  - **Bigflix**
  - **Bigo**
  - **Bild**: Bild.de
@@ -160,11 +161,16 @@
  - **BilibiliAudioAlbum**
  - **BiliBiliBangumi**
  - **BiliBiliBangumiMedia**
+ - **BiliBiliBangumiSeason**
+ - **BilibiliCollectionList**
+ - **BilibiliFavoritesList**
  - **BiliBiliPlayer**
+ - **BilibiliPlaylist**
  - **BiliBiliSearch**: Bilibili video search; "bilisearch:" prefix
+ - **BilibiliSeriesList**
  - **BilibiliSpaceAudio**
- - **BilibiliSpacePlaylist**
  - **BilibiliSpaceVideo**
+ - **BilibiliWatchlater**
  - **BiliIntl**: [*biliintl*](## "netrc machine")
  - **biliIntl:series**: [*biliintl*](## "netrc machine")
  - **BiliLive**
@@ -183,17 +189,24 @@
  - **Bloomberg**
  - **BokeCC**
  - **BongaCams**
- - **BooyahClips**
  - **BostonGlobe**
  - **Box**
  - **BoxCastVideo**
  - **Bpb**: Bundeszentrale für politische Bildung
  - **BR**: Bayerischer Rundfunk
+ - **BrainPOP**: [*brainpop*](## "netrc machine")
+ - **BrainPOPELL**: [*brainpop*](## "netrc machine")
+ - **BrainPOPEsp**: [*brainpop*](## "netrc machine") BrainPOP Español
+ - **BrainPOPFr**: [*brainpop*](## "netrc machine") BrainPOP Français
+ - **BrainPOPIl**: [*brainpop*](## "netrc machine") BrainPOP Hebrew
+ - **BrainPOPJr**: [*brainpop*](## "netrc machine")
  - **BravoTV**
  - **Break**
  - **BreitBart**
  - **brightcove:legacy**
  - **brightcove:new**
+ - **Brilliantpala:Classes**: [*brilliantpala*](## "netrc machine") VoD on classes.brilliantpala.org
+ - **Brilliantpala:Elearn**: [*brilliantpala*](## "netrc machine") VoD on elearn.brilliantpala.org
  - **BRMediathek**: Bayerischer Rundfunk Mediathek
  - **bt:article**: Bergens Tidende Articles
  - **bt:vestlendingen**: Bergens Tidende - Vestlendingen
@@ -207,26 +220,31 @@
  - **CAM4**
  - **Camdemy**
  - **CamdemyFolder**
+ - **CamFMEpisode**
+ - **CamFMShow**
  - **CamModels**
  - **Camsoda**
  - **CamtasiaEmbed**
  - **CamWithHer**
+ - **Canal1**
  - **CanalAlpha**
  - **canalc2.tv**
  - **Canalplus**: mycanal.fr and piwiplus.fr
- - **Canvas**
- - **CanvasEen**: canvas.be and een.be
+ - **CaracolTvPlay**: [*caracoltv-play*](## "netrc machine")
  - **CarambaTV**
  - **CarambaTVPage**
  - **CartoonNetwork**
  - **cbc.ca**
  - **cbc.ca:player**
+ - **cbc.ca:​player:playlist**
  - **CBS**
  - **CBSInteractive**
  - **CBSLocal**
  - **CBSLocalArticle**
+ - **CBSLocalLive**
  - **cbsnews**: CBS News
  - **cbsnews:embed**
+ - **cbsnews:live**: CBS News Livestream
  - **cbsnews:livevideo**: CBS News Live Videos
  - **cbssports**
  - **cbssports:embed**
@@ -248,10 +266,13 @@
  - **Cinchcast**
  - **Cinemax**
  - **CinetecaMilano**
+ - **Cineverse**
+ - **CineverseDetails**
  - **CiscoLiveSearch**
  - **CiscoLiveSession**
  - **ciscowebex**: Cisco Webex
  - **CJSW**
+ - **Clipchamp**
  - **cliphunter**
  - **Clippit**
  - **ClipRs**
@@ -271,6 +292,7 @@
  - **CNNIndonesia**
  - **ComedyCentral**
  - **ComedyCentralTV**
+ - **ConanClassic**
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
  - **CookingChannel**
@@ -286,7 +308,10 @@
  - **CrooksAndLiars**
  - **CrowdBunker**
  - **CrowdBunkerChannel**
+ - **Crtvg**
  - **crunchyroll**: [*crunchyroll*](## "netrc machine")
+ - **crunchyroll:artist**: [*crunchyroll*](## "netrc machine")
+ - **crunchyroll:music**: [*crunchyroll*](## "netrc machine")
  - **crunchyroll:playlist**: [*crunchyroll*](## "netrc machine")
  - **CSpan**: C-SPAN
  - **CSpanCongress**
@@ -301,6 +326,8 @@
  - **CWTV**
  - **Cybrary**: [*cybrary*](## "netrc machine")
  - **CybraryCourse**: [*cybrary*](## "netrc machine")
+ - **DacastPlaylist**
+ - **DacastVOD**
  - **Daftsex**
  - **DagelijkseKost**: dagelijksekost.een.be
  - **DailyMail**
@@ -331,6 +358,7 @@
  - **DigitalConcertHall**: [*digitalconcerthall*](## "netrc machine") DigitalConcertHall extractor
  - **DigitallySpeaking**
  - **Digiteka**
+ - **DiscogsReleasePlaylist**
  - **Discovery**
  - **DiscoveryLife**
  - **DiscoveryNetworksDe**
@@ -341,12 +369,14 @@
  - **DiscoveryPlusItalyShow**
  - **Disney**
  - **DIYNetwork**
+ - **dlf**
+ - **dlf:corpus**: DLF Multi-feed Archives
  - **dlive:stream**
  - **dlive:vod**
  - **Dotsub**
  - **Douyin**
  - **DouyuShow**
- - **DouyuTV**: 斗鱼
+ - **DouyuTV**: 斗鱼直播
  - **DPlay**
  - **DRBonanza**
  - **Drooble**
@@ -378,6 +408,7 @@
  - **EinsUndEinsTVRecordings**: [*1und1tv*](## "netrc machine")
  - **Einthusan**
  - **eitb.tv**
+ - **ElevenSports**
  - **EllenTube**
  - **EllenTubePlaylist**
  - **EllenTubeVideo**
@@ -388,8 +419,10 @@
  - **Engadget**
  - **Epicon**
  - **EpiconSeries**
+ - **eplus:inbound**: e+ (イープラス) overseas
  - **Epoch**
  - **Eporner**
+ - **Erocast**
  - **EroProfile**: [*eroprofile*](## "netrc machine")
  - **EroProfile:album**
  - **ertflix**: ERTFLIX videos
@@ -400,6 +433,7 @@
  - **ESPNArticle**
  - **ESPNCricInfo**
  - **EsriVideo**
+ - **EttuTv**
  - **Europa**
  - **EuroParlWebstream**
  - **EuropeanTour**
@@ -460,6 +494,7 @@
  - **funimation:page**: [*funimation*](## "netrc machine")
  - **funimation:show**: [*funimation*](## "netrc machine")
  - **Funk**
+ - **Funker530**
  - **Fusion**
  - **Fux**
  - **FuyinTV**
@@ -493,10 +528,17 @@
  - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
  - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
  - **Glide**: Glide mobile video messages (glide.me)
+ - **GlobalCyclingNetworkPlus**
+ - **GlobalPlayerAudio**
+ - **GlobalPlayerAudioEpisode**
+ - **GlobalPlayerLive**
+ - **GlobalPlayerLivePlaylist**
+ - **GlobalPlayerVideo**
  - **Globo**: [*globo*](## "netrc machine")
  - **GloboArticle**
  - **glomex**: Glomex videos
  - **glomex:embed**: Glomex embedded videos
+ - **GMANetworkVideo**
  - **Go**
  - **GoDiscovery**
  - **GodTube**
@@ -522,7 +564,6 @@
  - **Heise**
  - **HellPorno**
  - **Helsinki**: helsinki.fi
- - **HentaiStigma**
  - **hetklokhuis**
  - **hgtv.com:show**
  - **HGTVDe**
@@ -535,6 +576,8 @@
  - **hitbox:live**
  - **HitRecord**
  - **hketv**: 香港教育局教育電視 (HKETV) Educational Television, Hong Kong Educational Bureau
+ - **HollywoodReporter**
+ - **HollywoodReporterPlaylist**
  - **Holodex**
  - **HotNewHipHop**
  - **hotstar**
@@ -558,6 +601,7 @@
  - **Hypem**
  - **Hytale**
  - **Icareus**
+ - **IdolPlus**
  - **iflix:episode**
  - **IflixSeries**
  - **ign.com**
@@ -600,9 +644,9 @@
  - **ivi:compilation**: ivi.ru compilations
  - **ivideon**: Ivideon TV
  - **IVXPlayer**
- - **Iwara**
- - **iwara:playlist**
- - **iwara:user**
+ - **iwara**: [*iwara*](## "netrc machine")
+ - **iwara:playlist**: [*iwara*](## "netrc machine")
+ - **iwara:user**: [*iwara*](## "netrc machine")
  - **Ixigua**
  - **Izlesene**
  - **Jable**
@@ -612,6 +656,9 @@
  - **JeuxVideo**
  - **Joj**
  - **Jove**
+ - **JStream**
+ - **JTBC**: jtbc.co.kr
+ - **JTBC:program**
  - **JWPlatform**
  - **Kakao**
  - **Kaltura**
@@ -655,6 +702,7 @@
  - **LastFMUser**
  - **lbry**
  - **lbry:channel**
+ - **lbry:playlist**
  - **LCI**
  - **Lcp**
  - **LcpPlay**
@@ -678,8 +726,6 @@
  - **limelight**
  - **limelight:channel**
  - **limelight:channel_list**
- - **LineLive**
- - **LineLiveChannel**
  - **LinkedIn**: [*linkedin*](## "netrc machine")
  - **linkedin:learning**: [*linkedin*](## "netrc machine")
  - **linkedin:​learning:course**: [*linkedin*](## "netrc machine")
@@ -702,6 +748,7 @@
  - **lynda**: [*lynda*](## "netrc machine") lynda.com videos
  - **lynda:course**: [*lynda*](## "netrc machine") lynda.com online courses
  - **m6**
+ - **MagellanTV**
  - **MagentaMusik360**
  - **mailru**: Видео@Mail.Ru
  - **mailru:music**: Музыка@Mail.Ru
@@ -721,6 +768,7 @@
  - **massengeschmack.tv**
  - **Masters**
  - **MatchTV**
+ - **MBN**: mbn.co.kr (매일방송)
  - **MDR**: MDR.DE and KiKA
  - **MedalTV**
  - **media.ccc.de**
@@ -782,9 +830,11 @@
  - **Mofosex**
  - **MofosexEmbed**
  - **Mojvideo**
+ - **Monstercat**
  - **MonsterSirenHypergryphMusic**
  - **Morningstar**: morningstar.com
  - **Motherless**
+ - **MotherlessGallery**
  - **MotherlessGroup**
  - **Motorsport**: motorsport.com
  - **MotorTrend**
@@ -806,8 +856,10 @@
  - **mtvservices:embedded**
  - **MTVUutisetArticle**
  - **MuenchenTV**: münchen.tv
+ - **MujRozhlas**
  - **Murrtube**
  - **MurrtubeUser**: Murrtube user profile
+ - **MuseAI**
  - **MuseScore**
  - **MusicdexAlbum**
  - **MusicdexArtist**
@@ -827,6 +879,7 @@
  - **MyVideoGe**
  - **MyVidster**
  - **MyviEmbed**
+ - **Mzaalo**
  - **n-tv.de**
  - **N1Info:article**
  - **N1InfoAsset**
@@ -858,6 +911,7 @@
  - **Nebula**: [*watchnebula*](## "netrc machine")
  - **nebula:channel**: [*watchnebula*](## "netrc machine")
  - **nebula:subscriptions**: [*watchnebula*](## "netrc machine")
+ - **NekoHacker**
  - **NerdCubedFeed**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
@@ -893,6 +947,9 @@
  - **NhkForSchoolBangumi**
  - **NhkForSchoolProgramList**
  - **NhkForSchoolSubject**: Portal page for each school subjects, like Japanese (kokugo, 国語) or math (sansuu/suugaku or 算数・数学)
+ - **NhkRadioNewsPage**
+ - **NhkRadiru**: NHK らじる (Radiru/Rajiru)
+ - **NhkRadiruLive**
  - **NhkVod**
  - **NhkVodProgram**
  - **nhl.com**
@@ -903,9 +960,13 @@
  - **nicknight**
  - **niconico**: [*niconico*](## "netrc machine") ニコニコ動画
  - **niconico:history**: NicoNico user history or likes. Requires cookies.
+ - **niconico:live**: ニコニコ生放送
  - **niconico:playlist**
  - **niconico:series**
  - **niconico:tag**: NicoNico video tag URLs
+ - **NiconicoChannelPlus**: ニコニコチャンネルプラス
+ - **NiconicoChannelPlus:​channel:lives**: ニコニコチャンネルプラス - チャンネル - ライブリスト. nicochannel.jp/channel/lives
+ - **NiconicoChannelPlus:​channel:videos**: ニコニコチャンネルプラス - チャンネル - 動画リスト. nicochannel.jp/channel/videos
  - **NiconicoUser**
  - **nicovideo:search**: Nico video search; "nicosearch:" prefix
  - **nicovideo:​search:date**: Nico video search, newest first; "nicosearchdate:" prefix
@@ -947,6 +1008,7 @@
  - **NRKTVSeries**
  - **NRLTV**
  - **ntv.ru**
+ - **NubilesPorn**: [*nubiles-porn*](## "netrc machine")
  - **Nuvid**
  - **NYTimes**
  - **NYTimesArticle**
@@ -987,6 +1049,7 @@
  - **OsnatelTVLive**: [*osnateltv*](## "netrc machine")
  - **OsnatelTVRecordings**: [*osnateltv*](## "netrc machine")
  - **OutsideTV**
+ - **OwnCloud**
  - **PacktPub**: [*packtpub*](## "netrc machine")
  - **PacktPubCourse**
  - **PalcoMP3:artist**
@@ -999,12 +1062,14 @@
  - **ParamountNetwork**
  - **ParamountPlus**
  - **ParamountPlusSeries**
+ - **ParamountPressExpress**
  - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
  - **Parlview**
  - **Patreon**
  - **PatreonCampaign**
  - **pbs**: Public Broadcasting Service (PBS) and member stations: PBS: Public Broadcasting Service, APT - Alabama Public Television (WBIQ), GPB/Georgia Public Broadcasting (WGTV), Mississippi Public Broadcasting (WMPN), Nashville Public Television (WNPT), WFSU-TV (WFSU), WSRE (WSRE), WTCI (WTCI), WPBA/Channel 30 (WPBA), Alaska Public Media (KAKM), Arizona PBS (KAET), KNME-TV/Channel 5 (KNME), Vegas PBS (KLVX), AETN/ARKANSAS ETV NETWORK (KETS), KET (WKLE), WKNO/Channel 10 (WKNO), LPB/LOUISIANA PUBLIC BROADCASTING (WLPB), OETA (KETA), Ozarks Public Television (KOZK), WSIU Public Broadcasting (WSIU), KEET TV (KEET), KIXE/Channel 9 (KIXE), KPBS San Diego (KPBS), KQED (KQED), KVIE Public Television (KVIE), PBS SoCal/KOCE (KOCE), ValleyPBS (KVPT), CONNECTICUT PUBLIC TELEVISION (WEDH), KNPB Channel 5 (KNPB), SOPTV (KSYS), Rocky Mountain PBS (KRMA), KENW-TV3 (KENW), KUED Channel 7 (KUED), Wyoming PBS (KCWC), Colorado Public Television / KBDI 12 (KBDI), KBYU-TV (KBYU), Thirteen/WNET New York (WNET), WGBH/Channel 2 (WGBH), WGBY (WGBY), NJTV Public Media NJ (WNJT), WLIW21 (WLIW), mpt/Maryland Public Television (WMPB), WETA Television and Radio (WETA), WHYY (WHYY), PBS 39 (WLVT), WVPT - Your Source for PBS and More! (WVPT), Howard University Television (WHUT), WEDU PBS (WEDU), WGCU Public Media (WGCU), WPBT2 (WPBT), WUCF TV (WUCF), WUFT/Channel 5 (WUFT), WXEL/Channel 42 (WXEL), WLRN/Channel 17 (WLRN), WUSF Public Broadcasting (WUSF), ETV (WRLK), UNC-TV (WUNC), PBS Hawaii - Oceanic Cable Channel 10 (KHET), Idaho Public Television (KAID), KSPS (KSPS), OPB (KOPB), KWSU/Channel 10 & KTNW/Channel 31 (KWSU), WILL-TV (WILL), Network Knowledge - WSEC/Springfield (WSEC), WTTW11 (WTTW), Iowa Public Television/IPTV (KDIN), Nine Network (KETC), PBS39 Fort Wayne (WFWA), WFYI Indianapolis (WFYI), Milwaukee Public Television (WMVS), WNIN (WNIN), WNIT Public Television (WNIT), WPT (WPNE), WVUT/Channel 22 (WVUT), WEIU/Channel 51 (WEIU), WQPT-TV (WQPT), WYCC PBS Chicago (WYCC), WIPB-TV (WIPB), WTIU (WTIU), CET  (WCET), ThinkTVNetwork (WPTD), WBGU-TV (WBGU), WGVU TV (WGVU), NET1 (KUON), Pioneer Public Television (KWCM), SDPB Television (KUSD), TPT (KTCA), KSMQ (KSMQ), KPTS/Channel 8 (KPTS), KTWU/Channel 11 (KTWU), East Tennessee PBS (WSJK), WCTE-TV (WCTE), WLJT, Channel 11 (WLJT), WOSU TV (WOSU), WOUB/WOUC (WOUB), WVPB (WVPB), WKYU-PBS (WKYU), KERA 13 (KERA), MPBN (WCBB), Mountain Lake PBS (WCFE), NHPTV (WENH), Vermont PBS (WETK), witf (WITF), WQED Multimedia (WQED), WMHT Educational Telecommunications (WMHT), Q-TV (WDCQ), WTVS Detroit Public TV (WTVS), CMU Public Television (WCMU), WKAR-TV (WKAR), WNMU-TV Public TV 13 (WNMU), WDSE - WRPT (WDSE), WGTE TV (WGTE), Lakeland Public Television (KAWE), KMOS-TV - Channels 6.1, 6.2 and 6.3 (KMOS), MontanaPBS (KUSM), KRWG/Channel 22 (KRWG), KACV (KACV), KCOS/Channel 13 (KCOS), WCNY/Channel 24 (WCNY), WNED (WNED), WPBS (WPBS), WSKG Public TV (WSKG), WXXI (WXXI), WPSU (WPSU), WVIA Public Media Studios (WVIA), WTVI (WTVI), Western Reserve PBS (WNEO), WVIZ/PBS ideastream (WVIZ), KCTS 9 (KCTS), Basin PBS (KPBT), KUHT / Channel 8 (KUHT), KLRN (KLRN), KLRU (KLRU), WTJX Channel 12 (WTJX), WCVE PBS (WCVE), KBTC Public Television (KBTC)
+ - **PBSKids**
  - **PearVideo**
  - **PeekVids**
  - **peer.tv**
@@ -1016,10 +1081,12 @@
  - **PerformGroup**
  - **periscope**: Periscope
  - **periscope:user**: Periscope user videos
+ - **PGATour**
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
  - **Photobucket**
  - **Piapro**: [*piapro*](## "netrc machine")
+ - **PIAULIZAPortal**: ulizaportal.jp - PIA LIVE STREAM
  - **Picarto**
  - **PicartoVod**
  - **Piksel**
@@ -1057,13 +1124,13 @@
  - **PolskieRadio**
  - **polskieradio:audition**
  - **polskieradio:category**
- - **polskieradio:kierowcow**
  - **polskieradio:legacy**
  - **polskieradio:player**
  - **polskieradio:podcast**
  - **polskieradio:​podcast:list**
  - **Popcorntimes**
  - **PopcornTV**
+ - **Pornbox**
  - **PornCom**
  - **PornerBros**
  - **Pornez**
@@ -1080,7 +1147,6 @@
  - **PornTop**
  - **PornTube**
  - **Pr0gramm**
- - **Pr0grammStatic**
  - **PrankCast**
  - **PremiershipRugby**
  - **PressTV**
@@ -1095,6 +1161,7 @@
  - **puhutv:serie**
  - **Puls4**
  - **Pyvideo**
+ - **QDance**: [*qdance*](## "netrc machine")
  - **QingTing**
  - **qqmusic**: QQ音乐
  - **qqmusic:album**: QQ音乐 - 专辑
@@ -1114,6 +1181,10 @@
  - **radiocanada**
  - **radiocanada:audiovideo**
  - **radiofrance**
+ - **RadioFranceLive**
+ - **RadioFrancePodcast**
+ - **RadioFranceProfile**
+ - **RadioFranceProgramSchedule**
  - **RadioJavan**
  - **radiokapital**
  - **radiokapital:show**
@@ -1122,6 +1193,7 @@
  - **radlive:channel**
  - **radlive:season**
  - **Rai**
+ - **RaiCultura**
  - **RaiNews**
  - **RaiPlay**
  - **RaiPlayLive**
@@ -1134,6 +1206,7 @@
  - **RayWenderlichCourse**
  - **RbgTum**
  - **RbgTumCourse**
+ - **RbgTumNewCourse**
  - **RBMARadio**
  - **RCS**
  - **RCSEmbeds**
@@ -1142,11 +1215,12 @@
  - **RCTIPlusSeries**
  - **RCTIPlusTV**
  - **RDS**: RDS.ca
+ - **Recurbate**
  - **RedBull**
  - **RedBullEmbed**
  - **RedBullTV**
  - **RedBullTVRrnContent**
- - **Reddit**
+ - **Reddit**: [*reddit*](## "netrc machine")
  - **RedGifs**
  - **RedGifsSearch**: Redgifs search
  - **RedGifsUser**: Redgifs user
@@ -1157,6 +1231,7 @@
  - **Restudy**
  - **Reuters**
  - **ReverbNation**
+ - **RheinMainTV**
  - **RICE**
  - **RMCDecouverte**
  - **RockstarGames**
@@ -1186,6 +1261,9 @@
  - **RTP**
  - **RTRFM**
  - **RTS**: RTS.ch
+ - **RTVCKaltura**
+ - **RTVCPlay**
+ - **RTVCPlayEmbed**
  - **rtve.es:alacarta**: RTVE a la carta
  - **rtve.es:audio**: RTVE audio
  - **rtve.es:infantil**: RTVE infantil
@@ -1211,6 +1289,8 @@
  - **Ruutu**
  - **Ruv**
  - **ruv.is:spila**
+ - **S4C**
+ - **S4CSeries**
  - **safari**: [*safari*](## "netrc machine") safaribooksonline.com online video
  - **safari:api**: [*safari*](## "netrc machine")
  - **safari:course**: [*safari*](## "netrc machine") safaribooksonline.com online courses
@@ -1239,6 +1319,7 @@
  - **SCTE**: [*scte*](## "netrc machine")
  - **SCTECourse**: [*scte*](## "netrc machine")
  - **Seeker**
+ - **SenalColombiaLive**
  - **SenateGov**
  - **SenateISVP**
  - **SendtoNews**
@@ -1276,6 +1357,7 @@
  - **Smotrim**
  - **Snotr**
  - **Sohu**
+ - **SohuV**
  - **SonyLIV**: [*sonyliv*](## "netrc machine")
  - **SonyLIVSeries**
  - **soundcloud**: [*soundcloud*](## "netrc machine")
@@ -1315,6 +1397,9 @@
  - **sr:mediathek**: Saarländischer Rundfunk
  - **SRGSSR**
  - **SRGSSRPlay**: srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites
+ - **StacommuLive**: [*stacommu*](## "netrc machine")
+ - **StacommuVOD**: [*stacommu*](## "netrc machine")
+ - **StagePlusVODConcert**: [*stageplus*](## "netrc machine")
  - **stanfordoc**: Stanford Open ClassRoom
  - **StarTrek**
  - **startv**
@@ -1326,7 +1411,6 @@
  - **StoryFireSeries**
  - **StoryFireUser**
  - **Streamable**
- - **Streamanity**
  - **streamcloud.eu**
  - **StreamCZ**
  - **StreamFF**
@@ -1351,6 +1435,9 @@
  - **Tagesschau**
  - **Tass**
  - **TBS**
+ - **TBSJPEpisode**
+ - **TBSJPPlaylist**
+ - **TBSJPProgram**
  - **TDSLifeway**
  - **Teachable**: [*teachable*](## "netrc machine")
  - **TeachableCourse**: [*teachable*](## "netrc machine")
@@ -1384,6 +1471,7 @@
  - **Tempo**
  - **TennisTV**: [*tennistv*](## "netrc machine")
  - **TenPlay**: [*10play*](## "netrc machine")
+ - **TenPlaySeason**
  - **TF1**
  - **TFO**
  - **TheHoleTv**
@@ -1392,8 +1480,6 @@
  - **ThePlatformFeed**
  - **TheStar**
  - **TheSun**
- - **ThetaStream**
- - **ThetaVideo**
  - **TheWeatherChannel**
  - **ThisAmericanLife**
  - **ThisAV**
@@ -1427,6 +1513,7 @@
  - **TrailerAddict**: (**Currently broken**)
  - **TravelChannel**
  - **Triller**: [*triller*](## "netrc machine")
+ - **TrillerShort**
  - **TrillerUser**: [*triller*](## "netrc machine")
  - **Trilulilu**
  - **Trovo**
@@ -1499,12 +1586,12 @@
  - **TwitchVideos**: [*twitch*](## "netrc machine")
  - **TwitchVideosClips**: [*twitch*](## "netrc machine")
  - **TwitchVideosCollections**: [*twitch*](## "netrc machine")
- - **twitter**
- - **twitter:amplify**
- - **twitter:broadcast**
+ - **twitter**: [*twitter*](## "netrc machine")
+ - **twitter:amplify**: [*twitter*](## "netrc machine")
+ - **twitter:broadcast**: [*twitter*](## "netrc machine")
  - **twitter:card**
- - **twitter:shortener**
- - **twitter:spaces**
+ - **twitter:shortener**: [*twitter*](## "netrc machine")
+ - **twitter:spaces**: [*twitter*](## "netrc machine")
  - **Txxx**
  - **udemy**: [*udemy*](## "netrc machine")
  - **udemy:course**: [*udemy*](## "netrc machine")
@@ -1541,7 +1628,6 @@
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
  - **vhx:embed**: [*vimeo*](## "netrc machine")
- - **Viafree**
  - **vice**
  - **vice:article**
  - **vice:show**
@@ -1598,6 +1684,8 @@
  - **vk**: [*vk*](## "netrc machine") VK
  - **vk:uservideos**: [*vk*](## "netrc machine") VK - User's Videos
  - **vk:wallpost**: [*vk*](## "netrc machine")
+ - **VKPlay**
+ - **VKPlayLive**
  - **vm.tiktok**
  - **Vocaroo**
  - **Vodlocker**
@@ -1607,8 +1695,8 @@
  - **voicy**
  - **voicy:channel**
  - **VolejTV**
- - **Voot**
- - **VootSeries**
+ - **Voot**: [*voot*](## "netrc machine")
+ - **VootSeries**: [*voot*](## "netrc machine")
  - **VoxMedia**
  - **VoxMediaVolume**
  - **vpro**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
@@ -1616,7 +1704,7 @@
  - **vqq:video**
  - **Vrak**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
- - **VrtNU**: [*vrtnu*](## "netrc machine") VrtNU.be
+ - **VrtNU**: [*vrtnu*](## "netrc machine") VRT MAX
  - **vrv**: [*vrv*](## "netrc machine")
  - **vrv:series**
  - **VShare**
@@ -1648,7 +1736,6 @@
  - **wdr:mobile**: (**Currently broken**)
  - **WDRElefant**
  - **WDRPage**
- - **web.archive:vlive**: web.archive.org saved vlive videos
  - **web.archive:youtube**: web.archive.org saved youtube videos, "ytarchive:" prefix
  - **Webcamerapl**
  - **Webcaster**
@@ -1656,13 +1743,24 @@
  - **WebOfStories**
  - **WebOfStoriesPlaylist**
  - **Weibo**
- - **WeiboMobile**
+ - **WeiboUser**
+ - **WeiboVideo**
  - **WeiqiTV**: WQTV
  - **wetv:episode**
  - **WeTvSeries**
+ - **Weverse**: [*weverse*](## "netrc machine")
+ - **WeverseLive**: [*weverse*](## "netrc machine")
+ - **WeverseLiveTab**: [*weverse*](## "netrc machine")
+ - **WeverseMedia**: [*weverse*](## "netrc machine")
+ - **WeverseMediaTab**: [*weverse*](## "netrc machine")
+ - **WeverseMoment**: [*weverse*](## "netrc machine")
+ - **WeVidi**
+ - **Weyyak**
  - **whowatch**
+ - **Whyp**
  - **wikimedia.org**
  - **Willow**
+ - **Wimbledon**
  - **WimTV**
  - **WinSportsVideo**
  - **Wistia**
@@ -1674,13 +1772,17 @@
  - **WorldStarHipHop**
  - **wppilot**
  - **wppilot:channels**
- - **WrestleUniversePPV**
- - **WrestleUniverseVOD**
+ - **WrestleUniversePPV**: [*wrestleuniverse*](## "netrc machine")
+ - **WrestleUniverseVOD**: [*wrestleuniverse*](## "netrc machine")
  - **WSJ**: Wall Street Journal
  - **WSJArticle**
  - **WWE**
  - **wyborcza:video**
  - **WyborczaPodcast**
+ - **wykop:dig**
+ - **wykop:​dig:comment**
+ - **wykop:post**
+ - **wykop:​post:comment**
  - **Xanimu**
  - **XBef**
  - **XboxClips**
@@ -1701,8 +1803,6 @@
  - **xvideos:quickies**
  - **XXXYMovies**
  - **Yahoo**: Yahoo screen and movies
- - **yahoo:gyao**
- - **yahoo:​gyao:player**
  - **yahoo:japannews**: Yahoo! Japan News
  - **YandexDisk**
  - **yandexmusic:album**: Яндекс.Музыка - Альбом
@@ -1714,6 +1814,7 @@
  - **YandexVideoPreview**
  - **YapFiles**
  - **Yappy**
+ - **YappyProfile**
  - **YesJapan**
  - **yinyuetai:video**: 音悦Tai
  - **YleAreena**
@@ -1739,13 +1840,14 @@
  - **youtube:​search:date**: YouTube search, newest videos first; "ytsearchdate:" prefix
  - **youtube:search_url**: YouTube search URLs with sorting and filter support
  - **youtube:​shorts:pivot:audio**: YouTube Shorts audio pivot (Shorts using audio of a given video)
- - **youtube:stories**: YouTube channel stories; "ytstories:" prefix
  - **youtube:subscriptions**: YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
  - **youtube:tab**: YouTube Tabs
  - **youtube:user**: YouTube user videos; "ytuser:" prefix
  - **youtube:watchlater**: Youtube watch later list; ":ytwatchlater" keyword (requires cookies)
  - **YoutubeLivestreamEmbed**: YouTube livestream embeds
  - **YoutubeYtBe**: youtu.be
+ - **Zaiko**
+ - **ZaikoETicket**
  - **Zapiks**
  - **Zattoo**: [*zattoo*](## "netrc machine")
  - **ZattooLive**: [*zattoo*](## "netrc machine")
@@ -1763,6 +1865,7 @@
  - **zingmp3:album**
  - **zingmp3:chart-home**
  - **zingmp3:chart-music-video**
+ - **zingmp3:hub**
  - **zingmp3:user**
  - **zingmp3:week-chart**
  - **zoom**

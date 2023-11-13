@@ -34,6 +34,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     update_url_query,
+    urlhandle_detect_ext,
     url_or_none,
     urljoin,
     variadic,
@@ -58,6 +59,8 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'trailer',
                 'upload_date': '20100513',
+                'direct': True,
+                'timestamp': 1273772943.0,
             }
         },
         # Direct link to media delivered compressed (until Accept-Encoding is *)
@@ -101,6 +104,8 @@ class GenericIE(InfoExtractor):
                 'ext': 'webm',
                 'title': '5_Lennart_Poettering_-_Systemd',
                 'upload_date': '20141120',
+                'direct': True,
+                'timestamp': 1416498816.0,
             },
             'expected_warnings': [
                 'URL could be a direct video link, returning it as such.'
@@ -133,6 +138,7 @@ class GenericIE(InfoExtractor):
                     'upload_date': '20201204',
                 },
             }],
+            'skip': 'Dead link',
         },
         # RSS feed with item with description and thumbnails
         {
@@ -145,12 +151,12 @@ class GenericIE(InfoExtractor):
             'playlist': [{
                 'info_dict': {
                     'ext': 'm4a',
-                    'id': 'c1c879525ce2cb640b344507e682c36d',
+                    'id': '818a5d38-01cd-152f-2231-ee479677fa82',
                     'title': 're:Hydrogen!',
                     'description': 're:.*In this episode we are going.*',
                     'timestamp': 1567977776,
                     'upload_date': '20190908',
-                    'duration': 459,
+                    'duration': 423,
                     'thumbnail': r're:^https?://.*\.jpg$',
                     'episode_number': 1,
                     'season_number': 1,
@@ -267,6 +273,7 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             },
+            'skip': '404 Not Found',
         },
         # MPD from http://dash-mse-test.appspot.com/media.html
         {
@@ -278,6 +285,7 @@ class GenericIE(InfoExtractor):
                 'title': 'car-20120827-manifest',
                 'formats': 'mincount:9',
                 'upload_date': '20130904',
+                'timestamp': 1378272859.0,
             },
         },
         # m3u8 served with Content-Type: audio/x-mpegURL; charset=utf-8
@@ -318,7 +326,7 @@ class GenericIE(InfoExtractor):
                 'id': 'cmQHVoWB5FY',
                 'ext': 'mp4',
                 'upload_date': '20130224',
-                'uploader_id': 'TheVerge',
+                'uploader_id': '@TheVerge',
                 'description': r're:^Chris Ziegler takes a look at the\.*',
                 'uploader': 'The Verge',
                 'title': 'First Firefox OS phones side-by-side',
@@ -2370,7 +2378,7 @@ class GenericIE(InfoExtractor):
             'id': flashvars['video_id'],
             'display_id': display_id,
             'title': title,
-            'thumbnail': thumbnail,
+            'thumbnail': urljoin(url, thumbnail),
             'formats': formats,
         }
 
@@ -2431,7 +2439,7 @@ class GenericIE(InfoExtractor):
             'Accept-Encoding': 'identity',
             **smuggled_data.get('http_headers', {})
         })
-        new_url = full_response.geturl()
+        new_url = full_response.url
         url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
         if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
@@ -2452,7 +2460,7 @@ class GenericIE(InfoExtractor):
             self.report_detected('direct video link')
             headers = smuggled_data.get('http_headers', {})
             format_id = str(m.group('format_id'))
-            ext = determine_ext(url)
+            ext = determine_ext(url, default_ext=None) or urlhandle_detect_ext(full_response)
             subtitles = {}
             if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
@@ -2464,6 +2472,7 @@ class GenericIE(InfoExtractor):
                 formats = [{
                     'format_id': format_id,
                     'url': url,
+                    'ext': ext,
                     'vcodec': 'none' if m.group('type') == 'audio' else None
                 }]
                 info_dict['direct'] = True
@@ -2529,12 +2538,12 @@ class GenericIE(InfoExtractor):
                 return self.playlist_result(
                     self._parse_xspf(
                         doc, video_id, xspf_url=url,
-                        xspf_base_url=full_response.geturl()),
+                        xspf_base_url=full_response.url),
                     video_id)
             elif re.match(r'(?i)^(?:{[^}]+})?MPD$', doc.tag):
                 info_dict['formats'], info_dict['subtitles'] = self._parse_mpd_formats_and_subtitles(
                     doc,
-                    mpd_base_url=full_response.geturl().rpartition('/')[0],
+                    mpd_base_url=full_response.url.rpartition('/')[0],
                     mpd_url=url)
                 self._extra_manifest_info(info_dict, url)
                 self.report_detected('DASH manifest')
@@ -2562,7 +2571,7 @@ class GenericIE(InfoExtractor):
         self._downloader.write_debug('Looking for embeds')
         embeds = list(self._extract_embeds(original_url, webpage, urlh=full_response, info_dict=info_dict))
         if len(embeds) == 1:
-            return {**info_dict, **embeds[0]}
+            return merge_dicts(embeds[0], info_dict)
         elif embeds:
             return self.playlist_result(embeds, **info_dict)
         raise UnsupportedError(url)
@@ -2572,7 +2581,7 @@ class GenericIE(InfoExtractor):
         info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
         video_id = traverse_obj(info_dict, 'display_id', 'id') or self._generic_id(url)
         url, smuggled_data = unsmuggle_url(url, {})
-        actual_url = urlh.geturl() if urlh else url
+        actual_url = urlh.url if urlh else url
 
         # Sometimes embedded video player is hidden behind percent encoding
         # (e.g. https://github.com/ytdl-org/youtube-dl/issues/2448)
