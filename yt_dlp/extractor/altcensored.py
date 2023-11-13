@@ -44,9 +44,8 @@ class AltCensoredIE(InfoExtractor):
             r'YouTube Views:.*?([0-9,.]+)', webpage, 'view count', default='0').replace(',', ''))
         category = self._html_search_regex(r'<a href="/category/.*?\n\s+([^<]+)', webpage, 'category')
         # Hardcoded (very unlikely to need a change in a foreseeable future)
-        res = self.url_result(f'https://archive.org/details/youtube-{video_id}', ArchiveOrgIE, url_transparent=True,
-                              yt_views=yt_views, category=category)
-        return res
+        return self.url_result(f'https://archive.org/details/youtube-{video_id}', ArchiveOrgIE, url_transparent=True,
+                               view_count=yt_views, categories=[category])
 
 
 class AltCensoredChannelIE(InfoExtractor):
