@@ -345,7 +345,7 @@ class TestParsing(unittest.TestCase):
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         here   is   <!-- a comment -->   and   <!-- another comment -->   end
         ----------------^^^^^^^^^^^----------------^^^^^^^^^^^^^^^^^---------
-        <script> ignore here </script>            <script> and here </script>
+        <script> ignore here </script>            <SCRIPT> and here </SCRIPT>
         --------^^^^^^^^^^^^^-----------------------------^^^^^^^^^^---------
         '''
 
