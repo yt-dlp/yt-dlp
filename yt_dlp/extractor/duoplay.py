@@ -66,9 +66,10 @@ class DuoplayIE(InfoExtractor):
 
         return {
             'id': video_id,
+            'title': episode_attr.get('title') if episode_attr.get('category') == 'movies' else (
+                traverse_obj(episode_attr, 'subtitle', ('episode_nr', {lambda x: f'Episode {x}' if x else None}), 'title')),
             'formats': self._extract_m3u8_formats(video_player['manifest-url'], video_id, 'mp4'),
             **traverse_obj(episode_attr, {
-                'title': (None, ('subtitle', ('episode_id', {lambda x: f'Episode {x}'}))),
                 'description': 'synopsis',
                 'thumbnail': ('images', 'original'),
                 'timestamp': ('airtime', {lambda x: unified_timestamp(x + ' +0200')}),
