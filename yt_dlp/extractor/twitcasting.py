@@ -263,7 +263,7 @@ class TwitCastingLiveIE(InfoExtractor):
                 note='Downloading live history')
             is_live = self._search_regex(
                 (r'(?s)(<span\s*class="tw-movie-thumbnail-badge"\s*data-status="live">\s*LIVE)',
-                 r'data-is-onlive="true"',),
+                 r'(data-is-onlive="true")'),
                 webpage, 'is live?', default=None)
             if is_live:
                 # get the first live; running live is always at the first
