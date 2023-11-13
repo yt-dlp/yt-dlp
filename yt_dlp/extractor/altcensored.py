@@ -16,9 +16,9 @@ class AltCensoredIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.altcensored.com/watch?v=k0srjLSkga8',
         'info_dict': {
-            "id": "youtube-k0srjLSkga8",
-            "ext": "webm",
-            "title": "QUELLES SONT LES CONSÉQUENCES DE L'HYPERSEXUALISATION DE LA SOCIÉTÉ ?",
+            'id': 'youtube-k0srjLSkga8',
+            'ext': 'webm',
+            'title': "QUELLES SONT LES CONSÉQUENCES DE L'HYPERSEXUALISATION DE LA SOCIÉTÉ ?",
             'display_id': 'k0srjLSkga8.webm',
             'release_date': '20180403',
             'creator': 'Virginie Vota',
