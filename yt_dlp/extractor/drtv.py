@@ -200,11 +200,11 @@ class DRTVIE(InfoExtractor):
             format_id = fmt.get('format', 'na')
             access_service = fmt.get('accessService')
             preference = None
-            subtitle_sufix = ''
+            subtitle_suffix = ''
             if access_service in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
                 preference = -1
                 format_id += f'-{access_service}'
-                subtitle_sufix = f'-{access_service}'
+                subtitle_suffix = f'-{access_service}'
             elif access_service == 'StandardVideo':
                 preference = 1
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
@@ -217,7 +217,7 @@ class DRTVIE(InfoExtractor):
 
             for sub_track in api_subtitles:
                 lang = sub_track.get('language') or 'da'
-                subtitles.setdefault(self.SUBTITLE_LANGS.get(lang, lang) + subtitle_sufix, []).append({
+                subtitles.setdefault(self.SUBTITLE_LANGS.get(lang, lang) + subtitle_suffix, []).append({
                     'url': sub_track['link'],
                     'ext': mimetype2ext(sub_track.get('format')) or 'vtt'
                 })
