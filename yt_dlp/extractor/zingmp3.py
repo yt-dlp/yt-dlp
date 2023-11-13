@@ -6,12 +6,12 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
     ExtractorError,
     int_or_none,
     try_call,
-    urljoin
+    urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ZingMp3BaseIE(InfoExtractor):
@@ -120,7 +120,7 @@ class ZingMp3IE(ZingMp3BaseIE):
         },
     }, {
         'url': 'https://zingmp3.vn/video-clip/Suong-Hoa-Dua-Loi-K-ICM-RYO/ZO8ZF7C7.html',
-        'md5': '3c2081e79471a2f4a3edd90b70b185ea',
+        'md5': '92c6e7a019f06b4682a6c35ae5785fab',
         'info_dict': {
             'id': 'ZO8ZF7C7',
             'title': 'Sương Hoa Đưa Lối',
@@ -147,18 +147,18 @@ class ZingMp3IE(ZingMp3BaseIE):
             'album_artist': 'Mr. Siro',
         },
     }, {
-        'url': 'https://zingmp3.vn/eps/Nhung-dieu-can-luu-y-khi-mua-bao-hiem-nhan-tho-How2Money-x-Doctor-Housing-Ep5/ZZEOWI7B.html',
-        'md5': 'bc8793b186ffeee1cf2b6e54a69a8f33',
+        'url': 'https://zingmp3.vn/eps/Cham-x-Ban-Noi-Goi-La-Nha/ZZD9ACWI.html',
+        'md5': 'd52f9f63e2631e004e4f15188eedcf80',
         'info_dict': {
-            'id': 'ZZEOWI7B',
-            'title': 'Những điều cần lưu ý khi mua bảo hiểm nhân thọ | How2Money x Doctor Housing. Ep5',
+            'id': 'ZZD9ACWI',
+            'title': 'Chạm x Bạn - Nơi Gọi Là Nhà',
             'ext': 'mp3',
+            'duration': 3716,
             'thumbnail': r're:^https?://.+\.jpg',
-            'duration': 912,
-            'track': 'Những điều cần lưu ý khi mua bảo hiểm nhân thọ | How2Money x Doctor Housing. Ep5',
-            'artist': 'Zing News',
+            'track': 'Chạm x Bạn - Nơi Gọi Là Nhà',
+            'artist': 'On Air',
             'album': 'Top Podcast',
-            'album_artist': 'Zing News',
+            'album_artist': 'On Air',
         },
     }, {
         'url': 'https://zingmp3.vn/embed/song/ZWZEI76B?start=false',
@@ -223,11 +223,10 @@ class ZingMp3IE(ZingMp3BaseIE):
             'thumbnail': traverse_obj(item, 'thumbnail', 'thumbnailM'),
             'duration': int_or_none(item.get('duration')),
             'track': traverse_obj(item, 'title', 'alias'),
-            'artist': traverse_obj(item, 'artistsNames', 'artists_names') or traverse_obj(item, ('artists', 0, 'name')),
-            'album': traverse_obj(item, ('album', ('name', 'title')), get_all=False) or traverse_obj(
-                item, ('genres', 0, 'name')),
+            'artist': traverse_obj(item, 'artistsNames', 'artists_names', ('artists', 0, 'name')),
+            'album': traverse_obj(item, ('album', ('name', 'title')), ('genres', 0, 'name'), get_all=False),
             'album_artist': traverse_obj(item, ('album', ('artistsNames', 'artists_names')),
-                                         get_all=False) or traverse_obj(item, ('artists', 0, 'name')),
+                                         ('artists', 0, 'name'), get_all=False),
             'formats': formats,
             'subtitles': {'origin': [{'url': lyric}]} if lyric else None,
         }
@@ -236,12 +235,12 @@ class ZingMp3IE(ZingMp3BaseIE):
 class ZingMp3AlbumIE(ZingMp3BaseIE):
     _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'album|playlist'
     _TESTS = [{
-        'url': 'http://mp3.zing.vn/album/Lau-Dai-Tinh-Ai-Bang-Kieu-Minh-Tuyet/ZWZBWDAF.html',
+        'url': 'https://zingmp3.vn/album/Ca-Phe-Quan-Quen-Hoang-Dung-My-Anh-Da-LAB-Thinh-Suy/ZOC7WUZC.html',
         'info_dict': {
-            'id': 'ZWZBWDAF',
-            'title': 'Lâu Đài Tình Ái',
+            'id': 'ZOC7WUZC',
+            'title': 'Cà Phê Quán Quen',
         },
-        'playlist_mincount': 9,
+        'playlist_mincount': 10,
     }, {
         'url': 'https://zingmp3.vn/album/Nhung-Bai-Hat-Hay-Nhat-Cua-Mr-Siro-Mr-Siro/ZWZAEZZD.html',
         'info_dict': {
@@ -291,7 +290,7 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'podcast-discover',
         },
-        'playlist_mincount': 150,
+        'playlist_mincount': 4,
     }]
 
     def _real_extract(self, url):
@@ -302,14 +301,11 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
         data = self._call_api(url_type, params)
         items = []
         if url_type == 'top100':
-            self.IE_NAME = 'zingmp3:top100'
-            items.extend(traverse_obj(data, (lambda _, v: v['items'], 'items', ...)))
-        elif url_type == 'podcast-discover':
-            self.IE_NAME = 'zingmp3:postcast-discover'
-            items.extend(traverse_obj(data, 'items'))
+            items.extend(traverse_obj(data, (..., 'items', ..., {dict})))
+        elif url_type == 'zing-chart':
+            items.extend(traverse_obj(data, ('RTChart', 'items', ..., {dict})))
         else:
-            self.IE_NAME = 'zingmp3:chart-home'
-            items.extend(traverse_obj(data, ('RTChart', 'items') if url_type == 'zing-chart' else 'items'))
+            items.extend(traverse_obj(data, ('items', ..., {dict})))
         return self.playlist_result(self._parse_items(items), url_type)
 
 
@@ -461,7 +457,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         if alias == 'new-release' and url_type in ('song', 'album'):
             self._IE_NAME = 'zingmp3:NewRelease'
             _id = f'{alias}-{url_type}'
-            data = self._call_api('new-release', params={"type": url_type}, display_id=_id)
+            data = self._call_api('new-release', params={'type': url_type}, display_id=_id)
             return self.playlist_result(self._parse_items(data), _id)
         else:
             # Handle for user/artist
@@ -483,7 +479,7 @@ class ZingMp3HubIE(ZingMp3BaseIE):
         'url': 'https://zingmp3.vn/hub/Nhac-Moi/IWZ9Z0CA.html',
         'info_dict': {
             'id': 'IWZ9Z0CA',
-            'title': 'Nhạc Mới',
+            'title': 'BXH Nhạc Mới',
             'description': 'md5:1cc31b68a6f746427b07b2756c22a558',
         },
         'playlist_mincount': 20,
@@ -520,6 +516,7 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
             'view_count': int,
             'thumbnail': r're:^https?://.*\.jpg',
             'like_count': int,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': True,
@@ -535,6 +532,7 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
             'view_count': int,
             'thumbnail': r're:^https?://.*\.jpg',
             'like_count': int,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': True,
@@ -550,13 +548,16 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
         fmts, subtitles = self._extract_m3u8_formats_and_subtitles(manifest_url, live_radio_id, fatal=False)
         return {
             'id': live_radio_id,
-            'title': traverse_obj(info, 'title'),
-            'thumbnail': traverse_obj(info, 'thumbnail', 'thumbnailM', 'thumbnailV', 'thumbnailH'),
+            'is_live': True,
             'formats': fmts,
-            'view_count': traverse_obj(info, 'activeUsers'),
-            'like_count': traverse_obj(info, 'totalReaction'),
-            'description': traverse_obj(info, 'description'),
             'subtitles': subtitles,
+            **traverse_obj(info, {
+                'title': 'title',
+                'thumbnail': (None, ('thumbnail', 'thumbnailM', 'thumbnailV', 'thumbnailH')),
+                'view_count': ('activeUsers', {int_or_none}),
+                'like_count': ('totalReaction', {int_or_none}),
+                'description': 'description',
+            }, get_all=False),
         }
 
 
@@ -564,11 +565,11 @@ class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
     IE_NAME = 'zingmp3:PostcastEpisode'
     _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'pgr|cgr'
     _TESTS = [{
-        'url': 'https://zingmp3.vn/pgr/How2Money-x-Doctor-Housing/6BUUFAEO.html',
+        'url': 'https://zingmp3.vn/pgr/Nhac-Moi-Moi-Ngay/68Z9W66B.html',
         'info_dict': {
-            'id': '6BUUFAEO',
-            'title': 'How2Money x Doctor Housing',
-            'description': 'md5:3c1eb04aaa28fee0805629d9b766d05c'
+            'id': '68Z9W66B',
+            'title': 'Nhạc Mới Mỗi Ngày',
+            'description': 'md5:2875dfa951f8e5356742f1610cf20691'
         },
         'playlist_mincount': 20,
     }, {
@@ -577,7 +578,7 @@ class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
             'id': 'IWZ980AO',
             'title': 'Âm nhạc'
         },
-        'playlist_mincount': 20,
+        'playlist_mincount': 2,
     }]
 
     def _fetch_page(self, eps_id, url_type, page):
@@ -609,14 +610,13 @@ class ZingMp3PostCastCategoriesIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'top-podcast',
         },
-        'playlist_mincount': 50,
+        'playlist_mincount': 7,
     }]
 
     def _real_extract(self, url):
         url_type = self._match_id(url)
         data = self._call_api('cgrs' if url_type == 'cgr' else url_type, {'id': url_type})
-        items = traverse_obj(data, 'items')
-        return self.playlist_result(self._parse_items(items), url_type)
+        return self.playlist_result(self._parse_items(data.get('items')), url_type)
 
 
 class ZingMp3PostCastNewIE(ZingMp3BaseIE):
@@ -627,11 +627,10 @@ class ZingMp3PostCastNewIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'podcast-new',
         },
-        'playlist_mincount': 5,
+        'playlist_mincount': 4,
     }]
 
     def _real_extract(self, url):
         url_type = self._match_id(url)
         data = self._call_api('podcast-discover', {'id': url_type, 'type': 'new'})
-        items = traverse_obj(data, 'items')
-        return self.playlist_result(self._parse_items(items), url_type)
+        return self.playlist_result(self._parse_items(data.get('items')), url_type)
