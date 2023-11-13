@@ -248,16 +248,23 @@ class TwitCastingLiveIE(InfoExtractor):
             'Pass "https://twitcasting.tv/{0}/show" to download the history'.format(uploader_id))
 
         webpage = self._download_webpage(url, uploader_id)
+        is_live = 'data-is-onlive="true"' in webpage
+        if not is_live:
+            raise UserNotLive(video_id=uploader_id)
         current_live = self._search_regex(
             (r'data-type="movie" data-id="(\d+)">',
-             r'tw-sound-flag-open-link" data-id="(\d+)" style=',),
+             r'tw-sound-flag-open-link" data-id="(\d+)" style=',
+             r'data-movie-id="(\d+)"',),
             webpage, 'current live ID', default=None)
         if not current_live:
             # fetch unfiltered /show to find running livestreams; we can't get ID of the password-protected livestream above
             webpage = self._download_webpage(
                 f'https://twitcasting.tv/{uploader_id}/show/', uploader_id,
                 note='Downloading live history')
-            is_live = self._search_regex(r'(?s)(<span\s*class="tw-movie-thumbnail-badge"\s*data-status="live">\s*LIVE)', webpage, 'is live?', default=None)
+            is_live = self._search_regex(
+                (r'(?s)(<span\s*class="tw-movie-thumbnail-badge"\s*data-status="live">\s*LIVE)',
+                 r'data-is-onlive="true"',),
+                webpage, 'is live?', default=None)
             if is_live:
                 # get the first live; running live is always at the first
                 current_live = self._search_regex(
