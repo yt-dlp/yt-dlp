@@ -343,7 +343,7 @@ class TestParsing(unittest.TestCase):
         -----------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------
         this is a leftover comment -->     <!-- a new comment without closing
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        here   is   <!-- a comment -->   and   <!-- another comment -->   end
+        here   is   <!-- a comment -->   and   <!-- another comment --!>  end
         ----------------^^^^^^^^^^^----------------^^^^^^^^^^^^^^^^^---------
         <script> ignore here </script>            <SCRIPT> and here </SCRIPT>
         --------^^^^^^^^^^^^^-----------------------------^^^^^^^^^^---------

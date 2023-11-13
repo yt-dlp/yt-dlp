@@ -20,7 +20,7 @@ class HTMLIgnoreRanges:
             if offset in ranges:
                 ...
     """
-    REGEX = re.compile(r'<!--|-->|</?\s*(?:script|style)\b[^>]*>', flags=re.IGNORECASE)
+    REGEX = re.compile(r'<!--|--!?>|</?\s*(?:script|style)\b[^>]*>', flags=re.IGNORECASE)
 
     def __init__(self, html):
         self.html = html
@@ -40,7 +40,7 @@ class HTMLIgnoreRanges:
         if self._last_match is None:
             return False
         match_string = self._last_match.group()
-        if match_string.startswith('</') or match_string == '-->':
+        if match_string.startswith('</') or match_string in ('-->', '--!>'):
             return offset < self._last_match.start()
         return offset >= self._last_match.end()
 
