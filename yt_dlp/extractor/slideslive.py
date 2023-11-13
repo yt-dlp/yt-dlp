@@ -470,7 +470,7 @@ class SlidesLiveIE(InfoExtractor):
                 player_info['slides_xml_url'], video_id, fatal=False,
                 note='Downloading slides XML', errnote='Failed to download slides info')
             slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s%s'
-            for slide_id, slide in enumerate(slides.findall('./slide') if slides else [], 1):
+            for slide_id, slide in enumerate(slides.findall('./slide') if slides is not None else [], 1):
                 slides_info.append((
                     slide_id, xpath_text(slide, './slideName', 'name'), '.jpg',
                     int_or_none(xpath_text(slide, './timeSec', 'time'))))
