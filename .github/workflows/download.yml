@@ -9,7 +9,7 @@ jobs:
     if: "contains(github.event.head_commit.message, 'ci run dl')"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -39,7 +39,7 @@ jobs:
           python-version: pypy-3.9
           run-tests-ext: bat
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
