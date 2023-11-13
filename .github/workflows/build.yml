@@ -106,7 +106,7 @@ jobs:
     if: inputs.unix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -186,7 +186,7 @@ jobs:
           - aarch64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ./repo
       - name: Virtualized Install, Prepare & Build
@@ -235,7 +235,7 @@ jobs:
     runs-on: macos-11
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
       - name: Install Requirements
         run: |
@@ -277,7 +277,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Python
         # We need the official Python, because the GA ones only support newer macOS versions
         env:
@@ -327,7 +327,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with: # 3.8 is used for Win7 support
           python-version: "3.8"
@@ -375,7 +375,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with: # 3.7 is used for Vista support. See https://github.com/yt-dlp/yt-dlp/issues/390
           python-version: "3.7"
