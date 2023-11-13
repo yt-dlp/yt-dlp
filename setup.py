@@ -18,7 +18,7 @@ except ImportError:
 
 from devscripts.utils import read_file, read_version
 
-VERSION = read_version()
+VERSION = read_version(varname='_pkg_version')
 
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
@@ -62,10 +62,18 @@ def py2exe_params():
             'compressed': 1,
             'optimize': 2,
             'dist_dir': './dist',
-            'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
+            'excludes': [
+                # py2exe cannot import Crypto
+                'Crypto',
+                'Cryptodome',
+                # py2exe appears to confuse this with our socks library.
+                # We don't use pysocks and urllib3.contrib.socks would fail to import if tried.
+                'urllib3.contrib.socks'
+            ],
             'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
             # Modules that are only imported dynamically must be added here
-            'includes': ['yt_dlp.compat._legacy'],
+            'includes': ['yt_dlp.compat._legacy', 'yt_dlp.compat._deprecated',
+                         'yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated'],
         },
         'zipfile': None,
     }
@@ -134,7 +142,7 @@ def main():
         params = build_params()
 
     setup(
-        name='yt-dlp',
+        name='yt-dlp',  # package name (do not change/remove comment)
         version=VERSION,
         maintainer='pukkandan',
         maintainer_email='pukkandan.ytdlp@gmail.com',

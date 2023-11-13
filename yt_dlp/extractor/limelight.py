@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -69,8 +69,8 @@ class LimelightBaseIE(InfoExtractor):
                 item_id, 'Downloading PlaylistService %s JSON' % method,
                 fatal=fatal, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                error = self._parse_json(e.cause.read().decode(), item_id)['detail']['contentAccessPermission']
+            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                error = self._parse_json(e.cause.response.read().decode(), item_id)['detail']['contentAccessPermission']
                 if error == 'CountryDisabled':
                     self.raise_geo_restricted()
                 raise ExtractorError(error, expected=True)

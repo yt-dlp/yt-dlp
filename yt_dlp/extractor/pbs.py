@@ -11,6 +11,7 @@ from ..utils import (
     orderedSet,
     strip_jsonp,
     strip_or_none,
+    traverse_obj,
     unified_strdate,
     url_or_none,
     US_RATINGS,
@@ -695,4 +696,62 @@ class PBSIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'chapters': chapters,
+        }
+
+
+class PBSKidsIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?pbskids\.org/video/[\w-]+/(?P<id>\d+)'
+    _TESTS = [
+        {
+            'url': 'https://pbskids.org/video/molly-of-denali/3030407927',
+            'md5': '1ded20a017cc6b53446238f1804ce4c7',
+            'info_dict': {
+                'id': '3030407927',
+                'title': 'Bird in the Hand/Bye-Bye Birdie',
+                'channel': 'molly-of-denali',
+                'duration': 1540,
+                'ext': 'mp4',
+                'series': 'Molly of Denali',
+                'description': 'md5:d006b2211633685d8ebc8d03b6d5611e',
+                'categories': ['Episode'],
+                'upload_date': '20190718',
+            }
+        },
+        {
+            'url': 'https://pbskids.org/video/plum-landing/2365205059',
+            'md5': '92e5d189851a64ae1d0237a965be71f5',
+            'info_dict': {
+                'id': '2365205059',
+                'title': 'Cooper\'s Favorite Place in Nature',
+                'channel': 'plum-landing',
+                'duration': 67,
+                'ext': 'mp4',
+                'series': 'Plum Landing',
+                'description': 'md5:657e5fc4356a84ead1c061eb280ff05d',
+                'categories': ['Episode'],
+                'upload_date': '20140302',
+            }
+        }
+    ]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        meta = self._search_json(r'window\._PBS_KIDS_DEEPLINK\s*=', webpage, 'video info', video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            traverse_obj(meta, ('video_obj', 'URI', {url_or_none})), video_id, ext='mp4')
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(meta, {
+                'categories': ('video_obj', 'video_type', {str}, {lambda x: [x] if x else None}),
+                'channel': ('show_slug', {str}),
+                'description': ('video_obj', 'description', {str}),
+                'duration': ('video_obj', 'duration', {int_or_none}),
+                'series': ('video_obj', 'program_title', {str}),
+                'title': ('video_obj', 'title', {str}),
+                'upload_date': ('video_obj', 'air_date', {unified_strdate}),
+            })
         }

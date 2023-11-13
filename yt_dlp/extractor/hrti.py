@@ -1,13 +1,13 @@
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking import Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
     int_or_none,
     parse_age_limit,
-    sanitized_Request,
     try_get,
 )
 
@@ -42,7 +42,7 @@ class HRTiBaseIE(InfoExtractor):
             'application_version': self._APP_VERSION
         }
 
-        req = sanitized_Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
+        req = Request(self._API_URL, data=json.dumps(app_data).encode('utf-8'))
         req.get_method = lambda: 'PUT'
 
         resources = self._download_json(
@@ -73,8 +73,8 @@ class HRTiBaseIE(InfoExtractor):
                 self._login_url, None, note='Logging in', errnote='Unable to log in',
                 data=json.dumps(auth_data).encode('utf-8'))
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 406:
-                auth_info = self._parse_json(e.cause.read().encode('utf-8'), None)
+            if isinstance(e.cause, HTTPError) and e.cause.status == 406:
+                auth_info = self._parse_json(e.cause.response.read().encode('utf-8'), None)
             else:
                 raise
 

@@ -4,7 +4,7 @@ from ..utils import traverse_obj
 
 
 class OfTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?of.tv/video/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?of\.tv/video/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://of.tv/video/627d7d95b353db0001dadd1a',
         'md5': 'cb9cd5db3bb9ee0d32bfd7e373d6ef0a',
@@ -34,7 +34,7 @@ class OfTVIE(InfoExtractor):
 
 
 class OfTVPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?of.tv/creators/(?P<id>[a-zA-Z0-9-]+)/.?'
+    _VALID_URL = r'https?://(?:www\.)?of\.tv/creators/(?P<id>[a-zA-Z0-9-]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://of.tv/creators/this-is-fire/',
         'playlist_count': 8,

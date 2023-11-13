@@ -7,10 +7,10 @@ from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
-    compat_HTTPError,
     compat_parse_qs,
     compat_urlparse,
 )
+from ..networking.exceptions import HTTPError
 from ..utils import (
     clean_html,
     dict_get,
@@ -575,6 +575,7 @@ class BrightcoveNewBaseIE(AdobePassIE):
                 self.raise_no_formats(
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
 
+        headers.pop('Authorization', None)  # or else http formats will give error 400
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
 
@@ -895,8 +896,9 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
             store_pk(policy_key)
             return policy_key
 
-        api_url = 'https://edge.api.brightcove.com/playback/v1/accounts/%s/%ss/%s' % (account_id, content_type, video_id)
-        headers = {}
+        token = smuggled_data.get('token')
+        api_url = f'https://{"edge-auth" if token else "edge"}.api.brightcove.com/playback/v1/accounts/{account_id}/{content_type}s/{video_id}'
+        headers = {'Authorization': f'Bearer {token}'} if token else {}
         referrer = smuggled_data.get('referrer')  # XXX: notice the spelling/case of the key
         if referrer:
             headers.update({
@@ -913,8 +915,8 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
                 json_data = self._download_json(api_url, video_id, headers=headers)
                 break
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
-                    json_data = self._parse_json(e.cause.read().decode(), video_id)[0]
+                if isinstance(e.cause, HTTPError) and e.cause.status in (401, 403):
+                    json_data = self._parse_json(e.cause.response.read().decode(), video_id)[0]
                     message = json_data.get('message') or json_data['error_code']
                     if json_data.get('error_subcode') == 'CLIENT_GEO':
                         self.raise_geo_restricted(msg=message)

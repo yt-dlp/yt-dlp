@@ -73,7 +73,10 @@ class ShemarooMeIE(InfoExtractor):
         key = bytes_to_intlist(compat_b64decode(data_json['key']))
         iv = [0] * 16
         m3u8_url = unpad_pkcs7(intlist_to_bytes(aes_cbc_decrypt(url_data, key, iv))).decode('ascii')
-        formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, fatal=False, headers={'stream_key': data_json['stream_key']})
+        headers = {'stream_key': data_json['stream_key']}
+        formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, fatal=False, headers=headers)
+        for fmt in formats:
+            fmt['http_headers'] = headers
 
         release_date = self._html_search_regex(
             (r'itemprop="uploadDate">\s*([\d-]+)', r'id="release_date" value="([\d-]+)'),

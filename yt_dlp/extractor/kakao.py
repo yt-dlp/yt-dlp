@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -101,8 +101,8 @@ class KakaoIE(InfoExtractor):
                     cdn_api_base, video_id, query=query,
                     note='Downloading video URL for profile %s' % profile_name)
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                    resp = self._parse_json(e.cause.read().decode(), video_id)
+                if isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                    resp = self._parse_json(e.cause.response.read().decode(), video_id)
                     if resp.get('code') == 'GeoBlocked':
                         self.raise_geo_restricted()
                 raise
