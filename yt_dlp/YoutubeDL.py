@@ -60,7 +60,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, _get_system_deprecation, current_git_head, detect_variant
+from .update import REPOSITORY, _get_system_deprecation, _make_label, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -158,7 +158,7 @@ from .utils.networking import (
     clean_proxies,
     std_headers,
 )
-from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
+from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -3544,7 +3544,7 @@ class YoutubeDL:
             'version': __version__,
             'current_git_head': current_git_head(),
             'release_git_head': RELEASE_GIT_HEAD,
-            'repository': REPOSITORY,
+            'repository': ORIGIN,
         })
 
         if remove_private_keys:
@@ -3927,8 +3927,8 @@ class YoutubeDL:
             source += '*'
         klass = type(self)
         write_debug(join_nonempty(
-            f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
-            f'{CHANNEL}@{__version__}',
+            f'{REPOSITORY.rpartition("/")[2]} version',
+            _make_label(ORIGIN, CHANNEL.partition('@')[2] or __version__, __version__),
             f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',

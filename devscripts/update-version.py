@@ -20,7 +20,7 @@ def get_new_version(version, revision):
         version = datetime.now(timezone.utc).strftime('%Y.%m.%d')
 
     if revision:
-        assert revision.isdigit(), 'Revision must be a number'
+        assert revision.isdecimal(), 'Revision must be a number'
     else:
         old_version = read_version().split('.')
         if version.split('.') == old_version[:3]:
@@ -46,6 +46,10 @@ VARIANT = None
 UPDATE_HINT = None
 
 CHANNEL = {channel!r}
+
+ORIGIN = {origin!r}
+
+_pkg_version = {package_version!r}
 '''
 
 if __name__ == '__main__':
@@ -53,6 +57,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '-c', '--channel', default='stable',
         help='Select update channel (default: %(default)s)')
+    parser.add_argument(
+        '-r', '--origin', default='local',
+        help='Select origin/repository (default: %(default)s)')
+    parser.add_argument(
+        '-s', '--suffix', default='',
+        help='Add an alphanumeric suffix to the package version, e.g. "dev"')
     parser.add_argument(
         '-o', '--output', default='yt_dlp/version.py',
         help='The output file to write to (default: %(default)s)')
@@ -66,6 +76,7 @@ if __name__ == '__main__':
         args.version if args.version and '.' in args.version
         else get_new_version(None, args.version))
     write_file(args.output, VERSION_TEMPLATE.format(
-        version=version, git_head=git_head, channel=args.channel))
+        version=version, git_head=git_head, channel=args.channel, origin=args.origin,
+        package_version=f'{version}{args.suffix}'))
 
     print(f'version={version} ({args.channel}), head={git_head}')

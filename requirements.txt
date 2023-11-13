@@ -1,8 +1,9 @@
 mutagen
 pycryptodomex
 websockets
-brotli; platform_python_implementation=='CPython'
-brotlicffi; platform_python_implementation!='CPython'
+brotli; implementation_name=='cpython'
+brotlicffi; implementation_name!='cpython'
 certifi
 requests>=2.31.0,<3
 urllib3>=1.26.17,<3
+secretstorage; sys_platform=='linux' and (implementation_name!='pypy' or implementation_version>='7.3.10')
