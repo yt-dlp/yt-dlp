@@ -54,7 +54,7 @@ class DuoplayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        telecast_id, episode = self._match_valid_url(url).groups()
+        telecast_id, episode = self._match_valid_url(url).group('id', 'ep')
         video_id = join_nonempty(telecast_id, episode, delim='_')
         webpage = self._download_webpage(url, video_id)
         video_player = try_call(lambda: extract_attributes(
