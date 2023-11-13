@@ -53,6 +53,27 @@ class DuoplayIE(InfoExtractor):
             'episode_number': None,
             'episode_id': 14,
         },
+    }, {
+        'note': 'Movie',
+        'url': 'https://duoplay.ee/4325/naljamangud',
+        'md5': '2b0bcac4159a08b1844c2bfde06b1199',
+        'info_dict': {
+            'id': '4325',
+            'ext': 'mp4',
+            'title': 'Näljamängud',
+            'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
+            'description': 'md5:fb35f5eb2ff46cdb82e4d5fbe7b49a13',
+            'cast': ['Jennifer Lawrence', 'Josh Hutcherson', 'Liam Hemsworth'],
+            'upload_date': '20231109',
+            'timestamp': 1699552800,
+            'series': 'Näljamängud',
+            'series_id': '4325',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'episode_id': 0,
+        },
     }]
 
     def _real_extract(self, url):
