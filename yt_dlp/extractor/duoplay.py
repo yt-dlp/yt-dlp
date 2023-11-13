@@ -31,6 +31,7 @@ class DuoplayIE(InfoExtractor):
             'season_number': 2,
             'episode': 'Operatsioon "Öö"',
             'episode_number': 12,
+            'episode_id': 24,
         },
     }, {
         'note': 'Empty title',
@@ -39,7 +40,7 @@ class DuoplayIE(InfoExtractor):
         'info_dict': {
             'id': '17_14',
             'ext': 'mp4',
-            'title': 'Episode 14',
+            'title': 'Ühikarotid',
             'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
             'description': 'md5:4719b418e058c209def41d48b601276e',
             'upload_date': '20100916',
@@ -48,8 +49,9 @@ class DuoplayIE(InfoExtractor):
             'series_id': '17',
             'season': 'Season 2',
             'season_number': 2,
-            'episode': 'Episode 14',
-            'episode_number': 14,
+            'episode': None,
+            'episode_number': None,
+            'episode_id': 14,
         },
     }]
 
