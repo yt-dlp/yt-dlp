@@ -249,13 +249,13 @@ class TwitCastingLiveIE(InfoExtractor):
 
         webpage = self._download_webpage(url, uploader_id)
         is_live = self._search_regex(
-            (r'(data-is-onlive="true")', # public live
-             r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)'), # protected live
+            (r'(data-is-onlive="true")',  # public live
+             r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)'),  # protected live
             webpage, 'is live?', default=None)
         current_live = self._search_regex(
-            (r'data-type="movie" data-id="(\d+)">', # no available?
-             r'tw-sound-flag-open-link" data-id="(\d+)" style=', # no available?
-             r'data-movie-id="(\d+)"',),
+            (r'data-type="movie" data-id="(\d+)">',  # no available?
+             r'tw-sound-flag-open-link" data-id="(\d+)" style=',  # no available?
+             r'data-movie-id="(\d+)"',),  # if uploader didn't have any live, data-movie-id="0"
             webpage, 'current live ID', default=None)
         if is_live and not current_live:
             # fetch unfiltered /show to find running livestreams; we can't get ID of the password-protected livestream above
@@ -268,7 +268,7 @@ class TwitCastingLiveIE(InfoExtractor):
                 current_live = self._search_regex(
                     r'(?s)<a\s+class="tw-movie-thumbnail2"\s*href="/[^/]+/movie/(?P<video_id>\d+)"\s*>.+?</a>',
                     webpage, 'current live ID 2', default=None, group='video_id')
-        if not current_live:
+        if not is_live:
             raise UserNotLive(video_id=uploader_id)
         return self.url_result('https://twitcasting.tv/%s/movie/%s' % (uploader_id, current_live))
 
