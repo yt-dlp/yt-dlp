@@ -1,6 +1,7 @@
 import base64
 import json
 import re
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
@@ -803,6 +804,8 @@ class NBCStationsIE(InfoExtractor):
             smil = self._download_xml(
                 f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
                 note='Downloading SMIL data', query=query, fatal=is_live)
+            if not isinstance(smil, xml.etree.ElementTree.Element):
+                smil = None
         subtitles = self._parse_smil_subtitles(smil, default_ns) if smil is not None else {}
         for video in smil.findall(self._xpath_ns('.//video', default_ns)) if smil is not None else []:
             info['duration'] = float_or_none(remove_end(video.get('dur'), 'ms'), 1000)
