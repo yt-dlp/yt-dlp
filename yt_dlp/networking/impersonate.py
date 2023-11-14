@@ -120,7 +120,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
                     self._logger.stdout(
                         f'{self.RH_NAME}: resolved impersonate target "{compile_impersonate_target(*target)}" '
                         f'to "{compile_impersonate_target(*supported_target)}"')
-                return target
+                return supported_target
 
     def get_supported_targets(self) -> tuple[str]:
         return tuple(compile_impersonate_target(*target) for target in self._get_supported_target_tuples())
@@ -143,8 +143,9 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
     def _get_mapped_target(self, request):
         """Get the resolved mapped target for the request target"""
+        resolved_target = self._resolve_target_tuple(self._get_target_tuple(request))
         return self._SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP.get(
-            self._resolve_target_tuple(self._get_target_tuple(request)), None)
+            resolved_target, None)
 
     def _get_impersonate_headers(self, request):
         headers = self._merge_headers(request.headers)

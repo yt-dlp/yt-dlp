@@ -891,9 +891,9 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
     @pytest.mark.parametrize('params,extensions', [
-        ({}, {'impersonate': 'chrome110'}),
-        ({'impersonate': 'chrome110'}, {}),
-        ({'impersonate': 'chrome99'}, {'impersonate': 'chrome110'})
+        ({}, {'impersonate': 'chrome:110'}),
+        ({'impersonate': 'chrome:110'}, {}),
+        ({'impersonate': 'chrome:99'}, {'impersonate': 'chrome:110'})
     ])
     def test_impersonate(self, handler, params, extensions):
         with handler(headers=std_headers, **params) as rh:
@@ -909,7 +909,7 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
             # Ensure curl-impersonate overrides our standard headers (usually added
             res = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={
-                    'impersonate': 'safari15_3'}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
+                    'impersonate': 'safari'}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
 
             assert std_headers['user-agent'].lower() not in res
             assert std_headers['accept-language'].lower() not in res
@@ -1047,7 +1047,7 @@ class TestRequestHandlerValidation:
             ({'unsupported': 'value'}, UnsupportedRequest),
             ({'impersonate': 'badtarget'}, UnsupportedRequest),
             ({'impersonate': 123}, AssertionError),
-            ({'impersonate': 'chrome110'}, False)
+            ({'impersonate': 'chrome'}, False)
         ]),
         (NoCheckRH, [
             ({'cookiejar': 'notacookiejar'}, False),
