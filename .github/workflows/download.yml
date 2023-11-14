@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: 3.9
     - name: Install test requirements
-      run: pip install pytest
+      run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: true
       run: ./devscripts/run_tests.sh download
@@ -44,8 +44,8 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install pytest
-      run: pip install pytest
+    - name: Install test requirements
+      run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: true
       run: ./devscripts/run_tests.${{ matrix.run-tests-ext }} download
