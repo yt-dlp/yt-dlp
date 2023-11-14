@@ -228,7 +228,7 @@ class DRTVIE(InfoExtractor):
             'subtitles': subtitles,
             **traverse_obj(item, {
                 'title': 'title',
-                'alt_title': 'contextualTitle',                
+                'alt_title': 'contextualTitle',
                 'description': 'description',
                 'thumbnail': ('images', 'wallpaper'),
                 'release_timestamp': ('customFields', 'BroadcastTimeDK', {parse_iso8601}),
