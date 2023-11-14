@@ -26,8 +26,6 @@ from ..utils import (
 class VRTBaseIE(InfoExtractor):
     _GEO_BYPASS = False
 
-    _VIDEOPAGE_QUERY = "query VideoPage($pageId: ID!) {\n page(id: $pageId) {\n  ... on EpisodePage {\n   id\n   title\n   seo {\n    ...seoFragment\n    __typename\n   }\n   ldjson\n   episode {\n    onTimeRaw\n    ageRaw\n    name\n    episodeNumberRaw\n    program {\n     title\n     __typename\n    }\n    watchAction {\n     streamId\n     __typename\n    }\n    __typename\n   }\n   __typename\n  }\n  __typename\n }\n}\nfragment seoFragment on SeoProperties {\n __typename\n title\n description\n}"
-
     _authenticated = False
 
     def _perform_login(self, username, password):
@@ -224,14 +222,14 @@ class VrtNUIE(VRTBaseIE):
     }]
     _NETRC_MACHINE = 'vrtnu'
 
+    _VIDEOPAGE_QUERY = "query VideoPage($pageId: ID!) {\n page(id: $pageId) {\n  ... on EpisodePage {\n   id\n   title\n   seo {\n    ...seoFragment\n    __typename\n   }\n   ldjson\n   episode {\n    onTimeRaw\n    ageRaw\n    name\n    episodeNumberRaw\n    program {\n     title\n     __typename\n    }\n    watchAction {\n     streamId\n     __typename\n    }\n    __typename\n   }\n   __typename\n  }\n  __typename\n }\n}\nfragment seoFragment on SeoProperties {\n __typename\n title\n description\n}"
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         parsed_url = urllib.parse.urlparse(url)
 
-        # 1. Obtain/refresh 'vrtnu-site_profile' tokens
         self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting tokens', errnote='Failed to get tokens')
 
-        # 2. Perform GraphQL query to obtain video metadata
         metadata = self._download_json(
             'https://www.vrt.be/vrtnu-api/graphql/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
@@ -240,9 +238,9 @@ class VrtNUIE(VRTBaseIE):
             )['data']['page']
 
         video_id = metadata['episode']['watchAction']['streamId']
+        # TODO : handle parse errors
         ld_json = json.loads(metadata['ldjson'][1])
 
-        # 3. Obtain streaming info
         streaming_info = self._call_api(video_id, client='vrtnu-web@PROD')
         formats, subtitles = self._extract_formats_and_subtitles(streaming_info, video_id)
 
