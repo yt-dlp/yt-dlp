@@ -3,7 +3,7 @@ import json
 import urllib.parse
 import urllib.request
 
-from .gigya import GigyaBaseIE
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -12,8 +12,6 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_class,
     int_or_none,
-    #     join_nonempty,
-    #     jwt_encode_hs256,
     make_archive_id,
     parse_age_limit,
     parse_iso8601,
@@ -25,42 +23,28 @@ from ..utils import (
 )
 
 
-def parse_year(timestamp):
-    """ Return the first 4 characters as an int """
-    if isinstance(timestamp, str) and len(timestamp) >= 4:
-        return int_or_none(timestamp[:4])
-    else:
-        return None
-
-
-class VRTBaseIE(GigyaBaseIE):
+class VRTBaseIE(InfoExtractor):
     _GEO_BYPASS = False
-
-#     _PLAYER_INFO = {
-#         'platform': 'desktop',
-#         'app': {
-#            'type': 'browser',
-#            'name': 'Chrome'
-#            },
-#         'device': 'undefined (undefined)',
-#         'os': {
-#            'name': 'Windows',
-#            'version': 'x86_64'
-#            },
-#         'player': {
-#            'name': 'VRT web player',
-#            'version': '3.2.6-prod-2023-09-11T12:37:41'
-#            }
-#         }
 
     _VIDEOPAGE_QUERY = "query VideoPage($pageId: ID!) {\n page(id: $pageId) {\n  ... on EpisodePage {\n   id\n   title\n   seo {\n    ...seoFragment\n    __typename\n   }\n   ldjson\n   episode {\n    onTimeRaw\n    ageRaw\n    name\n    episodeNumberRaw\n    program {\n     title\n     __typename\n    }\n    watchAction {\n     streamId\n     __typename\n    }\n    __typename\n   }\n   __typename\n  }\n  __typename\n }\n}\nfragment seoFragment on SeoProperties {\n __typename\n title\n description\n}"
 
-    # From https://player.vrt.be/vrtnws/js/main.js & https://player.vrt.be/ketnet/js/main.8cdb11341bcb79e4cd44.js
-    _JWT_KEY_ID = '0-0Fp51UZykfaiCJrfTE3+oMI8zvDteYfPtR+2n1R+z8w='
-    _JWT_SIGNING_KEY = '2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae'
-#     _JWT_SIGNING_KEY = 'b5f500d55cb44715107249ccd8a5c0136cfb2788dbb71b90a4f142423bacaf38'  # -dev
-    # player-stag.vrt.be key:    d23987504521ae6fbf2716caca6700a24bb1579477b43c84e146b279de5ca595
-    # player.vrt.be key:         2a9251d782700769fb856da5725daf38661874ca6f80ae7dc2b05ec1a81a24ae
+    _authenticated = False
+
+    def _perform_login(self, username, password):
+
+        self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting session cookies', errnote='Failed to get session cookies')
+
+        self._download_json(
+            'https://login.vrt.be/perform_login', None, data=json.dumps({
+                'loginID': username,
+                'password': password,
+                'clientId': 'vrtnu-site'
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+            }, note='Logging in', errnote='Login failed')
+        self._authenticated = True
+        return
 
     def _extract_formats_and_subtitles(self, data, video_id):
         if traverse_obj(data, 'drm'):
@@ -100,14 +84,11 @@ class VRTBaseIE(GigyaBaseIE):
         return formats, subtitles
 
     def _call_api(self, video_id, client='null', id_token=None, version='v2'):
-        # player_info = {'exp': (round(time.time(), 3) + 900), **self._PLAYER_INFO}
-        # player_info_jwt = jwt_encode_hs256(player_info, self._JWT_SIGNING_KEY, headers={
-        #   'kid': self._JWT_KEY_ID
-        #   }).decode()
-
         json_response = self._download_json(
             f'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/{version}/tokens',
-            None, 'Downloading player token', 'Failed to download player token', headers={'Content-Type': 'application/json'}, data=json.dumps({'identityToken': id_token or self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_vt").value}).encode())
+            None, 'Downloading player token', 'Failed to download player token',
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps({'identityToken': id_token or self._get_cookies('https://www.vrt.be').get('vrtnu-site_profile_vt').value}).encode())
         player_token = json_response['vrtPlayerToken']
 
         return self._download_json(
@@ -153,54 +134,6 @@ class VRTIE(VRTBaseIE):
         'HLS': 'm3u8_native',
         'HLS_AES': 'm3u8_native',
     }
-
-    _authenticated = False
-
-    def _perform_login(self, username, password):
-        auth_info = self._gigya_login({
-            'APIKey': self._APIKEY,
-            'targetEnv': 'jssdk',
-            'loginID': username,
-            'password': password,
-            'authMode': 'cookie',
-        })
-
-        if auth_info.get('errorDetails'):
-            raise ExtractorError('Unable to login: VrtNU said: ' + auth_info.get('errorDetails'), expected=True)
-
-        # Sometimes authentication fails for no good reason, retry
-        login_attempt = 1
-        while login_attempt <= 3:
-            try:
-                self._request_webpage('https://token.vrt.be/vrtnuinitlogin',
-                                      None, note='Requesting XSRF Token', errnote='Could not get XSRF Token',
-                                      query={'provider': 'site', 'destination': 'https://www.vrt.be/vrtnu/'})
-
-                post_data = {
-                    'UID': auth_info['UID'],
-                    'UIDSignature': auth_info['UIDSignature'],
-                    'signatureTimestamp': auth_info['signatureTimestamp'],
-                    '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-                }
-
-                self._request_webpage(
-                    'https://login.vrt.be/perform_login',
-                    None, note='Performing login', errnote='perform login failed',
-                    headers={}, query={
-                        'client_id': 'vrtnu-site'
-                    }, data=urlencode_postdata(post_data))
-
-            except ExtractorError as e:
-                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
-                    login_attempt += 1
-                    self.report_warning('Authentication failed')
-                    self._sleep(1, None, msg_template='Waiting for %(timeout)s seconds before trying again')
-                else:
-                    raise e
-            else:
-                break
-
-        self._authenticated = True
 
     def _real_extract(self, url):
         site, display_id = self._match_valid_url(url).groups()
@@ -290,23 +223,6 @@ class VrtNUIE(VRTBaseIE):
         'params': {'skip_download': 'm3u8'},
     }]
     _NETRC_MACHINE = 'vrtnu'
-    _authenticated = False
-
-    def _perform_login(self, username, password):
-
-        self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting session cookies', errnote='Failed to get session cookies')
-
-        self._download_json(
-            'https://login.vrt.be/perform_login', None, data=json.dumps({
-                "loginID": username,
-                "password": password,
-                "clientId": "vrtnu-site"
-            }).encode(), headers={
-                'Content-Type': 'application/json',
-                'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-            }, note='Logging in', errnote='Login failed')
-        self._authenticated = True
-        return
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -331,7 +247,10 @@ class VrtNUIE(VRTBaseIE):
 
         metadata = self._download_json(
             'https://www.vrt.be/vrtnu-api/graphql/v1',
-            display_id, 'Downloading asset JSON', 'Unable to download asset JSON', headers=headers, data=json.dumps(data).encode())['data']['page']
+            display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
+            headers=headers,
+            data=json.dumps(data).encode()
+            )['data']['page']
 
         video_id = metadata['episode']['watchAction']['streamId']
         ld_json = json.loads(metadata['ldjson'][1])
@@ -343,7 +262,7 @@ class VrtNUIE(VRTBaseIE):
         return {
             **traverse_obj(metadata, {
                 'title': ('seo', 'title', {str_or_none}),
-                'season_number': ('episode', 'onTimeRaw', {parse_year}),
+                'season_number': ('episode', 'onTimeRaw', {lambda x: x[:4]}, {int_or_none}),
                 'description': ('seo', 'description', {str_or_none}),
                 'timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
                 'release_timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
