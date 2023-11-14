@@ -1,7 +1,7 @@
-try:
-    import importlib.metadata  # noqa: F401
-except Exception:
-    raise Exception(
+import sys
+
+if sys.version_info < (3, 8):
+    raise ImportError(
         f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'Public Domain'
@@ -12,7 +12,6 @@ import itertools
 import optparse
 import os
 import re
-import sys
 import traceback
 
 from .compat import compat_shlex_quote
