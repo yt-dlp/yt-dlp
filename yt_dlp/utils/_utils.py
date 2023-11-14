@@ -55,6 +55,7 @@ from ..compat import (
     compat_shlex_quote,
 )
 from ..dependencies import websockets, xattr
+from ..version import __version__ as package_version
 
 __name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
 
@@ -4657,6 +4658,14 @@ def get_user_config_dirs(package_name):
 def get_system_config_dirs(package_name):
     # /etc/package_name
     yield os.path.join('/etc', package_name)
+
+def get_default_user_agent() -> str:
+    """
+    Return a default user_agent for the http header.
+
+    :return: A string with the default user agent.
+    """
+    return 'yt-dpl {0}'.format(package_version)
 
 
 def time_seconds(**kwargs):

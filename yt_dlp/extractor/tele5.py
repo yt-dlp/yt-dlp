@@ -6,13 +6,8 @@ from traceback import format_exception
 from .dplay import DPlayIE
 from ..compat import compat_urlparse
 from ..utils import (
-    ExtractorError,
+    ExtractorError, get_default_user_agent,
 )
-from ..version import __version__ as package_version
-
-
-def get_default_user_agent() -> str:
-    return 'yt-dpl {0}'.format(package_version)
 
 
 def _generate_video_specific_cache_url(slug, parent_slug):
