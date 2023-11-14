@@ -2478,7 +2478,10 @@ from .xtube import XTubeUserIE, XTubeIE
 from .xuite import XuiteIE
 from .xvideos import (
     XVideosIE,
-    XVideosQuickiesIE
+    XVideosChannelIE,
+    XVideosPlaylistIE,
+    XVideosRelatedIE,
+    XVideosSearchIE,
 )
 from .xxxymovies import XXXYMoviesIE
 from .yahoo import (
