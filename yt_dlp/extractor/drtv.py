@@ -73,7 +73,6 @@ class DRTVIE(InfoExtractor):
             'id': '00951930010',
             'ext': 'mp4',
             'title': 'Frank & Kastaniegaarden',
-            'alt_title': None,
             'description': 'md5:974e1780934cf3275ef10280204bccb0',
             'release_timestamp': 1546545600,
             'release_date': '20190103',
@@ -313,6 +312,7 @@ class DRTVSeasonIE(InfoExtractor):
             'title': 'Frank & Kastaniegaarden',
             'series': 'Frank & Kastaniegaarden',
             'season_number': 2008,
+            'alt_title': 'Season 2008',
         },
         'playlist_mincount': 8
     }, {
@@ -323,6 +323,7 @@ class DRTVSeasonIE(InfoExtractor):
             'title': 'Frank & Kastaniegaarden',
             'series': 'Frank & Kastaniegaarden',
             'season_number': 2009,
+            'alt_title': 'Season 2009',
         },
         'playlist_mincount': 19
     }]
@@ -367,6 +368,7 @@ class DRTVSeriesIE(InfoExtractor):
             'display_id': 'frank-and-kastaniegaarden',
             'title': 'Frank & Kastaniegaarden',
             'series': 'Frank & Kastaniegaarden',
+            'alt_title': '',
         },
         'playlist_mincount': 15
     }]
