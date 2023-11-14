@@ -561,8 +561,8 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
         }
 
 
-class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:PostcastEpisode'
+class ZingMp3PodcastEpisodeIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:PodcastEpisode'
     _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'pgr|cgr'
     _TESTS = [{
         'url': 'https://zingmp3.vn/pgr/Nhac-Moi-Moi-Ngay/68Z9W66B.html',
@@ -589,15 +589,15 @@ class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
         })
 
     def _real_extract(self, url):
-        post_cast_id, url_type = self._match_valid_url(url).group('id', 'type')
-        post_cast_info = self._call_api(url_type, {'id': post_cast_id})
-        entries = self._paged_list(post_cast_id, 'pgr-list' if url_type == 'pgr' else 'cgr-list')
+        podcast_id, url_type = self._match_valid_url(url).group('id', 'type')
+        podcast_info = self._call_api(url_type, {'id': podcast_id})
+        entries = self._paged_list(podcast_id, 'pgr-list' if url_type == 'pgr' else 'cgr-list')
         return self.playlist_result(
-            entries, post_cast_id, post_cast_info.get('title'), post_cast_info.get('description'))
+            entries, podcast_id, podcast_info.get('title'), podcast_info.get('description'))
 
 
-class ZingMp3PostCastCategoriesIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:postcast-categories'
+class ZingMp3PodcastCategoriesIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:podcast-categories'
     _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:cgr|top-podcast))/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://zingmp3.vn/cgr',
@@ -619,8 +619,8 @@ class ZingMp3PostCastCategoriesIE(ZingMp3BaseIE):
         return self.playlist_result(self._parse_items(data.get('items')), url_type)
 
 
-class ZingMp3PostCastNewIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:postcast-new'
+class ZingMp3PodcastNewIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:podcast-new'
     _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>podcast-new)/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://zingmp3.vn/podcast-new',
