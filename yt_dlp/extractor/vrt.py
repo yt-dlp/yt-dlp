@@ -232,24 +232,11 @@ class VrtNUIE(VRTBaseIE):
         self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting tokens', errnote='Failed to get tokens')
 
         # 2. Perform GraphQL query to obtain video metadata
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_at").value}'
-        }
-
-        data = {
-            'operationName': 'VideoPage',
-            'query': self._VIDEOPAGE_QUERY,
-            'variables': {
-                'pageId': f'{parsed_url.path.rstrip("/")}.model.json'
-            }
-        }
-
         metadata = self._download_json(
             'https://www.vrt.be/vrtnu-api/graphql/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
-            headers=headers,
-            data=json.dumps(data).encode()
+            headers={ 'Content-Type': 'application/json', 'Authorization': f'Bearer {self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_at").value}'},
+            data=json.dumps({'operationName': 'VideoPage', 'query': self._VIDEOPAGE_QUERY, 'variables': { 'pageId': f'{parsed_url.path.rstrip("/")}.model.json' } }).encode()
             )['data']['page']
 
         video_id = metadata['episode']['watchAction']['streamId']
