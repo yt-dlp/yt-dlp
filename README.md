@@ -380,7 +380,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     CHANNEL can be a repository as well. CHANNEL
                                     and TAG default to "stable" and "latest"
                                     respectively if omitted; See "UPDATE" for
-                                    details. Supported channels: stable, nightly
+                                    details. Supported channels: stable,
+                                    nightly, master
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
