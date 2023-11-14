@@ -68,11 +68,12 @@ class DRTVIE(InfoExtractor):
         },
         'skip': 'this video has been removed',
     }, {
-        'url': 'https://www.dr.dk/drtv/se/bonderoeven_71769',
+        'url': 'https://www.dr.dk/drtv/se/frank-and-kastaniegaarden_71769',
         'info_dict': {
             'id': '00951930010',
             'ext': 'mp4',
             'title': 'Frank & Kastaniegaarden',
+            'alt_title': None,
             'description': 'md5:974e1780934cf3275ef10280204bccb0',
             'release_timestamp': 1546545600,
             'release_date': '20190103',
@@ -97,6 +98,7 @@ class DRTVIE(InfoExtractor):
             'ext': 'mp4',
             'episode_number': 1,
             'title': 'Spise med Price: Pasta Selv',
+            'alt_title': '1. Pasta Selv',
             'release_date': '20230807',
             'description': 'md5:2da9060524fed707810d71080b3d0cd8',
             'duration': 1750,
