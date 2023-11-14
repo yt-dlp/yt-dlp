@@ -58,12 +58,12 @@ class VideoKenBaseIE(InfoExtractor):
                 video_url = video_id
                 ie_key = 'Youtube'
             else:
-                video_url = traverse_obj(video, 'embed_url', 'embeddableurl')
-                if urllib.parse.urlparse(video_url).hostname.endswith('slideslive.com'):
+                video_url = traverse_obj(video, 'embed_url', 'embeddableurl', expected_type=url_or_none)
+                if not video_url:
+                    continue
+                elif urllib.parse.urlparse(video_url).hostname == 'slideslive.com':
                     ie_key = SlidesLiveIE
                     video_url = self._create_slideslive_url(video_url, video_id, url)
-            if not video_url:
-                continue
             yield self.url_result(video_url, ie_key, video_id)
 
 
