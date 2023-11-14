@@ -5,7 +5,6 @@ import urllib.request
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     clean_html,
     extract_attributes,
     float_or_none,
@@ -19,7 +18,6 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     url_or_none,
-    urlencode_postdata,
 )
 
 
@@ -233,9 +231,9 @@ class VrtNUIE(VRTBaseIE):
         metadata = self._download_json(
             'https://www.vrt.be/vrtnu-api/graphql/v1',
             display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
-            headers={ 'Content-Type': 'application/json', 'Authorization': f'Bearer {self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_at").value}'},
-            data=json.dumps({'operationName': 'VideoPage', 'query': self._VIDEOPAGE_QUERY, 'variables': { 'pageId': f'{parsed_url.path.rstrip("/")}.model.json' } }).encode()
-            )['data']['page']
+            headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {self._get_cookies("https://www.vrt.be").get("vrtnu-site_profile_at").value}'},
+            data=json.dumps({'operationName': 'VideoPage', 'query': self._VIDEOPAGE_QUERY, 'variables': {'pageId': f'{parsed_url.path.rstrip("/")}.model.json'}}).encode()
+        )['data']['page']
 
         video_id = metadata['episode']['watchAction']['streamId']
         # TODO : handle parse errors
