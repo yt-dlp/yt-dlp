@@ -228,6 +228,7 @@ class DRTVIE(InfoExtractor):
             'subtitles': subtitles,
             **traverse_obj(item, {
                 'title': 'title',
+                'alt_title': 'contextualTitle',                
                 'description': 'description',
                 'thumbnail': ('images', 'wallpaper'),
                 'release_timestamp': ('customFields', 'BroadcastTimeDK', {parse_iso8601}),
@@ -333,6 +334,7 @@ class DRTVSeasonIE(InfoExtractor):
             'url': f'https://www.dr.dk/drtv{episode["path"]}',
             'ie_key': DRTVIE.ie_key(),
             'title': episode.get('title'),
+            'alt_title': episode.get('contextualTitle'),
             'episode': episode.get('episodeName'),
             'description': episode.get('shortDescription'),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
@@ -345,6 +347,7 @@ class DRTVSeasonIE(InfoExtractor):
             'id': season_id,
             'display_id': display_id,
             'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'alt_title': traverse_obj(data, ('entries', 0, 'item', 'contextualTitle')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'entries': entries,
             'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
@@ -375,6 +378,7 @@ class DRTVSeriesIE(InfoExtractor):
             'url': f'https://www.dr.dk/drtv{season.get("path")}',
             'ie_key': DRTVSeasonIE.ie_key(),
             'title': season.get('title'),
+            'alt_title': season.get('contextualTitle'),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
         } for season in traverse_obj(data, ('entries', 0, 'item', 'show', 'seasons', 'items'))]
@@ -384,6 +388,7 @@ class DRTVSeriesIE(InfoExtractor):
             'id': series_id,
             'display_id': display_id,
             'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'alt_title': traverse_obj(data, ('entries', 0, 'item', 'contextualTitle')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'entries': entries
         }
