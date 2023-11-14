@@ -440,8 +440,8 @@ jobs:
           lock 2023.11.14 .+ Python 3.7
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3.6
           lockV2 yt-dlp/yt-dlp 2023.11.14 .+ Python 3.7
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.14.111111 .+ Python 3.7
-          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.14.999999 .+ Python 3.7
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.14.232721 .+ Python 3.7
+          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.14.214307 .+ Python 3.7
           EOF
 
       - name: Sign checksum files
