@@ -6,7 +6,7 @@ from ..utils import (
 )
 
 
-class JioSaavnBaseInfoExtractor(InfoExtractor):
+class JioSaavnBaseIE(InfoExtractor):
     def _extract_initial_data(self, url, audio_id):
         webpage = self._download_webpage(url, audio_id)
         return self._search_json(
@@ -14,7 +14,7 @@ class JioSaavnBaseInfoExtractor(InfoExtractor):
             'init json', audio_id, transform_source=js_to_json)
 
 
-class JioSaavnSongIE(JioSaavnBaseInfoExtractor):
+class JioSaavnSongIE(JioSaavnBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/song/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/song/leja-re/OQsEfQFVUXk',
@@ -57,7 +57,7 @@ class JioSaavnSongIE(JioSaavnBaseInfoExtractor):
         }
 
 
-class JioSaavnAlbumIE(JioSaavnBaseInfoExtractor):
+class JioSaavnAlbumIE(JioSaavnBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/album/[^/?#]+/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/album/96/buIOjYZDrNA_',
