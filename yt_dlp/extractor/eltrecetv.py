@@ -40,11 +40,9 @@ class ElTreceTVIE(InfoExtractor):
     def _real_extract(self, url):
         slug = self._match_id(url)
         webpage = self._download_webpage(url, slug)
-
-        config = self._search_json(r'Fusion.globalContent\s*=', webpage, 'content', slug)['promo_items']['basic']['embed']['config']
-
+        config = self._search_json(
+            r'Fusion.globalContent\s*=', webpage, 'content', slug)['promo_items']['basic']['embed']['config']
         video_url = config['m3u8']
-
         video_id = self._search_regex(r'/(\w+)\.m3u8', video_url, 'video id', default=slug)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4', m3u8_id='hls')
