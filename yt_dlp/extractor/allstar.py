@@ -66,10 +66,8 @@ class AllstarBase(InfoExtractor):
         def _media_url_or_none(path):
             return urljoin('https://media.allstar.gg/', str_or_none(path))
 
-
         def _profile_url_or_none(path):
             return urljoin('https:/allstar.gg/u/', str_or_none(path))
-
 
         return traverse_obj(video_data, {
             'id': ('_id', {str_or_none}),
@@ -225,7 +223,6 @@ class AllstarProfileIE(AllstarBase):
         info_dict['webpage_url_basename'] = base_name
 
         return info_dict
-
 
     def _get_page(self, user_id, game, query_id, page_num):
         page_num += 1
