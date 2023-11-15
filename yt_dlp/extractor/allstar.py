@@ -251,7 +251,7 @@ class AllstarProfileIE(AllstarBase):
         query_id = view.lower()
 
         if query_id not in ('clips', 'montages', 'mobile clips'):
-            raise UnsupportedError(f'view={view}')
+            raise UnsupportedError(url)
 
         assert query_id in _QUERIES
 
