@@ -1,14 +1,11 @@
 name: Release (nightly)
 on: [push, workflow_dispatch]
-concurrency:
-  group: release-nightly
-  cancel-in-progress: true
 permissions:
   contents: read
 
 jobs:
-  prepare:
-    if: vars.BUILD_NIGHTLY != '' && !contains(github.event.head_commit.message, 'ci skip build')
+  check_nightly:
+    if: vars.BUILD_NIGHTLY != ''
     runs-on: ubuntu-latest
     outputs:
       commit: ${{ steps.check_for_new_commits.outputs.commit }}
@@ -23,6 +20,7 @@ jobs:
           echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
   release:
+    needs: [check_nightly]
     if: ${{ needs.check_nightly.outputs.commit }}
     uses: ./.github/workflows/release.yml
     with:
