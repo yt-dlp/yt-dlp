@@ -8,7 +8,7 @@ from ..utils import (
 
 class JioSaavnBaseInfoExtractor(InfoExtractor):
     def _extract_initial_data(self, url, audio_id):
-        webpage = self._download_webpage(url, id)
+        webpage = self._download_webpage(url, audio_id)
         return self._search_json(
             r'window\.__INITIAL_DATA__\s*=', webpage,
             'init json', audio_id, transform_source=js_to_json)
