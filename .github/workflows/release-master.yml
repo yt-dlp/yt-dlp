@@ -1,13 +1,5 @@
 name: Release (master)
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - "yt_dlp/**.py"
-      - "!yt_dlp/version.py"
-      - "setup.py"
-      - "pyinst.py"
+on: [push, workflow_dispatch]
 concurrency:
   group: release-master
   cancel-in-progress: true
