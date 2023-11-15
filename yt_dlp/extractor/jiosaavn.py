@@ -74,7 +74,7 @@ class JioSaavnAlbumIE(JioSaavnBaseIE):
         album_id = self._match_id(url)
         album_view = self._extract_initial_data(url, album_id)['albumView']
 
-        self.playlist_from_matches(
+        return self.playlist_from_matches(
             traverse_obj(album_view, (
                 'modules', lambda _, x: x['key'] == 'list', 'data', ..., 'title', 'action', {str})),
             album_id, traverse_obj(album_view, ('album', 'title', 'text', {str})), ie=JioSaavnSongIE,
