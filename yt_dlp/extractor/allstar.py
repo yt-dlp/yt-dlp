@@ -59,8 +59,6 @@ _QUERIES = {
     }''' % (_FIELDS, _EXTRA_FIELDS),
 }
 
-_PAGESIZE = 10
-
 
 def _media_url_or_none(path):
     return urljoin('https://media.allstar.gg/', str_or_none(path))
@@ -226,6 +224,8 @@ class AllstarProfileIE(AllstarBase):
         'playlist_mincount': 1
     }]
 
+    _PAGE_SIZE = 10
+
     def _get_page(self, user_id, game, query_id, page_num):
         page_num += 1
 
@@ -260,5 +260,5 @@ class AllstarProfileIE(AllstarBase):
         return self.playlist_result(
             OnDemandPagedList(
                 functools.partial(
-                    self._get_page, user_id, game, query_id), _PAGESIZE),
+                    self._get_page, user_id, game, query_id), self._PAGE_SIZE),
             user_id, f'{user_name} - {view}')
