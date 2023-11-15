@@ -72,7 +72,7 @@ class JioSaavnAlbumIE(JioSaavnBaseIE):
 
     def _real_extract(self, url):
         album_id = self._match_id(url)
-        album_view = self._extract_initial_data(url, album_id)['album_view']
+        album_view = self._extract_initial_data(url, album_id)['albumView']
 
         self.playlist_from_matches(
             traverse_obj(album_view, (
