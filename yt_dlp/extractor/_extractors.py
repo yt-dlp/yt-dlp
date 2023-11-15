@@ -896,6 +896,10 @@ from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
 from .joj import JojIE
 from .jstream import JStreamIE
+from .jtbc import (
+    JTBCIE,
+    JTBCProgramIE,
+)
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
@@ -949,6 +953,7 @@ from .lastfm import (
     LastFMPlaylistIE,
     LastFMUserIE,
 )
+from .laxarxames import LaXarxaMesIE
 from .lbry import (
     LBRYIE,
     LBRYChannelIE,
@@ -1053,6 +1058,7 @@ from .markiza import (
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
+from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
 from .mediaite import MediaiteIE
@@ -1382,7 +1388,10 @@ from .oftv import (
 from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
 from .on24 import On24IE
-from .ondemandkorea import OnDemandKoreaIE
+from .ondemandkorea import (
+    OnDemandKoreaIE,
+    OnDemandKoreaProgramIE,
+)
 from .onefootball import OneFootballIE
 from .onenewsnz import OneNewsNZIE
 from .oneplace import OnePlacePodcastIE
@@ -1411,6 +1420,7 @@ from .orf import (
     ORFTVthekIE,
     ORFFM4StoryIE,
     ORFRadioIE,
+    ORFPodcastIE,
     ORFIPTVIE,
 )
 from .outsidetv import OutsideTVIE
@@ -1572,6 +1582,10 @@ from .radiko import RadikoIE, RadikoRadioIE
 from .radiocanada import (
     RadioCanadaIE,
     RadioCanadaAudioVideoIE,
+)
+from .radiocomercial import (
+    RadioComercialIE,
+    RadioComercialPlaylistIE,
 )
 from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
@@ -1753,6 +1767,11 @@ from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
 from .savefrom import SaveFromIE
 from .sbs import SBSIE
+from .sbscokr import (
+    SBSCoKrIE,
+    SBSCoKrAllvodProgramIE,
+    SBSCoKrProgramsVodIE,
+)
 from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastify import ScreencastifyIE
@@ -1897,6 +1916,8 @@ from .srmediathek import SRMediathekIE
 from .stacommu import (
     StacommuLiveIE,
     StacommuVODIE,
+    TheaterComplexTownVODIE,
+    TheaterComplexTownPPVIE,
 )
 from .stanfordoc import StanfordOpenClassroomIE
 from .startv import StarTVIE
@@ -1992,7 +2013,10 @@ from .tencent import (
     WeTvSeriesIE,
 )
 from .tennistv import TennisTVIE
-from .tenplay import TenPlayIE
+from .tenplay import (
+    TenPlayIE,
+    TenPlaySeasonIE,
+)
 from .testurl import TestURLIE
 from .tf1 import TF1IE
 from .tfo import TFOIE
@@ -2006,7 +2030,6 @@ from .thestar import TheStarIE
 from .thesun import TheSunIE
 from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
-from .thisav import ThisAVIE
 from .thisoldhouse import ThisOldHouseIE
 from .thisvid import (
     ThisVidIE,

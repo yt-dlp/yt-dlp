@@ -20,7 +20,7 @@ class YoukuIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         (?:
             https?://(
-                (?:v|player)\.youku\.com/(?:v_show/id_|player\.php/sid/)|
+                (?:v|play(?:er)?)\.(?:youku|tudou)\.com/(?:v_show/id_|player\.php/sid/)|
                 video\.tudou\.com/v/)|
             youku:)
         (?P<id>[A-Za-z0-9]+)(?:\.html|/v\.swf|)
@@ -86,6 +86,19 @@ class YoukuIE(InfoExtractor):
             'uploader_id': '1640913339',
             'uploader_url': 'https://www.youku.com/profile/index/?uid=UNjU2MzY1MzM1Ng==',
             'tags': list,
+        },
+    }, {
+        'url': 'https://play.tudou.com/v_show/id_XNjAxNjI2OTU3Ng==.html?',
+        'info_dict': {
+            'id': 'XNjAxNjI2OTU3Ng',
+            'ext': 'mp4',
+            'title': '阿斯塔意识到哈里杀了人，自己被骗了',
+            'thumbnail': 'https://m.ykimg.com/0541010164F732752794D4D7B70331D1',
+            'uploader_id': '88758207',
+            'tags': [],
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UMzU1MDMyODI4',
+            'uploader': '英美剧场',
+            'duration': 72.91,
         },
     }]
 
