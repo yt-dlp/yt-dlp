@@ -193,9 +193,9 @@ class DRTVIE(InfoExtractor):
 
         formats = []
         subtitles = {}
-        for fmt in traverse_obj(stream_data, (lambda _, x: x['url'])):
-            format_id = fmt.get('format', 'na')
-            access_service = fmt.get('accessService')
+        for stream in traverse_obj(stream_data, (lambda _, x: x['url'])):
+            format_id = stream.get('format', 'na')
+            access_service = stream.get('accessService')
             preference = None
             subtitle_suffix = ''
             if access_service in ('SpokenSubtitles', 'SignLanguage', 'VisuallyInterpreted'):
@@ -205,10 +205,10 @@ class DRTVIE(InfoExtractor):
             elif access_service == 'StandardVideo':
                 preference = 1
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                fmt.get('url'), video_id, preference=preference, m3u8_id=format_id, fatal=False)
+                stream.get('url'), video_id, preference=preference, m3u8_id=format_id, fatal=False)
             formats.extend(fmts)
 
-            api_subtitles = traverse_obj(fmt, ('subtitles', lambda _, v: url_or_none(v['link']), {dict}))
+            api_subtitles = traverse_obj(stream, ('subtitles', lambda _, v: url_or_none(v['link']), {dict}))
             if not api_subtitles:
                 self._merge_subtitles(subs, target=subtitles)
 
