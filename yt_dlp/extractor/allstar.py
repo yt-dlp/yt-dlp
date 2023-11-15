@@ -60,32 +60,6 @@ _QUERIES = {
 }
 
 
-def _media_url_or_none(path):
-    return urljoin('https://media.allstar.gg/', str_or_none(path))
-
-
-def _profile_url_or_none(path):
-    return urljoin('https:/allstar.gg/u/', str_or_none(path))
-
-
-def _parse_video_data(video_data):
-    return traverse_obj(video_data, {
-        'id': ('_id', {str_or_none}),
-        'display_id': ('shareId', {str_or_none}),
-        'title': ('clipTitle', {str_or_none}),
-        'url': ('clipLink', {_media_url_or_none}),
-        'thumbnail': ('clipImageThumb', {_media_url_or_none}),
-        'duration': ('clipLength', {int_or_none}),
-        'filesize': ('clipSizeBytes', {int_or_none}),
-        'timestamp': ('createdDate', {int_or_none}),
-        'uploader': ('username', {str_or_none}),
-        'uploader_id': ('user', '_id', {str_or_none}),
-        'uploader_url': ('user', '_id', {_profile_url_or_none}),
-        'view_count': ('views', {int_or_none}),
-        'categories': ('game', {str_or_none}),
-    })
-
-
 def _set_webpage_url(info_dict):
     video_id = info_dict.get('id')
     video_url = info_dict.get('url')
@@ -101,6 +75,32 @@ def _set_webpage_url(info_dict):
 
 
 class AllstarBase(InfoExtractor):
+    @staticmethod
+    def _parse_video_data(video_data):
+        def _media_url_or_none(path):
+            return urljoin('https://media.allstar.gg/', str_or_none(path))
+
+
+        def _profile_url_or_none(path):
+            return urljoin('https:/allstar.gg/u/', str_or_none(path))
+
+
+        return traverse_obj(video_data, {
+            'id': ('_id', {str_or_none}),
+            'display_id': ('shareId', {str_or_none}),
+            'title': ('clipTitle', {str_or_none}),
+            'url': ('clipLink', {_media_url_or_none}),
+            'thumbnail': ('clipImageThumb', {_media_url_or_none}),
+            'duration': ('clipLength', {int_or_none}),
+            'filesize': ('clipSizeBytes', {int_or_none}),
+            'timestamp': ('createdDate', {int_or_none}),
+            'uploader': ('username', {str_or_none}),
+            'uploader_id': ('user', '_id', {str_or_none}),
+            'uploader_url': ('user', '_id', {_profile_url_or_none}),
+            'view_count': ('views', {int_or_none}),
+            'categories': ('game', {str_or_none}),
+        })
+
     def _send_query(self, query, variables={}, path=(), video_id=None, note=None):
         response = self._download_json(
             'https://a1.allstar.gg/graphql', video_id, note=note,
@@ -185,7 +185,7 @@ class AllstarIE(AllstarBase):
 
         assert query_id in _QUERIES
 
-        return _parse_video_data(
+        return self._parse_video_data(
             self._send_query(
                 _QUERIES.get(query_id), {'id': video_id},
                 ('data', 'video'), video_id))
@@ -235,7 +235,7 @@ class AllstarProfileIE(AllstarBase):
                     'page': page_num,
                     'game': int_or_none(game),
                 }, ('data', 'videos', 'data'), user_id, f'Downloading page {page_num}'):
-            yield _set_webpage_url(_parse_video_data(video_data))
+            yield _set_webpage_url(self._parse_video_data(video_data))
 
     def _get_user_data(self, user_id, path=()):
         return traverse_obj(
