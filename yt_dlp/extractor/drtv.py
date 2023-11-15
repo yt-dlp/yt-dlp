@@ -222,6 +222,9 @@ class DRTVIE(InfoExtractor):
                     'ext': mimetype2ext(sub_track.get('format')) or 'vtt'
                 })
 
+        if not formats and traverse_obj(item, ('season', 'customFields', 'IsGeoRestricted')):
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+
         return {
             'id': video_id,
             'formats': formats,
