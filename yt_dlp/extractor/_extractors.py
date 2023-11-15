@@ -1325,7 +1325,6 @@ from .ninegag import NineGagIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
 from .nitter import NitterIE
-from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
 from .noice import NoicePodcastIE
 from .nonktube import NonkTubeIE
