@@ -19,7 +19,7 @@ class DRTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:www\.)?dr\.dk/tv/se(?:/ondemand)?/(?:[^/]+/)*|
+                            (?:www\.)?dr\.dk/tv/se(?:/ondemand)?/(?:[^/?#]+/)*|
                             (?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/(?:se|episode|program)/
                         )
                         (?P<id>[\da-z_-]+)
@@ -140,18 +140,14 @@ class DRTVIE(InfoExtractor):
             'https://production.dr-massive.com/api/authorization/anonymous-sso', None,
             note='Downloading anonymous token', headers={
                 'content-type': 'application/json',
-            },
-            query={
+            }, query={
                 'device': 'web_browser',
                 'ff': 'idp,ldp,rpt',
                 'lang': 'da',
                 'supportFallbackToken': 'true',
-            },
-            data=json.dumps({
+            }, data=json.dumps({
                 'deviceId': str(uuid.uuid4()),
-                'scopes': [
-                    'Catalog',
-                ],
+                'scopes': ['Catalog'],
                 'optout': True,
             }).encode())
 
@@ -162,8 +158,10 @@ class DRTVIE(InfoExtractor):
         url_slug = self._match_id(url)
         webpage = self._download_webpage(url, url_slug)
 
-        json_data = self._search_json(r'window\.__data\s*=\s*', webpage, 'data', url_slug, fatal=False) or {}
-        item = traverse_obj(json_data, ('cache', 'page', ..., (None, ('entries', 0)), 'item'), get_all=False)
+        json_data = self._search_json(
+            r'window\.__data\s*=', webpage, 'data', url_slug, fatal=False) or {}
+        item = traverse_obj(
+            json_data, ('cache', 'page', ..., (None, ('entries', 0)), 'item', {dict}), get_all=False)
         if item:
             item_id = item.get('id')
         else:
@@ -180,6 +178,7 @@ class DRTVIE(InfoExtractor):
                     'segments': 'drtv,optedout',
                     'sub': 'Anonymous',
                 })
+
         video_id = try_call(lambda: item['customId'].rsplit(':', 1)[-1]) or item_id
         stream_data = self._download_json(
             f'https://production.dr-massive.com/api/account/items/{item_id}/videos', video_id,
@@ -190,14 +189,11 @@ class DRTVIE(InfoExtractor):
                 'lang': 'da',
                 'resolution': 'HD-1080',
                 'sub': 'Anonymous',
-            },
-            headers={
-                'authorization': f'Bearer {self._TOKEN}',
-            })
+            }, headers={'authorization': f'Bearer {self._TOKEN}'})
 
         formats = []
         subtitles = {}
-        for fmt in traverse_obj(stream_data, (lambda _, x: x['url'], {dict})):
+        for fmt in traverse_obj(stream_data, (lambda _, x: x['url'])):
             format_id = fmt.get('format', 'na')
             access_service = fmt.get('accessService')
             preference = None
