@@ -90,6 +90,7 @@ class TV5MondePlusIE(InfoExtractor):
         for f in traverse_obj(data_captions, ('files', lambda _, v: url_or_none(v['file']))):
             subtitles.setdefault(f.get('label') or 'fra', []).append({'url': f['file']})
         return subtitles
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
