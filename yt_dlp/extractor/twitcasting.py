@@ -241,6 +241,8 @@ class TwitCastingLiveIE(InfoExtractor):
         'expected_exception': 'UserNotLive',
     }]
 
+    _PROTECTED_LIVE_RE = r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)'
+
     def _real_extract(self, url):
         uploader_id = self._match_id(url)
         self.to_screen(
@@ -248,10 +250,8 @@ class TwitCastingLiveIE(InfoExtractor):
             'Pass "https://twitcasting.tv/{0}/show" to download the history'.format(uploader_id))
 
         webpage = self._download_webpage(url, uploader_id)
-        is_live = self._search_regex(
-            (r'(data-is-onlive="true")',  # public live
-             r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)'),  # protected live
-            webpage, 'is live?', default=None)
+        is_live = self._search_regex(  #  first pattern is for public live
+            (r'(data-is-onlive="true")', _PROTECTED_LIVE_RE), webpage, 'is live?', default=None)
         current_live = self._search_regex(
             (r'data-type="movie" data-id="(\d+)">',  # no available?
              r'tw-sound-flag-open-link" data-id="(\d+)" style=',  # no available?
@@ -262,13 +262,13 @@ class TwitCastingLiveIE(InfoExtractor):
             webpage = self._download_webpage(
                 f'https://twitcasting.tv/{uploader_id}/show/', uploader_id,
                 note='Downloading live history')
-            is_live = self._search_regex(r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)', webpage, 'is live?', default=None)
+            is_live = self._search_regex(_PROTECTED_LIVE_RE, webpage, 'is live?', default=None)
             if is_live:
                 # get the first live; running live is always at the first
                 current_live = self._search_regex(
                     r'(?s)<a\s+class="tw-movie-thumbnail2"\s*href="/[^/]+/movie/(?P<video_id>\d+)"\s*>.+?</a>',
                     webpage, 'current live ID 2', default=None, group='video_id')
-        if not is_live:
+        if not current_live:
             raise UserNotLive(video_id=uploader_id)
         return self.url_result('https://twitcasting.tv/%s/movie/%s' % (uploader_id, current_live))
 
