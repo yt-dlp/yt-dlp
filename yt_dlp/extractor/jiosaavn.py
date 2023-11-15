@@ -46,11 +46,9 @@ class JioSaavnSongIE(JioSaavnBaseIE):
 
         return {
             'id': audio_id,
-            'formats': [{
-                'url': media_data['auth_url'],
-                'ext': media_data.get('type'),
-                'vcodec': 'none',
-            }],
+            'url': media_data['auth_url'],
+            'ext': media_data.get('type'),
+            'vcodec': 'none',
             **traverse_obj(song_data, {
                 'title': ('title', 'text'),
                 'album': ('album', 'text'),
