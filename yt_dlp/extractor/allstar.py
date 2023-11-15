@@ -101,9 +101,9 @@ def _set_webpage_url(info_dict):
 
 
 class AllstarBase(InfoExtractor):
-    def _send_query(self, query, variables={}, path=(), video_id=None):
+    def _send_query(self, query, variables={}, path=(), video_id=None, note=None):
         response = self._download_json(
-            'https://a1.allstar.gg/graphql', video_id,
+            'https://a1.allstar.gg/graphql', video_id, note=note,
             headers={'content-type': 'application/json'},
             data=json.dumps({'variables': variables, 'query': query}).encode())
 
@@ -234,7 +234,7 @@ class AllstarProfileIE(AllstarBase):
                     'user': user_id,
                     'page': page_num,
                     'game': int_or_none(game),
-                }, ('data', 'videos', 'data'), f'{user_id} page {page_num}'):
+                }, ('data', 'videos', 'data'), user_id, f'Downloading page {page_num}'):
             yield _set_webpage_url(_parse_video_data(video_data))
 
     def _get_user_data(self, user_id, path=()):
