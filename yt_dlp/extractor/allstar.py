@@ -60,7 +60,7 @@ _QUERIES = {
 }
 
 
-class AllstarBase(InfoExtractor):
+class AllstarBaseIE(InfoExtractor):
     @staticmethod
     def _parse_video_data(video_data):
         def _media_url_or_none(path):
@@ -98,7 +98,7 @@ class AllstarBase(InfoExtractor):
         return traverse_obj(response, path)
 
 
-class AllstarIE(AllstarBase):
+class AllstarIE(AllstarBaseIE):
     _VALID_URL = r'https?://(?:www\.)?allstar\.gg/(?P<type>(?:clip|montage))\?(?P=type)=(?P<id>[^/?#&]+)'
 
     _TESTS = [{
@@ -175,7 +175,7 @@ class AllstarIE(AllstarBase):
                 ('data', 'video'), video_id))
 
 
-class AllstarProfileIE(AllstarBase):
+class AllstarProfileIE(AllstarBaseIE):
     _VALID_URL = r'https?://(?:www\.)?allstar\.gg/(?:profile\?user=|u/)(?P<id>[^/?#&]+)'
 
     _TESTS = [{
