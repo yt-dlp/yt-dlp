@@ -34,7 +34,6 @@ class JioSaavnSongIE(JioSaavnBaseInfoExtractor):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
         song_data = self._extract_initial_data(url, audio_id)['song']['song']
-
         media_data = self._download_json(
             'https://www.jiosaavn.com/api.php', audio_id, data=urlencode_postdata({
                 '__call': 'song.generateAuthToken',
@@ -72,6 +71,7 @@ class JioSaavnAlbumIE(JioSaavnBaseInfoExtractor):
     def _real_extract(self, url):
         album_id = self._match_id(url)
         album_view = self._extract_initial_data(url, album_id)['album_view']
+
         self.playlist_from_matches(
             traverse_obj(album_view, (
                 'modules', lambda _, x: x['key'] == 'list', 'data', ..., 'title', 'action', {str})),
