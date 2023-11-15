@@ -4,6 +4,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class JioSaavnBaseIE(InfoExtractor):
