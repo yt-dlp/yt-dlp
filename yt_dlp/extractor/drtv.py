@@ -3,6 +3,7 @@ import uuid
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     int_or_none,
     mimetype2ext,
     parse_iso8601,
@@ -153,6 +154,8 @@ class DRTVIE(InfoExtractor):
 
         self._TOKEN = traverse_obj(
             token_response, (lambda _, x: x['type'] == 'UserAccount', 'value', {str}), get_all=False)
+        if not self._TOKEN:
+            raise ExtractorError('Unable to get anonymous token')
 
     def _real_extract(self, url):
         url_slug = self._match_id(url)
