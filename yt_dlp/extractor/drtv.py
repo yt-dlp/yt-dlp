@@ -126,17 +126,18 @@ class DRTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _TOKEN = None
-
     SUBTITLE_LANGS = {
         'DanishLanguageSubtitles': 'da',
         'ForeignLanguageSubtitles': 'da_foreign',
         'CombinedLanguageSubtitles': 'da_combined',
     }
 
+    _TOKEN = None
+
     def _real_initialize(self):
         if self._TOKEN:
             return
+
         token_response = self._download_json(
             'https://production.dr-massive.com/api/authorization/anonymous-sso', None,
             note='Downloading anonymous token', headers={
