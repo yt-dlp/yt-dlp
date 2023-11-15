@@ -30,6 +30,10 @@ on:
       meta_files:
         default: true
         type: boolean
+      origin:
+        required: false
+        default: ''
+        type: string
     secrets:
       GPG_SIGNING_KEY:
         required: false
@@ -37,11 +41,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version tag (YYYY.MM.DD[.REV])
+        description: |
+          VERSION: yyyy.mm.dd[.rev] or rev
         required: true
         type: string
       channel:
-        description: Update channel (stable/nightly/...)
+        description: |
+          SOURCE of this build's updates: stable/nightly/master/<repo>
         required: true
         default: stable
         type: string
@@ -73,16 +79,34 @@ on:
         description: SHA2-256SUMS, SHA2-512SUMS, _update_spec
         default: true
         type: boolean
+      origin:
+        description: .
+        required: false
+        default: ''
+        type: choice
+        options:
+        - ''
 
 permissions:
   contents: read
 
 jobs:
+  process:
+    runs-on: ubuntu-latest
+    outputs:
+      origin: ${{ steps.process_origin.outputs.origin }}
+    steps:
+      - name: Process origin
+        id: process_origin
+        run: |
+          echo "origin=${{ inputs.origin || github.repository }}" >> "$GITHUB_OUTPUT"
+
   unix:
+    needs: process
     if: inputs.unix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -96,22 +120,21 @@ jobs:
           auto-activate-base: false
       - name: Install Requirements
         run: |
-          sudo apt-get -y install zip pandoc man sed
-          python -m pip install -U pip setuptools wheel
-          python -m pip install -U Pyinstaller -r requirements.txt
+          sudo apt -y install zip pandoc man sed
           reqs=$(mktemp)
-          cat > $reqs << EOF
+          cat > "$reqs" << EOF
           python=3.10.*
           pyinstaller
           cffi
           brotli-python
+          secretstorage
           EOF
-          sed '/^brotli.*/d' requirements.txt >> $reqs
-          mamba create -n build --file $reqs
+          sed -E '/^(brotli|secretstorage).*/d' requirements.txt >> "$reqs"
+          mamba create -n build --file "$reqs"
 
       - name: Prepare
         run: |
-          python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python devscripts/make_lazy_extractors.py
       - name: Build Unix platform-independent binary
         run: |
@@ -150,6 +173,7 @@ jobs:
             yt-dlp_linux.zip
 
   linux_arm:
+    needs: process
     if: inputs.linux_arm
     permissions:
       contents: read
@@ -162,7 +186,7 @@ jobs:
           - aarch64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ./repo
       - name: Virtualized Install, Prepare & Build
@@ -185,7 +209,7 @@ jobs:
           run: |
             cd repo
             python3.8 -m pip install -U Pyinstaller -r requirements.txt  # Cached version may be out of date
-            python3.8 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+            python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 pyinst.py
 
@@ -206,11 +230,12 @@ jobs:
             repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
 
   macos:
+    needs: process
     if: inputs.macos
     runs-on: macos-11
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # NB: Building universal2 does not work with python from actions/setup-python
       - name: Install Requirements
         run: |
@@ -221,7 +246,7 @@ jobs:
 
       - name: Prepare
         run: |
-          python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
@@ -247,11 +272,12 @@ jobs:
             dist/yt-dlp_macos.zip
 
   macos_legacy:
+    needs: process
     if: inputs.macos_legacy
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Python
         # We need the official Python, because the GA ones only support newer macOS versions
         env:
@@ -272,7 +298,7 @@ jobs:
 
       - name: Prepare
         run: |
-          python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
@@ -296,11 +322,12 @@ jobs:
             dist/yt-dlp_macos_legacy
 
   windows:
+    needs: process
     if: inputs.windows
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with: # 3.8 is used for Win7 support
           python-version: "3.8"
@@ -311,7 +338,7 @@ jobs:
 
       - name: Prepare
         run: |
-          python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
@@ -343,11 +370,12 @@ jobs:
             dist/yt-dlp_win.zip
 
   windows32:
+    needs: process
     if: inputs.windows32
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with: # 3.7 is used for Vista support. See https://github.com/yt-dlp/yt-dlp/issues/390
           python-version: "3.7"
@@ -359,7 +387,7 @@ jobs:
 
       - name: Prepare
         run: |
-          python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
+          python devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
@@ -387,6 +415,7 @@ jobs:
   meta_files:
     if: inputs.meta_files && always() && !cancelled()
     needs:
+      - process
       - unix
       - linux_arm
       - macos

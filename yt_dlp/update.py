@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import atexit
 import contextlib
 import hashlib
@@ -7,6 +9,7 @@ import platform
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
@@ -14,24 +17,35 @@ from .compat import compat_realpath, compat_shlex_quote
 from .networking import Request
 from .networking.exceptions import HTTPError, network_exceptions
 from .utils import (
+    NO_DEFAULT,
     Popen,
-    cached_method,
     deprecation_warning,
+    format_field,
     remove_end,
-    remove_start,
     shell_quote,
     system_identifier,
     version_tuple,
 )
-from .version import CHANNEL, UPDATE_HINT, VARIANT, __version__
+from .version import (
+    CHANNEL,
+    ORIGIN,
+    RELEASE_GIT_HEAD,
+    UPDATE_HINT,
+    VARIANT,
+    __version__,
+)
 
 UPDATE_SOURCES = {
     'stable': 'yt-dlp/yt-dlp',
     'nightly': 'yt-dlp/yt-dlp-nightly-builds',
+    'master': 'yt-dlp/yt-dlp-master-builds',
 }
 REPOSITORY = UPDATE_SOURCES['stable']
+_INVERSE_UPDATE_SOURCES = {value: key for key, value in UPDATE_SOURCES.items()}
 
 _VERSION_RE = re.compile(r'(\d+\.)*\d+')
+_HASH_PATTERN = r'[\da-f]{40}'
+_COMMIT_RE = re.compile(rf'Generated from: https://(?:[^/?#]+/){{3}}commit/(?P<hash>{_HASH_PATTERN})')
 
 API_BASE_URL = 'https://api.github.com/repos'
 
@@ -112,6 +126,10 @@ def is_non_updateable():
         detect_variant(), _NON_UPDATEABLE_REASONS['unknown' if VARIANT else 'other'])
 
 
+def _get_binary_name():
+    return format_field(_FILE_SUFFIXES, detect_variant(), template='yt-dlp%s', ignore=None, default=None)
+
+
 def _get_system_deprecation():
     MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 8)
 
@@ -146,73 +164,117 @@ def _sha256_file(path):
     return h.hexdigest()
 
 
+def _make_label(origin, tag, version=None):
+    if '/' in origin:
+        channel = _INVERSE_UPDATE_SOURCES.get(origin, origin)
+    else:
+        channel = origin
+    label = f'{channel}@{tag}'
+    if version and version != tag:
+        label += f' build {version}'
+    if channel != origin:
+        label += f' from {origin}'
+    return label
+
+
+@dataclass
+class UpdateInfo:
+    """
+    Update target information
+
+    Can be created by `query_update()` or manually.
+
+    Attributes:
+        tag                The release tag that will be updated to. If from query_update,
+                        the value is after API resolution and update spec processing.
+                        The only property that is required.
+        version            The actual numeric version (if available) of the binary to be updated to,
+                        after API resolution and update spec processing. (default: None)
+        requested_version  Numeric version of the binary being requested (if available),
+                        after API resolution only. (default: None)
+        commit             Commit hash (if available) of the binary to be updated to,
+                        after API resolution and update spec processing. (default: None)
+                        This value will only match the RELEASE_GIT_HEAD of prerelease builds.
+        binary_name        Filename of the binary to be updated to. (default: current binary name)
+        checksum           Expected checksum (if available) of the binary to be
+                        updated to. (default: None)
+    """
+    tag: str
+    version: str | None = None
+    requested_version: str | None = None
+    commit: str | None = None
+
+    binary_name: str | None = _get_binary_name()
+    checksum: str | None = None
+
+    _has_update = True
+
+
 class Updater:
-    _exact = True
+    # XXX: use class variables to simplify testing
+    _channel = CHANNEL
+    _origin = ORIGIN
 
-    def __init__(self, ydl, target=None):
+    def __init__(self, ydl, target: str | None = None):
         self.ydl = ydl
+        # For backwards compat, target needs to be treated as if it could be None
+        self.requested_channel, sep, self.requested_tag = (target or self._channel).rpartition('@')
+        # Check if requested_tag is actually the requested repo/channel
+        if not sep and ('/' in self.requested_tag or self.requested_tag in UPDATE_SOURCES):
+            self.requested_channel = self.requested_tag
+            self.requested_tag: str = None  # type: ignore (we set it later)
+        elif not self.requested_channel:
+            # User did not specify a channel, so we are requesting the default channel
+            self.requested_channel = self._channel.partition('@')[0]
 
-        self.target_channel, sep, self.target_tag = (target or CHANNEL).rpartition('@')
-        # stable => stable@latest
-        if not sep and ('/' in self.target_tag or self.target_tag in UPDATE_SOURCES):
-            self.target_channel = self.target_tag
-            self.target_tag = None
-        elif not self.target_channel:
-            self.target_channel = CHANNEL.partition('@')[0]
-
-        if not self.target_tag:
-            self.target_tag = 'latest'
+        # --update should not be treated as an exact tag request even if CHANNEL has a @tag
+        self._exact = bool(target) and target != self._channel
+        if not self.requested_tag:
+            # User did not specify a tag, so we request 'latest' and track that no exact tag was passed
+            self.requested_tag = 'latest'
             self._exact = False
-        elif self.target_tag != 'latest':
-            self.target_tag = f'tags/{self.target_tag}'
 
-        if '/' in self.target_channel:
-            self._target_repo = self.target_channel
-            if self.target_channel not in (CHANNEL, *UPDATE_SOURCES.values()):
+        if '/' in self.requested_channel:
+            # requested_channel is actually a repository
+            self.requested_repo = self.requested_channel
+            if not self.requested_repo.startswith('yt-dlp/') and self.requested_repo != self._origin:
                 self.ydl.report_warning(
                     f'You are switching to an {self.ydl._format_err("unofficial", "red")} executable '
-                    f'from {self.ydl._format_err(self._target_repo, self.ydl.Styles.EMPHASIS)}. '
+                    f'from {self.ydl._format_err(self.requested_repo, self.ydl.Styles.EMPHASIS)}. '
                     f'Run {self.ydl._format_err("at your own risk", "light red")}')
                 self._block_restart('Automatically restarting into custom builds is disabled for security reasons')
         else:
-            self._target_repo = UPDATE_SOURCES.get(self.target_channel)
-            if not self._target_repo:
+            # Check if requested_channel resolves to a known repository or else raise
+            self.requested_repo = UPDATE_SOURCES.get(self.requested_channel)
+            if not self.requested_repo:
                 self._report_error(
-                    f'Invalid update channel {self.target_channel!r} requested. '
+                    f'Invalid update channel {self.requested_channel!r} requested. '
                     f'Valid channels are {", ".join(UPDATE_SOURCES)}', True)
 
-    def _version_compare(self, a, b, channel=CHANNEL):
-        if self._exact and channel != self.target_channel:
-            return False
+        self._identifier = f'{detect_variant()} {system_identifier()}'
 
-        if _VERSION_RE.fullmatch(f'{a}.{b}'):
-            a, b = version_tuple(a), version_tuple(b)
-            return a == b if self._exact else a >= b
-        return a == b
+    @property
+    def current_version(self):
+        """Current version"""
+        return __version__
 
-    @functools.cached_property
-    def _tag(self):
-        if self._version_compare(self.current_version, self.latest_version):
-            return self.target_tag
+    @property
+    def current_commit(self):
+        """Current commit hash"""
+        return RELEASE_GIT_HEAD
 
-        identifier = f'{detect_variant()} {self.target_channel} {system_identifier()}'
-        for line in self._download('_update_spec', 'latest').decode().splitlines():
-            if not line.startswith('lock '):
-                continue
-            _, tag, pattern = line.split(' ', 2)
-            if re.match(pattern, identifier):
-                if not self._exact:
-                    return f'tags/{tag}'
-                elif self.target_tag == 'latest' or not self._version_compare(
-                        tag, self.target_tag[5:], channel=self.target_channel):
-                    self._report_error(
-                        f'yt-dlp cannot be updated above {tag} since you are on an older Python version', True)
-                    return f'tags/{self.current_version}'
-        return self.target_tag
+    def _download_asset(self, name, tag=None):
+        if not tag:
+            tag = self.requested_tag
 
-    @cached_method
-    def _get_version_info(self, tag):
-        url = f'{API_BASE_URL}/{self._target_repo}/releases/{tag}'
+        path = 'latest/download' if tag == 'latest' else f'download/{tag}'
+        url = f'https://github.com/{self.requested_repo}/releases/{path}/{name}'
+        self.ydl.write_debug(f'Downloading {name} from {url}')
+        return self.ydl.urlopen(url).read()
+
+    def _call_api(self, tag):
+        tag = f'tags/{tag}' if tag != 'latest' else tag
+        url = f'{API_BASE_URL}/{self.requested_repo}/releases/{tag}'
         self.ydl.write_debug(f'Fetching release info: {url}')
         return json.loads(self.ydl.urlopen(Request(url, headers={
             'Accept': 'application/vnd.github+json',
@@ -220,105 +282,175 @@ class Updater:
             'X-GitHub-Api-Version': '2022-11-28',
         })).read().decode())
 
-    @property
-    def current_version(self):
-        """Current version"""
-        return __version__
+    def _get_version_info(self, tag: str) -> tuple[str | None, str | None]:
+        if _VERSION_RE.fullmatch(tag):
+            return tag, None
 
-    @staticmethod
-    def _label(channel, tag):
-        """Label for a given channel and tag"""
-        return f'{channel}@{remove_start(tag, "tags/")}'
+        api_info = self._call_api(tag)
 
-    def _get_actual_tag(self, tag):
-        if tag.startswith('tags/'):
-            return tag[5:]
-        return self._get_version_info(tag)['tag_name']
+        if tag == 'latest':
+            requested_version = api_info['tag_name']
+        else:
+            match = re.search(rf'\s+(?P<version>{_VERSION_RE.pattern})$', api_info.get('name', ''))
+            requested_version = match.group('version') if match else None
 
-    @property
-    def new_version(self):
-        """Version of the latest release we can update to"""
-        return self._get_actual_tag(self._tag)
+        if re.fullmatch(_HASH_PATTERN, api_info.get('target_commitish', '')):
+            target_commitish = api_info['target_commitish']
+        else:
+            match = _COMMIT_RE.match(api_info.get('body', ''))
+            target_commitish = match.group('hash') if match else None
 
-    @property
-    def latest_version(self):
-        """Version of the target release"""
-        return self._get_actual_tag(self.target_tag)
+        if not (requested_version or target_commitish):
+            self._report_error('One of either version or commit hash must be available on the release', expected=True)
 
-    @property
-    def has_update(self):
-        """Whether there is an update available"""
-        return not self._version_compare(self.current_version, self.new_version)
+        return requested_version, target_commitish
 
-    @functools.cached_property
-    def filename(self):
-        """Filename of the executable"""
-        return compat_realpath(_get_variant_and_executable_path()[1])
+    def _download_update_spec(self, source_tags):
+        for tag in source_tags:
+            try:
+                return self._download_asset('_update_spec', tag=tag).decode()
+            except network_exceptions as error:
+                if isinstance(error, HTTPError) and error.status == 404:
+                    continue
+                self._report_network_error(f'fetch update spec: {error}')
 
-    def _download(self, name, tag):
-        slug = 'latest/download' if tag == 'latest' else f'download/{tag[5:]}'
-        url = f'https://github.com/{self._target_repo}/releases/{slug}/{name}'
-        self.ydl.write_debug(f'Downloading {name} from {url}')
-        return self.ydl.urlopen(url).read()
-
-    @functools.cached_property
-    def release_name(self):
-        """The release filename"""
-        return f'yt-dlp{_FILE_SUFFIXES[detect_variant()]}'
-
-    @functools.cached_property
-    def release_hash(self):
-        """Hash of the latest release"""
-        hash_data = dict(ln.split()[::-1] for ln in self._download('SHA2-256SUMS', self._tag).decode().splitlines())
-        return hash_data[self.release_name]
-
-    def _report_error(self, msg, expected=False):
-        self.ydl.report_error(msg, tb=False if expected else None)
-        self.ydl._download_retcode = 100
-
-    def _report_permission_error(self, file):
-        self._report_error(f'Unable to write to {file}; Try running as administrator', True)
-
-    def _report_network_error(self, action, delim=';'):
         self._report_error(
-            f'Unable to {action}{delim} visit  '
-            f'https://github.com/{self._target_repo}/releases/{self.target_tag.replace("tags/", "tag/")}', True)
+            f'The requested tag {self.requested_tag} does not exist for {self.requested_repo}', True)
+        return None
 
-    def check_update(self):
-        """Report whether there is an update available"""
-        if not self._target_repo:
-            return False
+    def _process_update_spec(self, lockfile: str, resolved_tag: str):
+        lines = lockfile.splitlines()
+        is_version2 = any(line.startswith('lockV2 ') for line in lines)
+
+        for line in lines:
+            if is_version2:
+                if not line.startswith(f'lockV2 {self.requested_repo} '):
+                    continue
+                _, _, tag, pattern = line.split(' ', 3)
+            else:
+                if not line.startswith('lock '):
+                    continue
+                _, tag, pattern = line.split(' ', 2)
+
+            if re.match(pattern, self._identifier):
+                if _VERSION_RE.fullmatch(tag):
+                    if not self._exact:
+                        return tag
+                    elif self._version_compare(tag, resolved_tag):
+                        return resolved_tag
+                elif tag != resolved_tag:
+                    continue
+
+                self._report_error(
+                    f'yt-dlp cannot be updated to {resolved_tag} since you are on an older Python version', True)
+                return None
+
+        return resolved_tag
+
+    def _version_compare(self, a: str, b: str):
+        """
+        Compare two version strings
+
+        This function SHOULD NOT be called if self._exact == True
+        """
+        if _VERSION_RE.fullmatch(f'{a}.{b}'):
+            return version_tuple(a) >= version_tuple(b)
+        return a == b
+
+    def query_update(self, *, _output=False) -> UpdateInfo | None:
+        """Fetches and returns info about the available update"""
+        if not self.requested_repo:
+            self._report_error('No target repository could be determined from input')
+            return None
+
         try:
-            self.ydl.to_screen((
-                f'Available version: {self._label(self.target_channel, self.latest_version)}, ' if self.target_tag == 'latest' else ''
-            ) + f'Current version: {self._label(CHANNEL, self.current_version)}')
+            requested_version, target_commitish = self._get_version_info(self.requested_tag)
         except network_exceptions as e:
-            return self._report_network_error(f'obtain version info ({e})', delim='; Please try again later or')
+            self._report_network_error(f'obtain version info ({e})', delim='; Please try again later or')
+            return None
 
+        if self._exact and self._origin != self.requested_repo:
+            has_update = True
+        elif requested_version:
+            if self._exact:
+                has_update = self.current_version != requested_version
+            else:
+                has_update = not self._version_compare(self.current_version, requested_version)
+        elif target_commitish:
+            has_update = target_commitish != self.current_commit
+        else:
+            has_update = False
+
+        resolved_tag = requested_version if self.requested_tag == 'latest' else self.requested_tag
+        current_label = _make_label(self._origin, self._channel.partition("@")[2] or self.current_version, self.current_version)
+        requested_label = _make_label(self.requested_repo, resolved_tag, requested_version)
+        latest_or_requested = f'{"Latest" if self.requested_tag == "latest" else "Requested"} version: {requested_label}'
+        if not has_update:
+            if _output:
+                self.ydl.to_screen(f'{latest_or_requested}\nyt-dlp is up to date ({current_label})')
+            return None
+
+        update_spec = self._download_update_spec(('latest', None) if requested_version else (None,))
+        if not update_spec:
+            return None
+        # `result_` prefixed vars == post-_process_update_spec() values
+        result_tag = self._process_update_spec(update_spec, resolved_tag)
+        if not result_tag or result_tag == self.current_version:
+            return None
+        elif result_tag == resolved_tag:
+            result_version = requested_version
+        elif _VERSION_RE.fullmatch(result_tag):
+            result_version = result_tag
+        else:  # actual version being updated to is unknown
+            result_version = None
+
+        checksum = None
+        # Non-updateable variants can get update_info but need to skip checksum
         if not is_non_updateable():
-            self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
+            try:
+                hashes = self._download_asset('SHA2-256SUMS', result_tag)
+            except network_exceptions as error:
+                if not isinstance(error, HTTPError) or error.status != 404:
+                    self._report_network_error(f'fetch checksums: {error}')
+                    return None
+                self.ydl.report_warning('No hash information found for the release, skipping verification')
+            else:
+                for ln in hashes.decode().splitlines():
+                    if ln.endswith(_get_binary_name()):
+                        checksum = ln.split()[0]
+                        break
+                if not checksum:
+                    self.ydl.report_warning('The hash could not be found in the checksum file, skipping verification')
 
-        if self.has_update:
-            return True
+        if _output:
+            update_label = _make_label(self.requested_repo, result_tag, result_version)
+            self.ydl.to_screen(
+                f'Current version: {current_label}\n{latest_or_requested}'
+                + (f'\nUpgradable to: {update_label}' if update_label != requested_label else ''))
 
-        if self.target_tag == self._tag:
-            self.ydl.to_screen(f'yt-dlp is up to date ({self._label(CHANNEL, self.current_version)})')
-        elif not self._exact:
-            self.ydl.report_warning('yt-dlp cannot be updated any further since you are on an older Python version')
-        return False
+        return UpdateInfo(
+            tag=result_tag,
+            version=result_version,
+            requested_version=requested_version,
+            commit=target_commitish if result_tag == resolved_tag else None,
+            checksum=checksum)
 
-    def update(self):
+    def update(self, update_info=NO_DEFAULT):
         """Update yt-dlp executable to the latest version"""
-        if not self.check_update():
-            return
+        if update_info is NO_DEFAULT:
+            update_info = self.query_update(_output=True)
+        if not update_info:
+            return False
+
         err = is_non_updateable()
         if err:
-            return self._report_error(err, True)
-        self.ydl.to_screen(f'Updating to {self._label(self.target_channel, self.new_version)} ...')
-        if (_VERSION_RE.fullmatch(self.target_tag[5:])
-                and version_tuple(self.target_tag[5:]) < (2023, 3, 2)):
-            self.ydl.report_warning('You are downgrading to a version without --update-to')
-            self._block_restart('Cannot automatically restart to a version without --update-to')
+            self._report_error(err, True)
+            return False
+
+        self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
+
+        update_label = _make_label(self.requested_repo, update_info.tag, update_info.version)
+        self.ydl.to_screen(f'Updating to {update_label} ...')
 
         directory = os.path.dirname(self.filename)
         if not os.access(self.filename, os.W_OK):
@@ -337,20 +469,17 @@ class Updater:
             return self._report_error('Unable to remove the old version')
 
         try:
-            newcontent = self._download(self.release_name, self._tag)
+            newcontent = self._download_asset(update_info.binary_name, update_info.tag)
         except network_exceptions as e:
             if isinstance(e, HTTPError) and e.status == 404:
                 return self._report_error(
-                    f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
-            return self._report_network_error(f'fetch updates: {e}')
+                    f'The requested tag {self.requested_repo}@{update_info.tag} does not exist', True)
+            return self._report_network_error(f'fetch updates: {e}', tag=update_info.tag)
 
-        try:
-            expected_hash = self.release_hash
-        except Exception:
-            self.ydl.report_warning('no hash information found for the release')
-        else:
-            if hashlib.sha256(newcontent).hexdigest() != expected_hash:
-                return self._report_network_error('verify the new executable')
+        if not update_info.checksum:
+            self._block_restart('Automatically restarting into unverified builds is disabled for security reasons')
+        elif hashlib.sha256(newcontent).hexdigest() != update_info.checksum:
+            return self._report_network_error('verify the new executable', tag=update_info.tag)
 
         try:
             with open(new_filename, 'wb') as outf:
@@ -387,8 +516,13 @@ class Updater:
                 return self._report_error(
                     f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
 
-        self.ydl.to_screen(f'Updated yt-dlp to {self._label(self.target_channel, self.new_version)}')
+        self.ydl.to_screen(f'Updated yt-dlp to {update_label}')
         return True
+
+    @functools.cached_property
+    def filename(self):
+        """Filename of the executable"""
+        return compat_realpath(_get_variant_and_executable_path()[1])
 
     @functools.cached_property
     def cmd(self):
@@ -412,53 +546,77 @@ class Updater:
             return self.ydl._download_retcode
         self.restart = wrapper
 
+    def _report_error(self, msg, expected=False):
+        self.ydl.report_error(msg, tb=False if expected else None)
+        self.ydl._download_retcode = 100
+
+    def _report_permission_error(self, file):
+        self._report_error(f'Unable to write to {file}; try running as administrator', True)
+
+    def _report_network_error(self, action, delim=';', tag=None):
+        if not tag:
+            tag = self.requested_tag
+        self._report_error(
+            f'Unable to {action}{delim} visit  https://github.com/{self.requested_repo}/releases/'
+            + tag if tag == "latest" else f"tag/{tag}", True)
+
+    # XXX: Everything below this line in this class is deprecated / for compat only
+    @property
+    def _target_tag(self):
+        """Deprecated; requested tag with 'tags/' prepended when necessary for API calls"""
+        return f'tags/{self.requested_tag}' if self.requested_tag != 'latest' else self.requested_tag
+
+    def _check_update(self):
+        """Deprecated; report whether there is an update available"""
+        return bool(self.query_update(_output=True))
+
+    def __getattr__(self, attribute: str):
+        """Compat getter function for deprecated attributes"""
+        deprecated_props_map = {
+            'check_update': '_check_update',
+            'target_tag': '_target_tag',
+            'target_channel': 'requested_channel',
+        }
+        update_info_props_map = {
+            'has_update': '_has_update',
+            'new_version': 'version',
+            'latest_version': 'requested_version',
+            'release_name': 'binary_name',
+            'release_hash': 'checksum',
+        }
+
+        if attribute not in deprecated_props_map and attribute not in update_info_props_map:
+            raise AttributeError(f'{type(self).__name__!r} object has no attribute {attribute!r}')
+
+        msg = f'{type(self).__name__}.{attribute} is deprecated and will be removed in a future version'
+        if attribute in deprecated_props_map:
+            source_name = deprecated_props_map[attribute]
+            if not source_name.startswith('_'):
+                msg += f'. Please use {source_name!r} instead'
+            source = self
+            mapping = deprecated_props_map
+
+        else:  # attribute in update_info_props_map
+            msg += '. Please call query_update() instead'
+            source = self.query_update()
+            if source is None:
+                source = UpdateInfo('', None, None, None)
+                source._has_update = False
+            mapping = update_info_props_map
+
+        deprecation_warning(msg)
+        for target_name, source_name in mapping.items():
+            value = getattr(source, source_name)
+            setattr(self, target_name, value)
+
+        return getattr(self, attribute)
+
 
 def run_update(ydl):
     """Update the program file with the latest version from the repository
     @returns    Whether there was a successful update (No update = False)
     """
     return Updater(ydl).update()
-
-
-# Deprecated
-def update_self(to_screen, verbose, opener):
-    import traceback
-
-    deprecation_warning(f'"{__name__}.update_self" is deprecated and may be removed '
-                        f'in a future version. Use "{__name__}.run_update(ydl)" instead')
-
-    printfn = to_screen
-
-    class FakeYDL():
-        to_screen = printfn
-
-        def report_warning(self, msg, *args, **kwargs):
-            return printfn(f'WARNING: {msg}', *args, **kwargs)
-
-        def report_error(self, msg, tb=None):
-            printfn(f'ERROR: {msg}')
-            if not verbose:
-                return
-            if tb is None:
-                # Copied from YoutubeDL.trouble
-                if sys.exc_info()[0]:
-                    tb = ''
-                    if hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                        tb += ''.join(traceback.format_exception(*sys.exc_info()[1].exc_info))
-                    tb += traceback.format_exc()
-                else:
-                    tb_data = traceback.format_list(traceback.extract_stack())
-                    tb = ''.join(tb_data)
-            if tb:
-                printfn(tb)
-
-        def write_debug(self, msg, *args, **kwargs):
-            printfn(f'[debug] {msg}', *args, **kwargs)
-
-        def urlopen(self, url):
-            return opener.open(url)
-
-    return run_update(FakeYDL())
 
 
 __all__ = ['Updater']

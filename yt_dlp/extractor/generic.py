@@ -17,6 +17,7 @@ from ..utils import (
     determine_protocol,
     dict_get,
     extract_basic_auth,
+    filter_dict,
     format_field,
     int_or_none,
     is_html,
@@ -2435,10 +2436,10 @@ class GenericIE(InfoExtractor):
         # to accept raw bytes and being able to download only a chunk.
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
-        full_response = self._request_webpage(url, video_id, headers={
+        full_response = self._request_webpage(url, video_id, headers=filter_dict({
             'Accept-Encoding': 'identity',
-            **smuggled_data.get('http_headers', {})
-        })
+            'Referer': smuggled_data.get('referer'),
+        }))
         new_url = full_response.url
         url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
         if new_url != extract_basic_auth(url)[0]:
@@ -2458,7 +2459,7 @@ class GenericIE(InfoExtractor):
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
-            headers = smuggled_data.get('http_headers', {})
+            headers = filter_dict({'Referer': smuggled_data.get('referer')})
             format_id = str(m.group('format_id'))
             ext = determine_ext(url, default_ext=None) or urlhandle_detect_ext(full_response)
             subtitles = {}
@@ -2710,7 +2711,7 @@ class GenericIE(InfoExtractor):
                 'url': smuggle_url(json_ld['url'], {
                     'force_videoid': video_id,
                     'to_generic': True,
-                    'http_headers': {'Referer': url},
+                    'referer': url,
                 }),
             }, json_ld)]
 

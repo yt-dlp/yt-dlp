@@ -2225,7 +2225,9 @@ class InfoExtractor:
             mpd_url, video_id,
             note='Downloading MPD VOD manifest' if note is None else note,
             errnote='Failed to download VOD manifest' if errnote is None else errnote,
-            fatal=False, data=data, headers=headers, query=query) or {}
+            fatal=False, data=data, headers=headers, query=query)
+        if not isinstance(mpd_doc, xml.etree.ElementTree.Element):
+            return None
         return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
 
     @staticmethod

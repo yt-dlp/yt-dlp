@@ -700,6 +700,7 @@
  - **LastFM**
  - **LastFMPlaylist**
  - **LastFMUser**
+ - **LaXarxaMes**: [*laxarxames*](## "netrc machine")
  - **lbry**
  - **lbry:channel**
  - **lbry:playlist**
@@ -1026,6 +1027,7 @@
  - **on24**: ON24
  - **OnDemandChinaEpisode**
  - **OnDemandKorea**
+ - **OnDemandKoreaProgram**
  - **OneFootball**
  - **OnePlacePodcast**
  - **onet.pl**
@@ -1043,6 +1045,7 @@
  - **OraTV**
  - **orf:​fm4:story**: fm4.orf.at stories
  - **orf:iptv**: iptv.ORF.at
+ - **orf:podcast**
  - **orf:radio**
  - **orf:tvthek**: ORF TVthek
  - **OsnatelTV**: [*osnateltv*](## "netrc machine")
@@ -1180,6 +1183,8 @@
  - **radiobremen**
  - **radiocanada**
  - **radiocanada:audiovideo**
+ - **RadioComercial**
+ - **RadioComercialPlaylist**
  - **radiofrance**
  - **RadioFranceLive**
  - **RadioFrancePodcast**
@@ -1306,6 +1311,9 @@
  - **Sapo**: SAPO Vídeos
  - **savefrom.net**
  - **SBS**: sbs.com.au
+ - **sbs.co.kr**
+ - **sbs.co.kr:allvod_program**
+ - **sbs.co.kr:programs_vod**
  - **schooltv**
  - **ScienceChannel**
  - **screen.yahoo:search**: Yahoo screen search; "yvsearch:" prefix
@@ -1474,6 +1482,8 @@
  - **TenPlaySeason**
  - **TF1**
  - **TFO**
+ - **theatercomplextown:ppv**: [*theatercomplextown*](## "netrc machine")
+ - **theatercomplextown:vod**: [*theatercomplextown*](## "netrc machine")
  - **TheHoleTv**
  - **TheIntercept**
  - **ThePlatform**
@@ -1482,8 +1492,7 @@
  - **TheSun**
  - **TheWeatherChannel**
  - **ThisAmericanLife**
- - **ThisAV**
- - **ThisOldHouse**
+ - **ThisOldHouse**: [*thisoldhouse*](## "netrc machine")
  - **ThisVid**
  - **ThisVidMember**
  - **ThisVidPlaylist**
