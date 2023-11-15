@@ -1293,6 +1293,10 @@ class TestYoutubeDLNetworking:
             assert 'Youtubedl-no-compression' not in rh.headers
             assert rh.headers.get('Accept-Encoding') == 'identity'
 
+        with FakeYDL({'http_headers': {'Ytdl-socks-proxy': 'socks://localhost:1080'}}) as ydl:
+            rh = self.build_handler(ydl)
+            assert 'Ytdl-socks-proxy' not in rh.headers
+
     def test_build_handler_params(self):
         with FakeYDL({
             'http_headers': {'test': 'testtest'},
