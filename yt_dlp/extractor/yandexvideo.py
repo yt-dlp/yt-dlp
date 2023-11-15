@@ -1,14 +1,15 @@
 import itertools
-import re
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     extract_attributes,
     int_or_none,
+    lowercase_escape,
+    parse_qs,
+    traverse_obj,
     try_get,
     url_or_none,
-    lowercase_escape,
 )
 
 
@@ -23,7 +24,6 @@ class YandexVideoIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'https://yandex.ru/portal/video?stream_id=4dbb36ec4e0526d58f9f2dc8f0ecf374',
-        'md5': 'e02a05bfaf0d9615ef07ae3a10f4faf4',
         'info_dict': {
             'id': '4dbb36ec4e0526d58f9f2dc8f0ecf374',
             'ext': 'mp4',
@@ -38,6 +38,7 @@ class YandexVideoIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://yandex.ru/portal/efir?stream_id=4dbb262b4fe5cf15a215de4f34eee34d&from=morda',
         'only_matching': True,
@@ -120,8 +121,6 @@ class YandexVideoIE(InfoExtractor):
             else:
                 formats.append({'url': content_url})
 
-        self._sort_formats(formats)
-
         timestamp = (int_or_none(content.get('release_date'))
                      or int_or_none(content.get('release_date_ut'))
                      or int_or_none(content.get('start_time')))
@@ -147,7 +146,7 @@ class YandexVideoIE(InfoExtractor):
 
 
 class YandexVideoPreviewIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?yandex\.ru/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?yandex\.\w{2,3}(?:\.(?:am|ge|il|tr))?/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
     _TESTS = [{  # Odnoklassniki
         'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
         'info_dict': {
@@ -174,6 +173,9 @@ class YandexVideoPreviewIE(InfoExtractor):
     }, {  # Odnoklassniki
         'url': 'https://yandex.ru/video/preview/?text=Francis%20Lai%20-%20Le%20Bon%20Et%20Les%20MC)chants&path=wizard&parent-reqid=1643208087979310-1481782809207673478-sas3-0931-2f9-sas-l7-balancer-8080-BAL-9380&wiz_type=vital&filmId=12508152936505397283',
         'only_matching': True,
+    }, {  # Odnoklassniki
+        'url': 'https://yandex.com/video/preview/?text=dossier%2051%20film%201978&path=yandex_search&parent-reqid=1664361087754492-8727541069609384458-sas2-0340-sas-l7-balancer-8080-BAL-8045&noreask=1&from_type=vast&filmId=5794987234584444632',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -185,34 +187,35 @@ class YandexVideoPreviewIE(InfoExtractor):
 
 
 class ZenYandexIE(InfoExtractor):
-    _VALID_URL = r'https?://zen\.yandex\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
+    _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
     _TESTS = [{
-        'url': 'https://zen.yandex.ru/media/popmech/izverjenie-vulkana-iz-spichek-zreliscnyi-opyt-6002240ff8b1af50bb2da5e3',
-        'info_dict': {
-            'id': '6002240ff8b1af50bb2da5e3',
-            'ext': 'mp4',
-            'title': 'Извержение вулкана из спичек: зрелищный опыт',
-            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
-            'thumbnail': 're:^https://avatars.mds.yandex.net/',
-            'uploader': 'Популярная механика',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-        },
-    }, {
         'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
         'info_dict': {
             'id': '60c7c443da18892ebfe85ed7',
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
             'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
-            'thumbnail': 're:^https://avatars.mds.yandex.net/',
+            'thumbnail': 're:^https://avatars.dzeninfra.ru/',
             'uploader': 'AcademeG DailyStream'
         },
         'params': {
             'skip_download': 'm3u8',
             'format': 'bestvideo',
         },
+        'skip': 'The page does not exist',
+    }, {
+        'url': 'https://dzen.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
+        'info_dict': {
+            'id': '60c7c443da18892ebfe85ed7',
+            'ext': 'mp4',
+            'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
+            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'thumbnail': r're:^https://avatars\.dzeninfra\.ru/',
+            'uploader': 'AcademeG DailyStream',
+            'upload_date': '20191111',
+            'timestamp': 1573465585,
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://zen.yandex.ru/video/watch/6002240ff8b1af50bb2da5e3',
         'info_dict': {
@@ -220,21 +223,42 @@ class ZenYandexIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Извержение вулкана из спичек: зрелищный опыт',
             'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
-            'uploader': 'Популярная механика',
+            'thumbnail': r're:^https://avatars\.dzeninfra\.ru/',
+            'uploader': 'TechInsider',
+            'timestamp': 1611378221,
+            'upload_date': '20210123',
         },
-        'params': {
-            'skip_download': 'm3u8',
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://dzen.ru/video/watch/6002240ff8b1af50bb2da5e3',
+        'info_dict': {
+            'id': '6002240ff8b1af50bb2da5e3',
+            'ext': 'mp4',
+            'title': 'Извержение вулкана из спичек: зрелищный опыт',
+            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
+            'thumbnail': 're:^https://avatars.dzeninfra.ru/',
+            'uploader': 'TechInsider',
+            'upload_date': '20210123',
+            'timestamp': 1611378221,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
+        'only_matching': True,
+    }, {
+        'url': 'https://dzen.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(
-            self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        redirect = self._search_json(r'var it\s*=', webpage, 'redirect', id, default={}).get('retpath')
+        if redirect:
+            video_id = self._match_id(redirect)
+            webpage = self._download_webpage(redirect, video_id, note='Redirecting')
+        data_json = self._search_json(
+            r'data\s*=', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
                                          webpage, 'server state').replace('State', 'Settings')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
@@ -246,16 +270,16 @@ class ZenYandexIE(InfoExtractor):
         for s_url in stream_urls:
             ext = determine_ext(s_url)
             if ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(s_url, id, mpd_id='dash'))
+                formats.extend(self._extract_mpd_formats(s_url, video_id, mpd_id='dash'))
             elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(s_url, id, 'mp4'))
-        self._sort_formats(formats)
+                formats.extend(self._extract_m3u8_formats(s_url, video_id, 'mp4'))
         return {
-            'id': id,
+            'id': video_id,
             'title': video_json.get('title') or self._og_search_title(webpage),
             'formats': formats,
             'duration': int_or_none(video_json.get('duration')),
             'view_count': int_or_none(video_json.get('views')),
+            'timestamp': int_or_none(video_json.get('publicationDate')),
             'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
             'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
             'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
@@ -263,40 +287,99 @@ class ZenYandexIE(InfoExtractor):
 
 
 class ZenYandexChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://zen\.yandex\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
+    _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
         'url': 'https://zen.yandex.ru/tok_media',
         'info_dict': {
             'id': 'tok_media',
+            'title': 'СПЕКТР',
+            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
+        },
+        'playlist_mincount': 169,
+    }, {
+        'url': 'https://dzen.ru/tok_media',
+        'info_dict': {
+            'id': 'tok_media',
+            'title': 'СПЕКТР',
+            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
         },
         'playlist_mincount': 169,
     }, {
         'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
             'id': '606fd806cc13cb3c58c05cf5',
+            'description': 'md5:517b7c97d8ca92e940f5af65448fd928',
+            'title': 'AcademeG DailyStream',
+        },
+        'playlist_mincount': 657,
+    }, {
+        # Test that the playlist extractor finishes extracting when the
+        # channel has less than one page
+        'url': 'https://zen.yandex.ru/jony_me',
+        'info_dict': {
+            'id': 'jony_me',
+            'description': 'md5:a2c62b4ef5cf3e3efb13d25f61f739e1',
+            'title': 'JONY ',
+        },
+        'playlist_count': 20,
+    }, {
+        # Test that the playlist extractor finishes extracting when the
+        # channel has more than one page of entries
+        'url': 'https://zen.yandex.ru/tatyanareva',
+        'info_dict': {
+            'id': 'tatyanareva',
+            'description': 'md5:296b588d60841c3756c9105f237b70c6',
+            'title': 'Татьяна Рева',
+            'entries': 'maxcount:200',
+        },
+        'playlist_count': 46,
+    }, {
+        'url': 'https://dzen.ru/id/606fd806cc13cb3c58c05cf5',
+        'info_dict': {
+            'id': '606fd806cc13cb3c58c05cf5',
+            'title': 'AcademeG DailyStream',
+            'description': 'md5:517b7c97d8ca92e940f5af65448fd928',
         },
         'playlist_mincount': 657,
     }]
 
-    def _entries(self, id, url):
-        webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
-        for key in data_json.keys():
-            if key.startswith('__serverState__'):
-                data_json = data_json[key]
-        items = list(try_get(data_json, lambda x: x['feed']['items'], dict).values())
-        more = try_get(data_json, lambda x: x['links']['more']) or None
+    def _entries(self, item_id, server_state_json, server_settings_json):
+        items = (traverse_obj(server_state_json, ('feed', 'items', ...))
+                 or traverse_obj(server_settings_json, ('exportData', 'items', ...)))
+
+        more = (traverse_obj(server_state_json, ('links', 'more'))
+                or traverse_obj(server_settings_json, ('exportData', 'more', 'link')))
+
+        next_page_id = None
         for page in itertools.count(1):
-            for item in items:
-                video_id = item.get('publication_id') or item.get('publicationId')
-                video_url = item.get('link')
-                yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
-            if not more:
+            for item in items or []:
+                if item.get('type') != 'gif':
+                    continue
+                video_id = traverse_obj(item, 'publication_id', 'publicationId') or ''
+                yield self.url_result(item['link'], ZenYandexIE, video_id.split(':')[-1])
+
+            current_page_id = next_page_id
+            next_page_id = traverse_obj(parse_qs(more), ('next_page_id', -1))
+            if not all((more, items, next_page_id, next_page_id != current_page_id)):
                 break
-            data_json = self._download_json(more, id, note='Downloading Page %d' % page)
-            items = data_json.get('items', [])
-            more = try_get(data_json, lambda x: x['more']['link']) or None
+
+            data = self._download_json(more, item_id, note=f'Downloading Page {page}')
+            items, more = data.get('items'), traverse_obj(data, ('more', 'link'))
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        return self.playlist_result(self._entries(id, url), playlist_id=id)
+        item_id = self._match_id(url)
+        webpage = self._download_webpage(url, item_id)
+        redirect = self._search_json(
+            r'var it\s*=', webpage, 'redirect', item_id, default={}).get('retpath')
+        if redirect:
+            item_id = self._match_id(redirect)
+            webpage = self._download_webpage(redirect, item_id, note='Redirecting')
+        data = self._search_json(
+            r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
+        server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
+        server_settings_json = traverse_obj(data, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
+
+        return self.playlist_result(
+            self._entries(item_id, server_state_json, server_settings_json),
+            item_id, traverse_obj(server_state_json, ('channel', 'source', 'title')),
+            traverse_obj(server_state_json, ('channel', 'source', 'description')))

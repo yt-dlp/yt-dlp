@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    traverse_obj,
-)
+from ..utils import UserNotLive, traverse_obj
 
 
 class MixchIE(InfoExtractor):
@@ -33,7 +30,7 @@ class MixchIE(InfoExtractor):
         initial_js_state = self._parse_json(self._search_regex(
             r'(?m)^\s*window\.__INITIAL_JS_STATE__\s*=\s*(\{.+?\});\s*$', webpage, 'initial JS state'), video_id)
         if not initial_js_state.get('liveInfo'):
-            raise ExtractorError('Livestream has ended.', expected=True)
+            raise UserNotLive(video_id=video_id)
 
         return {
             'id': video_id,
@@ -45,7 +42,8 @@ class MixchIE(InfoExtractor):
             'uploader_id': video_id,
             'formats': [{
                 'format_id': 'hls',
-                'url': traverse_obj(initial_js_state, ('liveInfo', 'hls')) or 'https://d1hd0ww6piyb43.cloudfront.net/hls/torte_%s.m3u8' % video_id,
+                'url': (traverse_obj(initial_js_state, ('liveInfo', 'hls'))
+                        or f'https://d1hd0ww6piyb43.cloudfront.net/hls/torte_{video_id}.m3u8'),
                 'ext': 'mp4',
                 'protocol': 'm3u8',
             }],

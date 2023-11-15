@@ -25,7 +25,6 @@ class SkyItPlayerIE(InfoExtractor):
         'salesforce': 'C6D585FD1615272C98DE38235F38BD86',
         'sitocommerciale': 'VJwfFuSGnLKnd9Phe9y96WkXgYDCguPMJ2dLhGMb2RE',
         'sky': 'F96WlOd8yoFmLQgiqv6fNQRvHZcsWk5jDaYnDvhbiJk',
-        'skyacademy': 'A6LAn7EkO2Q26FRy0IAMBekX6jzDXYL3',
         'skyarte': 'LWk29hfiU39NNdq87ePeRach3nzTSV20o0lTv2001Cd',
         'theupfront': 'PRSGmDMsg6QMGc04Obpoy7Vsbn7i2Whp',
     }
@@ -42,12 +41,7 @@ class SkyItPlayerIE(InfoExtractor):
         if not hls_url and video.get('geoblock' if is_live else 'geob'):
             self.raise_geo_restricted(countries=['IT'])
 
-        if is_live:
-            formats = self._extract_m3u8_formats(hls_url, video_id, 'mp4')
-        else:
-            formats = self._extract_akamai_formats(
-                hls_url, video_id, {'http': 'videoplatform.sky.it'})
-        self._sort_formats(formats)
+        formats = self._extract_m3u8_formats(hls_url, video_id, 'mp4')
 
         return {
             'id': video_id,
@@ -75,19 +69,22 @@ class SkyItPlayerIE(InfoExtractor):
         return self._parse_video(video, video_id)
 
 
-class SkyItVideoIE(SkyItPlayerIE):
+class SkyItVideoIE(SkyItPlayerIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'video.sky.it'
     _VALID_URL = r'https?://(?:masterchef|video|xfactor)\.sky\.it(?:/[^/]+)*/video/[0-9a-z-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://video.sky.it/news/mondo/video/uomo-ucciso-da-uno-squalo-in-australia-631227',
-        'md5': 'fe5c91e59a84a3437eaa0bca6e134ccd',
+        'md5': '5b858a62d9ffe2ab77b397553024184a',
         'info_dict': {
             'id': '631227',
             'ext': 'mp4',
             'title': 'Uomo ucciso da uno squalo in Australia',
             'timestamp': 1606036192,
             'upload_date': '20201122',
-        }
+            'duration': 26,
+            'thumbnail': 'https://video.sky.it/captures/thumbs/631227/631227_thumb_880x494.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://xfactor.sky.it/video/x-factor-2020-replay-audizioni-1-615820',
         'only_matching': True,
@@ -101,7 +98,7 @@ class SkyItVideoIE(SkyItPlayerIE):
         return self._player_url_result(video_id)
 
 
-class SkyItVideoLiveIE(SkyItPlayerIE):
+class SkyItVideoLiveIE(SkyItPlayerIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'video.sky.it:live'
     _VALID_URL = r'https?://video\.sky\.it/diretta/(?P<id>[^/?&#]+)'
     _TEST = {
@@ -110,7 +107,8 @@ class SkyItVideoLiveIE(SkyItPlayerIE):
             'id': '1',
             'ext': 'mp4',
             'title': r're:Diretta TG24 \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-            'description': 'Guarda la diretta streaming di SkyTg24, segui con Sky tutti gli appuntamenti e gli speciali di Tg24.',
+            'description': r're:(?:Clicca play e )?[Gg]uarda la diretta streaming di SkyTg24, segui con Sky tutti gli appuntamenti e gli speciali di Tg24\.',
+            'live_status': 'is_live',
         },
         'params': {
             # m3u8 download
@@ -128,19 +126,21 @@ class SkyItVideoLiveIE(SkyItPlayerIE):
         return self._parse_video(livestream, asset_id)
 
 
-class SkyItIE(SkyItPlayerIE):
+class SkyItIE(SkyItPlayerIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'sky.it'
     _VALID_URL = r'https?://(?:sport|tg24)\.sky\.it(?:/[^/]+)*/\d{4}/\d{2}/\d{2}/(?P<id>[^/?&#]+)'
     _TESTS = [{
-        'url': 'https://sport.sky.it/calcio/serie-a/2020/11/21/juventus-cagliari-risultato-gol',
+        'url': 'https://sport.sky.it/calcio/serie-a/2022/11/03/brozovic-inter-news',
         'info_dict': {
-            'id': '631201',
+            'id': '789222',
             'ext': 'mp4',
-            'title': 'Un rosso alla violenza: in campo per i diritti delle donne',
-            'upload_date': '20201121',
-            'timestamp': 1605995753,
+            'title': 'Brozovic con il gruppo: verso convocazione per Juve-Inter',
+            'upload_date': '20221103',
+            'timestamp': 1667484130,
+            'duration': 22,
+            'thumbnail': 'https://videoplatform.sky.it/still/2022/11/03/1667480526353_brozovic_videostill_1.jpg',
         },
-        'expected_warnings': ['Unable to download f4m manifest'],
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://tg24.sky.it/mondo/2020/11/22/australia-squalo-uccide-uomo',
         'md5': 'fe5c91e59a84a3437eaa0bca6e134ccd',
@@ -150,7 +150,10 @@ class SkyItIE(SkyItPlayerIE):
             'title': 'Uomo ucciso da uno squalo in Australia',
             'timestamp': 1606036192,
             'upload_date': '20201122',
+            'duration': 26,
+            'thumbnail': 'https://video.sky.it/captures/thumbs/631227/631227_thumb_880x494.jpg',
         },
+        'params': {'skip_download': 'm3u8'},
     }]
     _VIDEO_ID_REGEX = r'data-videoid="(\d+)"'
 
@@ -162,43 +165,28 @@ class SkyItIE(SkyItPlayerIE):
         return self._player_url_result(video_id)
 
 
-class SkyItAcademyIE(SkyItIE):
-    IE_NAME = 'skyacademy.it'
-    _VALID_URL = r'https?://(?:www\.)?skyacademy\.it(?:/[^/]+)*/\d{4}/\d{2}/\d{2}/(?P<id>[^/?&#]+)'
-    _TESTS = [{
-        'url': 'https://www.skyacademy.it/eventi-speciali/2019/07/05/a-lezione-di-cinema-con-sky-academy-/',
-        'md5': 'ced5c26638b7863190cbc44dd6f6ba08',
-        'info_dict': {
-            'id': '523458',
-            'ext': 'mp4',
-            'title': 'Sky Academy "The Best CineCamp 2019"',
-            'timestamp': 1562843784,
-            'upload_date': '20190711',
-        }
-    }]
-    _DOMAIN = 'skyacademy'
-    _VIDEO_ID_REGEX = r'id="news-videoId_(\d+)"'
-
-
-class SkyItArteIE(SkyItIE):
+class SkyItArteIE(SkyItIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'arte.sky.it'
     _VALID_URL = r'https?://arte\.sky\.it/video/(?P<id>[^/?&#]+)'
     _TESTS = [{
-        'url': 'https://arte.sky.it/video/serie-musei-venezia-collezionismo-12-novembre/',
+        'url': 'https://arte.sky.it/video/oliviero-toscani-torino-galleria-mazzoleni-788962',
         'md5': '515aee97b87d7a018b6c80727d3e7e17',
         'info_dict': {
-            'id': '627926',
+            'id': '788962',
             'ext': 'mp4',
-            'title': "Musei Galleria Franchetti alla Ca' d'Oro Palazzo Grimani",
-            'upload_date': '20201106',
-            'timestamp': 1604664493,
-        }
+            'title': 'La fotografia di Oliviero Toscani conquista Torino',
+            'upload_date': '20221102',
+            'timestamp': 1667399996,
+            'duration': 12,
+            'thumbnail': 'https://videoplatform.sky.it/still/2022/11/02/1667396388552_oliviero-toscani-torino-galleria-mazzoleni_videostill_1.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
     _DOMAIN = 'skyarte'
-    _VIDEO_ID_REGEX = r'(?s)<iframe[^>]+src="(?:https:)?//player\.sky\.it/player/external\.html\?[^"]*\bid=(\d+)'
+    _VIDEO_ID_REGEX = r'"embedUrl"\s*:\s*"(?:https:)?//player\.sky\.it/player/external\.html\?[^"]*\bid=(\d+)'
 
 
-class CieloTVItIE(SkyItIE):
+class CieloTVItIE(SkyItIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'cielotv.it'
     _VALID_URL = r'https?://(?:www\.)?cielotv\.it/video/(?P<id>[^.]+)\.html'
     _TESTS = [{
@@ -210,17 +198,20 @@ class CieloTVItIE(SkyItIE):
             'title': 'Il lunedì è sempre un dramma',
             'upload_date': '20190329',
             'timestamp': 1553862178,
-        }
+            'duration': 30,
+            'thumbnail': 'https://videoplatform.sky.it/still/2019/03/29/1553858575610_lunedi_dramma_mant_videostill_1.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
     _DOMAIN = 'cielo'
     _VIDEO_ID_REGEX = r'videoId\s*=\s*"(\d+)"'
 
 
-class TV8ItIE(SkyItVideoIE):
+class TV8ItIE(SkyItVideoIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'tv8.it'
-    _VALID_URL = r'https?://tv8\.it/showvideo/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?:show)?video/[0-9a-z-]+-(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://tv8.it/showvideo/630529/ogni-mattina-ucciso-asino-di-andrea-lo-cicero/18-11-2020/',
+        'url': 'https://www.tv8.it/video/ogni-mattina-ucciso-asino-di-andrea-lo-cicero-630529',
         'md5': '9ab906a3f75ea342ed928442f9dabd21',
         'info_dict': {
             'id': '630529',
@@ -228,6 +219,9 @@ class TV8ItIE(SkyItVideoIE):
             'title': 'Ogni mattina - Ucciso asino di Andrea Lo Cicero',
             'timestamp': 1605721374,
             'upload_date': '20201118',
-        }
+            'duration': 114,
+            'thumbnail': 'https://videoplatform.sky.it/still/2020/11/18/1605717753954_ogni-mattina-ucciso-asino-di-andrea-lo-cicero_videostill_1.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
     _DOMAIN = 'mtv8'

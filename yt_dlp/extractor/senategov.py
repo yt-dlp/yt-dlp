@@ -49,6 +49,7 @@ _COMMITTEES = {
 class SenateISVPIE(InfoExtractor):
     _IE_NAME = 'senate.gov:isvp'
     _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
+    _EMBED_REGEX = [r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]"]
 
     _TESTS = [{
         'url': 'http://www.senate.gov/isvp/?comm=judiciary&type=live&stt=&filename=judiciary031715&auto_play=false&wmode=transparent&poster=http%3A%2F%2Fwww.judiciary.senate.gov%2Fthemes%2Fjudiciary%2Fimages%2Fvideo-poster-flash-fit.png',
@@ -86,14 +87,6 @@ class SenateISVPIE(InfoExtractor):
         'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _search_iframe_url(webpage):
-        mobj = re.search(
-            r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]",
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -137,8 +130,6 @@ class SenateISVPIE(InfoExtractor):
                 if mobj:
                     entry['format_id'] += mobj.group('tag')
                 formats.append(entry)
-
-            self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -194,7 +185,6 @@ class SenateGovIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
             display_id, ext='mp4')
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title')

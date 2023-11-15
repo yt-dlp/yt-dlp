@@ -1,0 +1,35 @@
+name: Release (nightly)
+on:
+  schedule:
+    - cron: '23 23 * * *'
+permissions:
+  contents: read
+
+jobs:
+  check_nightly:
+    if: vars.BUILD_NIGHTLY != ''
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.check_for_new_commits.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for new commits
+        id: check_for_new_commits
+        run: |
+          relevant_files=("yt_dlp/*.py" ':!yt_dlp/version.py' "setup.py" "pyinst.py")
+          echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
+
+  release:
+    needs: [check_nightly]
+    if: ${{ needs.check_nightly.outputs.commit }}
+    uses: ./.github/workflows/release.yml
+    with:
+      prerelease: true
+      source: nightly
+    permissions:
+      contents: write
+      packages: write
+      id-token: write  # mandatory for trusted publishing
+    secrets: inherit

@@ -81,7 +81,7 @@ class BuzzFeedIE(InfoExtractor):
                 continue
             entries.append(self.url_result(video['url']))
 
-        facebook_urls = FacebookIE._extract_urls(webpage)
+        facebook_urls = FacebookIE._extract_embed_urls(url, webpage)
         entries.extend([
             self.url_result(facebook_url)
             for facebook_url in facebook_urls])

@@ -70,7 +70,6 @@ class TVN24IE(InfoExtractor):
                 'format_id': format_id,
                 'height': int_or_none(format_id.rstrip('p')),
             })
-        self._sort_formats(formats)
 
         description = self._og_search_description(webpage, default=None)
         thumbnail = self._og_search_thumbnail(

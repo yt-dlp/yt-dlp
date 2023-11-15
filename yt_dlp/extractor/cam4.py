@@ -20,7 +20,6 @@ class CAM4IE(InfoExtractor):
         m3u8_playlist = self._download_json('https://www.cam4.com/rest/v1.0/profile/{}/streamInfo'.format(channel_id), channel_id).get('cdnURL')
 
         formats = self._extract_m3u8_formats(m3u8_playlist, channel_id, 'mp4', m3u8_id='hls', live=True)
-        self._sort_formats(formats)
 
         return {
             'id': channel_id,

@@ -3,11 +3,11 @@ import io
 import itertools
 import struct
 import time
-import urllib.error
 import urllib.parse
 
 from .fragment import FragmentFD
 from ..compat import compat_etree_fromstring
+from ..networking.exceptions import HTTPError
 from ..utils import fix_xml_ampersands, xpath_text
 
 
@@ -184,7 +184,7 @@ def build_fragments_list(boot_info):
     first_frag_number = fragment_run_entry_table[0]['first']
     fragments_counter = itertools.count(first_frag_number)
     for segment, fragments_count in segment_run_table['segment_run']:
-        # In some live HDS streams (for example Rai), `fragments_count` is
+        # In some live HDS streams (e.g. Rai), `fragments_count` is
         # abnormal and causing out-of-memory errors. It's OK to change the
         # number of fragments for live streams as they are updated periodically
         if fragments_count == 4294967295 and boot_info['live']:
@@ -312,7 +312,7 @@ class F4mFD(FragmentFD):
         self.to_screen('[%s] Downloading f4m manifest' % self.FD_NAME)
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.geturl()
+        man_url = urlh.url
         # Some manifests may be malformed, e.g. prosiebensat1 generated manifests
         # (see https://github.com/ytdl-org/youtube-dl/issues/6215#issuecomment-121704244
         # and https://github.com/ytdl-org/youtube-dl/issues/7823)
@@ -407,8 +407,8 @@ class F4mFD(FragmentFD):
                     if box_type == b'mdat':
                         self._append_fragment(ctx, box_data)
                         break
-            except urllib.error.HTTPError as err:
-                if live and (err.code == 404 or err.code == 410):
+            except HTTPError as err:
+                if live and (err.status == 404 or err.status == 410):
                     # We didn't keep up with the live window. Continue
                     # with the next available fragment.
                     msg = 'Fragment %d unavailable' % frag_i
@@ -424,6 +424,4 @@ class F4mFD(FragmentFD):
                     msg = 'Missed %d fragments' % (fragments_list[0][1] - (frag_i + 1))
                     self.report_warning(msg)
 
-        self._finish_frag_download(ctx, info_dict)
-
-        return True
+        return self._finish_frag_download(ctx, info_dict)

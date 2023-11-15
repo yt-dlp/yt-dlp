@@ -78,7 +78,6 @@ class IzleseneIE(InfoExtractor):
                 'ext': ext,
                 'height': height,
             })
-        self._sort_formats(formats)
 
         description = self._og_search_description(webpage, default=None)
         thumbnail = video.get('posterURL') or self._proto_relative_url(

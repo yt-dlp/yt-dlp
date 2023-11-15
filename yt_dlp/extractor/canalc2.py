@@ -58,8 +58,6 @@ class Canalc2IE(InfoExtractor):
         else:
             info = self._parse_html5_media_entries(url, webpage, url)[0]
 
-        self._sort_formats(info['formats'])
-
         info.update({
             'id': video_id,
             'title': title,

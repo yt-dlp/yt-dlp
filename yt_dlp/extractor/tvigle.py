@@ -13,6 +13,7 @@ class TvigleIE(InfoExtractor):
     IE_NAME = 'tvigle'
     IE_DESC = 'Интернет-телевидение Tvigle.ru'
     _VALID_URL = r'https?://(?:www\.)?(?:tvigle\.ru/(?:[^/]+/)+(?P<display_id>[^/]+)/$|cloud\.tvigle\.ru/video/(?P<id>\d+))'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//cloud\.tvigle\.ru/video/.+?)\1']
 
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['RU']
@@ -119,7 +120,6 @@ class TvigleIE(InfoExtractor):
                         'height': int_or_none(height),
                         'filesize': filesize,
                     })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

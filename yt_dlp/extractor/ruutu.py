@@ -135,7 +135,7 @@ class RuutuIE(InfoExtractor):
     _API_BASE = 'https://gatling.nelonenmedia.fi'
 
     @classmethod
-    def _extract_urls(cls, webpage):
+    def _extract_embed_urls(cls, url, webpage):
         # nelonen.fi
         settings = try_call(
             lambda: json.loads(re.search(
@@ -243,8 +243,6 @@ class RuutuIE(InfoExtractor):
             ns_st_cds = pv('ns_st_cds')
             if ns_st_cds != 'free':
                 raise ExtractorError('This video is %s.' % ns_st_cds, expected=True)
-
-        self._sort_formats(formats)
 
         themes = pv('themes')
 

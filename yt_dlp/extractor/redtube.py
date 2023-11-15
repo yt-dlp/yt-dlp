@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -14,6 +12,7 @@ from ..utils import (
 
 class RedTubeIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:\w+\.)?redtube\.com/|embed\.redtube\.com/\?.*?\bid=)(?P<id>[0-9]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//embed\.redtube\.com/\?.*?\bid=\d+)']
     _TESTS = [{
         'url': 'https://www.redtube.com/38864951',
         'md5': '4fba70cbca3aefd25767ab4b523c9878',
@@ -37,16 +36,10 @@ class RedTubeIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//embed\.redtube\.com/\?.*?\bid=\d+)',
-            webpage)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'http://www.redtube.com/%s' % video_id, video_id)
+            f'https://www.redtube.com/{video_id}', video_id)
 
         ERRORS = (
             (('video-deleted-info', '>This video has been removed'), 'has been removed'),
@@ -117,7 +110,6 @@ class RedTubeIE(InfoExtractor):
             video_url = self._html_search_regex(
                 r'<source src="(.+?)" type="video/mp4">', webpage, 'video URL')
             formats.append({'url': video_url, 'ext': 'mp4'})
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage)
         upload_date = unified_strdate(self._search_regex(

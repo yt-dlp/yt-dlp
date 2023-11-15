@@ -3,11 +3,29 @@ from ..compat import (
     compat_b64decode,
     compat_urllib_parse_unquote,
 )
-from ..utils import int_or_none
+from ..utils import classproperty, int_or_none
 
 
 class MangomoloBaseIE(InfoExtractor):
-    _BASE_REGEX = r'https?://(?:admin\.mangomolo\.com/analytics/index\.php/customers/embed/|player\.mangomolo\.com/v1/)'
+    _BASE_REGEX = r'(?:https?:)?//(?:admin\.mangomolo\.com/analytics/index\.php/customers/embed/|player\.mangomolo\.com/v1/)'
+    _SLUG = None
+
+    @classproperty
+    def _VALID_URL(cls):
+        return f'{cls._BASE_REGEX}{cls._SLUG}'
+
+    @classproperty
+    def _EMBED_REGEX(cls):
+        return [rf'<iframe[^>]+src=(["\'])(?P<url>{cls._VALID_URL}.+?)\1']
+
+    def _extract_from_webpage(self, url, webpage):
+        for res in super()._extract_from_webpage(url, webpage):
+            yield {
+                **res,
+                '_type': 'url_transparent',
+                'id': self._search_regex(self._SLUG, res['url'], 'id', group='id'),
+                'uploader': self._search_regex(r'^(?:https?://)?([^/]*)/.*', url, 'video uploader'),
+            }
 
     def _get_real_id(self, page_id):
         return page_id
@@ -26,7 +44,6 @@ class MangomoloBaseIE(InfoExtractor):
             ], webpage, 'format url')
         formats = self._extract_wowza_formats(
             format_url, page_id, m3u8_entry_protocol, ['smil'])
-        self._sort_formats(formats)
 
         return {
             'id': page_id,
@@ -41,14 +58,15 @@ class MangomoloBaseIE(InfoExtractor):
 class MangomoloVideoIE(MangomoloBaseIE):
     _TYPE = 'video'
     IE_NAME = 'mangomolo:' + _TYPE
-    _VALID_URL = MangomoloBaseIE._BASE_REGEX + r'video\?.*?\bid=(?P<id>\d+)'
+    _SLUG = r'video\?.*?\bid=(?P<id>\d+)'
+
     _IS_LIVE = False
 
 
 class MangomoloLiveIE(MangomoloBaseIE):
     _TYPE = 'live'
     IE_NAME = 'mangomolo:' + _TYPE
-    _VALID_URL = MangomoloBaseIE._BASE_REGEX + r'(live|index)\?.*?\bchannelid=(?P<id>(?:[A-Za-z0-9+/=]|%2B|%2F|%3D)+)'
+    _SLUG = r'(?:live|index)\?.*?\bchannelid=(?P<id>(?:[A-Za-z0-9+/=]|%2B|%2F|%3D)+)'
     _IS_LIVE = True
 
     def _get_real_id(self, page_id):

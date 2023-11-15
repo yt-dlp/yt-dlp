@@ -131,7 +131,6 @@ class MSNIE(InfoExtractor):
                         'vbr': int_or_none(self._search_regex(r'_(\d+)\.mp4', format_url, 'vbr', default=None)),
                         'quality': 1 if format_id == '1001' else None,
                     })
-            self._sort_formats(formats)
 
             subtitles = {}
             for file_ in video.get('files', []):

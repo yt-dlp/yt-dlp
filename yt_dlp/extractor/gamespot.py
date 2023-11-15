@@ -65,8 +65,6 @@ class GameSpotIE(OnceIE):
             formats.extend(self._extract_mpd_formats(
                 mpd_url, page_id, mpd_id='dash', fatal=False))
 
-        self._sort_formats(formats)
-
         return {
             'id': data_video.get('guid') or page_id,
             'display_id': page_id,
