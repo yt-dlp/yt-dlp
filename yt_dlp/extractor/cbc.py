@@ -1,8 +1,9 @@
-import re
-import json
 import base64
+import json
+import re
 import time
 import urllib.parse
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..compat import (
@@ -387,7 +388,7 @@ class CBCGemIE(InfoExtractor):
         url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
 
         secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
-        if not secret_xml:
+        if not isinstance(secret_xml, xml.etree.ElementTree.Element):
             return
 
         for child in secret_xml:

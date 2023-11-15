@@ -18,7 +18,7 @@ except ImportError:
 
 from devscripts.utils import read_file, read_version
 
-VERSION = read_version()
+VERSION = read_version(varname='_pkg_version')
 
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
@@ -142,7 +142,7 @@ def main():
         params = build_params()
 
     setup(
-        name='yt-dlp-daily',
+        name='yt-dlp-daily',  # package name (do not change/remove comment)
         version=VERSION,
         maintainer='observeroftime02',
         maintainer_email='observeroftime@shizuki.ca',
