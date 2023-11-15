@@ -2,29 +2,20 @@ from .common import InfoExtractor
 from ..utils import (
     js_to_json,
     urlencode_postdata,
+    urljoin,
 )
 
 
 class JioSaavnBaseInfoExtractor(InfoExtractor):
-    def extract_initial_data_as_json(self, url, id):
+    def _extract_initial_data(self, url, audio_id):
         webpage = self._download_webpage(url, id)
-        init_data_re = r'window.__INITIAL_DATA__\s*=\s*(?P<json>.+?);*\s*\</script>'
-
-        init_data = self._parse_json(self._search_regex(init_data_re, webpage,
-                                                        'init-json'),
-                                     id, transform_source=js_to_json)
-        return init_data
+        return self._search_json(
+            r'window\.__INITIAL_DATA__\s*=', webpage,
+            'init json', audio_id, transform_source=js_to_json)
 
 
 class JioSaavnSongIE(JioSaavnBaseInfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://(?:www\.)?
-                        (?:
-                            jiosaavn\.com/song/[^/]+/|
-                            saavn.com/s/song/(?:[^/]+/){3}
-                        )
-                        (?P<id>[^/]+)
-                   '''
+    _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/song/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/song/leja-re/OQsEfQFVUXk',
         'md5': '7b1f70de088ede3a152ea34aece4df42',
@@ -42,43 +33,33 @@ class JioSaavnSongIE(JioSaavnBaseInfoExtractor):
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
-        song_data = self.extract_initial_data_as_json(url, audio_id)['song']['song']
+        song_data = self._extract_initial_data(url, audio_id)['song']['song']
 
-        data = urlencode_postdata({'__call': 'song.generateAuthToken',
-                                   '_format': 'json',
-                                   'bitrate': '128',
-                                   'url': song_data['encrypted_media_url'],
-                                   })
-
-        def clean_api_json(resp):
-            return self._search_regex(r'(?P<json>\{.+?})', resp, 'api-json')
-
-        media_url = self._download_json('https://www.jiosaavn.com/api.php',
-                                        audio_id, data=data,
-                                        transform_source=clean_api_json,
-                                        )['auth_url']
+        media_data = self._download_json(
+            'https://www.jiosaavn.com/api.php', audio_id, data=urlencode_postdata({
+                '__call': 'song.generateAuthToken',
+                '_format': 'json',
+                'bitrate': '128',
+                'url': song_data['encrypted_media_url'],
+            }))
 
         return {
             'id': audio_id,
-            'title': song_data['title']['text'],
             'formats': [{
-                'url': media_url,
-                'ext': 'mp3',
-                'format_note': 'MPEG audio',
-                'format_id': '128',
+                'url': media_data['auth_url'],
+                'container': media_data.get('type'),
                 'vcodec': 'none',
             }],
-            'album': song_data.get('album', {}).get('text'),
-            'thumbnail': song_data.get('image', [None])[0],
+            **traverse_obj(song_data, {
+                'title': ('title', 'text'),
+                'album': ('album', 'text'),
+                'thumbnail': ('image', 0, {url_or_none}),
+            }),
         }
 
 
 class JioSaavnAlbumIE(JioSaavnBaseInfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://(?:www\.)?
-                        (?:(?:jio)?saavn\.com/album/[^/]+/)
-                        (?P<id>[^/]+)
-                   '''
+    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/album/[^/?#]+/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/album/96/buIOjYZDrNA_',
         'info_dict': {
@@ -90,9 +71,9 @@ class JioSaavnAlbumIE(JioSaavnBaseInfoExtractor):
 
     def _real_extract(self, url):
         album_id = self._match_id(url)
-        json_data = self.extract_initial_data_as_json(url, album_id)
-        album_data = json_data['albumView']['album']
-        songs = json_data['albumView']['modules'][0]['data']
-        songs = [self.url_result(f'https://www.jiosaavn.com{song["title"]["action"]}') for song in songs]
-
-        return self.playlist_result(songs, album_id, album_data.get('title', {}).get('text'))
+        album_view = self._extract_initial_data(url, album_id)['album_view']
+        self.playlist_from_matches(
+            traverse_obj(album_view, (
+                'modules', lambda _, x: x['key'] == 'list', 'data', ..., 'title', 'action', {str})),
+            album_id, traverse_obj(album_view, ('album', 'title', 'text', {str})), ie=JioSaavnSongIE,
+            getter=lambda x: urljoin('https://www.jiosaavn.com/', x))
