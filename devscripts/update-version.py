@@ -26,7 +26,7 @@ rev = (sys.argv[1:] or [''])[0]  # Use first argument, if present as revision nu
 if not rev:
     rev = str(int(old_rev or 0) + 1) if old_ver == ver else ''
 
-VERSION = '.'.join((ver, rev)) if rev else ver
+VERSION = '.'.join((ver, rev)) if rev else ver  # a
 
 try:
     sp = subprocess.Popen(['git', 'rev-parse', '--short', 'HEAD'], stdout=subprocess.PIPE)
