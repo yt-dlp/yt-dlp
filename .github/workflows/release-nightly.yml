@@ -23,7 +23,6 @@ jobs:
           echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
   release:
-    needs: [check_nightly]
     if: ${{ needs.check_nightly.outputs.commit }}
     uses: ./.github/workflows/release.yml
     with:
