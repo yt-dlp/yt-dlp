@@ -565,6 +565,7 @@ from .ellentube import (
 )
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
+from .eltrecetv import ElTreceTVIE
 from .embedly import EmbedlyIE
 from .engadget import EngadgetIE
 from .epicon import (
