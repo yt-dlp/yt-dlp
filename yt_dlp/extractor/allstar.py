@@ -60,20 +60,6 @@ _QUERIES = {
 }
 
 
-def _set_webpage_url(info_dict):
-    video_id = info_dict.get('id')
-    video_url = info_dict.get('url')
-
-    if video_url is None or video_id is None:
-        return info_dict
-
-    base_name = 'clip' if '/clips/' in video_url else 'montage'
-    info_dict['webpage_url'] = f'https://allstar.gg/{base_name}?{base_name}={video_id}'
-    info_dict['webpage_url_basename'] = base_name
-
-    return info_dict
-
-
 class AllstarBase(InfoExtractor):
     @staticmethod
     def _parse_video_data(video_data):
@@ -226,6 +212,21 @@ class AllstarProfileIE(AllstarBase):
 
     _PAGE_SIZE = 10
 
+    @staticmethod
+    def _set_webpage_url(info_dict):
+        video_id = info_dict.get('id')
+        video_url = info_dict.get('url')
+
+        if video_url is None or video_id is None:
+            return info_dict
+
+        base_name = 'clip' if '/clips/' in video_url else 'montage'
+        info_dict['webpage_url'] = f'https://allstar.gg/{base_name}?{base_name}={video_id}'
+        info_dict['webpage_url_basename'] = base_name
+
+        return info_dict
+
+
     def _get_page(self, user_id, game, query_id, page_num):
         page_num += 1
 
@@ -235,7 +236,7 @@ class AllstarProfileIE(AllstarBase):
                     'page': page_num,
                     'game': int_or_none(game),
                 }, ('data', 'videos', 'data'), user_id, f'Downloading page {page_num}'):
-            yield _set_webpage_url(self._parse_video_data(video_data))
+            yield self._set_webpage_url(self._parse_video_data(video_data))
 
     def _get_user_data(self, user_id, path=()):
         return traverse_obj(
