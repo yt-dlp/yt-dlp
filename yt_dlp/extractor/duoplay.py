@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     extract_attributes,
     get_element_text_and_html_by_tag,
     int_or_none,
@@ -77,7 +78,7 @@ class DuoplayIE(InfoExtractor):
             'title': 'Pilvede all. Neljas õde',
             'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
             'description': 'md5:d86a70f8f31e82c369d4d4f4c79b1279',
-            'cast': ['Inga Lunge', 'Elisabet Reinsalu', 'Liis Haab', 'Rita Rätsepp', 'Ain Lutsepp', 'Indrek Sammul', 'Piret Rauk', 'Karin Tammaru', 'Guido Kangur'],
+            'cast': 'count:9',
             'upload_date': '20221214',
             'timestamp': 1671054000,
             'release_year': 2018,
@@ -91,7 +92,7 @@ class DuoplayIE(InfoExtractor):
         video_player = try_call(lambda: extract_attributes(
             get_element_text_and_html_by_tag('video-player', webpage)[1]))
         if not video_player or not video_player.get('manifest-url'):
-            self.raise_no_formats('No video found', expected=True)
+            raise ExtractorError('No video found', expected=True)
 
         episode_attr = self._parse_json(video_player.get(':episode') or '', video_id, fatal=False) or {}
 
