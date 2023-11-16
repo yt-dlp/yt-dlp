@@ -118,10 +118,11 @@ class BilibiliBaseIE(InfoExtractor):
             'https://api.bilibili.com/x/player/v2', video_id,
             query={'aid': aid, 'cid': cid} if aid else {'bvid': video_id, 'cid': cid},
             note=f'Extracting subtitle info {cid}'), ('data', 'subtitle'))
-        if not traverse_obj(subtitle_info, 'subtitles') and traverse_obj(subtitle_info, 'allow_submit'):
+        subs_list = traverse_obj(subtitle_info, ('subtitles', lambda _, v: v['subtitle_url'] and v['lan']))
+        if not subs_list and traverse_obj(subtitle_info, 'allow_submit'):
             if not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):  # no login session cookie
-                self.report_warning(f'CC subtitles (if exist) are only visible when logged in. {self._login_hint()}')
-        for s in traverse_obj(subtitle_info, ('subtitles', ...)):
+                self.report_warning(f'CC subtitles (if any) are only visible when logged in. {self._login_hint()}')
+        for s in subs_list:
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
@@ -192,7 +193,7 @@ class BilibiliBaseIE(InfoExtractor):
                 'text': ('option', {str}),
             }),
         })))
-        # use dict to combine edges that use the save video section (same cid)
+        # use dict to combine edges that use the same video section (same cid)
         cid_edges.setdefault(edges[edge_id]['cid'], {})[edge_id] = edges[edge_id]
         for choice in edges[edge_id].get('choices', []):
             if choice['edge_id'] not in edges:
@@ -741,7 +742,8 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
 
-        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
+        initial_state = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
         ss_id = initial_state['mediaInfo']['season_id']
         metainfo = traverse_obj(initial_state, ('mediaInfo', {
             'title': ('title', {str}),
