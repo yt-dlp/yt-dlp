@@ -42,17 +42,17 @@ _QUERIES = {
             %s
         }
     }''' % _FIELDS,
-    'clips': '''query ($page: Int!, $user: String!, $game: Int) {
+    'Clips': '''query ($page: Int!, $user: String!, $game: Int) {
         videos: clips(search: createdDate, page: $page, user: $user, mobile: false, game: $game) {
             data { %s %s }
         }
     }''' % (_FIELDS, _EXTRA_FIELDS),
-    'montages': '''query ($page: Int!, $user: String!) {
+    'Montages': '''query ($page: Int!, $user: String!) {
         videos: montages(search: createdDate, page: $page, user: $user) {
             data { %s }
         }
     }''' % _FIELDS,
-    'mobile clips': '''query ($page: Int!, $user: String!) {
+    'Mobile Clips': '''query ($page: Int!, $user: String!) {
         videos: clips(search: createdDate, page: $page, user: $user, mobile: true) {
             data { %s %s }
         }
@@ -167,8 +167,6 @@ class AllstarIE(AllstarBaseIE):
     def _real_extract(self, url):
         query_id, video_id = self._match_valid_url(url).groups()
 
-        assert query_id in _QUERIES
-
         return self._parse_video_data(
             self._send_query(
                 _QUERIES.get(query_id), {'id': video_id},
@@ -224,39 +222,38 @@ class AllstarProfileIE(AllstarBaseIE):
 
         return info_dict
 
-    def _get_page(self, user_id, game, query_id, page_num):
+    def _get_page(self, user_id, display_id, game, query, page_num):
         page_num += 1
 
         for video_data in self._send_query(
-                _QUERIES.get(query_id), {
+                query, {
                     'user': user_id,
                     'page': page_num,
-                    'game': int_or_none(game),
-                }, ('data', 'videos', 'data'), user_id, f'Downloading page {page_num}'):
+                    'game': game,
+                }, ('data', 'videos', 'data'), display_id, f'Downloading page {page_num}'):
             yield self._set_webpage_url(self._parse_video_data(video_data))
 
-    def _get_user_data(self, user_id, path=()):
-        return traverse_obj(
-            self._download_json(
-                urljoin('https://api.allstar.gg/v1/users/profile/', user_id),
-                user_id), path)
-
     def _real_extract(self, url):
-        user_id = self._match_id(url)
-        user_id, user_name = self._get_user_data(
-            user_id, ('data', ('_id', ('profile', 'username'))))
+        display_id = self._match_id(url)
+        profile_data = self._download_json(
+                urljoin('https://api.allstar.gg/v1/users/profile/', display_id),
+                display_id)
+        user_id = traverse_obj(profile_data, ('data', ('_id'), {str_or_none}))
+
+        if user_id is None:
+            raise ExtractorError('Can not extract the user_id')
+
+        username = traverse_obj(profile_data, ('data', 'profile', ('username'), {str_or_none}))
         url_query = parse_qs(url)
-        game = traverse_obj(url_query, ('game', 0, {str_or_none}))
+        game = traverse_obj(url_query, ('game', 0, {int_or_none}))
         view = traverse_obj(url_query, ('view', 0, {str_or_none}), default='Clips')
-        query_id = view.lower()
+        query_id = view
 
-        if query_id not in ('clips', 'montages', 'mobile clips'):
+        if query_id not in ('Clips', 'Montages', 'Mobile Clips'):
             raise UnsupportedError(url)
-
-        assert query_id in _QUERIES
 
         return self.playlist_result(
             OnDemandPagedList(
                 functools.partial(
-                    self._get_page, user_id, game, query_id), self._PAGE_SIZE),
-            user_id, f'{user_name} - {view}')
+                    self._get_page, user_id, display_id, game, _QUERIES.get(query_id)), self._PAGE_SIZE),
+            user_id, f'{username or display_id} - {view}')
