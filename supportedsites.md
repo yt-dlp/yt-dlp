@@ -414,6 +414,7 @@
  - **EllenTubeVideo**
  - **Elonet**
  - **ElPais**: El País
+ - **ElTreceTV**: El Trece TV (Argentina)
  - **Embedly**
  - **EMPFlix**
  - **Engadget**
@@ -654,6 +655,8 @@
  - **Jamendo**
  - **JamendoAlbum**
  - **JeuxVideo**
+ - **JioSaavnAlbum**
+ - **JioSaavnSong**
  - **Joj**
  - **Jove**
  - **JStream**

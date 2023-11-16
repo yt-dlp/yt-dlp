@@ -4,6 +4,23 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.11.16
+
+#### Extractor changes
+- **abc.net.au**: iview, showseries: [Fix extraction](https://github.com/yt-dlp/yt-dlp/commit/15cb3528cbda7b6198f49a6b5953c226d701696b) ([#8586](https://github.com/yt-dlp/yt-dlp/issues/8586)) by [bashonly](https://github.com/bashonly)
+- **beatbump**: [Update `_VALID_URL`](https://github.com/yt-dlp/yt-dlp/commit/21dc069bea2d4d99345dd969e098f4535c751d45) ([#8576](https://github.com/yt-dlp/yt-dlp/issues/8576)) by [seproDev](https://github.com/seproDev)
+- **dailymotion**: [Improve `_VALID_URL`](https://github.com/yt-dlp/yt-dlp/commit/a489f071508ec5caf5f32052d142afe86c28df7a) ([#7692](https://github.com/yt-dlp/yt-dlp/issues/7692)) by [TravisDupes](https://github.com/TravisDupes)
+- **drtv**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/0783fd558ed0d3a8bc754beb75a406256f8b97b2) ([#8484](https://github.com/yt-dlp/yt-dlp/issues/8484)) by [almx](https://github.com/almx), [seproDev](https://github.com/seproDev)
+- **eltrecetv**: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/dcfad52812aa8ce007cefbfbe63f58b49f6b1046) ([#8216](https://github.com/yt-dlp/yt-dlp/issues/8216)) by [elivinsky](https://github.com/elivinsky)
+- **jiosaavn**: [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/b530118e7f48232cacf8050d79a6b20bdfcf5468) ([#8307](https://github.com/yt-dlp/yt-dlp/issues/8307)) by [awalgarg](https://github.com/awalgarg)
+- **njpwworld**: [Remove](https://github.com/yt-dlp/yt-dlp/commit/e569c2d1f4b665795a2b64f0aaf7f76930664233) ([#8570](https://github.com/yt-dlp/yt-dlp/issues/8570)) by [aarubui](https://github.com/aarubui)
+- **tv5mondeplus**: [Extract subtitles](https://github.com/yt-dlp/yt-dlp/commit/0f634dba3afdc429ece8839b02f6d56c27b7973a) ([#4209](https://github.com/yt-dlp/yt-dlp/issues/4209)) by [FrankZ85](https://github.com/FrankZ85)
+- **twitcasting**: [Fix livestream detection](https://github.com/yt-dlp/yt-dlp/commit/2325d03aa7bb80f56ba52cd6992258e44727b424) ([#8574](https://github.com/yt-dlp/yt-dlp/issues/8574)) by [JC-Chung](https://github.com/JC-Chung)
+- **zenyandex**: [Fix extraction](https://github.com/yt-dlp/yt-dlp/commit/5efe68b73cbf6e907c2e6a3aa338664385084184) ([#8454](https://github.com/yt-dlp/yt-dlp/issues/8454)) by [starius](https://github.com/starius)
+
+#### Misc. changes
+- **build**: [Make `secretstorage` an optional dependency](https://github.com/yt-dlp/yt-dlp/commit/24f827875c6ba513f12ed09a3aef2bbed223760d) ([#8585](https://github.com/yt-dlp/yt-dlp/issues/8585)) by [bashonly](https://github.com/bashonly)
+
 ### 2023.11.14
 
 #### Important changes
