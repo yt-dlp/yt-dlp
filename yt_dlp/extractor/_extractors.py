@@ -565,6 +565,7 @@ from .ellentube import (
 )
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
+from .eltrecetv import ElTreceTVIE
 from .embedly import EmbedlyIE
 from .engadget import EngadgetIE
 from .epicon import (
@@ -893,6 +894,10 @@ from .japandiet import (
     SangiinIE,
 )
 from .jeuxvideo import JeuxVideoIE
+from .jiosaavn import (
+    JioSaavnSongIE,
+    JioSaavnAlbumIE,
+)
 from .jove import JoveIE
 from .joj import JojIE
 from .jstream import JStreamIE
@@ -1320,7 +1325,6 @@ from .ninegag import NineGagIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
 from .nitter import NitterIE
-from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
 from .noice import NoicePodcastIE
 from .nonktube import NonkTubeIE

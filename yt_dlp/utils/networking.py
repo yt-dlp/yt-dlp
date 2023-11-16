@@ -123,6 +123,7 @@ def clean_headers(headers: HTTPHeaderDict):
     if 'Youtubedl-No-Compression' in headers:  # compat
         del headers['Youtubedl-No-Compression']
         headers['Accept-Encoding'] = 'identity'
+    headers.pop('Ytdl-socks-proxy', None)
 
 
 def remove_dot_segments(path):
