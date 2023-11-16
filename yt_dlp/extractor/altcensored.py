@@ -53,6 +53,7 @@ class AltCensoredIE(InfoExtractor):
 
 
 class AltCensoredChannelIE(InfoExtractor):
+    IE_NAME = 'altcensored:channel'
     _VALID_URL = r'https?://(?:www\.)?altcensored\.com/channel/(?!page|table)(?P<id>[^/?#]+)'
     _PAGE_SIZE = 24
     _TESTS = [{
