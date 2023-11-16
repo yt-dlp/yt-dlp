@@ -174,7 +174,8 @@ class BilibiliBaseIE(InfoExtractor):
                 lambda _, v: url_or_none(v['share_url']) and v['id'])):
             yield self.url_result(entry['share_url'], BiliBiliBangumiIE, str_or_none(entry.get('id')))
 
-    def _get_divisions(self, video_id, graph_version, edges, edge_id, cid_edges={}):
+    def _get_divisions(self, video_id, graph_version, edges, edge_id, cid_edges=None):
+        cid_edges = cid_edges or {}
         division_data = self._download_json(
             'https://api.bilibili.com/x/stein/edgeinfo_v2', video_id,
             query={'graph_version': graph_version, 'edge_id': edge_id, 'bvid': video_id},
@@ -204,8 +205,8 @@ class BilibiliBaseIE(InfoExtractor):
     def _get_interactive_entries(self, video_id, cid, metainfo):
         graph_version = traverse_obj(
             self._download_json(
-                f'https://api.bilibili.com/x/player/wbi/v2?bvid={video_id}&cid={cid}',
-                video_id, note='Extracting graph version'),
+                'https://api.bilibili.com/x/player/wbi/v2', video_id,
+                'Extracting graph version', query={'bvid': video_id, 'cid': cid}),
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
