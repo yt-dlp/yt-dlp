@@ -89,19 +89,22 @@ class DuoplayIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': episode_attr.get('title') if episode_attr.get('category') == 'movies' else (
-                traverse_obj(episode_attr, 'subtitle', ('episode_nr', {lambda x: f'Episode {x}' if x else None}), 'title')),
             'formats': self._extract_m3u8_formats(video_player['manifest-url'], video_id, 'mp4'),
             **traverse_obj(episode_attr, {
+                'title': 'title',
                 'description': 'synopsis',
                 'thumbnail': ('images', 'original'),
                 'timestamp': ('airtime', {lambda x: unified_timestamp(x + ' +0200')}),
+                'cast': ('cast', {lambda x: x.split(', ')}),
+                'release_year': ('year', {int_or_none}),
+            }),
+            **(traverse_obj(episode_attr, {
+                'title': (None, ('subtitle', ('episode_nr', {lambda x: f'Episode {x}' if x else None}))),
                 'series': 'title',
                 'series_id': ('telecast_id', {str_or_none}),
                 'season_number': ('season_id', {int_or_none}),
                 'episode': 'subtitle',
                 'episode_number': ('episode_nr', {int_or_none}),
                 'episode_id': ('episode_id', {int_or_none}),
-                'cast': ('cast', {lambda x: x.split(', ')}),
-            }),
+            }, get_all=False) if episode_attr.get('category') != 'movies' else {}),
         }
