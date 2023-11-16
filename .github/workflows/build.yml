@@ -377,8 +377,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
-        with: # 3.7 is used for Vista support. See https://github.com/yt-dlp/yt-dlp/issues/390
-          python-version: "3.7"
+        with:
+          python-version: "3.8"
           architecture: "x86"
       - name: Install Requirements
         run: |
@@ -436,7 +436,16 @@ jobs:
         run: |
           cat >> _update_spec << EOF
           # This file is used for regulating self-update
-          lock 2022.08.18.36 .+ Python 3.6
+          lock 2022.08.18.36 .+ Python 3\.6
+          lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+          lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
+          lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
+          lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           EOF
 
       - name: Sign checksum files

@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: 3.9
     - name: Install test requirements
-      run: pip install pytest
+      run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: true
       run: ./devscripts/run_tests.sh download
@@ -28,7 +28,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.7', '3.10', '3.12', pypy-3.7, pypy-3.8, pypy-3.10]
+        python-version: ['3.10', '3.11', '3.12', pypy-3.8, pypy-3.10]
         run-tests-ext: [sh]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
@@ -44,8 +44,8 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install pytest
-      run: pip install pytest
+    - name: Install test requirements
+      run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: true
       run: ./devscripts/run_tests.${{ matrix.run-tests-ext }} download
