@@ -82,6 +82,10 @@ from .airtv import AirTVIE
 from .aitube import AitubeKZVideoIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
+from .altcensored import (
+    AltCensoredIE,
+    AltCensoredChannelIE,
+)
 from .amara import AmaraIE
 from .alura import (
     AluraIE,
