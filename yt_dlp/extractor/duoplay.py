@@ -66,13 +66,7 @@ class DuoplayIE(InfoExtractor):
             'cast': ['Jennifer Lawrence', 'Josh Hutcherson', 'Liam Hemsworth'],
             'upload_date': '20231109',
             'timestamp': 1699552800,
-            'series': 'Näljamängud',
-            'series_id': '4325',
-            'season': 'Season 1',
-            'season_number': 1,
-            'episode': 'Episode 0',
-            'episode_number': 0,
-            'episode_id': 0,
+            'release_year': 2012,
         },
     }]
 
