@@ -45,10 +45,10 @@ class AltCensoredIE(InfoExtractor):
             'url': f'https://archive.org/details/youtube-{video_id}',
             'ie_key': ArchiveOrgIE.ie_key(),
             'view_count': str_to_int(self._html_search_regex(
-                r'YouTube Views:(?:\s|&nbsp;)*([\d,]+)', webpage, 'view count', default=None))
+                r'YouTube Views:(?:\s|&nbsp;)*([\d,]+)', webpage, 'view count', default=None)),
             'categories': self._html_search_regex(
                 r'<a href="/category/\d+">\s*\n?\s*([^<]+)</a>',
-                webpage, 'category', default='').split() or None
+                webpage, 'category', default='').split() or None,
         }
 
 
