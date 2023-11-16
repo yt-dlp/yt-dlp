@@ -4563,7 +4563,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
             upload_datetime = datetime_from_str(upload_date).replace(tzinfo=datetime.timezone.utc)
-            if upload_datetime >= datetime_from_str('today-1day'):
+            if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
                     if fmt.get('protocol') == 'm3u8_native':
                         fmt['__needs_testing'] = True
