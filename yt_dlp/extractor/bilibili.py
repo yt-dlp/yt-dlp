@@ -810,30 +810,10 @@ class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
         return self.playlist_result(self._get_episodes_from_season(ss_id, url), ss_id, **metainfo)
 
 
-class BilibiliCheeseIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/cheese/play/ep(?P<id>\d+)'
-    _TESTS = [{
-        'url': 'https://www.bilibili.com/cheese/play/ep229832',
-        'info_dict': {
-            'id': '229832',
-            'ext': 'mp4',
-            'title': '1 - 课程先导片',
-            'alt_title': '视频课 · 3分41秒',
-            'uploader': '马督工',
-            'uploader_id': '316568752',
-            'episode': '课程先导片',
-            'episode_id': '229832',
-            'episode_number': 1,
-            'duration': 221,
-            'timestamp': 1695549606,
-            'upload_date': '20230924',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-            'view_count': int,
-        }
-    }]
+class BilibiliCheeseBaseIE(BilibiliBaseIE):
     _HEADERS = {'Referer': 'https://www.bilibili.com/'}
 
-    def _extract_episode(self, season_info, ep_id, headers):
+    def _extract_episode(self, season_info, ep_id):
         episode_info = traverse_obj(season_info, (
             'episodes', lambda _, v: v['id'] == int(ep_id)), get_all=False)
         aid, cid = episode_info['aid'], episode_info['cid']
@@ -846,7 +826,7 @@ class BilibiliCheeseIE(BilibiliBaseIE):
         play_info = self._download_json(
             'https://api.bilibili.com/pugv/player/web/playurl', ep_id,
             query={'avid': aid, 'cid': cid, 'ep_id': ep_id, 'fnval': 16, 'fourk': 1},
-            headers=headers, note='Downloading playinfo')['data']
+            headers=self._HEADERS, note='Downloading playinfo')['data']
 
         return {
             'id': str_or_none(ep_id),
@@ -868,21 +848,43 @@ class BilibiliCheeseIE(BilibiliBaseIE):
             }),
             'subtitles': self.extract_subtitles(ep_id, cid, aid=aid),
             '__post_extractor': self.extract_comments(aid),
-            'http_headers': headers,
+            'http_headers': self._HEADERS,
         }
 
-    def _download_season_info(self, query_key, video_id, headers):
+    def _download_season_info(self, query_key, video_id):
         return self._download_json(
             f'https://api.bilibili.com/pugv/view/web/season?{query_key}={video_id}', video_id,
-            headers=headers, note='Downloading season info')['data']
+            headers=self._HEADERS, note='Downloading season info')['data']
+
+
+class BilibiliCheeseIE(BilibiliCheeseBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/cheese/play/ep(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/cheese/play/ep229832',
+        'info_dict': {
+            'id': '229832',
+            'ext': 'mp4',
+            'title': '1 - 课程先导片',
+            'alt_title': '视频课 · 3分41秒',
+            'uploader': '马督工',
+            'uploader_id': '316568752',
+            'episode': '课程先导片',
+            'episode_id': '229832',
+            'episode_number': 1,
+            'duration': 221,
+            'timestamp': 1695549606,
+            'upload_date': '20230924',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'view_count': int,
+        }
+    }]
 
     def _real_extract(self, url):
         ep_id = self._match_id(url)
-        return self._extract_episode(
-            self._download_season_info('ep_id', ep_id, self._HEADERS), ep_id, self._HEADERS)
+        return self._extract_episode(self._download_season_info('ep_id', ep_id), ep_id)
 
 
-class BilibiliCheeseSeasonIE(BilibiliCheeseIE):
+class BilibiliCheeseSeasonIE(BilibiliCheeseBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bilibili\.com/cheese/play/ss(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.com/cheese/play/ss5918',
@@ -924,20 +926,21 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseIE):
     def _get_cheese_entries(self, season_info):
         for ep_id in traverse_obj(season_info, ('episodes', lambda _, v: v['episode_can_view'], 'id')):
             yield {
-                **self._extract_episode(season_info, ep_id, self._HEADERS),
+                **self._extract_episode(season_info, ep_id),
                 'extractor_key': BilibiliCheeseIE.ie_key(),
                 'extractor': BilibiliCheeseIE.IE_NAME,
             }
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
-        season_info = self._download_season_info('season_id', season_id, self._HEADERS)
-        metainfo = traverse_obj(season_info, {
-            'title': ('title', {str}),
-            'description': ('subtitle', {str}),
-        })
+        season_info = self._download_season_info('season_id', season_id)
 
-        return self.playlist_result(self._get_cheese_entries(season_info), season_id, **metainfo)
+        return self.playlist_result(
+            self._get_cheese_entries(season_info), season_id,
+            **traverse_obj(season_info, {
+                'title': ('title', {str}),
+                'description': ('subtitle', {str}),
+            }))
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
