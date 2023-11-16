@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     try_call,
     urljoin,
     url_or_none
@@ -293,12 +294,13 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
         },
         'playlist_mincount': 4,
     }]
+    IE_NAME = 'zingmp3:chart-home'
 
     def _real_extract(self, url):
         url_type = self._match_id(url)
         params = {'id': url_type}
         if url_type == 'podcast-discover':
-            params.update({'type': 'discover'})
+            params['type'] = 'discover'
         data = self._call_api(url_type, params)
         items = []
         if url_type == 'top100':
@@ -464,12 +466,12 @@ class ZingMp3UserIE(ZingMp3BaseIE):
             if url_type in ('bai-hat', 'video'):
                 entries = self._paged_list(user_info['id'], url_type)
             else:
+                section_id = 'aAlbum' if url_type == 'album' else 'aSingle'
                 entries = self._parse_items(traverse_obj(user_info, (
-                    'sections',
-                    lambda _, v: v['sectionId'] == 'aAlbum' if url_type == 'album' else v['sectionId'] == 'aSingle',
-                    'items', ...)))
+                    'sections', lambda _, v: v['sectionId'] == section_id, 'items', ...)))
             return self.playlist_result(
-                entries, user_info['id'], f'{user_info.get("name")} - {url_type}', user_info.get('biography'))
+                entries, user_info['id'], join_nonempty(user_info.get('name'), url_type, delim=' - '),
+                user_info.get('biography'))
 
 
 class ZingMp3HubIE(ZingMp3BaseIE):
@@ -623,6 +625,6 @@ class ZingMp3PodcastIE(ZingMp3BaseIE):
         url_type = self._match_id(url)
         params = {'id': url_type}
         if url_type == 'podcast-new':
-            params.update({'type': 'new'})
-        data = self._call_api('cgrs' if url_type == 'cgr' else url_type, params)
-        return self.playlist_result(self._parse_items(data.get('items')), url_type)
+            params['type'] = 'new'
+        items = self._call_api('cgrs' if url_type == 'cgr' else url_type, params)['items']
+        return self.playlist_result(self._parse_items(items), url_type)
