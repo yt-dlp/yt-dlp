@@ -209,7 +209,7 @@ class DRTVIE(InfoExtractor):
             elif access_service == 'StandardVideo':
                 preference = 1
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                stream.get('url'), video_id, preference=preference, m3u8_id=format_id, fatal=False)
+                stream.get('url'), video_id, ext='mp4', preference=preference, m3u8_id=format_id, fatal=False)
             formats.extend(fmts)
 
             api_subtitles = traverse_obj(stream, ('subtitles', lambda _, v: url_or_none(v['link']), {dict}))
