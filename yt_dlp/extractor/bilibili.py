@@ -195,7 +195,7 @@ class BilibiliBaseIE(InfoExtractor):
         })))
         # use dict to combine edges that use the same video section (same cid)
         cid_edges.setdefault(edges[edge_id]['cid'], {})[edge_id] = edges[edge_id]
-        for choice in traverse_obj(edges, ('edge_id', 'choices', ...)):
+        for choice in traverse_obj(edges, (edge_id, 'choices', ...)):
             if choice['edge_id'] not in edges:
                 edges[choice['edge_id']] = {'cid': choice['cid']}
                 self._get_divisions(video_id, graph_version, edges, choice['edge_id'], cid_edges=cid_edges)
