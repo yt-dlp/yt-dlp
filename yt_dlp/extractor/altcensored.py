@@ -1,7 +1,7 @@
 import re
 
-from .common import InfoExtractor
 from .archiveorg import ArchiveOrgIE
+from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
     int_or_none,
