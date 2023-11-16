@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     try_call,
     urljoin,
+    url_or_none
 )
 from ..utils.traversal import traverse_obj
 
@@ -49,7 +50,7 @@ class ZingMp3BaseIE(InfoExtractor):
         'hub': '/api/v2/page/get/hub-detail',
         'new-release': '/api/v2/chart/get/new-release',
         'top100': '/api/v2/page/get/top-100',
-        'podcast-discover': '/api/v2/podcast/program/get/list-by-type',
+        'podcast-new': '/api/v2/podcast/program/get/list-by-type',
         'top-podcast': '/api/v2/podcast/program/get/top-episode',
     }
 
@@ -455,10 +456,9 @@ class ZingMp3UserIE(ZingMp3BaseIE):
 
         # Handle for new-release
         if alias == 'new-release' and url_type in ('song', 'album'):
-            self._IE_NAME = 'zingmp3:NewRelease'
             _id = f'{alias}-{url_type}'
-            data = self._call_api('new-release', params={'type': url_type}, display_id=_id)
-            return self.playlist_result(self._parse_items(data), _id)
+            return self.playlist_result(self._parse_items(
+                self._call_api('new-release', params={'type': url_type}, display_id=_id)), _id)
         else:
             # Handle for user/artist
             if url_type in ('bai-hat', 'video'):
@@ -553,7 +553,7 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
             'subtitles': subtitles,
             **traverse_obj(info, {
                 'title': 'title',
-                'thumbnail': (None, ('thumbnail', 'thumbnailM', 'thumbnailV', 'thumbnailH')),
+                'thumbnail': (('thumbnail', 'thumbnailM', 'thumbnailV', 'thumbnailH'), {url_or_none}),
                 'view_count': ('activeUsers', {int_or_none}),
                 'like_count': ('totalReaction', {int_or_none}),
                 'description': 'description',
@@ -562,7 +562,7 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
 
 
 class ZingMp3PodcastEpisodeIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:PodcastEpisode'
+    IE_NAME = 'zingmp3:podcast-episode'
     _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'pgr|cgr'
     _TESTS = [{
         'url': 'https://zingmp3.vn/pgr/Nhac-Moi-Moi-Ngay/68Z9W66B.html',
@@ -596,9 +596,9 @@ class ZingMp3PodcastEpisodeIE(ZingMp3BaseIE):
             entries, podcast_id, podcast_info.get('title'), podcast_info.get('description'))
 
 
-class ZingMp3PodcastCategoriesIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:podcast-categories'
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:cgr|top-podcast))/?(?:[#?]|$)'
+class ZingMp3PodcastIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:podcast'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:cgr|top-podcast|podcast-new))/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://zingmp3.vn/cgr',
         'info_dict': {
@@ -611,18 +611,7 @@ class ZingMp3PodcastCategoriesIE(ZingMp3BaseIE):
             'id': 'top-podcast',
         },
         'playlist_mincount': 7,
-    }]
-
-    def _real_extract(self, url):
-        url_type = self._match_id(url)
-        data = self._call_api('cgrs' if url_type == 'cgr' else url_type, {'id': url_type})
-        return self.playlist_result(self._parse_items(data.get('items')), url_type)
-
-
-class ZingMp3PodcastNewIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:podcast-new'
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>podcast-new)/?(?:[#?]|$)'
-    _TESTS = [{
+    }, {
         'url': 'https://zingmp3.vn/podcast-new',
         'info_dict': {
             'id': 'podcast-new',
@@ -632,5 +621,8 @@ class ZingMp3PodcastNewIE(ZingMp3BaseIE):
 
     def _real_extract(self, url):
         url_type = self._match_id(url)
-        data = self._call_api('podcast-discover', {'id': url_type, 'type': 'new'})
+        params = {'id': url_type}
+        if url_type == 'podcast-new':
+            params.update({'type': 'new'})
+        data = self._call_api('cgrs' if url_type == 'cgr' else url_type, params)
         return self.playlist_result(self._parse_items(data.get('items')), url_type)
