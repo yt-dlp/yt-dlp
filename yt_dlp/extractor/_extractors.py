@@ -545,6 +545,7 @@ from .dropout import (
     DropoutSeasonIE,
     DropoutIE
 )
+from .duoplay import DuoplayIE
 from .dw import (
     DWIE,
     DWArticleIE,
