@@ -74,12 +74,12 @@ class AltCensoredChannelIE(InfoExtractor):
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, channel_id, note='Download channel info',
-                                         errnote='Unable to get channel info')
+        webpage = self._download_webpage(
+            url, channel_id, 'Download channel webpage', 'Unable to get channel webpage')
         title = self._html_search_meta('altcen_title', webpage, 'title', fatal=False)
         page_count = int_or_none(self._html_search_regex(
-            r'<a[^>]+href="/channel/\w+/page/(\d+)">(?:\1)</a>', webpage, 'page count', default='1'))
+            r'<a[^>]+href="/channel/\w+/page/(\d+)">(?:\1)</a>',
+            webpage, 'page count', default='1'))
 
         def page_func(page_num):
             page_num += 1
