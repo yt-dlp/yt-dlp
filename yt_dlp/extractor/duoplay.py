@@ -67,6 +67,21 @@ class DuoplayIE(InfoExtractor):
             'timestamp': 1699552800,
             'release_year': 2012,
         },
+    }, {
+        'note': 'Movie without expiry',
+        'url': 'https://duoplay.ee/5501/pilvede-all.-neljas-ode',
+        'md5': '7abf63d773a49ef7c39f2c127842b8fd',
+        'info_dict': {
+            'id': '5501',
+            'ext': 'mp4',
+            'title': 'Pilvede all. Neljas õde',
+            'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
+            'description': 'md5:d86a70f8f31e82c369d4d4f4c79b1279',
+            'cast': ['Inga Lunge', 'Elisabet Reinsalu', 'Liis Haab', 'Rita Rätsepp', 'Ain Lutsepp', 'Indrek Sammul', 'Piret Rauk', 'Karin Tammaru', 'Guido Kangur'],
+            'upload_date': '20221214',
+            'timestamp': 1671054000,
+            'release_year': 2018,
+        },
     }]
 
     def _real_extract(self, url):
