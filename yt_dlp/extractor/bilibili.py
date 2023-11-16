@@ -243,7 +243,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
         },
     }, {
-        # old av URL version
+        'note': 'old av URL version',
         'url': 'http://www.bilibili.com/video/av1074402/',
         'info_dict': {
             'thumbnail': r're:^https?://.*\.(jpg|jpeg)$',
@@ -444,6 +444,26 @@ class BiliBiliIE(BilibiliBaseIE):
             },
         }],
     }, {
+        'note': '301 redirect to bangumi link',
+        'url': 'https://www.bilibili.com/video/BV1TE411f7f1',
+        'info_dict': {
+            'id': '288525',
+            'title': '李永乐老师 钱学森弹道和乘波体飞行器是什么？',
+            'ext': 'mp4',
+            'series': '我和我的祖国',
+            'series_id': '4780',
+            'season': '幕后纪实',
+            'season_id': '28609',
+            'season_number': 1,
+            'episode': '钱学森弹道和乘波体飞行器是什么？',
+            'episode_id': '288525',
+            'episode_number': 105,
+            'duration': 1183.957,
+            'timestamp': 1571648124,
+            'upload_date': '20191021',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
         'url': 'https://www.bilibili.com/video/BV1jL41167ZG/',
         'info_dict': {
             'id': 'BV1jL41167ZG',
@@ -471,7 +491,10 @@ class BiliBiliIE(BilibiliBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage, urlh = self._download_webpage_handle(url, video_id)
+        if not self._match_valid_url(urlh.url):
+            return self.url_result(urlh.url)
+
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
 
         is_festival = 'videoData' not in initial_state
