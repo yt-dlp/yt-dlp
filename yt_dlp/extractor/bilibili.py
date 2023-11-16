@@ -14,7 +14,6 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
-    RegexNotFoundError,
     InAdvancePagedList,
     OnDemandPagedList,
     bool_or_none,
@@ -750,12 +749,13 @@ class BiliBiliBangumiMediaIE(BilibiliBaseIE):
         initial_state = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
         ss_id = initial_state['mediaInfo']['season_id']
-        metainfo = traverse_obj(initial_state, ('mediaInfo', {
-            'title': ('title', {str}),
-            'description': ('evaluate', {str}),
-        }))
 
-        return self.playlist_result(self._get_episodes_from_season(ss_id, url), media_id, **metainfo)
+        return self.playlist_result(
+            self._get_episodes_from_season(ss_id, url), media_id,
+            **traverse_obj(initial_state, ('mediaInfo', {
+                'title': ('title', {str}),
+                'description': ('evaluate', {str}),
+            })))
 
 
 class BiliBiliBangumiSeasonIE(BilibiliBaseIE):
