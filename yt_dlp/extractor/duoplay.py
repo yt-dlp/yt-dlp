@@ -49,9 +49,8 @@ class DuoplayIE(InfoExtractor):
             'series_id': '17',
             'season': 'Season 2',
             'season_number': 2,
-            'episode': None,
-            'episode_number': None,
             'episode_id': 14,
+            'release_year': 2010,
         },
     }, {
         'note': 'Movie',
