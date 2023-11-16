@@ -2588,6 +2588,9 @@ from .zingmp3 import (
     ZingMp3ChartMusicVideoIE,
     ZingMp3UserIE,
     ZingMp3HubIE,
+    ZingMp3LiveRadioIE,
+    ZingMp3PodcastEpisodeIE,
+    ZingMp3PodcastIE,
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
