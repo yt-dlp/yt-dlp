@@ -844,8 +844,8 @@ class BilibiliCheeseIE(BilibiliBaseIE):
             self.raise_login_required('You need to purchase the course to download this episode')
 
         play_info = self._download_json(
-            'https://api.bilibili.com/pugv/player/web/playurl?fnval=16&fourk=1', ep_id,
-            query={'avid': aid, 'cid': cid, 'ep_id': ep_id},
+            'https://api.bilibili.com/pugv/player/web/playurl', ep_id,
+            query={'avid': aid, 'cid': cid, 'ep_id': ep_id, 'fnval': 16, 'fourk': 1},
             headers=headers, note='Downloading playinfo')['data']
 
         return {
