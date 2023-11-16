@@ -479,21 +479,25 @@ class BiliBiliIE(BilibiliBaseIE):
         if is_festival:
             video_data = initial_state['videoInfo']
         else:
-            try:
-                play_info_obj = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)
-                play_info = play_info_obj['data']
-            except KeyError:
-                if play_info_obj.get('code') == 87007:
-                    toast = get_element_by_class('tips-toast', webpage) or ''
-                    msg = clean_html(f'{get_element_by_class("belongs-to", toast) or ""}，{get_element_by_class("level", toast) or ""}')
-                    raise ExtractorError(f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
-                raise ExtractorError('Failed to extract play_info')
-            except RegexNotFoundError:
+            play_info_obj = self._search_json(
+                r'window\.__playinfo__\s*=', webpage, 'play info', video_id, fatal=False)
+            if not play_info_obj:
                 if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
                     self.raise_login_required()
                 if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
-                    self.report_warning('This video may be deleted or geo-restricted. You might want to try a VPN or a proxy server (with --proxy)', video_id)
-                raise
+                    raise ExtractorError(
+                        'This video may be deleted or geo-restricted. '
+                        'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
+            play_info = traverse_obj(play_info_obj, ('data', {dict}))
+            if not play_info:
+                if traverse_obj(play_info_obj, 'code') == 87007:
+                    toast = get_element_by_class('tips-toast', webpage) or ''
+                    msg = clean_html(
+                        f'{get_element_by_class("belongs-to", toast) or ""}，'
+                        + (get_element_by_class('level', toast) or ''))
+                    raise ExtractorError(
+                        f'This is a supporter-only video: {msg}. {self._login_hint()}', expected=True)
+                raise ExtractorError('Failed to extract play info')
             video_data = initial_state['videoData']
 
         video_id, title = video_data['bvid'], video_data.get('title')
