@@ -93,7 +93,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
                         [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
@@ -107,13 +107,17 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'id': 'x5kesuj',
             'ext': 'mp4',
             'title': 'Office Christmas Party Review –  Jason Bateman, Olivia Munn, T.J. Miller',
-            'description': 'Office Christmas Party Review -  Jason Bateman, Olivia Munn, T.J. Miller',
+            'description': 'Office Christmas Party Review - Jason Bateman, Olivia Munn, T.J. Miller',
             'duration': 187,
             'timestamp': 1493651285,
             'upload_date': '20170501',
             'uploader': 'Deadline',
             'uploader_id': 'x1xm8ri',
             'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+            'tags': ['hollywood', 'celeb', 'celebrity', 'movies', 'red carpet'],
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1aXqIx58LKWQ/x1080',
         },
     }, {
         'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
@@ -132,7 +136,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
-            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
         }
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
@@ -200,6 +204,12 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/x86gw.html?video=k46oCapRs4iikoz9DWy',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
