@@ -1,10 +1,8 @@
-import re
-
 from .common import InfoExtractor
-from .ooyala import OoyalaIE
 
 
 class NintendoIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?nintendo\.com/(?:games/detail|nintendo-direct)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.nintendo.com/games/detail/duck-hunt-wii-u/',
@@ -40,6 +38,7 @@ class NintendoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        """
         page_id = self._match_id(url)
 
         webpage = self._download_webpage(url, page_id)
@@ -55,3 +54,4 @@ class NintendoIE(InfoExtractor):
 
         return self.playlist_result(
             entries, page_id, title)
+        """
