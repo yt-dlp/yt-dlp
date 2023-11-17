@@ -82,7 +82,6 @@ class AllstarBaseIE(InfoExtractor):
             'uploader_id': ('user', '_id', {str}),
             'uploader_url': ('user', '_id', {_profile_url_or_none}),
             'view_count': ('views', {int_or_none}),
-            'categories': ('game', {str_or_none}),
         })
 
     def _send_query(self, query, variables={}, path=(), video_id=None, note=None):
