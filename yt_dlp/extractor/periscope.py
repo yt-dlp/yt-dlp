@@ -31,9 +31,11 @@ class PeriscopeBaseIE(InfoExtractor):
             'title': title,
             'timestamp': parse_iso8601(broadcast.get('created_at')),
             'uploader': uploader,
+            'twitter_username': broadcast.get('twitter_username'),
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
             'thumbnails': thumbnails,
             'view_count': int_or_none(broadcast.get('total_watched')),
+            'concurrent_view_count': int_or_none(broadcast.get('total_watching')),
             'tags': broadcast.get('tags'),
             'is_live': is_live,
         }
