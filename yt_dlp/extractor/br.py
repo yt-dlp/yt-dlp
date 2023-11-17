@@ -2,11 +2,9 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
     int_or_none,
     parse_duration,
-    parse_iso8601,
     xpath_element,
     xpath_text,
 )
