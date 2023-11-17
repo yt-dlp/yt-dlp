@@ -17,7 +17,6 @@ _FIELDS = '''
     _id
     clipImageThumb
     clipLink
-    clipLinkHLS
     clipTitle
     createdDate
     shareId
@@ -27,8 +26,7 @@ _FIELDS = '''
 
 _EXTRA_FIELDS = '''
     clipLength
-    clipSizeBytes
-    game'''
+    clipSizeBytes'''
 
 _QUERIES = {
     'clip': '''query ($id: String!) {
