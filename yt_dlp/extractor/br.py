@@ -1,5 +1,3 @@
-import json
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
