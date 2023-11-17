@@ -2231,6 +2231,10 @@ from .voicy import (
     VoicyChannelIE,
 )
 from .volejtv import VolejTVIE
+from .voot import (
+    VootIE,
+    VootSeriesIE,
+)
 from .voxmedia import (
     VoxMediaVolumeIE,
     VoxMediaIE,
