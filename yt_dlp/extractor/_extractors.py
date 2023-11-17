@@ -2144,7 +2144,6 @@ from .vice import (
     ViceArticleIE,
     ViceShowIE,
 )
-from .vidbit import VidbitIE
 from .viddler import ViddlerIE
 from .videa import VideaIE
 from .videocampus_sachsen import (
