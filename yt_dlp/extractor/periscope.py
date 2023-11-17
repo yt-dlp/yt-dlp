@@ -32,7 +32,6 @@ class PeriscopeBaseIE(InfoExtractor):
                 broadcast.get('created_at_ms'), scale=1000),
             'release_timestamp': int_or_none(broadcast.get('scheduled_start_ms'), scale=1000),
             'uploader': uploader,
-            'twitter_username': broadcast.get('twitter_username'),
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
             'thumbnails': thumbnails,
             'view_count': int_or_none(broadcast.get('total_watched')),
