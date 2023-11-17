@@ -82,6 +82,10 @@ from .airtv import AirTVIE
 from .aitube import AitubeKZVideoIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
+from .altcensored import (
+    AltCensoredIE,
+    AltCensoredChannelIE,
+)
 from .amara import AmaraIE
 from .alura import (
     AluraIE,
@@ -541,6 +545,7 @@ from .dropout import (
     DropoutSeasonIE,
     DropoutIE
 )
+from .duoplay import DuoplayIE
 from .dw import (
     DWIE,
     DWArticleIE,
@@ -565,6 +570,7 @@ from .ellentube import (
 )
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
+from .eltrecetv import ElTreceTVIE
 from .embedly import EmbedlyIE
 from .engadget import EngadgetIE
 from .epicon import (
@@ -893,6 +899,10 @@ from .japandiet import (
     SangiinIE,
 )
 from .jeuxvideo import JeuxVideoIE
+from .jiosaavn import (
+    JioSaavnSongIE,
+    JioSaavnAlbumIE,
+)
 from .jove import JoveIE
 from .joj import JojIE
 from .jstream import JStreamIE
@@ -1320,7 +1330,6 @@ from .ninegag import NineGagIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
 from .nitter import NitterIE
-from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
 from .noice import NoicePodcastIE
 from .nonktube import NonkTubeIE
@@ -2584,6 +2593,9 @@ from .zingmp3 import (
     ZingMp3ChartMusicVideoIE,
     ZingMp3UserIE,
     ZingMp3HubIE,
+    ZingMp3LiveRadioIE,
+    ZingMp3PodcastEpisodeIE,
+    ZingMp3PodcastIE,
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE

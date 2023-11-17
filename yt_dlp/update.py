@@ -131,7 +131,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 8)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 8), (3, 8)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -140,16 +140,8 @@ def _get_system_deprecation():
     if sys.version_info < MIN_SUPPORTED:
         msg = f'Python version {major}.{minor} is no longer supported'
     else:
-        msg = f'Support for Python version {major}.{minor} has been deprecated. '
-        # Temporary until `win_x86_exe` uses 3.8, which will deprecate Vista and Server 2008
-        if detect_variant() == 'win_x86_exe':
-            platform_name = platform.platform()
-            if any(platform_name.startswith(f'Windows-{name}') for name in ('Vista', '2008Server')):
-                msg = 'Support for Windows Vista/Server 2008 has been deprecated. '
-            else:
-                return None
-        msg += ('See  https://github.com/yt-dlp/yt-dlp/issues/7803  for details.'
-                '\nYou may stop receiving updates on this version at any time')
+        msg = (f'Support for Python version {major}.{minor} has been deprecated. '
+               '\nYou may stop receiving updates on this version at any time')
 
     major, minor = MIN_RECOMMENDED
     return f'{msg}! Please update to Python {major}.{minor} or above'
