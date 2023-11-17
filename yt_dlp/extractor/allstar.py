@@ -64,22 +64,22 @@ class AllstarBaseIE(InfoExtractor):
     @staticmethod
     def _parse_video_data(video_data):
         def _media_url_or_none(path):
-            return urljoin('https://media.allstar.gg/', str_or_none(path))
+            return urljoin('https://media.allstar.gg/', path)
 
         def _profile_url_or_none(path):
-            return urljoin('https:/allstar.gg/u/', str_or_none(path))
+            return urljoin('https:/allstar.gg/u/', path)
 
         return traverse_obj(video_data, {
-            'id': ('_id', {str_or_none}),
-            'display_id': ('shareId', {str_or_none}),
-            'title': ('clipTitle', {str_or_none}),
+            'id': ('_id', {str}),
+            'display_id': ('shareId', {str}),
+            'title': ('clipTitle', {str}),
             'url': ('clipLink', {_media_url_or_none}),
             'thumbnail': ('clipImageThumb', {_media_url_or_none}),
             'duration': ('clipLength', {int_or_none}),
             'filesize': ('clipSizeBytes', {int_or_none}),
             'timestamp': ('createdDate', {int_or_none}),
-            'uploader': ('username', {str_or_none}),
-            'uploader_id': ('user', '_id', {str_or_none}),
+            'uploader': ('username', {str}),
+            'uploader_id': ('user', '_id', {str}),
             'uploader_url': ('user', '_id', {_profile_url_or_none}),
             'view_count': ('views', {int_or_none}),
             'categories': ('game', {str_or_none}),
@@ -238,16 +238,15 @@ class AllstarProfileIE(AllstarBaseIE):
         profile_data = self._download_json(
                 urljoin('https://api.allstar.gg/v1/users/profile/', display_id),
                 display_id)
-        user_id = traverse_obj(profile_data, ('data', ('_id'), {str_or_none}))
+        user_id = traverse_obj(profile_data, ('data', ('_id'), {str}))
 
         if user_id is None:
             raise ExtractorError('Can not extract the user_id')
 
-        username = traverse_obj(profile_data, ('data', 'profile', ('username'), {str_or_none}))
+        username = traverse_obj(profile_data, ('data', 'profile', ('username'), {str}))
         url_query = parse_qs(url)
-        game = traverse_obj(url_query, ('game', 0, {int_or_none}))
-        view = traverse_obj(url_query, ('view', 0, {str_or_none}), default='Clips')
-        query_id = view
+        game = traverse_obj(url_query, ('game', 0, {int}))
+        query_id = traverse_obj(url_query, ('view', 0), default='Clips')
 
         if query_id not in ('Clips', 'Montages', 'Mobile Clips'):
             raise UnsupportedError(url)
@@ -256,4 +255,4 @@ class AllstarProfileIE(AllstarBaseIE):
             OnDemandPagedList(
                 functools.partial(
                     self._get_page, user_id, display_id, game, _QUERIES.get(query_id)), self._PAGE_SIZE),
-            user_id, f'{username or display_id} - {view}')
+            user_id, f'{username or display_id} - {query_id}')
