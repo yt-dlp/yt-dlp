@@ -49,6 +49,13 @@ from .acast import (
 from .acfun import AcFunVideoIE, AcFunBangumiIE
 from .adn import ADNIE
 from .adobeconnect import AdobeConnectIE
+from .adobetv import (
+    AdobeTVEmbedIE,
+    AdobeTVIE,
+    AdobeTVShowIE,
+    AdobeTVChannelIE,
+    AdobeTVVideoIE,
+)
 from .adultswim import AdultSwimIE
 from .aenetworks import (
     AENetworksIE,
