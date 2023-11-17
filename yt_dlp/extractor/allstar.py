@@ -165,7 +165,7 @@ class AllstarIE(AllstarBaseIE):
     }]
 
     def _real_extract(self, url):
-        query_id, video_id = self._match_valid_url(url).groups()
+        query_id, video_id = self._match_valid_url(url).group('type', 'id')
 
         return self._parse_video_data(
             self._send_query(
