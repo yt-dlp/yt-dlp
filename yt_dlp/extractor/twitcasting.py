@@ -254,9 +254,9 @@ class TwitCastingLiveIE(InfoExtractor):
             webpage, 'is live?', default=None)
         if is_live:
             # get the first live; running live is always at the first
-            current_live = self._search_regex(
+            current_live = int_or_none(self._search_regex(
                 r'(?s)<a\s+class="tw-movie-thumbnail2"\s*href="/[^/]+/movie/(?P<video_id>\d+)"\s*>.+?</a>',
-                webpage, 'current live ID', default=None, group='video_id')
+                webpage, 'current live ID', default=None, group='video_id'))
         if not is_live or not current_live:
             raise UserNotLive(video_id=uploader_id)
         return self.url_result(f'https://twitcasting.tv/{uploader_id}/movie/{current_live}', TwitCastingIE)
