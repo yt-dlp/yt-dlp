@@ -352,6 +352,7 @@ from .closertotruth import CloserToTruthIE
 from .cloudflarestream import CloudflareStreamIE
 from .clubic import ClubicIE
 from .clyp import ClypIE
+from .cmt import CMTIE
 from .cnbc import (
     CNBCIE,
     CNBCVideoIE,
