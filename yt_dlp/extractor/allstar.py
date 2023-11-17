@@ -8,7 +8,6 @@ from ..utils import (
     UnsupportedError,
     int_or_none,
     parse_qs,
-    str_or_none,
     traverse_obj,
     urljoin,
 )
