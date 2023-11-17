@@ -7,7 +7,6 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_class,
     get_elements_html_by_class,
-    int_or_none,
     traverse_obj,
     unified_strdate,
     urljoin
@@ -82,7 +81,7 @@ class TheGuardianPodcastIE(InfoExtractor):
 
 
 class TheGuardianPodcastPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/series/(?P<id>[\w-]+)(?:\?page=(?P<page>\d+))?'
+    _VALID_URL = r'https?://(?:www\.)?theguardian\.com/\w+/series/(?P<id>[\w-]+)(?:\?page=\d+)?'
     _TESTS = [{
         'url': 'https://www.theguardian.com/football/series/theguardianswomensfootballweekly',
         'info_dict': {
@@ -95,7 +94,7 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
         'url': 'https://www.theguardian.com/news/series/todayinfocus?page=2',
         'info_dict': {
             'id': 'todayinfocus',
-            'title': 'Today in Focus | Page 2 of 66 | News | The Guardian',
+            'title': 'Today in Focus',
             'description': 'md5:0f097764fc0d359e0b6eb537be0387e2'
         },
         'playlist_mincount': 1261
@@ -109,8 +108,8 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
         'playlist_mincount': 996
     }]
 
-    def _entries(self, url, page, playlist_id):
-        for page in itertools.count(int_or_none(page) or 1):
+    def _entries(self, url, playlist_id):
+        for page in itertools.count(1):
             webpage, urlh = self._download_webpage_handle(
                 url, playlist_id, f'Downloading page {page}', query={'page': page})
             if '?' not in urlh.url:
@@ -119,19 +118,20 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
             episodes = get_elements_html_by_class('fc-item--type-media', webpage)
             for url_path in traverse_obj(episodes, (..., {extract_attributes}, 'data-id')):
                 episode_url = urljoin('https://www.theguardian.com', url_path)
-                if TheGuardianPodcastIE.suitable(episode_url):
+                if episode_url:
                     yield episode_url
 
     def _real_extract(self, url):
-        podcast_id, page = self._match_valid_url(url).group('id', 'page')
+        podcast_id = self._match_id(url)
 
         webpage = self._download_webpage(url, podcast_id)
 
-        title = (clean_html(get_element_by_class(
-            'index-page-header__title', webpage)) or self._generic_title(url, webpage))
+        title = clean_html(get_element_by_class(
+            'index-page-header__title', webpage) or get_element_by_class(
+                'flagship-audio__title', webpage))
         description = self._og_search_description(webpage) or self._html_search_meta(
             'description', webpage)
 
         return self.playlist_from_matches(
-            self._entries(url, page, podcast_id), podcast_id, title, description=description,
+            self._entries(url, podcast_id), podcast_id, title, description=description,
             ie=TheGuardianPodcastIE)
