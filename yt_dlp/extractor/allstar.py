@@ -236,8 +236,7 @@ class AllstarProfileIE(AllstarBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         profile_data = self._download_json(
-                urljoin('https://api.allstar.gg/v1/users/profile/', display_id),
-                display_id)
+            urljoin('https://api.allstar.gg/v1/users/profile/', display_id), display_id)
         user_id = traverse_obj(profile_data, ('data', ('_id'), {str}))
 
         if user_id is None:
