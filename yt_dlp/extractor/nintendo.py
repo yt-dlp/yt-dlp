@@ -50,8 +50,8 @@ class NintendoIE(InfoExtractor):
     def _real_extract(self, url):
         locale, slug = self._match_valid_url(url).group('locale', 'slug')
 
-        language, _, country = (locale or 'en').partition('-')
-        parsed_locale = f'{language.lower()}_{country.upper() or "US"}'
+        language, _, country = (locale or 'US').rpartition('-')
+        parsed_locale = f'{language.lower() or "en"}_{country.upper()}'
         self.write_debug(f'Using locale {parsed_locale} (from {locale})', only_once=True)
 
         response = self._download_json('https://graph.nintendo.com/', slug, query={
