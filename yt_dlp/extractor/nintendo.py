@@ -70,10 +70,6 @@ class NintendoIE(InfoExtractor):
             'uploader': 'Nintendo of America',
             'title': '50-FACT Extravaganza',
         },
-        'add_extractor': 'Youtube',
-    }, {
-        'url': 'https://www.nintendo.com/en/nintendo-direct/09-04-2019/',
-        'only_matching': True,
     }]
 
     def _create_asset_url(self, path):
