@@ -96,6 +96,6 @@ class NintendoIE(InfoExtractor):
             'thumbnail': ('thumbnail', {self._create_asset_url}),
         }))
         if asset_id.startswith('Legacy Videos/'):
-            result['_old_archive_ids'] = [make_archive_id(self, remove_start(asset_id, 'Legacy Videos/'))]
+            result['_old_archive_ids'] = [make_archive_id(self, asset_id[14:])]
 
         return result
