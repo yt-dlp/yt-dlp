@@ -1531,16 +1531,6 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            # vzaar embed
-            'url': 'http://help.vzaar.com/article/165-embedding-video',
-            'md5': '7e3919d9d2620b89e3e00bec7fe8c9d4',
-            'info_dict': {
-                'id': '8707641',
-                'ext': 'mp4',
-                'title': 'Building A Business Online: Principal Chairs Q & A',
-            },
-        },
-        {
             # multiple HTML5 videos on one page
             'url': 'https://www.paragon-software.com/home/rk-free/keyscenarios.html',
             'info_dict': {
