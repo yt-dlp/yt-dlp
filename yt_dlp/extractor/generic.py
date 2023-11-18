@@ -374,47 +374,6 @@ class GenericIE(InfoExtractor):
             },
             'skip': 'There is a limit of 200 free downloads / month for the test song',
         },
-        # ooyala video
-        {
-            'url': 'http://www.rollingstone.com/music/videos/norwegian-dj-cashmere-cat-goes-spartan-on-with-me-premiere-20131219',
-            'md5': '166dd577b433b4d4ebfee10b0824d8ff',
-            'info_dict': {
-                'id': 'BwY2RxaTrTkslxOfcan0UCf0YqyvWysJ',
-                'ext': 'mp4',
-                'title': '2cc213299525360.mov',  # that's what we get
-                'duration': 238.231,
-            },
-            'skip': 'Ooyala was shut down',
-        },
-        {
-            # ooyala video embedded with http://player.ooyala.com/iframe.js
-            'url': 'http://www.macrumors.com/2015/07/24/steve-jobs-the-man-in-the-machine-first-trailer/',
-            'info_dict': {
-                'id': 'p0MGJndjoG5SOKqO_hZJuZFPB-Tr5VgB',
-                'ext': 'mp4',
-                'title': '"Steve Jobs: Man in the Machine" trailer',
-                'description': 'The first trailer for the Alex Gibney documentary "Steve Jobs: Man in the Machine."',
-                'duration': 135.427,
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'movie expired',
-        },
-        # ooyala video embedded with http://player.ooyala.com/static/v4/production/latest/core.min.js
-        {
-            'url': 'http://wnep.com/2017/07/22/steampunk-fest-comes-to-honesdale/',
-            'info_dict': {
-                'id': 'lwYWYxYzE6V5uJMjNGyKtwwiw9ZJD7t2',
-                'ext': 'mp4',
-                'title': 'Steampunk Fest Comes to Honesdale',
-                'duration': 43.276,
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'Ooyala was shut down',
-        },
         # embed.ly video
         {
             'url': 'http://www.tested.com/science/weird/460206-tested-grinding-coffee-2000-frames-second/',
