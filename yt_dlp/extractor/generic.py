@@ -507,7 +507,8 @@ class GenericIE(InfoExtractor):
                 'title': 'Ужастики, русский трейлер (2015)',
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'duration': 153,
-            }
+            },
+            'skip': 'Site dead',
         },
         # XHamster embed
         {
@@ -779,14 +780,16 @@ class GenericIE(InfoExtractor):
             'playlist_mincount': 1,
             'add_ie': ['Youtube'],
         },
-        # Cinchcast embed
+        # Libsyn embed
         {
             'url': 'http://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
             'info_dict': {
-                'id': '7141703',
+                'id': '3793998',
                 'ext': 'mp3',
                 'upload_date': '20141126',
-                'title': 'Jack Tips: 5 Steps to Permanent Gut Healing',
+                'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
+                'thumbnail': 'https://assets.libsyn.com/secure/item/3793998/?height=90&width=90',
+                'duration': 3989.0,
             }
         },
         # Cinerama player
