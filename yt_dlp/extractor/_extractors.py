@@ -2301,6 +2301,7 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
+from .vidly import VidlyIE
 from .viewlift import (
     ViewLiftIE,
     ViewLiftEmbedIE,
