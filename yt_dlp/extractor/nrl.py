@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class NRLTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?nrl\.com/tv(/[^/]+)*/(?P<id>[^/?&#]+)'
     _TEST = {
         'url': 'https://www.nrl.com/tv/news/match-highlights-titans-v-knights-862805/',
@@ -23,4 +24,4 @@ class NRLTVIE(InfoExtractor):
             r'(?s)q-data="({.+?})"', webpage, 'player data'), display_id)
         ooyala_id = q_data['videoId']
         return self.url_result(
-            'ooyala:' + ooyala_id, 'Ooyala', ooyala_id, q_data.get('title'))
+            'ooyala:' + ooyala_id, ooyala_id, q_data.get('title'))

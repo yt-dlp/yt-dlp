@@ -5,6 +5,7 @@ from ..utils import extract_attributes
 
 
 class BFIPlayerIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'bfi:player'
     _VALID_URL = r'https?://player\.bfi\.org\.uk/[^/]+/film/watch-(?P<id>[\w-]+)-online'
     _TEST = {
@@ -29,6 +30,6 @@ class BFIPlayerIE(InfoExtractor):
             if not ooyala_id:
                 continue
             entries.append(self.url_result(
-                'ooyala:' + ooyala_id, 'Ooyala',
+                'ooyala:' + ooyala_id,
                 ooyala_id, player_attr.get('data-label')))
         return self.playlist_result(entries)

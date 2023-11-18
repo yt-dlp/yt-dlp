@@ -384,7 +384,7 @@ class GenericIE(InfoExtractor):
                 'title': '2cc213299525360.mov',  # that's what we get
                 'duration': 238.231,
             },
-            'add_ie': ['Ooyala'],
+            'skip': 'Ooyala was shut down',
         },
         {
             # ooyala video embedded with http://player.ooyala.com/iframe.js
@@ -412,7 +412,8 @@ class GenericIE(InfoExtractor):
             },
             'params': {
                 'skip_download': True,
-            }
+            },
+            'skip': 'Ooyala was shut down',
         },
         # embed.ly video
         {
