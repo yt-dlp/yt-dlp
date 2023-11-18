@@ -249,6 +249,7 @@ class TwitCastingLiveIE(InfoExtractor):
             'Pass "https://twitcasting.tv/{0}/show" to download the history'.format(uploader_id))
 
         webpage = self._download_webpage(f'https://twitcasting.tv/{uploader_id}/show/', uploader_id)
+        current_live = None
         is_live = self._search_regex(
             r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)',
             webpage, 'is live?', default=None)
