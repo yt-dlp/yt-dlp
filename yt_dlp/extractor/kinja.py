@@ -61,9 +61,6 @@ class KinjaEmbedIE(InfoExtractor):
         'url': 'https://kinja.com/ajax/inset/iframe?id=megaphone-PPY1300931075',
         'only_matching': True,
     }, {
-        'url': 'https://kinja.com/ajax/inset/iframe?id=ooyala-xzMXhleDpopuT0u1ijt_qZj3Va-34pEX%2FZTIxYmJjZDM2NWYzZDViZGRiOWJjYzc5',
-        'only_matching': True,
-    }, {
         'url': 'https://kinja.com/ajax/inset/iframe?id=soundcloud-128574047',
         'only_matching': True,
     }, {
