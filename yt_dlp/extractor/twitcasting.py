@@ -11,7 +11,6 @@ from ..utils import (
     float_or_none,
     get_element_by_class,
     get_element_by_id,
-    int_or_none,
     parse_duration,
     qualities,
     str_to_int,
@@ -242,35 +241,31 @@ class TwitCastingLiveIE(InfoExtractor):
         'expected_exception': 'UserNotLive',
     }]
 
-    _PROTECTED_LIVE_RE = r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)'
-
     def _real_extract(self, url):
         uploader_id = self._match_id(url)
         self.to_screen(
             'Downloading live video of user {0}. '
             'Pass "https://twitcasting.tv/{0}/show" to download the history'.format(uploader_id))
 
-        webpage = self._download_webpage(url, uploader_id)
-        is_live = self._search_regex(  # first pattern is for public live
-            (r'(data-is-onlive="true")', self._PROTECTED_LIVE_RE), webpage, 'is live?', default=None)
-        current_live = int_or_none(self._search_regex(
-            (r'data-type="movie" data-id="(\d+)">',  # not available?
-             r'tw-sound-flag-open-link" data-id="(\d+)" style=',  # not available?
-             r'data-movie-id="(\d+)"'),  # if not currently live, value may be 0
-            webpage, 'current live ID', default=None))
-        if is_live and not current_live:
-            # fetch unfiltered /show to find running livestreams; we can't get ID of the password-protected livestream above
-            webpage = self._download_webpage(
-                f'https://twitcasting.tv/{uploader_id}/show/', uploader_id,
-                note='Downloading live history')
-            is_live = self._search_regex(self._PROTECTED_LIVE_RE, webpage, 'is live?', default=None)
-            if is_live:
-                # get the first live; running live is always at the first
-                current_live = self._search_regex(
-                    r'(?s)<a\s+class="tw-movie-thumbnail2"\s*href="/[^/]+/movie/(?P<video_id>\d+)"\s*>.+?</a>',
-                    webpage, 'current live ID 2', default=None, group='video_id')
-        if not current_live:
+        is_live = traverse_obj(self._download_json(
+            f'https://frontendapi.twitcasting.tv/watch/user/{uploader_id}',
+            uploader_id, 'Checking live status', data=b'', fatal=False), ('is_live', {bool}))
+        if is_live is False:  # only raise here if API response was as expected
             raise UserNotLive(video_id=uploader_id)
+
+        # Use /show/ page so that password-protected and members-only livestreams can be found
+        webpage = self._download_webpage(
+            f'https://twitcasting.tv/{uploader_id}/show/', uploader_id, 'Downloading live history')
+        is_live = is_live or self._search_regex(
+            r'(?s)(<span\s*class="tw-movie-thumbnail2-badge"\s*data-status="live">\s*LIVE)',
+            webpage, 'is live?', default=False)
+        # Current live is always the first match
+        current_live = self._search_regex(
+            r'(?s)<a\s+class="tw-movie-thumbnail2"\s+href="/[^/"]+/movie/(?P<video_id>\d+)"',
+            webpage, 'current live ID', default=None, group='video_id')
+        if not is_live or not current_live:
+            raise UserNotLive(video_id=uploader_id)
+
         return self.url_result(f'https://twitcasting.tv/{uploader_id}/movie/{current_live}', TwitCastingIE)
 
 
