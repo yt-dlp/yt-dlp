@@ -1090,7 +1090,6 @@ from .motherless import (
     MotherlessGalleryIE,
 )
 from .motorsport import MotorsportIE
-from .movieclips import MovieClipsIE
 from .moviepilot import MoviepilotIE
 from .moview import MoviewPlayIE
 from .moviezine import MoviezineIE
