@@ -24,4 +24,4 @@ class NRLTVIE(InfoExtractor):
             r'(?s)q-data="({.+?})"', webpage, 'player data'), display_id)
         ooyala_id = q_data['videoId']
         return self.url_result(
-            'ooyala:' + ooyala_id, ooyala_id, q_data.get('title'))
+            'ooyala:' + ooyala_id, video_id=ooyala_id, video_title=q_data.get('title'))

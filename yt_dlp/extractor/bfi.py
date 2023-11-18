@@ -30,6 +30,5 @@ class BFIPlayerIE(InfoExtractor):
             if not ooyala_id:
                 continue
             entries.append(self.url_result(
-                'ooyala:' + ooyala_id,
-                ooyala_id, player_attr.get('data-label')))
+                'ooyala:' + ooyala_id, video_id=ooyala_id, video_title=player_attr.get('data-label')))
         return self.playlist_result(entries)
