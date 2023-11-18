@@ -1081,7 +1081,6 @@ from .mlb import (
 from .mlssoccer import MLSSoccerIE
 from .mnet import MnetIE
 from .mocha import MochaVideoIE
-from .moevideo import MoeVideoIE
 from .mojvideo import MojvideoIE
 from .monstercat import MonstercatIE
 from .morningstar import MorningstarIE
