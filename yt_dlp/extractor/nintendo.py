@@ -1,5 +1,5 @@
 import json
-from urllib.parse import quote
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -13,7 +13,7 @@ from ..utils.traversal import traverse_obj
 
 
 class NintendoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nintendo\.com/(?:(?P<locale>\w{2}(?:-\w{2})?)/)?(nintendo-direct)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?nintendo\.com/(?:(?P<locale>\w{2}(?:-\w{2})?)/)?(nintendo-direct)/(?P<slug>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.nintendo.com/nintendo-direct/09-04-2019/',
         'info_dict': {
@@ -46,20 +46,20 @@ class NintendoIE(InfoExtractor):
     }]
 
     def _create_asset_url(self, path):
-        return urljoin('https://assets.nintendo.com/', quote(path))
+        return urljoin('https://assets.nintendo.com/', urllib.parse.quote(path))
 
     def _real_extract(self, url):
-        locale, video_id = self._match_valid_url(url).group('locale', 'id')
+        locale, slug = self._match_valid_url(url).group('locale', 'slug')
 
-        language, _, country = (locale or '').partition('-')
-        parsed_locale = f'{language.lower() if language else "en"}_{country.upper() if country else "US"}'
+        language, _, country = (locale or 'en').partition('-')
+        parsed_locale = f'{language.lower()}_{country.upper() or "US"}'
         self.write_debug(f'Using locale {parsed_locale} (from {locale})', only_once=True)
 
-        response = self._download_json('https://graph.nintendo.com/', video_id, query={
+        response = self._download_json('https://graph.nintendo.com/', slug, query={
             'operationName': 'NintendoDirect',
             'variables': json.dumps({
                 'locale': parsed_locale,
-                'slug': video_id,
+                'slug': slug,
             }, separators=(',', ':')),
             'extensions': json.dumps({
                 'persistedQuery': {
@@ -71,7 +71,7 @@ class NintendoIE(InfoExtractor):
         # API returns `{"data": {"direct": null}}` if no matching id
         direct_info = traverse_obj(response, ('data', 'direct', {dict}))
         if not direct_info:
-            raise ExtractorError(f'No Nintendo Direct with id {video_id} exists', expected=True)
+            raise ExtractorError(f'No Nintendo Direct with id {slug} exists', expected=True)
 
         errors = ', '.join(traverse_obj(response, ('errors', ..., 'message')))
         if errors:
@@ -79,12 +79,12 @@ class NintendoIE(InfoExtractor):
 
         asset_id = traverse_obj(direct_info, ('video', 'publicId', {str}))
         if not asset_id:
-            self.raise_no_formats('Could not find any video formats', video_id=video_id)
+            self.raise_no_formats('Could not find any video formats', video_id=slug)
 
         result = {
-            'display_id': video_id,
+            'display_id': slug,
             'formats': self._extract_m3u8_formats(
-                self._create_asset_url(f'/video/upload/sp_full_hd/v1/{asset_id}.m3u8'), video_id),
+                self._create_asset_url(f'/video/upload/sp_full_hd/v1/{asset_id}.m3u8'), slug),
         }
         result.update(traverse_obj(direct_info, {
             'id': ('id', {str}),
