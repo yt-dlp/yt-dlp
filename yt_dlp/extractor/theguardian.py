@@ -7,6 +7,7 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_class,
     get_elements_html_by_class,
+    parse_qs,
     traverse_obj,
     unified_strdate,
     urljoin
@@ -112,7 +113,7 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
         for page in itertools.count(1):
             webpage, urlh = self._download_webpage_handle(
                 url, playlist_id, f'Downloading page {page}', query={'page': page})
-            if '?' not in urlh.url:
+            if 'page' not in parse_qs(urlh.url):
                 break
 
             episodes = get_elements_html_by_class('fc-item--type-media', webpage)
