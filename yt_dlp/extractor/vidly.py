@@ -38,6 +38,15 @@ class VidlyIE(InfoExtractor):
             'title': '7x0e6l',
         },
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.petfinder.com/dog/gus-57378930/tn/ooltewah/furever-furkids-rescue-tn592/',
+        'info_dict': {
+            'id': 'w8p5b0',
+            'ext': 'mp4',
+            'title': 'w8p5b0',
+            'thumbnail': r're:https://\w+\.cloudfront\.net/',
+        }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
