@@ -22,7 +22,7 @@ class TheGuardianPodcastIE(InfoExtractor):
             'id': 'we-are-just-getting-started-the-plastic-eating-bacteria-that-could-change-the-world-podcast',
             'ext': 'mp3',
             'title': '‘We are just getting started’: the plastic-eating bacteria that could change the world – podcast',
-            'description': 'When a microbe was found munching on a plastic bottle in a rubbish dump, it promised a recycling revolution. Now scientists are attempting to turbocharge those powers in a bid to solve our waste crisis. But will it work?',
+            'description': 'md5:cfd3df2791d394d2ab62cd571d5207ee',
             'creator': 'Stephen Buranyi',
             'thumbnail': 'md5:73c12558fcb3b0e2a59422bfb33b3f79',
             'release_date': '20231103'
@@ -34,7 +34,7 @@ class TheGuardianPodcastIE(InfoExtractor):
             'id': 'the-trials-of-robert-habeck-is-the-worlds-most-powerful-green-politician-doomed-to-fail-podcast',
             'ext': 'mp3',
             'title': 'The trials of Robert Habeck: is the world’s most powerful green politician doomed to fail? – podcast',
-            'description': 'A year ago, Germany’s vice-chancellor was one of the country’s best-liked public figures. Then came the tabloid-driven backlash. Now he has to win the argument all over again',
+            'description': 'md5:1b5cf6582d1771c6b7077784b5456994',
             'creator': 'Philip Oltermann',
             'thumbnail': 'md5:6e5c5ec43843e956e20be793722e9080',
             'release_date': '20231030'
@@ -46,7 +46,7 @@ class TheGuardianPodcastIE(InfoExtractor):
             'id': 'arsenal-feel-hard-done-by-and-luton-hold-liverpool-football-weekly',
             'ext': 'mp3',
             'title': 'Arsenal feel hard done by and Luton hold Liverpool – Football Weekly',
-            'description': 'Max Rushden is joined by Barry Glendenning, Jordan Jarrett-Bryan, and Jonathan Wilson to discuss all the weekend’s Premier League action',
+            'description': 'md5:286a9fbddaeb7c83cc65d1c4a5330b2a',
             'creator': 'Max Rushden',
             'thumbnail': 'md5:93eb7d6440f1bb94eb3a6cad63f48afd',
             'release_date': '20231106'
@@ -58,7 +58,7 @@ class TheGuardianPodcastIE(InfoExtractor):
             'id': 'the-covid-inquiry-politics-weekly-uk-podcast',
             'ext': 'mp3',
             'title': 'The Covid inquiry | Politics Weekly UK - podcast',
-            'description': 'The Guardian’s Gaby Hinsliff talks to political editor Pippa Crerar about what we have learned from the Covid inquiry. And our political correspondent Kiran Stacey tells us how significant the government’s first artificial intelligence summit will be',
+            'description': 'md5:207c98859c14903582b17d25b014046e',
             'creator': 'Gaby Hinsliff',
             'thumbnail': 'md5:28932a7b5a25b057be330d2ed70ea7f3',
             'release_date': '20231102'
@@ -117,9 +117,7 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
 
             episodes = get_elements_html_by_class('fc-item--type-media', webpage)
             for url_path in traverse_obj(episodes, (..., {extract_attributes}, 'data-id')):
-                episode_url = urljoin('https://www.theguardian.com', url_path)
-                if episode_url:
-                    yield episode_url
+                yield url_path
 
     def _real_extract(self, url):
         podcast_id = self._match_id(url)
@@ -127,11 +125,10 @@ class TheGuardianPodcastPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(url, podcast_id)
 
         title = clean_html(get_element_by_class(
-            'index-page-header__title', webpage) or get_element_by_class(
-                'flagship-audio__title', webpage))
+            'index-page-header__title', webpage) or get_element_by_class('flagship-audio__title', webpage))
         description = self._og_search_description(webpage) or self._html_search_meta(
             'description', webpage)
 
         return self.playlist_from_matches(
             self._entries(url, podcast_id), podcast_id, title, description=description,
-            ie=TheGuardianPodcastIE)
+            ie=TheGuardianPodcastIE, getter=lambda x: urljoin('https://www.theguardian.com', x))
