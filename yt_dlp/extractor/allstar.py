@@ -64,7 +64,7 @@ class AllstarBaseIE(InfoExtractor):
             return urljoin('https://media.allstar.gg/', path)
 
         def _profile_url_or_none(path):
-            return urljoin('https:/allstar.gg/u/', path)
+            return urljoin('https://allstar.gg/u/', path)
 
         return traverse_obj(video_data, {
             'id': ('_id', {str}),
