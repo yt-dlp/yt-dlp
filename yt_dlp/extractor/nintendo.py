@@ -5,7 +5,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     make_archive_id,
-    remove_start,
     unified_timestamp,
     urljoin,
 )
