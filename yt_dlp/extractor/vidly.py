@@ -8,9 +8,9 @@ from ..utils.traversal import traverse_obj
 
 
 class VidlyIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:vid\.ly/|(?:s\.)?vid\.ly/embeded.html\?(?:[^#/]+&)?link=)(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:vid\.ly/|(?:s\.)?vid\.ly/embeded\.html\?(?:[^#]+&)?link=)(?P<id>\w+)'
     _EMBED_REGEX = [r'<script[^>]+\bsrc=[\'"](?P<url>(?:https?:)?//vid\.ly/\w+/embed[^\'"]+)',
-                    r'<iframe[^>]+\bsrc=[\'"](?P<url>(?:https?:)?//(?:s\.)?vid\.ly/embeded.html\?(?:[^#/]+&)?link=\w+[^\'"]+)']
+                    r'<iframe[^>]+\bsrc=[\'"](?P<url>(?:https?:)?//(?:s\.)?vid\.ly/embeded\.html\?(?:[^#\'"]+&)?link=\w+[^\'"]+)']
     _TESTS = [{
         # JWPlayer 7, Embeds forbidden
         'url': 'https://vid.ly/2i3o9j/embed',
@@ -60,24 +60,22 @@ class VidlyIE(InfoExtractor):
             return self._parse_jwplayer_data(player['config'], video_id)
         elif not player_type.startswith('vidly'):
             raise ExtractorError(f'Unknown player type {player_type!r}')
+
         formats = []
         ext = mimetype2ext(traverse_obj(player, ('config', 'type')))
-        if traverse_obj(player, ('config', 'source', {url_or_none})):
-            formats.append({
-                'url': player['config']['source'],
-                'format_id': 'http-sd',
-                'ext': ext,
-            })
-        if traverse_obj(player, ('config', 'source_hd', {url_or_none})):
-            formats.append({
-                'url': player['config']['source_hd'],
-                'format_id': 'http-hd',
-                'ext': ext,
-            })
+        for source, fid in [('source', 'sd'), ('source_hd', 'hd')]:
+            if traverse_obj(player, ('config', source, {url_or_none})):
+                formats.append({
+                    'url': player['config'][source],
+                    'format_id': f'http-{fid}',
+                    'ext': ext,
+                })
         # Has higher quality formats
         formats.extend(self._extract_m3u8_formats(
             f'https://d3fenhwk93s16g.cloudfront.net/{video_id}/hls.m3u8', video_id,
-            fatal=False, note='Trying to guess m3u8 URL') or [])
+            fatal=False, note='Requesting higher quality m3u8 formats',
+            errnote='No higher quality m3u8 formats found') or [])
+
         return {
             'id': video_id,
             'title': video_id,
