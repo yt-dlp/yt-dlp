@@ -40,6 +40,38 @@ class NintendoIE(InfoExtractor):
             'age_limit': 6,
         },
     }, {
+        'url': 'https://www.nintendo.com/us/nintendo-direct/50-fact-extravaganza/',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'j0BBGzfw0pQ',
+            'channel_follower_count': int,
+            'view_count': int,
+            'description': 'Learn new details about Super Smash Bros. for Wii U, which launches on November 21.',
+            'duration': 2123,
+            'availability': 'public',
+            'thumbnail': 'https://i.ytimg.com/vi_webp/j0BBGzfw0pQ/maxresdefault.webp',
+            'timestamp': 1414047600,
+            'channel_id': 'UCGIY_O-8vW4rfX98KlMkvRg',
+            'chapters': 'count:53',
+            'heatmap': 'count:100',
+            'upload_date': '20141023',
+            'uploader_id': '@NintendoAmerica',
+            'playable_in_embed': True,
+            'categories': ['Gaming'],
+            'display_id': '50-fact-extravaganza',
+            'channel': 'Nintendo of America',
+            'tags': ['Comic Mischief', 'Cartoon Violence', 'Mild Suggestive Themes'],
+            'like_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCGIY_O-8vW4rfX98KlMkvRg',
+            'age_limit': 10,
+            'uploader_url': 'https://www.youtube.com/@NintendoAmerica',
+            'comment_count': int,
+            'live_status': 'not_live',
+            'uploader': 'Nintendo of America',
+            'title': '50-FACT Extravaganza',
+        },
+        'add_extractor': 'Youtube',
+    }, {
         'url': 'https://www.nintendo.com/en/nintendo-direct/09-04-2019/',
         'only_matching': True,
     }]
@@ -76,16 +108,7 @@ class NintendoIE(InfoExtractor):
         if errors:
             raise ExtractorError(f'GraphQL API error: {errors or "Unknown error"}')
 
-        asset_id = traverse_obj(direct_info, ('video', 'publicId', {str}))
-        if not asset_id:
-            self.raise_no_formats('Could not find any video formats', video_id=slug)
-
-        result = {
-            'display_id': slug,
-            'formats': self._extract_m3u8_formats(
-                self._create_asset_url(f'/video/upload/sp_full_hd/v1/{asset_id}.m3u8'), slug),
-        }
-        result.update(traverse_obj(direct_info, {
+        result = traverse_obj(direct_info, {
             'id': ('id', {str}),
             'title': ('name', {str}),
             'timestamp': ('startDate', {unified_timestamp}),
@@ -93,8 +116,20 @@ class NintendoIE(InfoExtractor):
             'age_limit': ('contentRating', 'order', {int}),
             'tags': ('contentDescriptors', ..., 'label', {str}),
             'thumbnail': ('thumbnail', {self._create_asset_url}),
-        }))
+        })
+        result['display_id'] = slug
+
+        asset_id = traverse_obj(direct_info, ('video', 'publicId', {str}))
+        if not asset_id:
+            youtube_id = traverse_obj(direct_info, ('liveStream', {str}))
+            if not youtube_id:
+                self.raise_no_formats('Could not find any video formats', video_id=slug)
+
+            return self.url_result(youtube_id, **result, url_transparent=True)
+
         if asset_id.startswith('Legacy Videos/'):
             result['_old_archive_ids'] = [make_archive_id(self, asset_id[14:])]
+        result['formats'] = self._extract_m3u8_formats(
+            self._create_asset_url(f'/video/upload/sp_full_hd/v1/{asset_id}.m3u8'), slug)
 
         return result
