@@ -12,7 +12,7 @@ from ..utils.traversal import traverse_obj
 
 
 class NintendoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nintendo\.com/(?:(?P<locale>\w{2}(?:-\w{2})?)/)?(nintendo-direct)/(?P<slug>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?nintendo\.com/(?:(?P<locale>\w{2}(?:-\w{2})?)/)?nintendo-direct/(?P<slug>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.nintendo.com/nintendo-direct/09-04-2019/',
         'info_dict': {
