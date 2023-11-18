@@ -55,31 +55,31 @@ class VidlyIE(InfoExtractor):
             f'https://vid.ly/{video_id}/embed', video_id, headers={'Referer': 'https://vid.ly/'})
         player = self._search_json(r'initCallback\(', embed_script, 'player', video_id)
 
-        if player['player'].startswith('jwplayer'):
+        player_type = player.get('player') or ''
+        if player_type.startswith('jwplayer'):
             return self._parse_jwplayer_data(player['config'], video_id)
-        elif player['player'] == 'vidlyplayer':
-            formats = []
-            ext = mimetype2ext(traverse_obj(player, ('config', 'type')))
-            if traverse_obj(player, ('config', 'source', {url_or_none})):
-                formats.append({
-                    'url': player['config']['source'],
-                    'format_id': 'http-sd',
-                    'ext': ext,
-                })
-            if traverse_obj(player, ('config', 'source_hd', {url_or_none})):
-                formats.append({
-                    'url': player['config']['source_hd'],
-                    'format_id': 'http-hd',
-                    'ext': ext,
-                })
-            # Has higher quality formats
-            formats.extend(self._extract_m3u8_formats(
-                f'https://d3fenhwk93s16g.cloudfront.net/{video_id}/hls.m3u8', video_id,
-                fatal=False, note='Trying to guess m3u8 URL') or [])
-            return {
-                'id': video_id,
-                'title': video_id,
-                'formats': formats,
-            }
-        else:
-            raise ExtractorError('Unknown player type')
+        elif not player_type.startswith('vidly'):
+            raise ExtractorError(f'Unknown player type {player_type!r}')
+        formats = []
+        ext = mimetype2ext(traverse_obj(player, ('config', 'type')))
+        if traverse_obj(player, ('config', 'source', {url_or_none})):
+            formats.append({
+                'url': player['config']['source'],
+                'format_id': 'http-sd',
+                'ext': ext,
+            })
+        if traverse_obj(player, ('config', 'source_hd', {url_or_none})):
+            formats.append({
+                'url': player['config']['source_hd'],
+                'format_id': 'http-hd',
+                'ext': ext,
+            })
+        # Has higher quality formats
+        formats.extend(self._extract_m3u8_formats(
+            f'https://d3fenhwk93s16g.cloudfront.net/{video_id}/hls.m3u8', video_id,
+            fatal=False, note='Trying to guess m3u8 URL') or [])
+        return {
+            'id': video_id,
+            'title': video_id,
+            'formats': formats,
+        }
