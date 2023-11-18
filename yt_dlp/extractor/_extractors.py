@@ -738,7 +738,6 @@ from .hotstar import (
     HotStarSeasonIE,
     HotStarSeriesIE,
 )
-from .howcast import HowcastIE
 from .hrefli import HrefLiRedirectIE
 from .hrfensehen import HRFernsehenIE
 from .hrti import (
