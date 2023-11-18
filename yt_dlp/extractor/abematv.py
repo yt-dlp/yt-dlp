@@ -354,7 +354,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             seri = int_or_none(mobj.group(1), default=float('inf'))
             epis = int_or_none(mobj.group(2), default=float('inf'))
             info['season_number'] = seri if seri < 100 else None
-            info['series_number'] = info['season_number'] # for backward compatibility
+            info['series_number'] = info['season_number']  # for backward compatibility
             # some anime like Detective Conan (though not available in AbemaTV)
             # has more than 1000 episodes (1026 as of 2021/11/15)
             info['episode_number'] = epis if epis < 2000 else None
