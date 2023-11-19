@@ -69,10 +69,7 @@ class AllstarBaseIE(InfoExtractor):
             'display_id': ('shareId', {str}),
             'title': ('clipTitle', {str}),
             'url': ('clipLink', {media_url_or_none}),
-            'thumbnails': [(
-                {'url': ('clipImageSource', {media_url_or_none})},
-                {'url': ('clipImageThumb', {media_url_or_none})}
-            )],
+            'thumbnails': (('clipImageThumb', 'clipImageSource'), {'url': {media_url_or_none}}),
             'duration': ('clipLength', {int_or_none}),
             'filesize': ('clipSizeBytes', {int_or_none}),
             'timestamp': ('createdDate', {functools.partial(int_or_none, scale=1000)}),
