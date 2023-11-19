@@ -241,7 +241,7 @@ class AllstarProfileIE(AllstarBaseIE):
         query_id = traverse_obj(url_query, ('view', 0), default='Clips')
 
         if query_id not in ('Clips', 'Montages', 'Mobile Clips'):
-            raise UnsupportedError(url)
+            raise ExtractorError(f'Unsupported playlist URL type {query_id!r}')
 
         return self.playlist_result(
             OnDemandPagedList(
