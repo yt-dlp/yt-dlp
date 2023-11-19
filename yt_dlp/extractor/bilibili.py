@@ -857,6 +857,7 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
             'formats': self.extract_formats(play_info),
             'extractor_key': BilibiliCheeseIE.ie_key(),
             'extractor': BilibiliCheeseIE.IE_NAME,
+            'webpage_url': f'https://www.bilibili.com/cheese/play/ep{ep_id}',
             **traverse_obj(episode_info, {
                 'episode': ('title', {str}),
                 'title': {lambda v: v and join_nonempty('index', 'title', delim=' - ', from_dict=v)},
