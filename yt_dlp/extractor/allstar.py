@@ -8,9 +8,9 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     parse_qs,
-    traverse_obj,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 _FIELDS = '''
