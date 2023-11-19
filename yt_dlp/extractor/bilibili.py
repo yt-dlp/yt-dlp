@@ -179,11 +179,11 @@ class BilibiliBaseIE(InfoExtractor):
             'https://api.bilibili.com/x/stein/edgeinfo_v2', video_id,
             query={'graph_version': graph_version, 'edge_id': edge_id, 'bvid': video_id},
             note=f'Extracting divisions from edge {edge_id}')
-        for node in traverse_obj(division_data, ('data', 'story_list', lambda _, v: v['edge_id'] == edge_id)):
-            edges.setdefault(node['edge_id'], {}).update(traverse_obj(node, {
+        edges.setdefault(edge_id, {}).update(
+            traverse_obj(division_data, ('data', 'story_list', lambda _, v: v['edge_id'] == edge_id, {
                 'title': ('title', {str}),
                 'cid': ('cid', {int_or_none}),
-            }))
+            }), get_all=False))
 
         edges[edge_id].update(traverse_obj(division_data, ('data', {
             'title': ('title', {str}),
