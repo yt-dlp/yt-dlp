@@ -78,7 +78,7 @@ class NebulaBaseIE(InfoExtractor):
                 if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                     self.raise_login_required()
                 if not retry and isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                    self.to_screen('Reautherizing with Nebula and retrying because fetching video resulted in error')
+                    self.to_screen('Reautherizing with Nebula and retrying, because fetching video resulted in error')
                     self._real_initialize()
                     continue
                 raise
