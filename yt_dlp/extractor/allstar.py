@@ -60,28 +60,36 @@ _QUERIES = {
 class AllstarBaseIE(InfoExtractor):
     @staticmethod
     def _parse_video_data(video_data):
-        def _media_url_or_none(path):
+        def media_url_or_none(path):
             return urljoin('https://media.allstar.gg/', path)
 
-        def _profile_url_or_none(path):
-            return urljoin('https://allstar.gg/u/', path)
-
-        return traverse_obj(video_data, {
+        info = traverse_obj(video_data, {
             'id': ('_id', {str}),
             'display_id': ('shareId', {str}),
             'title': ('clipTitle', {str}),
-            'url': ('clipLink', {_media_url_or_none}),
-            'thumbnail': ('clipImageThumb', {_media_url_or_none}),
+            'url': ('clipLink', {media_url_or_none}),
+            'thumbnail': ('clipImageThumb', {media_url_or_none}),
             'duration': ('clipLength', {int_or_none}),
             'filesize': ('clipSizeBytes', {int_or_none}),
-            'timestamp': ('createdDate', {int_or_none}),
+            'timestamp': ('createdDate', {functools.partial(int_or_none, scale=1000)}),
             'uploader': ('username', {str}),
             'uploader_id': ('user', '_id', {str}),
-            'uploader_url': ('user', '_id', {_profile_url_or_none}),
             'view_count': ('views', {int_or_none}),
         })
 
-    def _send_query(self, query, variables={}, path=(), video_id=None, note=None):
+        if info.get('id') and info.get('url'):
+            basename = 'clip' if '/clips/' in info['url'] else 'montage'
+            info['webpage_url'] = f'https://allstar.gg/{basename}?{basename}={info["id"]}'
+
+        info.update({
+            'extractor_key': AllstarIE.ie_key(),
+            'extractor': AllstarIE.IE_NAME,
+            'uploader_url': urljoin('https://allstar.gg/u/', info.get('uploader_id')),
+        })
+
+        return info
+
+    def _call_api(self, query, variables, path, video_id=None, note=None):
         response = self._download_json(
             'https://a1.allstar.gg/graphql', video_id, note=note,
             headers={'content-type': 'application/json'},
@@ -108,9 +116,12 @@ class AllstarIE(AllstarBaseIE):
             'ext': 'mp4',
             'duration': 20,
             'filesize': 21199257,
-            'timestamp': 1682451501555,
+            'timestamp': 1682451501,
             'uploader_id': '62b8bdfc9021052f7905882d',
+            'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
+            'upload_date': '20230425',
             'view_count': int,
+
         }
     }, {
         'url': 'https://allstar.gg/clip?clip=8LJLY4JKB',
@@ -123,9 +134,11 @@ class AllstarIE(AllstarBaseIE):
             'thumbnail': 'md5:90564b121f5fd7a4924920ef45614634',
             'duration': 16,
             'filesize': 30175859,
-            'timestamp': 1688333419392,
+            'timestamp': 1688333419,
             'uploader': 'cherokee',
             'uploader_id': '62b8bdfc9021052f7905882d',
+            'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
+            'upload_date': '20230702',
             'view_count': int,
         }
     }, {
@@ -137,9 +150,11 @@ class AllstarIE(AllstarBaseIE):
             'url': 'md5:a3ee356022115db2b27c81321d195945',
             'thumbnail': 'md5:f1a5e811864e173f180b738d956356f4',
             'ext': 'mp4',
-            'timestamp': 1681810448040,
+            'timestamp': 1681810448,
             'uploader': 'cherokee',
             'uploader_id': '62b8bdfc9021052f7905882d',
+            'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
+            'upload_date': '20230418',
             'view_count': int,
         }
     }, {
@@ -150,10 +165,12 @@ class AllstarIE(AllstarBaseIE):
             'title': 'cherokee Rapid Fire Snipers Montage',
             'url': 'md5:d5672e6f88579730c2310a80fdbc4030',
             'thumbnail': 'md5:60872f0d236863bb9a6f3dff1623403c',
-            'uploader': 'cherokee',
             'ext': 'mp4',
-            'timestamp': 1688365434271,
+            'timestamp': 1688365434,
+            'uploader': 'cherokee',
             'uploader_id': '62b8bdfc9021052f7905882d',
+            'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
+            'upload_date': '20230703',
             'view_count': int,
         }
     }]
@@ -162,9 +179,8 @@ class AllstarIE(AllstarBaseIE):
         query_id, video_id = self._match_valid_url(url).group('type', 'id')
 
         return self._parse_video_data(
-            self._send_query(
-                _QUERIES.get(query_id), {'id': video_id},
-                ('data', 'video'), video_id))
+            self._call_api(
+                _QUERIES.get(query_id), {'id': video_id}, ('data', 'video'), video_id))
 
 
 class AllstarProfileIE(AllstarBaseIE):
@@ -202,30 +218,16 @@ class AllstarProfileIE(AllstarBaseIE):
 
     _PAGE_SIZE = 10
 
-    @staticmethod
-    def _set_webpage_url(info_dict):
-        video_id = info_dict.get('id')
-        video_url = info_dict.get('url')
-
-        if video_url is None or video_id is None:
-            return info_dict
-
-        base_name = 'clip' if '/clips/' in video_url else 'montage'
-        info_dict['webpage_url'] = f'https://allstar.gg/{base_name}?{base_name}={video_id}'
-        info_dict['webpage_url_basename'] = base_name
-
-        return info_dict
-
     def _get_page(self, user_id, display_id, game, query, page_num):
         page_num += 1
 
-        for video_data in self._send_query(
+        for video_data in self._call_api(
                 query, {
                     'user': user_id,
                     'page': page_num,
                     'game': game,
                 }, ('data', 'videos', 'data'), display_id, f'Downloading page {page_num}'):
-            yield self._set_webpage_url(self._parse_video_data(video_data))
+            yield self._parse_video_data(video_data)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
