@@ -1209,6 +1209,9 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('\'"\\""\'')
         self.assertEqual(json.loads(on), '"""', msg='Unnecessary quote escape should be escaped')
 
+        on = js_to_json('[new Date("spam"), \'("eggs")\']')
+        self.assertEqual(json.loads(on), ['spam', '("eggs")'], msg='Date regex should match a single string')
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
@@ -1220,11 +1223,13 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(js_to_json('`${name}"${name}"`', {'name': '5'}), '"5\\"5\\""')
         self.assertEqual(js_to_json('`${name}`', {}), '"name"')
 
-    def test_js_to_json_map_array_constructors(self):
+    def test_js_to_json_common_constructors(self):
         self.assertEqual(json.loads(js_to_json('new Map([["a", 5]])')), {'a': 5})
         self.assertEqual(json.loads(js_to_json('Array(5, 10)')), [5, 10])
         self.assertEqual(json.loads(js_to_json('new Array(15,5)')), [15, 5])
         self.assertEqual(json.loads(js_to_json('new Map([Array(5, 10),new Array(15,5)])')), {'5': 10, '15': 5})
+        self.assertEqual(json.loads(js_to_json('new Date("123")')), "123")
+        self.assertEqual(json.loads(js_to_json('new Date(\'2023-10-19\')')), "2023-10-19")
 
     def test_extract_attributes(self):
         self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})

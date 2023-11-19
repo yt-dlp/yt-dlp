@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class NovaEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://media\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://media(?:tn)?\.cms\.nova\.cz/embed/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://media.cms.nova.cz/embed/8o0n0r?autoplay=1',
         'info_dict': {
@@ -35,6 +35,16 @@ class NovaEmbedIE(InfoExtractor):
             'title': 'Borhyová oslavila 60? Soutěžící z pořadu odboural moderátora Ondřeje Sokola',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 114,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://mediatn.cms.nova.cz/embed/EU5ELEsmOHt?autoplay=1',
+        'info_dict': {
+            'id': 'EU5ELEsmOHt',
+            'ext': 'mp4',
+            'title': 'Haptické křeslo, bionická ruka nebo roboti. Reportérka se podívala na Týden inovací',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 1780,
         },
         'params': {'skip_download': 'm3u8'},
     }]
