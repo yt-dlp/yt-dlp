@@ -120,7 +120,7 @@ class BilibiliBaseIE(InfoExtractor):
         subs_list = traverse_obj(subtitle_info, ('subtitles', lambda _, v: v['subtitle_url'] and v['lan']))
         if not subs_list and traverse_obj(subtitle_info, 'allow_submit'):
             if not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):  # no login session cookie
-                self.report_warning(f'CC subtitles (if any) are only visible when logged in. {self._login_hint()}')
+                self.report_warning(f'CC subtitles (if any) are only visible when logged in. {self._login_hint()}', only_once=True)
         for s in subs_list:
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
