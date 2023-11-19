@@ -855,6 +855,8 @@ class BilibiliCheeseBaseIE(BilibiliBaseIE):
             'id': str_or_none(ep_id),
             'episode_id': str_or_none(ep_id),
             'formats': self.extract_formats(play_info),
+            'extractor_key': BilibiliCheeseIE.ie_key(),
+            'extractor': BilibiliCheeseIE.IE_NAME,
             **traverse_obj(episode_info, {
                 'episode': ('title', {str}),
                 'title': {lambda v: v and join_nonempty('index', 'title', delim=' - ', from_dict=v)},
@@ -948,11 +950,7 @@ class BilibiliCheeseSeasonIE(BilibiliCheeseBaseIE):
 
     def _get_cheese_entries(self, season_info):
         for ep_id in traverse_obj(season_info, ('episodes', lambda _, v: v['episode_can_view'], 'id')):
-            yield {
-                **self._extract_episode(season_info, ep_id),
-                'extractor_key': BilibiliCheeseIE.ie_key(),
-                'extractor': BilibiliCheeseIE.IE_NAME,
-            }
+            yield self._extract_episode(season_info, ep_id)
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
