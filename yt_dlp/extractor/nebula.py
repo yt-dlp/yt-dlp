@@ -1,8 +1,8 @@
 import itertools
 import json
-import urllib.error
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     make_archive_id,
@@ -24,20 +24,19 @@ class NebulaBaseIE(InfoExtractor):
     _token = _api_token = None
 
     def _perform_login(self, username, password):
+        self.cookiejar.clear(domain='.nebula.tv')  # 'sessionid' cookie causes 403
+
         try:
             response = self._download_json(
                 'https://nebula.tv/auth/login/', None,
                 'Logging in to Nebula', 'Login failed',
                 data=json.dumps({'email': username, 'password': password}).encode(),
-                headers={
-                    'content-type': 'application/json',
-                    'cookie': ''  # 'sessionid' cookie causes 403
-                })
+                headers={'content-type': 'application/json'})
         except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.status == 400:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 raise ExtractorError('Login failed: Invalid username or password', expected=True)
             raise
-        self._api_token = response.get('key')
+        self._api_token = traverse_obj(response, ('key', {str}))
         if not self._api_token:
             raise ExtractorError('Login failed: No token')
 
@@ -47,10 +46,10 @@ class NebulaBaseIE(InfoExtractor):
         try:
             return self._download_json(*args, **kwargs)
         except ExtractorError as e:
-            if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.status not in (401, 403):
+            if not isinstance(e.cause, HTTPError) or e.cause.status not in (401, 403):
                 raise
-            self.to_screen(f'Reautherizing with Nebula and retrying, '
-                           f'because last API call resulted in error {e.cause.status}')
+            self.to_screen(
+                f'Reauthorizing with Nebula and retrying, because last API call resulted in error {e.cause.status}')
             self._real_initialize()
             if self._token:
                 kwargs.setdefault('headers', {})['Authorization'] = f'Bearer {self._token}'
@@ -90,7 +89,7 @@ class NebulaBaseIE(InfoExtractor):
         channel_url = traverse_obj(
             episode, (('channel_slug', 'class_slug'), {lambda x: urljoin('https://nebula.tv/', x)}), get_all=False)
         return {
-            'id': episode['id'].split(':', 1)[-1],
+            'id': episode['id'].partition(':')[2],
             **traverse_obj(episode, {
                 'display_id': 'slug',
                 'title': 'title',
@@ -104,7 +103,7 @@ class NebulaBaseIE(InfoExtractor):
                 'series': 'channel_title',
                 'creator': 'channel_title',
                 'thumbnail': ('images', 'thumbnail', 'src', {url_or_none}),
-                'episode_number': 'order',
+                'episode_number': ('order', {int_or_none}),
                 # Old code was wrongly setting extractor_key from NebulaSubscriptionsIE
                 '_old_archive_ids': ('zype_id', {lambda x: [
                     make_archive_id(NebulaIE, x), make_archive_id(NebulaSubscriptionsIE, x)] if x else None}),
@@ -239,6 +238,7 @@ class NebulaIE(NebulaBaseIE):
 
 
 class NebulaClassIE(NebulaBaseIE):
+    IE_NAME = 'nebula:class'
     _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>[-\w]+)/(?P<ep>\d+)'
     _TESTS = [{
         'url': 'https://nebula.tv/copyright-for-fun-and-profit/14',
