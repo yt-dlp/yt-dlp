@@ -5,9 +5,10 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    UnsupportedError,
     int_or_none,
+    join_nonempty,
     parse_qs,
+    str_or_none,
     traverse_obj,
     urljoin,
 )
@@ -189,28 +190,28 @@ class AllstarProfileIE(AllstarBaseIE):
     _TESTS = [{
         'url': 'https://allstar.gg/profile?user=62b8bdfc9021052f7905882d',
         'info_dict': {
-            'id': '62b8bdfc9021052f7905882d',
+            'id': '62b8bdfc9021052f7905882d-clips',
             'title': 'cherokee - Clips',
         },
         'playlist_mincount': 15
     }, {
         'url': 'https://allstar.gg/u/cherokee?game=730&view=Clips',
         'info_dict': {
-            'id': '62b8bdfc9021052f7905882d',
-            'title': 'cherokee - Clips',
+            'id': '62b8bdfc9021052f7905882d-clips-730',
+            'title': 'cherokee - Clips - 730',
         },
         'playlist_mincount': 15
     }, {
         'url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d?view=Montages',
         'info_dict': {
-            'id': '62b8bdfc9021052f7905882d',
+            'id': '62b8bdfc9021052f7905882d-montages',
             'title': 'cherokee - Montages',
         },
         'playlist_mincount': 4
     }, {
         'url': 'https://allstar.gg/profile?user=cherokee&view=Mobile Clips',
         'info_dict': {
-            'id': '62b8bdfc9021052f7905882d',
+            'id': '62b8bdfc9021052f7905882d-mobile',
             'title': 'cherokee - Mobile Clips',
         },
         'playlist_mincount': 1
@@ -239,7 +240,7 @@ class AllstarProfileIE(AllstarBaseIE):
 
         username = traverse_obj(profile_data, ('data', 'profile', ('username'), {str}))
         url_query = parse_qs(url)
-        game = traverse_obj(url_query, ('game', 0, {int}))
+        game = traverse_obj(url_query, ('game', 0, {int_or_none}))
         query_id = traverse_obj(url_query, ('view', 0), default='Clips')
 
         if query_id not in ('Clips', 'Montages', 'Mobile Clips'):
@@ -249,5 +250,5 @@ class AllstarProfileIE(AllstarBaseIE):
             OnDemandPagedList(
                 functools.partial(
                     self._get_page, user_id, display_id, game, _QUERIES.get(query_id)), self._PAGE_SIZE),
-            playlist_id=join_nonempty(user_id, query_id.lower().split(' ')[0], str_or_none(game)),
-            playlist_title=join_nonempty((username or display_id), query_id, str_or_none(game), delim=' - '))
+            playlist_id=join_nonempty(user_id, query_id.lower().split(' ')[0], game),
+            playlist_title=join_nonempty((username or display_id), query_id, game, delim=' - '))
