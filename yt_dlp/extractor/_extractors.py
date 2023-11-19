@@ -81,12 +81,16 @@ from .airmozilla import AirMozillaIE
 from .airtv import AirTVIE
 from .aitube import AitubeKZVideoIE
 from .aljazeera import AlJazeeraIE
+from .allstar import (
+    AllstarIE,
+    AllstarProfileIE,
+)
 from .alphaporno import AlphaPornoIE
-from .amara import AmaraIE
 from .alura import (
     AluraIE,
     AluraCourseIE
 )
+from .amara import AmaraIE
 from .amcnetworks import AMCNetworksIE
 from .amazon import (
     AmazonStoreIE,
@@ -106,10 +110,6 @@ from .angel import AngelIE
 from .anvato import AnvatoIE
 from .aol import AolIE
 from .allocine import AllocineIE
-from .allstar import (
-    AllstarIE,
-    AllstarProfileIE
-)
 from .aliexpress import AliExpressLiveIE
 from .alsace20tv import (
     Alsace20TVIE,
