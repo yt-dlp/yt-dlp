@@ -249,4 +249,5 @@ class AllstarProfileIE(AllstarBaseIE):
             OnDemandPagedList(
                 functools.partial(
                     self._get_page, user_id, display_id, game, _QUERIES.get(query_id)), self._PAGE_SIZE),
-            user_id, f'{username or display_id} - {query_id}')
+            playlist_id=join_nonempty(user_id, query_id.lower().split(' ')[0], str_or_none(game)),
+            playlist_title=join_nonempty((username or display_id), query_id, str_or_none(game), delim=' - '))
