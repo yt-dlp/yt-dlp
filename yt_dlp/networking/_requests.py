@@ -1,6 +1,4 @@
-import contextlib
 import functools
-import http.client
 import logging
 import re
 import socket
@@ -17,14 +15,13 @@ if urllib3 is None:
 
 urllib3_version = tuple(int_or_none(x, default=0) for x in urllib3.__version__.split('.'))
 
-if urllib3_version < (1, 26, 17):
-    raise ImportError('Only urllib3 >= 1.26.17 is supported')
+if urllib3_version < (2, 0, 900):
+    raise ImportError('Only urllib3(-future) >= 2.0.900 is supported')
 
-if requests.__build__ < 0x023100:
-    raise ImportError('Only requests >= 2.31.0 is supported')
+if requests.__build__ < 0x030000:
+    raise ImportError('Only niquests >= 3.0.0 is supported')
 
-import requests.adapters
-import requests.utils
+import niquests.adapters
 import urllib3.connection
 import urllib3.exceptions
 
@@ -103,30 +100,17 @@ elif hasattr(urllib3.util.url, '_PERCENT_RE'):  # urllib3 >= 2.0.0
 else:
     warnings.warn('Failed to patch PERCENT_RE in urllib3 (does the attribute exist?)' + bug_reports_message())
 
-"""
-Workaround for issue in urllib.util.ssl_.py: ssl_wrap_context does not pass
-server_hostname to SSLContext.wrap_socket if server_hostname is an IP,
-however this is an issue because we set check_hostname to True in our SSLContext.
-
-Monkey-patching IS_SECURETRANSPORT forces ssl_wrap_context to pass server_hostname regardless.
-
-This has been fixed in urllib3 2.0+.
-See: https://github.com/urllib3/urllib3/issues/517
-"""
-
-if urllib3_version < (2, 0, 0):
-    with contextlib.suppress():
-        urllib3.util.IS_SECURETRANSPORT = urllib3.util.ssl_.IS_SECURETRANSPORT = True
-
-
 # Requests will not automatically handle no_proxy by default
 # due to buggy no_proxy handling with proxy dict [1].
 # 1. https://github.com/psf/requests/issues/5000
-requests.adapters.select_proxy = select_proxy
+niquests.adapters.select_proxy = select_proxy
 
 
 class RequestsResponseAdapter(Response):
     def __init__(self, res: requests.models.Response):
+        # todo: take advantage of the multiplexed connection if applicable.
+        if res.lazy:
+            res.headers
         super().__init__(
             fp=res.raw, headers=res.headers, url=res.url,
             status=res.status_code, reason=res.reason)
@@ -145,14 +129,17 @@ class RequestsResponseAdapter(Response):
         except urllib3.exceptions.ProtocolError as e:
             # IncompleteRead is always contained within ProtocolError
             # See urllib3.response.HTTPResponse._error_catcher()
-            ir_err = next(
-                (err for err in (e.__context__, e.__cause__, *variadic(e.args))
-                 if isinstance(err, http.client.IncompleteRead)), None)
+            if isinstance(e, urllib3.exceptions.IncompleteRead):
+                ir_err = e
+            else:
+                ir_err = next(
+                    (err for err in (e.__context__, e.__cause__, *variadic(e.args))
+                     if isinstance(err, urllib3.exceptions.IncompleteRead)), None)
             if ir_err is not None:
-                # `urllib3.exceptions.IncompleteRead` is subclass of `http.client.IncompleteRead`
-                # but uses an `int` for its `partial` property.
+                # `urllib3.exceptions.IncompleteRead` uses an `int` for its `partial` property.
                 partial = ir_err.partial if isinstance(ir_err.partial, int) else len(ir_err.partial)
                 raise IncompleteRead(partial=partial, expected=ir_err.expected) from e
+
             raise TransportError(cause=e) from e
 
         except urllib3.exceptions.HTTPError as e:
@@ -160,28 +147,31 @@ class RequestsResponseAdapter(Response):
             raise TransportError(cause=e) from e
 
 
-class RequestsHTTPAdapter(requests.adapters.HTTPAdapter):
-    def __init__(self, ssl_context=None, proxy_ssl_context=None, source_address=None, **kwargs):
-        self._pm_args = {}
-        if ssl_context:
-            self._pm_args['ssl_context'] = ssl_context
-        if source_address:
-            self._pm_args['source_address'] = (source_address, 0)
-        self._proxy_ssl_context = proxy_ssl_context or ssl_context
-        super().__init__(**kwargs)
+class RequestsHTTPAdapter(niquests.adapters.HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.pm_args = {}
+
+        if "source_address" in kwargs:
+            if kwargs["source_address"] is not None:
+                self.pm_args["source_address"] = (kwargs["source_address"], 0)
+            kwargs.pop("source_address")
+
+        self.proxy_ssl_context = None
+
+        if "proxy_ssl_context" in kwargs:
+            self.proxy_ssl_context = kwargs["proxy_ssl_context"]
+            kwargs.pop("proxy_ssl_context")
+
+        super().__init__(*args, **kwargs)
 
     def init_poolmanager(self, *args, **kwargs):
-        return super().init_poolmanager(*args, **kwargs, **self._pm_args)
+        return super().init_poolmanager(*args, **kwargs, **self.pm_args)
 
     def proxy_manager_for(self, proxy, **proxy_kwargs):
         extra_kwargs = {}
-        if not proxy.lower().startswith('socks') and self._proxy_ssl_context:
-            extra_kwargs['proxy_ssl_context'] = self._proxy_ssl_context
-        return super().proxy_manager_for(proxy, **proxy_kwargs, **self._pm_args, **extra_kwargs)
-
-    def cert_verify(*args, **kwargs):
-        # lean on SSLContext for cert verification
-        pass
+        if not proxy.lower().startswith('socks') and self.proxy_ssl_context:
+            extra_kwargs['proxy_ssl_context'] = self.proxy_ssl_context
+        return super().proxy_manager_for(proxy, **proxy_kwargs, **self.pm_args, **extra_kwargs)
 
 
 class RequestsSession(requests.sessions.Session):
@@ -237,14 +227,14 @@ class Urllib3LoggingHandler(logging.Handler):
 @register_rh
 class RequestsRH(RequestHandler, InstanceStoreMixin):
 
-    """Requests RequestHandler
-    https://github.com/psf/requests
+    """Niquests RequestHandler
+    https://github.com/jawah/niquests
     """
     _SUPPORTED_URL_SCHEMES = ('http', 'https')
     _SUPPORTED_ENCODINGS = tuple(SUPPORTED_ENCODINGS)
     _SUPPORTED_PROXY_SCHEMES = ('http', 'https', 'socks4', 'socks4a', 'socks5', 'socks5h')
     _SUPPORTED_FEATURES = (Features.NO_PROXY, Features.ALL_PROXY)
-    RH_NAME = 'requests'
+    RH_NAME = 'niquests'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -276,16 +266,28 @@ class RequestsRH(RequestHandler, InstanceStoreMixin):
         extensions.pop('timeout', None)
 
     def _create_instance(self, cookiejar):
-        session = RequestsSession()
-        http_adapter = RequestsHTTPAdapter(
-            ssl_context=self._make_sslcontext(),
-            source_address=self.source_address,
-            max_retries=urllib3.util.retry.Retry(False),
-        )
-        session.adapters.clear()
-        session.headers = requests.models.CaseInsensitiveDict({'Connection': 'keep-alive'})
-        session.mount('https://', http_adapter)
-        session.mount('http://', http_adapter)
+        certs = self._client_cert
+        session = RequestsSession(multiplexed=True, retries=False)
+
+        session.verify = self.verify
+
+        has_client_cert = "client_certificate" in certs
+        has_client_key = "client_certificate_key" in certs
+        has_password = "client_certificate_password" in certs
+
+        if len(list(filter(lambda _: _ is True, [has_client_cert, has_client_key, has_password]))) > 1:
+            session.cert = (
+                certs["client_certificate"],
+                certs["client_certificate_key"] if has_client_key else None,
+                certs["client_certificate_password"] if has_password else None,
+            )
+        elif has_client_cert:
+            session.cert = certs["client_certificate"]
+
+        # we want to override the default adapter in order to leverage our proxy implt
+        session.mount("http://", RequestsHTTPAdapter(source_address=self.source_address))
+        session.mount("https://", RequestsHTTPAdapter(source_address=self.source_address))
+
         session.cookies = cookiejar
         session.trust_env = False  # no need, we already load proxies from env
         return session
@@ -395,4 +397,4 @@ class SocksProxyManager(urllib3.PoolManager):
         }
 
 
-requests.adapters.SOCKSProxyManager = SocksProxyManager
+niquests.adapters.SOCKSProxyManager = SocksProxyManager

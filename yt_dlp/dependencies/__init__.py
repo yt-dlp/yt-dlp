@@ -12,15 +12,9 @@ except ImportError:
 
 
 try:
-    import certifi
+    import wassima
 except ImportError:
-    certifi = None
-else:
-    from os.path import exists as _path_exists
-
-    # The certificate may not be bundled in executable
-    if not _path_exists(certifi.where()):
-        certifi = None
+    wassima = None
 
 
 try:
@@ -64,7 +58,7 @@ except ImportError:
     urllib3 = None
 
 try:
-    import requests
+    import niquests as requests
 except ImportError:
     requests = None
 

@@ -10,7 +10,7 @@ import urllib.parse
 import urllib.request
 
 from .exceptions import RequestError, UnsupportedRequest
-from ..dependencies import certifi
+from ..dependencies import wassima
 from ..socks import ProxyType, sockssocket
 from ..utils import format_field, traverse_obj
 
@@ -21,8 +21,8 @@ if typing.TYPE_CHECKING:
 
 
 def ssl_load_certs(context: ssl.SSLContext, use_certifi=True):
-    if certifi and use_certifi:
-        context.load_verify_locations(cafile=certifi.where())
+    if wassima and use_certifi:
+        context.load_verify_locations(cadata=wassima.generate_ca_bundle())
     else:
         try:
             context.load_default_certs()

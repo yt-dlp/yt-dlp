@@ -22,10 +22,10 @@ def get_hidden_imports():
     yield from ('yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated')
     yield pycryptodome_module()
     # Only `websockets` is required, others are collected just in case
-    for module in ('websockets', 'requests', 'urllib3'):
+    for module in ('websockets', 'niquests', 'urllib3'):
         yield from collect_submodules(module)
     # These are auto-detected, but explicitly add them just in case
-    yield from ('mutagen', 'brotli', 'certifi', 'secretstorage')
+    yield from ('mutagen', 'brotli', 'wassima', 'secretstorage')
 
 
 hiddenimports = list(get_hidden_imports())

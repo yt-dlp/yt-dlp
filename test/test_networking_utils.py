@@ -17,7 +17,7 @@ import urllib.error
 import warnings
 
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.dependencies import certifi
+from yt_dlp.dependencies import wassima
 from yt_dlp.networking import Response
 from yt_dlp.networking._helper import (
     InstanceStoreMixin,
@@ -93,10 +93,10 @@ class TestNetworkingUtils:
         with pytest.raises(ValueError, match='Unknown SOCKS proxy version: socks'):
             make_socks_proxy_opts('socks://127.0.0.1')
 
-    @pytest.mark.skipif(not certifi, reason='certifi is not installed')
+    @pytest.mark.skipif(not wassima, reason='wassima is not installed')
     def test_load_certifi(self):
         context_certifi = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        context_certifi.load_verify_locations(cafile=certifi.where())
+        context_certifi.load_verify_locations(cadata=wassima.generate_ca_bundle())
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_load_certs(context, use_certifi=True)
         assert context.get_ca_certs() == context_certifi.get_ca_certs()
@@ -108,7 +108,7 @@ class TestNetworkingUtils:
         assert context.get_ca_certs() == context_default.get_ca_certs()
 
         if context_default.get_ca_certs() == context_certifi.get_ca_certs():
-            pytest.skip('System uses certifi as default. The test is not valid')
+            pytest.skip('System uses wassima as default. The test is not valid')
 
     @pytest.mark.parametrize('method,status,expected', [
         ('GET', 303, 'GET'),
