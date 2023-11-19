@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    int_or_none,
     make_archive_id,
     parse_iso8601,
     smuggle_url,
@@ -24,8 +25,6 @@ class NebulaBaseIE(InfoExtractor):
     _token = _api_token = None
 
     def _perform_login(self, username, password):
-        self.cookiejar.clear(domain='.nebula.tv')  # 'sessionid' cookie causes 403
-
         try:
             response = self._download_json(
                 'https://nebula.tv/auth/login/', None,
@@ -64,26 +63,25 @@ class NebulaBaseIE(InfoExtractor):
             headers={'Authorization': f'Token {self._api_token}'} if self._api_token else None,
             note='Authorizing to Nebula', data=b'')['token']
 
-    def _extract_formats(self, content_id, slug, fatal=False):
-        api_path = 'lessons' if content_id.startswith('lesson:') else 'video_episodes'
-        try:
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                f'https://content.api.nebula.app/{api_path}/{content_id}/manifest.m3u8',
-                slug, 'mp4', query={
-                    'token': self._token,
-                    'app_version': '23.10.0',
-                    'platform': 'ios',
-                })
-        except ExtractorError as e:
-            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.status == 401:
-                self.raise_login_required('This video is only available for users with an active subscription')
-            if fatal or not isinstance(e.cause, urllib.error.HTTPError) or e.cause.status != 403:
+    def _extract_formats(self, content_id, slug):
+        for retry in (False, True):
+            try:
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    f'https://content.api.nebula.app/{content_id.split(":")[0]}s/{content_id}/manifest.m3u8',
+                    slug, 'mp4', query={
+                        'token': self._token,
+                        'app_version': '23.10.0',
+                        'platform': 'ios',
+                    })
+                return {'formats': fmts, 'subtitles': subs}
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 401:
+                    self.raise_login_required()
+                if not retry and isinstance(e.cause, HTTPError) and e.cause.status == 403:
+                    self.to_screen('Reautherizing with Nebula and retrying because fetching video resulted in error')
+                    self._real_initialize()
+                    continue
                 raise
-            self.to_screen('Reautherizing with Nebula and retrying, because fetching video resulted in error')
-            self._real_initialize()
-            return self._extract_formats(content_id, slug, fatal=True)
-
-        return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
         channel_url = traverse_obj(
@@ -95,7 +93,7 @@ class NebulaBaseIE(InfoExtractor):
                 'title': 'title',
                 'description': 'description',
                 'timestamp': ('published_at', {parse_iso8601}),
-                'duration': 'duration',
+                'duration': ('duration', {int_or_none}),
                 'channel_id': 'channel_slug',
                 'uploader_id': 'channel_slug',
                 'channel': 'channel_title',
@@ -360,7 +358,7 @@ class NebulaChannelIE(NebulaBaseIE):
             if not next_url:
                 break
 
-    def _generate_playlist_entries_class(self, channel):
+    def _generate_class_entries(self, channel):
         for lesson in channel['lessons']:
             metadata = self._extract_video_metadata(lesson)
             yield self.url_result(smuggle_url(
@@ -374,7 +372,7 @@ class NebulaChannelIE(NebulaBaseIE):
             collection_slug, note='Retrieving channel')
 
         if channel.get('type') == 'class':
-            entries = self._generate_playlist_entries_class(channel)
+            entries = self._generate_class_entries(channel)
         else:
             entries = self._generate_playlist_entries(channel['id'], collection_slug)
 
