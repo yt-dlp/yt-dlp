@@ -95,9 +95,9 @@ class AllstarBaseIE(InfoExtractor):
             headers={'content-type': 'application/json'},
             data=json.dumps({'variables': variables, 'query': query}).encode())
 
-        errors = response.get('errors')
+        errors = traverse_obj(response, ('errors', ..., 'message', {str}))
         if errors:
-            raise ExtractorError(errors, expected=True)
+            raise ExtractorError('; '.join(errors))
 
         return traverse_obj(response, path)
 
