@@ -232,9 +232,8 @@ class AllstarProfileIE(AllstarBaseIE):
         profile_data = self._download_json(
             urljoin('https://api.allstar.gg/v1/users/profile/', display_id), display_id)
         user_id = traverse_obj(profile_data, ('data', ('_id'), {str}))
-
-        if user_id is None:
-            raise ExtractorError('Can not extract the user_id')
+        if not user_id:
+            raise ExtractorError('Unable to extract the user id')
 
         username = traverse_obj(profile_data, ('data', 'profile', ('username'), {str}))
         url_query = parse_qs(url)
