@@ -121,7 +121,6 @@ class AllstarIE(AllstarBaseIE):
             'uploader_url': 'https://allstar.gg/u/62b8bdfc9021052f7905882d',
             'upload_date': '20230425',
             'view_count': int,
-
         }
     }, {
         'url': 'https://allstar.gg/clip?clip=8LJLY4JKB',
