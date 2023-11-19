@@ -1,5 +1,5 @@
-import re
 import functools
+import re
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
@@ -114,15 +114,15 @@ class VVVVIDIE(InfoExtractor):
         'only_matching': True
     }]
     _conn_id = None
-    _default_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.50 Safari/537.37'
 
     @functools.cached_property
     def _headers(self):
-        geo_verification_headers = self.geo_verification_headers()
-        http_headers = self.get_param('http_headers', {})
-        return {**http_headers, **geo_verification_headers, 'User-Agent': self._default_user_agent}
+        return {
+            **self.geo_verification_headers(),
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.50 Safari/537.37',
+        }
 
-    def _real_initialize(self, *args, **kwargs):
+    def _real_initialize(self):
         self._conn_id = self._download_json(
             'https://www.vvvvid.it/user/login',
             None, headers=self._headers)['data']['conn_id']
