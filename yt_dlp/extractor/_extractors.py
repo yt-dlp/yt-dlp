@@ -2257,7 +2257,6 @@ from .wasdtv import (
     WASDTVClipIE,
 )
 from .wat import WatIE
-from .watchbox import WatchBoxIE
 from .wdr import (
     WDRIE,
     WDRPageIE,
