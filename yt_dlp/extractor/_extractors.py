@@ -354,7 +354,6 @@ from .clipchamp import ClipchampIE
 from .cliphunter import CliphunterIE
 from .clippit import ClippitIE
 from .cliprs import ClipRsIE
-from .clipsyndicate import ClipsyndicateIE
 from .closertotruth import CloserToTruthIE
 from .cloudflarestream import CloudflareStreamIE
 from .clubic import ClubicIE
