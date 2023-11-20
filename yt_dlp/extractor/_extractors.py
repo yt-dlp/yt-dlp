@@ -489,6 +489,12 @@ from .dlf import (
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
+from .dorna import (
+    MotoGPIE,
+    MotoGPGalleryIE,
+    WorldSBKIE,
+    WorldSBKPlaylistIE,
+)
 from .dotsub import DotsubIE
 from .douyutv import (
     DouyuShowIE,
