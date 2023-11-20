@@ -625,15 +625,16 @@ class YoutubeDL:
                     'Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
-        term_allow_color = os.getenv('TERM', '').lower() != 'dumb' and not os.getenv('NO_COLOR')
+        term_allow_color = os.getenv('TERM', '').lower() != 'dumb'
+        no_color = bool(os.getenv('NO_COLOR'))
 
         def process_color_policy(stream):
             stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
-                return term_allow_color and supports_terminal_sequences(stream)
-            assert policy in ('always', 'never', 'no_color'), policy
-            return {'always': True, 'never': False}.get(policy, policy)
+                if term_allow_color and supports_terminal_sequences(stream):
+                    return 'no_color' if no_color else True
+                return False
 
         self._allow_colors = Namespace(**{
             name: process_color_policy(stream)
