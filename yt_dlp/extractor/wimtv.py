@@ -11,7 +11,7 @@ class WimTVIE(InfoExtractor):
     _player = None
     _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
     _VALID_URL = r'''(?x:
-        https?://platform.wim.tv/
+        https?://platform\.wim\.tv/
         (?:
             (?:embed/)?\?
             |\#/webtv/.+?/

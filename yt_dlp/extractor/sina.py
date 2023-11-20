@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class SinaIE(InfoExtractor):
-    _VALID_URL = r'''(?x)https?://(?:.*?\.)?video\.sina\.com\.cn/
+    _VALID_URL = r'''(?x)https?://(?:[^/?#]+\.)?video\.sina\.com\.cn/
                         (?:
                             (?:view/|.*\#)(?P<id>\d+)|
                             .+?/(?P<pseudo_id>[^/?#]+)(?:\.s?html)|

@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
-
+from ..utils.networking import clean_proxies
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..utils import (
@@ -35,7 +35,10 @@ def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
     rh = ydl._request_director.handlers['Urllib']
     if 'abematv-license' in rh._SUPPORTED_URL_SCHEMES:
         return
-    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=ydl.proxies)
+    headers = ydl.params['http_headers'].copy()
+    proxies = ydl.proxies.copy()
+    clean_proxies(proxies, headers)
+    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=proxies)
     assert isinstance(opener, urllib.request.OpenerDirector)
     opener.add_handler(handler)
     rh._SUPPORTED_URL_SCHEMES = (*rh._SUPPORTED_URL_SCHEMES, 'abematv-license')
@@ -208,7 +211,8 @@ class AbemaTVIE(AbemaTVBaseIE):
             'id': '194-25_s2_p1',
             'title': '第1話 「チーズケーキ」　「モーニング再び」',
             'series': '異世界食堂２',
-            'series_number': 2,
+            'season': 'シーズン2',
+            'season_number': 2,
             'episode': '第1話 「チーズケーキ」　「モーニング再び」',
             'episode_number': 1,
         },
@@ -344,12 +348,12 @@ class AbemaTVIE(AbemaTVBaseIE):
                     )?
                 ''', r'\1', og_desc)
 
-        # canonical URL may contain series and episode number
+        # canonical URL may contain season and episode number
         mobj = re.search(r's(\d+)_p(\d+)$', canonical_url)
         if mobj:
             seri = int_or_none(mobj.group(1), default=float('inf'))
             epis = int_or_none(mobj.group(2), default=float('inf'))
-            info['series_number'] = seri if seri < 100 else None
+            info['season_number'] = seri if seri < 100 else None
             # some anime like Detective Conan (though not available in AbemaTV)
             # has more than 1000 episodes (1026 as of 2021/11/15)
             info['episode_number'] = epis if epis < 2000 else None
@@ -378,7 +382,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 self.report_warning('This is a premium-only stream')
             info.update(traverse_obj(api_response, {
                 'series': ('series', 'title'),
-                'season': ('season', 'title'),
+                'season': ('season', 'name'),
                 'season_number': ('season', 'sequence'),
                 'episode_number': ('episode', 'number'),
             }))

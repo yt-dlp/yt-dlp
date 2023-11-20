@@ -131,7 +131,8 @@ class MediasetIE(ThePlatformBaseIE):
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        'skip': 'Dead link',
     }, {
         # WittyTV embed
         'url': 'https://www.wittytv.it/mauriziocostanzoshow/ultima-puntata-venerdi-25-novembre/',
