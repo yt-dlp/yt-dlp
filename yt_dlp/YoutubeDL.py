@@ -635,6 +635,8 @@ class YoutubeDL:
                 if term_allow_color and supports_terminal_sequences(stream):
                     return 'no_color' if no_color else True
                 return False
+            assert policy in ('always', 'never', 'no_color'), policy
+            return {'always': True, 'never': False}.get(policy, policy)
 
         self._allow_colors = Namespace(**{
             name: process_color_policy(stream)
