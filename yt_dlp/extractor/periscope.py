@@ -35,6 +35,7 @@ class PeriscopeBaseIE(InfoExtractor):
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),
             'thumbnails': thumbnails,
             'view_count': int_or_none(broadcast.get('total_watched')),
+            'concurrent_view_count': int_or_none(broadcast.get('total_watching')),
             'tags': broadcast.get('tags'),
             'live_status': {
                 'running': 'is_live',

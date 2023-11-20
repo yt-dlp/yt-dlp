@@ -10,7 +10,6 @@ on:
       - "pyinst.py"
 concurrency:
   group: release-master
-  cancel-in-progress: true
 permissions:
   contents: read
 
