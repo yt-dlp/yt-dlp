@@ -133,18 +133,6 @@ class ThePlatformBaseIE(OnceIE):
             # if (re.match('.*\programmingType', key)) or (re.match('.*\type', key)):
                 # media_type = info[key]
 
-        # only process the following if this is from the cbc
-        # if ownerId == 'http://access.auth.theplatform.com/data/Account/2655402169':
-            # location = info.get('cbc$region', {str_or_none})
-            # The following can be uncommented as soon as #7838 is merged
-            # media_type = info.get('cbc$type', {str_or_none})
-            # series = info.get('cbc$show', {str_or_none})
-        # only process the following if this is from nbc
-        # if ownerId == 'http://access.auth.theplatform.com/data/Account/2410887629':
-            # season_number = info.get('nbcu$seasonNumber', {str_or_none})
-            # The following can be uncommented as soon as #7838 is merged
-            # media_type = info.get('nbcu$programmingType', {str_or_none})
-
         return {
             'title': info['title'],
             'subtitles': subtitles,
