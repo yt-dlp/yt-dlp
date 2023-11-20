@@ -52,9 +52,9 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'chapters': 'count:1',
                 'tags': 'count:4',
                 'thumbnail': r're:https?://.+\.jpg',
-                'categories': [{
-                    'name': 'Series/The Tonight Show Starring Jimmy Fallon'
-                }],
+                'categories': [
+                    'Series/The Tonight Show Starring Jimmy Fallon'
+                ],
                 'creator': None,
             },
             'params': {
@@ -134,6 +134,9 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'tags': 'count:10',
                 'age_limit': 0,
                 'thumbnail': r're:https?://.+\.jpg',
+                'categories': [
+                    'Series/Quantum Leap 2022',
+                ]
             },
             'params': {
                 'skip_download': 'm3u8',
@@ -391,6 +394,8 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'description': 'md5:65a0bd5d76fe114f3c2727aa3a81fe64',
                 'timestamp': 1401363060,
                 'upload_date': '20140529',
+                'duration': 46.0,
+                'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/140529/p_tweet_snow_140529.jpg',
             },
         },
         {

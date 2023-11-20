@@ -115,7 +115,6 @@ class ScrippsNetworksIE(InfoExtractor):
             'uploader': 'SCNI-SCND',
             'tags': 'count:10',
             'creator': 'Cooking Channel',
-            'categories': {},
         },
         'add_ie': ['ThePlatform'],
         'expected_warnings': ['No HLS formats found'],

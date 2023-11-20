@@ -23,6 +23,7 @@ from ..utils import (
     traverse_obj,
     update_url,
     urlhandle_detect_ext,
+    str_to_int,
 )
 from ..networking import HEADRequest
 
@@ -106,24 +107,41 @@ class ThePlatformBaseIE(OnceIE):
             _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
         info_keywords_str = info.get('keywords', {str_or_none})
         tags = []
-        if info_keywords_str is not None:
-            tags = info_keywords_str.split(', |; |-')
+        if (info_keywords_str is not None) and (info_keywords_str != ''):
+            tags = re.split(', |; |,', info_keywords_str)
         location = None
         series = None
         season_number = None
+        categories = []
+        for x in info.get('categories'):
+            if x.get('name') is not None:
+                if (x.get('label') is None) or (x.get('label') == 'category'):
+                    categories.append(x.get('name'))
         # The following can be uncommented as soon as #7838 is merged
         # media_type = None
-        # for site-specific data in the metadata file
-        ownerId = info.get('ownerId', {str_or_none})
+
+        # A number of sites have a prefix in front of some info keys followed by a '$' symbol.
+        # Search for known keys with the prefix.
+        for key in info.keys():
+            if re.match('.*\\$region', key):
+                location = info[key]
+            if re.match('.*\\$show', key):
+                series = info[key]
+            if re.match('.*\\$seasonNumber', key):
+                season_number = str_to_int(info[key])
+            # the following can be uncommented as soon as #7838 is merged
+            # if (re.match('.*\programmingType', key)) or (re.match('.*\type', key)):
+                # media_type = info[key]
+
         # only process the following if this is from the cbc
-        if ownerId == 'http://access.auth.theplatform.com/data/Account/2655402169':
-            location = info.get('cbc$region', {str_or_none})
+        # if ownerId == 'http://access.auth.theplatform.com/data/Account/2655402169':
+            # location = info.get('cbc$region', {str_or_none})
             # The following can be uncommented as soon as #7838 is merged
             # media_type = info.get('cbc$type', {str_or_none})
-            series = info.get('cbc$show', {str_or_none})
-
-        if ownerId == 'http://access.auth.theplatform.com/data/Account/2410887629':
-            season_number = info.get('nbcu$seasonNumber', {str_or_none})
+            # series = info.get('cbc$show', {str_or_none})
+        # only process the following if this is from nbc
+        # if ownerId == 'http://access.auth.theplatform.com/data/Account/2410887629':
+            # season_number = info.get('nbcu$seasonNumber', {str_or_none})
             # The following can be uncommented as soon as #7838 is merged
             # media_type = info.get('nbcu$programmingType', {str_or_none})
 
@@ -136,12 +154,12 @@ class ThePlatformBaseIE(OnceIE):
             'timestamp': int_or_none(info.get('pubDate'), 1000) or None,
             'uploader': info.get('billingCode'),
             'chapters': chapters,
-            'creator': info.get('author', {str_or_none}),
-            'categories': info.get('categories'),
-            'tags': tags,
-            'location': location,
-            'series': series,
-            'season_number': season_number,
+            'creator': info.get('author', {str_or_none}) if info.get('author', {str_or_none}) != '' else None,
+            'categories': categories if len(categories) != 0 else None,
+            'tags': tags if len(tags) != 0 else None,
+            'location': str_or_none(location) if location != '' else None,
+            'series': str_or_none(series) if series != '' else None,
+            'season_number': int_or_none(season_number),
             # The following can be uncommented as soon as #7838 is merged and the matching line above is uncommented
             # 'media_type': media_type
         }
