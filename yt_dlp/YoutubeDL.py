@@ -625,13 +625,16 @@ class YoutubeDL:
                     'Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
-        term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
+        term_allow_color = os.getenv('TERM', '').lower() != 'dumb'
+        no_color = bool(os.getenv('NO_COLOR'))
 
         def process_color_policy(stream):
             stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
-                return term_allow_color and supports_terminal_sequences(stream)
+                if term_allow_color and supports_terminal_sequences(stream):
+                    return 'no_color' if no_color else True
+                return False
             assert policy in ('always', 'never', 'no_color'), policy
             return {'always': True, 'never': False}.get(policy, policy)
 
@@ -4052,6 +4055,7 @@ class YoutubeDL:
             return self._request_director.send(req)
         except NoSupportingHandlers as e:
             for ue in e.unsupported_errors:
+                # FIXME: This depends on the order of errors.
                 if not (ue.handler and ue.msg):
                     continue
                 if ue.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
@@ -4061,6 +4065,15 @@ class YoutubeDL:
                 if 'unsupported proxy type: "https"' in ue.msg.lower():
                     raise RequestError(
                         'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
+
+                elif (
+                    re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
+                    and 'websockets' not in self._request_director.handlers
+                ):
+                    raise RequestError(
+                        'This request requires WebSocket support. '
+                        'Ensure one of the following dependencies are installed: websockets',
+                        cause=ue) from ue
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
