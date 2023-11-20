@@ -2225,7 +2225,9 @@ class InfoExtractor:
             mpd_url, video_id,
             note='Downloading MPD VOD manifest' if note is None else note,
             errnote='Failed to download VOD manifest' if errnote is None else errnote,
-            fatal=False, data=data, headers=headers, query=query) or {}
+            fatal=False, data=data, headers=headers, query=query)
+        if not isinstance(mpd_doc, xml.etree.ElementTree.Element):
+            return None
         return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
 
     @staticmethod
@@ -2339,7 +2341,9 @@ class InfoExtractor:
         imgs_count = 0
 
         srcs = set()
-        media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
+        media = itertools.chain.from_iterable(
+            smil.findall(self._xpath_ns(arg, namespace))
+            for arg in ['.//video', './/audio', './/media'])
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:

@@ -16,6 +16,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     update_url_query,
+    url_or_none,
 )
 
 
@@ -379,6 +380,18 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'noplaylist': True,
             'skip_download': 'm3u8',
         },
+    }, {
+        # 'videoEpisodes' is a dict with `items` key
+        'url': 'https://iview.abc.net.au/show/7-30-mark-humphries-satire',
+        'info_dict': {
+            'id': '178458-0',
+            'title': 'Episodes',
+            'description': 'Satirist Mark Humphries brings his unique perspective on current political events for 7.30.',
+            'series': '7.30 Mark Humphries Satire',
+            'season': 'Episodes',
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+        },
+        'playlist_count': 15,
     }]
 
     def _real_extract(self, url):
@@ -398,12 +411,14 @@ class ABCIViewShowSeriesIE(InfoExtractor):
         series = video_data['selectedSeries']
         return {
             '_type': 'playlist',
-            'entries': [self.url_result(episode['shareUrl'])
-                        for episode in series['_embedded']['videoEpisodes']],
+            'entries': [self.url_result(episode_url, ABCIViewIE)
+                        for episode_url in traverse_obj(series, (
+                            '_embedded', 'videoEpisodes', (None, 'items'), ..., 'shareUrl', {url_or_none}))],
             'id': series.get('id'),
             'title': dict_get(series, ('title', 'displaySubtitle')),
             'description': series.get('description'),
             'series': dict_get(series, ('showTitle', 'displayTitle')),
             'season': dict_get(series, ('title', 'displaySubtitle')),
-            'thumbnail': series.get('thumbnail'),
+            'thumbnail': traverse_obj(
+                series, 'thumbnail', ('images', lambda _, v: v['name'] == 'seriesThumbnail', 'url'), get_all=False),
         }
