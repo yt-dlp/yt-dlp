@@ -217,6 +217,7 @@ class TestWebsSocketRequestHandlerConformance:
             ws = validate_and_send(rh, Request(self.ws_base_url))
             ws.send('headers')
             assert 'cookie' not in json.loads(ws.recv())
+            ws.close()
 
             ws = validate_and_send(rh, Request(self.ws_base_url, extensions={'cookiejar': cookiejar}))
             ws.send('headers')
@@ -284,7 +285,7 @@ class TestWebsSocketRequestHandlerConformance:
             verify=False,
             client_cert=client_cert
         ) as rh:
-            validate_and_send(rh, Request(self.mtls_wss_base_url))
+            validate_and_send(rh, Request(self.mtls_wss_base_url)).close()
 
 
 def create_fake_ws_connection(raised):
