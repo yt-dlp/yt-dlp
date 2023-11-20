@@ -1247,6 +1247,7 @@ from .ndr import (
 from .ndtv import NDTVIE
 from .nebula import (
     NebulaIE,
+    NebulaClassIE,
     NebulaSubscriptionsIE,
     NebulaChannelIE,
 )
