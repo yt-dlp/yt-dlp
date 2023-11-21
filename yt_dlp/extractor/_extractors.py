@@ -1604,7 +1604,21 @@ from .radiocomercial import (
     RadioComercialPlaylistIE,
 )
 from .radiode import RadioDeIE
-from .radiojavan import RadioJavanIE
+from .radiojavan import (
+    RadioJavanIE,
+    RadioJavanMp3IE,
+    RadioJavanAlbumIE,
+    RadioJavanPodcastIE,
+    RadioJavanPlaylistMp3IE,
+    RadioJavanPodcastShowIE,
+    RadioJavanStoriesIE,
+    RadioJavanStoryIE,
+    RadioJavanArtistIE,
+    RadioJavanArtistSongsIE,
+    RadioJavanArtistVideosIE,
+    RadioJavanArtistPodcastsIE,
+    RadioJavanShareUrlIE
+)
 from .radiobremen import RadioBremenIE
 from .radiofrance import (
     FranceCultureIE,
