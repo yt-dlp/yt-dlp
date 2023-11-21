@@ -429,23 +429,18 @@ class FacebookIE(InfoExtractor):
             subtitles = {}
             if url_or_none(captions):  # snippet only had 'captions_url'
                 subtitles[locale] = [{'url': captions}]
-            elif isinstance(captions, list):
-                if len(captions) > 1:
-                    captions = sorted(captions, key=lambda c: (c['locale'] != locale, c['locale']))
-                for c in captions:
-                    s = {
-                        'ext': determine_ext(c['captions_url'], default_ext='srt'),
-                        'url': c['captions_url'],
-                        'name': (c['localized_language']
-                                 + (' (' + c['localized_country'] + ')' if c['localized_country'] else '')
-                                 + (' (' + c['localized_creation_method'] + ')' if c['localized_creation_method'] else '')),
-                    }
-                    if c['localized_creation_method'] or useIsVideoBroadcast:
-                        automatic_captions.setdefault(c['locale'], []).append(s)
-                    else:
-                        subtitles.setdefault(c['locale'], []).append(s)
-            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
-                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
+            else:
+                captions = sorted(captions, key=lambda c: c['locale'])
+            for caption in traverse_obj(captions, lambda _, v: v['captions_url'] and v['locale']):
+                subs = {
+                    'url': caption['captions_url'],
+                    'name': join_nonempty('localized_language', 'localized_country', from_dict=caption),
+                }
+                if caption.get('localized_creation_method') or is_video_broadcast:
+                    automatic_captions.setdefault(caption['locale'], []).append(subs)
+                else:
+                    subtitles.setdefault(caption['locale'], []).append(subs)
+            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = (
@@ -734,6 +729,7 @@ class FacebookIE(InfoExtractor):
         video_data = video_data[0]
 
         formats = []
+        subtitles = {}
         for f in video_data:
             format_id = f['stream_type']
             if f and isinstance(f, dict):
@@ -756,10 +752,14 @@ class FacebookIE(InfoExtractor):
                             'height': 720 if quality == 'hd' else None
                         })
             extract_dash_manifest(f[0], formats)
+            subtitles_src = f[0].get('subtitles_src')
+            if subtitles_src:
+                subtitles.setdefault('en', []).append({'url': subtitles_src})
 
         info_dict = {
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
         }
         process_formats(info_dict)
         info_dict.update(extract_metadata(webpage))
