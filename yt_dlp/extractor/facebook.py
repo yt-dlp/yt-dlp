@@ -19,6 +19,7 @@ from ..utils import (
     get_element_by_id,
     get_first,
     int_or_none,
+    join_nonempty,
     js_to_json,
     merge_dicts,
     parse_count,
@@ -440,7 +441,8 @@ class FacebookIE(InfoExtractor):
                     automatic_captions.setdefault(caption['locale'], []).append(subs)
                 else:
                     subtitles.setdefault(caption['locale'], []).append(subs)
-            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
+            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = (
