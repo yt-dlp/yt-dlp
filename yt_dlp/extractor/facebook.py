@@ -424,7 +424,7 @@ class FacebookIE(InfoExtractor):
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')))
             locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
             captions = get_first(snippet, 'video_available_captions_locales', 'captions_url')
-            useIsVideoBroadcast = get_first(snippet, ('is_video_broadcast')) or False
+            is_video_broadcast = get_first(snippet, 'is_video_broadcast', expected_type=bool)
             automatic_captions = {}
             subtitles = {}
             if isinstance(captions, str):
