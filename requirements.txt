@@ -6,3 +6,4 @@ brotlicffi; implementation_name!='cpython'
 certifi
 requests>=2.31.0,<3
 urllib3>=1.26.17,<3
+websockets>=12.0
