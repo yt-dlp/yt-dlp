@@ -150,6 +150,11 @@ class PelotonIE(InfoExtractor):
                 'ext': 'json'
             }]
 
+        subtitles['peloton_data'] = [{
+            'data': json.dumps(metadata),
+            'ext': 'json'
+        }]
+
         category = ride_data.get('fitness_discipline_display_name')
         chapters = [{
             'start_time': segment.get('start_time_offset'),
