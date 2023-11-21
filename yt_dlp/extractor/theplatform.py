@@ -112,11 +112,14 @@ class ThePlatformBaseIE(OnceIE):
         location = None
         series = None
         season_number = None
-        # The following can be uncommented as soon as #7838 is merged
+        # The following can be uncommented as soon as #7838 is merged:
         # media_type = None
         categories = []
-        for x in info.get('categories'):
+        categories_data = info.get('categories') or []
+        for x in categories_data:
             if x.get('name') is not None:
+                # Sometimes, there will be several kinds of categories
+                # in this case, it will have a label field with a value 'category'
                 if (x.get('label') is None) or (x.get('label') == 'category'):
                     categories.append(x.get('name'))
 
@@ -129,7 +132,7 @@ class ThePlatformBaseIE(OnceIE):
                 series = info[key]
             if re.match('.*\\$seasonNumber', key):
                 season_number = str_to_int(info[key])
-            # the following can be uncommented as soon as #7838 is merged
+            # the following can be uncommented as soon as #7838 is merged:
             # if (re.match('.*\programmingType', key)) or (re.match('.*\type', key)):
                 # media_type = info[key]
 
