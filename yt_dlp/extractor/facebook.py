@@ -427,8 +427,8 @@ class FacebookIE(InfoExtractor):
             is_video_broadcast = get_first(snippet, 'is_video_broadcast', expected_type=bool)
             automatic_captions = {}
             subtitles = {}
-            if isinstance(captions, str):
-                subtitles[locale] = [{'ext': determine_ext(captions, default_ext='srt'), 'url': captions}]
+            if url_or_none(captions):  # snippet only had 'captions_url'
+                subtitles[locale] = [{'url': captions}]
             elif isinstance(captions, list):
                 if len(captions) > 1:
                     captions = sorted(captions, key=lambda c: (c['locale'] != locale, c['locale']))
