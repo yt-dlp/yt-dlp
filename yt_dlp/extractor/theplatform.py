@@ -112,13 +112,13 @@ class ThePlatformBaseIE(OnceIE):
         location = None
         series = None
         season_number = None
+        # The following can be uncommented as soon as #7838 is merged
+        # media_type = None
         categories = []
         for x in info.get('categories'):
             if x.get('name') is not None:
                 if (x.get('label') is None) or (x.get('label') == 'category'):
                     categories.append(x.get('name'))
-        # The following can be uncommented as soon as #7838 is merged
-        # media_type = None
 
         # A number of sites have a prefix in front of some info keys followed by a '$' symbol.
         # Search for known keys with the prefix.
