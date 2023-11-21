@@ -197,7 +197,7 @@ jobs:
             GITHUB_WORKFLOW: build
           githubToken: ${{ github.token }} # To cache image
           arch: ${{ matrix.architecture }}
-          distro: ubuntu18.04 # Standalone executable should be built on minimum supported OS
+          distro: ubuntu20.04 # Standalone executable should be built on minimum supported OS
           dockerRunArgs: --volume "${PWD}/repo:/repo"
           install: | # Installing Python 3.10 from the Deadsnakes repo raises errors
             apt update
