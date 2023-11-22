@@ -6,6 +6,7 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     determine_ext,
+    format_field,
     int_or_none,
     join_nonempty,
     parse_codecs,
@@ -138,8 +139,9 @@ class FloatplaneIE(InfoExtractor):
                     'guid': metadata['guid']
                 }, note=f'Downloading {media_typ} stream data')
 
+            path_template = traverse_obj(stream, ('resource', 'uri', {str}))
             def format_path(params):
-                path = traverse_obj(stream, ('resource', 'uri', {str}))
+                path = path_template
                 for i, val in (params or {}).items():
                     path = path.replace(f'{{qualityLevelParams.{i}}}', val)
                 return path
@@ -170,12 +172,10 @@ class FloatplaneIE(InfoExtractor):
                 'formats': formats,
             })
 
-        uploader_url = traverse_obj(
-            post_data, ('creator', 'urlname', {lambda x: f'https://www.floatplane.com/channel/{x}/home'
-                                               if x else None}))
-        channel_url = traverse_obj(
-            post_data, ('channel', 'urlname', {lambda x: f'{uploader_url}/{x}'
-                                               if x and uploader_url else None}))
+        uploader_url = format_field(traverse_obj(
+            post_data, ('creator', 'urlname')), template='https://www.floatplane.com/channel/%s/home', default=None)
+        channel_url = format_field(traverse_obj(
+            post_data, ('channel', 'urlname')), template=f'{uploader_url}/%s', default=None)
 
         post_info = {
             'id': post_id,
