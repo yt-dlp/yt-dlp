@@ -31,7 +31,7 @@ class BanByeBaseIE(InfoExtractor):
 
 
 class BanByeIE(BanByeBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?watch/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?banbye\.com/(?:en/)?watch/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://banbye.com/watch/v_ytfmvkVYLE8T',
         'md5': '2f4ea15c5ca259a73d909b2cfd558eb5',
@@ -120,7 +120,7 @@ class BanByeIE(BanByeBaseIE):
 
 
 class BanByeChannelIE(BanByeBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?channel/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?banbye\.com/(?:en/)?channel/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://banbye.com/channel/ch_wrealu24',
         'info_dict': {

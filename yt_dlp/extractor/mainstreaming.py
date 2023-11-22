@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class MainStreamingIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:webtools-?)?(?P<host>[A-Za-z0-9-]*\.msvdn.net)/(?:embed|amp_embed|content)/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:webtools-?)?(?P<host>[A-Za-z0-9-]*\.msvdn\.net)/(?:embed|amp_embed|content)/(?P<id>\w+)'
     _EMBED_REGEX = [rf'<iframe[^>]+?src=["\']?(?P<url>{_VALID_URL})["\']?']
     IE_DESC = 'MainStreaming Player'
 

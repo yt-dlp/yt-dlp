@@ -947,7 +947,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         icd_rm = next(icd_retries)
         main_retries = iter(self.RetryManager())
         main_rm = next(main_retries)
-        for _ in range(main_rm.retries + icd_rm.retries + 1):
+        # Manual retry loop for multiple RetryManagers
+        # The proper RetryManager MUST be advanced after an error
+        # and its result MUST be checked if the manager is non fatal
+        while True:
             try:
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
@@ -3292,16 +3295,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                           chapter_time, chapter_title, duration)
             for contents in content_list)), [])
 
-    def _extract_heatmap_from_player_overlay(self, data):
-        content_list = traverse_obj(data, (
-            'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
-            'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
-        return next(filter(None, (
-            traverse_obj(contents, (..., 'heatMarkerRenderer', {
-                'start_time': ('timeRangeStartMillis', {functools.partial(float_or_none, scale=1000)}),
-                'end_time': {lambda x: (x['timeRangeStartMillis'] + x['markerDurationMillis']) / 1000},
-                'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
-            })) for contents in content_list)), None)
+    def _extract_heatmap(self, data):
+        return traverse_obj(data, (
+            'frameworkUpdates', 'entityBatchUpdate', 'mutations',
+            lambda _, v: v['payload']['macroMarkersListEntity']['markersList']['markerType'] == 'MARKER_TYPE_HEATMAP',
+            'payload', 'macroMarkersListEntity', 'markersList', 'markers', ..., {
+                'start_time': ('startMillis', {functools.partial(float_or_none, scale=1000)}),
+                'end_time': {lambda x: (int(x['startMillis']) + int(x['durationMillis'])) / 1000},
+                'value': ('intensityScoreNormalized', {float_or_none}),
+            })) or None
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
@@ -4435,7 +4437,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_chapters_from_description(video_description, duration)
                 or None)
 
-            info['heatmap'] = self._extract_heatmap_from_player_overlay(initial_data)
+            info['heatmap'] = self._extract_heatmap(initial_data)
 
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
@@ -4557,6 +4559,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             upload_date = strftime_or_none(
                 self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
         info['upload_date'] = upload_date
+
+        if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
+            # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=datetime.timezone.utc)
+            if upload_datetime >= datetime_from_str('today-1day'):
+                for fmt in info['formats']:
+                    if fmt.get('protocol') == 'm3u8_native':
+                        fmt['__needs_testing'] = True
 
         for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
             v = info.get(s_k)
@@ -6677,7 +6687,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/@milan5503',
             'availability': 'public',
         },
-        'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden'],
+        'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden', 'Retrying', 'Giving up'],
     }, {
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
         'playlist_mincount': 455,

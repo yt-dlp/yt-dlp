@@ -1,8 +1,9 @@
-import re
-import json
 import base64
+import json
+import re
 import time
 import urllib.parse
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..compat import (
@@ -66,6 +67,7 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
             'timestamp': 255977160,
         },
+        'skip': '404 Not Found',
     }, {
         # multiple iframes
         'url': 'http://www.cbc.ca/natureofthings/blog/birds-eye-view-from-vancouvers-burrard-street-bridge-how-we-got-the-shot',
@@ -97,7 +99,7 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -386,7 +388,7 @@ class CBCGemIE(InfoExtractor):
         url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
 
         secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
-        if not secret_xml:
+        if not isinstance(secret_xml, xml.etree.ElementTree.Element):
             return
 
         for child in secret_xml:
@@ -476,6 +478,10 @@ class CBCGemPlaylistIE(InfoExtractor):
             'id': 'schitts-creek/s06',
             'title': 'Season 6',
             'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+            'series': 'Schitt\'s Creek',
+            'season_number': 6,
+            'season': 'Season 6',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/season/perso/cbc_schitts_creek_season_06_carousel_v03.jpg?impolicy=ott&im=Resize=(_Size_)&quality=75',
         },
     }, {
         'url': 'https://gem.cbc.ca/schitts-creek/s06',
