@@ -80,7 +80,7 @@ class FloatplaneIE(InfoExtractor):
         },
         'playlist_count': 2,
     }, {
-        'url': 'https://www.floatplane.com/post/d870PEFXS1',
+        'url': 'https://beta.floatplane.com/post/d870PEFXS1',
         'info_dict': {
             'id': 'bg9SuYKEww',
             'ext': 'mp4',
