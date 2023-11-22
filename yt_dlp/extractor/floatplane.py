@@ -120,7 +120,7 @@ class FloatplaneIE(InfoExtractor):
             'https://www.floatplane.com/api/v3/content/post', post_id, query={'id': post_id},
             note='Downloading post data', errnote='Unable to download post data')
 
-        if True not in traverse_obj(post_data, ('metadata', ('hasVideo', 'hasAudio'))):
+        if not any(traverse_obj(post_data, ('metadata', ('hasVideo', 'hasAudio')))):
             raise ExtractorError('Post does not contain a video or audio track', expected=True)
 
         items = []
@@ -133,12 +133,10 @@ class FloatplaneIE(InfoExtractor):
                 note=f'Downloading {media_typ} metadata')
 
             stream = self._download_json(
-                'https://www.floatplane.com/api/v2/cdn/delivery', media_id,
-                query={
+                'https://www.floatplane.com/api/v2/cdn/delivery', media_id, query={
                     'type': 'vod' if media_typ == 'video' else 'aod',
                     'guid': metadata['guid']
-                },
-                note=f'Downloading {media_typ} stream data')
+                }, note=f'Downloading {media_typ} stream data')
 
             def format_path(params):
                 path = traverse_obj(stream, ('resource', 'uri', {str}))
@@ -154,8 +152,8 @@ class FloatplaneIE(InfoExtractor):
                     **traverse_obj(quality, {
                         'format_id': 'name',
                         'format_note': 'label',
-                        'width': 'width',
-                        'height': 'height',
+                        'width': ('width', {int}),
+                        'height': ('height', {int}),
                     }),
                     **parse_codecs(quality.get('codecs')),
                     'url': url,
@@ -200,12 +198,11 @@ class FloatplaneIE(InfoExtractor):
             'availability': self._availability(needs_subscription=True),
         }
 
-        if len(items) == 1:
-            return {
-                **post_info,
-                **items[0],
-            }
-        return self.playlist_result(items, **post_info)
+        if len(items) > 1:
+            return self.playlist_result(items, **post_info)
+
+        post_info.update(items[0])
+        return post_info
 
 
 class FloatplaneChannelIE(InfoExtractor):
@@ -267,5 +264,4 @@ class FloatplaneChannelIE(InfoExtractor):
         return self.playlist_result(OnDemandPagedList(functools.partial(
             self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE), display_id,
             playlist_title=channel_data.get('title') or creator_data.get('title'),
-            playlist_description=channel_data.get('about') or creator_data.get('about')
-        )
+            playlist_description=channel_data.get('about') or creator_data.get('about'))
