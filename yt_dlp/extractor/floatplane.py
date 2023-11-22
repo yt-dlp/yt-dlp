@@ -1,9 +1,13 @@
+import functools
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
     clean_html,
     determine_ext,
     int_or_none,
+    join_nonempty,
     parse_codecs,
     parse_iso8601,
     urljoin,
@@ -202,3 +206,66 @@ class FloatplaneIE(InfoExtractor):
                 **items[0],
             }
         return self.playlist_result(items, **post_info)
+
+
+class FloatplaneChannelIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w_]+)/home(?:/(?P<channel>[\w_]+))?'
+    _PAGE_SIZE = 20
+    _TESTS = [{
+        'url': 'https://www.floatplane.com/channel/linustechtips/home/ltxexpo',
+        'info_dict': {
+            'id': 'linustechtips/ltxexpo',
+            'title': 'LTX Expo',
+            'description': 'md5:9819002f9ebe7fd7c75a3a1d38a59149',
+        },
+        'playlist_mincount': 51,
+    }, {
+        'url': 'https://www.floatplane.com/channel/ShankMods/home',
+        'info_dict': {
+            'id': 'ShankMods',
+            'title': 'Shank Mods',
+            'description': 'md5:6dff1bb07cad8e5448e04daad9be1b30',
+        },
+        'playlist_mincount': 14,
+    }, {
+        'url': 'https://beta.floatplane.com/channel/bitwit_ultra/home',
+        'info_dict': {
+            'id': 'bitwit_ultra',
+            'title': 'Bitwit Ultra',
+            'description': 'md5:1452f280bb45962976d4789200f676dd',
+        },
+        'playlist_mincount': 200,
+    }]
+
+    def _fetch_page(self, display_id, creator_id, channel_id, page):
+        query = {
+            'id': creator_id,
+            'limit': self._PAGE_SIZE,
+            'fetchAfter': page * self._PAGE_SIZE,
+        }
+        if channel_id:
+            query['channel'] = channel_id
+        page_data = self._download_json(
+            'https://www.floatplane.com/api/v3/content/creator', display_id,
+            query=query, note=f'Downloading page {page+1}')
+        for post in page_data or []:
+            yield self.url_result(
+                f'https://www.floatplane.com/post/{post["id"]}',
+                ie=FloatplaneIE, video_id=post['id'], video_title=post.get('title'),
+                release_timestamp=parse_iso8601(post.get('releaseDate')))
+
+    def _real_extract(self, url):
+        creator, channel = self._match_valid_url(url).group('id', 'channel')
+        display_id = join_nonempty(creator, channel, delim='/')
+
+        creator_data = self._download_json(
+            'https://www.floatplane.com/api/v3/creator/named', display_id, query={'creatorURL[0]': creator})[0]
+
+        channel_data = traverse_obj(
+            creator_data, ('channels', lambda _, x: x['urlname'] == channel, {dict}), get_all=False) or {}
+
+        return self.playlist_result(OnDemandPagedList(functools.partial(
+            self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE), display_id,
+            playlist_title=channel_data.get('title') or creator_data.get('title'),
+            playlist_description=channel_data.get('about') or creator_data.get('about')
+        )
