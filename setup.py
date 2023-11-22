@@ -18,7 +18,7 @@ except ImportError:
 
 from devscripts.utils import read_file, read_version
 
-VERSION = read_version()
+VERSION = read_version(varname='_pkg_version')
 
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
@@ -142,7 +142,7 @@ def main():
         params = build_params()
 
     setup(
-        name='yt-dlp',
+        name='yt-dlp',  # package name (do not change/remove comment)
         version=VERSION,
         maintainer='pukkandan',
         maintainer_email='pukkandan.ytdlp@gmail.com',
@@ -152,7 +152,7 @@ def main():
         url='https://github.com/yt-dlp/yt-dlp',
         packages=packages(),
         install_requires=REQUIREMENTS,
-        python_requires='>=3.7',
+        python_requires='>=3.8',
         project_urls={
             'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
             'Source': 'https://github.com/yt-dlp/yt-dlp',
@@ -164,11 +164,11 @@ def main():
             'Development Status :: 5 - Production/Stable',
             'Environment :: Console',
             'Programming Language :: Python',
-            'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
             'Programming Language :: Python :: 3.9',
             'Programming Language :: Python :: 3.10',
             'Programming Language :: Python :: 3.11',
+            'Programming Language :: Python :: 3.12',
             'Programming Language :: Python :: Implementation',
             'Programming Language :: Python :: Implementation :: CPython',
             'Programming Language :: Python :: Implementation :: PyPy',
