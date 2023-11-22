@@ -204,8 +204,9 @@ jobs:
             apt -y install zlib1g-dev python3.8 python3.8-dev python3.8-distutils python3-pip \
               python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
             python3.8 -m pip install -U pip setuptools wheel
-            # Cannot access requirements.txt from the repo directory at this stage
-            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi
+            # XXX: Keep this in sync with requirements.txt, which cannot be accessed at this stage
+            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex certifi brotli \
+              'requests>=2.31.0,<3' 'urllib3>=1.26.17,<3' 'websockets>=12.0'
 
           run: |
             cd repo
