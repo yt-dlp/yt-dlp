@@ -121,8 +121,8 @@ class FloatplaneIE(InfoExtractor):
 
         items = []
         for media in traverse_obj(post_data, (('videoAttachments', 'audioAttachments'), ...)):
-            media_id = media.get('id')
-            media_typ = media.get('type')
+            media_id = media['id']
+            media_typ = media.get('type') or 'video'
 
             metadata = self._download_json(
                 f'https://www.floatplane.com/api/v3/content/{media_typ}', media_id, query={'id': media_id},
