@@ -140,6 +140,7 @@ class FloatplaneIE(InfoExtractor):
                 }, note=f'Downloading {media_typ} stream data')
 
             path_template = traverse_obj(stream, ('resource', 'uri', {str}))
+
             def format_path(params):
                 path = path_template
                 for i, val in (params or {}).items():
