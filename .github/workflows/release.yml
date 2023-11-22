@@ -64,7 +64,6 @@ jobs:
       target_tag: ${{ steps.setup_variables.outputs.target_tag }}
       pypi_project: ${{ steps.setup_variables.outputs.pypi_project }}
       pypi_suffix: ${{ steps.setup_variables.outputs.pypi_suffix }}
-      pypi_token: ${{ steps.setup_variables.outputs.pypi_token }}
       head_sha: ${{ steps.get_target.outputs.head_sha }}
 
     steps:
@@ -153,7 +152,6 @@ jobs:
               ${{ !!secrets[format('{0}_archive_repo_token', env.target_repo)] }} || fallback_token
               pypi_project='${{ vars[format('{0}_pypi_project', env.target_repo)] }}'
               pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.target_repo)] }}'
-              ${{ !secrets[format('{0}_pypi_token', env.target_repo)] }} || pypi_token='${{ env.target_repo }}_pypi_token'
             fi
           else
             target_tag="${source_tag:-${version}}"
@@ -163,7 +161,6 @@ jobs:
               ${{ !!secrets[format('{0}_archive_repo_token', env.source_repo)] }} || fallback_token
               pypi_project='${{ vars[format('{0}_pypi_project', env.source_repo)] }}'
               pypi_suffix='${{ vars[format('{0}_pypi_suffix', env.source_repo)] }}'
-              ${{ !secrets[format('{0}_pypi_token', env.source_repo)] }} || pypi_token='${{ env.source_repo }}_pypi_token'
             else
               target_repo='${{ github.repository }}'
             fi
@@ -171,13 +168,6 @@ jobs:
 
           if [[ "${target_repo}" == '${{ github.repository }}' ]] && ${{ !inputs.prerelease }}; then
             pypi_project='${{ vars.PYPI_PROJECT }}'
-          fi
-          if [[ -z "${pypi_token}" && "${pypi_project}" ]]; then
-            if ${{ !secrets.PYPI_TOKEN }}; then
-              pypi_token=OIDC
-            else
-              pypi_token=PYPI_TOKEN
-            fi
           fi
 
           echo "::group::Output variables"
@@ -189,7 +179,6 @@ jobs:
           target_tag=${target_tag}
           pypi_project=${pypi_project}
           pypi_suffix=${pypi_suffix}
-          pypi_token=${pypi_token}
           EOF
           echo "::endgroup::"
 
@@ -286,18 +275,7 @@ jobs:
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
           python setup.py sdist bdist_wheel
 
-      - name: Publish to PyPI via token
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets[needs.prepare.outputs.pypi_token] }}
-        if: |
-          needs.prepare.outputs.pypi_token != 'OIDC' && env.TWINE_PASSWORD
-        run: |
-          twine upload dist/*
-
-      - name: Publish to PyPI via trusted publishing
-        if: |
-          needs.prepare.outputs.pypi_token == 'OIDC'
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
