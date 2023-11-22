@@ -210,7 +210,9 @@ jobs:
 
           run: |
             cd repo
-            python3.8 -m pip install -U Pyinstaller -r requirements.txt  # Cached version may be out of date
+            # Cached versions of may be out of date
+            python3.8 -m pip install -U pip setuptools wheel
+            python3.8 -m pip install -U Pyinstaller -r requirements.txt
             python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 pyinst.py
