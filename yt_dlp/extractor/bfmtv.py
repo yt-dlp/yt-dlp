@@ -7,7 +7,7 @@ from ..utils import extract_attributes
 class BFMTVBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.|rmc\.)?bfmtv\.com/'
     _VALID_URL_TMPL = _VALID_URL_BASE + r'(?:[^/]+/)*[^/?&#]+_%s[A-Z]-(?P<id>\d{12})\.html'
-    _VIDEO_BLOCK_REGEX = r'(<div[^>]+class="video_block"[^>]*>)'
+    _VIDEO_BLOCK_REGEX = r'(<div[^>]+class="video_block[^"]*"[^>]*>)'
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
 
     def _brightcove_url_result(self, video_id, video_block):
