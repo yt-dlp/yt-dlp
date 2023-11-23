@@ -1,22 +1,30 @@
+import base64
 import functools
 import json
+import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    clean_html,
     filter_dict,
     int_or_none,
     parse_qs,
     str_or_none,
+    time_seconds,
     traverse_obj,
     unified_timestamp,
     url_or_none,
+    urlencode_postdata,
+    urljoin,
 )
 
 
 class NiconicoChannelPlusBaseIE(InfoExtractor):
     _WEBPAGE_BASE_URL = 'https://nicochannel.jp'
+    _NETRC_MACHINE = 'niconicochannelplus'
 
     def _call_api(self, path, item_id, *args, **kwargs):
         return self._download_json(
@@ -98,6 +106,87 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         },
     }]
 
+    _LOGIN_API = 'https://auth.sheeta.com/auth/realms/FCS00001/protocol/openid-connect/auth?client_id=FCS00056&response_type=code&scope=openid&kc_idp_hint=niconico&redirect_uri=https%3A%2F%2Fnicochannel.jp%2Ftestman%2Flogin'
+    _AUTH_BASE_URL = 'https://account.nicovideo.jp/'
+    _AUTH_TOKEN = {}
+
+    def _perform_login(self, mail_tel, password):
+        mail_tel_b64 = base64.b64encode(mail_tel.encode('ascii')).decode('ascii')
+        cached_auth_data = self.cache.load(self._NETRC_MACHINE, mail_tel_b64)
+        if isinstance(cached_auth_data, dict) and time_seconds() - cached_auth_data.get('timestamp', 0) < 300:
+            self._AUTH_TOKEN = {
+                'mail_tel_b64': mail_tel_b64,
+                'bearer': cached_auth_data['bearer'],
+            }
+            return
+
+        login_url = urljoin(
+            self._AUTH_BASE_URL, self._search_regex(
+                r'<form[^>]+action=(["\'])(?P<url>/login/redirector.+?)\1',
+                self._download_webpage(
+                    self._LOGIN_API, None, note='Getting login url', errnote='Unable to get login url'),
+                name='login url', group='url'))
+        webpage, urlh = self._download_webpage_handle(
+            login_url, None, note='Logging in', errnote='Unable to log in', expected_status=(404),
+            data=urlencode_postdata({
+                'mail_tel': mail_tel,
+                'password': password,
+                'auth_id': 42,
+            }), headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Referer': 'https://auth.sheeta.com/',
+            })
+
+        if urlh.url.startswith('https://account.nicovideo.jp/login'):
+            self.report_warning('Unable to log in: bad email address or password')
+            return
+        elif urlh.url.startswith('https://account.nicovideo.jp/mfa'):
+            webpage, urlh = self._download_webpage_handle(
+                urljoin(self._AUTH_BASE_URL, self._search_regex(
+                    r'<form[^>]+action=(["\'])(?P<url>.+?)\1', webpage, 'mfa post url', group='url')),
+                None, expected_status=(404), note='Performing MFA', errnote='Unable to complete MFA',
+                headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Referer': self._AUTH_BASE_URL,
+                },
+                data=urlencode_postdata({
+                    'otp': self._get_tfa_info('6 digits code')
+                }))
+            if 'oneTimePw' in webpage or 'formError' in webpage:
+                err_msg = clean_html(self._html_search_regex(
+                    r'formError"[^>]*>(.*?)</div>', webpage, 'form_error',
+                    default='There\'s an error but the message can\'t be parsed.',
+                    flags=re.DOTALL))
+                self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
+                return
+
+        sns_login_code = traverse_obj(parse_qs(urlh.url), ('code', 0))
+        if not sns_login_code:
+            self.report_warning('Unable to get sns login code')
+            return
+
+        token = traverse_obj(self._call_api(
+            'fanclub_groups/1/sns_login', item_id='56',
+            note='Fetching sns login info', errnote='Unable to fetch sns login info', fatal=False,
+            data=json.dumps({
+                "key_cloak_user": {
+                    "code": sns_login_code,
+                    "redirect_uri": "https://nicochannel.jp/testman/login"
+                },
+                "fanclub_site": {"id": 56},
+            }).encode('ascii'), headers={
+                'Content-Type': 'application/json',
+                'fc_use_device': 'null',
+                'Referer': 'https://nicochannel.jp/',
+            }), ('data', 'access_token'))
+        if token:
+            bearer = f'Bearer {token}'
+            self.cache.store(self._NETRC_MACHINE, mail_tel_b64, {
+                'bearer': bearer,
+                'timestamp': int(time_seconds()),
+            })
+            self._AUTH_TOKEN = {'mail_tel_b64': mail_tel_b64, 'bearer': bearer}
+
     def _real_extract(self, url):
         content_code, channel_id = self._match_valid_url(url).group('code', 'channel')
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
@@ -119,7 +208,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             else:
                 msg = 'This event has not started yet'
             self.raise_no_formats(msg, expected=True, video_id=content_code)
-        else:
+        elif session_id:
             formats = self._extract_m3u8_formats(
                 # "authenticated_url" is a format string that contains "{session_id}".
                 m3u8_url=data_json['video_stream']['authenticated_url'].format(session_id=session_id),
@@ -217,15 +306,32 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
         self.write_debug(f'{content_code}: video_type={video_type}, live_status={live_status}')
 
-        session_id = self._call_api(
-            f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
-            data=json.dumps(payload).encode('ascii'), headers={
+        session_id = None
+        try:
+            headers = {
                 'Content-Type': 'application/json',
                 'fc_use_device': 'null',
                 'origin': 'https://nicochannel.jp',
-            },
-            note='Getting session id', errnote='Unable to get session id',
-        )['data']['session_id']
+            }
+            if self._AUTH_TOKEN:
+                headers['Authorization'] = self._AUTH_TOKEN['bearer']
+
+            session_id = self._call_api(
+                f'video_pages/{content_code}/session_ids', item_id=f'{content_code}/session',
+                data=json.dumps(payload).encode('ascii'), headers=headers,
+                note='Getting session id', errnote='Unable to get session id',
+            )['data']['session_id']
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or e.cause.status not in (401, 403, 408):
+                raise e
+            if self._AUTH_TOKEN:
+                self.cache.store(self._NETRC_MACHINE, self._AUTH_TOKEN['mail_tel_b64'], None)
+            self.raise_login_required(
+                msg={
+                    401: 'members only content',
+                    403: 'login required',
+                    408: 'outdated cached token',
+                }[e.cause.status], metadata_available=True)
 
         return live_status, session_id
 
