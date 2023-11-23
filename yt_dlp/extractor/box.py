@@ -1,12 +1,13 @@
 import json
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     parse_iso8601,
-    # try_get,
     update_url_query,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class BoxIE(InfoExtractor):
@@ -58,26 +59,15 @@ class BoxIE(InfoExtractor):
 
         formats = []
 
-        # for entry in (try_get(f, lambda x: x['representations']['entries'], list) or []):
-        #     entry_url_template = try_get(
-        #         entry, lambda x: x['content']['url_template'])
-        #     if not entry_url_template:
-        #         continue
-        #     representation = entry.get('representation')
-        #     if representation == 'dash':
-        #         TODO: append query to every fragment URL
-        #         formats.extend(self._extract_mpd_formats(
-        #             entry_url_template.replace('{+asset_path}', 'manifest.mpd'),
-        #             file_id, query=query))
-
-        authenticated_download_url = f.get('authenticated_download_url')
-        if authenticated_download_url and f.get('is_download_available'):
-            formats.append({
-                'ext': f.get('extension') or determine_ext(title),
-                'filesize': f.get('size'),
-                'format_id': 'download',
-                'url': update_url_query(authenticated_download_url, query),
-            })
+        for url_tmpl in traverse_obj(f, (
+            'representations', 'entries', lambda _, v: v['representation'] == 'dash',
+            'content', 'url_template', {url_or_none}
+        )):
+            manifest_url = update_url_query(url_tmpl.replace('{+asset_path}', 'manifest.mpd'), query)
+            fmts = self._extract_mpd_formats(manifest_url, file_id)
+            for fmt in fmts:
+                fmt['extra_param_to_segment_url'] = urllib.parse.urlparse(manifest_url).query
+            formats.extend(fmts)
 
         creator = f.get('created_by') or {}
 
