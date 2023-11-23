@@ -112,15 +112,13 @@ class ThePlatformBaseIE(OnceIE):
         # The following can be uncommented as soon as #7838 is merged:
         # media_type = None
 
-        # A number of sites have a prefix in front of some info keys followed by a '$' symbol.
-        # Search for known keys with the prefix.
-        for key in info.keys():
-            if re.match('.*\\$region', key):
-                location = info[key]
-            if re.match('.*\\$show', key):
-                series = info[key]
-            if re.match('.*\\$seasonNumber', key):
-                season_number = str_to_int(info[key])
+        def extract_site_specific_field(field):
+            # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
+            return next((info[k] for k in info if k.endswith(f'${field}')), None)
+        
+        location = extract_site_specific_field('region')
+        series = extract_site_specific_field('show')
+        season_number = int_or_none(extract_site_specific_field('seasonNumber'))
             # the following can be uncommented as soon as #7838 is merged:
             # if (re.match('.*\programmingType', key)) or (re.match('.*\type', key)):
                 # media_type = info[key]
