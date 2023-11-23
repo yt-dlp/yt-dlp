@@ -11,7 +11,7 @@ from ..utils.traversal import traverse_obj
 
 
 class BoxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^.]+\.)?app\.box\.com/s/(?P<shared_name>[^/]+)/file/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^.]+\.)?app\.box\.com/s/(?P<shared_name>[^/?#]+)/file/(?P<id>\d+)'
     _TEST = {
         'url': 'https://mlssoccer.app.box.com/s/0evd2o3e08l60lr4ygukepvnkord1o1x/file/510727257538',
         'md5': '1f81b2fd3960f38a40a3b8823e5fcd43',
