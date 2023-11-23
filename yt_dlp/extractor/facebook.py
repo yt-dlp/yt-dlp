@@ -16,6 +16,7 @@ from ..utils import (
     determine_ext,
     error_to_compat_str,
     float_or_none,
+    format_field,
     get_element_by_id,
     get_first,
     int_or_none,
