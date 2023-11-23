@@ -55,8 +55,11 @@ class BFMTVLiveIE(BFMTVIE):  # XXX: Do not subclass from concrete IE
             'ext': 'mp4',
             'title': r're:^le direct BFMTV WEB \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'uploader_id': '876450610001',
-            'upload_date': '20171018',
-            'timestamp': 1508329950,
+            'upload_date': '20220926',
+            'timestamp': 1664207191,
+            'live_status': 'is_live',
+            'thumbnail': r're:https://.+/image\.jpg',
+            'tags': [],
         },
         'params': {
             'skip_download': True,
