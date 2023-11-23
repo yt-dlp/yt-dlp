@@ -105,23 +105,12 @@ class ThePlatformBaseIE(OnceIE):
             for chapter in tp_chapters[:-1]:
                 _add_chapter(chapter.get('startTime'), chapter.get('endTime'))
             _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
-        info_keywords_str = info.get('keywords', {str_or_none})
-        tags = []
-        if (info_keywords_str is not None) and (info_keywords_str != ''):
-            tags = re.split(', |; |,', info_keywords_str)
+
         location = None
         series = None
         season_number = None
         # The following can be uncommented as soon as #7838 is merged:
         # media_type = None
-        categories = []
-        categories_data = info.get('categories') or []
-        for x in categories_data:
-            if x.get('name') is not None:
-                # Sometimes, there will be several kinds of categories
-                # in this case, it will have a label field with a value 'category'
-                if (x.get('label') is None) or (x.get('label') == 'category'):
-                    categories.append(x.get('name'))
 
         # A number of sites have a prefix in front of some info keys followed by a '$' symbol.
         # Search for known keys with the prefix.
@@ -145,9 +134,10 @@ class ThePlatformBaseIE(OnceIE):
             'timestamp': int_or_none(info.get('pubDate'), 1000) or None,
             'uploader': info.get('billingCode'),
             'chapters': chapters,
-            'creator': info.get('author', {str_or_none}) if info.get('author', {str_or_none}) != '' else None,
-            'categories': categories if len(categories) != 0 else None,
-            'tags': tags if len(tags) != 0 else None,
+            'creator': traverse_obj(info, ('author', {str})) or None,
+            'categories': traverse_obj(info, (
+                'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
+            'tags': traverse_obj(info, ('keywords', {lambda x: re.split(r'[;,]\s?', x) if x else None})),
             'location': str_or_none(location) if location != '' else None,
             'series': str_or_none(series) if series != '' else None,
             'season_number': int_or_none(season_number),

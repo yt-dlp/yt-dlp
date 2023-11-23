@@ -379,6 +379,8 @@ class InfoExtractor:
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
+    media_type:     The type of media, for instance a full show, an excerpt, or
+                    something similar that classifies what kind of video or audio this is.
     _old_archive_ids: A list of old archive ids needed for backward compatibility
     _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
