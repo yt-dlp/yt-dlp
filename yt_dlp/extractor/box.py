@@ -19,11 +19,12 @@ class BoxIE(InfoExtractor):
             'id': '510727257538',
             'ext': 'mp4',
             'title': 'Garber   St. Louis will be 28th MLS team  +scarving.mp4',
-            'uploader': 'MLS Video',
+            'uploader': '',
             'timestamp': 1566320259,
             'upload_date': '20190820',
             'uploader_id': '235196876',
-        }
+        },
+        'params': {'skip_download': 'dash fragment too small'},
     }
 
     def _real_extract(self, url):
