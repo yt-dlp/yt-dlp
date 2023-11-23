@@ -386,6 +386,7 @@ from .clipsyndicate import ClipsyndicateIE
 from .closertotruth import CloserToTruthIE
 from .cloudflarestream import CloudflareStreamIE
 from .cloudy import CloudyIE
+from .cloudycdn import CloudyCDNIE
 from .clubic import ClubicIE
 from .clyp import ClypIE
 from .cmt import CMTIE
@@ -1038,6 +1039,12 @@ from .lovehomeporn import LoveHomePornIE
 from .lrt import (
     LRTVODIE,
     LRTStreamIE
+)
+from .lsm import (
+    LSMLREmbedIE,
+    LSMLTVEmbedIE,
+    LSMLTVIE,
+    LSMReplayIE
 )
 from .lumni import (
     LumniIE
