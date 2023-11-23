@@ -421,15 +421,16 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
-            snippet = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
+
+            automatic_captions, subtitles = {}, {}
+            subs_data = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')))
-            locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
-            captions = get_first(snippet, 'video_available_captions_locales', 'captions_url')
-            is_video_broadcast = get_first(snippet, 'is_video_broadcast', expected_type=bool)
-            automatic_captions = {}
-            subtitles = {}
-            if url_or_none(captions):  # snippet only had 'captions_url'
+            is_video_broadcast = get_first(subs_data, 'is_video_broadcast', expected_type=bool)
+            captions = get_first(subs_data, 'video_available_captions_locales', 'captions_url')
+            if url_or_none(captions):  # if subs_data only had a 'captions_url'
+                locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
                 subtitles[locale] = [{'url': captions}]
+            # or else subs_data had 'video_available_captions_locales', a list of dicts
             for caption in traverse_obj(captions, (
                 {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
             ):
@@ -441,6 +442,7 @@ class FacebookIE(InfoExtractor):
                     automatic_captions.setdefault(caption['locale'], []).append(subs)
                 else:
                     subtitles.setdefault(caption['locale'], []).append(subs)
+
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
