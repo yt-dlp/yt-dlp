@@ -430,9 +430,9 @@ class FacebookIE(InfoExtractor):
             subtitles = {}
             if url_or_none(captions):  # snippet only had 'captions_url'
                 subtitles[locale] = [{'url': captions}]
-            else:
-                captions = sorted(captions, key=lambda c: c['locale'])
-            for caption in traverse_obj(captions, lambda _, v: v['captions_url'] and v['locale']):
+            for caption in traverse_obj(captions, (
+                {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
+            ):
                 subs = {
                     'url': caption['captions_url'],
                     'name': join_nonempty('localized_language', 'localized_country', from_dict=caption),
