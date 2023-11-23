@@ -206,7 +206,7 @@ class FloatplaneIE(InfoExtractor):
 
 
 class FloatplaneChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w_]+)/home(?:/(?P<channel>[\w_]+))?'
+    _VALID_URL = r'https?://(?:(?:www|beta)\.)?floatplane\.com/channel/(?P<id>[\w-]+)/home(?:/(?P<channel>[\w-]+))?'
     _PAGE_SIZE = 20
     _TESTS = [{
         'url': 'https://www.floatplane.com/channel/linustechtips/home/ltxexpo',
