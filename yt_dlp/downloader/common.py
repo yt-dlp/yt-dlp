@@ -255,7 +255,8 @@ class FileDownloader:
 
     @wrap_file_access('remove')
     def try_remove(self, filename):
-        os.remove(filename)
+        if os.path.isfile(filename):
+            os.remove(filename)
 
     @wrap_file_access('rename')
     def try_rename(self, old_filename, new_filename):
@@ -418,7 +419,6 @@ class FileDownloader:
         """Download to a filename using the info from info_dict
         Return True on success and False otherwise
         """
-
         nooverwrites_and_exists = (
             not self.params.get('overwrites', True)
             and os.path.exists(encodeFilename(filename))

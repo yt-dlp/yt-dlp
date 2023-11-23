@@ -114,7 +114,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg(filename, temp_filename, options)
 
-        elif info['ext'] in ['m4a', 'mp4', 'mov']:
+        elif info['ext'] in ['m4a', 'mp4', 'm4v', 'mov']:
             prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
             # Method 1: Use mutagen
             if not mutagen or prefer_atomicparsley:
@@ -213,7 +213,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             temp_filename = filename
 
         else:
-            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/mov')
+            raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov')
 
         if success and temp_filename != filename:
             os.replace(temp_filename, filename)

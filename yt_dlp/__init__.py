@@ -1,8 +1,8 @@
-try:
-    import contextvars  # noqa: F401
-except Exception:
-    raise Exception(
-        f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp')  # noqa: F541
+import sys
+
+if sys.version_info < (3, 8):
+    raise ImportError(
+        f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'Public Domain'
 
@@ -12,7 +12,6 @@ import itertools
 import optparse
 import os
 import re
-import sys
 import traceback
 
 from .compat import compat_shlex_quote
@@ -57,11 +56,11 @@ from .utils import (
     read_stdin,
     render_table,
     setproctitle,
-    std_headers,
     traverse_obj,
     variadic,
     write_string,
 )
+from .utils.networking import std_headers
 from .YoutubeDL import YoutubeDL
 
 _IN_CLI = False
@@ -320,26 +319,49 @@ def validate_options(opts):
         opts.skip_download = None
         del opts.outtmpl['default']
 
-    def parse_chapters(name, value):
-        chapters, ranges = [], []
+    def parse_chapters(name, value, advanced=False):
         parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
-        for regex in value or []:
-            if regex.startswith('*'):
-                for range_ in map(str.strip, regex[1:].split(',')):
-                    mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
-                    dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
-                    if None in (dur or [None]):
-                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "*start-end"')
-                    ranges.append(dur)
-                continue
-            try:
-                chapters.append(re.compile(regex))
-            except re.error as err:
-                raise ValueError(f'invalid {name} regex "{regex}" - {err}')
-        return chapters, ranges
+        TIMESTAMP_RE = r'''(?x)(?:
+            (?P<start_sign>-?)(?P<start>[^-]+)
+        )?\s*-\s*(?:
+            (?P<end_sign>-?)(?P<end>[^-]+)
+        )?'''
 
-    opts.remove_chapters, opts.remove_ranges = parse_chapters('--remove-chapters', opts.remove_chapters)
-    opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges))
+        chapters, ranges, from_url = [], [], False
+        for regex in value or []:
+            if advanced and regex == '*from-url':
+                from_url = True
+                continue
+            elif not regex.startswith('*'):
+                try:
+                    chapters.append(re.compile(regex))
+                except re.error as err:
+                    raise ValueError(f'invalid {name} regex "{regex}" - {err}')
+                continue
+
+            for range_ in map(str.strip, regex[1:].split(',')):
+                mobj = range_ != '-' and re.fullmatch(TIMESTAMP_RE, range_)
+                dur = mobj and [parse_timestamp(mobj.group('start') or '0'), parse_timestamp(mobj.group('end') or 'inf')]
+                signs = mobj and (mobj.group('start_sign'), mobj.group('end_sign'))
+
+                err = None
+                if None in (dur or [None]):
+                    err = 'Must be of the form "*start-end"'
+                elif not advanced and any(signs):
+                    err = 'Negative timestamps are not allowed'
+                else:
+                    dur[0] *= -1 if signs[0] else 1
+                    dur[1] *= -1 if signs[1] else 1
+                    if dur[1] == float('-inf'):
+                        err = '"-inf" is not a valid end'
+                if err:
+                    raise ValueError(f'invalid {name} time range "{regex}". {err}')
+                ranges.append(dur)
+
+        return chapters, ranges, from_url
+
+    opts.remove_chapters, opts.remove_ranges, _ = parse_chapters('--remove-chapters', opts.remove_chapters)
+    opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges, True))
 
     # Cookies from browser
     if opts.cookiesfrombrowser:

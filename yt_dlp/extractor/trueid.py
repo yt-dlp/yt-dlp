@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -88,9 +88,9 @@ class TrueIDIE(InfoExtractor):
             stream_data = self._download_json(
                 f'https://{domain}/cmsPostProxy/contents/video/{video_id}/streamer?os=android', video_id, data=b'')['data']
         except ExtractorError as e:
-            if not isinstance(e.cause, compat_HTTPError):
+            if not isinstance(e.cause, HTTPError):
                 raise e
-            errmsg = self._parse_json(e.cause.read().decode(), video_id)['meta']['message']
+            errmsg = self._parse_json(e.cause.response.read().decode(), video_id)['meta']['message']
             if 'country' in errmsg:
                 self.raise_geo_restricted(
                     errmsg, [initial_data['display_country']] if initial_data.get('display_country') else None, True)

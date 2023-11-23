@@ -1,5 +1,3 @@
-import asyncio
-import atexit
 import base64
 import binascii
 import calendar
@@ -11,13 +9,10 @@ import datetime
 import email.header
 import email.utils
 import errno
-import gzip
 import hashlib
 import hmac
 import html.entities
 import html.parser
-import http.client
-import http.cookiejar
 import inspect
 import io
 import itertools
@@ -46,7 +41,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
-import zlib
 
 from . import traversal
 
@@ -58,77 +52,12 @@ from ..compat import (
     compat_os_name,
     compat_shlex_quote,
 )
-from ..dependencies import brotli, certifi, websockets, xattr
-from ..socks import ProxyType, sockssocket
+from ..dependencies import xattr
 
 __name__ = __name__.rsplit('.', 1)[0]  # Pretend to be the parent module
 
 # This is not clearly defined otherwise
 compiled_regex_type = type(re.compile(''))
-
-
-def random_user_agent():
-    _USER_AGENT_TPL = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36'
-    _CHROME_VERSIONS = (
-        '90.0.4430.212',
-        '90.0.4430.24',
-        '90.0.4430.70',
-        '90.0.4430.72',
-        '90.0.4430.85',
-        '90.0.4430.93',
-        '91.0.4472.101',
-        '91.0.4472.106',
-        '91.0.4472.114',
-        '91.0.4472.124',
-        '91.0.4472.164',
-        '91.0.4472.19',
-        '91.0.4472.77',
-        '92.0.4515.107',
-        '92.0.4515.115',
-        '92.0.4515.131',
-        '92.0.4515.159',
-        '92.0.4515.43',
-        '93.0.4556.0',
-        '93.0.4577.15',
-        '93.0.4577.63',
-        '93.0.4577.82',
-        '94.0.4606.41',
-        '94.0.4606.54',
-        '94.0.4606.61',
-        '94.0.4606.71',
-        '94.0.4606.81',
-        '94.0.4606.85',
-        '95.0.4638.17',
-        '95.0.4638.50',
-        '95.0.4638.54',
-        '95.0.4638.69',
-        '95.0.4638.74',
-        '96.0.4664.18',
-        '96.0.4664.45',
-        '96.0.4664.55',
-        '96.0.4664.93',
-        '97.0.4692.20',
-    )
-    return _USER_AGENT_TPL % random.choice(_CHROME_VERSIONS)
-
-
-SUPPORTED_ENCODINGS = [
-    'gzip', 'deflate'
-]
-if brotli:
-    SUPPORTED_ENCODINGS.append('br')
-
-std_headers = {
-    'User-Agent': random_user_agent(),
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-us,en;q=0.5',
-    'Sec-Fetch-Mode': 'navigate',
-}
-
-
-USER_AGENTS = {
-    'Safari': 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27',
-}
 
 
 class NO_DEFAULT:
@@ -738,6 +667,7 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
 
 def sanitize_path(s, force=False):
     """Sanitizes and normalizes path on Windows"""
+    # XXX: this handles drive relative paths (c:sth) incorrectly
     if sys.platform == 'win32':
         force = False
         drive_or_unc, _ = os.path.splitdrive(s)
@@ -756,7 +686,10 @@ def sanitize_path(s, force=False):
         sanitized_path.insert(0, drive_or_unc + os.path.sep)
     elif force and s and s[0] == os.path.sep:
         sanitized_path.insert(0, os.path.sep)
-    return os.path.join(*sanitized_path)
+    # TODO: Fix behavioral differences <3.12
+    # The workaround using `normpath` only superficially passes tests
+    # Ref: https://github.com/python/cpython/pull/100351
+    return os.path.normpath(os.path.join(*sanitized_path))
 
 
 def sanitize_url(url, *, scheme='http'):
@@ -789,14 +722,6 @@ def extract_basic_auth(url):
     auth_payload = base64.b64encode(
         ('%s:%s' % (parts.username, parts.password or '')).encode())
     return url, f'Basic {auth_payload.decode()}'
-
-
-def sanitized_Request(url, *args, **kwargs):
-    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
-    if auth_header is not None:
-        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
-        headers['Authorization'] = auth_header
-    return urllib.request.Request(url, *args, **kwargs)
 
 
 def expand_path(s):
@@ -898,7 +823,7 @@ class Popen(subprocess.Popen):
         _fix('LD_LIBRARY_PATH')  # Linux
         _fix('DYLD_LIBRARY_PATH')  # macOS
 
-    def __init__(self, *args, env=None, text=False, **kwargs):
+    def __init__(self, args, *remaining, env=None, text=False, shell=False, **kwargs):
         if env is None:
             env = os.environ.copy()
         self._fix_pyinstaller_ld_path(env)
@@ -908,7 +833,21 @@ class Popen(subprocess.Popen):
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        super().__init__(*args, env=env, **kwargs, startupinfo=self._startupinfo)
+
+        if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
+            if not isinstance(args, str):
+                args = ' '.join(compat_shlex_quote(a) for a in args)
+            shell = False
+            args = f'{self.__comspec()} /Q /S /D /V:OFF /C "{args}"'
+
+        super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
+
+    def __comspec(self):
+        comspec = os.environ.get('ComSpec') or os.path.join(
+            os.environ.get('SystemRoot', ''), 'System32', 'cmd.exe')
+        if os.path.isabs(comspec):
+            return comspec
+        raise FileNotFoundError('shell not found: neither %ComSpec% nor %SystemRoot% is set')
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
@@ -958,82 +897,6 @@ def formatSeconds(secs, delim=':', msec=False):
     return '%s.%03d' % (ret, time.milliseconds) if msec else ret
 
 
-def _ssl_load_windows_store_certs(ssl_context, storename):
-    # Code adapted from _load_windows_store_certs in https://github.com/python/cpython/blob/main/Lib/ssl.py
-    try:
-        certs = [cert for cert, encoding, trust in ssl.enum_certificates(storename)
-                 if encoding == 'x509_asn' and (
-                     trust is True or ssl.Purpose.SERVER_AUTH.oid in trust)]
-    except PermissionError:
-        return
-    for cert in certs:
-        with contextlib.suppress(ssl.SSLError):
-            ssl_context.load_verify_locations(cadata=cert)
-
-
-def make_HTTPS_handler(params, **kwargs):
-    opts_check_certificate = not params.get('nocheckcertificate')
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context.check_hostname = opts_check_certificate
-    if params.get('legacyserverconnect'):
-        context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
-        # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
-        context.set_ciphers('DEFAULT')
-    elif (
-        sys.version_info < (3, 10)
-        and ssl.OPENSSL_VERSION_INFO >= (1, 1, 1)
-        and not ssl.OPENSSL_VERSION.startswith('LibreSSL')
-    ):
-        # Backport the default SSL ciphers and minimum TLS version settings from Python 3.10 [1].
-        # This is to ensure consistent behavior across Python versions, and help avoid fingerprinting
-        # in some situations [2][3].
-        # Python 3.10 only supports OpenSSL 1.1.1+ [4]. Because this change is likely
-        # untested on older versions, we only apply this to OpenSSL 1.1.1+ to be safe.
-        # LibreSSL is excluded until further investigation due to cipher support issues [5][6].
-        # 1. https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
-        # 2. https://github.com/yt-dlp/yt-dlp/issues/4627
-        # 3. https://github.com/yt-dlp/yt-dlp/pull/5294
-        # 4. https://peps.python.org/pep-0644/
-        # 5. https://peps.python.org/pep-0644/#libressl-support
-        # 6. https://github.com/yt-dlp/yt-dlp/commit/5b9f253fa0aee996cf1ed30185d4b502e00609c4#commitcomment-89054368
-        context.set_ciphers('@SECLEVEL=2:ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES:DHE+AES:!aNULL:!eNULL:!aDSS:!SHA1:!AESCCM')
-        context.minimum_version = ssl.TLSVersion.TLSv1_2
-
-    context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
-    if opts_check_certificate:
-        if certifi and 'no-certifi' not in params.get('compat_opts', []):
-            context.load_verify_locations(cafile=certifi.where())
-        else:
-            try:
-                context.load_default_certs()
-                # Work around the issue in load_default_certs when there are bad certificates. See:
-                # https://github.com/yt-dlp/yt-dlp/issues/1060,
-                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-            except ssl.SSLError:
-                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                    for storename in ('CA', 'ROOT'):
-                        _ssl_load_windows_store_certs(context, storename)
-                context.set_default_verify_paths()
-
-    client_certfile = params.get('client_certificate')
-    if client_certfile:
-        try:
-            context.load_cert_chain(
-                client_certfile, keyfile=params.get('client_certificate_key'),
-                password=params.get('client_certificate_password'))
-        except ssl.SSLError:
-            raise YoutubeDLError('Unable to load client certificate')
-
-    # Some servers may reject requests if ALPN extension is not sent. See:
-    # https://github.com/python/cpython/issues/85140
-    # https://github.com/yt-dlp/yt-dlp/issues/3878
-    with contextlib.suppress(NotImplementedError):
-        context.set_alpn_protocols(['http/1.1'])
-
-    return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
-
-
 def bug_reports_message(before=';'):
     from ..update import REPOSITORY
 
@@ -1059,12 +922,6 @@ class YoutubeDLError(Exception):
         super().__init__(self.msg)
 
 
-network_exceptions = [urllib.error.URLError, http.client.HTTPException, socket.error]
-if hasattr(ssl, 'CertificateError'):
-    network_exceptions.append(ssl.CertificateError)
-network_exceptions = tuple(network_exceptions)
-
-
 class ExtractorError(YoutubeDLError):
     """Error during info extraction."""
 
@@ -1072,6 +929,7 @@ class ExtractorError(YoutubeDLError):
         """ tb, if given, is the original traceback (so that it can be printed out).
         If expected is set, this is a normal error message and most likely not a bug in yt-dlp.
         """
+        from ..networking.exceptions import network_exceptions
         if sys.exc_info()[0] in network_exceptions:
             expected = True
 
@@ -1271,313 +1129,8 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
-def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
-    hc = http_class(*args, **kwargs)
-    source_address = ydl_handler._params.get('source_address')
-
-    if source_address is not None:
-        # This is to workaround _create_connection() from socket where it will try all
-        # address data from getaddrinfo() including IPv6. This filters the result from
-        # getaddrinfo() based on the source_address value.
-        # This is based on the cpython socket.create_connection() function.
-        # https://github.com/python/cpython/blob/master/Lib/socket.py#L691
-        def _create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
-            host, port = address
-            err = None
-            addrs = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
-            af = socket.AF_INET if '.' in source_address[0] else socket.AF_INET6
-            ip_addrs = [addr for addr in addrs if addr[0] == af]
-            if addrs and not ip_addrs:
-                ip_version = 'v4' if af == socket.AF_INET else 'v6'
-                raise OSError(
-                    "No remote IP%s addresses available for connect, can't use '%s' as source address"
-                    % (ip_version, source_address[0]))
-            for res in ip_addrs:
-                af, socktype, proto, canonname, sa = res
-                sock = None
-                try:
-                    sock = socket.socket(af, socktype, proto)
-                    if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
-                        sock.settimeout(timeout)
-                    sock.bind(source_address)
-                    sock.connect(sa)
-                    err = None  # Explicitly break reference cycle
-                    return sock
-                except OSError as _:
-                    err = _
-                    if sock is not None:
-                        sock.close()
-            if err is not None:
-                raise err
-            else:
-                raise OSError('getaddrinfo returns an empty list')
-        if hasattr(hc, '_create_connection'):
-            hc._create_connection = _create_connection
-        hc.source_address = (source_address, 0)
-
-    return hc
-
-
-class YoutubeDLHandler(urllib.request.HTTPHandler):
-    """Handler for HTTP requests and responses.
-
-    This class, when installed with an OpenerDirector, automatically adds
-    the standard headers to every HTTP request and handles gzipped, deflated and
-    brotli responses from web servers.
-
-    Part of this code was copied from:
-
-    http://techknack.net/python-urllib2-handlers/
-
-    Andrew Rowls, the author of that code, agreed to release it to the
-    public domain.
-    """
-
-    def __init__(self, params, *args, **kwargs):
-        urllib.request.HTTPHandler.__init__(self, *args, **kwargs)
-        self._params = params
-
-    def http_open(self, req):
-        conn_class = http.client.HTTPConnection
-
-        socks_proxy = req.headers.get('Ytdl-socks-proxy')
-        if socks_proxy:
-            conn_class = make_socks_conn_class(conn_class, socks_proxy)
-            del req.headers['Ytdl-socks-proxy']
-
-        return self.do_open(functools.partial(
-            _create_http_connection, self, conn_class, False),
-            req)
-
-    @staticmethod
-    def deflate(data):
-        if not data:
-            return data
-        try:
-            return zlib.decompress(data, -zlib.MAX_WBITS)
-        except zlib.error:
-            return zlib.decompress(data)
-
-    @staticmethod
-    def brotli(data):
-        if not data:
-            return data
-        return brotli.decompress(data)
-
-    @staticmethod
-    def gz(data):
-        gz = gzip.GzipFile(fileobj=io.BytesIO(data), mode='rb')
-        try:
-            return gz.read()
-        except OSError as original_oserror:
-            # There may be junk add the end of the file
-            # See http://stackoverflow.com/q/4928560/35070 for details
-            for i in range(1, 1024):
-                try:
-                    gz = gzip.GzipFile(fileobj=io.BytesIO(data[:-i]), mode='rb')
-                    return gz.read()
-                except OSError:
-                    continue
-            else:
-                raise original_oserror
-
-    def http_request(self, req):
-        # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
-        # always respected by websites, some tend to give out URLs with non percent-encoded
-        # non-ASCII characters (see telemb.py, ard.py [#3412])
-        # urllib chokes on URLs with non-ASCII characters (see http://bugs.python.org/issue3991)
-        # To work around aforementioned issue we will replace request's original URL with
-        # percent-encoded one
-        # Since redirects are also affected (e.g. http://www.southpark.de/alle-episoden/s18e09)
-        # the code of this workaround has been moved here from YoutubeDL.urlopen()
-        url = req.get_full_url()
-        url_escaped = escape_url(url)
-
-        # Substitute URL if any change after escaping
-        if url != url_escaped:
-            req = update_Request(req, url=url_escaped)
-
-        for h, v in self._params.get('http_headers', std_headers).items():
-            # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
-            # The dict keys are capitalized because of this bug by urllib
-            if h.capitalize() not in req.headers:
-                req.add_header(h, v)
-
-        if 'Youtubedl-no-compression' in req.headers:  # deprecated
-            req.headers.pop('Youtubedl-no-compression', None)
-            req.add_header('Accept-encoding', 'identity')
-
-        if 'Accept-encoding' not in req.headers:
-            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
-
-        return super().do_request_(req)
-
-    def http_response(self, req, resp):
-        old_resp = resp
-
-        # Content-Encoding header lists the encodings in order that they were applied [1].
-        # To decompress, we simply do the reverse.
-        # [1]: https://datatracker.ietf.org/doc/html/rfc9110#name-content-encoding
-        decoded_response = None
-        for encoding in (e.strip() for e in reversed(resp.headers.get('Content-encoding', '').split(','))):
-            if encoding == 'gzip':
-                decoded_response = self.gz(decoded_response or resp.read())
-            elif encoding == 'deflate':
-                decoded_response = self.deflate(decoded_response or resp.read())
-            elif encoding == 'br' and brotli:
-                decoded_response = self.brotli(decoded_response or resp.read())
-
-        if decoded_response is not None:
-            resp = urllib.request.addinfourl(io.BytesIO(decoded_response), old_resp.headers, old_resp.url, old_resp.code)
-            resp.msg = old_resp.msg
-        # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
-        # https://github.com/ytdl-org/youtube-dl/issues/6457).
-        if 300 <= resp.code < 400:
-            location = resp.headers.get('Location')
-            if location:
-                # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
-                location = location.encode('iso-8859-1').decode()
-                location_escaped = escape_url(location)
-                if location != location_escaped:
-                    del resp.headers['Location']
-                    resp.headers['Location'] = location_escaped
-        return resp
-
-    https_request = http_request
-    https_response = http_response
-
-
-def make_socks_conn_class(base_class, socks_proxy):
-    assert issubclass(base_class, (
-        http.client.HTTPConnection, http.client.HTTPSConnection))
-
-    url_components = urllib.parse.urlparse(socks_proxy)
-    if url_components.scheme.lower() == 'socks5':
-        socks_type = ProxyType.SOCKS5
-    elif url_components.scheme.lower() in ('socks', 'socks4'):
-        socks_type = ProxyType.SOCKS4
-    elif url_components.scheme.lower() == 'socks4a':
-        socks_type = ProxyType.SOCKS4A
-
-    def unquote_if_non_empty(s):
-        if not s:
-            return s
-        return urllib.parse.unquote_plus(s)
-
-    proxy_args = (
-        socks_type,
-        url_components.hostname, url_components.port or 1080,
-        True,  # Remote DNS
-        unquote_if_non_empty(url_components.username),
-        unquote_if_non_empty(url_components.password),
-    )
-
-    class SocksConnection(base_class):
-        def connect(self):
-            self.sock = sockssocket()
-            self.sock.setproxy(*proxy_args)
-            if isinstance(self.timeout, (int, float)):
-                self.sock.settimeout(self.timeout)
-            self.sock.connect((self.host, self.port))
-
-            if isinstance(self, http.client.HTTPSConnection):
-                if hasattr(self, '_context'):  # Python > 2.6
-                    self.sock = self._context.wrap_socket(
-                        self.sock, server_hostname=self.host)
-                else:
-                    self.sock = ssl.wrap_socket(self.sock)
-
-    return SocksConnection
-
-
-class YoutubeDLHTTPSHandler(urllib.request.HTTPSHandler):
-    def __init__(self, params, https_conn_class=None, *args, **kwargs):
-        urllib.request.HTTPSHandler.__init__(self, *args, **kwargs)
-        self._https_conn_class = https_conn_class or http.client.HTTPSConnection
-        self._params = params
-
-    def https_open(self, req):
-        kwargs = {}
-        conn_class = self._https_conn_class
-
-        if hasattr(self, '_context'):  # python > 2.6
-            kwargs['context'] = self._context
-        if hasattr(self, '_check_hostname'):  # python 3.x
-            kwargs['check_hostname'] = self._check_hostname
-
-        socks_proxy = req.headers.get('Ytdl-socks-proxy')
-        if socks_proxy:
-            conn_class = make_socks_conn_class(conn_class, socks_proxy)
-            del req.headers['Ytdl-socks-proxy']
-
-        try:
-            return self.do_open(
-                functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
-        except urllib.error.URLError as e:
-            if (isinstance(e.reason, ssl.SSLError)
-                    and getattr(e.reason, 'reason', None) == 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
-                raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect')
-            raise
-
-
 def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
-
-
-class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
-    def __init__(self, cookiejar=None):
-        urllib.request.HTTPCookieProcessor.__init__(self, cookiejar)
-
-    def http_response(self, request, response):
-        return urllib.request.HTTPCookieProcessor.http_response(self, request, response)
-
-    https_request = urllib.request.HTTPCookieProcessor.http_request
-    https_response = http_response
-
-
-class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
-    """YoutubeDL redirect handler
-
-    The code is based on HTTPRedirectHandler implementation from CPython [1].
-
-    This redirect handler fixes and improves the logic to better align with RFC7261
-     and what browsers tend to do [2][3]
-
-    1. https://github.com/python/cpython/blob/master/Lib/urllib/request.py
-    2. https://datatracker.ietf.org/doc/html/rfc7231
-    3. https://github.com/python/cpython/issues/91306
-    """
-
-    http_error_301 = http_error_303 = http_error_307 = http_error_308 = urllib.request.HTTPRedirectHandler.http_error_302
-
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if code not in (301, 302, 303, 307, 308):
-            raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
-
-        new_method = req.get_method()
-        new_data = req.data
-        remove_headers = []
-        # A 303 must either use GET or HEAD for subsequent request
-        # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.4
-        if code == 303 and req.get_method() != 'HEAD':
-            new_method = 'GET'
-        # 301 and 302 redirects are commonly turned into a GET from a POST
-        # for subsequent requests by browsers, so we'll do the same.
-        # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.2
-        # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.3
-        elif code in (301, 302) and req.get_method() == 'POST':
-            new_method = 'GET'
-
-        # only remove payload if method changed (e.g. POST to GET)
-        if new_method != req.get_method():
-            new_data = None
-            remove_headers.extend(['Content-Length', 'Content-Type'])
-
-        new_headers = {k: v for k, v in req.headers.items() if k.lower() not in remove_headers}
-
-        return urllib.request.Request(
-            newurl, headers=new_headers, origin_req_host=req.origin_req_host,
-            unverifiable=True, method=new_method, data=new_data)
 
 
 def extract_timezone(date_str):
@@ -1719,7 +1272,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.utcnow(), precision)
+    today = datetime_round(datetime.datetime.now(datetime.timezone.utc), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -1782,8 +1335,8 @@ def datetime_round(dt, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = calendar.timegm(dt.timetuple())
-    return datetime.datetime.utcfromtimestamp(roundto(timestamp, unit_seconds[precision]))
+    timestamp = roundto(calendar.timegm(dt.timetuple()), unit_seconds[precision])
+    return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
 
 
 def hyphenate_date(date_str):
@@ -1881,6 +1434,7 @@ def write_string(s, out=None, encoding=None):
     out.flush()
 
 
+# TODO: Use global logger
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
     from .. import _IN_CLI
     if _IN_CLI:
@@ -2385,16 +1939,6 @@ def urljoin(base, path):
     return urllib.parse.urljoin(base, path)
 
 
-class HEADRequest(urllib.request.Request):
-    def get_method(self):
-        return 'HEAD'
-
-
-class PUTRequest(urllib.request.Request):
-    def get_method(self):
-        return 'PUT'
-
-
 def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
     if get_attr and v is not None:
         v = getattr(v, get_attr, None)
@@ -2439,13 +1983,6 @@ def url_or_none(url):
         return None
     url = url.strip()
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
-
-
-def request_to_url(req):
-    if isinstance(req, urllib.request.Request):
-        return req.get_full_url()
-    else:
-        return req
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
@@ -2500,7 +2037,7 @@ def parse_duration(s):
                 )?
                 T)?
                 (?:
-                    (?P<hours>[0-9]+)\s*h(?:ours?)?,?\s*
+                    (?P<hours>[0-9]+)\s*h(?:(?:ou)?rs?)?,?\s*
                 )?
                 (?:
                     (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?,?\s*
@@ -2943,23 +2480,6 @@ def lowercase_escape(s):
         s)
 
 
-def escape_rfc3986(s):
-    """Escape non-ASCII characters as suggested by RFC 3986"""
-    return urllib.parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
-
-
-def escape_url(url):
-    """Escape URL as suggested by RFC 3986"""
-    url_parsed = urllib.parse.urlparse(url)
-    return url_parsed._replace(
-        netloc=url_parsed.netloc.encode('idna').decode('ascii'),
-        path=escape_rfc3986(url_parsed.path),
-        params=escape_rfc3986(url_parsed.params),
-        query=escape_rfc3986(url_parsed.query),
-        fragment=escape_rfc3986(url_parsed.fragment)
-    ).geturl()
-
-
 def parse_qs(url, **kwargs):
     return urllib.parse.parse_qs(urllib.parse.urlparse(url).query, **kwargs)
 
@@ -3009,26 +2529,6 @@ def update_url(url, *, query_update=None, **kwargs):
 
 def update_url_query(url, query):
     return update_url(url, query_update=query)
-
-
-def update_Request(req, url=None, data=None, headers=None, query=None):
-    req_headers = req.headers.copy()
-    req_headers.update(headers or {})
-    req_data = data or req.data
-    req_url = update_url_query(url or req.get_full_url(), query)
-    req_get_method = req.get_method()
-    if req_get_method == 'HEAD':
-        req_type = HEADRequest
-    elif req_get_method == 'PUT':
-        req_type = PUTRequest
-    else:
-        req_type = urllib.request.Request
-    new_req = req_type(
-        req_url, data=req_data, headers=req_headers,
-        origin_req_host=req.origin_req_host, unverifiable=req.unverifiable)
-    if hasattr(req, 'timeout'):
-        new_req.timeout = req.timeout
-    return new_req
 
 
 def _multipart_encode_impl(data, boundary):
@@ -3239,9 +2739,10 @@ def js_to_json(code, vars={}, *, strict=False):
     def create_map(mobj):
         return json.dumps(dict(json.loads(js_to_json(mobj.group(1) or '[]', vars=vars))))
 
+    code = re.sub(r'(?:new\s+)?Array\((.*?)\)', r'[\g<1>]', code)
     code = re.sub(r'new Map\((\[.*?\])?\)', create_map, code)
     if not strict:
-        code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
+        code = re.sub(rf'new Date\(({STRING_RE})\)', r'\g<1>', code)
         code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
         code = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', code)
         code = re.sub(r'\(function\([^)]*\)\s*\{[^}]*\}\s*\)\s*\(\s*(["\'][^)]*["\'])\s*\)', r'\1', code)
@@ -3363,6 +2864,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'quicktime': 'mov',
         'webm': 'webm',
         'vp9': 'vp9',
+        'video/ogg': 'ogv',
         'x-flv': 'flv',
         'x-m4v': 'm4v',
         'x-matroska': 'mkv',
@@ -3507,7 +3009,8 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
         },
     }
 
-    sanitize_codec = functools.partial(try_get, getter=lambda x: x[0].split('.')[0].replace('0', ''))
+    sanitize_codec = functools.partial(
+        try_get, getter=lambda x: x[0].split('.')[0].replace('0', '').lower())
     vcodec, acodec = sanitize_codec(vcodecs), sanitize_codec(acodecs)
 
     for ext in preferences or COMPATIBLE_CODECS.keys():
@@ -3753,12 +3256,10 @@ def match_filter_func(filters, breaking_filters=None):
 
 
 class download_range_func:
-    def __init__(self, chapters, ranges):
-        self.chapters, self.ranges = chapters, ranges
+    def __init__(self, chapters, ranges, from_info=False):
+        self.chapters, self.ranges, self.from_info = chapters, ranges, from_info
 
     def __call__(self, info_dict, ydl):
-        if not self.ranges and not self.chapters:
-            yield {}
 
         warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
                    else 'Cannot match chapters since chapter information is unavailable')
@@ -3770,7 +3271,23 @@ class download_range_func:
         if self.chapters and warning:
             ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
 
-        yield from ({'start_time': start, 'end_time': end} for start, end in self.ranges or [])
+        for start, end in self.ranges or []:
+            yield {
+                'start_time': self._handle_negative_timestamp(start, info_dict),
+                'end_time': self._handle_negative_timestamp(end, info_dict),
+            }
+
+        if self.from_info and (info_dict.get('start_time') or info_dict.get('end_time')):
+            yield {
+                'start_time': info_dict.get('start_time') or 0,
+                'end_time': info_dict.get('end_time') or float('inf'),
+            }
+        elif not self.ranges and not self.chapters:
+            yield {}
+
+    @staticmethod
+    def _handle_negative_timestamp(time, info):
+        return max(info['duration'] + time, 0) if info.get('duration') and time < 0 else time
 
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
@@ -4749,31 +4266,6 @@ class GeoUtils:
             struct.pack('!L', random.randint(addr_min, addr_max))))
 
 
-class PerRequestProxyHandler(urllib.request.ProxyHandler):
-    def __init__(self, proxies=None):
-        # Set default handlers
-        for type in ('http', 'https'):
-            setattr(self, '%s_open' % type,
-                    lambda r, proxy='__noproxy__', type=type, meth=self.proxy_open:
-                        meth(r, proxy, type))
-        urllib.request.ProxyHandler.__init__(self, proxies)
-
-    def proxy_open(self, req, proxy, type):
-        req_proxy = req.headers.get('Ytdl-request-proxy')
-        if req_proxy is not None:
-            proxy = req_proxy
-            del req.headers['Ytdl-request-proxy']
-
-        if proxy == '__noproxy__':
-            return None  # No Proxy
-        if urllib.parse.urlparse(proxy).scheme.lower() in ('socks', 'socks4', 'socks4a', 'socks5'):
-            req.add_header('Ytdl-socks-proxy', proxy)
-            # yt-dlp's http/https handlers do wrapping the socket with socks
-            return None
-        return urllib.request.ProxyHandler.proxy_open(
-            self, req, proxy, type)
-
-
 # Both long_to_bytes and bytes_to_long are adapted from PyCrypto, which is
 # released into Public Domain
 # https://github.com/dlitz/pycrypto/blob/master/lib/Crypto/Util/number.py#L387
@@ -4947,10 +4439,12 @@ def write_xattr(path, key, value):
             raise XAttrMetadataError(e.errno, e.strerror)
         return
 
-    # UNIX Method 1. Use xattrs/pyxattrs modules
+    # UNIX Method 1. Use os.setxattr/xattrs/pyxattrs modules
 
     setxattr = None
-    if getattr(xattr, '_yt_dlp__identifier', None) == 'pyxattr':
+    if callable(getattr(os, 'setxattr', None)):
+        setxattr = os.setxattr
+    elif getattr(xattr, '_yt_dlp__identifier', None) == 'pyxattr':
         # Unicode arguments are not supported in pyxattr until version 0.5.0
         # See https://github.com/ytdl-org/youtube-dl/issues/5498
         if version_tuple(xattr.__version__) >= (0, 5, 0):
@@ -5098,20 +4592,25 @@ def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', 
 
 
 def clean_podcast_url(url):
-    return re.sub(r'''(?x)
+    url = re.sub(r'''(?x)
         (?:
             (?:
                 chtbl\.com/track|
                 media\.blubrry\.com| # https://create.blubrry.com/resources/podcast-media-download-statistics/getting-started/
-                play\.podtrac\.com
-            )/[^/]+|
+                play\.podtrac\.com|
+                chrt\.fm/track|
+                mgln\.ai/e
+            )(?:/[^/.]+)?|
             (?:dts|www)\.podtrac\.com/(?:pts/)?redirect\.[0-9a-z]{3,4}| # http://analytics.podtrac.com/how-to-measure
             flex\.acast\.com|
             pd(?:
                 cn\.co| # https://podcorn.com/analytics-prefix/
                 st\.fm # https://podsights.com/docs/
-            )/e
+            )/e|
+            [0-9]\.gum\.fm|
+            pscrb\.fm/rss/p
         )/''', '', url)
+    return re.sub(r'^\w+://(\w+://)', r'\1', url)
 
 
 _HEX_TABLE = '0123456789abcdef'
@@ -5422,77 +4921,6 @@ class Config:
         return self.parser.parse_args(self.all_args)
 
 
-class WebSocketsWrapper:
-    """Wraps websockets module to use in non-async scopes"""
-    pool = None
-
-    def __init__(self, url, headers=None, connect=True):
-        self.loop = asyncio.new_event_loop()
-        # XXX: "loop" is deprecated
-        self.conn = websockets.connect(
-            url, extra_headers=headers, ping_interval=None,
-            close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
-        if connect:
-            self.__enter__()
-        atexit.register(self.__exit__, None, None, None)
-
-    def __enter__(self):
-        if not self.pool:
-            self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
-        return self
-
-    def send(self, *args):
-        self.run_with_loop(self.pool.send(*args), self.loop)
-
-    def recv(self, *args):
-        return self.run_with_loop(self.pool.recv(*args), self.loop)
-
-    def __exit__(self, type, value, traceback):
-        try:
-            return self.run_with_loop(self.conn.__aexit__(type, value, traceback), self.loop)
-        finally:
-            self.loop.close()
-            self._cancel_all_tasks(self.loop)
-
-    # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
-    # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
-    @staticmethod
-    def run_with_loop(main, loop):
-        if not asyncio.iscoroutine(main):
-            raise ValueError(f'a coroutine was expected, got {main!r}')
-
-        try:
-            return loop.run_until_complete(main)
-        finally:
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            if hasattr(loop, 'shutdown_default_executor'):
-                loop.run_until_complete(loop.shutdown_default_executor())
-
-    @staticmethod
-    def _cancel_all_tasks(loop):
-        to_cancel = asyncio.all_tasks(loop)
-
-        if not to_cancel:
-            return
-
-        for task in to_cancel:
-            task.cancel()
-
-        # XXX: "loop" is removed in python 3.10+
-        loop.run_until_complete(
-            asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
-
-        for task in to_cancel:
-            if task.cancelled():
-                continue
-            if task.exception() is not None:
-                loop.call_exception_handler({
-                    'message': 'unhandled exception during asyncio.run() shutdown',
-                    'exception': task.exception(),
-                    'task': task,
-                })
-
-
 def merge_headers(*dicts):
     """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
@@ -5723,9 +5151,9 @@ class FormatSorter:
         'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
 
         'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
-        'br': {'type': 'multiple', 'field': ('tbr', 'vbr', 'abr'),
+        'br': {'type': 'multiple', 'field': ('tbr', 'vbr', 'abr'), 'convert': 'float_none',
                'function': lambda it: next(filter(None, it), None)},
-        'size': {'type': 'multiple', 'field': ('filesize', 'fs_approx'),
+        'size': {'type': 'multiple', 'field': ('filesize', 'fs_approx'), 'convert': 'bytes',
                  'function': lambda it: next(filter(None, it), None)},
         'ext': {'type': 'combined', 'field': ('vext', 'aext')},
         'res': {'type': 'multiple', 'field': ('height', 'width'),
@@ -5969,3 +5397,33 @@ class FormatSorter:
             format['tbr'] = try_call(lambda: format['vbr'] + format['abr']) or None
 
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
+
+
+# XXX: Temporary
+class _YDLLogger:
+    def __init__(self, ydl=None):
+        self._ydl = ydl
+
+    def debug(self, message):
+        if self._ydl:
+            self._ydl.write_debug(message)
+
+    def info(self, message):
+        if self._ydl:
+            self._ydl.to_screen(message)
+
+    def warning(self, message, *, once=False):
+        if self._ydl:
+            self._ydl.report_warning(message, once)
+
+    def error(self, message, *, is_error=True):
+        if self._ydl:
+            self._ydl.report_error(message, is_error=is_error)
+
+    def stdout(self, message):
+        if self._ydl:
+            self._ydl.to_stdout(message)
+
+    def stderr(self, message):
+        if self._ydl:
+            self._ydl.to_stderr(message)

@@ -12,9 +12,11 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     str_or_none,
+    traverse_obj,
     try_get,
     unescapeHTML,
     update_url_query,
+    url_or_none,
 )
 
 
@@ -85,6 +87,15 @@ class ABCIE(InfoExtractor):
             'uploader': 'Behind the News',
             'uploader_id': 'behindthenews',
         }
+    }, {
+        'url': 'https://www.abc.net.au/news/2023-06-25/wagner-boss-orders-troops-back-to-bases-to-avoid-bloodshed/102520540',
+        'info_dict': {
+            'id': '102520540',
+            'title': 'Wagner Group retreating from Russia, leader Prigozhin to move to Belarus',
+            'ext': 'mp4',
+            'description': 'Wagner troops leave Rostov-on-Don and\xa0Yevgeny Prigozhin will move to Belarus under a deal brokered by Belarusian President Alexander Lukashenko to end the mutiny.',
+            'thumbnail': 'https://live-production.wcms.abc-cdn.net.au/0c170f5b57f0105c432f366c0e8e267b?impolicy=wcms_crop_resize&cropH=2813&cropW=5000&xPos=0&yPos=249&width=862&height=485',
+        }
     }]
 
     def _real_extract(self, url):
@@ -107,7 +118,7 @@ class ABCIE(InfoExtractor):
                 video = True
 
         if mobj is None:
-            mobj = re.search(r'(?P<type>)"sources": (?P<json_data>\[[^\]]+\]),', webpage)
+            mobj = re.search(r'(?P<type>)"(?:sources|files|renditions)":\s*(?P<json_data>\[[^\]]+\])', webpage)
             if mobj is None:
                 mobj = re.search(
                     r'inline(?P<type>Video|Audio|YouTube)Data\.push\((?P<json_data>[^)]+)\);',
@@ -121,7 +132,8 @@ class ABCIE(InfoExtractor):
             urls_info = self._parse_json(
                 mobj.group('json_data'), video_id, transform_source=js_to_json)
             youtube = mobj.group('type') == 'YouTube'
-            video = mobj.group('type') == 'Video' or urls_info[0]['contentType'] == 'video/mp4'
+            video = mobj.group('type') == 'Video' or traverse_obj(
+                urls_info, (0, ('contentType', 'MIMEType')), get_all=False) == 'video/mp4'
 
         if not isinstance(urls_info, list):
             urls_info = [urls_info]
@@ -169,20 +181,103 @@ class ABCIViewIE(InfoExtractor):
     _VALID_URL = r'https?://iview\.abc\.net\.au/(?:[^/]+/)*video/(?P<id>[^/?#]+)'
     _GEO_COUNTRIES = ['AU']
 
-    # ABC iview programs are normally available for 14 days only.
     _TESTS = [{
+        'url': 'https://iview.abc.net.au/show/utopia/series/1/video/CO1211V001S00',
+        'md5': '52a942bfd7a0b79a6bfe9b4ce6c9d0ed',
+        'info_dict': {
+            'id': 'CO1211V001S00',
+            'ext': 'mp4',
+            'title': 'Series 1 Ep 1 Wood For The Trees',
+            'series': 'Utopia',
+            'description': 'md5:0cfb2c183c1b952d1548fd65c8a95c00',
+            'upload_date': '20230726',
+            'uploader_id': 'abc1',
+            'series_id': 'CO1211V',
+            'episode_id': 'CO1211V001S00',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 1,
+            'episode': 'Wood For The Trees',
+            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/co/CO1211V001S00_5ad8353f4df09_1280.jpg',
+            'timestamp': 1690403700,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'note': 'No episode name',
         'url': 'https://iview.abc.net.au/show/gruen/series/11/video/LE1927H001S00',
         'md5': '67715ce3c78426b11ba167d875ac6abf',
         'info_dict': {
             'id': 'LE1927H001S00',
             'ext': 'mp4',
-            'title': "Series 11 Ep 1",
-            'series': "Gruen",
+            'title': 'Series 11 Ep 1',
+            'series': 'Gruen',
             'description': 'md5:52cc744ad35045baf6aded2ce7287f67',
             'upload_date': '20190925',
             'uploader_id': 'abc1',
+            'series_id': 'LE1927H',
+            'episode_id': 'LE1927H001S00',
+            'season_number': 11,
+            'season': 'Season 11',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/le/LE1927H001S00_5d954fbd79e25_1280.jpg',
             'timestamp': 1569445289,
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'note': 'No episode number',
+        'url': 'https://iview.abc.net.au/show/four-corners/series/2022/video/NC2203H039S00',
+        'md5': '77cb7d8434440e3b28fbebe331c2456a',
+        'info_dict': {
+            'id': 'NC2203H039S00',
+            'ext': 'mp4',
+            'title': 'Series 2022 Locking Up Kids',
+            'series': 'Four Corners',
+            'description': 'md5:54829ca108846d1a70e1fcce2853e720',
+            'upload_date': '20221114',
+            'uploader_id': 'abc1',
+            'series_id': 'NC2203H',
+            'episode_id': 'NC2203H039S00',
+            'season_number': 2022,
+            'season': 'Season 2022',
+            'episode_number': None,
+            'episode': 'Locking Up Kids',
+            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/nc/NC2203H039S00_636d8a0944a22_1920.jpg',
+            'timestamp': 1668460497,
+
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'note': 'No episode name or number',
+        'url': 'https://iview.abc.net.au/show/landline/series/2021/video/RF2004Q043S00',
+        'md5': '2e17dec06b13cc81dc119d2565289396',
+        'info_dict': {
+            'id': 'RF2004Q043S00',
+            'ext': 'mp4',
+            'title': 'Series 2021',
+            'series': 'Landline',
+            'description': 'md5:c9f30d9c0c914a7fd23842f6240be014',
+            'upload_date': '20211205',
+            'uploader_id': 'abc1',
+            'series_id': 'RF2004Q',
+            'episode_id': 'RF2004Q043S00',
+            'season_number': 2021,
+            'season': 'Season 2021',
+            'episode_number': None,
+            'episode': None,
+            'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/rf/RF2004Q043S00_61a950639dbc0_1920.jpg',
+            'timestamp': 1638710705,
+
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
             'skip_download': True,
         },
@@ -244,6 +339,8 @@ class ABCIViewIE(InfoExtractor):
             'episode_number': int_or_none(self._search_regex(
                 r'\bEp\s+(\d+)\b', title, 'episode number', default=None)),
             'episode_id': house_number,
+            'episode': self._search_regex(
+                r'^(?:Series\s+\d+)?\s*(?:Ep\s+\d+)?\s*(.*)$', title, 'episode', default='') or None,
             'uploader_id': video_params.get('channel'),
             'formats': formats,
             'subtitles': subtitles,
@@ -283,6 +380,18 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'noplaylist': True,
             'skip_download': 'm3u8',
         },
+    }, {
+        # 'videoEpisodes' is a dict with `items` key
+        'url': 'https://iview.abc.net.au/show/7-30-mark-humphries-satire',
+        'info_dict': {
+            'id': '178458-0',
+            'title': 'Episodes',
+            'description': 'Satirist Mark Humphries brings his unique perspective on current political events for 7.30.',
+            'series': '7.30 Mark Humphries Satire',
+            'season': 'Episodes',
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+        },
+        'playlist_count': 15,
     }]
 
     def _real_extract(self, url):
@@ -302,12 +411,14 @@ class ABCIViewShowSeriesIE(InfoExtractor):
         series = video_data['selectedSeries']
         return {
             '_type': 'playlist',
-            'entries': [self.url_result(episode['shareUrl'])
-                        for episode in series['_embedded']['videoEpisodes']],
+            'entries': [self.url_result(episode_url, ABCIViewIE)
+                        for episode_url in traverse_obj(series, (
+                            '_embedded', 'videoEpisodes', (None, 'items'), ..., 'shareUrl', {url_or_none}))],
             'id': series.get('id'),
             'title': dict_get(series, ('title', 'displaySubtitle')),
             'description': series.get('description'),
             'series': dict_get(series, ('showTitle', 'displayTitle')),
             'season': dict_get(series, ('title', 'displaySubtitle')),
-            'thumbnail': series.get('thumbnail'),
+            'thumbnail': traverse_obj(
+                series, 'thumbnail', ('images', lambda _, v: v['name'] == 'seriesThumbnail', 'url'), get_all=False),
         }

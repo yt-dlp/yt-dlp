@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
-
+from ..utils.networking import clean_proxies
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..utils import (
@@ -22,80 +22,26 @@ from ..utils import (
     int_or_none,
     intlist_to_bytes,
     OnDemandPagedList,
-    request_to_url,
     time_seconds,
     traverse_obj,
     update_url_query,
 )
 
-# NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
-
-def add_opener(ydl, handler):
-    ''' Add a handler for opening URLs, like _download_webpage '''
+def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
+    """Add a handler for opening URLs, like _download_webpage"""
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    ydl._opener.add_handler(handler)
-
-
-def remove_opener(ydl, handler):
-    '''
-    Remove handler(s) for opening URLs
-    @param handler Either handler object itself or handler type.
-    Specifying handler type will remove all handler which isinstance returns True.
-    '''
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    opener = ydl._opener
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    if isinstance(handler, (type, tuple)):
-        find_cp = lambda x: isinstance(x, handler)
-    else:
-        find_cp = lambda x: x is handler
-
-    removed = []
-    for meth in dir(handler):
-        if meth in ["redirect_request", "do_open", "proxy_open"]:
-            # oops, coincidental match
-            continue
-
-        i = meth.find("_")
-        protocol = meth[:i]
-        condition = meth[i + 1:]
-
-        if condition.startswith("error"):
-            j = condition.find("_") + i + 1
-            kind = meth[j + 1:]
-            try:
-                kind = int(kind)
-            except ValueError:
-                pass
-            lookup = opener.handle_error.get(protocol, {})
-            opener.handle_error[protocol] = lookup
-        elif condition == "open":
-            kind = protocol
-            lookup = opener.handle_open
-        elif condition == "response":
-            kind = protocol
-            lookup = opener.process_response
-        elif condition == "request":
-            kind = protocol
-            lookup = opener.process_request
-        else:
-            continue
-
-        handlers = lookup.setdefault(kind, [])
-        if handlers:
-            handlers[:] = [x for x in handlers if not find_cp(x)]
-
-        removed.append(x for x in handlers if find_cp(x))
-
-    if removed:
-        for x in opener.handlers:
-            if find_cp(x):
-                x.add_parent(None)
-        opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
+    rh = ydl._request_director.handlers['Urllib']
+    if 'abematv-license' in rh._SUPPORTED_URL_SCHEMES:
+        return
+    headers = ydl.params['http_headers'].copy()
+    proxies = ydl.proxies.copy()
+    clean_proxies(proxies, headers)
+    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=proxies)
+    assert isinstance(opener, urllib.request.OpenerDirector)
+    opener.add_handler(handler)
+    rh._SUPPORTED_URL_SCHEMES = (*rh._SUPPORTED_URL_SCHEMES, 'abematv-license')
 
 
 class AbemaLicenseHandler(urllib.request.BaseHandler):
@@ -137,11 +83,11 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
         return intlist_to_bytes(aes_ecb_decrypt(encvideokey, enckey))
 
     def abematv_license_open(self, url):
-        url = request_to_url(url)
+        url = url.get_full_url() if isinstance(url, urllib.request.Request) else url
         ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={
-            'Content-Length': len(response_data),
+            'Content-Length': str(len(response_data)),
         }, url=url, code=200)
 
 
@@ -213,10 +159,7 @@ class AbemaTVBaseIE(InfoExtractor):
             })
         AbemaTVBaseIE._USERTOKEN = user_data['token']
 
-        # don't allow adding it 2 times or more, though it's guarded
-        remove_opener(self._downloader, AbemaLicenseHandler)
         add_opener(self._downloader, AbemaLicenseHandler(self))
-
         return self._USERTOKEN
 
     def _get_media_token(self, invalidate=False, to_show=True):
@@ -268,7 +211,8 @@ class AbemaTVIE(AbemaTVBaseIE):
             'id': '194-25_s2_p1',
             'title': '第1話 「チーズケーキ」　「モーニング再び」',
             'series': '異世界食堂２',
-            'series_number': 2,
+            'season': 'シーズン2',
+            'season_number': 2,
             'episode': '第1話 「チーズケーキ」　「モーニング再び」',
             'episode_number': 1,
         },
@@ -404,12 +348,12 @@ class AbemaTVIE(AbemaTVBaseIE):
                     )?
                 ''', r'\1', og_desc)
 
-        # canonical URL may contain series and episode number
+        # canonical URL may contain season and episode number
         mobj = re.search(r's(\d+)_p(\d+)$', canonical_url)
         if mobj:
             seri = int_or_none(mobj.group(1), default=float('inf'))
             epis = int_or_none(mobj.group(2), default=float('inf'))
-            info['series_number'] = seri if seri < 100 else None
+            info['season_number'] = seri if seri < 100 else None
             # some anime like Detective Conan (though not available in AbemaTV)
             # has more than 1000 episodes (1026 as of 2021/11/15)
             info['episode_number'] = epis if epis < 2000 else None
@@ -438,7 +382,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 self.report_warning('This is a premium-only stream')
             info.update(traverse_obj(api_response, {
                 'series': ('series', 'title'),
-                'season': ('season', 'title'),
+                'season': ('season', 'name'),
                 'season_number': ('season', 'sequence'),
                 'episode_number': ('episode', 'number'),
             }))

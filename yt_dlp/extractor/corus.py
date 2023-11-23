@@ -41,7 +41,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
                         )
                     '''
     _TESTS = [{
-        'url': 'http://www.hgtv.ca/shows/bryan-inc/videos/movie-night-popcorn-with-bryan-870923331648/',
+        'url': 'https://www.hgtv.ca/video/bryan-inc/movie-night-popcorn-with-bryan/870923331648/',
         'info_dict': {
             'id': '870923331648',
             'ext': 'mp4',
@@ -54,6 +54,7 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             'skip_download': True,
         },
         'expected_warnings': ['Failed to parse JSON'],
+        # FIXME: yt-dlp wrongly raises for geo restriction
     }, {
         'url': 'http://www.foodnetwork.ca/shows/chopped/video/episode/chocolate-obsession/video.html?v=872683587753',
         'only_matching': True,
