@@ -24,7 +24,6 @@ class MonstercatIE(InfoExtractor):
             'title': 'The Secret Language of Trees',
             'id': '742779548009',
             'thumbnail': 'https://www.monstercat.com/release/742779548009/cover',
-            'release_year': 2023,
             'release_date': '20230711',
             'album': 'The Secret Language of Trees',
             'album_artist': 'BT',
@@ -71,7 +70,6 @@ class MonstercatIE(InfoExtractor):
             'thumbnail': f'https://www.monstercat.com/release/{url_id}/cover',
             'album_artist': try_call(
                 lambda: get_element_by_class('h-normal text-uppercase mb-desktop-medium mb-smallish', html)),
-            'release_year': int_or_none(date[:4]) if date else None,
             'release_date': date,
         }
 
