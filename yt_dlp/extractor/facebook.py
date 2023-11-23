@@ -434,9 +434,10 @@ class FacebookIE(InfoExtractor):
             for caption in traverse_obj(captions, (
                 {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
             ):
+                lang = caption.get('localized_language') or ''
                 subs = {
                     'url': caption['captions_url'],
-                    'name': join_nonempty('localized_language', 'localized_country', from_dict=caption),
+                    'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
                 }
                 if caption.get('localized_creation_method') or is_video_broadcast:
                     automatic_captions.setdefault(caption['locale'], []).append(subs)
