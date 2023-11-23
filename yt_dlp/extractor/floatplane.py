@@ -174,9 +174,8 @@ class FloatplaneIE(InfoExtractor):
             })
 
         uploader_url = format_field(traverse_obj(
-            post_data, ('creator', 'urlname')), template='https://www.floatplane.com/channel/%s/home', default=None)
-        channel_url = format_field(traverse_obj(
-            post_data, ('channel', 'urlname')), template=f'{uploader_url}/%s', default=None)
+            post_data, 'creator'), 'urlname', 'https://www.floatplane.com/channel/%s/home', default=None)
+        channel_url = urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname')))
 
         post_info = {
             'id': post_id,
@@ -245,7 +244,7 @@ class FloatplaneChannelIE(InfoExtractor):
             query['channel'] = channel_id
         page_data = self._download_json(
             'https://www.floatplane.com/api/v3/content/creator', display_id,
-            query=query, note=f'Downloading page {page+1}')
+            query=query, note=f'Downloading page {page + 1}')
         for post in page_data or []:
             yield self.url_result(
                 f'https://www.floatplane.com/post/{post["id"]}',
@@ -260,7 +259,7 @@ class FloatplaneChannelIE(InfoExtractor):
             'https://www.floatplane.com/api/v3/creator/named', display_id, query={'creatorURL[0]': creator})[0]
 
         channel_data = traverse_obj(
-            creator_data, ('channels', lambda _, x: x['urlname'] == channel, {dict}), get_all=False) or {}
+            creator_data, ('channels', lambda _, v: v['urlname'] == channel, {dict}), get_all=False) or {}
 
         return self.playlist_result(OnDemandPagedList(functools.partial(
             self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE), display_id,
