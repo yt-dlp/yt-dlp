@@ -149,7 +149,7 @@ class MediaStreamIE(MediaStreamBaseIE):
                         params['access_token'] = qs['access_token'][0]
 
                 if len(params):
-                    src = f"{src}?{urlencode(params)}"
+                    src = f'{src}?{urlencode(params)}'
 
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(src, video_id)
                 formats.extend(fmts)
