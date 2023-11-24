@@ -8,6 +8,8 @@ from ..utils import (
     urljoin,
 )
 
+from urllib.parse import urlparse, urlencode, parse_qs
+
 
 class MediaStreamBaseIE(InfoExtractor):
     _EMBED_BASE_URL = 'https://mdstrm.com/embed'
@@ -108,7 +110,9 @@ class MediaStreamIE(MediaStreamBaseIE):
 
         for message in [
             'Debido a tu ubicación no puedes ver el contenido',
-            'You are not allowed to watch this video: Geo Fencing Restriction'
+            'You are not allowed to watch this video: Geo Fencing Restriction',
+            'Este contenido no está disponible en tu zona geográfica.',
+            'El contenido sólo está disponible dentro de',
         ]:
             if message in webpage:
                 self.raise_geo_restricted()
@@ -118,7 +122,36 @@ class MediaStreamIE(MediaStreamBaseIE):
         formats, subtitles = [], {}
         for video_format in player_config['src']:
             if video_format == 'hls':
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(player_config['src'][video_format], video_id)
+                src = player_config['src'][video_format]
+                params = {}
+
+                uid = self._search_regex(r'window\.MDSTRMUID\s*=\s*["\']([^"\']+)["\'];', webpage, 'uid', fatal = False, default = None)
+                if uid:
+                    params['uid'] = uid
+
+                sid = self._search_regex(r'window\.MDSTRMSID\s*=\s*["\']([^"\']+)["\'];', webpage, 'sid', fatal = False, default = None)
+                if sid:
+                    params['sid'] = sid
+
+                pid = self._search_regex(r'window\.MDSTRMPID\s*=\s*["\']([^"\']+)["\'];', webpage, 'pid', fatal = False, default = None)
+                if pid:
+                    params['pid'] = pid
+
+                version = self._search_regex(r'window\.VERSION\s*=\s*["\']([^"\']+)["\'];', webpage, 'version', fatal = False, default = None)
+                if version:
+                    params['at'] = 'web-app'
+                    params['av'] = version
+
+                parsed = urlparse(url)
+                if len(parsed.query) > 0:
+                    qs = parse_qs(parsed.query)
+                    if 'access_token' in qs and len(qs['access_token']) > 0:
+                        params['access_token'] = qs['access_token'][0]
+
+                if len(params):
+                    src = f"{src}?{urlencode(params)}"
+
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(src, video_id)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif video_format == 'mpd':
