@@ -125,19 +125,19 @@ class MediaStreamIE(MediaStreamBaseIE):
                 src = player_config['src'][video_format]
                 params = {}
 
-                uid = self._search_regex(r'window\.MDSTRMUID\s*=\s*["\']([^"\']+)["\'];', webpage, 'uid', fatal = False, default = None)
+                uid = self._search_regex(r'window\.MDSTRMUID\s*=\s*["\']([^"\']+)["\'];', webpage, 'uid', fatal=False, default=None)
                 if uid:
                     params['uid'] = uid
 
-                sid = self._search_regex(r'window\.MDSTRMSID\s*=\s*["\']([^"\']+)["\'];', webpage, 'sid', fatal = False, default = None)
+                sid = self._search_regex(r'window\.MDSTRMSID\s*=\s*["\']([^"\']+)["\'];', webpage, 'sid', fatal=False, default=None)
                 if sid:
                     params['sid'] = sid
 
-                pid = self._search_regex(r'window\.MDSTRMPID\s*=\s*["\']([^"\']+)["\'];', webpage, 'pid', fatal = False, default = None)
+                pid = self._search_regex(r'window\.MDSTRMPID\s*=\s*["\']([^"\']+)["\'];', webpage, 'pid', fatal=False, default=None)
                 if pid:
                     params['pid'] = pid
 
-                version = self._search_regex(r'window\.VERSION\s*=\s*["\']([^"\']+)["\'];', webpage, 'version', fatal = False, default = None)
+                version = self._search_regex(r'window\.VERSION\s*=\s*["\']([^"\']+)["\'];', webpage, 'version', fatal=False, default=None)
                 if version:
                     params['at'] = 'web-app'
                     params['av'] = version
