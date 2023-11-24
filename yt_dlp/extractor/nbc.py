@@ -57,6 +57,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                     'Series/The Tonight Show Starring Jimmy Fallon'
                 ],
                 'creator': None,
+                'media_type': 'Full Episode',
             },
             'params': {
                 'skip_download': 'm3u8',
@@ -137,7 +138,8 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'thumbnail': r're:https?://.+\.jpg',
                 'categories': [
                     'Series/Quantum Leap 2022',
-                ]
+                ],
+                'media_type': 'Highlight',
             },
             'params': {
                 'skip_download': 'm3u8',

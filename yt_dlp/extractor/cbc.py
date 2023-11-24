@@ -197,6 +197,7 @@ class CBCPlayerIE(InfoExtractor):
             'series': 'All in a Weekend Montreal',
             'season': 'Season 2015',
             'season_number': 2015,
+            'media_type': 'Excerpt',
         },
     }, {
         'url': 'http://www.cbc.ca/player/play/2164402062',
@@ -221,6 +222,7 @@ class CBCPlayerIE(InfoExtractor):
                 'cancer',
             ],
             'creator': 'Allison Johnson',
+            'media_type': 'Excerpt',
         },
     }, {
         # Has subtitles
@@ -245,6 +247,7 @@ class CBCPlayerIE(InfoExtractor):
             'tags': 'count:1',
             'creator': 'News',
             'location': 'Canada',
+            'media_type': 'Full Program',
         },
     }]
 

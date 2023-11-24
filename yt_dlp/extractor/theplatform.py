@@ -13,7 +13,6 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    str_or_none,
     parse_qs,
     unsmuggle_url,
     update_url_query,
@@ -23,7 +22,6 @@ from ..utils import (
     traverse_obj,
     update_url,
     urlhandle_detect_ext,
-    str_to_int,
 )
 from ..networking import HEADRequest
 
@@ -106,22 +104,13 @@ class ThePlatformBaseIE(OnceIE):
                 _add_chapter(chapter.get('startTime'), chapter.get('endTime'))
             _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
 
-        location = None
-        series = None
-        season_number = None
-        # The following can be uncommented as soon as #7838 is merged:
-        # media_type = None
-
         def extract_site_specific_field(field):
             # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
-            return next((info[k] for k in info if k.endswith(f'${field}')), None)
-        
-        location = extract_site_specific_field('region')
-        series = extract_site_specific_field('show')
-        season_number = int_or_none(extract_site_specific_field('seasonNumber'))
-            # the following can be uncommented as soon as #7838 is merged:
-            # if (re.match('.*\programmingType', key)) or (re.match('.*\type', key)):
-                # media_type = info[key]
+            return next((info[k] for k in info if k.endswith(f'${field}') and info[k] != ''), None)
+
+        info_media_type = extract_site_specific_field('programmingType')
+        if not info_media_type:
+            info_media_type = extract_site_specific_field('type')
 
         return {
             'title': info['title'],
@@ -136,11 +125,10 @@ class ThePlatformBaseIE(OnceIE):
             'categories': traverse_obj(info, (
                 'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
             'tags': traverse_obj(info, ('keywords', {lambda x: re.split(r'[;,]\s?', x) if x else None})),
-            'location': str_or_none(location) if location != '' else None,
-            'series': str_or_none(series) if series != '' else None,
-            'season_number': int_or_none(season_number),
-            # The following can be uncommented as soon as #7838 is merged and the matching line above is uncommented
-            # 'media_type': media_type
+            'location': extract_site_specific_field('region'),
+            'series': extract_site_specific_field('show'),
+            'season_number': int_or_none(extract_site_specific_field('seasonNumber')),
+            'media_type': info_media_type,
         }
 
     def _extract_theplatform_metadata(self, path, video_id):
