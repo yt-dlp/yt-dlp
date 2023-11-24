@@ -517,13 +517,13 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert b'test3: test3' in data
 
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
-    def test_timeout(self, handler):
+    def test_read_timeout(self, handler):
         with handler() as rh:
             # Default timeout is 20 seconds, so this should go through
             validate_and_send(
-                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_3'))
+                rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1'))
 
-        with handler(timeout=0.5) as rh:
+        with handler(timeout=0.01) as rh:
             with pytest.raises(TransportError):
                 validate_and_send(
                     rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1'))
@@ -531,6 +531,25 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             # Per request timeout, should override handler timeout
             validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/timeout_1', extensions={'timeout': 4}))
+
+    @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
+    def test_connect_timeout(self, handler):
+        # nothing should be listening on this port
+        connect_timeout_url = 'http://10.255.255.255'
+        with handler(timeout=0.01) as rh:
+            now = time.time()
+            with pytest.raises(TransportError):
+                validate_and_send(
+                    rh, Request(connect_timeout_url))
+            assert 0.01 <= time.time() - now < 20
+
+        with handler() as rh:
+            with pytest.raises(TransportError):
+                # Per request timeout, should override handler timeout
+                now = time.time()
+                validate_and_send(
+                    rh, Request(connect_timeout_url, extensions={'timeout': 0.01}))
+                assert 0.01 <= time.time() - now < 20
 
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
     def test_source_address(self, handler):

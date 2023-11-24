@@ -1,4 +1,5 @@
 import io
+import math
 
 from ._helper import InstanceStoreMixin, select_proxy
 from .common import (
@@ -153,6 +154,18 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 session.curl.setopt(CurlOpt.SSLKEY, client_certificate_key.encode())
             if client_certificate_password:
                 session.curl.setopt(CurlOpt.KEYPASSWD, client_certificate_password.encode())
+
+        timeout = float(request.extensions.get('timeout') or self.timeout)
+
+        # set CURLOPT_LOW_SPEED_LIMIT and CURLOPT_LOW_SPEED_TIME to act as a read timeout. [1]
+        # curl_cffi does not currently do this [2]
+        # Note that CURLOPT_LOW_SPEED_TIME is in seconds, so we need to round up to the nearest second [3]
+        # [1] https://unix.stackexchange.com/a/305311
+        # [2] https://github.com/yifeikong/curl_cffi/issues/156
+        # [3] https://curl.se/libcurl/c/CURLOPT_LOW_SPEED_TIME.html
+        session.curl.setopt(CurlOpt.LOW_SPEED_LIMIT, 1)  # 1 byte per second
+        session.curl.setopt(CurlOpt.LOW_SPEED_TIME, math.ceil(timeout))
+
         try:
             curl_response = session.request(
                 method=request.method,
@@ -161,7 +174,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 data=request.data,
                 verify=self.verify,
                 max_redirects=5,
-                timeout=request.extensions.get('timeout') or self.timeout,
+                timeout=timeout,
                 impersonate=self._get_mapped_target(request),
                 interface=self.source_address,
                 stream=True
