@@ -121,7 +121,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Self updater**: The releases can be updated using `yt-dlp -U`, and downgraded using `--update-to` if required
 
-* **Nightly builds**: [Automated nightly builds](#update-channels) can be used with `--update-to nightly`
+* **Automated builds**: [Nightly/master builds](#update-channels) can be used with `--update-to nightly` and `--update-to master`
 
 See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
@@ -131,7 +131,7 @@ Features marked with a **\*** have been back-ported to youtube-dl
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
 
-* yt-dlp supports only [Python 3.7+](## "Windows 7"), and *may* remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
+* yt-dlp supports only [Python 3.8+](## "Windows 7"), and *may* remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
 * The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
 * `avconv` is not supported as an alternative to `ffmpeg`
 * yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
@@ -157,15 +157,16 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
 * yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: [~~aria2c~~](https://github.com/yt-dlp/yt-dlp/issues/5931)). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is
 * yt-dlp versions between 2021.09.01 and 2023.01.02 applies `--match-filter` to nested playlists. This was an unintentional side-effect of [8f18ac](https://github.com/yt-dlp/yt-dlp/commit/8f18aca8717bb0dd49054555af8d386e5eda3a88) and is fixed in [d7b460](https://github.com/yt-dlp/yt-dlp/commit/d7b460d0e5fc710950582baed2e3fc616ed98a80). Use `--compat-options playlist-match-filter` to revert this
+* yt-dlp versions between 2021.11.10 and 2023.06.21 estimated `filesize_approx` values for fragmented/manifest formats. This was added for convenience in [f2fe69](https://github.com/yt-dlp/yt-dlp/commit/f2fe69c7b0d208bdb1f6292b4ae92bc1e1a7444a), but was reverted in [0dff8e](https://github.com/yt-dlp/yt-dlp/commit/0dff8e4d1e6e9fb938f4256ea9af7d81f42fd54f) due to the potentially extreme inaccuracy of the estimated values. Use `--compat-options manifest-filesize-approx` to keep extracting the estimated values
 * yt-dlp uses modern http client backends such as `requests`. Use `--compat-options prefer-legacy-http-handler` to prefer the legacy http handler (`urllib`) to be used for standard http requests.
 
 For ease of use, a few more compat options are available:
 
 * `--compat-options all`: Use all compat options (Do NOT use)
-* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter`
-* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter`
+* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx`
+* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler`. Use this to enable all future compat options
+* `--compat-options 2022`: Same as `--compat-options playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -192,9 +193,11 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 
 <a id="update-channels"/>
 
-There are currently two release channels for binaries, `stable` and `nightly`.
-`stable` is the default channel, and many of its changes have been tested by users of the nightly channel.
-The `nightly` channel has releases built after each push to the master branch, and will have the most recent fixes and additions, but also have more risk of regressions. They are available in [their own repo](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases).
+There are currently three release channels for binaries: `stable`, `nightly` and `master`.
+
+* `stable` is the default channel, and many of its changes have been tested by users of the `nightly` and `master` channels.
+* The `nightly` channel has releases scheduled to build every day around midnight UTC, for a snapshot of the project's new patches and changes. This is the **recommended channel for regular users** of yt-dlp. The `nightly` releases are available from [yt-dlp/yt-dlp-nightly-builds](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases) or as development releases of the `yt-dlp` PyPI package (which can be installed with pip's `--pre` flag).
+* The `master` channel features releases that are built after each push to the master branch, and these will have the very latest fixes and additions, but may also be more prone to regressions. They are available from [yt-dlp/yt-dlp-master-builds](https://github.com/yt-dlp/yt-dlp-master-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
 `--update-to CHANNEL` can be used to switch to a different channel when a newer version is available. `--update-to [CHANNEL@]TAG` can also be used to upgrade or downgrade to specific tags from a channel.
@@ -202,10 +205,19 @@ When using `--update`/`-U`, a release binary will only update to its current cha
 You may also use `--update-to <repository>` (`<owner>/<repository>`) to update to a channel on a completely different repository. Be careful with what repository you are updating to though, there is no verification done for binaries from different repositories.
 
 Example usage:
-* `yt-dlp --update-to nightly` change to `nightly` channel and update to its latest release
-* `yt-dlp --update-to stable@2023.02.17` upgrade/downgrade to release to `stable` channel tag `2023.02.17`
-* `yt-dlp --update-to 2023.01.06` upgrade/downgrade to tag `2023.01.06` if it exists on the current channel
-* `yt-dlp --update-to example/yt-dlp@2023.03.01` upgrade/downgrade to the release from the `example/yt-dlp` repository, tag `2023.03.01`
+* `yt-dlp --update-to master` switch to the `master` channel and update to its latest release
+* `yt-dlp --update-to stable@2023.07.06` upgrade/downgrade to release to `stable` channel tag `2023.07.06`
+* `yt-dlp --update-to 2023.10.07` upgrade/downgrade to tag `2023.10.07` if it exists on the current channel
+* `yt-dlp --update-to example/yt-dlp@2023.09.24` upgrade/downgrade to the release from the `example/yt-dlp` repository, tag `2023.09.24`
+
+**Important**: Any user experiencing an issue with the `stable` release should install or update to the `nightly` release before submitting a bug report:
+```
+# To update to nightly from stable executable/binary:
+yt-dlp --update-to nightly
+
+# To install nightly with pip:
+python -m pip install -U --pre yt-dlp
+```
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
@@ -254,7 +266,7 @@ gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
 **Note**: The manpages, shell completion (autocomplete) files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
-Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
+Python versions 3.8+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
 <!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
@@ -322,7 +334,7 @@ On some systems, you may need to use `py` or `python` instead of `python3`.
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
-You will need the build tools `python` (3.7+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
+You will need the build tools `python` (3.8+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
 
 After installing these, simply run `make`.
 
@@ -368,7 +380,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     CHANNEL can be a repository as well. CHANNEL
                                     and TAG default to "stable" and "latest"
                                     respectively if omitted; See "UPDATE" for
-                                    details. Supported channels: stable, nightly
+                                    details. Supported channels: stable,
+                                    nightly, master
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails

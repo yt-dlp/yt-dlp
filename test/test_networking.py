@@ -52,6 +52,8 @@ from yt_dlp.networking.exceptions import (
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict, std_headers
 
+from test.conftest import validate_and_send
+
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -277,11 +279,6 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._headers_buffer = []
 
         self._headers_buffer.append(f'{keyword}: {value}\r\n'.encode())
-
-
-def validate_and_send(rh, req):
-    rh.validate(req)
-    return rh.send(req)
 
 
 class TestRequestHandlerBase:
@@ -889,8 +886,9 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
     ])
     @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
-        from urllib3.response import HTTPResponse as Urllib3Response
         from requests.models import Response as RequestsResponse
+        from urllib3.response import HTTPResponse as Urllib3Response
+
         from yt_dlp.networking._requests import RequestsResponseAdapter
         requests_res = RequestsResponse()
         requests_res.raw = Urllib3Response(body=b'', status=200)
@@ -984,6 +982,10 @@ class TestRequestHandlerValidation:
             ('http', False, {}),
             ('https', False, {}),
         ]),
+        ('Websockets', [
+            ('ws', False, {}),
+            ('wss', False, {}),
+        ]),
         ('CurlCFFI', [
             ('http', False, {}),
             ('https', False, {}),
@@ -994,7 +996,7 @@ class TestRequestHandlerValidation:
 
     PROXY_SCHEME_TESTS = [
         # scheme, expected to fail
-        ('Urllib', [
+        ('Urllib', 'http', [
             ('http', False),
             ('https', UnsupportedRequest),
             ('socks4', False),
@@ -1003,7 +1005,7 @@ class TestRequestHandlerValidation:
             ('socks5h', False),
             ('socks', UnsupportedRequest),
         ]),
-        ('Requests', [
+        ('Requests', 'http', [
             ('http', False),
             ('https', False),
             ('socks4', False),
@@ -1019,8 +1021,11 @@ class TestRequestHandlerValidation:
             ('socks5', False),
             ('socks5h', False),
         ]),
-        (NoCheckRH, [('http', False)]),
-        (HTTPSupportedRH, [('http', UnsupportedRequest)]),
+        (NoCheckRH, 'http', [('http', False)]),
+        (HTTPSupportedRH, 'http', [('http', UnsupportedRequest)]),
+        ('Websockets', 'ws', [('http', UnsupportedRequest)]),
+        (NoCheckRH, 'http', [('http', False)]),
+        (HTTPSupportedRH, 'http', [('http', UnsupportedRequest)]),
     ]
 
     PROXY_KEY_TESTS = [
@@ -1043,7 +1048,7 @@ class TestRequestHandlerValidation:
     ]
 
     EXTENSION_TESTS = [
-        ('Urllib', [
+        ('Urllib', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'cookiejar': CookieJar()}, AssertionError),
@@ -1051,7 +1056,7 @@ class TestRequestHandlerValidation:
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
         ]),
-        ('Requests', [
+        ('Requests', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 1}, False),
@@ -1068,9 +1073,13 @@ class TestRequestHandlerValidation:
             ({'impersonate': 123}, AssertionError),
             ({'impersonate': 'chrome'}, False)
         ]),
-        (NoCheckRH, [
+        (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
             ({'somerandom': 'test'}, False),  # but any extension is allowed through
+        ]),
+        ('Websockets', 'ws', [
+            ({'cookiejar': YoutubeDLCookieJar()}, False),
+            ({'timeout': 2}, False),
         ]),
     ]
 
@@ -1097,14 +1106,14 @@ class TestRequestHandlerValidation:
         run_validation(handler, fail, Request('http://', proxies={proxy_key: 'http://example.com'}))
         run_validation(handler, fail, Request('http://'), proxies={proxy_key: 'http://example.com'})
 
-    @pytest.mark.parametrize('handler,scheme,fail', [
-        (handler_tests[0], scheme, fail)
+    @pytest.mark.parametrize('handler,req_scheme,scheme,fail', [
+        (handler_tests[0], handler_tests[1], scheme, fail)
         for handler_tests in PROXY_SCHEME_TESTS
-        for scheme, fail in handler_tests[1]
+        for scheme, fail in handler_tests[2]
     ], indirect=['handler'])
-    def test_proxy_scheme(self, handler, scheme, fail):
-        run_validation(handler, fail, Request('http://', proxies={'http': f'{scheme}://example.com'}))
-        run_validation(handler, fail, Request('http://'), proxies={'http': f'{scheme}://example.com'})
+    def test_proxy_scheme(self, handler, req_scheme, scheme, fail):
+        run_validation(handler, fail, Request(f'{req_scheme}://', proxies={req_scheme: f'{scheme}://example.com'}))
+        run_validation(handler, fail, Request(f'{req_scheme}://'), proxies={req_scheme: f'{scheme}://example.com'})
 
     @pytest.mark.parametrize('handler', ['Urllib', HTTPSupportedRH, 'Requests', 'CurlCFFI'], indirect=True)
     def test_empty_proxy(self, handler):
@@ -1116,14 +1125,14 @@ class TestRequestHandlerValidation:
     def test_invalid_proxy_url(self, handler, proxy_url):
         run_validation(handler, UnsupportedRequest, Request('http://', proxies={'http': proxy_url}))
 
-    @pytest.mark.parametrize('handler,extensions,fail', [
-        (handler_tests[0], extensions, fail)
+    @pytest.mark.parametrize('handler,scheme,extensions,fail', [
+        (handler_tests[0], handler_tests[1], extensions, fail)
         for handler_tests in EXTENSION_TESTS
-        for extensions, fail in handler_tests[1]
+        for extensions, fail in handler_tests[2]
     ], indirect=['handler'])
-    def test_extension(self, handler, extensions, fail):
+    def test_extension(self, handler, scheme, extensions, fail):
         run_validation(
-            handler, fail, Request('http://', extensions=extensions))
+            handler, fail, Request(f'{scheme}://', extensions=extensions))
 
     def test_invalid_request_type(self):
         rh = self.ValidationRH(logger=FakeLogger())
@@ -1154,6 +1163,22 @@ class FakeRHYDL(FakeYDL):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._request_director = self.build_request_director([FakeRH])
+
+
+class AllUnsupportedRHYDL(FakeYDL):
+
+    def __init__(self, *args, **kwargs):
+
+        class UnsupportedRH(RequestHandler):
+            def _send(self, request: Request):
+                pass
+
+            _SUPPORTED_FEATURES = ()
+            _SUPPORTED_PROXY_SCHEMES = ()
+            _SUPPORTED_URL_SCHEMES = ()
+
+        super().__init__(*args, **kwargs)
+        self._request_director = self.build_request_director([UnsupportedRH])
 
 
 class TestRequestDirector:
@@ -1315,6 +1340,12 @@ class TestYoutubeDLNetworking:
             with pytest.raises(RequestError, match=r'file:// URLs are disabled by default'):
                 ydl.urlopen('file://')
 
+    @pytest.mark.parametrize('scheme', (['ws', 'wss']))
+    def test_websocket_unavailable_error(self, scheme):
+        with AllUnsupportedRHYDL() as ydl:
+            with pytest.raises(RequestError, match=r'This request requires WebSocket support'):
+                ydl.urlopen(f'{scheme}://')
+
     def test_legacy_server_connect_error(self):
         with FakeRHYDL() as ydl:
             for error in ('UNSAFE_LEGACY_RENEGOTIATION_DISABLED', 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
@@ -1373,6 +1404,10 @@ class TestYoutubeDLNetworking:
             rh = self.build_handler(ydl)
             assert 'Youtubedl-no-compression' not in rh.headers
             assert rh.headers.get('Accept-Encoding') == 'identity'
+
+        with FakeYDL({'http_headers': {'Ytdl-socks-proxy': 'socks://localhost:1080'}}) as ydl:
+            rh = self.build_handler(ydl)
+            assert 'Ytdl-socks-proxy' not in rh.headers
 
     def test_build_handler_params(self):
         with FakeYDL({

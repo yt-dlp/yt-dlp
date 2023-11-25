@@ -1,3 +1,4 @@
+import functools
 import re
 
 from .common import InfoExtractor
@@ -14,21 +15,21 @@ class VVVVIDIE(InfoExtractor):
     _VALID_URL = r'%s(?P<show_id>\d+)/[^/]+/(?P<season_id>\d+)/(?P<id>[0-9]+)' % _VALID_URL_BASE
     _TESTS = [{
         # video_type == 'video/vvvvid'
-        'url': 'https://www.vvvvid.it/#!show/434/perche-dovrei-guardarlo-di-dario-moccia/437/489048/ping-pong',
-        'md5': 'b8d3cecc2e981adc3835adf07f6df91b',
+        'url': 'https://www.vvvvid.it/show/498/the-power-of-computing/518/505692/playstation-vr-cambiera-il-nostro-modo-di-giocare',
         'info_dict': {
-            'id': '489048',
+            'id': '505692',
             'ext': 'mp4',
-            'title': 'Ping Pong',
-            'duration': 239,
-            'series': '"Perché dovrei guardarlo?" di Dario Moccia',
-            'season_id': '437',
-            'episode': 'Ping Pong',
-            'episode_number': 1,
-            'episode_id': '3334',
+            'title': 'Playstation VR cambierà il nostro modo di giocare',
+            'duration': 93,
+            'series': 'The Power of Computing',
+            'season_id': '518',
+            'episode': 'Playstation VR cambierà il nostro modo di giocare',
+            'episode_number': None,
+            'episode_id': '4747',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
+            'thumbnail': 'https://static.vvvvid.it/img/zoomin/28CA2409-E663-34F0-2B02E72356556EA3_500k.jpg',
         },
         'params': {
             'skip_download': True,
@@ -36,7 +37,6 @@ class VVVVIDIE(InfoExtractor):
     }, {
         # video_type == 'video/rcs'
         'url': 'https://www.vvvvid.it/#!show/376/death-note-live-action/377/482493/episodio-01',
-        'md5': '33e0edfba720ad73a8782157fdebc648',
         'info_dict': {
             'id': '482493',
             'ext': 'mp4',
@@ -45,6 +45,7 @@ class VVVVIDIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Every video/rcs is not working even in real website',
     }, {
         # video_type == 'video/youtube'
         'url': 'https://www.vvvvid.it/show/404/one-punch-man/406/486683/trailer',
@@ -55,19 +56,54 @@ class VVVVIDIE(InfoExtractor):
             'title': 'Trailer',
             'upload_date': '20150906',
             'description': 'md5:a5e802558d35247fee285875328c0b80',
-            'uploader_id': 'BandaiVisual',
-            'uploader': 'BANDAI NAMCO Arts Channel',
+            'uploader_id': '@EMOTIONLabelChannel',
+            'uploader': 'EMOTION Label Channel',
+            'episode_number': None,
+            'episode_id': '3115',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'availability': str,
+            'categories': list,
+            'age_limit': 0,
+            'channel': 'EMOTION Label Channel',
+            'channel_follower_count': int,
+            'channel_id': 'UCQ5URCSs1f5Cz9rh-cDGxNQ',
+            'channel_url': 'https://www.youtube.com/channel/UCQ5URCSs1f5Cz9rh-cDGxNQ',
+            'comment_count': int,
+            'duration': 133,
+            'episode': 'Trailer',
+            'heatmap': list,
+            'live_status': 'not_live',
+            'playable_in_embed': True,
+            'season_id': '406',
+            'series': 'One-Punch Man',
+            'tags': list,
+            'uploader_url': 'https://www.youtube.com/@EMOTIONLabelChannel',
+            'thumbnail': 'https://i.ytimg.com/vi/RzmFKUDOUgw/maxresdefault.jpg',
         },
         'params': {
             'skip_download': True,
         },
     }, {
         # video_type == 'video/dash'
-        'url': 'https://www.vvvvid.it/show/683/made-in-abyss/1542/693786/nanachi',
+        'url': 'https://www.vvvvid.it/show/844/le-bizzarre-avventure-di-jojo-vento-aureo/938/527551/golden-wind',
         'info_dict': {
-            'id': '693786',
+            'id': '527551',
             'ext': 'mp4',
-            'title': 'Nanachi',
+            'title': 'Golden Wind',
+            'duration': 1430,
+            'series': 'Le bizzarre avventure di Jojo - Vento Aureo',
+            'season_id': '938',
+            'episode': 'Golden Wind',
+            'episode_number': 1,
+            'episode_id': '9089',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'thumbnail': 'https://static.vvvvid.it/img/thumbs/Dynit/Jojo/Jojo_S05Ep01-t.jpg',
+            'season': 'Season 5',
+            'season_number': 5,
         },
         'params': {
             'skip_download': True,
@@ -79,10 +115,17 @@ class VVVVIDIE(InfoExtractor):
     }]
     _conn_id = None
 
+    @functools.cached_property
+    def _headers(self):
+        return {
+            **self.geo_verification_headers(),
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.50 Safari/537.37',
+        }
+
     def _real_initialize(self):
         self._conn_id = self._download_json(
             'https://www.vvvvid.it/user/login',
-            None, headers=self.geo_verification_headers())['data']['conn_id']
+            None, headers=self._headers)['data']['conn_id']
 
     def _download_info(self, show_id, path, video_id, fatal=True, query=None):
         q = {
@@ -92,7 +135,7 @@ class VVVVIDIE(InfoExtractor):
             q.update(query)
         response = self._download_json(
             'https://www.vvvvid.it/vvvvid/ondemand/%s/%s' % (show_id, path),
-            video_id, headers=self.geo_verification_headers(), query=q, fatal=fatal)
+            video_id, headers=self._headers, query=q, fatal=fatal)
         if not (response or fatal):
             return
         if response.get('result') == 'error':
@@ -219,7 +262,7 @@ class VVVVIDIE(InfoExtractor):
                     embed_code, video_id, 'mp4', m3u8_id='hls', fatal=False))
             else:
                 formats.extend(self._extract_wowza_formats(
-                    'http://sb.top-ix.org/videomg/_definst_/mp4:%s/playlist.m3u8' % embed_code, video_id))
+                    'http://sb.top-ix.org/videomg/_definst_/mp4:%s/playlist.m3u8' % embed_code, video_id, skip_protocols=['f4m']))
             metadata_from_url(embed_code)
 
         if not is_youtube:

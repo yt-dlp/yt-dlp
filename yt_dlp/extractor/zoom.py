@@ -2,10 +2,12 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    str_or_none,
     js_to_json,
     parse_filesize,
+    parse_resolution,
+    str_or_none,
     traverse_obj,
+    url_basename,
     urlencode_postdata,
     urljoin,
 )
@@ -41,6 +43,18 @@ class ZoomIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Timea Andrea Lelik\'s Personal Meeting Room',
         },
+        'skip': 'This recording has expired',
+    }, {
+        # view_with_share URL
+        'url': 'https://cityofdetroit.zoom.us/rec/share/VjE-5kW3xmgbEYqR5KzRgZ1OFZvtMtiXk5HyRJo5kK4m5PYE6RF4rF_oiiO_9qaM.UTAg1MI7JSnF3ZjX',
+        'md5': 'bdc7867a5934c151957fb81321b3c024',
+        'info_dict': {
+            'id': 'VjE-5kW3xmgbEYqR5KzRgZ1OFZvtMtiXk5HyRJo5kK4m5PYE6RF4rF_oiiO_9qaM.UTAg1MI7JSnF3ZjX',
+            'ext': 'mp4',
+            'title': 'February 2022 Detroit Revenue Estimating Conference',
+            'duration': 7299,
+            'formats': 'mincount:3',
+        },
     }]
 
     def _get_page_data(self, webpage, video_id):
@@ -72,6 +86,7 @@ class ZoomIE(InfoExtractor):
 
     def _real_extract(self, url):
         base_url, url_type, video_id = self._match_valid_url(url).group('base_url', 'type', 'id')
+        query = {}
 
         if url_type == 'share':
             webpage = self._get_real_webpage(url, base_url, video_id, 'share')
@@ -80,6 +95,7 @@ class ZoomIE(InfoExtractor):
                 f'{base_url}nws/recording/1.0/play/share-info/{meeting_id}',
                 video_id, note='Downloading share info JSON')['result']['redirectUrl']
             url = urljoin(base_url, redirect_path)
+            query['continueMode'] = 'true'
 
         webpage = self._get_real_webpage(url, base_url, video_id, 'play')
         file_id = self._get_page_data(webpage, video_id)['fileId']
@@ -88,7 +104,7 @@ class ZoomIE(InfoExtractor):
             raise ExtractorError('Unable to extract file ID')
 
         data = self._download_json(
-            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id,
+            f'{base_url}nws/recording/1.0/play/info/{file_id}', video_id, query=query,
             note='Downloading play info JSON')['result']
 
         subtitles = {}
@@ -104,10 +120,10 @@ class ZoomIE(InfoExtractor):
         if data.get('viewMp4Url'):
             formats.append({
                 'format_note': 'Camera stream',
-                'url': str_or_none(data.get('viewMp4Url')),
+                'url': data['viewMp4Url'],
                 'width': int_or_none(traverse_obj(data, ('viewResolvtions', 0))),
                 'height': int_or_none(traverse_obj(data, ('viewResolvtions', 1))),
-                'format_id': str_or_none(traverse_obj(data, ('recording', 'id'))),
+                'format_id': 'view',
                 'ext': 'mp4',
                 'filesize_approx': parse_filesize(str_or_none(traverse_obj(data, ('recording', 'fileSizeInMB')))),
                 'preference': 0
@@ -116,12 +132,24 @@ class ZoomIE(InfoExtractor):
         if data.get('shareMp4Url'):
             formats.append({
                 'format_note': 'Screen share stream',
-                'url': str_or_none(data.get('shareMp4Url')),
+                'url': data['shareMp4Url'],
                 'width': int_or_none(traverse_obj(data, ('shareResolvtions', 0))),
                 'height': int_or_none(traverse_obj(data, ('shareResolvtions', 1))),
-                'format_id': str_or_none(traverse_obj(data, ('shareVideo', 'id'))),
+                'format_id': 'share',
                 'ext': 'mp4',
                 'preference': -1
+            })
+
+        view_with_share_url = data.get('viewMp4WithshareUrl')
+        if view_with_share_url:
+            formats.append({
+                **parse_resolution(self._search_regex(
+                    r'_(\d+x\d+)\.mp4', url_basename(view_with_share_url), 'resolution', default=None)),
+                'format_note': 'Screen share with camera',
+                'url': view_with_share_url,
+                'format_id': 'view_with_share',
+                'ext': 'mp4',
+                'preference': 1
             })
 
         return {

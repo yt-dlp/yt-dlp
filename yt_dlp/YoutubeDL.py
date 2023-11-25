@@ -61,7 +61,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, _get_system_deprecation, current_git_head, detect_variant
+from .update import REPOSITORY, _get_system_deprecation, _make_label, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -159,7 +159,7 @@ from .utils.networking import (
     clean_proxies,
     std_headers,
 )
-from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
+from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -627,13 +627,16 @@ class YoutubeDL:
                     'Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
-        term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
+        term_allow_color = os.getenv('TERM', '').lower() != 'dumb'
+        no_color = bool(os.getenv('NO_COLOR'))
 
         def process_color_policy(stream):
             stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
-                return term_allow_color and supports_terminal_sequences(stream)
+                if term_allow_color and supports_terminal_sequences(stream):
+                    return 'no_color' if no_color else True
+                return False
             assert policy in ('always', 'never', 'no_color'), policy
             return {'always': True, 'never': False}.get(policy, policy)
 
@@ -2354,7 +2357,7 @@ class YoutubeDL:
                 return
 
             for f in formats:
-                if f.get('has_drm'):
+                if f.get('has_drm') or f.get('__needs_testing'):
                     yield from self._check_formats([f])
                 else:
                     yield f
@@ -2780,7 +2783,8 @@ class YoutubeDL:
                 format['dynamic_range'] = 'SDR'
             if format.get('aspect_ratio') is None:
                 format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
-            if (not format.get('manifest_url')  # For fragmented formats, "tbr" is often max bitrate and not average
+            # For fragmented formats, "tbr" is often max bitrate and not average
+            if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
@@ -3559,14 +3563,14 @@ class YoutubeDL:
             'version': __version__,
             'current_git_head': current_git_head(),
             'release_git_head': RELEASE_GIT_HEAD,
-            'repository': REPOSITORY,
+            'repository': ORIGIN,
         })
 
         if remove_private_keys:
             reject = lambda k, v: v is None or k.startswith('__') or k in {
                 'requested_downloads', 'requested_formats', 'requested_subtitles', 'requested_entries',
                 'entries', 'filepath', '_filename', 'filename', 'infojson_filename', 'original_url',
-                'playlist_autonumber', '_format_sort_fields',
+                'playlist_autonumber',
             }
         else:
             reject = lambda k, v: False
@@ -3942,8 +3946,8 @@ class YoutubeDL:
             source += '*'
         klass = type(self)
         write_debug(join_nonempty(
-            f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
-            f'{CHANNEL}@{__version__}',
+            f'{REPOSITORY.rpartition("/")[2]} version',
+            _make_label(ORIGIN, CHANNEL.partition('@')[2] or __version__, __version__),
             f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
@@ -4063,21 +4067,30 @@ class YoutubeDL:
         clean_proxies(proxies=req.proxies, headers=req.headers)
         clean_headers(req.headers)
 
-        def _urlopen(req):
-            try:
-                return self._request_director.send(req)
-            except NoSupportingHandlers as e:
-                unsupported_errors = list(filter(lambda ue: ue.handler and ue.msg, e.unsupported_errors))
-
-                ue = traverse_obj(
-                    unsupported_errors,
-                    (lambda _, v: v.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in v.msg.lower()),
-                    get_all=False)
-                if ue:
+        try:
+            return self._request_director.send(req)
+        except NoSupportingHandlers as e:
+            for ue in e.unsupported_errors:
+                # FIXME: This depends on the order of errors.
+                if not (ue.handler and ue.msg):
+                    continue
+                if ue.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
+                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                    raise RequestError(
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
 
+                elif (
+                    re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
+                    and 'websockets' not in self._request_director.handlers
+                ):
+                    raise RequestError(
+                        'This request requires WebSocket support. '
+                        'Ensure one of the following dependencies are installed: websockets',
+                        cause=ue) from ue
+                """
                 ue = traverse_obj(
                     unsupported_errors,
                     (lambda _, v: isinstance(v.handler, ImpersonateRequestHandler) and 'unsupported impersonate target' in v.msg.lower()), get_all=False)
@@ -4093,26 +4106,18 @@ class YoutubeDL:
                         'Retrying request without impersonation...')
                     new_req = req.copy()
                     new_req.extensions.pop('impersonate')
-                    return _urlopen(new_req)
-                raise
-                """
-                TODO
-                                if 'unsupported proxy type: "https"' in ue.msg.lower():
-                    raise RequestError(
-                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
-                """
-            except SSLError as e:
-                if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
-                    raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
-                elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
-                    raise RequestError(
-                        'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
-                        'Try using --legacy-server-connect', cause=e) from e
-                raise
-            except HTTPError as e:  # TODO: Remove in a future release
-                raise _CompatHTTPError(e) from e
-
-        return _urlopen(req)
+                    return _urlopen(new_req)"""
+            raise
+        except SSLError as e:
+            if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
+                raise RequestError('UNSAFE_LEGACY_RENEGOTIATION_DISABLED: Try using --legacy-server-connect', cause=e) from e
+            elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
+                raise RequestError(
+                    'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
+                    'Try using --legacy-server-connect', cause=e) from e
+            raise
+        except HTTPError as e:  # TODO: Remove in a future release
+            raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)
@@ -4285,7 +4290,7 @@ class YoutubeDL:
             self.write_debug(f'Skipping writing {label} thumbnail')
             return ret
 
-        if not self._ensure_dir_exists(filename):
+        if thumbnails and not self._ensure_dir_exists(filename):
             return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
