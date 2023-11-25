@@ -5,20 +5,26 @@ import logging
 import ssl
 import sys
 
-from ._helper import create_connection, select_proxy, make_socks_proxy_opts, create_socks_proxy_socket
-from .common import Response, register_rh, Features
+from ._helper import (
+    create_connection,
+    create_socks_proxy_socket,
+    make_socks_proxy_opts,
+    select_proxy,
+)
+from .common import Features, Response, register_rh
 from .exceptions import (
     CertificateVerifyError,
     HTTPError,
+    ProxyError,
     RequestError,
     SSLError,
-    TransportError, ProxyError,
+    TransportError,
 )
 from .websocket import WebSocketRequestHandler, WebSocketResponse
 from ..compat import functools
 from ..dependencies import websockets
-from ..utils import int_or_none
 from ..socks import ProxyError as SocksProxyError
+from ..utils import int_or_none
 
 if not websockets:
     raise ImportError('websockets is not installed')
@@ -98,10 +104,10 @@ class WebsocketsRH(WebSocketRequestHandler):
         extensions.pop('cookiejar', None)
 
     def _send(self, request):
-        timeout = float(request.extensions.get('timeout') or self.timeout)
+        timeout = self._calculate_timeout(request)
         headers = self._merge_headers(request.headers)
         if 'cookie' not in headers:
-            cookiejar = request.extensions.get('cookiejar') or self.cookiejar
+            cookiejar = self._get_cookiejar(request)
             cookie_header = cookiejar.get_cookie_header(request.url)
             if cookie_header:
                 headers['cookie'] = cookie_header
@@ -111,7 +117,7 @@ class WebsocketsRH(WebSocketRequestHandler):
             'source_address': (self.source_address, 0) if self.source_address else None,
             'timeout': timeout
         }
-        proxy = select_proxy(request.url, request.proxies or self.proxies or {})
+        proxy = select_proxy(request.url, self._get_proxies(request))
         try:
             if proxy:
                 socks_proxy_options = make_socks_proxy_opts(proxy)

@@ -1,12 +1,12 @@
 from __future__ import annotations
+
 from abc import ABC
-from typing import Optional, Any
+from typing import Any, Optional
 
 from .common import RequestHandler, register_preference
 from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
 from ..utils.networking import std_headers
-
 
 ImpersonateTarget = tuple[Optional[str], Optional[str], Optional[str], Optional[str]]
 

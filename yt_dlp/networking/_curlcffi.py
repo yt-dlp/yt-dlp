@@ -1,5 +1,6 @@
 import io
 import math
+import urllib.parse
 
 from ._helper import InstanceStoreMixin, select_proxy
 from .common import (
@@ -124,14 +125,13 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
     def _send(self, request: Request):
         max_redirects_exceeded = False
-        cookiejar = request.extensions.get('cookiejar') or self.cookiejar
         session: curl_cffi.requests.Session = self._get_instance(
-            cookiejar=cookiejar if 'cookie' not in request.headers else None)
+            cookiejar=self._get_cookiejar(request) if 'cookie' not in request.headers else None)
 
         if self.verbose:
             session.curl.setopt(CurlOpt.VERBOSE, 1)
 
-        proxies = (request.proxies or self.proxies).copy()
+        proxies = self._get_proxies(request)
         if 'no' in proxies:
             session.curl.setopt(CurlOpt.NOPROXY, proxies['no'].encode())
             proxies.pop('no', None)
@@ -140,8 +140,11 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         proxy = select_proxy(request.url, proxies=proxies)
         if proxy:
             session.curl.setopt(CurlOpt.PROXY, proxy.encode())
-            if proxy.startswith('https'):
-                # enable HTTP CONNECT for https urls
+            scheme = urllib.parse.urlparse(request.url).scheme.lower()
+            if scheme != 'http':
+                # Enable HTTP CONNECT for HTTPS urls.
+                # Don't use CONNECT for http for compatibility with urllib behaviour.
+                # See: https://curl.se/libcurl/c/CURLOPT_HTTPPROXYTUNNEL.html
                 session.curl.setopt(CurlOpt.HTTPPROXYTUNNEL, 1)
 
         headers = self._get_impersonate_headers(request)
@@ -155,7 +158,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
             if client_certificate_password:
                 session.curl.setopt(CurlOpt.KEYPASSWD, client_certificate_password.encode())
 
-        timeout = float(request.extensions.get('timeout') or self.timeout)
+        timeout = self._calculate_timeout(request)
 
         # set CURLOPT_LOW_SPEED_LIMIT and CURLOPT_LOW_SPEED_TIME to act as a read timeout. [1]
         # curl_cffi does not currently do this. [2]
