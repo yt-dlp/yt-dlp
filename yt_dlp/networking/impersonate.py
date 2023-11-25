@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 from .common import RequestHandler, register_preference
 from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
 from ..utils.networking import std_headers
 
-ImpersonateTarget = tuple[Optional[str], Optional[str], Optional[str], Optional[str]]
+ImpersonateTarget = Tuple[str, Optional[str], Optional[str], Optional[str]]
 
 
 def parse_impersonate_target(target: str) -> ImpersonateTarget:
     client = version = os = os_vers = None
-    if not target:
-        return client, version, os, os_vers
     parts = target.split(':')
     if len(parts):
         client = parts[0]
