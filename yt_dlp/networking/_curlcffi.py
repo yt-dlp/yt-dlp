@@ -158,8 +158,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         timeout = float(request.extensions.get('timeout') or self.timeout)
 
         # set CURLOPT_LOW_SPEED_LIMIT and CURLOPT_LOW_SPEED_TIME to act as a read timeout. [1]
-        # curl_cffi does not currently do this [2]
-        # Note that CURLOPT_LOW_SPEED_TIME is in seconds, so we need to round up to the nearest second [3]
+        # curl_cffi does not currently do this. [2]
+        # Note: CURLOPT_LOW_SPEED_TIME is in seconds, so we need to round up to the nearest second. [3]
         # [1] https://unix.stackexchange.com/a/305311
         # [2] https://github.com/yifeikong/curl_cffi/issues/156
         # [3] https://curl.se/libcurl/c/CURLOPT_LOW_SPEED_TIME.html
