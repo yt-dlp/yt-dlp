@@ -285,7 +285,14 @@ CTX_MAP = {
 def ctx(request):
     return CTX_MAP[request.param]()
 
-@pytest.mark.parametrize('handler,ctx', [('Urllib', 'http'), ('Requests', 'http'), ('Websockets', 'ws'), ('CurlCFFI', 'http')], indirect=True)
+
+@pytest.mark.parametrize(
+    'handler,ctx', [
+        ('Urllib', 'http'),
+        ('Requests', 'http'),
+        ('Websockets', 'ws'),
+        ('CurlCFFI', 'http')
+    ], indirect=True)
 class TestSocks4Proxy:
     def test_socks4_no_auth(self, handler, ctx):
         with handler() as rh:
@@ -352,7 +359,14 @@ class TestSocks4Proxy:
                 with pytest.raises(TransportError):
                     ctx.socks_info_request(rh)
 
-    @pytest.mark.parametrize('handler,ctx', [('Urllib', 'http'), ('Requests', 'http'), ('Websockets', 'ws'), ('CurlCFFI', 'http')], indirect=True)
+
+@pytest.mark.parametrize(
+    'handler,ctx', [
+        ('Urllib', 'http'),
+        ('Requests', 'http'),
+        ('Websockets', 'ws'),
+        ('CurlCFFI', 'http')
+    ], indirect=True)
 class TestSocks5Proxy:
 
     def test_socks5_no_auth(self, handler, ctx):

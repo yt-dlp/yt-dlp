@@ -1013,7 +1013,7 @@ class TestRequestHandlerValidation:
             ('socks5', False),
             ('socks5h', False),
         ]),
-        ('CurlCFFI', [
+        ('CurlCFFI', 'http', [
             ('http', False),
             ('https', False),
             ('socks4', False),
@@ -1063,7 +1063,7 @@ class TestRequestHandlerValidation:
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
         ]),
-        ('CurlCFFI', [
+        ('CurlCFFI', 'http', [
             ({'cookiejar': 'notacookiejar'}, AssertionError),
             ({'cookiejar': YoutubeDLCookieJar()}, False),
             ({'timeout': 1}, False),
