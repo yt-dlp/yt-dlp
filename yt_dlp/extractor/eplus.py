@@ -9,7 +9,10 @@ from ..utils import (
 class EplusIbIE(InfoExtractor):
     IE_NAME = 'eplus:inbound'
     IE_DESC = 'e+ (イープラス) overseas'
-    _VALID_URL = r'https?://live\.eplus\.jp/ex/player\?ib=(?P<id>(?:\w|%2B|%2F){86}%3D%3D)'
+    _VALID_URL = [
+        r'https?://live\.eplus\.jp/ex/player\?ib=(?P<id>(?:\w|%2B|%2F){86}%3D%3D)',
+        r'https?://live\.eplus\.jp/(?P<id>sample)',
+    ]
     _TESTS = [{
         'url': 'https://live.eplus.jp/ex/player?ib=YEFxb3Vyc2Dombnjg7blkrLlrablnJLjgrnjgq%2Fjg7zjg6vjgqLjgqTjg4njg6vlkIzlpb3kvJpgTGllbGxhIQ%3D%3D',
         'info_dict': {
@@ -29,13 +32,38 @@ class EplusIbIE(InfoExtractor):
             'No video formats found!',
             'Requested format is not available',
         ],
+    }, {
+        'url': 'https://live.eplus.jp/sample',
+        'info_dict': {
+            'id': 'stream1ng20210719-test-005',
+            'title': 'Online streaming test for DRM',
+            'live_status': 'was_live',
+            'release_date': '20210719',
+            'release_timestamp': 1626703200,
+            'description': None,
+        },
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': [
+            'Could not find the playlist URL. This event may not be accessible',
+            'No video formats found!',
+            'Requested format is not available',
+            'This video is DRM protected',
+        ],
     }]
+
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, headers={'User-Agent': self._USER_AGENT})
 
         data_json = self._search_json(r'<script>\s*var app\s*=', webpage, 'data json', video_id)
+
+        if data_json.get('drmEncryptKey'):
+            self.report_drm(video_id)
 
         delivery_status = data_json.get('delivery_status')
         archive_mode = data_json.get('archive_mode')
