@@ -14,6 +14,7 @@ from ..utils import (
     make_archive_id,
     parse_age_limit,
     parse_iso8601,
+    unified_strdate,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -23,24 +24,6 @@ from ..utils import (
 
 class VRTBaseIE(InfoExtractor):
     _GEO_BYPASS = False
-
-    _authenticated = False
-
-    def _perform_login(self, username, password):
-
-        self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting session cookies', errnote='Failed to get session cookies')
-
-        self._download_json(
-            'https://login.vrt.be/perform_login', None, data=json.dumps({
-                'loginID': username,
-                'password': password,
-                'clientId': 'vrtnu-site'
-            }).encode(), headers={
-                'Content-Type': 'application/json',
-                'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
-            }, note='Logging in', errnote='Login failed')
-        self._authenticated = True
-        return
 
     def _extract_formats_and_subtitles(self, data, video_id):
         if traverse_obj(data, 'drm'):
@@ -95,7 +78,29 @@ class VRTBaseIE(InfoExtractor):
             })
 
 
-class VRTIE(VRTBaseIE):
+class VRTLoginIE(VRTBaseIE):
+
+    _NETRC_MACHINE = 'vrtnu'
+    _authenticated = False
+
+    def _perform_login(self, username, password):
+
+        self._request_webpage('https://www.vrt.be/vrtnu/sso/login', None, note='Getting session cookies', errnote='Failed to get session cookies')
+
+        self._download_json(
+            'https://login.vrt.be/perform_login', None, data=json.dumps({
+                'loginID': username,
+                'password': password,
+                'clientId': 'vrtnu-site'
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                'Oidcxsrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+            }, note='Logging in', errnote='Login failed')
+        self._authenticated = True
+        return
+
+
+class VRTIE(VRTLoginIE):
     IE_DESC = 'VRT NWS, Flanders News, Flandern Info and Sporza'
     _VALID_URL = r'https?://(?:www\.)?(?P<site>vrt\.be/vrtnws|sporza\.be)/[a-z]{2}/\d{4}/\d{2}/\d{2}/(?P<id>[^/?&#]+)'
     _TESTS = [{
@@ -121,7 +126,6 @@ class VRTIE(VRTBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }]
-    _NETRC_MACHINE = 'vrtnu'
     _APIKEY = '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy'
     _CONTEXT_ID = 'R3595707040'
     _REST_API_BASE_TOKEN = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
@@ -167,60 +171,59 @@ class VRTIE(VRTBaseIE):
         }
 
 
-class VrtNUIE(VRTBaseIE):
+class VrtNUIE(VRTLoginIE):
     IE_DESC = 'VRT MAX'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/(vrtmax|vrtnu)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        # CONTENT_IS_AGE_RESTRICTED
-        'url': 'https://www.vrt.be/vrtnu/a-z/de-ideale-wereld/2023-vj/de-ideale-wereld-d20230116/',
-        'info_dict': {
-            'id': 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f',
-            'ext': 'mp4',
-            'title': 'Tom Waes',
-            'description': 'Satirisch actualiteitenmagazine met Ella Leyers. Tom Waes is te gast.',
-            'timestamp': 1673905125,
-            'release_timestamp': 1673905125,
-            'series': 'De ideale wereld',
-            'season_id': '1672830988794',
-            'episode': 'Aflevering 1',
-            'episode_number': 1,
-            'episode_id': '1672830988861',
-            'display_id': 'de-ideale-wereld-d20230116',
-            'channel': 'VRT',
-            'duration': 1939.0,
-            'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
-            'release_date': '20230116',
-            'upload_date': '20230116',
-            'age_limit': 12,
+    _TESTS = [
+        {
+            'url': 'https://www.vrt.be/vrtmax/a-z/pano/trailer/pano-trailer-najaar-2023/',
+            'info_dict': {
+                'title': 'Pano - Nieuwe afleveringen vanaf 15 november - Trailer | VRT MAX',
+                'description': 'Duidingsmagazine met indringende reportages over de grote thema\'s van deze tijd. Een gedreven team van reporters diept de beste nieuwsverhalen uit en zoekt het antwoord op actuele vragen. Bekijk de trailer met VRT MAX via de site of app.',
+                'timestamp': 1699246800,
+                'release_timestamp': 1699246800,
+                'release_date': '20231106',
+                'upload_date': '20231106',
+                'series': 'Pano',
+                'season': 'Trailer',
+                'season_number': 2023,
+                'season_id': '/vrtnu/a-z/pano/trailer/#tvseason',
+                'episode_id': '3226122918145',
+                'id': 'pbs-pub-5260ad6d-372c-46d3-a542-0e781fd5831a$vid-75fdb750-82f5-4157-8ea9-4485f303f20b',
+                'channel': 'VRT',
+                'duration': 37.16,
+                'thumbnail': 'https://images.vrt.be/orig/2023/11/03/f570eb9b-7a4e-11ee-91d7-02b7b76bf47f.jpg',
+                'ext': 'mp4',
+            },
         },
-    }, {
-        'url': 'https://www.vrt.be/vrtnu/a-z/buurman--wat-doet-u-nu-/6/buurman--wat-doet-u-nu--s6-trailer/',
-        'info_dict': {
-            'id': 'pbs-pub-ad4050eb-d9e5-48c2-9ec8-b6c355032361$vid-0465537a-34a8-4617-8352-4d8d983b4eee',
-            'ext': 'mp4',
-            'title': 'Trailer seizoen 6 \'Buurman, wat doet u nu?\'',
-            'description': 'md5:197424726c61384b4e5c519f16c0cf02',
-            'timestamp': 1652940000,
-            'release_timestamp': 1652940000,
-            'series': 'Buurman, wat doet u nu?',
-            'season': 'Seizoen 6',
-            'season_number': 6,
-            'season_id': '1652344200907',
-            'episode': 'Aflevering 0',
-            'episode_number': 0,
-            'episode_id': '1652951873524',
-            'display_id': 'buurman--wat-doet-u-nu--s6-trailer',
-            'channel': 'VRT',
-            'duration': 33.13,
-            'thumbnail': 'https://images.vrt.be/orig/2022/05/23/3c234d21-da83-11ec-b07d-02b7b76bf47f.jpg',
-            'release_date': '20220519',
-            'upload_date': '20220519',
-        },
-        'params': {'skip_download': 'm3u8'},
-    }]
+        {
+            'url': 'https://www.vrt.be/vrtnu/a-z/factcheckers/trailer/factcheckers-trailer-s4/',
+            'info_dict': {
+                'title': 'Factcheckers - Nieuwe afleveringen vanaf 15 november - Trailer | VRT MAX',
+                'season_number': 2023,
+                'description': 'Infotainmentprogramma waarin Thomas Vanderveken, Jan Van Looveren en Britt Van Marsenille checken wat er nu eigenlijk klopt van de tsunami aan berichten, beweringen en weetjes die we dagelijks over ons heen krijgen. Bekijk de trailer met VRT MAX via de site of app.',
+                'timestamp': 1699160400,
+                'release_timestamp': 1699160400,
+                'release_date': '20231105',
+                'upload_date': '20231105',
+                'series': 'Factcheckers',
+                'episode': '0',
+                'episode_number': 0,
+                'season': 'Trailer',
+                'season_id': '/vrtnu/a-z/factcheckers/trailer/#tvseason',
+                'episode_id': '3179360900145',
+                'id': 'pbs-pub-aa9397e9-ec2b-45f9-9148-7ce71b690b45$vid-04c67438-4866-4f5c-8978-51d173c0074b',
+                'channel': 'VRT',
+                'duration': 33.08,
+                'thumbnail': 'https://images.vrt.be/orig/2023/11/07/37d244f0-7d8a-11ee-91d7-02b7b76bf47f.jpg',
+                'ext': 'mp4',
+            },
+        }
+    ]
+
     _NETRC_MACHINE = 'vrtnu'
 
-    _VIDEOPAGE_QUERY = "query VideoPage($pageId: ID!) {\n page(id: $pageId) {\n  ... on EpisodePage {\n   id\n   title\n   seo {\n    ...seoFragment\n    __typename\n   }\n   ldjson\n   episode {\n    onTimeRaw\n    ageRaw\n    name\n    episodeNumberRaw\n    program {\n     title\n     __typename\n    }\n    watchAction {\n     streamId\n     __typename\n    }\n    __typename\n   }\n   __typename\n  }\n  __typename\n }\n}\nfragment seoFragment on SeoProperties {\n __typename\n title\n description\n}"
+    _VIDEOPAGE_QUERY = 'query VideoPage($pageId: ID!) {\n page(id: $pageId) {\n  ... on EpisodePage {\n   id\n   title\n   seo {\n    ...seoFragment\n    __typename\n   }\n   ldjson\n   episode {\n    onTimeRaw\n    ageRaw\n    name\n    episodeNumberRaw\n    program {\n     title\n     __typename\n    }\n    watchAction {\n     streamId\n     __typename\n    }\n    __typename\n   }\n   __typename\n  }\n  __typename\n }\n}\nfragment seoFragment on SeoProperties {\n __typename\n title\n description\n}'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -236,8 +239,10 @@ class VrtNUIE(VRTBaseIE):
         )['data']['page']
 
         video_id = metadata['episode']['watchAction']['streamId']
-        # TODO : handle parse errors
-        ld_json = json.loads(metadata['ldjson'][1])
+        try:
+            ld_json = json.loads(metadata['ldjson'][1])
+        except Exception:
+            ld_json = {}
 
         streaming_info = self._call_api(video_id, client='vrtnu-web@PROD')
         formats, subtitles = self._extract_formats_and_subtitles(streaming_info, video_id)
@@ -249,6 +254,8 @@ class VrtNUIE(VRTBaseIE):
                 'description': ('seo', 'description', {str_or_none}),
                 'timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
                 'release_timestamp': ('episode', 'onTimeRaw', {parse_iso8601}),
+                'release_date': ('episode', 'onTimeRaw', {unified_strdate}),
+                'upload_date': ('episode', 'onTimeRaw', {unified_strdate}),
                 'series': ('episode', 'program', 'title'),
                 'episode': ('episode', 'episodeNumberRaw', {str_or_none}),
                 'episode_number': ('episode', 'episodeNumberRaw', {int_or_none}),
