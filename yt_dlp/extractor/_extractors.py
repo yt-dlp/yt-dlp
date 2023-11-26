@@ -1643,6 +1643,7 @@ from .rumble import (
     RumbleIE,
     RumbleChannelIE,
 )
+from .rudovideo import RudoVideoIE
 from .rutube import (
     RutubeIE,
     RutubeChannelIE,
