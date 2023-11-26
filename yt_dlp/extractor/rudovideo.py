@@ -1,6 +1,6 @@
 from .common import InfoExtractor
-from ..utils import js_to_json, ExtractorError, traverse_obj
-from urllib.parse import urlencode
+from ..utils import ExtractorError, traverse_obj
+
 
 class RudoVideoIE(InfoExtractor):
     _VALID_URL = r'https?://rudo\.video/live/(?P<id>[^/]+)'
