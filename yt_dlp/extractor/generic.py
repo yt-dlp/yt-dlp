@@ -374,46 +374,6 @@ class GenericIE(InfoExtractor):
             },
             'skip': 'There is a limit of 200 free downloads / month for the test song',
         },
-        # ooyala video
-        {
-            'url': 'http://www.rollingstone.com/music/videos/norwegian-dj-cashmere-cat-goes-spartan-on-with-me-premiere-20131219',
-            'md5': '166dd577b433b4d4ebfee10b0824d8ff',
-            'info_dict': {
-                'id': 'BwY2RxaTrTkslxOfcan0UCf0YqyvWysJ',
-                'ext': 'mp4',
-                'title': '2cc213299525360.mov',  # that's what we get
-                'duration': 238.231,
-            },
-            'add_ie': ['Ooyala'],
-        },
-        {
-            # ooyala video embedded with http://player.ooyala.com/iframe.js
-            'url': 'http://www.macrumors.com/2015/07/24/steve-jobs-the-man-in-the-machine-first-trailer/',
-            'info_dict': {
-                'id': 'p0MGJndjoG5SOKqO_hZJuZFPB-Tr5VgB',
-                'ext': 'mp4',
-                'title': '"Steve Jobs: Man in the Machine" trailer',
-                'description': 'The first trailer for the Alex Gibney documentary "Steve Jobs: Man in the Machine."',
-                'duration': 135.427,
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'movie expired',
-        },
-        # ooyala video embedded with http://player.ooyala.com/static/v4/production/latest/core.min.js
-        {
-            'url': 'http://wnep.com/2017/07/22/steampunk-fest-comes-to-honesdale/',
-            'info_dict': {
-                'id': 'lwYWYxYzE6V5uJMjNGyKtwwiw9ZJD7t2',
-                'ext': 'mp4',
-                'title': 'Steampunk Fest Comes to Honesdale',
-                'duration': 43.276,
-            },
-            'params': {
-                'skip_download': True,
-            }
-        },
         # embed.ly video
         {
             'url': 'http://www.tested.com/science/weird/460206-tested-grinding-coffee-2000-frames-second/',
@@ -506,7 +466,8 @@ class GenericIE(InfoExtractor):
                 'title': 'Ужастики, русский трейлер (2015)',
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'duration': 153,
-            }
+            },
+            'skip': 'Site dead',
         },
         # XHamster embed
         {
@@ -778,14 +739,16 @@ class GenericIE(InfoExtractor):
             'playlist_mincount': 1,
             'add_ie': ['Youtube'],
         },
-        # Cinchcast embed
+        # Libsyn embed
         {
             'url': 'http://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
             'info_dict': {
-                'id': '7141703',
+                'id': '3793998',
                 'ext': 'mp3',
                 'upload_date': '20141126',
-                'title': 'Jack Tips: 5 Steps to Permanent Gut Healing',
+                'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
+                'thumbnail': 'https://assets.libsyn.com/secure/item/3793998/?height=90&width=90',
+                'duration': 3989.0,
             }
         },
         # Cinerama player
@@ -1565,16 +1528,6 @@ class GenericIE(InfoExtractor):
                 'id': '418921',
                 'ext': 'mp4',
                 'title': 'Стас Намин: «Мы нарушили девственность Кремля»',
-            },
-        },
-        {
-            # vzaar embed
-            'url': 'http://help.vzaar.com/article/165-embedding-video',
-            'md5': '7e3919d9d2620b89e3e00bec7fe8c9d4',
-            'info_dict': {
-                'id': '8707641',
-                'ext': 'mp4',
-                'title': 'Building A Business Online: Principal Chairs Q & A',
             },
         },
         {

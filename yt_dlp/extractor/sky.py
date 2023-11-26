@@ -3,9 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
-    smuggle_url,
     strip_or_none,
-    urljoin,
 )
 
 
@@ -13,29 +11,10 @@ class SkyBaseIE(InfoExtractor):
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
     _SDC_EL_REGEX = r'(?s)(<div[^>]+data-(?:component-name|fn)="sdc-(?:articl|sit)e-video"[^>]*>)'
 
-    def _process_ooyala_element(self, webpage, sdc_el, url):
+    def _process_video_element(self, webpage, sdc_el, url):
         sdc = extract_attributes(sdc_el)
         provider = sdc.get('data-provider')
-        if provider == 'ooyala':
-            video_id = sdc['data-sdc-video-id']
-            video_url = 'ooyala:%s' % video_id
-            ie_key = 'Ooyala'
-            ooyala_el = self._search_regex(
-                r'(<div[^>]+class="[^"]*\bsdc-article-video__media-ooyala\b[^"]*"[^>]+data-video-id="%s"[^>]*>)' % video_id,
-                webpage, 'video data', fatal=False)
-            if ooyala_el:
-                ooyala_attrs = extract_attributes(ooyala_el) or {}
-                if ooyala_attrs.get('data-token-required') == 'true':
-                    token_fetch_url = (self._parse_json(ooyala_attrs.get(
-                        'data-token-fetch-options', '{}'),
-                        video_id, fatal=False) or {}).get('url')
-                    if token_fetch_url:
-                        embed_token = self._download_json(urljoin(
-                            url, token_fetch_url), video_id, fatal=False)
-                        if embed_token:
-                            video_url = smuggle_url(
-                                video_url, {'embed_token': embed_token})
-        elif provider == 'brightcove':
+        if provider == 'brightcove':
             video_id = sdc['data-video-id']
             account_id = sdc.get('data-account-id') or '6058004172001'
             player_id = sdc.get('data-player-id') or 'RC9PQUaJ6'
@@ -52,7 +31,7 @@ class SkyBaseIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        info = self._process_ooyala_element(webpage, self._search_regex(
+        info = self._process_video_element(webpage, self._search_regex(
             self._SDC_EL_REGEX, webpage, 'sdc element'), url)
         info.update({
             'title': self._og_search_title(webpage),
@@ -73,7 +52,7 @@ class SkySportsIE(SkyBaseIE):
             'title': 'Bale: It\'s our time to shine',
             'description': 'md5:e88bda94ae15f7720c5cb467e777bb6d',
         },
-        'add_ie': ['Ooyala'],
+        'add_ie': ['BrightcoveNew'],
     }, {
         'url': 'https://www.skysports.com/watch/video/sports/f1/12160544/abu-dhabi-gp-the-notebook',
         'only_matching': True,
@@ -122,7 +101,7 @@ class SkyNewsStoryIE(SkyBaseIE):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
 
-        entries = [self._process_ooyala_element(webpage, sdc_el, url)
+        entries = [self._process_video_element(webpage, sdc_el, url)
                    for sdc_el in re.findall(self._SDC_EL_REGEX, webpage)]
 
         return self.playlist_result(
@@ -149,7 +128,7 @@ class SkySportsNewsIE(SkyBaseIE):
 
         entries = []
         for sdc_el in re.findall(self._SDC_EL_REGEX, webpage):
-            entries.append(self._process_ooyala_element(webpage, sdc_el, url))
+            entries.append(self._process_video_element(webpage, sdc_el, url))
 
         return self.playlist_result(
             entries, article_id, self._og_search_title(webpage),
