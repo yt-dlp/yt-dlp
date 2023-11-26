@@ -64,7 +64,7 @@ class EplusIbIE(InfoExtractor):
         formats = []
 
         m3u8_playlist_urls = self._search_json(
-            r'var listChannels\s*=', webpage, 'hls URLs', video_id, contains_pattern=r'\[.+\]', default=[])
+            r'var\s+listChannels\s*=', webpage, 'hls URLs', video_id, contains_pattern=r'\[.+\]', default=[])
         if not m3u8_playlist_urls:
             if live_status == 'is_upcoming':
                 self.raise_no_formats(
