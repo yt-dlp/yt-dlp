@@ -256,12 +256,13 @@ class FloatplaneChannelIE(InfoExtractor):
         display_id = join_nonempty(creator, channel, delim='/')
 
         creator_data = self._download_json(
-            'https://www.floatplane.com/api/v3/creator/named', display_id, query={'creatorURL[0]': creator})[0]
+            'https://www.floatplane.com/api/v3/creator/named',
+            display_id, query={'creatorURL[0]': creator})[0]
 
         channel_data = traverse_obj(
-            creator_data, ('channels', lambda _, v: v['urlname'] == channel, {dict}), get_all=False) or {}
+            creator_data, ('channels', lambda _, v: v['urlname'] == channel), get_all=False) or {}
 
         return self.playlist_result(OnDemandPagedList(functools.partial(
-            self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE), display_id,
-            playlist_title=channel_data.get('title') or creator_data.get('title'),
+            self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE),
+            display_id, playlist_title=channel_data.get('title') or creator_data.get('title'),
             playlist_description=channel_data.get('about') or creator_data.get('about'))
