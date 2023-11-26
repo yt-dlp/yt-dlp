@@ -289,8 +289,7 @@ class TwitCastingUserIE(InfoExtractor):
             webpage = self._download_webpage(
                 next_url, uploader_id, query={'filter': 'watchable'}, note='Downloading page %d' % page_num)
             matches = re.finditer(
-                r'''(?isx)<a\s+class="tw-movie-thumbnail"\s*href="(?P<url>/[^/]+/movie/\d+)"\s*>.+?</a>''',
-                webpage)
+                r'(?s)<a\s+class="tw-movie-thumbnail2"\s+href="(?P<url>/[^/"]+/movie/\d+)"', webpage)
             for mobj in matches:
                 yield self.url_result(urljoin(base_url, mobj.group('url')))
 

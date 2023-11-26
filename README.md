@@ -1309,6 +1309,7 @@ The available fields are:
  - `upload_date` (string): Video upload date in UTC (YYYYMMDD)
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
  - `release_date` (string): The date (YYYYMMDD) when the video was released in UTC
+ - `release_year` (numeric): Year (YYYY) when the video or album was released
  - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
  - `modified_date` (string): The date (YYYYMMDD) when the video was last modified in UTC
  - `uploader_id` (string): Nickname or id of the video uploader
@@ -1382,7 +1383,6 @@ Available for the media that is a track or a part of a music album:
  - `album_type` (string): Type of the album
  - `album_artist` (string): List of all artists appeared on the album
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
- - `release_year` (numeric): Year (YYYY) when the album was released
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 

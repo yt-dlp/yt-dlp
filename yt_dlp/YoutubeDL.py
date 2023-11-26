@@ -2589,6 +2589,9 @@ class YoutubeDL:
                     upload_date = datetime.datetime.fromtimestamp(info_dict[ts_key], datetime.timezone.utc)
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
 
+        if not info_dict.get('release_year'):
+            info_dict['release_year'] = traverse_obj(info_dict, ('release_date', {lambda x: int(x[:4])}))
+
         live_keys = ('is_live', 'was_live')
         live_status = info_dict.get('live_status')
         if live_status is None:
