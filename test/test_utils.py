@@ -2110,6 +2110,8 @@ Line 1
         self.assertEqual(traverse_obj(_TEST_DATA, (..., {str_or_none})),
                          [item for item in map(str_or_none, _TEST_DATA.values()) if item is not None],
                          msg='Function in set should be a transformation')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('fail', {lambda _: 'const'})), 'const',
+                         msg='Function in set should always be called')
         if __debug__:
             with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
                 traverse_obj(_TEST_DATA, set())
