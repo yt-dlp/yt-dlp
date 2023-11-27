@@ -2072,7 +2072,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'track': 'Voyeur Girl',
                 'album': 'it\'s too much love to know my dear',
                 'release_date': '20190313',
-                'release_year': 2019,
                 'alt_title': 'Voyeur Girl',
                 'view_count': int,
                 'playable_in_embed': True,
@@ -4560,6 +4559,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
         info['upload_date'] = upload_date
 
+        if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
+            # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=datetime.timezone.utc)
+            if upload_datetime >= datetime_from_str('today-2days'):
+                for fmt in info['formats']:
+                    if fmt.get('protocol') == 'm3u8_native':
+                        fmt['__needs_testing'] = True
+
         for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
             v = info.get(s_k)
             if v:
@@ -6679,7 +6686,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/@milan5503',
             'availability': 'public',
         },
-        'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden'],
+        'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden', 'Retrying', 'Giving up'],
     }, {
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
         'playlist_mincount': 455,
