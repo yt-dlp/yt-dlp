@@ -8,7 +8,6 @@ from ._utils import (
     IDENTITY,
     NO_DEFAULT,
     LazyList,
-    int_or_none,
     is_iterable_like,
     try_call,
     variadic,
@@ -63,10 +62,8 @@ def traverse_obj(
     @param get_all          If `False`, return the first matching result, otherwise all matching ones.
     @param casesense        If `False`, consider string dictionary keys as case insensitive.
 
-    The following are only meant to be used by YoutubeDL.prepare_outtmpl and are not part of the API
+    `traverse_string` is only meant to be used by YoutubeDL.prepare_outtmpl and not part of the API
 
-    @param is_user_input    Whether the keys are generated from user input.
-                            If `True` strings get converted to `int`/`slice` if needed.
     @param traverse_string  Whether to traverse into objects as strings.
                             If `True`, any non-compatible object will first be
                             converted into a string and then traversed into.
@@ -195,14 +192,6 @@ def traverse_obj(
 
         key = None
         for last, key in lazy_last(variadic(path, (str, bytes, dict, set))):
-            if is_user_input and isinstance(key, str):
-                if key == ':':
-                    key = ...
-                elif ':' in key:
-                    key = slice(*map(int_or_none, key.split(':')))
-                elif int_or_none(key) is not None:
-                    key = int(key)
-
             if not casesense and isinstance(key, str):
                 key = key.casefold()
 
