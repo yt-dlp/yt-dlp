@@ -56,8 +56,6 @@ class RedCDNLivxIE(InfoExtractor):
         formats.extend(self._extract_ism_formats(
             livx_mode('livess', '/manifest'), video_id, ism_id='ss'))
 
-        self._sort_formats(formats)
-
         duration = (stop_time - start_time) // 1000
 
         return {
