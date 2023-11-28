@@ -57,8 +57,8 @@ class JoqrAgIE(InfoExtractor):
                 r'<h3[^>]+\bclass="dailyProgram-itemHeaderTime"[^>]*>[\s\d:]+–\s*(?P<time>\d{1,2}:\d{1,2})',
                 self._download_webpage(
                     f'https://www.joqr.co.jp/qr/agdailyprogram/?date={date}', video_id,
-                    note=f'Downloading program list of {date}',
-                    errnote=f'Failed to download program list of {date}'),
+                    note=f'Downloading program list of {date}', fatal=False,
+                    errnote=f'Failed to download program list of {date}') or '',
                 'start time of the first program', default=None, group='time')
             if start_time:
                 return unified_timestamp(f'{dt.strftime("%Y/%m/%d")} {start_time} +09:00')
