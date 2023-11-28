@@ -150,7 +150,7 @@ class Pr0grammIE(InfoExtractor):
                 'width': ('width', {int}),
                 'height': ('height', {int}),
                 'bitrate': ('bitRate', {float}),
-                'fileSize': ('fileSize', {int}),
+                'filesize': ('fileSize', {int}),
             })
         else:
             format_traversal = ((None,), {
