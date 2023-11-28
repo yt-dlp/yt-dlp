@@ -2260,6 +2260,9 @@ class PagedList:
             raise self.IndexError()
         return entries[0]
 
+    def __bool__(self):
+        return bool(self.getslice(0, 1))
+
 
 class OnDemandPagedList(PagedList):
     """Download pages until a page with less than maximum results"""
