@@ -367,7 +367,7 @@ class SocksHTTPConnection(urllib3.connection.HTTPConnection):
                 self, f'Connection to {self.host} timed out. (connect timeout={self.timeout})') from e
         except SocksProxyError as e:
             raise urllib3.exceptions.ProxyError(str(e), e) from e
-        except (OSError, socket.error) as e:
+        except OSError as e:
             raise urllib3.exceptions.NewConnectionError(
                 self, f'Failed to establish a new connection: {e}') from e
 
