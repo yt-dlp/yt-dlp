@@ -3,11 +3,12 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    filter_dict,
+    parse_qs,
     remove_end,
     traverse_obj,
+    update_url_query,
     urljoin,
-    parse_qs,
-    update_url_query
 )
 
 
@@ -122,18 +123,16 @@ class MediaStreamIE(MediaStreamBaseIE):
         formats, subtitles = [], {}
         for video_format in player_config['src']:
             if video_format == 'hls':
-                params = {'at': 'web-app'}
-
-                for name, key in [('MDSTRMUID', 'uid'), ('MDSTRMSID', 'sid'), ('MDSTRMPID', 'pid'), ('VERSION', 'av')]:
-                    if val := self._search_regex(rf'window\.{name}\s*=\s*["\']([^"\']+)["\'];',
-                                                 webpage, key, default=None):
-                        params[key] = val
-
-                if access_token := parse_qs(url).get('access_token', [None])[0]:
-                    params['access_token'] = access_token
+                params = {
+                    'at': 'web-app',
+                    'access_token': traverse_obj(parse_qs(url), ('access_token', 0)),
+                }
+                for name, key in (('MDSTRMUID', 'uid'), ('MDSTRMSID', 'sid'), ('MDSTRMPID', 'pid'), ('VERSION', 'av')):
+                    params[key] = self._search_regex(
+                        rf'window\.{name}\s*=\s*["\']([^"\']+)["\'];', webpage, key, default=None)
 
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    update_url_query(player_config['src'][video_format], params), video_id)
+                    update_url_query(player_config['src'][video_format], filter_dict(params)), video_id)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif video_format == 'mpd':
