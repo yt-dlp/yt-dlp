@@ -558,7 +558,7 @@ class LenientJSONDecoder(json.JSONDecoder):
                     s = self._close_object(e)
                     if s is not None:
                         continue
-                raise type(e)(f'{e.msg} in {s[e.pos-10:e.pos+10]!r}', s, e.pos)
+                raise type(e)(f'{e.msg} in {s[e.pos - 10:e.pos + 10]!r}', s, e.pos)
         assert False, 'Too many attempts to decode JSON'
 
 
@@ -5073,7 +5073,7 @@ def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
         return s
-    return f'{s[:left-3]}...{s[-right:] if right else ""}'
+    return f'{s[:left - 3]}...{s[-right:] if right else ""}'
 
 
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):
