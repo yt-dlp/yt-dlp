@@ -122,29 +122,18 @@ class MediaStreamIE(MediaStreamBaseIE):
         formats, subtitles = [], {}
         for video_format in player_config['src']:
             if video_format == 'hls':
-                params = {}
+                params = {'at': 'web-app'}
 
-                uid = self._search_regex(r'window\.MDSTRMUID\s*=\s*["\']([^"\']+)["\'];', webpage, 'uid', default=None)
-                if uid:
-                    params['uid'] = uid
-
-                sid = self._search_regex(r'window\.MDSTRMSID\s*=\s*["\']([^"\']+)["\'];', webpage, 'sid', default=None)
-                if sid:
-                    params['sid'] = sid
-
-                pid = self._search_regex(r'window\.MDSTRMPID\s*=\s*["\']([^"\']+)["\'];', webpage, 'pid', default=None)
-                if pid:
-                    params['pid'] = pid
-
-                version = self._search_regex(r'window\.VERSION\s*=\s*["\']([^"\']+)["\'];', webpage, 'version', default=None)
-                if version:
-                    params['at'] = 'web-app'
-                    params['av'] = version
+                for name, key in [('MDSTRMUID', 'uid'), ('MDSTRMSID', 'sid'), ('MDSTRMPID', 'pid'), ('VERSION', 'av')]:
+                    if val := self._search_regex(rf'window\.{name}\s*=\s*["\']([^"\']+)["\'];',
+                                                 webpage, key, default=None):
+                        params[key] = val
 
                 if access_token := parse_qs(url).get('access_token', [None])[0]:
                     params['access_token'] = access_token
 
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(update_url_query(player_config['src'][video_format], params), video_id)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    update_url_query(player_config['src'][video_format], params), video_id)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             elif video_format == 'mpd':
