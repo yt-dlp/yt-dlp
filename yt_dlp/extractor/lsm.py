@@ -3,11 +3,14 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     int_or_none,
     js_to_json,
     parse_iso8601,
+    parse_qs,
     traverse_obj,
     url_or_none,
+    urljoin,
 )
 
 
@@ -17,16 +20,52 @@ class LSMBaseIE(InfoExtractor):
 
 
 class LSMLREmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:latvijasradio|lr1|lr2|klasika|lr4|naba|radioteatris)\.lsm|pieci)\.lv/.*/embed.*[?&]id=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:(?:latvijasradio|lr1|lr2|klasika|lr4|naba|radioteatris)\.lsm|pieci)\.lv/[^/]+/(?:pleijeris|embed)'
     _TESTS = [{
         'url': 'https://latvijasradio.lsm.lv/lv/embed/?theme=black&size=16x9&showCaptions=0&id=183522',
         'md5': '719b33875cd1429846eeeaeec6df2830',
         'info_dict': {
-            'id': '183522',
+            'id': 'a342781',
             'ext': 'mp3',
             'duration': 1823,
             'title': '#138 Nepilnīgā kompensējamo zāļu sistēma pat mēnešiem dzenā pacientus pa aptiekām',
             'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/9/d/gallery_fd4675ac.jpg',
+        }
+    }, {
+        'url': 'https://radioteatris.lsm.lv/lv/embed/?id=&show=1270&theme=white&size=16x9',
+        'info_dict': {
+            'id': 1270,
+        },
+        'playlist_count': 3,
+        'playlist': [{
+            'md5': '2e61b6eceff00d14d57fdbbe6ab24cac',
+            'info_dict': {
+                'id': 'a297397',
+                'ext': 'mp3',
+                'title': 'Eriks Emanuels Šmits "Pilāta evaņģēlijs". 1. daļa',
+                'thumbnail': 'https://radioteatris.lsm.lv/public/assets/shows/62f131ae81e3c.jpg',
+                'duration': 3300,
+            },
+        }],
+    }, {
+        'url': 'https://radioteatris.lsm.lv/lv/embed/?id=&show=1269&theme=white&size=16x9',
+        'md5': '24810d4a961da2295d9860afdcaf4f5a',
+        'info_dict': {
+            'id': 'a230690',
+            'ext': 'mp3',
+            'title': 'Jens Ahlboms "Spārni". Radioizrāde ar Mārtiņa Freimaņa mūziku',
+            'thumbnail': 'https://radioteatris.lsm.lv/public/assets/shows/62f13023a457c.jpg',
+            'duration': 1788,
+        }
+    }, {
+        'url': 'https://lr1.lsm.lv/lv/embed/?id=166557&show=0&theme=white&size=16x9',
+        'md5': '5d5e191e718b7644e5118b7b4e093a6d',
+        'info_dict': {
+            'id': 'a303104',
+            'ext': 'mp4',
+            'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/c/5/gallery_a83ad2c2.jpg',
+            'title': 'Krustpunktā Lielā intervija: Valsts prezidents Egils Levits',
+            'duration': 3222,
         }
     }, {
         'url': 'https://lr1.lsm.lv/lv/embed/?id=183522&show=0&theme=white&size=16x9',
@@ -49,10 +88,18 @@ class LSMLREmbedIE(InfoExtractor):
     }, {
         'url': 'https://radioteatris.lsm.lv/lv/embed/?id=176439&show=0&theme=white&size=16x9',
         'only_matching': True,
+    }, {
+        'url': 'https://lr1.lsm.lv/lv/pleijeris/?embed=0&id=48205&time=00%3A00&idx=0',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        query = parse_qs(url)
+        video_id = traverse_obj(query, ('show', 0, {int_or_none}))
+
+        if video_id is None or video_id == 0:
+            video_id = traverse_obj(query, ('id', 0, {int_or_none}))
+
         webpage = self._download_webpage(url, video_id)
 
         player_data, media_data = self._html_search_regex(
@@ -62,23 +109,33 @@ class LSMLREmbedIE(InfoExtractor):
         player_json = self._parse_json(player_data, video_id, js_to_json)
         media_json = self._parse_json(media_data, video_id, js_to_json)
 
-        formats = []
-        for source in traverse_obj(media_json, ('audio', 0, 'sources')):
-            url = source.get('file')
-
-            if url is not None:
-                if url.endswith('.m3u8'):
-                    formats.extend(self._extract_m3u8_formats(url, video_id))
+        entries = []
+        for i, audio_json in enumerate(traverse_obj(media_json, ('audio', ...))):
+            formats = []
+            for source_url in traverse_obj(media_json, (('audio', 'video'), i, 'sources', ..., 'file', {url_or_none})):
+                if source_url.endswith('.m3u8'):
+                    formats.extend(self._extract_m3u8_formats(source_url, video_id))
                 else:
-                    formats.append({'url': url})
+                    formats.append({'url': source_url})
 
-        return {
-            'id': video_id,
-            'title': traverse_obj(media_json, ('audio', 0, 'title')),
-            'formats': formats,
-            'duration': traverse_obj(media_json, ('audio', 0, 'duration', {int_or_none})),
-            'thumbnail': url_or_none(player_json.get('poster')),
-        }
+            entries.append({
+                'formats': formats,
+                'thumbnail': urljoin(url, player_json.get('poster')),
+                **traverse_obj(audio_json, {
+                    'id': 'id',
+                    'title': 'title',
+                    'duration': ('duration', {int_or_none})
+                })
+            })
+
+        if len(entries) == 1:
+            return entries[0]
+        else:
+            return {
+                '_type': 'playlist',
+                'id': video_id,
+                'entries': entries,
+            }
 
 
 class LSMLTVEmbedIE(InfoExtractor):
@@ -135,7 +192,6 @@ class LSMLTVEmbedIE(InfoExtractor):
 
         embed_type = traverse_obj(json, ('source', 'name'))
 
-        embed_data = {}
         if embed_type == 'telia':
             embed_data = {
                 'ie_key': 'CloudyCDN',
@@ -146,14 +202,18 @@ class LSMLTVEmbedIE(InfoExtractor):
                 'ie_key': 'Youtube',
                 'url': traverse_obj(json, ('source', 'id')),
             }
+        else:
+            raise ExtractorError('Unsupported embed type')
 
         return {
             **embed_data,
             '_type': 'url',
             'id': video_id,
-            'title': traverse_obj(json, ('parentInfo', 'title')),
-            'duration': traverse_obj(json, ('parentInfo', 'duration', {int_or_none})),
-            'thumbnail': traverse_obj(json, ('source', 'poster', {url_or_none})),
+            **traverse_obj(json, {
+                'title': ('parentInfo', 'title'),
+                'duration': ('parentInfo', 'duration', {int_or_none}),
+                'thumbnail': ('source', 'poster', {url_or_none}),
+            }),
         }
 
 
@@ -178,16 +238,17 @@ class LSMLTVIE(LSMBaseIE):
         webpage = self._download_webpage(url, video_id)
 
         json = self._search_nuxt_data(self.fix_nuxt_data(webpage), video_id)
-        embed_id = traverse_obj(json, ('article', 'videoMediaItem', 'video', 'embed_id'))
 
         return {
             '_type': 'url_transparent',
             'ie_key': 'LSMLTVEmbed',
-            'url': f'https://ltv.lsm.lv/embed?c={embed_id}',
             'id': video_id,
-            'title': traverse_obj(json, ('article', 'title')),
-            'timestamp': traverse_obj(json, ('article', 'aired_at', {parse_iso8601})),
-            'thumbnail': traverse_obj(json, ('article', 'thumbnail', {url_or_none})),
+            **traverse_obj(json, ('article', {
+                'url': ('videoMediaItem', 'video', 'embed_id', {lambda x: x and f'https://ltv.lsm.lv/embed?c={x}'}),
+                'title': 'title',
+                'timestamp': ('aired_at', {parse_iso8601}),
+                'thumbnail': ('thumbnail', {url_or_none}),
+            })),
         }
 
 
@@ -210,7 +271,7 @@ class LSMReplayIE(LSMBaseIE):
         'url': 'https://replay.lsm.lv/lv/ieraksts/lr/183522/138-nepilniga-kompensejamo-zalu-sistema-pat-menesiem-dzena-pacientus-pa-aptiekam',
         'md5': '719b33875cd1429846eeeaeec6df2830',
         'info_dict': {
-            'id': '183522',
+            'id': 'a342781',
             'ext': 'mp3',
             'duration': 1823,
             'title': '#138 Nepilnīgā kompensējamo zāļu sistēma pat mēnešiem dzenā pacientus pa aptiekām',
@@ -232,11 +293,13 @@ class LSMReplayIE(LSMBaseIE):
 
         return {
             '_type': 'url_transparent',
-            'url': traverse_obj(json, ('playback', 'service', 'url', {url_or_none})),
             'id': video_id,
-            'title': traverse_obj(json, ('mediaItem', 'title')),
-            'description': traverse_obj(json, ('mediaItem', ('lead', 'body')), get_all=False),
-            'duration': traverse_obj(json, ('mediaItem', 'duration', {int_or_none})),
-            'timestamp': traverse_obj(json, ('mediaItem', 'aired_at', {parse_iso8601})),
-            'thumbnail': traverse_obj(json, ('mediaItem', 'largeThumbnail', {url_or_none}))
+            **traverse_obj(json, {
+                'url': ('playback', 'service', 'url', {url_or_none}),
+                'title': ('mediaItem', 'title'),
+                'description': ('mediaItem', ('lead', 'body')),
+                'duration': ('mediaItem', 'duration', {int_or_none}),
+                'timestamp': ('mediaItem', 'aired_at', {parse_iso8601}),
+                'thumbnail': ('mediaItem', 'largeThumbnail', {url_or_none}),
+            }, get_all=False),
         }

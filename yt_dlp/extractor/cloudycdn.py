@@ -4,11 +4,13 @@ from ..utils import (
     parse_iso8601,
     traverse_obj,
     url_or_none,
+    urlencode_postdata,
 )
 
 
 class CloudyCDNIE(InfoExtractor):
-    _VALID_URL = r'https?://embed\.cloudycdn\.services/(?P<site_id>[^/]+)/media/(?P<id>[^?]+)'
+    _VALID_URL = r'(?:https?:)?//embed\.cloudycdn\.services/(?P<site_id>[^/]+)/media/(?P<id>[\w-]+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://embed.cloudycdn.services/ltv/media/46k_d23-6000-105?',
         'md5': '64f72a360ca530d5ed89c77646c9eee5',
@@ -34,27 +36,45 @@ class CloudyCDNIE(InfoExtractor):
             'upload_date': '20221130',
         }
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.tavaklase.lv/video/es-esmu-mina-um-2/',
+        'md5': '63074e8e6c84ac2a01f2fb8bf03b8f43',
+        'info_dict': {
+            'id': 'cqd_lib-2',
+            'ext': 'mp4',
+            'upload_date': '20230223',
+            'duration': 629,
+            'thumbnail': 'https://store.cloudycdn.services/tmsp00120/assets/media/518407/placeholder1678748124.jpg',
+            'timestamp': 1677181513,
+            'title': 'LIB-2',
+        }
+    }]
 
     def _real_extract(self, url):
         site_id, video_id = self._match_valid_url(url).group('site_id', 'id')
 
         json = self._download_json(
             f'https://player.cloudycdn.services/player/{site_id}/media/{video_id}/',
-            video_id, data=b'referer=https://embed.cloudycdn.services/')
+            video_id, data=urlencode_postdata({
+                'version': '6.4.0',
+                'referer': url,
+            }))
 
         formats = []
         subtitles = {}
-        for source in traverse_obj(json, ('source', 'sources'), default=[]):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(source.get('src'), video_id)
+        for url in traverse_obj(json, ('source', 'sources', ..., 'src', {url_or_none})):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(url, video_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': video_id,
-            'title': json.get('name'),
             'formats': formats,
             'subtitles': subtitles,
-            'duration': int_or_none(json.get('duration')),
-            'timestamp': parse_iso8601(json.get('upload_date')),
-            'thumbnail': traverse_obj(json, ('source', 'poster', {url_or_none})),
+            **traverse_obj(json, {
+                'title': 'name',
+                'duration': ('duration', {int_or_none}),
+                'timestamp': ('upload_date', {parse_iso8601}),
+                'thumbnail': ('source', 'poster', {url_or_none}),
+            }),
         }
