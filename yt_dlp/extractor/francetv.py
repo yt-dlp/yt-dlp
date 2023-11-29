@@ -236,7 +236,6 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
-            # 'description': 'md5:75efe8d4c0a8205e5904498ffe1e1a42',
             'timestamp': 1502623500,
             'duration': 2580,
             'thumbnail': r're:^https?://.*\.jpg$',
