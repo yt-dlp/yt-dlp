@@ -7,22 +7,6 @@ class LoomIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?loom\.com/share/(?P<id>[a-z0-9]+)'
     # https://www.loom.com/share/3c1284df64d9454b8854f112d62dce91
     _TESTS = [
-    #{
-    #     'url': 'https://www.loom.com/share/0be2b9beca0443cd9bc48a416fc1d3fb',
-    #     'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
-    #     'info_dict': {
-    #         'id': '0be2b9beca0443cd9bc48a416fc1d3fb',
-    #         'ext': 'mp4',
-    #         'title': '10 April, 2023 - 7c6e0f0a-dfe5-4bcb-afd7-a14997bb1285',
-    #         'uploader': 'Hamza Ahmed',
-    #         # 'thumbnail': r're:^https?://.*\.jpg$',
-    #         # TODO more properties, either as:
-    #         # * A value
-    #         # * MD5 checksum; start the string with md5:
-    #         # * A regular expression; start the string with re:
-    #         # * Any Python type, e.g. int or float
-    #     }
-    # }, 
     {
         'url': 'https://www.loom.com/share/43d05f362f734614a2e81b4694a3a523',
         'md5': '2b0d36e4999c39fabdb617188f21ea1e',
