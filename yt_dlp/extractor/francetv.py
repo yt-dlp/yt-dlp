@@ -5,6 +5,8 @@ from ..utils import (
     format_field,
     parse_iso8601,
     parse_qs,
+    join_nonempty,
+    int_or_none,
 )
 from .dailymotion import DailymotionIE
 
@@ -98,8 +100,8 @@ class FranceTVIE(InfoExtractor):
         videos = []
         title = None
         subtitle = None
-        episode = None
-        series = None
+        episode_number = None
+        season_number = None
         image = None
         duration = None
         timestamp = None
@@ -115,8 +117,6 @@ class FranceTVIE(InfoExtractor):
 
             if not dinfo:
                 continue
-
-            print(dinfo)
 
             video = dinfo.get('video')
             if video:
@@ -134,7 +134,7 @@ class FranceTVIE(InfoExtractor):
                     title = meta.get('title')
                 # meta['pre_title'] contains season and episode number for series in format "S<ID> E<ID>"
                 season_number, episode_number = self._search_regex(
-                        r'S(\d+)\s*E(\d+)', meta.get('pre_title'), 'episode info', group=(1, 2), default=(None, None))
+                    r'S(\d+)\s*E(\d+)', meta.get('pre_title'), 'episode info', group=(1, 2), default=(None, None))
                 if subtitle is None:
                     subtitle = meta.get('additional_title')
                 if image is None:
@@ -215,7 +215,7 @@ class FranceTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': (title + ' - %s' % subtitle if subtitle else title).strip(),
+            'title': join_nonempty(title, subtitle, delim=' - ').strip(),
             'thumbnail': image,
             'duration': duration,
             'timestamp': timestamp,
@@ -224,8 +224,8 @@ class FranceTVIE(InfoExtractor):
             'subtitles': subtitles,
             'episode': subtitle if episode_number else None,
             'series': title if episode_number else None,
-            'episode_number': int(episode_number) if episode_number else None,
-            'season_number': int(season_number) if season_number else None,
+            'episode_number': int_or_none(episode_number),
+            'season_number': int_or_none(season_number),
         }
 
     def _real_extract(self, url):
