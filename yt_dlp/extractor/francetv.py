@@ -49,22 +49,6 @@ class FranceTVIE(InfoExtractor):
             'upload_date': '20170813',
         },
     }, {
-        'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
-        'info_dict': {
-            'id': 'a9050959-eedd-4b4a-9b0d-de6eeaa73e44',
-            'ext': 'mp4',
-            'title': 'Foot2Rue - Duel au vieux port',
-            'episode': 'Duel au vieux port',
-            'series': 'Foot2Rue',
-            'episode_number': 1,
-            'season_number': 1,
-            'timestamp': 1642761360,
-            'upload_date': '20220121',
-            'season': 'Season 1',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 1441,
-        },
-    }, {
         # with catalog
         'url': 'https://sivideo.webservices.francetelevisions.fr/tools/getInfosOeuvre/v2/?idDiffusion=NI_1004933&catalogue=Zouzous&callback=_jsonp_loader_callback_request_4',
         'only_matching': True,
@@ -252,14 +236,32 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
-            'description': 'md5:75efe8d4c0a8205e5904498ffe1e1a42',
+            # 'description': 'md5:75efe8d4c0a8205e5904498ffe1e1a42',
             'timestamp': 1502623500,
+            'duration': 2580,
+            'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20170813',
         },
         'params': {
             'skip_download': True,
         },
         'add_ie': [FranceTVIE.ie_key()],
+    }, {
+        'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
+        'info_dict': {
+            'id': 'a9050959-eedd-4b4a-9b0d-de6eeaa73e44',
+            'ext': 'mp4',
+            'title': 'Foot2Rue - Duel au vieux port',
+            'episode': 'Duel au vieux port',
+            'series': 'Foot2Rue',
+            'episode_number': 1,
+            'season_number': 1,
+            'timestamp': 1642761360,
+            'upload_date': '20220121',
+            'season': 'Season 1',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 1441,
+        },
     }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',
