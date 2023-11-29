@@ -287,12 +287,10 @@ class JioCinemaTVSeasonIE(JioCinemaBaseIE):
         return self.playlist_result(playlist_entries)
 
     def _extract_season_id_list(self, season_data_response):
-        season_count = 0
         season_id_list = []
 
         for tray in season_data_response['trays']:
             if tray['title'] == 'Episodes':
-                season_count = tray['totalTrayTabs']
                 for season in tray['trayTabs']:
                     season_id_list.append(season['id'])
                 break
