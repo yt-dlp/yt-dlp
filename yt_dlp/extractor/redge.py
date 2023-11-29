@@ -39,7 +39,7 @@ class RedCDNLivxIE(InfoExtractor):
             file = f'https://r.dcs.redcdn.pl/{mode}/o2/{tenant}/{camera}/{filename}.livx{suffix}?startTime={start_time}'
             if stop_time:
                 file += f'&stopTime={stop_time}'
-            return file + '&indexMode=true'
+            return file + ('&nolimit=1' if mode == 'nvr' else '&indexMode=true')
 
         # no id for a transmission
         video_id = f'{camera}-{start_time}-{stop_time}'
@@ -50,11 +50,11 @@ class RedCDNLivxIE(InfoExtractor):
             'format_id': 'direct-0',
             'preference': -1,   # VERY slow to download (~200 KiB/s, compared to ~10-15 MiB/s by DASH/HLS)
         }]
-        formats.extend(self._extract_mpd_formats(livx_mode('livedash'), video_id, mpd_id='dash'))
+        formats.extend(self._extract_mpd_formats(livx_mode('livedash'), video_id, mpd_id='dash', fatal=False))
         formats.extend(self._extract_m3u8_formats(
-            livx_mode('livehls', '/playlist.m3u8'), video_id, m3u8_id='hls', ext='mp4'))
+            livx_mode('livehls', '/playlist.m3u8'), video_id, m3u8_id='hls', ext='mp4', fatal=False))
         formats.extend(self._extract_ism_formats(
-            livx_mode('livess', '/manifest'), video_id, ism_id='ss'))
+            livx_mode('livess', '/manifest'), video_id, ism_id='ss', fatal=False))
 
         duration = (stop_time - start_time) // 1000
 
