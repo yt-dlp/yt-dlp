@@ -53,6 +53,7 @@ class CommitGroup(enum.Enum):
                     'plugins',
                     'update',
                     'utils',
+                    'webvtt',
                 },
                 cls.MISC: {
                     'build',
