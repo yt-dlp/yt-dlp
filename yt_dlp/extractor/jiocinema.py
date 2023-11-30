@@ -16,23 +16,6 @@ class JioCinemaBaseIE(InfoExtractor):
     def _get_auth_token(self):
         token_endpoint = "https://auth-jiocinema.voot.com/tokenservice/apis/v4/guest"
 
-        headers = {
-            'authority': 'auth-jiocinema.voot.com',
-            'accept': 'application/json, text/plain, */*',
-            'accept-language': 'en-IN,en;q=0.9',
-            'content-type': 'application/json',
-            'dnt': '1',
-            'origin': 'https://www.jiocinema.com',
-            'referer': 'https://www.jiocinema.com/',
-            'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'cross-site',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-        }
-
         payload = {
             "appName": "RJIL_JioCinema",
             "deviceType": "phone",
@@ -43,7 +26,7 @@ class JioCinemaBaseIE(InfoExtractor):
             "appVersion": "23.11.22.0-dc532c79"
         }
 
-        token_response = self._download_json(url_or_request=token_endpoint, video_id=None, note='Fetching Auth Token', data=bytes(json.dumps(payload), encoding='utf8'), headers=headers)
+        token_response = self._download_json(url_or_request=token_endpoint, video_id=None, note='Fetching Auth Token', data=bytes(json.dumps(payload), encoding='utf8'))
 
         if "authToken" in token_response:
             return token_response["authToken"]
@@ -61,26 +44,15 @@ class JioCinemaBaseIE(InfoExtractor):
         if media_metadata_response and 'result' in media_metadata_response and media_metadata_response['result']:
             media_metadata_response = media_metadata_response['result'][0]
 
-        media_metadata['showName'] = media_metadata_response['showName']
+        if media_metadata_response['showName']:
+            media_metadata['series'] = media_metadata_response['showName']
         media_metadata['title'] = media_metadata_response['fullTitle']
-        media_metadata['shortTitle'] = media_metadata_response['shortTitle']
-        media_metadata['shortSynopsis'] = media_metadata_response['shortSynopsis']
-        media_metadata['fullSynopsis'] = media_metadata_response['fullSynopsis']
-        media_metadata['showName'] = media_metadata_response['showName']
-        media_metadata['season'] = media_metadata_response['season']
-        media_metadata['episode'] = media_metadata_response['episode']
-        media_metadata['multiTrackAudioEnabled'] = media_metadata_response['multiTrackAudioEnabled']
-        media_metadata['introStart'] = media_metadata_response['introStart']
-        media_metadata['introEnd'] = media_metadata_response['introEnd']
-        media_metadata['recapStart'] = media_metadata_response['recapStart']
-        media_metadata['recapEnd'] = media_metadata_response['recapEnd']
-        media_metadata['creditStart'] = media_metadata_response['creditStart']
-        media_metadata['creditEnd'] = media_metadata_response['creditEnd']
-        media_metadata['is4KSupported'] = media_metadata_response['is4KSupported']
-        media_metadata['is1080PSupported'] = media_metadata_response['is1080PSupported']
-        media_metadata['isDolbySupported'] = media_metadata_response['isDolbySupported']
-        media_metadata['hasSubtitles'] = media_metadata_response['hasSubtitles']
-        media_metadata['subtitles'] = media_metadata_response['subtitles']
+        media_metadata['description'] = media_metadata_response['fullSynopsis']
+        if media_metadata_response['season']:
+            media_metadata['season_number'] = int(media_metadata_response['season'])
+        if media_metadata_response['episode']:
+            media_metadata['episode_number'] = int(media_metadata_response['episode'])
+        # media_metadata['subtitles'] = media_metadata_response['subtitles']
 
         return media_metadata
 
@@ -90,31 +62,12 @@ class JioCinemaBaseIE(InfoExtractor):
         stream_endpoint = stream_endpoint.format(media_id=media_id)
 
         headers = {
-            'authority': 'apis-jiovoot.voot.com',
-            'accept': 'application/json, text/plain, */*',
-            'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6',
             'accesstoken': auth_token,
-            'appname': 'RJIL_JioCinema',
-            'content-type': 'application/json',
-            'deviceid': self.deviceId,
-            'dnt': '1',
-            'origin': 'https://www.jiocinema.com',
-            'referer': 'https://www.jiocinema.com/',
-            'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'cross-site',
-            'uniqueid': self.deviceId,
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-            'versioncode': '2311030',
-            'x-platform': 'androidweb',
-            'x-platform-token': 'web'
+            'x-platform': 'androidweb'
         }
 
         payload = {
-            "4k": False,
+            "4k": True,
             "ageGroup": "18+",
             "appVersion": "3.4.0",
             "bitrateProfile": "xhdpi",
@@ -127,15 +80,15 @@ class JioCinemaBaseIE(InfoExtractor):
                 },
                 "frameRateCapability": [
                     {
-                        "frameRateSupport": "30fps",
-                        "videoQuality": "1440p"
+                        "frameRateSupport": "60fps",
+                        "videoQuality": "2160p"
                     }
                 ]
             },
             "continueWatchingRequired": True,
             "dolby": False,
             "downloadRequest": False,
-            "hevc": False,
+            "hevc": True,
             "kidsSafe": False,
             "manufacturer": "Mac OS",
             "model": "Mac OS",
@@ -169,7 +122,6 @@ class JioCinemaBaseIE(InfoExtractor):
         formats = []
         formats.extend(self._extract_mpd_formats(mpd_url, media_id))
 
-        self._sort_formats(formats)
         response_dict = {
             'id': media_id,
             'formats': formats,
@@ -181,28 +133,17 @@ class JioCinemaBaseIE(InfoExtractor):
 class JioCinemaTVIE(JioCinemaBaseIE):
     _VALID_URL = r'https?://(?:www\.)?jiocinema\.com/tv-shows/(?P<media_name>[a-zA-Z0-9\-]*)/(?P<season_number>[0-9]*)/(?P<episode_name>[a-zA-Z0-9\-]*)/(?P<media_id>[a-zA-Z0-9\-]*)'
     _TEST = {
-        'url': 'https://www.jiocinema.com/tv-shows/cedric/2/mister-fixit/3769452',
+        'url': 'https://www.jiocinema.com/tv-shows/cedric/1/i-love-school/3769333',
         'info_dict': {
-            'id': '3769452',
+            'id': '3769333',
             'ext': 'mp4',
-            'title': 'Mister Fixit',
-            'shortTitle': 'Mister Fixit',
-            'shortSynopsis': 'Cedric offers to fix Chen\'s broken walkman, however he realises that it is much harder than he thought it\'d be. He thinks of taking help from his father and Poppy, but th',
-            'fullSynopsis': 'Cedric offers to fix Chen\'s broken walkman, however he realises that it is much harder than he thought it\'d be. He thinks of taking help from his father and Poppy, but they get into an argument over who is a better handyman. Will Cedric be able to fix Chen\'s walkman as promised?',
-            'is4KSupported': False,
-            'is1080PSupported': False,
-            'isDolbySupported': False,
-            'introStart': 0,
-            'introEnd': 5,
-            'creditStart': 765,
-            'creditEnd': 770,
-            'recapStart': 0,
-            'recapEnd': 0,
-            'hasSubtitles': False,
-            'multiTrackAudioEnabled': False,
-            'season': '2',
-            'showName': 'Cedric',
-            'episode': '1'
+            'title': 'I Love School',
+            'description': 'md5:71cc843e4ec65f62c6fd33cf38920198',
+            'series': 'Cedric',
+            'season_number': 1,
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'season': 'Season 1',
         },
         'params': {
             'skip_download': True,
@@ -219,23 +160,7 @@ class JioCinemaMovieIE(JioCinemaBaseIE):
             'id': '3777402',
             'ext': 'mp4',
             'title': 'I Choose You! - Pokemon the Movie',
-            'shortTitle': 'I Choose You! - Pokemon the Movie',
-            'shortSynopsis': 'When Ash Ketchum oversleeps on his 10th birthday, he ends up with a stubborn Pikachu instead of the first partner Pokémon he wanted! But after a rocky start, Ash and Pika',
-            'fullSynopsis': 'When Ash Ketchum oversleeps on his 10th birthday, he ends up with a stubborn Pikachu instead of the first partner Pokémon he wanted! But after a rocky start, Ash and Pikachu become close friends and true partners—and when they catch a rare glimpse of the Legendary Pokémon Ho-Oh in flight, they make plans to seek it out together, guided by the Rainbow Wing it leaves behind. Trainers Verity and Sorrel join Ash on his journey. Along the way, Ash catches an abandoned Charmander, raises a Pokémon from Caterpie to Butterfree and then releases it to follow its heart, and meets the mysterious Mythical Pokémon Marshadow. When they near their goal, the arrogant Cross—Charmander\'s former Trainer—stands in their way! Can Ash and Pikachu defeat this powerful Trainer and reach Ho-Oh as they promised, or will their journey end here?',
-            'is4KSupported': False,
-            'is1080PSupported': False,
-            'isDolbySupported': False,
-            'introStart': 0,
-            'introEnd': 0,
-            'creditStart': 0,
-            'creditEnd': 0,
-            'recapStart': 0,
-            'recapEnd': 0,
-            'showName': '',
-            'episode': '',
-            'season': '',
-            'hasSubtitles': False,
-            'multiTrackAudioEnabled': False
+            'description': 'md5:c224c04ce664ac2f41d85e2fb1d49b2f'
         },
         'params': {
             'skip_download': True,
@@ -252,23 +177,12 @@ class JioCinemaTVSeasonIE(JioCinemaBaseIE):
             'id': '3769333',
             'ext': 'mp4',
             'title': 'I Love School',
-            'shortTitle': 'I Love School',
-            'shortSynopsis': 'Cedric loves going to school but his report card doesn\'t reflect his enthusiasm. Cedric\'s dad scolds him for his poor performance but he is least bothered and starts drea',
-            'fullSynopsis': 'Cedric loves going to school but his report card doesn\'t reflect his enthusiasm. Cedric\'s dad scolds him for his poor performance but he is least bothered and starts dreaming about his teacher at school, with whom he is in love with.',
-            'is4KSupported': False,
-            'is1080PSupported': False,
-            'isDolbySupported': False,
-            'introStart': 0,
-            'introEnd': 5,
-            'creditStart': 764,
-            'creditEnd': 769,
-            'recapStart': 0,
-            'recapEnd': 0,
-            'showName': 'Cedric',
-            'episode': '1',
-            'season': '1',
-            'hasSubtitles': False,
-            'multiTrackAudioEnabled': False
+            'description': 'md5:71cc843e4ec65f62c6fd33cf38920198',
+            'series': 'Cedric',
+            'season_number': 1,
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'season': 'Season 1',
         },
         'params': {
             'skip_download': True,
