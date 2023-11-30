@@ -478,14 +478,14 @@ class NiconicoIE(InfoExtractor):
         def get_video_info(*items, get_first=True, **kwargs):
             return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
 
-        dmc_quality_info = api_data['media']['delivery']['movie']
-        dmc_session_api_data = dmc_quality_info['session']
-        for (audio_quality, video_quality, protocol) in itertools.product(dmc_quality_info['audios'], dmc_quality_info['videos'], dmc_session_api_data['protocols']):
+        dmc_quality_info = traverse_obj(api_data, ('media', 'delivery', 'movie'))
+        dmc_session_api_data = dmc_quality_info.get('session')
+        for (audio_quality, video_quality, protocol) in itertools.product(dmc_quality_info.get('audios', __default=[]), dmc_quality_info.get('videos', __default=[]), dmc_session_api_data.get('protocols', __default=[])):
             fmt = self._extract_dmc_format_for_quality(video_id, audio_quality, video_quality, protocol)
             if fmt:
                 formats.append(fmt)
-        dms_quality_info = api_data['media']['domand']
-        for (audio_quality, video_quality) in itertools.product(dms_quality_info['audios'], dms_quality_info['videos']):
+        dms_quality_info = traverse_obj(api_data, ('media', 'domand'))
+        for (audio_quality, video_quality) in itertools.product(dms_quality_info.get('audios', __default=[]), dms_quality_info.get('videos', __default=[])):
             fmt = self._extract_dms_format_for_quality(video_id, audio_quality, video_quality)
             if fmt:
                 formats.append(fmt)
