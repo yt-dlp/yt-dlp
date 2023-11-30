@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 import json
 import urllib.request
+from datetime import datetime
 
 '''
 This scraper was made really fast without really following best practices.
@@ -21,6 +22,7 @@ class LoomIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'A Ruler for Windows - 28 March 2022',
             'uploader': 'wILLIAM PIP',
+            'upload_date': '20220328',
         }
     }, {
         'url': 'https://www.loom.com/share/c43a642f815f4378b6f80a889bb73d8d',
@@ -30,6 +32,7 @@ class LoomIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lilah Nielsen Intro Video',
             'uploader': 'Lilah Nielsen',
+            'upload_date': '20200826',
         }
     }]
 
@@ -70,6 +73,9 @@ class LoomIE(InfoExtractor):
 
         height = self._search_regex(r'"height":([0-9]+)', webpage, 'height', fatal=False)
         # print(f'Height: {height}')
+        
+        date_string = self._search_regex(r'"visibility":"(?:[^"]+)","createdAt":"([^"]+)"', webpage, 'date', fatal=False)
+        date = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y%m%d")
 
         # filesize = self._search_regex(r'"file_size":([0-9]+)', webpage, 'filesize', fatal=False)
         # print(f'Filesize: {filesize}')
@@ -91,6 +97,7 @@ class LoomIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'uploader': uploader,
+            'upload_date': date,
             'formats': formats,
             # TODO more properties (see yt_dlp/extractor/common.py)
         }
