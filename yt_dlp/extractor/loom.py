@@ -2,12 +2,18 @@ from .common import InfoExtractor
 import json
 import urllib.request
 
+'''
+This scraper was made really fast without really following best practices.
+The webpage string has json data inside it and it would be better if the
+video data was grabbed from there instead of using regex.
+Because loom could change their video requesting api at any time, I decided
+not to work too much on this. If you want to make this scraper better, feel free to do so.
+'''
+
 
 class LoomIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?loom\.com/share/(?P<id>[a-z0-9]+)'
-    # https://www.loom.com/share/3c1284df64d9454b8854f112d62dce91
-    _TESTS = [
-    {
+    _TESTS = [{
         'url': 'https://www.loom.com/share/43d05f362f734614a2e81b4694a3a523',
         'md5': '2b0d36e4999c39fabdb617188f21ea1e',
         'info_dict': {
@@ -16,7 +22,15 @@ class LoomIE(InfoExtractor):
             'title': 'A Ruler for Windows - 28 March 2022',
             'uploader': 'wILLIAM PIP',
         }
-                  
+    }, {
+        'url': 'https://www.loom.com/share/c43a642f815f4378b6f80a889bb73d8d',
+        'md5': '281c57772c6364c7a860fc222ea8d222',
+        'info_dict': {
+            'id': 'c43a642f815f4378b6f80a889bb73d8d',
+            'ext': 'mp4',
+            'title': 'Lilah Nielsen Intro Video',
+            'uploader': 'Lilah Nielsen',
+        }
     }]
 
     def fetch_loom_download_url(self, id):
@@ -39,12 +53,6 @@ class LoomIE(InfoExtractor):
         # print(f'Id: {video_id}')
         # print(f'\n\n\n\n\n\n\n\nWebpage: {webpage}\n\n\n\n\n\n\n\n')
 
-        # TODO more code goes here, for example ...
-        # title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
-        # match = re.search(r'', text)
-        # if match:
-        #     first_video_name = match.group(1)
-
         title = self._search_regex(r'"name":"([^"]+)"', webpage, 'title')
         # print(f'Title: {title}')
 
@@ -54,10 +62,9 @@ class LoomIE(InfoExtractor):
         videourl = self.fetch_loom_download_url(video_id)
         # print(f'Url: {url}')
 
-
         ext = self._search_regex(r'([a-zA-Z0-9]+)(?=\?)', videourl, 'ext', fatal=False)
         # print(f'Ext: {ext}')
-        
+
         width = self._search_regex(r'"width":([0-9]+)', webpage, 'width', fatal=False)
         # print(f'Width: {width}')
 
@@ -67,19 +74,16 @@ class LoomIE(InfoExtractor):
         # filesize = self._search_regex(r'"file_size":([0-9]+)', webpage, 'filesize', fatal=False)
         # print(f'Filesize: {filesize}')
 
-        # description = 
+        # description =
         # print(description)
-        
         # print(f'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
 
-        
         formats = []
         formats.append({
             'url': videourl,
             'width': int(width),
             'height': int(height),
-            'ext' : ext,
-            # 'format_id': ext,
+            'ext': ext,
             # 'filesize': int(filesize),
         })
 
