@@ -1,14 +1,14 @@
 from .common import InfoExtractor
+from .dailymotion import DailymotionIE
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     format_field,
+    int_or_none,
+    join_nonempty,
     parse_iso8601,
     parse_qs,
-    join_nonempty,
-    int_or_none,
 )
-from .dailymotion import DailymotionIE
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
