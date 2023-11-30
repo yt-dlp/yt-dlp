@@ -52,7 +52,7 @@ class FacebookIE(InfoExtractor):
                             )\?(?:.*?)(?:v|video_id|story_fbid)=|
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
-                            groups/[^/]+/permalink/|
+                            groups/[^/]+/(?:permalink|posts)/|
                             watchparty/
                         )|
                     facebook:
