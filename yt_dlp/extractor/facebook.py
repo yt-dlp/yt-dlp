@@ -638,7 +638,7 @@ class FacebookIE(InfoExtractor):
                 if len(entries) > 1:
                     return self.playlist_result(entries, video_id)
 
-                video_info = entries[0] if len(entries) > 0 else {'id': video_id}
+                video_info = entries[0] if entries else {'id': video_id}
                 webpage_info = extract_metadata(webpage)
                 # honor precise duration in video info
                 if video_info.get('duration'):
