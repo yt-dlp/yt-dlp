@@ -357,7 +357,7 @@ class NiconicoIE(InfoExtractor):
             'outputs': [formats]
         }).encode("utf-8")
         api_data = self._download_json(
-            'https://nvapi.nicovideo.jp/v1/watch/%s/access-rights/hls?actionTrackId=%s' % (info_dict["id"], traverse_obj(info_dict, ('_api_data', 'client', 'watchTrackId'))), info_dict['id'],
+            'https://nvapi.nicovideo.jp/v1/watch/%s/access-rights/hls?actionTrackId=%s' % (info_dict['id'], traverse_obj(info_dict, ('_api_data', 'client', 'watchTrackId'))), info_dict['id'],
             note='Requesting Manifest Url', errnote='Unable to fetch data',
             data=payload,
             headers={
@@ -367,8 +367,8 @@ class NiconicoIE(InfoExtractor):
                 'X-Access-Right-Key': traverse_obj(info_dict, ('_api_data', 'media', 'domand', 'accessRightKey')),
                 'X-Frontend-Id': '6',
                 'X-Frontend-Version': '0',
-            })['data']
-        return api_data['contentUrl']
+            }).get('data')
+        return api_data.get('contentUrl')
 
     def _extract_dmc_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
 
@@ -415,23 +415,23 @@ class NiconicoIE(InfoExtractor):
                 r'\| ([0-9]*\.?[0-9]*[MK])', video_quality, 'vbr', default=''))
 
         format_id = '-'.join(
-            ['dms', remove_start(video_quality['id'], 'video-'), remove_start(audio_quality['id'], 'audio-'), 'hls'])
+            ['dms', remove_start(video_quality.get('id'), 'video-'), remove_start(audio_quality.get('id'), 'audio-'), 'hls'])
 
-        vid_qual_label = video_quality['label']
-        vid_quality = video_quality['bitRate']
+        vid_qual_label = video_quality.get('label')
+        vid_quality = video_quality.get('bitRate')
 
         return {
-            'url': 'niconico_dms:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
+            'url': 'niconico_dms:%s/%s/%s' % (video_id, video_quality.get('id'), audio_quality.get('id')),
             'format_id': format_id,
             'format_note': join_nonempty('DMS', vid_qual_label, 'hls', delim=' '),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
-            'abr': float_or_none(audio_quality['bitRate'], 1000),
+            'abr': float_or_none(audio_quality.get('bitRate'), 1000),
             'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
-            'height': video_quality["height"],
-            'width': video_quality["width"],
-            'quality': video_quality["qualityLevel"],
+            'height': video_quality.get('height'),
+            'width': video_quality.get('width'),
+            'quality': video_quality.get('qualityLevel'),
             'protocol': 'niconico_dms',
             'expected_protocol': "hls",
             'http_headers': {
