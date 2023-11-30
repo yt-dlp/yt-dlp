@@ -351,7 +351,7 @@ class NiconicoIE(InfoExtractor):
 
         return info_dict, heartbeat_info_dict
 
-    def _extract_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
+    def _extract_dmc_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
 
         if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
             return None
@@ -380,6 +380,41 @@ class NiconicoIE(InfoExtractor):
             'quality': -2 if 'low' in video_quality['id'] else None,
             'protocol': 'niconico_dmc',
             'expected_protocol': dmc_protocol,  # XXX: This is not a documented field
+            'http_headers': {
+                'Origin': 'https://www.nicovideo.jp',
+                'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
+            }
+        }
+
+    def _extract_dms_format_for_quality(self, video_id, audio_quality, video_quality):
+
+        if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
+            return None
+
+        def extract_video_quality(video_quality):
+            return parse_filesize('%sB' % self._search_regex(
+                r'\| ([0-9]*\.?[0-9]*[MK])', video_quality, 'vbr', default=''))
+
+        format_id = '-'.join(
+            ['dms', remove_start(video_quality['id'], 'video-'), remove_start(audio_quality['id'], 'audio-'), 'hls'])
+
+        vid_qual_label = video_quality['label']
+        vid_quality = video_quality['bitRate']
+
+        return {
+            'url': 'niconico_dms:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
+            'format_id': format_id,
+            'format_note': join_nonempty('DMS', vid_qual_label, 'hls', delim=' '),
+            'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
+            'acodec': 'aac',
+            'vcodec': 'h264',
+            'abr': float_or_none(audio_quality['bitRate'], 1000),
+            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
+            'height': video_quality["height"],
+            'width': video_quality["width"],
+            'quality': video_quality["qualityLevel"],
+            'protocol': 'niconico_dms',
+            'expected_protocol': "hls",
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
@@ -419,10 +454,15 @@ class NiconicoIE(InfoExtractor):
         def get_video_info(*items, get_first=True, **kwargs):
             return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
 
-        quality_info = api_data['media']['delivery']['movie']
-        session_api_data = quality_info['session']
-        for (audio_quality, video_quality, protocol) in itertools.product(quality_info['audios'], quality_info['videos'], session_api_data['protocols']):
-            fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
+        dmc_quality_info = api_data['media']['delivery']['movie']
+        dmc_session_api_data = dmc_quality_info['session']
+        for (audio_quality, video_quality, protocol) in itertools.product(dmc_quality_info['audios'], dmc_quality_info['videos'], dmc_session_api_data['protocols']):
+            fmt = self._extract_dmc_format_for_quality(video_id, audio_quality, video_quality, protocol)
+            if fmt:
+                formats.append(fmt)
+        dms_quality_info = api_data['media']['domand']
+        for (audio_quality, video_quality) in itertools.product(dms_quality_info['audios'], dms_quality_info['videos']):
+            fmt = self._extract_dms_format_for_quality(video_id, audio_quality, video_quality)
             if fmt:
                 formats.append(fmt)
 
@@ -470,7 +510,7 @@ class NiconicoIE(InfoExtractor):
                 parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
                 or get_video_info('duration')),
             'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}',
-            'subtitles': self.extract_subtitles(video_id, api_data, session_api_data),
+            'subtitles': self.extract_subtitles(video_id, api_data, dmc_session_api_data),
         }
 
     def _get_subtitles(self, video_id, api_data, session_api_data):

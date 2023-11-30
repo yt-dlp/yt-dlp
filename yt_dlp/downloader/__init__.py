@@ -66,6 +66,7 @@ def shorten_protocol_name(proto, simplify=False):
         'http_dash_segments': 'dash',
         'http_dash_segments_generator': 'dashG',
         'niconico_dmc': 'dmc',
+        'niconico_dms': 'dms',
         'websocket_frag': 'WSfrag',
     }
     if simplify:
