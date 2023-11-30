@@ -73,7 +73,7 @@ class LoomIE(InfoExtractor):
 
         height = self._search_regex(r'"height":([0-9]+)', webpage, 'height', fatal=False)
         # print(f'Height: {height}')
-        
+
         date_string = self._search_regex(r'"visibility":"(?:[^"]+)","createdAt":"([^"]+)"', webpage, 'date', fatal=False)
         date = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y%m%d")
 
