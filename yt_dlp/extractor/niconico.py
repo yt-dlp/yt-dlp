@@ -351,6 +351,25 @@ class NiconicoIE(InfoExtractor):
 
         return info_dict, heartbeat_info_dict
 
+    def _get_dms_manifest_url(self, info_dict):
+        formats = info_dict['url'].split(':')[1].split('/')[1:2]
+        payload = json.dumps({
+            'outputs': [formats]
+        }).encode("utf-8")
+        api_data = self._download_json(
+            'https://nvapi.nicovideo.jp/v1/watch/%s/access-rights/hls?actionTrackId=%s' % (info_dict["id"], traverse_obj(info_dict, ('_api_data', 'client', 'watchTrackId'))), info_dict['id'],
+            note='Requesting Manifest Url', errnote='Unable to fetch data',
+            data=payload,
+            headers={
+                'Accept-Encoding': 'br',
+                'Content-Type': 'application/json',
+                'X-Request-With': 'https://www.nicovideo.jp',
+                'X-Access-Right-Key': traverse_obj(info_dict, ('_api_data', 'media', 'domand', 'accessRightKey')),
+                'X-Frontend-Id': '6',
+                'X-Frontend-Version': '0',
+            })['data']
+        return api_data['contentUrl']
+
     def _extract_dmc_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
 
         if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
@@ -488,8 +507,10 @@ class NiconicoIE(InfoExtractor):
 
         thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
 
+        actual_video_id = traverse_obj(api_data, ('video', 'id'))
+
         return {
-            'id': video_id,
+            'id': actual_video_id,
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
             'formats': formats,
@@ -514,8 +535,8 @@ class NiconicoIE(InfoExtractor):
             'duration': (
                 parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
                 or get_video_info('duration')),
-            'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}',
-            'subtitles': self.extract_subtitles(video_id, api_data, dmc_session_api_data),
+            'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{actual_video_id}',
+            'subtitles': self.extract_subtitles(actual_video_id, api_data, dmc_session_api_data),
         }
 
     def _get_subtitles(self, video_id, api_data, session_api_data):
