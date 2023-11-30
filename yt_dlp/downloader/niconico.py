@@ -56,6 +56,25 @@ class NiconicoDmcFD(FileDownloader):
         return success
 
 
+class NiconicoDmsFD(FileDownloader):
+    """ Downloading niconico douga from DMS """
+
+    def real_download(self, filename, info_dict):
+        from ..extractor.niconico import NiconicoIE
+
+        self.to_screen('[%s] Downloading from DMS' % self.FD_NAME)
+        ie = NiconicoIE(self.ydl)
+        manifest_url = ie._get_dms_manifest_url(info_dict)
+        info_dict['url'] = manifest_url
+        info_dict['protocol'] = "m3u8"
+
+        fd = get_suitable_downloader(info_dict, params=self.params)(self.ydl, self.params)
+
+        success = fd.real_download(filename, info_dict)
+
+        return success
+
+
 class NiconicoLiveFD(FileDownloader):
     """ Downloads niconico live without being stopped """
 
