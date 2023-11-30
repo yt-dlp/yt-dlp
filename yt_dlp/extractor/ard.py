@@ -421,7 +421,6 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'timestamp': 1701343800,
             'upload_date': '20231130',
             'ext': 'mp4',
-            'age_limit': None,
             'episode': 'Liebe auf vier Pfoten',
             'series': 'Filme im MDR'
         },
