@@ -11,25 +11,6 @@ from ..utils.networking import std_headers
 ImpersonateTarget = Tuple[str, Optional[str], Optional[str], Optional[str]]
 
 
-def parse_impersonate_target(target: str) -> ImpersonateTarget | None:
-    """
-    Parse an impersonate target string into a tuple of (client, version, os, os_vers)
-    If the target is invalid, return None
-    """
-    client, version, os, os_vers = [None if (v or '').strip() == '' else v for v in (
-        target.split(':') + [None, None, None, None])][:4]
-
-    if client is not None:
-        return client, version, os, os_vers
-
-
-def compile_impersonate_target(client, version, os, os_vers) -> str | None:
-    if not client:
-        return
-    filtered_parts = [str(part) if part is not None else '' for part in (client, version, os, os_vers)]
-    return ':'.join(filtered_parts).rstrip(':')
-
-
 def _target_within(target1: ImpersonateTarget, target2: ImpersonateTarget):
     if target1[0] != target2[0]:
         return False
@@ -52,17 +33,14 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
     This provides a method for checking the validity of the impersonate extension,
     which can be used in _check_extensions.
 
-    Impersonate target tuples are defined as a tuple of (client, version, os, os_vers) internally.
-    To simplify the interface, this is compiled into a string format of "client[:[version][:[os][:os_vers]]]" to be used externally.
-    - In this handler, "impersonate target tuple" refers to the tuple version,
-      and "impersonate target" refers to the string version.
-    - Impersonate target [tuples] are not required to define all fields (except browser).
+    Impersonate targets are defined as a tuple of (client, version, os, os_vers).
+    Note: Impersonate targets are not required to define all fields (except client).
 
     The following may be defined:
-     - `_SUPPORTED_IMPERSONATE_TARGET_TUPLES`: a tuple of supported target tuples to impersonate.
+     - `_SUPPORTED_IMPERSONATE_TARGET_TUPLES`: a tuple of supported targets to impersonate.
         Any Request with an impersonate target not in this list will raise an UnsupportedRequest.
         Set to None to disable this check.
-     - `_SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP`: a dict mapping supported target tuples to custom targets.
+     - `_SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP`: a dict mapping supported targets to custom targets.
         This works similar to `_SUPPORTED_IMPERSONATE_TARGET_TUPLES`.
 
     Note: Only one of `_SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP` and `_SUPPORTED_IMPERSONATE_TARGET_TUPLES` can be defined.
@@ -75,12 +53,12 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
     _SUPPORTED_IMPERSONATE_TARGET_TUPLES: tuple[ImpersonateTarget] = ()
     _SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP: dict[ImpersonateTarget, Any] = {}
 
-    def __init__(self, *, impersonate=None, **kwargs):
+    def __init__(self, *, impersonate: ImpersonateTarget = None, **kwargs):
         super().__init__(**kwargs)
         self.impersonate = impersonate
 
-    def _check_impersonate_target(self, target: str):
-        assert isinstance(target, (str, NoneType))
+    def _check_impersonate_target(self, target: ImpersonateTarget):
+        assert isinstance(target, (tuple, NoneType))
         if target is None or not self.get_supported_targets():
             return
         if not self.is_supported_target(target):
@@ -95,49 +73,40 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
         super()._validate(request)
         self._check_impersonate_target(self.impersonate)
 
-    def _get_supported_target_tuples(self):
-        return tuple(self._SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP.keys()) or tuple(self._SUPPORTED_IMPERSONATE_TARGET_TUPLES)
-
-    def _resolve_target_tuple(self, target: ImpersonateTarget | None):
+    def _resolve_target(self, target: ImpersonateTarget | None):
         """Resolve a target to a supported target."""
         if not target:
             return
-        for supported_target in self._get_supported_target_tuples():
+        for supported_target in self.get_supported_targets():
             if _target_within(target, supported_target):
                 if self.verbose:
                     self._logger.stdout(
-                        f'{self.RH_NAME}: resolved impersonate target "{compile_impersonate_target(*target)}" '
-                        f'to "{compile_impersonate_target(*supported_target)}"')
+                        f'{self.RH_NAME}: resolved impersonate target "{target}" to "{supported_target}"')
                 return supported_target
 
-    def get_supported_targets(self) -> tuple[str]:
-        return tuple(filter(compile_impersonate_target(*target) for target in self._get_supported_target_tuples()))
+    def get_supported_targets(self) -> tuple[ImpersonateTarget]:
+        return tuple(self._SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP.keys()) or tuple(self._SUPPORTED_IMPERSONATE_TARGET_TUPLES)
 
-    def is_supported_target(self, target: str):
-        return self._is_supported_target_tuple(parse_impersonate_target(target))
+    def is_supported_target(self, target: ImpersonateTarget):
+        return self._resolve_target(target) is not None
 
-    def _is_supported_target_tuple(self, target: ImpersonateTarget):
-        return self._resolve_target_tuple(target) is not None
+    def _get_request_target(self, request):
+        """Get the requested target for the request"""
+        return request.extensions.get('impersonate') or self.impersonate
 
-    def _get_target_tuple(self, request):
-        """Get the requested target tuple for the request"""
-        target = request.extensions.get('impersonate') or self.impersonate
-        if target:
-            return parse_impersonate_target(target)
+    def _get_resolved_request_target(self, request) -> ImpersonateTarget:
+        """Get the resolved target for this request. This gives the matching supported target"""
+        return self._resolve_target(self._get_request_target(request))
 
-    def _get_resolved_target_tuple(self, request) -> ImpersonateTarget:
-        """Get the resolved target tuple for this request. This gives the matching supported target"""
-        return self._resolve_target_tuple(self._get_target_tuple(request))
-
-    def _get_mapped_target(self, request):
+    def _get_mapped_request_target(self, request):
         """Get the resolved mapped target for the request target"""
-        resolved_target = self._resolve_target_tuple(self._get_target_tuple(request))
+        resolved_target = self._resolve_target(self._get_request_target(request))
         return self._SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP.get(
             resolved_target, None)
 
     def _get_impersonate_headers(self, request):
         headers = self._merge_headers(request.headers)
-        if self._get_target_tuple(request):
+        if self._get_request_target(request):
             # remove all headers present in std_headers
             headers.pop('User-Agent', None)
             for header in std_headers:
@@ -151,7 +120,6 @@ def impersonate_preference(rh, request):
     if request.extensions.get('impersonate') or rh.impersonate:
         return 1000
     return 0
-
 
 def get_available_impersonate_targets(director):
     return director.collect_from_handlers(

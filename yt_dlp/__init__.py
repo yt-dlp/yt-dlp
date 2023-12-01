@@ -60,7 +60,7 @@ from .utils import (
     variadic,
     write_string,
 )
-from .utils.networking import std_headers
+from .utils.networking import std_headers, parse_impersonate_target, compile_impersonate_target
 from .YoutubeDL import YoutubeDL
 
 _IN_CLI = False
@@ -385,6 +385,12 @@ def validate_options(opts):
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
         opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
+
+    if opts.impersonate:
+        target = parse_impersonate_target(opts.impersonate)
+        if target is None:
+            raise ValueError(f'invalid impersonate target "{opts.impersonate}"')
+        opts.impersonate = target
 
     # MetadataParser
     def metadataparser_actions(f):
@@ -978,6 +984,17 @@ def _real_main(argv=None):
         except Exception:
             traceback.print_exc()
             ydl._download_retcode = 100
+
+        if opts.list_impersonate_targets:
+            available_targets = ydl.get_impersonate_targets()
+            rows = [[*[item or '' for item in target], compile_impersonate_target(*target)] for target in
+                    available_targets]
+
+            ydl.to_screen(f'[info] Available impersonate targets')
+            ydl.to_stdout(
+                render_table(['Client', 'Version', 'OS', 'OS Version', 'Example'], rows)
+            )
+            return
 
         if not actual_use:
             if pre_process:

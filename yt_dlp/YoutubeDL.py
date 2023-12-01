@@ -158,6 +158,8 @@ from .utils.networking import (
     clean_headers,
     clean_proxies,
     std_headers,
+    parse_impersonate_target,
+    compile_impersonate_target
 )
 from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
@@ -398,9 +400,8 @@ class YoutubeDL:
                        - "detect_or_warn": check whether we can do anything
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
-    impersonate:       HTTP client to impersonate for requests.
-                        A string in the format CLIENT[:[VERSION][:[OS][:OS_VERSION]]]
-    list_impersonate_targets: List available HTTP clients to impersonate
+    impersonate:       Client to impersonate for requests.
+                        A tuple in the form (client, version, os, os_version)
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
@@ -684,20 +685,6 @@ class YoutubeDL:
         self.params['http_headers'].pop('Cookie', None)
         self._request_director = self.build_request_director(_REQUEST_HANDLERS.values(), _RH_PREFERENCES)
 
-        impersonate_target = self.params.get('impersonate')
-        if impersonate_target:
-            # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
-            results = self._request_director.collect_from_handlers(
-                lambda x: [x.is_supported_target(impersonate_target)],
-                [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
-            )
-            if not results:
-                self.report_warning('Ignoring --impersonate as required dependencies are not installed. ')
-
-            elif not any(results):
-                self.report_warning(f'Impersonate target "{self.params.get("impersonate")}" is not supported. '
-                                    f'Supported targets: {join_nonempty(*get_available_impersonate_targets(self._request_director), delim=", ")}')
-
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
 
@@ -719,6 +706,21 @@ class YoutubeDL:
             self.report_warning(msg)
         for msg in self.params.get('_deprecation_warnings', []):
             self.deprecated_feature(msg)
+
+        impersonate_target = self.params.get('impersonate')
+        if impersonate_target:
+            # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
+            results = self._request_director.collect_from_handlers(
+                lambda x: [x.is_supported_target(impersonate_target)],
+                [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
+            )
+            if not results:
+                self.report_warning('Ignoring --impersonate as required dependencies are not installed. ')
+
+            elif not any(results):
+                raise ValueError(
+                    f'Impersonate target "{compile_impersonate_target(*self.params.get("impersonate"))}" is not available. '
+                    f'Use --list-impersonate-targets to see available targets.')
 
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
@@ -4048,6 +4050,12 @@ class YoutubeDL:
         self.deprecation_warning('YoutubeDL._opener is deprecated, use YoutubeDL.urlopen()')
         handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
+
+    def get_impersonate_targets(self):
+        return sorted(self._request_director.collect_from_handlers(
+            lambda x: x.get_supported_targets(),
+            [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
+        ), key=lambda x: x[0])
 
     def urlopen(self, req):
         """ Start an HTTP download """

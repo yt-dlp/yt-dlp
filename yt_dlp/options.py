@@ -514,11 +514,11 @@ def create_parser():
     network.add_option(
         '--impersonate',
         metavar='CLIENT[:[VERSION][:[OS][:OS_VERSION]]]', dest='impersonate', default=None,
-        help='HTTP client to impersonate for requests',
+        help='Client to impersonate for requests',
     )
     network.add_option(
         '--list-impersonate-targets',
-        dest='list_impersonate_targets', default=False,
+        dest='list_impersonate_targets', default=False, action='store_true',
         help='List available HTTP clients to impersonate',
     )
     network.add_option(

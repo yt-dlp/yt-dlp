@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import collections
 import random
 import urllib.parse
 import urllib.request
+from typing import Optional, Tuple
 
 from ._utils import remove_start
 
@@ -162,3 +165,22 @@ def normalize_url(url):
         query=escape_rfc3986(url_parsed.query),
         fragment=escape_rfc3986(url_parsed.fragment)
     ).geturl()
+
+
+def parse_impersonate_target(target: str) -> Tuple[str, Optional[str], Optional[str], Optional[str]] | None:
+    """
+    Parse an impersonate target string into a tuple of (client, version, os, os_vers)
+    If the target is invalid, return None
+    """
+    client, version, os, os_vers = [None if (v or '').strip() == '' else v for v in (
+        target.split(':') + [None, None, None, None])][:4]
+
+    if client is not None:
+        return client, version, os, os_vers
+
+
+def compile_impersonate_target(client, version, os, os_vers) -> str | None:
+    if not client:
+        return
+    filtered_parts = [str(part) if part is not None else '' for part in (client, version, os, os_vers)]
+    return ':'.join(filtered_parts).rstrip(':')
