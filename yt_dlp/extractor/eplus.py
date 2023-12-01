@@ -62,7 +62,7 @@ class EplusIbIE(InfoExtractor):
 
         data_json = self._search_json(r'<script>\s*var app\s*=', webpage, 'data json', video_id)
 
-        if data_json.get('drmEncryptKey'):
+        if data_json.get('drm_mode') == 'ON':
             self.report_drm(video_id)
 
         delivery_status = data_json.get('delivery_status')
