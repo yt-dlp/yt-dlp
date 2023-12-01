@@ -52,6 +52,11 @@ from yt_dlp.networking.exceptions import (
 )
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict, std_headers
+from yt_dlp.networking.impersonate import (
+    ImpersonateRequestHandler,
+    compile_impersonate_target,
+    parse_impersonate_target,
+)
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -1652,3 +1657,33 @@ class TestResponse:
             assert res.geturl() == res.url
             assert res.info() is res.headers
             assert res.getheader('test') == res.get_header('test')
+
+
+class TestImpersonate:
+    @pytest.mark.parametrize('target,expected', [
+        ('firefox', ('firefox', None, None, None)),
+        ('firefox:120', ('firefox', '120', None, None)),
+        ('firefox:120:linux', ('firefox', '120', 'linux', None)),
+        ('firefox:120:linux:5', ('firefox', '120', 'linux', '5')),
+        ('firefox::linux', ('firefox', None, 'linux', None)),
+        ('firefox:::5', ('firefox', None, None, '5')),
+        ('firefox:::', ('firefox', None, None, None)),
+        ('firefox:120::5', ('firefox', '120', None, '5')),
+        ('firefox:120:', ('firefox', '120', None, None)),
+        ('::120', None)
+    ])
+    def test_parse_impersonate_target(self, target, expected):
+        assert parse_impersonate_target(target) == expected
+
+    @pytest.mark.parametrize('target_tuple,expected', [
+        (('firefox', None, None, None), 'firefox'),
+        (('firefox', '120', None, None), 'firefox:120'),
+        (('firefox', '120', 'linux', None), 'firefox:120:linux'),
+        (('firefox', '120', 'linux', '5'), 'firefox:120:linux:5'),
+        (('firefox', None, 'linux', None), 'firefox::linux'),
+        (('firefox', None, None, '5'), 'firefox:::5'),
+        (('firefox', '120', None, '5'), 'firefox:120::5'),
+        ((None, '120', None, None), None)
+    ])
+    def test_compile_impersonate_target(self, target_tuple, expected):
+        assert compile_impersonate_target(*target_tuple) == expected

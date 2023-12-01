@@ -513,8 +513,13 @@ def create_parser():
     )
     network.add_option(
         '--impersonate',
-        metavar='TARGET', dest='impersonate', default=None,
-        help='curl-impersonate target name to impersonate for requests.',
+        metavar='CLIENT[:[VERSION][:[OS][:OS_VERSION]]]', dest='impersonate', default=None,
+        help='HTTP client to impersonate for requests',
+    )
+    network.add_option(
+        '--list-impersonate-targets',
+        dest='list_impersonate_targets', default=False,
+        help='List available HTTP clients to impersonate',
     )
     network.add_option(
         '-4', '--force-ipv4',

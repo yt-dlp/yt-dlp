@@ -11,36 +11,26 @@ from ..utils.networking import std_headers
 ImpersonateTarget = Tuple[str, Optional[str], Optional[str], Optional[str]]
 
 
-def parse_impersonate_target(target: str) -> ImpersonateTarget:
-    client = version = os = os_vers = None
-    parts = target.split(':')
-    if len(parts):
-        client = parts[0]
-    if len(parts) > 1:
-        version = parts[1]
-    if len(parts) > 2:
-        os = parts[2]
-        if len(parts) > 3:
-            os_vers = parts[3]
+def parse_impersonate_target(target: str) -> ImpersonateTarget | None:
+    """
+    Parse an impersonate target string into a tuple of (client, version, os, os_vers)
+    If the target is invalid, return None
+    """
+    client, version, os, os_vers = [None if (v or '').strip() == '' else v for v in (
+        target.split(':') + [None, None, None, None])][:4]
 
-    return client, version, os, os_vers
+    if client is not None:
+        return client, version, os, os_vers
 
 
-def compile_impersonate_target(browser, version, os, os_vers) -> str:
-    target = browser
-    if version:
-        target += ':' + version
-    if os:
-        if not version:
-            target += ':'
-        target += ':' + os
-        if os_vers:
-            target += ':' + os_vers
-    return target
+def compile_impersonate_target(client, version, os, os_vers) -> str | None:
+    if not client:
+        return
+    filtered_parts = [str(part) if part is not None else '' for part in (client, version, os, os_vers)]
+    return ':'.join(filtered_parts).rstrip(':')
 
 
-def target_within(target1: ImpersonateTarget, target2: ImpersonateTarget):
-    # required: check if the browser matches
+def _target_within(target1: ImpersonateTarget, target2: ImpersonateTarget):
     if target1[0] != target2[0]:
         return False
 
@@ -62,8 +52,8 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
     This provides a method for checking the validity of the impersonate extension,
     which can be used in _check_extensions.
 
-    Impersonate target tuples are defined as a tuple of (browser, version, os, os_vers) internally.
-    To simplify the interface, this is compiled into a string format of browser:version:os:os_vers to be used externally.
+    Impersonate target tuples are defined as a tuple of (client, version, os, os_vers) internally.
+    To simplify the interface, this is compiled into a string format of "client[:[version][:[os][:os_vers]]]" to be used externally.
     - In this handler, "impersonate target tuple" refers to the tuple version,
       and "impersonate target" refers to the string version.
     - Impersonate target [tuples] are not required to define all fields (except browser).
@@ -113,7 +103,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
         if not target:
             return
         for supported_target in self._get_supported_target_tuples():
-            if target_within(target, supported_target):
+            if _target_within(target, supported_target):
                 if self.verbose:
                     self._logger.stdout(
                         f'{self.RH_NAME}: resolved impersonate target "{compile_impersonate_target(*target)}" '
@@ -121,7 +111,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
                 return supported_target
 
     def get_supported_targets(self) -> tuple[str]:
-        return tuple(compile_impersonate_target(*target) for target in self._get_supported_target_tuples())
+        return tuple(filter(compile_impersonate_target(*target) for target in self._get_supported_target_tuples()))
 
     def is_supported_target(self, target: str):
         return self._is_supported_target_tuple(parse_impersonate_target(target))

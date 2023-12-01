@@ -398,7 +398,9 @@ class YoutubeDL:
                        - "detect_or_warn": check whether we can do anything
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
-    impersonate:       curl-impersonate target name to impersonate for requests.
+    impersonate:       HTTP client to impersonate for requests.
+                        A string in the format CLIENT[:[VERSION][:[OS][:OS_VERSION]]]
+    list_impersonate_targets: List available HTTP clients to impersonate
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
