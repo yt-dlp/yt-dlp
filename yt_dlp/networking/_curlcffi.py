@@ -183,7 +183,7 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 verify=self.verify,
                 max_redirects=5,
                 timeout=timeout,
-                impersonate=self._get_mapped_target(request),
+                impersonate=self._get_mapped_request_target(request),
                 interface=self.source_address,
                 stream=True
             )
