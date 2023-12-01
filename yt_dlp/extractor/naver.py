@@ -420,8 +420,8 @@ class NaverNowWatchIE(NaverBaseIE):
             'uploader_url': 'https://m.tv.naver.com/npop',
             'uploader': 'NPOP (엔팝)',
             'duration': 1268,
-            'like_count': 186,
-            'description': '[NPOP EP.14] VIXX 외의 다른 건 Forget🌟 l 2023.11.29\r\n\r\nEP.14의 주인공 VIXX(빅스)!💙\r\n컴백한 VIXX의 우당탕탕 STAY N부터 무대장인 STAGE N까지!\r\n내 아티스트의 다양한 모습을 NPOP에서 함께하세요!\r\n\r\n_\r\n💿\"두 개의 공간, 하나로 연결된 우리\"\r\n아티스트와 팬이 함께 만들어가는 월간 K-POP 차트쇼✨\r\n\r\n온라인 팬들과 소통하며 진행되는 관찰형 리얼리티 STAY N과\r\n오프라인 팬들과 함께 만들어가는 무대 STAGE N\r\n두 개의 공간에서 이루어지는 K-POP 월간차트쇼 NAVER <NPOP>\r\n\r\nNPOP 스케줄\r\n📺 11/20(월) 8PM NPOP EP.12 (생방송)\r\n📺 11/22(수) 8PM NPOP EP.13\r\n📺 11/29(수) 8PM NPOP EP.14\r\n\r\n💙 NPOP 공식 채널 💙\r\nNaver: https://tv.naver.com/npop\r\nYouTube : https://www.youtube.com/@NPOP_OFFICIAL\r\nInstagram : https://www.instagram.com/npop_official/\r\nTwitter : https://twitter.com/NPOP_OFFICIAL'
+            'like_count': int,
+            'description': 'md5:f8b7df218f83ad0e9e941f0be949e832'
         },
         'params': {
             'noplaylist': True,
@@ -442,8 +442,8 @@ class NaverNowWatchIE(NaverBaseIE):
             'uploader_url': 'https://now.naver.com/s/now.4759',
             'uploader': '아이키의 떰즈업',
             'duration': 3173,
-            'like_count': 312,
-            "description": '본: 화요일 밤 9시\r\n재: 본방 직후, 수-일 오전 11시, 오후 7시\r\n\r\n📺 다시보기 📺\r\n본방이 끝난 후 최신 에피소드는 \"NOW.앱 > 쇼 홈 > 에피소드 탭\" 에서 감상하세요!\r\nhttps://bit.ly/3Nw0PNQ\r\n\r\n아이키X노제\r\n우리 그냥 사랑하게 해주세요\r\n\r\n노제여보단 소리 질러~~!\r\n드디어 떰즈업에 강림한\r\n노제여보!\r\n\r\n아이키X노제\r\n투샷존버단 모두 다 모여라!\r\n\r\n✔️ 아이키X노제\r\n꽁냥꽁냥 연애의 밤?\r\n✔️ 강혜인X노지혜\r\n케미라는 것이 폭발한다🔥\r\n\r\n노제의 생애 첫 댄스는 과연 무엇?\r\n당신이 알던 노제,\r\n상상 그 이상의 매력을 보게 될 것!\r\n\r\n오늘도 꿀잼 보장\r\n엄지 손가락 들고\r\n함께해주실 거죠?👍\r\n\r\n구독과 알림 설정.\r\n떰즈로👍 업~~~ 해놓는 거다?'
+            'like_count': int,
+            "description": 'md5:c508c32ae670c583e3ae5bb4f1824dbc'
         },
         'params': {
             'noplaylist': True,
