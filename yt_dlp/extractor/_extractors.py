@@ -1145,6 +1145,7 @@ from .naver import (
     NaverIE,
     NaverLiveIE,
     NaverNowIE,
+    NaverNowWatchIE
 )
 from .nba import (
     NBAWatchEmbedIE,
