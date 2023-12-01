@@ -992,7 +992,7 @@ def _real_main(argv=None):
 
             ydl.to_screen(f'[info] Available impersonate targets')
             ydl.to_stdout(
-                render_table(['Client', 'Version', 'OS', 'OS Version', 'Example'], rows)
+                render_table(['Client', 'Version', 'OS', 'OS Version', 'Handler', 'Example'], rows)
             )
             return
 
