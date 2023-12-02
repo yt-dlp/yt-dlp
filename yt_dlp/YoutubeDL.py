@@ -4055,7 +4055,7 @@ class YoutubeDL:
         return sorted(self._request_director.collect_from_handlers(
             lambda rh: [(*target, rh.RH_NAME) for target in rh.get_supported_targets()],
             [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
-        ), key=lambda x: x[1][0])
+        ), key=lambda x: x[0])
 
     def urlopen(self, req):
         """ Start an HTTP download """
