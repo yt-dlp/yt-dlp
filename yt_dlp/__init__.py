@@ -990,10 +990,15 @@ def _real_main(argv=None):
             rows = [[*[item or '' for item in target], compile_impersonate_target(*target)] for target in
                     available_targets]
 
-            ydl.to_screen(f'[info] Available impersonate targets')
+            ydl.to_screen('[info] Available impersonate targets')
             ydl.to_stdout(
                 render_table(['Client', 'Version', 'OS', 'OS Version', 'Handler', 'Example'], rows)
             )
+            if not available_targets:
+                ydl.to_stdout('You are missing dependencies for impersonation. See the README for more info.')
+            ydl.to_stdout(
+                'If the above table is missing targets, you may be missing dependencies for impersonation. '
+                'See the documentation for more information.')
             return
 
         if not actual_use:

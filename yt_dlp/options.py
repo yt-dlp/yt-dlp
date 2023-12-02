@@ -519,7 +519,7 @@ def create_parser():
     network.add_option(
         '--list-impersonate-targets',
         dest='list_impersonate_targets', default=False, action='store_true',
-        help='List available HTTP clients to impersonate',
+        help='List available clients to impersonate',
     )
     network.add_option(
         '-4', '--force-ipv4',

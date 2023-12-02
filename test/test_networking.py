@@ -913,9 +913,9 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
     @pytest.mark.parametrize('params,extensions', [
-        ({}, {'impersonate': 'chrome:110'}),
-        ({'impersonate': 'chrome:110'}, {}),
-        ({'impersonate': 'chrome:99'}, {'impersonate': 'chrome:110'})
+        ({}, {'impersonate': ('chrome',)}),
+        ({'impersonate': ('chrome', '110')}, {}),
+        ({'impersonate': ('chrome', '99')}, {'impersonate': ('chrome', '110')}),
     ])
     def test_impersonate(self, handler, params, extensions):
         with handler(headers=std_headers, **params) as rh:
@@ -931,7 +931,7 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
             # Ensure curl-impersonate overrides our standard headers (usually added
             res = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={
-                    'impersonate': 'safari'}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
+                    'impersonate': ('safari', )}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
 
             assert std_headers['user-agent'].lower() not in res
             assert std_headers['accept-language'].lower() not in res
@@ -1074,9 +1074,9 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
-            ({'impersonate': 'badtarget'}, UnsupportedRequest),
+            ({'impersonate': ('badtarget', None, None, None)}, UnsupportedRequest),
             ({'impersonate': 123}, AssertionError),
-            ({'impersonate': 'chrome'}, False)
+            ({'impersonate': ('chrome', None, None, None)}, False)
         ]),
         (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
@@ -1154,6 +1154,10 @@ class FakeResponse(Response):
 
 
 class FakeRH(RequestHandler):
+
+    def __init__(self, *args, **params):
+        self.params = params
+        super().__init__(*args, **params)
 
     def _validate(self, request):
         return
@@ -1359,6 +1363,72 @@ class TestYoutubeDLNetworking:
 
             with pytest.raises(SSLError, match='testerror'):
                 ydl.urlopen('ssl://testerror')
+
+    def test_unsupported_impersonate_target(self):
+        class FakeImpersonationRHYDL(FakeYDL):
+            def __init__(self, *args, **kwargs):
+                class HTTPRH(RequestHandler):
+                    def _send(self, request: Request):
+                        pass
+                    _SUPPORTED_URL_SCHEMES = ('http',)
+                    _SUPPORTED_PROXY_SCHEMES = None
+
+                super().__init__(*args, **kwargs)
+                self._request_director = self.build_request_director([HTTPRH])
+
+        with FakeImpersonationRHYDL() as ydl:
+            with pytest.raises(
+                RequestError,
+                match=r'Impersonate target "test" is not available. This request requires browser impersonation'
+            ):
+                ydl.urlopen(Request('http://', extensions={'impersonate': ('test', None, None, None)}))
+
+    def test_unsupported_impersonate_extension(self):
+        class FakeHTTPRHYDL(FakeYDL):
+            def __init__(self, *args, **kwargs):
+                class IRH(ImpersonateRequestHandler):
+                    def _send(self, request: Request):
+                        pass
+
+                    _SUPPORTED_URL_SCHEMES = ('http',)
+                    _SUPPORTED_IMPERSONATE_TARGET_TUPLES = [('firefox',)]
+                    _SUPPORTED_PROXY_SCHEMES = None
+
+                super().__init__(*args, **kwargs)
+                self._request_director = self.build_request_director([IRH])
+
+        with FakeHTTPRHYDL() as ydl:
+            with pytest.raises(
+                RequestError,
+                match=r'Impersonate target "test" is not available. This request requires browser impersonation'
+            ):
+                ydl.urlopen(Request('http://', extensions={'impersonate': ('test', None, None, None)}))
+
+    def test_raise_impersonate_error(self):
+        with pytest.raises(
+            ValueError,
+            match=r'Impersonate target "test" is not available. Use --list-impersonate-targets to see available targets.'
+        ):
+            FakeYDL({'impersonate': ('test', None, None, None)})
+
+    def test_pass_impersonate_param(self, monkeypatch):
+
+        class IRH(ImpersonateRequestHandler):
+            def _send(self, request: Request):
+                pass
+
+            _SUPPORTED_URL_SCHEMES = ('http',)
+            _SUPPORTED_IMPERSONATE_TARGET_TUPLES = [('firefox',)]
+
+        # Bypass the check on initialize
+        brh = FakeYDL.build_request_director
+        monkeypatch.setattr(FakeYDL, 'build_request_director', lambda cls, handlers, preferences=None: brh(cls, handlers=[IRH]))
+
+        with FakeYDL({
+            'impersonate': ('firefox', None, None, None)
+        }) as ydl:
+            rh = self.build_handler(ydl, IRH)
+            assert rh.impersonate == ('firefox', None, None, None)
 
     @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
         ('http', '__noproxy__', None),
@@ -1684,7 +1754,9 @@ class TestImpersonate:
         (('firefox', None, 'linux', None), 'firefox::linux'),
         (('firefox', None, None, '5'), 'firefox:::5'),
         (('firefox', '120', None, '5'), 'firefox:120::5'),
-        ((None, '120', None, None), None)
+        ((None, '120', None, None), None),
+        (('firefox', ), 'firefox'),
+        (('firefox', None, 'linux'), 'firefox::linux'),
     ])
     def test_compile_impersonate_target(self, target_tuple, expected):
         assert compile_impersonate_target(*target_tuple) == expected

@@ -15,7 +15,7 @@ def _target_within(target1: ImpersonateTarget, target2: ImpersonateTarget):
     if target1[0] != target2[0]:
         return False
 
-    for i in range(1, len(target2)):
+    for i in range(1, min(len(target1), len(target2))):
         if (
             target1[i]
             and target2[i]
@@ -120,9 +120,3 @@ def impersonate_preference(rh, request):
     if request.extensions.get('impersonate') or rh.impersonate:
         return 1000
     return 0
-
-def get_available_impersonate_targets(director):
-    return director.collect_from_handlers(
-        lambda x: x.get_supported_targets(),
-        [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
-    )

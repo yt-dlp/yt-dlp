@@ -179,7 +179,8 @@ def parse_impersonate_target(target: str) -> Tuple[str, Optional[str], Optional[
         return client, version, os, os_vers
 
 
-def compile_impersonate_target(client, version, os, os_vers, *_) -> str | None:
+def compile_impersonate_target(*args) -> str | None:
+    client, version, os, os_vers = (list(args) + [None, None, None, None])[:4]
     if not client:
         return
     filtered_parts = [str(part) if part is not None else '' for part in (client, version, os, os_vers)]

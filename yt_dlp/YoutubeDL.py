@@ -24,6 +24,7 @@ import traceback
 import unicodedata
 
 from .cache import Cache
+
 from .compat import functools, urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
@@ -43,7 +44,7 @@ from .networking.exceptions import (
     _CompatHTTPError,
     network_exceptions,
 )
-from .networking.impersonate import ImpersonateRequestHandler, get_available_impersonate_targets
+from .networking.impersonate import ImpersonateRequestHandler
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
@@ -61,7 +62,13 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, _get_system_deprecation, _make_label, current_git_head, detect_variant
+from .update import (
+    REPOSITORY,
+    _get_system_deprecation,
+    _make_label,
+    current_git_head,
+    detect_variant,
+)
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -157,9 +164,8 @@ from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
     clean_proxies,
+    compile_impersonate_target,
     std_headers,
-    parse_impersonate_target,
-    compile_impersonate_target
 )
 from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
@@ -714,10 +720,7 @@ class YoutubeDL:
                 lambda x: [x.is_supported_target(impersonate_target)],
                 [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
             )
-            if not results:
-                self.report_warning('Ignoring --impersonate as required dependencies are not installed. ')
-
-            elif not any(results):
+            if not any(results):
                 raise ValueError(
                     f'Impersonate target "{compile_impersonate_target(*self.params.get("impersonate"))}" is not available. '
                     f'Use --list-impersonate-targets to see available targets.')
@@ -3911,10 +3914,9 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
+        from .extractor.extractors import \
             _PLUGIN_OVERRIDES as plugin_ie_overrides
-        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
@@ -4088,7 +4090,10 @@ class YoutubeDL:
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
-                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                if (
+                    'unsupported proxy type: "https"' in ue.msg.lower()
+                    and 'requests' not in self._request_director.handlers
+                ):
                     raise RequestError(
                         'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
 
@@ -4100,23 +4105,12 @@ class YoutubeDL:
                         'This request requires WebSocket support. '
                         'Ensure one of the following dependencies are installed: websockets',
                         cause=ue) from ue
-                """
-                ue = traverse_obj(
-                    unsupported_errors,
-                    (lambda _, v: isinstance(v.handler, ImpersonateRequestHandler) and 'unsupported impersonate target' in v.msg.lower()), get_all=False)
-                if ue:
-                    # TODO: when we have multiple impersonation, will need to make this handle
-                    #  cases where the unsupported target is due to a missing library.
-                    raise RequestError(
-                        f'The requested impersonation target is not supported: {req.extensions.get("impersonate")}.', cause=ue) from ue
 
-                if list(filter(lambda ue: re.search(r'unsupported extensions:.*impersonate', ue.msg.lower()), unsupported_errors)):
-                    self.report_warning(
-                        'To impersonate a browser for this request please install one of: curl_cffi. '
-                        'Retrying request without impersonation...')
-                    new_req = req.copy()
-                    new_req.extensions.pop('impersonate')
-                    return _urlopen(new_req)"""
+                elif re.match(r'unsupported (?:extensions: impersonate|impersonate target)', ue.msg.lower()):
+                    raise RequestError(
+                        f'Impersonate target "{compile_impersonate_target(*req.extensions["impersonate"])}" is not available.'
+                        f' This request requires browser impersonation, however you may be missing dependencies'
+                        f' required to support this target. See the documentation for more information.')
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
