@@ -97,7 +97,7 @@ class CurlCFFIResponseAdapter(Response):
                     partial=self.fp.bytes_read,
                     expected=content_length - self.fp.bytes_read if content_length is not None else None,
                     cause=e) from e
-            raise
+            raise TransportError(cause=e) from e
 
 
 @register_rh
@@ -198,13 +198,6 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
                 max_redirects_exceeded = True
                 curl_response = e.response
 
-            elif e.code == CurlECode.PARTIAL_FILE:
-                partial = e.response.content
-                content_length = int_or_none(e.response.headers.get('Content-Length'))
-                raise IncompleteRead(
-                    partial=len(partial),
-                    expected=content_length - len(partial) if content_length is not None else None,
-                    cause=e) from e
             elif e.code == CurlECode.PROXY:
                 raise ProxyError(cause=e) from e
             else:

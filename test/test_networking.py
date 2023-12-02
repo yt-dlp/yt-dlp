@@ -29,7 +29,7 @@ from http.cookiejar import CookieJar
 from test.conftest import validate_and_send
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.dependencies import brotli, requests, urllib3
+from yt_dlp.dependencies import brotli, requests, urllib3, curl_cffi
 from yt_dlp.networking import (
     HEADRequest,
     PUTRequest,
@@ -946,6 +946,74 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
             assert std_headers['accept-language'].lower() in res
             assert 'x-custom: test' in res
 
+    @pytest.mark.parametrize('raised,expected,match', [
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.PARTIAL_FILE), IncompleteRead, None),
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.OPERATION_TIMEDOUT), TransportError, None),
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.RECV_ERROR), TransportError, None),
+    ])
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+    def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
+        import curl_cffi.requests
+        from yt_dlp.networking._curlcffi import CurlCFFIResponseAdapter
+        curl_res = curl_cffi.requests.Response()
+        res = CurlCFFIResponseAdapter(curl_res)
+
+        def mock_read(*args, **kwargs):
+            try:
+                raise raised()
+            except Exception as e:
+                e.response = curl_res
+                raise
+        monkeypatch.setattr(res.fp, 'read', mock_read)
+
+        with pytest.raises(expected, match=match) as exc_info:
+            res.read()
+
+        assert exc_info.type is expected
+
+    @pytest.mark.parametrize('raised,expected,match', [
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.OPERATION_TIMEDOUT), TransportError, None),
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.PEER_FAILED_VERIFICATION), CertificateVerifyError, None),
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.SSL_CONNECT_ERROR), SSLError, None),
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.TOO_MANY_REDIRECTS), HTTPError, None),
+        (lambda: curl_cffi.requests.errors.RequestsError(
+            '', code=curl_cffi.const.CurlECode.PROXY), ProxyError, None),
+    ])
+    @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+    def test_request_error_mapping(self, handler, monkeypatch, raised, expected, match):
+        import curl_cffi.requests
+        curl_res = curl_cffi.requests.Response()
+        curl_res.status_code = 301
+
+        with handler() as rh:
+            original_get_instance = rh._get_instance
+
+            def mock_get_instance(*args, **kwargs):
+                instance = original_get_instance(*args, **kwargs)
+
+                def request(*_, **__):
+                    try:
+                        raise raised()
+                    except Exception as e:
+                        e.response = curl_res
+                        raise
+                monkeypatch.setattr(instance, 'request', request)
+                return instance
+
+            monkeypatch.setattr(rh, '_get_instance', mock_get_instance)
+
+            with pytest.raises(expected) as exc_info:
+                rh.send(Request('http://fake'))
+
+            assert exc_info.type is expected
+
 
 def run_validation(handler, error, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
@@ -1730,6 +1798,7 @@ class TestResponse:
             assert res.getheader('test') == res.get_header('test')
 
 
+# TODO: move these to test_utils.py when that moves to pytest
 class TestImpersonate:
     @pytest.mark.parametrize('target,expected', [
         ('firefox', ('firefox', None, None, None)),
