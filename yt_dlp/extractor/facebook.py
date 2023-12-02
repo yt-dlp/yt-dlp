@@ -16,6 +16,7 @@ from ..utils import (
     determine_ext,
     error_to_compat_str,
     float_or_none,
+    format_field,
     get_element_by_id,
     get_first,
     int_or_none,
@@ -420,6 +421,29 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+
+            automatic_captions, subtitles = {}, {}
+            subs_data = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')))
+            is_video_broadcast = get_first(subs_data, 'is_video_broadcast', expected_type=bool)
+            captions = get_first(subs_data, 'video_available_captions_locales', 'captions_url')
+            if url_or_none(captions):  # if subs_data only had a 'captions_url'
+                locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+                subtitles[locale] = [{'url': captions}]
+            # or else subs_data had 'video_available_captions_locales', a list of dicts
+            for caption in traverse_obj(captions, (
+                {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
+            ):
+                lang = caption.get('localized_language') or ''
+                subs = {
+                    'url': caption['captions_url'],
+                    'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
+                }
+                if caption.get('localized_creation_method') or is_video_broadcast:
+                    automatic_captions.setdefault(caption['locale'], []).append(subs)
+                else:
+                    subtitles.setdefault(caption['locale'], []).append(subs)
+
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -463,6 +487,8 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'automatic_captions': automatic_captions,
+                'subtitles': subtitles,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
