@@ -112,8 +112,8 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     def _get_bearer_token_by_cookies(self):
         _, urlh = self._download_webpage_handle(
-            self._LOGIN_API, None, note='Fetching login page',
-            expected_status=(404), errnote='Unable to fetch login page')
+            self._LOGIN_API, None, note='Getting auth status',
+            expected_status=(404), errnote='Unable to get auth status')
         if not urlh.url.startswith('https://nicochannel.jp/testman/login'):
             return None
 
