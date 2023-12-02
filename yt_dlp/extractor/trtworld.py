@@ -6,7 +6,7 @@ from ..utils import (
 
 
 class TrtWorldIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.trtworld\.com/video/([a-zA-Z0-9-]+)/([a-zA-Z0-9-]+)-(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://www\.trtworld\.com/video/[\w-]+/[\w-]+-(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.trtworld.com/video/news/turkiye-switches-to-sustainable-tourism-16067690',
