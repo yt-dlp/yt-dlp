@@ -49,9 +49,12 @@ class TrtWorldIE(InfoExtractor):
             raise ExtractorError('No video found', expected=True)
 
         return {
-            'id': str(display_id),
+            'id': display_id,
             'formats': formats,
-            'subtitles': subtitles,
-            'release_timestamp': parse_iso8601(published_date_str),
-            'title': self._html_extract_title(webpage)
+            **traverse_obj(nuxtjs_data, ('platforms', ('website', 'ott'), {
+                'title': ('fields', 'title', 'text'),
+                'description': ('fields', 'description', 'text'),
+                'thumbnail': ('fields', 'thumbnail', 'url', {url_or_none}),
+                'release_timestamp': ('published', 'date', {parse_iso8601}),
+            }), get_all=False),
         }
