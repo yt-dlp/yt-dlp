@@ -126,11 +126,11 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'fanclub_groups/1/sns_login', item_id='56',
             note='Fetching sns login info', errnote='Unable to fetch sns login info', fatal=False,
             data=json.dumps({
-                "key_cloak_user": {
-                    "code": sns_login_code,
-                    "redirect_uri": "https://nicochannel.jp/testman/login"
+                'key_cloak_user': {
+                    'code': sns_login_code,
+                    'redirect_uri': 'https://nicochannel.jp/testman/login'
                 },
-                "fanclub_site": {"id": 56},
+                'fanclub_site': {'id': 56},
             }).encode('ascii'), headers={
                 'Content-Type': 'application/json',
                 'fc_use_device': 'null',
