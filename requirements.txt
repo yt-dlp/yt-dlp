@@ -9,4 +9,4 @@ urllib3>=1.26.17,<3
 websockets>=12.0
 # curl_cffi has builds for Linux aarch64, however Termux has issues with it: https://github.com/yifeikong/curl_cffi/issues/74
 # pypy does not work with curl_cffi
-curl_cffi>=0.5.9,<0.6.0; implementation_name=='cpython' and ((sys_platform == "win32" and platform_machine == "amd64") or (sys_platform == "linux" and platform_machine == "x86_64") or sys_platform == "darwin")
+curl_cffi>=0.5.9,<0.6.0; implementation_name=='cpython' and ((sys_platform == "win32" and platform_machine == "AMD64") or (sys_platform == "linux" and platform_machine == "x86_64") or sys_platform == "darwin")
