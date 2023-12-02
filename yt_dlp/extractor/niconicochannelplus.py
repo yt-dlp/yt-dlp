@@ -110,6 +110,34 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
     _AUTH_BASE_URL = 'https://account.nicovideo.jp/'
     _AUTH_TOKEN = {}
 
+    def _get_bearer_token_by_cookies(self):
+        _, urlh = self._download_webpage_handle(
+            self._LOGIN_API, None, note='Fetching login page',
+            expected_status=(404), errnote='Unable to fetch login page')
+        if not urlh.url.startswith('https://nicochannel.jp/testman/login'):
+            return None
+
+        sns_login_code = traverse_obj(parse_qs(urlh.url), ('code', 0))
+        if not sns_login_code:
+            self.report_warning('Unable to get sns login code')
+            return None
+
+        token = traverse_obj(self._call_api(
+            'fanclub_groups/1/sns_login', item_id='56',
+            note='Fetching sns login info', errnote='Unable to fetch sns login info', fatal=False,
+            data=json.dumps({
+                "key_cloak_user": {
+                    "code": sns_login_code,
+                    "redirect_uri": "https://nicochannel.jp/testman/login"
+                },
+                "fanclub_site": {"id": 56},
+            }).encode('ascii'), headers={
+                'Content-Type': 'application/json',
+                'fc_use_device': 'null',
+                'Referer': 'https://nicochannel.jp/',
+            }), ('data', 'access_token'))
+        return f'Bearer {token}' if token else None
+
     def _perform_login(self, mail_tel, password):
         mail_tel_b64 = base64.b64encode(mail_tel.encode('ascii')).decode('ascii')
         cached_auth_data = self.cache.load(self._NETRC_MACHINE, mail_tel_b64)
@@ -118,6 +146,12 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 'mail_tel_b64': mail_tel_b64,
                 'bearer': cached_auth_data['bearer'],
             }
+            return
+
+        # Cookies may be also specified
+        bearer = self._get_bearer_token_by_cookies()
+        if bearer:
+            self._AUTH_TOKEN = {'mail_tel_b64': None, 'bearer': bearer}
             return
 
         login_url = urljoin(
@@ -160,27 +194,8 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
                 return
 
-        sns_login_code = traverse_obj(parse_qs(urlh.url), ('code', 0))
-        if not sns_login_code:
-            self.report_warning('Unable to get sns login code')
-            return
-
-        token = traverse_obj(self._call_api(
-            'fanclub_groups/1/sns_login', item_id='56',
-            note='Fetching sns login info', errnote='Unable to fetch sns login info', fatal=False,
-            data=json.dumps({
-                "key_cloak_user": {
-                    "code": sns_login_code,
-                    "redirect_uri": "https://nicochannel.jp/testman/login"
-                },
-                "fanclub_site": {"id": 56},
-            }).encode('ascii'), headers={
-                'Content-Type': 'application/json',
-                'fc_use_device': 'null',
-                'Referer': 'https://nicochannel.jp/',
-            }), ('data', 'access_token'))
-        if token:
-            bearer = f'Bearer {token}'
+        bearer = self._get_bearer_token_by_cookies()
+        if bearer:
             self.cache.store(self._NETRC_MACHINE, mail_tel_b64, {
                 'bearer': bearer,
                 'timestamp': int(time_seconds()),
@@ -188,6 +203,11 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             self._AUTH_TOKEN = {'mail_tel_b64': mail_tel_b64, 'bearer': bearer}
 
     def _real_extract(self, url):
+        if not self._AUTH_TOKEN:
+            bearer = self._get_bearer_token_by_cookies()
+            if bearer:
+                self._AUTH_TOKEN = {'mail_tel_b64': None, 'bearer': bearer}
+
         content_code, channel_id = self._match_valid_url(url).group('code', 'channel')
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
 
@@ -325,7 +345,8 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             if not isinstance(e.cause, HTTPError) or e.cause.status not in (401, 403, 408):
                 raise e
             if self._AUTH_TOKEN:
-                self.cache.store(self._NETRC_MACHINE, self._AUTH_TOKEN['mail_tel_b64'], None)
+                if self._AUTH_TOKEN['mail_tel_b64']:
+                    self.cache.store(self._NETRC_MACHINE, self._AUTH_TOKEN['mail_tel_b64'], None)
             self.raise_login_required(
                 msg={
                     401: 'members only content',
