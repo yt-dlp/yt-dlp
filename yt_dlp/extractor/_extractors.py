@@ -1996,6 +1996,8 @@ from .trovo import (
     TrovoChannelClipIE,
 )
 from .trtcocuk import TrtCocukVideoIE
+from .trtworld import TrtWorldIE
+
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
 from .truth import TruthIE
