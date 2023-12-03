@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: '3.11'
     - name: Install test requirements
-      run: pip install pytest pycryptodomex
+      run: pip install pytest -r requirements.txt
     - name: Run tests
       run: |
         python3 -m yt_dlp -v || true

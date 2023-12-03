@@ -98,5 +98,21 @@
         "action": "add",
         "when": "61bdf15fc7400601c3da1aa7a43917310a5bf391",
         "short": "[priority] Security: [[CVE-2023-40581](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-40581)] [Prevent RCE when using `--exec` with `%q` on Windows](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-42h4-v29r-42qg)\n    - The shell escape function is now using `\"\"` instead of `\\\"`.\n    - `utils.Popen` has been patched to properly quote commands."
+    },
+    {
+        "action": "change",
+        "when": "8a8b54523addf46dfd50ef599761a81bc22362e6",
+        "short": "[rh:requests] Add handler for `requests` HTTP library (#3668)\n\n\tAdds support for HTTPS proxies and persistent connections (keep-alive)",
+        "authors": ["bashonly", "coletdjnz", "Grub4K"]
+    },
+    {
+        "action": "add",
+        "when": "1d03633c5a1621b9f3a756f0a4f9dc61fab3aeaa",
+        "short": "[priority] **The release channels have been adjusted!**\n\t* [`master`](https://github.com/yt-dlp/yt-dlp-master-builds) builds are made after each push, containing the latest fixes (but also possibly bugs). This was previously the `nightly` channel.\n\t* [`nightly`](https://github.com/yt-dlp/yt-dlp-nightly-builds) builds are now made once a day, if there were any changes."
+    },
+    {
+        "action": "add",
+        "when": "f04b5bedad7b281bee9814686bba1762bae092eb",
+        "short": "[priority] Security: [[CVE-2023-46121](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-46121)] Patch [Generic Extractor MITM Vulnerability via Arbitrary Proxy Injection](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-3ch3-jhc6-5r8x)\n\t- Disallow smuggling of arbitrary `http_headers`; extractors now only use specific headers"
     }
 ]

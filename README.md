@@ -131,7 +131,7 @@ Features marked with a **\*** have been back-ported to youtube-dl
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
 
-* yt-dlp supports only [Python 3.7+](## "Windows 7"), and *may* remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
+* yt-dlp supports only [Python 3.8+](## "Windows 7"), and *may* remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
 * The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
 * `avconv` is not supported as an alternative to `ffmpeg`
 * yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
@@ -163,10 +163,10 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 For ease of use, a few more compat options are available:
 
 * `--compat-options all`: Use all compat options (Do NOT use)
-* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter`
-* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter`
+* `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx`
+* `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler`. Use this to enable all future compat options
+* `--compat-options 2022`: Same as `--compat-options playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -266,7 +266,7 @@ gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
 **Note**: The manpages, shell completion (autocomplete) files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
-Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
+Python versions 3.8+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
 <!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
@@ -334,7 +334,7 @@ On some systems, you may need to use `py` or `python` instead of `python3`.
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
-You will need the build tools `python` (3.7+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
+You will need the build tools `python` (3.8+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
 
 After installing these, simply run `make`.
 
@@ -380,7 +380,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     CHANNEL can be a repository as well. CHANNEL
                                     and TAG default to "stable" and "latest"
                                     respectively if omitted; See "UPDATE" for
-                                    details. Supported channels: stable, nightly
+                                    details. Supported channels: stable,
+                                    nightly, master
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -1308,6 +1309,7 @@ The available fields are:
  - `upload_date` (string): Video upload date in UTC (YYYYMMDD)
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
  - `release_date` (string): The date (YYYYMMDD) when the video was released in UTC
+ - `release_year` (numeric): Year (YYYY) when the video or album was released
  - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
  - `modified_date` (string): The date (YYYYMMDD) when the video was last modified in UTC
  - `uploader_id` (string): Nickname or id of the video uploader
@@ -1381,7 +1383,6 @@ Available for the media that is a track or a part of a music album:
  - `album_type` (string): Type of the album
  - `album_artist` (string): List of all artists appeared on the album
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
- - `release_year` (numeric): Year (YYYY) when the album was released
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 

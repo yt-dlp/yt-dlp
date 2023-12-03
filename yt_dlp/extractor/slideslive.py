@@ -530,7 +530,7 @@ class SlidesLiveIE(InfoExtractor):
             if service_name == 'vimeo':
                 info['url'] = smuggle_url(
                     f'https://player.vimeo.com/video/{service_id}',
-                    {'http_headers': {'Referer': url}})
+                    {'referer': url})
 
         video_slides = traverse_obj(slides, ('slides', ..., 'video', 'id'))
         if not video_slides:

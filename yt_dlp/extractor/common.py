@@ -286,6 +286,9 @@ class InfoExtractor:
                     If it is not clear whether to use timestamp or this, use the former
     release_date:   The date (YYYYMMDD) when the video was released in UTC.
                     If not explicitly set, calculated from release_timestamp
+    release_year:   Year (YYYY) as integer when the video or album was released.
+                    To be used if no exact release date is known.
+                    If not explicitly set, calculated from release_date.
     modified_timestamp: UNIX timestamp of the moment the video was last modified.
     modified_date:   The date (YYYYMMDD) when the video was last modified in UTC.
                     If not explicitly set, calculated from modified_timestamp
@@ -427,7 +430,6 @@ class InfoExtractor:
                     and compilations).
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
-    release_year:   Year (YYYY) when the album was released.
     composer:       Composer of the piece
 
     The following fields should only be set for clips that should be cut from the original video:
@@ -2341,7 +2343,9 @@ class InfoExtractor:
         imgs_count = 0
 
         srcs = set()
-        media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
+        media = itertools.chain.from_iterable(
+            smil.findall(self._xpath_ns(arg, namespace))
+            for arg in ['.//video', './/audio', './/media'])
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:

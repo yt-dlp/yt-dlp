@@ -194,7 +194,7 @@ class ZenYandexIE(InfoExtractor):
             'id': '60c7c443da18892ebfe85ed7',
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
-            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'description': 'md5:8684912f6086f298f8078d4af0e8a600',
             'thumbnail': 're:^https://avatars.dzeninfra.ru/',
             'uploader': 'AcademeG DailyStream'
         },
@@ -209,7 +209,7 @@ class ZenYandexIE(InfoExtractor):
             'id': '60c7c443da18892ebfe85ed7',
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
-            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'description': 'md5:8684912f6086f298f8078d4af0e8a600',
             'thumbnail': r're:^https://avatars\.dzeninfra\.ru/',
             'uploader': 'AcademeG DailyStream',
             'upload_date': '20191111',
@@ -258,7 +258,7 @@ class ZenYandexIE(InfoExtractor):
             video_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, video_id, note='Redirecting')
         data_json = self._search_json(
-            r'data\s*=', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
+            r'("data"\s*:|data\s*=)', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
                                          webpage, 'server state').replace('State', 'Settings')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
@@ -266,22 +266,25 @@ class ZenYandexIE(InfoExtractor):
         uploader_name = extract_attributes(uploader).get('aria-label')
         video_json = try_get(data_json, lambda x: x[serverstate]['exportData']['video'], dict)
         stream_urls = try_get(video_json, lambda x: x['video']['streams'])
-        formats = []
+        formats, subtitles = [], {}
         for s_url in stream_urls:
             ext = determine_ext(s_url)
             if ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(s_url, video_id, mpd_id='dash'))
+                fmts, subs = self._extract_mpd_formats_and_subtitles(s_url, video_id, mpd_id='dash')
             elif ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(s_url, video_id, 'mp4'))
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(s_url, video_id, 'mp4')
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
         return {
             'id': video_id,
             'title': video_json.get('title') or self._og_search_title(webpage),
             'formats': formats,
+            'subtitles': subtitles,
             'duration': int_or_none(video_json.get('duration')),
             'view_count': int_or_none(video_json.get('views')),
             'timestamp': int_or_none(video_json.get('publicationDate')),
             'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
-            'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
+            'description': video_json.get('description') or self._og_search_description(webpage),
             'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
         }
 
@@ -296,6 +299,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
         },
         'playlist_mincount': 169,
+        'skip': 'The page does not exist',
     }, {
         'url': 'https://dzen.ru/tok_media',
         'info_dict': {
@@ -304,6 +308,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
         },
         'playlist_mincount': 169,
+        'skip': 'The page does not exist',
     }, {
         'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
@@ -318,21 +323,21 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/jony_me',
         'info_dict': {
             'id': 'jony_me',
-            'description': 'md5:a2c62b4ef5cf3e3efb13d25f61f739e1',
+            'description': 'md5:ce0a5cad2752ab58701b5497835b2cc5',
             'title': 'JONY ',
         },
-        'playlist_count': 20,
+        'playlist_count': 18,
     }, {
         # Test that the playlist extractor finishes extracting when the
         # channel has more than one page of entries
         'url': 'https://zen.yandex.ru/tatyanareva',
         'info_dict': {
             'id': 'tatyanareva',
-            'description': 'md5:296b588d60841c3756c9105f237b70c6',
+            'description': 'md5:40a1e51f174369ec3ba9d657734ac31f',
             'title': 'Татьяна Рева',
             'entries': 'maxcount:200',
         },
-        'playlist_count': 46,
+        'playlist_mincount': 46,
     }, {
         'url': 'https://dzen.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
@@ -375,7 +380,7 @@ class ZenYandexChannelIE(InfoExtractor):
             item_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, item_id, note='Redirecting')
         data = self._search_json(
-            r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
+            r'("data"\s*:|data\s*=)', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
         server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
         server_settings_json = traverse_obj(data, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
 

@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class ClubicIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?clubic\.com/video/(?:[^/]+/)*video.*-(?P<id>[0-9]+)\.html'
 
     _TESTS = [{

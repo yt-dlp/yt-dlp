@@ -68,25 +68,34 @@ TEST_API_DATA = {
     },
 }
 
-TEST_LOCKFILE_V1 = '''# This file is used for regulating self-update
-lock 2022.08.18.36 .+ Python 3.6
-lock 2023.11.13 .+ Python 3.7
+TEST_LOCKFILE_COMMENT = '# This file is used for regulating self-update'
+
+TEST_LOCKFILE_V1 = r'''%s
+lock 2022.08.18.36 .+ Python 3\.6
+lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+''' % TEST_LOCKFILE_COMMENT
+
+TEST_LOCKFILE_V2_TMPL = r'''%s
+lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
+lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
+lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
+lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
+lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
 '''
 
-TEST_LOCKFILE_V2 = '''# This file is used for regulating self-update
-lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3.6
-lockV2 yt-dlp/yt-dlp 2023.11.13 .+ Python 3.7
-'''
+TEST_LOCKFILE_V2 = TEST_LOCKFILE_V2_TMPL % TEST_LOCKFILE_COMMENT
 
-TEST_LOCKFILE_V1_V2 = '''# This file is used for regulating self-update
-lock 2022.08.18.36 .+ Python 3.6
-lock 2023.11.13 .+ Python 3.7
-lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3.6
-lockV2 yt-dlp/yt-dlp 2023.11.13 .+ Python 3.7
+TEST_LOCKFILE_ACTUAL = TEST_LOCKFILE_V2_TMPL % TEST_LOCKFILE_V1.rstrip('\n')
+
+TEST_LOCKFILE_FORK = r'''%s# Test if a fork blocks updates to non-numeric tags
 lockV2 fork/yt-dlp pr0000 .+ Python 3.6
-lockV2 fork/yt-dlp pr1234 .+ Python 3.7
+lockV2 fork/yt-dlp pr1234 (?!win_x86_exe).+ Python 3\.7
+lockV2 fork/yt-dlp pr1234 win_x86_exe .+ Windows-(?:Vista|2008Server)
 lockV2 fork/yt-dlp pr9999 .+ Python 3.11
-'''
+''' % TEST_LOCKFILE_ACTUAL
 
 
 class FakeUpdater(Updater):
@@ -97,7 +106,7 @@ class FakeUpdater(Updater):
     _origin = 'yt-dlp/yt-dlp'
 
     def _download_update_spec(self, *args, **kwargs):
-        return TEST_LOCKFILE_V1_V2
+        return TEST_LOCKFILE_ACTUAL
 
     def _call_api(self, tag):
         tag = f'tags/{tag}' if tag != 'latest' else tag
@@ -112,7 +121,7 @@ class TestUpdate(unittest.TestCase):
 
     def test_update_spec(self):
         ydl = FakeYDL()
-        updater = FakeUpdater(ydl, 'stable@latest')
+        updater = FakeUpdater(ydl, 'stable')
 
         def test(lockfile, identifier, input_tag, expect_tag, exact=False, repo='yt-dlp/yt-dlp'):
             updater._identifier = identifier
@@ -124,35 +133,46 @@ class TestUpdate(unittest.TestCase):
                 f'{identifier!r} requesting {repo}@{input_tag} (exact={exact}) '
                 f'returned {result!r} instead of {expect_tag!r}')
 
-        test(TEST_LOCKFILE_V1, 'zip Python 3.11.0', '2023.11.13', '2023.11.13')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.11.0', '2023.11.13', '2023.11.13', exact=True)
-        test(TEST_LOCKFILE_V1, 'zip Python 3.6.0', '2023.11.13', '2022.08.18.36')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.6.0', '2023.11.13', None, exact=True)
-        test(TEST_LOCKFILE_V1, 'zip Python 3.7.0', '2023.11.13', '2023.11.13')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.7.1', '2023.11.13', '2023.11.13')
-        test(TEST_LOCKFILE_V1, 'zip Python 3.7.1', '2023.12.31', '2023.11.13')
-        test(TEST_LOCKFILE_V1, 'zip stable Python 3.7.1', '2023.12.31', '2023.11.13')
+        for lockfile in (TEST_LOCKFILE_V1, TEST_LOCKFILE_V2, TEST_LOCKFILE_ACTUAL, TEST_LOCKFILE_FORK):
+            # Normal operation
+            test(lockfile, 'zip Python 3.12.0', '2023.12.31', '2023.12.31')
+            test(lockfile, 'zip stable Python 3.12.0', '2023.12.31', '2023.12.31', exact=True)
+            # Python 3.6 --update should update only to its lock
+            test(lockfile, 'zip Python 3.6.0', '2023.11.16', '2022.08.18.36')
+            # --update-to an exact version later than the lock should return None
+            test(lockfile, 'zip stable Python 3.6.0', '2023.11.16', None, exact=True)
+            # Python 3.7 should be able to update to its lock
+            test(lockfile, 'zip Python 3.7.0', '2023.11.16', '2023.11.16')
+            test(lockfile, 'zip stable Python 3.7.1', '2023.11.16', '2023.11.16', exact=True)
+            # Non-win_x86_exe builds on py3.7 must be locked
+            test(lockfile, 'zip Python 3.7.1', '2023.12.31', '2023.11.16')
+            test(lockfile, 'zip stable Python 3.7.1', '2023.12.31', None, exact=True)
+            test(  # Windows Vista w/ win_x86_exe must be locked
+                lockfile, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
+                '2023.12.31', '2023.11.16')
+            test(  # Windows 2008Server w/ win_x86_exe must be locked
+                lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-2008Server',
+                '2023.12.31', None, exact=True)
+            test(  # Windows 7 w/ win_x86_exe py3.7 build should be able to update beyond lock
+                lockfile, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
+                '2023.12.31', '2023.12.31')
+            test(  # Windows 8.1 w/ '2008Server' in platform string should be able to update beyond lock
+                lockfile, 'win_x86_exe Python 3.7.9 (CPython x86 32bit) - Windows-post2008Server-6.2.9200',
+                '2023.12.31', '2023.12.31', exact=True)
 
-        test(TEST_LOCKFILE_V2, 'zip Python 3.11.1', '2023.11.13', '2023.11.13')
-        test(TEST_LOCKFILE_V2, 'zip stable Python 3.11.1', '2023.12.31', '2023.12.31')
-        test(TEST_LOCKFILE_V2, 'zip Python 3.6.1', '2023.11.13', '2022.08.18.36')
-        test(TEST_LOCKFILE_V2, 'zip stable Python 3.7.2', '2023.11.13', '2023.11.13')
-        test(TEST_LOCKFILE_V2, 'zip Python 3.7.2', '2023.12.31', '2023.11.13')
-
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.11.2', '2023.11.13', '2023.11.13')
-        test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.11.2', '2023.12.31', '2023.12.31')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.6.2', '2023.11.13', '2022.08.18.36')
-        test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.7.3', '2023.11.13', '2023.11.13')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.7.3', '2023.12.31', '2023.11.13')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.6.3', 'pr0000', None, repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.7.4', 'pr0000', 'pr0000', repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.6.4', 'pr0000', None, repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.7.4', 'pr1234', None, repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.8.1', 'pr1234', 'pr1234', repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.7.5', 'pr1234', None, repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.11.3', 'pr9999', None, repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip stable Python 3.12.0', 'pr9999', 'pr9999', repo='fork/yt-dlp')
-        test(TEST_LOCKFILE_V1_V2, 'zip Python 3.11.4', 'pr9999', None, repo='fork/yt-dlp')
+        # Forks can block updates to non-numeric tags rather than lock
+        test(TEST_LOCKFILE_FORK, 'zip Python 3.6.3', 'pr0000', None, repo='fork/yt-dlp')
+        test(TEST_LOCKFILE_FORK, 'zip stable Python 3.7.4', 'pr0000', 'pr0000', repo='fork/yt-dlp')
+        test(TEST_LOCKFILE_FORK, 'zip stable Python 3.7.4', 'pr1234', None, repo='fork/yt-dlp')
+        test(TEST_LOCKFILE_FORK, 'zip Python 3.8.1', 'pr1234', 'pr1234', repo='fork/yt-dlp', exact=True)
+        test(
+            TEST_LOCKFILE_FORK, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-Vista-6.0.6003-SP2',
+            'pr1234', None, repo='fork/yt-dlp')
+        test(
+            TEST_LOCKFILE_FORK, 'win_x86_exe stable Python 3.7.9 (CPython x86 32bit) - Windows-7-6.1.7601-SP1',
+            '2023.12.31', '2023.12.31', repo='fork/yt-dlp')
+        test(TEST_LOCKFILE_FORK, 'zip Python 3.11.2', 'pr9999', None, repo='fork/yt-dlp', exact=True)
+        test(TEST_LOCKFILE_FORK, 'zip stable Python 3.12.0', 'pr9999', 'pr9999', repo='fork/yt-dlp')
 
     def test_query_update(self):
         ydl = FakeYDL()
