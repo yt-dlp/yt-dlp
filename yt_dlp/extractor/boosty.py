@@ -1,3 +1,4 @@
+from yt_dlp.utils.traversal import traverse_obj
 from .common import InfoExtractor
 from ..utils import qualities, ExtractorError
 
@@ -99,11 +100,9 @@ class BoostyIE(InfoExtractor):
                     "thumbnail": i.get("preview") or self._og_search_thumbnail(webpage),
                     "duration": i.get("duration"),
                     "display_id": f"https://ok.ru/videoembed/{i.get('vid')}",
-                    "author": data.get("user").get("name"),
-                    "channel": data.get("user").get("blogUrl"),
+                    "author": traverse_obj(data, ("user", "name")),
+                    "channel": traverse_obj(data, ("user", "blogUrl")),
                     "tags": data.get("tags")
-                    # 'subtitles': subtitles,
-                    # 'season_number': traverse_obj(json_data, ('program', 'seasonNum')),
                 }
 
         raise ExtractorError(
