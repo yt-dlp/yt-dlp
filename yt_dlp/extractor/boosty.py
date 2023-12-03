@@ -26,9 +26,7 @@ class BoostyIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         json_data = self._search_json(
             r'<script type="text/plain" id="initial-state">',
-            webpage,
-            "boosty",
-            video_id,
+            webpage, "boosty", video_id,
         )
         data = json_data["posts"]["postsList"]["data"]["posts"][0]
         for i in data["data"]:
@@ -54,23 +52,15 @@ class BoostyIE(InfoExtractor):
                         source_type, source_url = f.get("type"), f.get("url")
 
                         if "hls" in source_type:
-                            formats.extend(
-                                self._extract_m3u8_formats(
-                                    source_url, video_id, fatal=False
-                                )
-                            )
+                            formats.extend(self._extract_m3u8_formats(source_url, video_id, fatal=False))
                         elif "dash" in source_type:
-                            formats.extend(
-                                self._extract_mpd_formats(
-                                    source_url, video_id, fatal=False
-                                )
-                            )
+                            formats.extend(self._extract_mpd_formats(source_url, video_id, fatal=False))
                         else:
                             formats.append(
                                 {
                                     "url": source_url,
                                     "format_id": source_type,
-                                    "ext": "mp4",
+                                    "ext": "mp4"
                                 }
                             )
 
@@ -99,7 +89,4 @@ class BoostyIE(InfoExtractor):
                     "tags": data.get("tags")
                 }
 
-        raise ExtractorError(
-            "Video was not found on a page. You need to pass cookies to access paid content",
-            expected=True,
-        )
+        raise ExtractorError("Video was not found on a page. You need to pass cookies to access paid content", expected=True)
