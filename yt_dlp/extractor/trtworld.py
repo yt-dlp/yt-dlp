@@ -1,8 +1,6 @@
-from .common import InfoExtractor, ExtractorError, url_or_none
-from ..utils import (
-    parse_iso8601,
-    traverse_obj,
-)
+from .common import InfoExtractor
+from ..utils import ExtractorError, parse_iso8601, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class TrtWorldIE(InfoExtractor):
@@ -17,7 +15,7 @@ class TrtWorldIE(InfoExtractor):
             'release_timestamp': 1701529569,
             'release_date': '20231202',
             'thumbnail': 'https://cdn-i.pr.trt.com.tr/trtworld/17647563_0-0-1920-1080.jpeg',
-            'description': "Tourism sustainability is one of the main issues at COP28, as the UN calls for new ways to lessen the effects of tourism on the environment. And as a leading country in the sector, T\u00fcrkiye is doing its part with a new strategy. Asli Atbas reports from one of the country's favourite holiday destinations, Cappadocia."
+            'description': 'md5:0a975c04257fb529c8f99c7b76a2cf12',
         }
     }, {
         'url': 'https://www.trtworld.com/video/one-offs/frames-from-anatolia-recreating-a-james-bond-scene-in-istanbuls-grand-bazaar-14541780',
@@ -28,7 +26,7 @@ class TrtWorldIE(InfoExtractor):
             'release_timestamp': 1692440844,
             'release_date': '20230819',
             'thumbnail': 'https://cdn-i.pr.trt.com.tr/trtworld/16939810_0-0-1920-1080.jpeg',
-            'description': "Join us on a fun adventure as we attempt to recreate an iconic “James Bond” scene, weaving together film history and the bustling life and culture of the real world in the heart of Istanbul’s colourful Grand Bazaar!"
+            'description': 'md5:4050e21570cc3c40b6c9badae800a94f',
         }
     }, {
         'url': 'https://www.trtworld.com/video/the-newsmakers/can-sudan-find-peace-amidst-failed-transition-to-democracy-12904760',
@@ -46,32 +44,28 @@ class TrtWorldIE(InfoExtractor):
             'id': 'zEns2dWl00w',
             'ext': 'mp4',
             'title': "Locals learning to cope with rising tides of Kenya's Great Lakes",
-            "thumbnail": "https://i.ytimg.com/vi/zEns2dWl00w/maxresdefault.jpg",
-            "description": "The great lakes of Kenya are a major tourist attraction, and support the livelihoods of millions of residents. But in recent years, their levels have been steadily rising, wreaking havoc. \n\nAlexandria Majalla spoke to locals to find out how they're coping with the changing tides.\r\n\r\nSubscribe:\nhttp://trt.world/subscribe\nLivestream: http://trt.world/ytlive\nFacebook: http://trt.world/facebook\nTwitter: http://trt.world/twitter\nInstagram: http://trt.world/instagram\nVisit our website: http://trt.world",
-            "channel_id": "UC7fWeaHhqgM4Ry-RMpM2YYw",
-            "channel_url": "https://www.youtube.com/channel/UC7fWeaHhqgM4Ry-RMpM2YYw",
-            "duration": 210,
-            "view_count": int,
-            "average_rating": None,
-            "age_limit": 0,
-            "webpage_url": "https://www.youtube.com/watch?v=zEns2dWl00w",
-            "categories": [
-                "News & Politics"
-            ],
-            "channel": "TRT World",
-            "channel_follower_count": int,
-            "channel_is_verified": True,
-            "uploader": "TRT World",
-            "uploader_id": "@trtworld",
-            "uploader_url": "https://www.youtube.com/@trtworld",
-            "upload_date": "20231202",
-            "availability": "public",
+            'thumbnail': 'https://i.ytimg.com/vi/zEns2dWl00w/maxresdefault.jpg',
+            'description': 'md5:3ad9d7c5234d752a4ead4340c79c6b8d',
+            'channel_id': 'UC7fWeaHhqgM4Ry-RMpM2YYw',
+            'channel_url': 'https://www.youtube.com/channel/UC7fWeaHhqgM4Ry-RMpM2YYw',
+            'duration': 210,
+            'view_count': int,
+            'age_limit': 0,
+            'webpage_url': 'https://www.youtube.com/watch?v=zEns2dWl00w',
+            'categories': ['News & Politics'],
+            'channel': 'TRT World',
+            'channel_follower_count': int,
+            'channel_is_verified': True,
+            'uploader': 'TRT World',
+            'uploader_id': '@trtworld',
+            'uploader_url': 'https://www.youtube.com/@trtworld',
+            'upload_date': '20231202',
+            'availability': 'public',
             'comment_count': int,
             'playable_in_embed': True,
             'tags': [],
             'live_status': 'not_live',
-            'like_count': None
-
+            'like_count': int,
         }
     }]
 
