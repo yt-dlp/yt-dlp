@@ -1515,7 +1515,6 @@ class TestYoutubeDLNetworking:
             rh = self.build_handler(ydl)
             assert rh.proxies[proxy_key] == expected
 
-
     def test_clean_proxy_header(self):
         with FakeRHYDL() as ydl:
             req = ydl.urlopen(Request('test://', headers={'ytdl-request-proxy': '//foo.bar'})).request
