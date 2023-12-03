@@ -27,7 +27,7 @@ from ..utils import (
 
 class ADNIE(InfoExtractor):
     IE_DESC = 'Animation Digital Network'
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.fr/video/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(fr|de)/video/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
@@ -116,6 +116,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
             if sub_lang == 'vostf':
                 sub_lang = 'fr'
+            if sub_lang == 'vostde':
+                sub_lang = 'de'
             subtitles.setdefault(sub_lang, []).extend([{
                 'ext': 'json',
                 'data': json.dumps(sub),
@@ -147,6 +149,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             self.report_warning(message or self._LOGIN_ERR_MESSAGE)
 
     def _real_extract(self, url):
+        if 'network.de' in url:
+            self._HEADERS['X-Target-Distribution'] = 'de'
         video_id = self._match_id(url)
         video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
         player = self._download_json(
@@ -162,7 +166,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
         token = self._download_json(
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
             video_id, 'Downloading access token', headers={
-                'x-player-refresh-token': user['refreshToken']
+                'X-Player-Refresh-Token': user['refreshToken'],
+                'X-Target-Distribution': (self._HEADERS['X-Target-Distribution'] or 'fr')
             }, data=b'')['token']
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
@@ -184,7 +189,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             try:
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
-                        'X-Player-Token': authorization
+                        'X-Player-Token': authorization,
+                        'X-Target-Distribution': (self._HEADERS['X-Target-Distribution'] or 'fr')
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
