@@ -4,7 +4,21 @@ from ..utils import qualities, ExtractorError
 
 class BoostyIE(InfoExtractor):
     _VALID_URL = r"https?://boosty.to(/[\w-]+/posts/)(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-    _TESTS = []
+    _TESTS = [{
+        "url": "https://boosty.to/ikakprosto/posts/595db00d-7906-4d0e-99d6-1067d79ecefe",
+        "info_dict": {
+            "id": "595db00d-7906-4d0e-99d6-1067d79ecefe",
+            "ext": "mp4",
+            "title": "КАК YOUTUBE и TWITTER СВОДЯТ РОССИЯН С УМА - [когнитивные воины 2]",
+            "thumbnail": r"re:^https://i.mycdn.me/videoPreview.*",
+            'author': 'ikakprosto',
+            'duration': 11186,
+            'tags': [],
+            'alt_title': 'Уралов.mp4',
+            'display_id': 'https://ok.ru/videoembed/4358687697659',
+            'channel': 'ikakprosto',
+        }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -25,8 +39,6 @@ class BoostyIE(InfoExtractor):
         for i in data["data"]:
             if i["type"] == "ok_video":
                 playerUrls = i["playerUrls"]
-                # print(playerUrls)
-
                 # H.264 AAC-LC
                 # ultra_hd 2160p 256 type=7
                 # quad_hd 1440p 256 type=6
@@ -67,9 +79,9 @@ class BoostyIE(InfoExtractor):
                                 }
                             )
 
-                quality = qualities(("4", "0", "1", "2", "3", "5", "6", "7"))
+                quality = qualities(("4", "0", "1", "2", "3", "5", "6", "7", "8", "9"))
                 # 4 is for 'tiny' (144p) which is the worst quality, unlike 'lowest' (240p), but has type 4 for some reason,
-                # which places it between 'high' (3) and 'full_hd' (5). mailru moment
+                # which places it between 'high' (3) and 'full_hd' (5)
 
                 for fmt in formats:
                     fmt_type = self._search_regex(
@@ -77,23 +89,16 @@ class BoostyIE(InfoExtractor):
                     )
                     if fmt_type:
                         fmt["quality"] = quality(fmt_type)
-                # This shit extracts &type=1 from url and places it to quality field
-
-                # webpage = self._download_webpage(url, video_id)
-
-                # title = clean_html(get_element_by_id('video-title', webpage))
-                # description = clean_html(get_element_by_id('video-description', webpage))
-                # video_url = self._search_regex(
-                #    r'<source src="([^"]+)" type="video/mp4">', webpage, 'video URL')
+                # This extracts &type=1 from url and places it to quality field
 
                 return {
                     "id": video_id,
                     "title": data.get("title"),
+                    "formats": formats,
                     "alt_title": i.get("title"),
                     "thumbnail": i.get("preview") or self._og_search_thumbnail(webpage),
                     "duration": i.get("duration"),
-                    "display_id": f"http://ok.ru/videoembed/{i.get('vid')}",
-                    "formats": formats,
+                    "display_id": f"https://ok.ru/videoembed/{i.get('vid')}",
                     "author": data.get("user").get("name"),
                     "channel": data.get("user").get("blogUrl"),
                     "tags": data.get("tags")
