@@ -76,7 +76,7 @@ class TrtWorldIE(InfoExtractor):
         formats = []
         for media_url in traverse_obj(nuxtjs_data, (
                 'platforms', ('website', 'ott'), 'metadata', ('hls_url', 'url'), {url_or_none})):
-            # Website sometimes serves mp4 files under `hls_url` key
+            # NB: Website sometimes serves mp4 files under `hls_url` key
             if media_url.endswith('.m3u8'):
                 formats.extend(self._extract_m3u8_formats(media_url, display_id, fatal=False))
             else:
