@@ -83,7 +83,7 @@ class BoostyIE(InfoExtractor):
                     "alt_title": i.get("title"),
                     "thumbnail": i.get("preview") or self._og_search_thumbnail(webpage),
                     "duration": i.get("duration"),
-                    "display_id": f"https://ok.ru/videoembed/{i.get("vid")}" if i.get("vid") else None,
+                    "display_id": f"https://ok.ru/videoembed/{i.get('vid')}" if i.get("vid") else None,
                     "author": traverse_obj(data, ("user", "name")),
                     "channel": traverse_obj(data, ("user", "blogUrl")),
                     "tags": data.get("tags")
