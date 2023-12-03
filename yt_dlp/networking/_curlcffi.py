@@ -138,13 +138,13 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
         proxies = self._get_proxies(request)
         if 'no' in proxies:
-            session.curl.setopt(CurlOpt.NOPROXY, proxies['no'].encode())
+            session.curl.setopt(CurlOpt.NOPROXY, proxies['no'])
             proxies.pop('no', None)
 
         # curl doesn't support per protocol proxies, so we select the one that matches the request protocol
         proxy = select_proxy(request.url, proxies=proxies)
         if proxy:
-            session.curl.setopt(CurlOpt.PROXY, proxy.encode())
+            session.curl.setopt(CurlOpt.PROXY, proxy)
             scheme = urllib.parse.urlparse(request.url).scheme.lower()
             if scheme != 'http':
                 # Enable HTTP CONNECT for HTTPS urls.
@@ -155,13 +155,13 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         headers = self._get_impersonate_headers(request)
 
         if self._client_cert:
-            session.curl.setopt(CurlOpt.SSLCERT, self._client_cert['client_certificate'].encode())
+            session.curl.setopt(CurlOpt.SSLCERT, self._client_cert['client_certificate'])
             client_certificate_key = self._client_cert.get('client_certificate_key')
             client_certificate_password = self._client_cert.get('client_certificate_password')
             if client_certificate_key:
-                session.curl.setopt(CurlOpt.SSLKEY, client_certificate_key.encode())
+                session.curl.setopt(CurlOpt.SSLKEY, client_certificate_key)
             if client_certificate_password:
-                session.curl.setopt(CurlOpt.KEYPASSWD, client_certificate_password.encode())
+                session.curl.setopt(CurlOpt.KEYPASSWD, client_certificate_password)
 
         timeout = self._calculate_timeout(request)
 
