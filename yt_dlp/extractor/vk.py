@@ -456,18 +456,17 @@ class VKIE(VKBaseIE):
             if not format_url or not format_url.startswith(('http', '//', 'rtmp')):
                 continue
             if (format_id.startswith(('url', 'cache'))
-                    or format_id in ('extra_data', 'live_mp4', 'postlive_mp4', 'direct_mp4')):
+                    or format_id in ('extra_data', 'live_mp4', 'postlive_mp4')):
                 height = int_or_none(self._search_regex(
                     r'^(?:url|cache)(\d+)', format_id, 'height', default=None))
                 formats.append({
                     'format_id': format_id,
                     'url': format_url,
                     'height': height,
-                    'ext': 'mp4'
                 })
             elif format_id == 'hls':
                 formats.extend(self._extract_m3u8_formats(
-                    format_url, video_id, 'mp4',
+                    format_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id=format_id, fatal=False, live=is_live))
             elif format_id == 'rtmp':
                 formats.append({
@@ -475,10 +474,6 @@ class VKIE(VKBaseIE):
                     'url': format_url,
                     'ext': 'flv',
                 })
-            elif format_id.startswith('dash'):
-                formats.extend(self._extract_mpd_formats(
-                    format_url, video_id,
-                    mpd_id=format_id, fatal=False))
 
         subtitles = {}
         for sub in data.get('subs') or {}:
