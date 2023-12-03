@@ -12,12 +12,12 @@ class BoostyIE(InfoExtractor):
             "ext": "mp4",
             "title": "КАК YOUTUBE и TWITTER СВОДЯТ РОССИЯН С УМА - [когнитивные воины 2]",
             "thumbnail": r"re:^https://i.mycdn.me/videoPreview.*",
-            'author': 'ikakprosto',
-            'duration': 11186,
-            'tags': [],
-            'alt_title': 'Уралов.mp4',
-            'display_id': 'https://ok.ru/videoembed/4358687697659',
-            'channel': 'ikakprosto',
+            "author": "ikakprosto",
+            "duration": 11186,
+            "tags": [],
+            "alt_title": "Уралов.mp4",
+            "display_id": "https://ok.ru/videoembed/4358687697659",
+            "channel": "ikakprosto",
         }
     }]
 
@@ -30,12 +30,6 @@ class BoostyIE(InfoExtractor):
             "boosty",
             video_id,
         )
-
-        # test = re.search(r'\s*<script type="text/plain" id="initial-state">', webpage)
-        # print(test.group())
-
-        # formats, subtitles = self._extract_m3u8_formats_and_subtitles(f'{json_data["blog"]["posts"]}', video_id)
-
         data = json_data["posts"]["postsList"]["data"]["posts"][0]
         for i in data["data"]:
             if i["type"] == "ok_video":
@@ -99,7 +93,7 @@ class BoostyIE(InfoExtractor):
                     "alt_title": i.get("title"),
                     "thumbnail": i.get("preview") or self._og_search_thumbnail(webpage),
                     "duration": i.get("duration"),
-                    "display_id": f"https://ok.ru/videoembed/{i.get('vid')}",
+                    "display_id": f"https://ok.ru/videoembed/{i.get("vid")}" if i.get("vid") else None,
                     "author": traverse_obj(data, ("user", "name")),
                     "channel": traverse_obj(data, ("user", "blogUrl")),
                     "tags": data.get("tags")
