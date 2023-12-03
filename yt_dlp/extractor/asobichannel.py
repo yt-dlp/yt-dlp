@@ -4,7 +4,26 @@ from .common import InfoExtractor
 from ..utils import ExtractorError, clean_html, merge_dicts, parse_iso8601, traverse_obj
 
 
-class AsobiChannelIE(InfoExtractor):
+class AsobiChannelBaseIE(InfoExtractor):
+    _MICROCMS_HEADER = {'X-MICROCMS-API-KEY': 'qRaKehul9AHU8KtL0dnq1OCLKnFec6yrbcz3'}
+
+    def _extract_info(self, metadata):
+        return traverse_obj(metadata, {
+            'id': 'id',
+            'title': 'title',
+            'description': ('body', {clean_html}),
+            'thumbnail': ('contents', 'video_thumb', 'url'),
+            'release_timestamp': ('publishedAt', {parse_iso8601}),
+            'modified_timestamp': ('updatedAt', {parse_iso8601}),
+            'channel': ('channel', 'name'),
+            'channel_id': ('channel', 'id'),
+        })
+
+
+class AsobiChannelIE(AsobiChannelBaseIE):
+    IE_NAME = 'asobichannel'
+    IE_DESC = 'ASOBI CHANNEL'
+
     _VALID_URL = r'https?://asobichannel\.asobistore\.jp/watch/(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
         'url': 'https://asobichannel.asobistore.jp/watch/1ypp48qd32p',
@@ -88,20 +107,9 @@ class AsobiChannelIE(InfoExtractor):
 
         metadata = self._download_json(
             f'https://channel.microcms.io/api/v1/media/{video_id}', video_id,
-            headers={'X-MICROCMS-API-KEY': 'qRaKehul9AHU8KtL0dnq1OCLKnFec6yrbcz3'})
+            headers=self._MICROCMS_HEADER)
 
-        info = {
-            'id': video_id,
-            **traverse_obj(metadata, {
-                'title': 'title',
-                'description': ('body', {clean_html}),
-                'thumbnail': ('contents', 'video_thumb', 'url'),
-                'release_timestamp': ('publishedAt', {parse_iso8601}),
-                'modified_timestamp': ('updatedAt', {parse_iso8601}),
-                'channel': ('channel', 'name'),
-                'channel_id': ('channel', 'id'),
-            }),
-        }
+        info = self._extract_info(metadata)
 
         video_type = traverse_obj(metadata, ('contents', 'video_type', 0))
         if video_type == 'VOD':
@@ -110,3 +118,43 @@ class AsobiChannelIE(InfoExtractor):
             return merge_dicts(info, self._process_live(video_id, metadata))
 
         raise ExtractorError(f'Unexpected video type {video_type}', expected=False)
+
+
+class AsobiChannelTagURLIE(AsobiChannelBaseIE):
+    IE_NAME = 'asobichannel:tag'
+    IE_DESC = 'ASOBI CHANNEL'
+
+    _VALID_URL = r'https?://asobichannel\.asobistore\.jp/tag/(?P<id>[a-z0-9-_]+)'
+    _TESTS = [{
+        'url': 'https://asobichannel.asobistore.jp/tag/bjhh-nbcja',
+        'info_dict': {
+            'id': 'bjhh-nbcja',
+            'title': 'アイドルマスター ミリオンライブ！ 765プロch 原っぱ通信',
+        },
+        'playlist_mincount': 16,
+    }, {
+        'url': 'https://asobichannel.asobistore.jp/tag/hvm5qw3c6od',
+        'info_dict': {
+            'id': 'hvm5qw3c6od',
+            'title': 'アイマスMOIW2023ラジオ',
+        },
+        'playlist_mincount': 13,
+    }]
+
+    def _real_extract(self, url):
+        tag_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, tag_id)
+        webpage_data = self._search_nextjs_data(webpage, tag_id)['props']['pageProps']
+
+        media_list = self._download_json(
+            f'https://channel.microcms.io/api/v1/media?limit=999&filters=(tag[contains]{tag_id})', tag_id,
+            headers=self._MICROCMS_HEADER)
+
+        entries = [{
+            '_type': 'url',
+            'url': f'https://asobichannel.asobistore.jp/watch/{metadata['id']}',
+            **self._extract_info(metadata),
+        } for metadata in media_list.get('contents', [])]
+
+        return self.playlist_result(entries, tag_id, traverse_obj(webpage_data, ('data', 'name')))
