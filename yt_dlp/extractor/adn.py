@@ -49,6 +49,15 @@ class ADNIE(InfoExtractor):
     }, {
         'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
         'only_matching': True,
+    }, {
+        'url': 'https://animationdigitalnetwork.de/video/tokyo-mew-mew-new/19818-folge-1',
+        'info_dict': {
+            'id': '19818',
+            'ext': 'mp4',
+            'episode_number': 1,
+            'duration': 1429,
+        },
+        'skip': 'Only available in region (FR, ...)',
     }]
 
     _NETRC_MACHINE = 'animationdigitalnetwork'
