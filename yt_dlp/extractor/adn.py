@@ -44,6 +44,8 @@ class ADNIE(InfoExtractor):
             'season_number': 1,
             'episode': 'À ce soir !',
             'episode_number': 1,
+            'thumbnail': str,
+            'season': 'Season 1',
         },
         'skip': 'Only available in region (FR, ...)',
     }, {
@@ -57,7 +59,7 @@ class ADNIE(InfoExtractor):
             'episode_number': 1,
             'duration': 1429,
         },
-        'skip': 'Only available in region (FR, ...)',
+        # 'skip': 'Only available in DE, AT, CH, LU, LI',
     }]
 
     _NETRC_MACHINE = 'animationdigitalnetwork'
@@ -125,7 +127,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
             if sub_lang == 'vostf':
                 sub_lang = 'fr'
-            if sub_lang == 'vostde':
+            elif sub_lang == 'vostde':
                 sub_lang = 'de'
             subtitles.setdefault(sub_lang, []).extend([{
                 'ext': 'json',
@@ -158,8 +160,6 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             self.report_warning(message or self._LOGIN_ERR_MESSAGE)
 
     def _real_extract(self, url):
-        if 'network.de' in url:
-            self._HEADERS['X-Target-Distribution'] = 'de'
         video_id = self._match_id(url)
         video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
         player = self._download_json(
@@ -176,7 +176,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
             video_id, 'Downloading access token', headers={
                 'X-Player-Refresh-Token': user['refreshToken'],
-                'X-Target-Distribution': (self._HEADERS['X-Target-Distribution'] or 'fr')
+                'X-Target-Distribution': ('de' if 'network.de' in url else 'fr')
             }, data=b'')['token']
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
@@ -199,7 +199,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
-                        'X-Target-Distribution': (self._HEADERS['X-Target-Distribution'] or 'fr')
+                        'X-Target-Distribution': ('de' if 'network.de' in url else 'fr')
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
