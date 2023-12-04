@@ -11,7 +11,7 @@ from ..utils import (
 )
 
 
-class EplusIE(InfoExtractor):
+class EplusIbIE(InfoExtractor):
     _NETRC_MACHINE = 'eplus'
     IE_NAME = 'eplus'
     IE_DESC = 'e+ (イープラス)'
