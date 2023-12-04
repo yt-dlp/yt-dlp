@@ -59,14 +59,29 @@ class LSMLREmbedIE(InfoExtractor):
         }
     }, {
         'url': 'https://lr1.lsm.lv/lv/embed/?id=166557&show=0&theme=white&size=16x9',
-        'md5': '5d5e191e718b7644e5118b7b4e093a6d',
         'info_dict': {
-            'id': 'a303104',
-            'ext': 'mp4',
-            'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/c/5/gallery_a83ad2c2.jpg',
-            'title': 'Krustpunktā Lielā intervija: Valsts prezidents Egils Levits',
-            'duration': 3222,
-        }
+            'id': 166557,
+        },
+        'playlist_count': 2,
+        'playlist': [{
+            'md5': '6a8b0927572f443f09c6e50a3ad65f2d',
+            'info_dict': {
+                'id': 'a303104',
+                'ext': 'mp3',
+                'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/c/5/gallery_a83ad2c2.jpg',
+                'title': 'Krustpunktā Lielā intervija: Valsts prezidents Egils Levits',
+                'duration': 3222,
+            },
+        }, {
+            'md5': '5d5e191e718b7644e5118b7b4e093a6d',
+            'info_dict': {
+                'id': 'v303104',
+                'ext': 'mp4',
+                'thumbnail': 'https://pic.latvijasradio.lv/public/assets/media/c/5/gallery_a83ad2c2.jpg',
+                'title': 'Krustpunktā Lielā intervija: Valsts prezidents Egils Levits - Video Version',
+                'duration': 3222,
+            },
+        }],
     }, {
         'url': 'https://lr1.lsm.lv/lv/embed/?id=183522&show=0&theme=white&size=16x9',
         'only_matching': True,
@@ -97,7 +112,7 @@ class LSMLREmbedIE(InfoExtractor):
         query = parse_qs(url)
         video_id = traverse_obj(query, ('show', 0, {int_or_none}))
 
-        if video_id is None or video_id == 0:
+        if not video_id:
             video_id = traverse_obj(query, ('id', 0, {int_or_none}))
 
         webpage = self._download_webpage(url, video_id)
@@ -110,32 +125,34 @@ class LSMLREmbedIE(InfoExtractor):
         media_json = self._parse_json(media_data, video_id, js_to_json)
 
         entries = []
-        for i, audio_json in enumerate(traverse_obj(media_json, ('audio', ...))):
+        for item in traverse_obj(media_json, (('audio', 'video'), ...)):
             formats = []
-            for source_url in traverse_obj(media_json, (('audio', 'video'), i, 'sources', ..., 'file', {url_or_none})):
+            for source_url in traverse_obj(item, ('sources', ..., 'file', {url_or_none})):
                 if source_url.endswith('.m3u8'):
                     formats.extend(self._extract_m3u8_formats(source_url, video_id))
                 else:
                     formats.append({'url': source_url})
 
+            id = item.get('id')
+            title = item.get('title')
+            if id and id.startswith('v') and not title:
+                title = traverse_obj(
+                    media_json,
+                    ('audio', lambda _, v: v['id'][1:] == id[1:], 'title', {lambda x: x and f'{x} - Video Version'}),
+                    get_all=False)
+
             entries.append({
                 'formats': formats,
                 'thumbnail': urljoin(url, player_json.get('poster')),
-                **traverse_obj(audio_json, {
-                    'id': 'id',
-                    'title': 'title',
-                    'duration': ('duration', {int_or_none})
-                })
+                'id': id,
+                'title': title,
+                'duration': traverse_obj(item, ('duration', {int_or_none})),
             })
 
         if len(entries) == 1:
             return entries[0]
-        else:
-            return {
-                '_type': 'playlist',
-                'id': video_id,
-                'entries': entries,
-            }
+
+        return self.playlist_result(entries, video_id)
 
 
 class LSMLTVEmbedIE(InfoExtractor):
@@ -193,28 +210,20 @@ class LSMLTVEmbedIE(InfoExtractor):
         embed_type = traverse_obj(json, ('source', 'name'))
 
         if embed_type == 'telia':
-            embed_data = {
-                'ie_key': 'CloudyCDN',
-                'url': traverse_obj(json, ('source', 'embed_url', {url_or_none})),
-            }
+            ie_key = 'CloudyCDN'
+            url = traverse_obj(json, ('source', 'embed_url', {url_or_none}))
         elif embed_type == 'youtube':
-            embed_data = {
-                'ie_key': 'Youtube',
-                'url': traverse_obj(json, ('source', 'id')),
-            }
+            ie_key = 'Youtube'
+            url = traverse_obj(json, ('source', 'id'))
         else:
             raise ExtractorError('Unsupported embed type')
 
-        return {
-            **embed_data,
-            '_type': 'url',
-            'id': video_id,
-            **traverse_obj(json, {
+        return self.url_result(
+            url, ie_key, video_id, **traverse_obj(json, {
                 'title': ('parentInfo', 'title'),
                 'duration': ('parentInfo', 'duration', {int_or_none}),
                 'thumbnail': ('source', 'poster', {url_or_none}),
-            }),
-        }
+            }))
 
 
 class LSMLTVIE(LSMBaseIE):
