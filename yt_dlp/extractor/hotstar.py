@@ -4,6 +4,8 @@ import json
 import re
 import time
 import uuid
+import requests
+from urllib.parse import urlparse
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -173,6 +175,7 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20210606',
             'timestamp': 1622943900,
             'duration': 5395,
+            'thumbnail': r're:^https://img1.hotstarext.com/.+',
         },
     }, {
         'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
@@ -186,6 +189,7 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20160502',
             'episode': 'Premam',
             'duration': 8994,
+            'thumbnail': r're:^https://img1.hotstarext.com/.+',
         },
     }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
@@ -228,11 +232,54 @@ class HotStarIE(HotStarBaseIE):
             root = join_nonempty(cls._BASE_URL, video_type, delim='/')
         return f'{root}/{slug}/{video_id}'
 
-    def _real_extract(self, url):
+    def _real_extract(self, url, st=None):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
+        exact_url = urlparse(url)
+        url_path = exact_url.path
         video_type = self._TYPE.get(video_type, video_type)
         cookies = self._get_cookies(url)  # Cookies before any request
+        st = int_or_none(st) or int(time.time())
+        exp = st + 6000
+        auth = 'st=%d~exp=%d~acl=/*' % (st, exp)
+        auth += '~hmac=' + hmac.new(self._AKAMAI_ENCRYPTION_KEY, auth.encode(), hashlib.sha256).hexdigest()
+        if cookies and cookies.get('userUP'):
+            token = cookies.get('userUP').value
+        else:
+            token = self._download_json(
+                f'{self._API_URL}/um/v3/users',
+                video_id, note='Downloading token',
+                data=json.dumps({"device_ids": [{"id": compat_str(uuid.uuid4()), "type": "device_id"}]}).encode('utf-8'),
+                headers={
+                    'hotstarauth': auth,
+                    'x-hs-platform': 'PCTV',  # or 'web'
+                    'Content-Type': 'application/json',
+                })['user_identity']
+        json_data = {"deeplink_url": url_path, "app_launch_count": 0}
+        header = {
+            'x-hs-platform': 'web',
+            'x-hs-usertoken': token,
+            'Referer': url
+        }
 
+        thumbnail_response = requests.post(
+            f'{self._BASE_URL}/api/internal/bff/v2/start',
+            headers=header,
+            json=json_data  # Use the data parameter for sending JSON data as a string
+        ).text
+        response_json = json.loads(thumbnail_response)
+        json_ld_data = response_json.get("success", {}).get("page", {}).get("spaces", {}).get("seo", {}).get("widget_wrappers", [{}])[0].get("widget", {}).get("data", {}).get("json_ld_data", {})
+        thumbnails = []
+        for schema in json_ld_data['schemas']:
+            schema_dict = eval(schema)
+
+            # Check if the schema has 'thumbnailURL'
+            if 'thumbnailURL' in schema_dict:
+                thumbnail_info = {
+                    'url': schema_dict['thumbnailURL'],
+                    'preference': schema_dict.get('preference', 0),
+                    'id': str(len(thumbnails))  # You can adjust the id logic based on your requirements
+                }
+                thumbnails.append(thumbnail_info)
         video_data = traverse_obj(
             self._call_api_v1(
                 f'{video_type}/detail', video_id, fatal=False, query={'tas': 10000, 'contentId': video_id}),
@@ -332,6 +379,7 @@ class HotStarIE(HotStarBaseIE):
             'season_id': video_data.get('seasonId'),
             'episode': video_data.get('title'),
             'episode_number': int_or_none(video_data.get('episodeNo')),
+            'thumbnails': thumbnails,
         }
 
 
