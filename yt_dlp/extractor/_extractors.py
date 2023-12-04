@@ -547,7 +547,7 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
-from .eplus import EplusIbIE
+from .eplus import EplusIE
 from .epoch import EpochIE
 from .eporner import EpornerIE
 from .erocast import ErocastIE
