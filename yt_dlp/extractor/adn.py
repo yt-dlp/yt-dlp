@@ -247,6 +247,9 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 if format_id == 'vf':
                     for f in m3u8_formats:
                         f['language'] = 'fr'
+                elif format_id == 'vde':
+                    for f in m3u8_formats:
+                        f['language'] = 'de'
                 formats.extend(m3u8_formats)
 
         video = (self._download_json(
