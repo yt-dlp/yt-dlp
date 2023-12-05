@@ -1319,6 +1319,7 @@ The available fields are:
  - `location` (string): Physical location where the video was filmed
  - `duration` (numeric): Length of the video in seconds
  - `duration_string` (string): Length of the video (HH:mm:ss)
+ - `media_type` (string): The type of media, for instance a full show, an excerpt, a highlight, or a trailer.
  - `view_count` (numeric): How many users have watched the video on the platform
  - `concurrent_view_count` (numeric): How many users are currently watching the video on the platform.
  - `like_count` (numeric): Number of positive ratings of the video
