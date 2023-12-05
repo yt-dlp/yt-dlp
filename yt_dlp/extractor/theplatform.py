@@ -108,10 +108,6 @@ class ThePlatformBaseIE(OnceIE):
             # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
             return next((info[k] for k in info if k.endswith(f'${field}') and info[k] != ''), None)
 
-        info_media_type = extract_site_specific_field('programmingType')
-        if not info_media_type:
-            info_media_type = extract_site_specific_field('type')
-
         return {
             'title': info['title'],
             'subtitles': subtitles,
