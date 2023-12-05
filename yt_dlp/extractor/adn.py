@@ -284,6 +284,15 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 class ADNSeasonIE(ADNIE):
     _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(fr|de)/video/(?P<id>[^/]+)/?$'
+    _TESTS = [{
+        'url': 'https://animationdigitalnetwork.fr/video/tokyo-mew-mew-new',
+        'playlist_count': 12,
+        'info_dict': {
+            'id': 911,
+            'title': 'Tokyo Mew Mew New',
+        },
+        # 'skip': 'Only available in DE, AT, CH, LU, LI',
+    }]
 
     def _real_extract(self, url):
         video_show_slug = self._match_id(url)
