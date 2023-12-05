@@ -53,9 +53,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'chapters': 'count:1',
                 'tags': 'count:4',
                 'thumbnail': r're:https?://.+\.jpg',
-                'categories': [
-                    'Series/The Tonight Show Starring Jimmy Fallon'
-                ],
+                'categories': ['Series/The Tonight Show Starring Jimmy Fallon'],
                 'creator': None,
                 'media_type': 'Full Episode',
             },
@@ -136,9 +134,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'tags': 'count:10',
                 'age_limit': 0,
                 'thumbnail': r're:https?://.+\.jpg',
-                'categories': [
-                    'Series/Quantum Leap 2022',
-                ],
+                'categories': ['Series/Quantum Leap 2022'],
                 'media_type': 'Highlight',
             },
             'params': {

@@ -203,13 +203,9 @@ class CBCPlayerIE(InfoExtractor):
             'chapters': [],
             'duration': 186.867,
             'series': 'CBC News: Windsor at 6:00',
-            'categories': [
-                'News/Canada/Windsor',
-            ],
+            'categories': ['News/Canada/Windsor'],
             'location': 'Windsor',
-            'tags': [
-                'cancer',
-            ],
+            'tags': ['cancer'],
             'creator': 'Allison Johnson',
             'media_type': 'Excerpt',
         },
