@@ -119,7 +119,8 @@ class EplusIbIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(url, video_id)
+        webpage, urlh = self._download_webpage_handle(
+            url, video_id, headers={'User-Agent': self._USER_AGENT})
         if urlh.url.startswith('https://live.eplus.jp/member/auth'):
             self.raise_login_required()
 
