@@ -128,7 +128,7 @@ class ThePlatformBaseIE(OnceIE):
             'location': extract_site_specific_field('region'),
             'series': extract_site_specific_field('show'),
             'season_number': int_or_none(extract_site_specific_field('seasonNumber')),
-            'media_type': info_media_type,
+            'media_type': extract_site_specific_field('programmingType') or extract_site_specific_field('type'),
         }
 
     def _extract_theplatform_metadata(self, path, video_id):
