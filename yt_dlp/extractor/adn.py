@@ -84,7 +84,7 @@ class ADNIE(InfoExtractor):
         if 'network.de' in url:
             return 'de'
         return 'fr'
-    
+
     def _get_subtitles(self, sub_url, video_id):
         if not sub_url:
             return None
@@ -281,8 +281,10 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             'comment_count': int_or_none(video.get('commentsCount')),
         }
 
+
 class ADNSeasonIE(ADNIE):
     _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(fr|de)/video/(?P<id>[^/]+)/?$'
+
     def _real_extract(self, url):
         video_show_slug = self._match_id(url)
         video_base_url = self._API_BASE_URL + 'show/%s/' % video_show_slug
