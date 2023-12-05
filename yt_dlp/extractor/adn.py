@@ -78,6 +78,13 @@ class ADNIE(InfoExtractor):
         'end': 4,
     }
 
+    def _get_distribution_language(self, url):
+        if self._configuration_arg('language'):
+            return self._configuration_arg('language')
+        if 'network.de' in url:
+            return 'de'
+        return 'fr'
+    
     def _get_subtitles(self, sub_url, video_id):
         if not sub_url:
             return None
@@ -176,7 +183,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
             video_id, 'Downloading access token', headers={
                 'X-Player-Refresh-Token': user['refreshToken'],
-                'X-Target-Distribution': ('de' if 'network.de' in url else 'fr')
+                'X-Target-Distribution': self._get_distribution_language(url),
             }, data=b'')['token']
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
@@ -199,7 +206,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
-                        'X-Target-Distribution': ('de' if 'network.de' in url else 'fr')
+                        'X-Target-Distribution': self._get_distribution_language(url),
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
@@ -273,3 +280,33 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             'average_rating': float_or_none(video.get('rating') or metas.get('rating')),
             'comment_count': int_or_none(video.get('commentsCount')),
         }
+
+class ADNSeasonIE(ADNIE):
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(fr|de)/video/(?P<id>[^/]+)/?$'
+    def _real_extract(self, url):
+        video_show_slug = self._match_id(url)
+        video_base_url = self._API_BASE_URL + 'show/%s/' % video_show_slug
+        print(video_base_url)
+        show = self._download_json(
+            video_base_url, video_show_slug,
+            'Downloading show JSON metadata',
+            headers=self._HEADERS)['show']
+        show_id = show['id']
+        lang = self._get_distribution_language(url)
+        episodes = self._download_json(
+            self._API_BASE_URL + 'video/show/%s' % show_id, video_show_slug,
+            'Downloading episode list', headers={
+                'X-Target-Distribution': lang,
+            }, query={
+                'order': 'asc',
+                'limit': '-1',
+                'season': self._configuration_arg('season', ie_key=ADNIE.ie_key()) or "",
+            })
+        entries = []
+        for episode in episodes['videos']:
+            entries.append(self.url_result(
+                'https://animationdigitalnetwork.%s/video/%s/%s' % (lang, video_show_slug, episode['id']),
+                ie=ADNIE.ie_key(),
+                video_id=episode['id']
+            ))
+        return self.playlist_result(entries, show_id, show['title'])
