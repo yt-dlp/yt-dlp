@@ -13,10 +13,8 @@ class EplusIbIE(InfoExtractor):
     _NETRC_MACHINE = 'eplus'
     IE_NAME = 'eplus'
     IE_DESC = 'e+ (イープラス)'
-    _VALID_URL = [
-        r'https?://live\.eplus\.jp/ex/player\?ib=(?P<id>(?:\w|%2B|%2F){86}%3D%3D)',
-        r'https?://live\.eplus\.jp/(?P<id>sample|\d+)',
-    ]
+    _VALID_URL = [r'https?://live\.eplus\.jp/ex/player\?ib=(?P<id>(?:\w|%2B|%2F){86}%3D%3D)',
+                  r'https?://live\.eplus\.jp/(?P<id>sample|\d+)']
     _TESTS = [{
         'url': 'https://live.eplus.jp/ex/player?ib=YEFxb3Vyc2Dombnjg7blkrLlrablnJLjgrnjgq%2Fjg7zjg6vjgqLjgqTjg4njg6vlkIzlpb3kvJpgTGllbGxhIQ%3D%3D',
         'info_dict': {
@@ -102,7 +100,7 @@ class EplusIbIE(InfoExtractor):
                 'loginId': id,
                 'loginPassword': password,
             }).encode())
-        if not login_json.get('isSuccess', None):
+        if not login_json.get('isSuccess'):
             raise ExtractorError('Login failed: Invalid id or password', expected=True)
 
         self._request_webpage(
