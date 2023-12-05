@@ -150,7 +150,7 @@ class MediasetIE(ThePlatformBaseIE):
             'season_number': 12,
             'episode': 'Episode 8',
             'episode_number': 8,
-            'categories': ['Intrattenimento',],
+            'categories': ['Intrattenimento'],
         },
         'params': {
             'skip_download': True,

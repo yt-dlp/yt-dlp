@@ -106,7 +106,7 @@ class ThePlatformBaseIE(OnceIE):
 
         def extract_site_specific_field(field):
             # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
-            return next((info[k] for k in info if k.endswith(f'${field}') and info[k] != ''), None)
+            return traverse_obj(info, lambda k, v: v and k.endswith(f'${field}'), get_all=False)
 
         return {
             'title': info['title'],
