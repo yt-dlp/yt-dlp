@@ -296,7 +296,6 @@ class ADNSeasonIE(ADNIE):
     def _real_extract(self, url):
         video_show_slug = self._match_id(url)
         video_base_url = self._API_BASE_URL + 'show/%s/' % video_show_slug
-        print(video_base_url)
         show = self._download_json(
             video_base_url, video_show_slug,
             'Downloading show JSON metadata',
