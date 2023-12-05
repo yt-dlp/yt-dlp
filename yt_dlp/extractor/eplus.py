@@ -1,5 +1,4 @@
 import json
-import random
 
 from .common import InfoExtractor
 from ..utils import (
@@ -7,7 +6,6 @@ from ..utils import (
     try_call,
     unified_timestamp,
     urlencode_postdata,
-    xpath_text,
 )
 
 
@@ -79,34 +77,33 @@ class EplusIbIE(InfoExtractor):
     }]
 
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+    _TEST_EVENT_URL = 'https://live.eplus.jp/2053935'
 
     def _perform_login(self, id, password):
-        fake_event_url = f'https://live.eplus.jp/{random.randrange(2000000, 10000000)}'
         webpage, urlh = self._download_webpage_handle(
-            fake_event_url, None, note='Getting auth status', errnote='Unable to get auth status')
-        if urlh.url.startswith(fake_event_url):
+            self._TEST_EVENT_URL, None, note='Getting auth status', errnote='Unable to get auth status')
+        if urlh.url.startswith(self._TEST_EVENT_URL):
             # already logged in
             return
 
         cltft_token = self._hidden_inputs(webpage).get('Token.Default')
         if not cltft_token:
-            self.report_warning('Unable to get X-CLTFT-Token')
-            return
+            raise ExtractorError('Unable to get X-CLTFT-Token', expected=False)
         self._set_cookie('live.eplus.jp', 'X-CLTFT-Token', f'Token.Default={cltft_token}')
 
-        login_xml = self._download_xml(
+        login_json = self._download_json(
             'https://live.eplus.jp/member/api/v1/FTAuth/idpw', None,
             note='Sending pre-login info', errnote='Unable to send pre-login info', headers={
                 'Content-Type': 'application/json; charset=UTF-8',
                 'Referer': urlh.url,
                 'X-Cltft-Token': f'Token.Default={cltft_token}',
+                'Accept': '*/*',
             }, data=json.dumps({
                 'loginId': id,
                 'loginPassword': password,
-            }).encode('utf-8'))
-        flag = xpath_text(login_xml, './isSuccess', default=None)
-        if flag != 'true':
-            raise
+            }).encode())
+        if not login_json.get('isSuccess', None):
+            raise ExtractorError('Login failed: Invalid id or password', expected=True)
 
         self._request_webpage(
             urlh.url, None, note='Logging in', errnote='Unable to log in',
