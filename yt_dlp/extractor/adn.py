@@ -25,8 +25,31 @@ from ..utils import (
 )
 
 
-class ADNIE(InfoExtractor):
+class ADNBaseIE(InfoExtractor):
     IE_DESC = 'Animation Digital Network'
+    _NETRC_MACHINE = 'animationdigitalnetwork'
+    _BASE = 'animationdigitalnetwork.fr'
+    _API_BASE_URL = 'https://gw.api.' + _BASE + '/'
+    _PLAYER_BASE_URL = _API_BASE_URL + 'player/'
+    _HEADERS = {}
+    _LOGIN_ERR_MESSAGE = 'Unable to log in'
+    _RSA_KEY = (0x9B42B08905199A5CCE2026274399CA560ECB209EE9878A708B1C0812E1BB8CB5D1FB7441861147C1A1F2F3A0476DD63A9CAC20D3E983613346850AA6CB38F16DC7D720FD7D86FC6E5B3D5BBC72E14CD0BF9E869F2CEA2CCAD648F1DCE38F1FF916CEFB2D339B64AA0264372344BC775E265E8A852F88144AB0BD9AA06C1A4ABB, 65537)
+    _POS_ALIGN_MAP = {
+        'start': 1,
+        'end': 3,
+    }
+    _LINE_ALIGN_MAP = {
+        'middle': 8,
+        'end': 4,
+    }
+
+    def _get_distribution_language(self, url):
+        if 'network.de' in url:
+            return 'de'
+        return 'fr'
+
+
+class ADNIE(ADNBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(fr|de)/video/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
@@ -47,7 +70,7 @@ class ADNIE(InfoExtractor):
             'thumbnail': str,
             'season': 'Season 1',
         },
-        'skip': 'Only available in region (FR, ...)',
+        'skip': 'Only available in French end German speaking Europe',
     }, {
         'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
         'only_matching': True,
@@ -59,31 +82,8 @@ class ADNIE(InfoExtractor):
             'episode_number': 1,
             'duration': 1429,
         },
-        # 'skip': 'Only available in DE, AT, CH, LU, LI',
+        # 'skip': 'Only available in French end German speaking Europe',
     }]
-
-    _NETRC_MACHINE = 'animationdigitalnetwork'
-    _BASE = 'animationdigitalnetwork.fr'
-    _API_BASE_URL = 'https://gw.api.' + _BASE + '/'
-    _PLAYER_BASE_URL = _API_BASE_URL + 'player/'
-    _HEADERS = {}
-    _LOGIN_ERR_MESSAGE = 'Unable to log in'
-    _RSA_KEY = (0x9B42B08905199A5CCE2026274399CA560ECB209EE9878A708B1C0812E1BB8CB5D1FB7441861147C1A1F2F3A0476DD63A9CAC20D3E983613346850AA6CB38F16DC7D720FD7D86FC6E5B3D5BBC72E14CD0BF9E869F2CEA2CCAD648F1DCE38F1FF916CEFB2D339B64AA0264372344BC775E265E8A852F88144AB0BD9AA06C1A4ABB, 65537)
-    _POS_ALIGN_MAP = {
-        'start': 1,
-        'end': 3,
-    }
-    _LINE_ALIGN_MAP = {
-        'middle': 8,
-        'end': 4,
-    }
-
-    def _get_distribution_language(self, url):
-        if self._configuration_arg('language'):
-            return self._configuration_arg('language')
-        if 'network.de' in url:
-            return 'de'
-        return 'fr'
 
     def _get_subtitles(self, sub_url, video_id):
         if not sub_url:
@@ -183,7 +183,6 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
             video_id, 'Downloading access token', headers={
                 'X-Player-Refresh-Token': user['refreshToken'],
-                'X-Target-Distribution': self._get_distribution_language(url),
             }, data=b'')['token']
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
@@ -291,7 +290,7 @@ class ADNSeasonIE(ADNIE):
             'id': 911,
             'title': 'Tokyo Mew Mew New',
         },
-        # 'skip': 'Only available in DE, AT, CH, LU, LI',
+        # 'skip': 'Only available in French end German speaking Europe',
     }]
 
     def _real_extract(self, url):
@@ -311,7 +310,6 @@ class ADNSeasonIE(ADNIE):
             }, query={
                 'order': 'asc',
                 'limit': '-1',
-                'season': self._configuration_arg('season', ie_key=ADNIE.ie_key()) or "",
             })
         entries = []
         for episode in episodes['videos']:

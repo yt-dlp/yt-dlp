@@ -1886,10 +1886,6 @@ The following extractors use this feature:
 #### nflplusreplay
 * `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
-#### ADN
-* `language`: Which language version to extract. Valid values are `fr` and `de`. If not provided, the language is extracted from the provided URL
-* `season`: When downloading a show, download only the specified season. If not provided, all seasons are downloaded
-
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
