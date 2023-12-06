@@ -102,6 +102,7 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20151111',
             'duration': 381,
             'episode': 'Can You Not Spread Rumours?',
+            'thumbnail': r're:^https://img1.hotstarext.com/image/upload/f_auto/sources/.+',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -122,6 +123,7 @@ class HotStarIE(HotStarBaseIE):
             'season_id': 6771,
             'episode': 'Janhvi Targets Suman',
             'episode_number': 8,
+            'thumbnail': r're:^https://img1.hotstarext.com/image/upload/f_auto/sources/.+',
         }
     }, {
         'url': 'https://www.hotstar.com/in/shows/anupama/1260022017/anupama-anuj-share-a-moment/1000282843',
@@ -141,6 +143,7 @@ class HotStarIE(HotStarBaseIE):
             'episode_number': 853,
             'duration': 1272,
             'channel_id': 3,
+            'thumbnail': r're:^https://img1.hotstarext.com/image/upload/f_auto/sources/.+',
         },
         'skip': 'HTTP Error 504: Gateway Time-out',  # XXX: Investigate 504 errors on some episodes
     }, {
@@ -161,6 +164,7 @@ class HotStarIE(HotStarBaseIE):
             'episode_number': 1,
             'duration': 1810,
             'channel_id': 54,
+            'thumbnail': r're:^https://img1.hotstarext.com/image/upload/f_auto/sources/.+',
         },
     }, {
         'url': 'https://www.hotstar.com/in/clips/e3-sairat-kahani-pyaar-ki/1000262286',
@@ -173,7 +177,7 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20210606',
             'timestamp': 1622943900,
             'duration': 5395,
-            'thumbnail': r're:^https://img1.hotstarext.com/.+',
+            'thumbnail': r're:^https://img1.hotstarext.com/image/upload/f_auto/sources/.+',
         },
     }, {
         'url': 'https://www.hotstar.com/in/movies/premam/1000091195',
@@ -187,7 +191,7 @@ class HotStarIE(HotStarBaseIE):
             'upload_date': '20160502',
             'episode': 'Premam',
             'duration': 8994,
-            'thumbnail': r're:^https://img1.hotstarext.com/.+',
+            'thumbnail': r're:^https://img1.hotstarext.com/image/upload/f_auto/sources/.+',
         },
     }, {
         'url': 'https://www.hotstar.com/movies/radha-gopalam/1000057157',
@@ -315,6 +319,17 @@ class HotStarIE(HotStarBaseIE):
         self._remove_duplicate_formats(formats)
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
+        thumbnails = []
+        img_list = video_data.get('images')
+        base_url = "https://img1.hotstarext.com/image/upload/f_auto/"
+        for index, (key, value) in enumerate(img_list.items()):
+            thumbnail_url = base_url + value
+            thumbnail_entry = {
+                "url": thumbnail_url,
+                "preference": index,
+                "id": str(index)
+            }
+            thumbnails.append(thumbnail_entry)
 
         return {
             'id': video_id,
@@ -333,7 +348,7 @@ class HotStarIE(HotStarBaseIE):
             'season_id': video_data.get('seasonId'),
             'episode': video_data.get('title'),
             'episode_number': int_or_none(video_data.get('episodeNo')),
-            'thumbnails': video_data.get('imageSets'),
+            'thumbnails': thumbnails,
         }
 
 
