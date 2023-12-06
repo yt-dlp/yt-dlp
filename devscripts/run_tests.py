@@ -12,7 +12,7 @@ IE_TEST_PATTERN = re.compile(r'IE(_all|_\d+)?$')
 def parse_args():
     parser = argparse.ArgumentParser(description='Run selected yt-dlp tests')
     parser.add_argument(
-        'test', help='An extractor test, or one "core" or "download"', nargs='*')
+        'test', help='An extractor test, or one of "core" or "download"', nargs='*')
     parser.add_argument(
         '-k', help='Run a test matching the expression. Same as "pytest -k"', metavar='EXPRESSION')
     return parser.parse_args()
