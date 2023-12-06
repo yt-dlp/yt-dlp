@@ -63,7 +63,7 @@ def traverse_obj(
     @param get_all          If `False`, return the first matching result, otherwise all matching ones.
     @param casesense        If `False`, consider string dictionary keys as case insensitive.
 
-    `traverse_string` is only meant to be used by YoutubeDL.prepare_outtmpl and not part of the API
+    `traverse_string` is only meant to be used by YoutubeDL.prepare_outtmpl and is not part of the API
 
     @param traverse_string  Whether to traverse into objects as strings.
                             If `True`, any non-compatible object will first be
