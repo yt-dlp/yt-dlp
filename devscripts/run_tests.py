@@ -19,31 +19,47 @@ def parse_args():
 
 
 def run_tests(*tests, pattern=None):
-    command = ['pytest', '--tb', 'short']
-
-    if pattern:
-        command.extend(['-k', pattern])
+    unittest_supported = True
+    arguments = []
 
     for test in tests:
         if test == 'core':
-            command.extend(['-m', 'not download'])
+            arguments += ['-m', 'not download']
+            unittest_supported = False
         elif test == 'download':
-            command.extend(['-m', 'download'])
+            arguments += ['-m', 'download']
+            unittest_supported = False
         else:
             test = IE_TEST_PATTERN.sub(r'\1', test)
-            command.append(f'test/test_download.py::TestDownload::test_{test}')
+            arguments.append(f'test/test_download.py::TestDownload::test_{test}')
 
-    if not command:
-        command.extend(['-m', 'not download'])
+    if pattern:
+        arguments += ['-k', pattern]
 
-    print(f'Running {command}')
-    os.chdir(Path(__file__).parent.parent)
+    if not arguments:
+        arguments = ['-m', 'not download']
+
+    print(f'Running pytest with short traceback on {arguments}')
     try:
-        subprocess.run(command)
+        subprocess.run(['pytest', '--tb', 'short'] + arguments)
+        return
     except FileNotFoundError:
-        print('"pytest" needs to be installed to run the tests', file=sys.stderr)
+        pass
+
+    if not unittest_supported:
+        print('"pytest" needs to be installed to run the specified tests', file=sys.stderr)
+        return
+
+    arguments = [f'test.test_download.TestDownload.test_{IE_TEST_PATTERN.sub(r"\1", test)}' for test in tests]
+    if pattern:
+        arguments += ['-k', pattern]
+
+    print(f'Running unittest with {arguments}')
+    subprocess.run([sys.executable, '-m', 'unittest'] + arguments)
 
 
 if __name__ == '__main__':
     args = parse_args()
+
+    os.chdir(Path(__file__).parent.parent)
     run_tests(*args.test, pattern=args.k)
