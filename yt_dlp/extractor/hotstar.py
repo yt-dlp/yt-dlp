@@ -4,7 +4,6 @@ import json
 import re
 import time
 import uuid
-from urllib.parse import urlparse
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -244,7 +243,6 @@ class HotStarIE(HotStarBaseIE):
 
         # See https://github.com/yt-dlp/yt-dlp/issues/396
         st = self._download_webpage_handle(f'{self._BASE_URL}/in', video_id)[1].headers.get('x-origin-date')
-        
 
         geo_restricted = False
         formats, subs = [], {}
