@@ -6469,6 +6469,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     def _has_tab(self, tabs, tab_id):
         return any(self._extract_tab_id_and_name(tab)[0] == tab_id for tab in tabs)
 
+    def _empty_playlist(self, item_id, data):
+        return self.playlist_result([], item_id, **self._extract_metadata_from_tabs(item_id, data))
+
     @YoutubeTabBaseInfoExtractor.passthrough_smuggled_data
     def _real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
@@ -6534,6 +6537,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             selected_tab_id, selected_tab_name = self._extract_tab_id_and_name(selected_tab, url)  # NB: Name may be translated
             self.write_debug(f'Selected tab: {selected_tab_id!r} ({selected_tab_name}), Requested tab: {original_tab_id!r}')
 
+            # /about is no longer a tab
+            if original_tab_id == 'about':
+                return self._empty_playlist(item_id, data)
+
             if not original_tab_id and selected_tab_name:
                 self.to_screen('Downloading all uploads of the channel. '
                                'To download only the videos in a specific tab, pass the tab\'s URL')
@@ -6546,7 +6553,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 if not extra_tabs and selected_tab_id != 'videos':
                     # Channel does not have streams, shorts or videos tabs
                     if item_id[:2] != 'UC':
-                        raise ExtractorError('This channel has no uploads', expected=True)
+                        return self._empty_playlist(item_id, data)
 
                     # Topic channels don't have /videos. Use the equivalent playlist instead
                     pl_id = f'UU{item_id[2:]}'
@@ -6554,7 +6561,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     try:
                         data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True, webpage_fatal=True)
                     except ExtractorError:
-                        raise ExtractorError('This channel has no uploads', expected=True)
+                        return self._empty_playlist(item_id, data)
                     else:
                         item_id, url = pl_id, pl_url
                         self.to_screen(

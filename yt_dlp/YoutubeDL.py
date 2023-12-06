@@ -1179,6 +1179,7 @@ class YoutubeDL:
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
+            '*': float.__mul__,
         }
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int, slice or "{field, ...}"
