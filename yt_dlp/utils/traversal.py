@@ -8,6 +8,7 @@ from ._utils import (
     IDENTITY,
     NO_DEFAULT,
     LazyList,
+    deprecation_warning,
     is_iterable_like,
     try_call,
     variadic,
@@ -16,7 +17,7 @@ from ._utils import (
 
 def traverse_obj(
         obj, *paths, default=NO_DEFAULT, expected_type=None, get_all=True,
-        casesense=True, is_user_input=False, traverse_string=False):
+        casesense=True, is_user_input=NO_DEFAULT, traverse_string=False):
     """
     Safely traverse nested `dict`s and `Iterable`s
 
@@ -77,6 +78,9 @@ def traverse_obj(
                             If no `default` is given and the last path branches, a `list` of results
                             is always returned. If a path ends on a `dict` that result will always be a `dict`.
     """
+    if is_user_input is not NO_DEFAULT:
+        deprecation_warning('The is_user_input parameter is deprecated and no longer works')
+
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
 
     if isinstance(expected_type, type):
