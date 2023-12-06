@@ -8,10 +8,10 @@ from ..utils import (
     js_to_json,
     parse_iso8601,
     parse_qs,
-    traverse_obj,
     url_or_none,
     urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
 class LSMBaseIE(InfoExtractor):
@@ -137,9 +137,8 @@ class LSMLREmbedIE(InfoExtractor):
             title = item.get('title')
             if id and id.startswith('v') and not title:
                 title = traverse_obj(
-                    media_json,
-                    ('audio', lambda _, v: v['id'][1:] == id[1:], 'title', {lambda x: x and f'{x} - Video Version'}),
-                    get_all=False)
+                    media_json, ('audio', lambda _, v: v['id'][1:] == id[1:], 'title',
+                                 {lambda x: x and f'{x} - Video Version'}), get_all=False)
 
             entries.append({
                 'formats': formats,
