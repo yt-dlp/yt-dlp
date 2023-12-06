@@ -78,23 +78,23 @@ class EplusIbIE(InfoExtractor):
     _TEST_EVENT_URL = 'https://live.eplus.jp/2053935'
 
     def _perform_login(self, id, password):
-        webpage, urlh = self._download_webpage_handle(
+        urlh = self._request_webpage(
             self._TEST_EVENT_URL, None, note='Getting auth status', errnote='Unable to get auth status')
         if urlh.url.startswith(self._TEST_EVENT_URL):
             # already logged in
             return
 
-        cltft_token = self._hidden_inputs(webpage).get('Token.Default')
+        cltft_token = urlh.headers.get('X-CLTFT-Token')
         if not cltft_token:
             raise ExtractorError('Unable to get X-CLTFT-Token', expected=False)
-        self._set_cookie('live.eplus.jp', 'X-CLTFT-Token', f'Token.Default={cltft_token}')
+        self._set_cookie('live.eplus.jp', 'X-CLTFT-Token', cltft_token)
 
         login_json = self._download_json(
             'https://live.eplus.jp/member/api/v1/FTAuth/idpw', None,
             note='Sending pre-login info', errnote='Unable to send pre-login info', headers={
                 'Content-Type': 'application/json; charset=UTF-8',
                 'Referer': urlh.url,
-                'X-Cltft-Token': f'Token.Default={cltft_token}',
+                'X-Cltft-Token': cltft_token,
                 'Accept': '*/*',
             }, data=json.dumps({
                 'loginId': id,
