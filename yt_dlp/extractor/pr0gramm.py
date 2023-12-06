@@ -6,6 +6,8 @@ from .common import InfoExtractor
 from ..compat import functools
 from ..utils import (
     ExtractorError,
+    float_or_none,
+    int_or_none,
     make_archive_id,
     mimetype2ext,
     urljoin,
@@ -141,25 +143,24 @@ class Pr0grammIE(InfoExtractor):
             if confidences:
                 tags = [tag for _, tag in sorted(zip(confidences, tags), reverse=True)]
 
-        if video_info.get('variants'):
-            format_traversal = ('variants', ..., {
-                'format_id': ('name', {str}),
-                'url': ('path', {self._create_source_url}),
-                'ext': ('mimeType', {mimetype2ext}),
-                'vcodec': ('codec', {str}),
-                'width': ('width', {int}),
-                'height': ('height', {int}),
-                'bitrate': ('bitRate', {float}),
-                'filesize': ('fileSize', {int}),
-            })
-        else:
-            format_traversal = ((None,), {
+        formats = traverse_obj(video_info, ('variants', ..., {
+            'format_id': ('name', {str}),
+            'url': ('path', {self._create_source_url}),
+            'ext': ('mimeType', {mimetype2ext}),
+            'vcodec': ('codec', {str}),
+            'width': ('width', {int_or_none}),
+            'height': ('height', {int_or_none}),
+            'bitrate': ('bitRate', {float_or_none}),
+            'filesize': ('fileSize', {int_or_none}),
+        })) if video_info.get('variants') else [{
+            'ext': 'mp4',
+            'format_id': 'source',
+            **traverse_obj(video_info, {
                 'url': ('image', {self._create_source_url}),
-                'ext': {lambda _: 'mp4'},
-                'format_id': {lambda _: 'source'},
-                'width': ('width', {int}),
-                'height': ('height', {int}),
-            })
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+            }),
+        }]
 
         subtitles = {}
         for subtitle in traverse_obj(video_info, ('subtitles', lambda _, v: v['language'])):
@@ -172,11 +173,11 @@ class Pr0grammIE(InfoExtractor):
             'id': video_id,
             'title': f'pr0gramm-{video_id} by {video_info.get("user")}',
             'tags': tags,
+            'formats': formats,
             'subtitles': subtitles,
             'age_limit': 18 if traverse_obj(video_info, ('flags', {0b110.__and__})) else 0,
             '_old_archive_ids': [make_archive_id('Pr0grammStatic', video_id)],
             **traverse_obj(video_info, {
-                'formats': format_traversal,
                 'uploader': ('user', {str}),
                 'uploader_id': ('userId', {int}),
                 'like_count': ('up', {int}),
