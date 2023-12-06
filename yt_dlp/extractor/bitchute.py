@@ -19,7 +19,7 @@ from ..utils import (
     traverse_obj,
     unified_strdate,
     urlencode_postdata,
-    urljoin
+    urljoin,
 )
 
 
@@ -161,11 +161,11 @@ class BitChuteIE(InfoExtractor):
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
             'uploader': clean_html(uploader_html),
-            'upload_date': unified_strdate(self._search_regex(
-                r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
             'uploader_url': self._make_url(uploader_html),
             'channel': clean_html(channel_html),
             'channel_url': self._make_url(channel_html),
+            'upload_date': unified_strdate(self._search_regex(
+                r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
             'formats': formats,
         }
 
