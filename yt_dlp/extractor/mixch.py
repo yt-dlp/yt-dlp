@@ -68,6 +68,21 @@ class MixchArchiveIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
+        webpage = self._download_json(
+            f'https://mixch.tv/api-web/archive/{video_id}', video_id)
+        start = traverse_obj(webpage, ("archive", 'start'))
+        end = traverse_obj(webpage, ("archive", 'end'))
+
+        return {
+            'id': video_id,
+            'title': traverse_obj(webpage, ("archive", 'title')),
+            'formats': self._extract_m3u8_formats(
+                traverse_obj(webpage, ("archive", 'archiveURL')), video_id),
+            'live_status': 'not_live',
+            'thumbnail': traverse_obj(webpage, ("archive", 'thumbnailURL')),
+        }
+
+
         html5_videos = self._parse_html5_media_entries(
             url, webpage.replace('video-js', 'video'), video_id, 'hls')
         if not html5_videos:

@@ -111,6 +111,17 @@ class RequestDirector:
 
             self._print_verbose(f'Sending request via "{handler.RH_NAME}"')
             try:
+                if True:
+                    print(request.url, request.headers)
+                    if handler.cookiejar._cookies:
+                        for domain in handler.cookiejar._cookies:
+                            print('\t', domain)
+                            paths = handler.cookiejar._cookies[domain]
+                            for path in paths:
+                                print('\t\t', path)
+                                cookies = paths[path]
+                                for cookie in cookies:
+                                    print('\t\t\t', cookie, cookies[cookie].value)
                 response = handler.send(request)
             except RequestError:
                 raise
