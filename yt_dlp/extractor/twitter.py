@@ -1131,6 +1131,30 @@ class TwitterIE(TwitterBaseIE):
         'params': {'extractor_args': {'twitter': {'api': ['syndication']}}},
         'expected_warnings': ['Not all metadata'],
     }, {
+        # "stale tweet" with typename "TweetWithVisibilityResults"
+        'url': 'https://twitter.com/RobertKennedyJr/status/1724884212803834154',
+        'md5': '62b1e11cdc2cdd0e527f83adb081f536',
+        'info_dict': {
+            'id': '1724883339285544960',
+            'ext': 'mp4',
+            'title': 'md5:cc56716f9ed0b368de2ba54c478e493c',
+            'description': 'md5:9dc14f5b0f1311fc7caf591ae253a164',
+            'display_id': '1724884212803834154',
+            'uploader': 'Robert F. Kennedy Jr',
+            'uploader_id': 'RobertKennedyJr',
+            'uploader_url': 'https://twitter.com/RobertKennedyJr',
+            'upload_date': '20231115',
+            'timestamp': 1700079417.0,
+            'duration': 341.048,
+            'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
+            'tags': ['Kennedy24'],
+            'repost_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+            '_old_archive_ids': ['twitter 1724884212803834154'],
+        },
+    }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
         'only_matching': True,
