@@ -70,19 +70,30 @@ class ADNIE(ADNBaseIE):
             'thumbnail': str,
             'season': 'Season 1',
         },
-        'skip': 'Only available in French end German speaking Europe',
+        'skip': 'Only available in French and German speaking Europe',
     }, {
         'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
         'only_matching': True,
     }, {
-        'url': 'https://animationdigitalnetwork.de/video/tokyo-mew-mew-new/19818-folge-1',
+        'url': 'https://animationdigitalnetwork.de/video/the-eminence-in-shadow/23550-folge-1',
+        'md5': '5c5651bf5791fa6fcd7906012b9d94e8',
         'info_dict': {
-            'id': '19818',
+            'id': '23550',
             'ext': 'mp4',
             'episode_number': 1,
-            'duration': 1429,
+            'duration': 1417,
+            'release_date': '20231004',
+            'series': 'The Eminence in Shadow',
+            'season_number': 2,
+            'episode': str,
+            'title': str,
+            'thumbnail': str,
+            'season': 'Season 2',
+            'comment_count': int,
+            'average_rating': float,
+            'description': str,
         },
-        # 'skip': 'Only available in French end German speaking Europe',
+        # 'skip': 'Only available in French and German speaking Europe',
     }]
 
     def _get_subtitles(self, sub_url, video_id):
