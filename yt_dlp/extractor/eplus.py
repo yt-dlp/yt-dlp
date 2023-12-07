@@ -75,18 +75,10 @@ class EplusIbIE(InfoExtractor):
     }]
 
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
-    _TEST_EVENT_URL = 'https://live.eplus.jp/2053935'
 
-    def _perform_login(self, id, password):
-        if self._get_cookies('https://live.eplus.jp/').get('ci_session'):
-            # already logged in
-            return
-
-        urlh = self._request_webpage(
-            self._TEST_EVENT_URL, None, note='Getting auth info', errnote='Unable to get auth info')
-
+    def _login(self, username, password, urlh):
         if not self._get_cookies('https://live.eplus.jp/').get('ci_session'):
-            raise ExtractorError('Unable to get ci_session', expected=False)
+            raise ExtractorError('Unable to get ci_session cookie')
 
         cltft_token = urlh.headers.get('X-CLTFT-Token')
         if not cltft_token:
@@ -101,7 +93,7 @@ class EplusIbIE(InfoExtractor):
                 'X-Cltft-Token': cltft_token,
                 'Accept': '*/*',
             }, data=json.dumps({
-                'loginId': id,
+                'loginId': username,
                 'loginPassword': password,
             }).encode())
         if not login_json.get('isSuccess'):
@@ -110,7 +102,7 @@ class EplusIbIE(InfoExtractor):
         self._request_webpage(
             urlh.url, None, note='Logging in', errnote='Unable to log in',
             data=urlencode_postdata({
-                'loginId': id,
+                'loginId': username,
                 'loginPassword': password,
                 'Token.Default': cltft_token,
                 'op': 'nextPage',
@@ -121,7 +113,12 @@ class EplusIbIE(InfoExtractor):
         webpage, urlh = self._download_webpage_handle(
             url, video_id, headers={'User-Agent': self._USER_AGENT})
         if urlh.url.startswith('https://live.eplus.jp/member/auth'):
-            self.raise_login_required()
+            username, password = self._get_login_info()
+            if not username:
+                self.raise_login_required()
+            self._login(username, password, urlh)
+            webpage = self._download_webpage(
+                url, video_id, headers={'User-Agent': self._USER_AGENT})
 
         data_json = self._search_json(r'<script>\s*var app\s*=', webpage, 'data json', video_id)
 
