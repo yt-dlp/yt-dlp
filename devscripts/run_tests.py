@@ -1,4 +1,5 @@
 import argparse
+import functools
 import os
 import re
 import subprocess
@@ -7,6 +8,7 @@ from pathlib import Path
 
 
 IE_TEST_PATTERN = re.compile(r'IE(_all|_\d+)?$')
+fix_test_name = functools.partial(IE_TEST_PATTERN.sub, r'\1')
 
 
 def parse_args():
@@ -30,8 +32,7 @@ def run_tests(*tests, pattern=None):
             arguments += ['-m', 'download']
             unittest_supported = False
         else:
-            test = IE_TEST_PATTERN.sub(r'\1', test)
-            arguments.append(f'test/test_download.py::TestDownload::test_{test}')
+            arguments.append(f'test/test_download.py::TestDownload::test_{fix_test_name(test)}')
 
     if pattern:
         arguments += ['-k', pattern]
@@ -50,7 +51,7 @@ def run_tests(*tests, pattern=None):
         print('"pytest" needs to be installed to run the specified tests', file=sys.stderr)
         return
 
-    arguments = [f'test.test_download.TestDownload.test_{IE_TEST_PATTERN.sub(r"\1", test)}' for test in tests]
+    arguments = [f'test.test_download.TestDownload.test_{fix_test_name(test)}' for test in tests]
     if pattern:
         arguments += ['-k', pattern]
 
