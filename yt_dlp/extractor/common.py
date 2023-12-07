@@ -907,7 +907,6 @@ class InfoExtractor:
             assert not fatal
             return False
         content = self._webpage_read_content(urlh, url_or_request, video_id, note, errnote, fatal, encoding=encoding)
-        if False: print(url_or_request, 'content', content)
         return (content, urlh)
 
     @staticmethod
