@@ -78,11 +78,15 @@ class EplusIbIE(InfoExtractor):
     _TEST_EVENT_URL = 'https://live.eplus.jp/2053935'
 
     def _perform_login(self, id, password):
-        urlh = self._request_webpage(
-            self._TEST_EVENT_URL, None, note='Getting auth status', errnote='Unable to get auth status')
-        if urlh.url.startswith(self._TEST_EVENT_URL):
+        if next((c for c in self.cookiejar if c.name == 'ci_session'), None):
             # already logged in
             return
+
+        urlh = self._request_webpage(
+            self._TEST_EVENT_URL, None, note='Getting auth info', errnote='Unable to get auth info')
+
+        if not next((c for c in self.cookiejar if c.name == 'ci_session'), None):
+            raise ExtractorError('Unable to get ci_session', expected=False)
 
         cltft_token = urlh.headers.get('X-CLTFT-Token')
         if not cltft_token:
