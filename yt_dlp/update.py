@@ -127,7 +127,7 @@ def is_non_updateable():
 
 
 def _get_binary_name():
-    return format_field(_FILE_SUFFIXES, detect_variant(), template='yt-dlp%s', ignore=None, default=None)
+    return format_field(_FILE_SUFFIXES, detect_variant(), template='yt%s', ignore=None, default=None)
 
 
 def _get_system_deprecation():
@@ -229,7 +229,7 @@ class Updater:
         if '/' in self.requested_channel:
             # requested_channel is actually a repository
             self.requested_repo = self.requested_channel
-            if not self.requested_repo.startswith('yt/') and self.requested_repo != self._origin:
+            if not self.requested_repo.startswith('yt-dlp/') and self.requested_repo != self._origin:
                 self.ydl.report_warning(
                     f'You are switching to an {self.ydl._format_err("unofficial", "red")} executable '
                     f'from {self.ydl._format_err(self.requested_repo, self.ydl.Styles.EMPHASIS)}. '
