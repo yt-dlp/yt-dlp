@@ -1099,18 +1099,22 @@ class TwitterIE(TwitterBaseIE):
         'params': {'extractor_args': {'twitter': {'api': ['legacy']}}},
     }, {
         # Broadcast embedded in tweet
-        'url': 'https://twitter.com/JessicaDobsonWX/status/1693057346933600402',
+        'url': 'https://twitter.com/JessicaDobsonWX/status/1731121063248175384',
         'info_dict': {
-            'id': '1yNGaNLjEblJj',
+            'id': '1rmxPMjLzAXKN',
             'ext': 'mp4',
-            'title': 'Jessica Dobson - WAVE Weather Now - Saturday 8/19/23 Update',
+            'title': 'WAVE Weather Now - Saturday 12/2/23 Update',
             'uploader': 'Jessica Dobson',
-            'uploader_id': '1DZEoDwDovRQa',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'uploader_id': 'JessicaDobsonWX',
+            'uploader_url': 'https://twitter.com/JessicaDobsonWX',
+            'timestamp': 1701566398,
+            'upload_date': '20231203',
+            'live_status': 'was_live',
+            'thumbnail': r're:https://[^/]+pscp\.tv/.+\.jpg',
+            'concurrent_view_count': int,
             'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
-        'skip': 'Broadcast no longer exists',
     }, {
         # Animated gif and quote tweet video, with syndication API
         'url': 'https://twitter.com/BAKKOOONN/status/1696256659889565950',
