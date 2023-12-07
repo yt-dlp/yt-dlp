@@ -36,7 +36,7 @@ from .version import (
 )
 
 UPDATE_SOURCES = {
-    'stable': 'yt-dlp/yt-dlp',
+    'stable': 'Rajeshwaran2001/yt-dlp',
     'nightly': 'yt-dlp/yt-dlp-nightly-builds',
     'master': 'yt-dlp/yt-dlp-master-builds',
 }

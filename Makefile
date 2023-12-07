@@ -86,9 +86,9 @@ yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py __main__.py
 	rm -rf zip
 	echo '#!$(PYTHON)' > yt-dlp
-	cat yt-dlp.zip >> yt-dlp
+	cat yt-dlp.zip >> yt
 	rm yt-dlp.zip
-	chmod a+x yt-dlp
+	chmod a+x yt
 
 README.md: yt_dlp/*.py yt_dlp/*/*.py devscripts/make_readme.py
 	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
@@ -132,7 +132,7 @@ yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscrip
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
 yt-dlp.tar.gz: all
-	@tar -czf yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
+	@tar -czf yt.tar.gz --transform "s|^|yt/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
 		--exclude '*.pyc' \

@@ -852,7 +852,7 @@ def create_parser():
     subtitles = optparse.OptionGroup(parser, 'Subtitle Options')
     subtitles.add_option(
         '--write-subs', '--write-srt',
-        action='store_true', dest='writesubtitles', default=False,
+        action='store_true', dest='writesubtitles', default=True,
         help='Write subtitle file')
     subtitles.add_option(
         '--no-write-subs', '--no-write-srt',
@@ -1388,7 +1388,7 @@ def create_parser():
         help='Do not write video description (default)')
     filesystem.add_option(
         '--write-info-json',
-        action='store_true', dest='writeinfojson', default=None,
+        action='store_true', dest='writeinfojson', default=True,
         help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',
@@ -1475,7 +1475,7 @@ def create_parser():
     thumbnail = optparse.OptionGroup(parser, 'Thumbnail Options')
     thumbnail.add_option(
         '--write-thumbnail',
-        action='callback', dest='writethumbnail', default=False,
+        action='callback', dest='writethumbnail', default=True,
         # Should override --no-write-thumbnail, but not --write-all-thumbnail
         callback=lambda option, _, __, parser: setattr(
             parser.values, option.dest, getattr(parser.values, option.dest) or True),
@@ -1581,7 +1581,7 @@ def create_parser():
         help='Do not overwrite post-processed files')
     postproc.add_option(
         '--embed-subs',
-        action='store_true', dest='embedsubtitles', default=False,
+        action='store_true', dest='embedsubtitles', default=True,
         help='Embed subtitles in the video (only for mp4, webm and mkv videos)')
     postproc.add_option(
         '--no-embed-subs',
@@ -1607,7 +1607,7 @@ def create_parser():
         help='Do not add metadata to file (default) (Alias: --no-add-metadata)')
     postproc.add_option(
         '--embed-chapters', '--add-chapters',
-        action='store_true', dest='addchapters', default=None,
+        action='store_true', dest='addchapters', default=True,
         help='Add chapter markers to the video file (Alias: --add-chapters)')
     postproc.add_option(
         '--no-embed-chapters', '--no-add-chapters',

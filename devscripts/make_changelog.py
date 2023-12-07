@@ -483,10 +483,10 @@ if __name__ == '__main__':
         '--override-path', type=Path, default=LOCATION_PATH / 'changelog_override.json',
         help='path to the changelog_override.json file')
     parser.add_argument(
-        '--default-author', default='pukkandan',
+        '--default-author', default='Rajeshwaran',
         help='the author to use without a author indicator (default: %(default)s)')
     parser.add_argument(
-        '--repo', default='yt-dlp/yt-dlp',
+        '--repo', default='Rajeshwaran2001/yt-dlp',
         help='the github repository to use for the operations (default: %(default)s)')
     parser.add_argument(
         '--collapsible', action='store_true',

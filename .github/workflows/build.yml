@@ -13,7 +13,7 @@ on:
         default: true
         type: boolean
       linux_arm:
-        default: true
+        default: false
         type: boolean
       macos:
         default: true
@@ -57,7 +57,7 @@ on:
         type: boolean
       linux_arm:
         description: yt-dlp_linux_aarch64, yt-dlp_linux_armv7l
-        default: true
+        default: false
         type: boolean
       macos:
         description: yt-dlp_macos, yt-dlp_macos.zip
@@ -145,10 +145,10 @@ jobs:
           unset LD_LIBRARY_PATH  # Harmful; set by setup-python
           conda activate build
           python pyinst.py --onedir
-          (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
+          (cd ./dist/yt_linux && zip -r ../yt_linux.zip .)
           python pyinst.py
-          mv ./dist/yt-dlp_linux ./yt-dlp_linux
-          mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
+          mv ./dist/yt_linux ./yt_linux
+          mv ./dist/yt_linux.zip ./yt_linux.zip
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
@@ -167,10 +167,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: |
-            yt-dlp
-            yt-dlp.tar.gz
-            yt-dlp_linux
-            yt-dlp_linux.zip
+            yt
+            yt.tar.gz
+            yt_linux
+            yt_linux.zip
 
   linux_arm:
     needs: process
@@ -216,10 +216,10 @@ jobs:
             if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
               arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
               chmod +x ./dist/yt-dlp_linux_${arch}
-              cp ./dist/yt-dlp_linux_${arch} ./dist/yt-dlp_linux_${arch}_downgraded
-              version="$(./dist/yt-dlp_linux_${arch} --version)"
-              ./dist/yt-dlp_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-              downgraded_version="$(./dist/yt-dlp_linux_${arch}_downgraded --version)"
+              cp ./dist/yt-dlp_linux_${arch} ./dist/yt_linux_${arch}_downgraded
+              version="$(./dist/yt_linux_${arch} --version)"
+              ./dist/yt_linux_${arch}_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
+              downgraded_version="$(./dist/yt_linux_${arch}_downgraded --version)"
               [[ "$version" != "$downgraded_version" ]]
             fi
 
@@ -227,7 +227,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: | # run-on-arch-action designates armv7l as armv7
-            repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+            repo/dist/yt_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
 
   macos:
     needs: process
@@ -251,25 +251,25 @@ jobs:
       - name: Build
         run: |
           python3 pyinst.py --target-architecture universal2 --onedir
-          (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
+          (cd ./dist/yt_macos && zip -r ../yt_macos.zip .)
           python3 pyinst.py --target-architecture universal2
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
           chmod +x ./dist/yt-dlp_macos
-          cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
-          version="$(./dist/yt-dlp_macos --version)"
-          ./dist/yt-dlp_macos_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
-          downgraded_version="$(./dist/yt-dlp_macos_downgraded --version)"
+          cp ./dist/yt-dlp_macos ./dist/yt_macos
+          version="$(./dist/yt_macos --version)"
+          ./dist/yt-dlp -v --update-to yt-dlp/yt-dlp@2023.03.04
+          downgraded_version="$(./dist/yt_macos --version)"
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           path: |
-            dist/yt-dlp_macos
-            dist/yt-dlp_macos.zip
+            dist/yt_macos
+            dist/yt_macos.zip
 
   macos_legacy:
     needs: process
@@ -303,12 +303,12 @@ jobs:
       - name: Build
         run: |
           python3 pyinst.py
-          mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
+          mv dist/yt_macos dist/yt_macos_legacy
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
         run: |
-          chmod +x ./dist/yt-dlp_macos_legacy
+          chmod +x ./dist/yt_macos_legacy
           cp ./dist/yt-dlp_macos_legacy ./dist/yt-dlp_macos_legacy_downgraded
           version="$(./dist/yt-dlp_macos_legacy --version)"
           ./dist/yt-dlp_macos_legacy_downgraded -v --update-to yt-dlp/yt-dlp@2023.03.04
@@ -319,7 +319,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: |
-            dist/yt-dlp_macos_legacy
+            dist/yt_macos_legacy
 
   windows:
     needs: process
@@ -343,10 +343,10 @@ jobs:
       - name: Build
         run: |
           python setup.py py2exe
-          Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
+          Move-Item ./dist/yt-dlp.exe ./dist/yt_min.exe
           python pyinst.py
           python pyinst.py --onedir
-          Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
+          Compress-Archive -Path ./dist/yt/* -DestinationPath ./dist/yt_win.zip
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
@@ -365,9 +365,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: |
-            dist/yt-dlp.exe
-            dist/yt-dlp_min.exe
-            dist/yt-dlp_win.zip
+            dist/yt.exe
+            dist/yt_min.exe
+            dist/yt_win.zip
+
 
   windows32:
     needs: process
@@ -397,9 +398,9 @@ jobs:
         if: vars.UPDATE_TO_VERIFICATION
         run: |
           foreach ($name in @("yt-dlp_x86")) {
-            Copy-Item "./dist/${name}.exe" "./dist/${name}_downgraded.exe"
-            $version = & "./dist/${name}.exe" --version
-            & "./dist/${name}_downgraded.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
+            Copy-Item "./dist/${name}.exe" "./dist/yt_x86.exe"
+            $version = & "./dist/yt-dlp_x86.exe" --version
+            & "./dist/yt_x86.exe" -v --update-to yt-dlp/yt-dlp@2023.03.04
             $downgraded_version = & "./dist/${name}_downgraded.exe" --version
             if ($version -eq $downgraded_version) {
               exit 1
@@ -410,7 +411,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: |
-            dist/yt-dlp_x86.exe
+            dist/yt_x86.exe
 
   meta_files:
     if: inputs.meta_files && always() && !cancelled()
@@ -439,9 +440,9 @@ jobs:
           lock 2022.08.18.36 .+ Python 3\.6
           lock 2023.11.16 (?!win_x86_exe).+ Python 3\.7
           lock 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
-          lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
-          lockV2 yt-dlp/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
-          lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
+          lockV2 Rajeshwaran2001/yt-dlp 2022.08.18.36 .+ Python 3\.6
+          lockV2 Rajeshwaran2001/yt-dlp 2023.11.16 (?!win_x86_exe).+ Python 3\.7
+          lockV2 Rajeshwaran2001/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 (?!win_x86_exe).+ Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 (?!win_x86_exe).+ Python 3\.7
