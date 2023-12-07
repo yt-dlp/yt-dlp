@@ -4,6 +4,11 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.12.07.10
+
+#### Core changes
+- [Update hotstar.py](https://github.com/Rajeshwaran2001/yt-dlp/commit/1254c88eb1f2ba27d159652be0f5961de8258435) by [Rajeshwaran](https://github.com/Rajeshwaran)
+
 ### 2023.12.07.7
 
 #### Core changes
