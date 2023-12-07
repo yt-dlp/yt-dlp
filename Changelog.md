@@ -4,6 +4,59 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.12.07.1
+
+#### Core changes
+- [Let `read_stdin` obey `--quiet`](https://github.com/Rajeshwaran2001/yt-dlp/commit/a174c453ee1e853c584ceadeac17eef2bd433dc5) by [Rajeshwaran](https://github.com/Rajeshwaran)
+- [Parse `release_year` from `release_date`](https://github.com/Rajeshwaran2001/yt-dlp/commit/1732eccc0a40256e076bf0435a29f0f1d8419280) ([#8524](https://github.com/Rajeshwaran2001/yt-dlp/issues/8524)) by [seproDev](https://github.com/seproDev)
+- [Remove Python 3.7 support](https://github.com/Rajeshwaran2001/yt-dlp/commit/f4b95acafcd69a50040730dfdf732e797278fdcc) ([#8361](https://github.com/Rajeshwaran2001/yt-dlp/issues/8361)) by [bashonly](https://github.com/bashonly)
+- [Support `NO_COLOR` environment variable](https://github.com/Rajeshwaran2001/yt-dlp/commit/a0b19d319a6ce8b7059318fa17a34b144fde1785) ([#8385](https://github.com/Rajeshwaran2001/yt-dlp/issues/8385)) by [Grub4K](https://github.com/Grub4K), [prettykool](https://github.com/prettykool)
+- [initial commit](https://github.com/Rajeshwaran2001/yt-dlp/commit/288c7664f0951dc708c084dbc2ef6e90411847bf) by [Rajeshwaran](https://github.com/Rajeshwaran)
+- **outtmpl**: [Support multiplication](https://github.com/Rajeshwaran2001/yt-dlp/commit/993edd3f6e17e966c763bc86dc34125445cec6b6) by [Rajeshwaran](https://github.com/Rajeshwaran)
+- **utils**: `traverse_obj`: [Move `is_user_input` into output template](https://github.com/Rajeshwaran2001/yt-dlp/commit/0b6f829b1dfda15d3c1d7d1fbe4ea6102c26dd24) ([#8673](https://github.com/Rajeshwaran2001/yt-dlp/issues/8673)) by [Grub4K](https://github.com/Grub4K)
+
+#### Extractor changes
+- [Extract from `media` elements in SMIL manifests](https://github.com/Rajeshwaran2001/yt-dlp/commit/ddb2d7588bea48bae965dbfabe6df6550c9d3d43) ([#8504](https://github.com/Rajeshwaran2001/yt-dlp/issues/8504)) by [seproDev](https://github.com/seproDev)
+- **abematv**: [Fix season metadata](https://github.com/Rajeshwaran2001/yt-dlp/commit/cc07f5cc85d9e2a6cd0bedb9d961665eea0d6047) ([#8607](https://github.com/Rajeshwaran2001/yt-dlp/issues/8607)) by [middlingphys](https://github.com/middlingphys)
+- **allstar**: [Add extractors](https://github.com/Rajeshwaran2001/yt-dlp/commit/3237f8ba29fe13bf95ff42b1e48b5b5109715feb) ([#8274](https://github.com/Rajeshwaran2001/yt-dlp/issues/8274)) by [S-Aarab](https://github.com/S-Aarab)
+- **altcensored**: [Add extractor](https://github.com/Rajeshwaran2001/yt-dlp/commit/3f90813f0617e0d21302398010de7496c9ae36aa) ([#8291](https://github.com/Rajeshwaran2001/yt-dlp/issues/8291)) by [drzraf](https://github.com/drzraf)
+- **bfmtv**: [Fix extractors](https://github.com/Rajeshwaran2001/yt-dlp/commit/4903f452b68efb62dadf22e81be8c7934fc743e7) ([#8651](https://github.com/Rajeshwaran2001/yt-dlp/issues/8651)) by [bashonly](https://github.com/bashonly)
+- **bilibili**: [Support courses and interactive videos](https://github.com/Rajeshwaran2001/yt-dlp/commit/9f09bdcfcb8e2b4b2decdc30d35d34b993bc7a94) ([#8343](https://github.com/Rajeshwaran2001/yt-dlp/issues/8343)) by [c-basalt](https://github.com/c-basalt)
+- **box**: [Fix formats extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/5a230233d6fce06f4abd1fce0dc92b948e6f780b) ([#8649](https://github.com/Rajeshwaran2001/yt-dlp/issues/8649)) by [bashonly](https://github.com/bashonly)
+- **drtv**: [Set default ext for m3u8 formats](https://github.com/Rajeshwaran2001/yt-dlp/commit/f96ab86cd837b1b5823baa87d144e15322ee9298) ([#8590](https://github.com/Rajeshwaran2001/yt-dlp/issues/8590)) by [seproDev](https://github.com/seproDev)
+- **duoplay**: [Add extractor](https://github.com/Rajeshwaran2001/yt-dlp/commit/66a0127d45033c698bdbedf162cddc55d9e7b906) ([#8542](https://github.com/Rajeshwaran2001/yt-dlp/issues/8542)) by [glensc](https://github.com/glensc)
+- **facebook**: [Improve subtitles extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/9cafb9ff17e14475a35c9a58b5bb010c86c9db4b) ([#8296](https://github.com/Rajeshwaran2001/yt-dlp/issues/8296)) by [kclauhk](https://github.com/kclauhk)
+- **floatplane**: [Add extractors](https://github.com/Rajeshwaran2001/yt-dlp/commit/628fa244bbce2ad39775a5959e99588f30cac152) ([#8639](https://github.com/Rajeshwaran2001/yt-dlp/issues/8639)) by [seproDev](https://github.com/seproDev)
+- **francetv**: [Improve metadata extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/71f28097fec1c9e029f74b68a4eadc8915399840) ([#8409](https://github.com/Rajeshwaran2001/yt-dlp/issues/8409)) by [Fymyte](https://github.com/Fymyte)
+- **mediastream**: [Fix authenticated format extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/b03c89309eb141be1a1eceeeb7475dd3b7529ad9) ([#8657](https://github.com/Rajeshwaran2001/yt-dlp/issues/8657)) by [NickCis](https://github.com/NickCis)
+- **nebula**: [Overhaul extractors](https://github.com/Rajeshwaran2001/yt-dlp/commit/45d82be65f71bb05506bd55376c6fdb36bc54142) ([#8566](https://github.com/Rajeshwaran2001/yt-dlp/issues/8566)) by [elyse0](https://github.com/elyse0), [pukkandan](https://github.com/pukkandan), [seproDev](https://github.com/seproDev)
+- **nintendo**: [Fix Nintendo Direct extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/1d24da6c899ef280d8b0a48a5e280ecd5d39cdf4) ([#8609](https://github.com/Rajeshwaran2001/yt-dlp/issues/8609)) by [Grub4K](https://github.com/Grub4K)
+- **ondemandkorea**: [Fix upgraded format extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/04a5e06350e3ef7c03f94f2f3f90dd96c6411152) ([#8677](https://github.com/Rajeshwaran2001/yt-dlp/issues/8677)) by [seproDev](https://github.com/seproDev)
+- **pr0gramm**: [Support variant formats and subtitles](https://github.com/Rajeshwaran2001/yt-dlp/commit/f98a3305eb124a0c375d03209d5c5a64fe1766c8) ([#8674](https://github.com/Rajeshwaran2001/yt-dlp/issues/8674)) by [Grub4K](https://github.com/Grub4K)
+- **theguardian**: [Add extractors](https://github.com/Rajeshwaran2001/yt-dlp/commit/1fa3f24d4b5d22176b11d78420f1f4b64a5af0a8) ([#8535](https://github.com/Rajeshwaran2001/yt-dlp/issues/8535)) by [SirElderling](https://github.com/SirElderling)
+- **twitcasting**: [Detect livestreams via API and `show` page](https://github.com/Rajeshwaran2001/yt-dlp/commit/585d0ed9abcfcb957f2b2684b8ad43c3af160383) ([#8601](https://github.com/Rajeshwaran2001/yt-dlp/issues/8601)) by [bashonly](https://github.com/bashonly), [JC-Chung](https://github.com/JC-Chung)
+- **twitcastinguser**: [Fix extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/ff2fde1b8f922fd34bae6172602008cd67c07c93) ([#8650](https://github.com/Rajeshwaran2001/yt-dlp/issues/8650)) by [bashonly](https://github.com/bashonly)
+- **twitter**: broadcast: [Extract `concurrent_view_count`](https://github.com/Rajeshwaran2001/yt-dlp/commit/6fe82491ed622b948c512cf4aab46ac3a234ae0a) ([#8600](https://github.com/Rajeshwaran2001/yt-dlp/issues/8600)) by [sonmezberkay](https://github.com/sonmezberkay)
+- **vidly**: [Add extractor](https://github.com/Rajeshwaran2001/yt-dlp/commit/34df1c1f60fa652c0a6a5c712b06c10e45daf6b7) ([#8612](https://github.com/Rajeshwaran2001/yt-dlp/issues/8612)) by [seproDev](https://github.com/seproDev)
+- **vocaroo**: [Do not use deprecated `getheader`](https://github.com/Rajeshwaran2001/yt-dlp/commit/f223b1b0789f65e06619dcc9fc9e74f50d259379) ([#8606](https://github.com/Rajeshwaran2001/yt-dlp/issues/8606)) by [qbnu](https://github.com/qbnu)
+- **vvvvid**: [Set user-agent to fix extraction](https://github.com/Rajeshwaran2001/yt-dlp/commit/1725e943b0e8a8b585305660d4611e684374409c) ([#8615](https://github.com/Rajeshwaran2001/yt-dlp/issues/8615)) by [Kyraminol](https://github.com/Kyraminol)
+- **youtube**
+    - [Improve detection of faulty HLS formats](https://github.com/Rajeshwaran2001/yt-dlp/commit/bb5a54e6db2422bbd155d93a0e105b6616c09467) ([#8646](https://github.com/Rajeshwaran2001/yt-dlp/issues/8646)) by [bashonly](https://github.com/bashonly)
+    - [Return empty playlist when channel/tab has no videos](https://github.com/Rajeshwaran2001/yt-dlp/commit/044886c220620a7679109e92352890e18b6079e3) by [Rajeshwaran](https://github.com/Rajeshwaran)
+    - [Support cf.piped.video](https://github.com/Rajeshwaran2001/yt-dlp/commit/6a9c7a2b52655bacfa7ab2da24fd0d14a6fff495) ([#8514](https://github.com/Rajeshwaran2001/yt-dlp/issues/8514)) by [OIRNOIR](https://github.com/OIRNOIR)
+- **zingmp3**: [Add support for radio and podcasts](https://github.com/Rajeshwaran2001/yt-dlp/commit/64de1a4c25bada90374b88d7353754fe8fbfcc51) ([#7189](https://github.com/Rajeshwaran2001/yt-dlp/issues/7189)) by [hatienl0i261299](https://github.com/hatienl0i261299)
+
+#### Postprocessor changes
+- **ffmpegmetadata**: [Embed stream metadata in single format downloads](https://github.com/Rajeshwaran2001/yt-dlp/commit/deeb13eae82e60f82a2c0c5861f460399a997528) ([#8647](https://github.com/Rajeshwaran2001/yt-dlp/issues/8647)) by [bashonly](https://github.com/bashonly)
+- **webvtt**: [Allow spaces before newlines for CueBlock](https://github.com/Rajeshwaran2001/yt-dlp/commit/15f22b4880b6b3f71f350c64d70976ae65b9f1ca) ([#7681](https://github.com/Rajeshwaran2001/yt-dlp/issues/7681)) by [Rajeshwaran](https://github.com/Rajeshwaran)
+
+#### Networking changes
+- **Request Handler**: websockets: [Migrate websockets to networking framework](https://github.com/Rajeshwaran2001/yt-dlp/commit/ccfd70f4c24b579c72123ca76ab50164f8f122b7) ([#7720](https://github.com/Rajeshwaran2001/yt-dlp/issues/7720)) by [coletdjnz](https://github.com/coletdjnz)
+
+#### Misc. changes
+- **ci**: [Concurrency optimizations](https://github.com/Rajeshwaran2001/yt-dlp/commit/f124fa458826308afc86cf364c509f857686ecfd) ([#8614](https://github.com/Rajeshwaran2001/yt-dlp/issues/8614)) by [Grub4K](https://github.com/Grub4K)
+- **cleanup**: [Remove dead extractors](https://github.com/Rajeshwaran2001/yt-dlp/commit/9751a457cfdb18bf99d9ee0d10e4e6a594502bbf) ([#8604](https://github.com/Rajeshwaran2001/yt-dlp/issues/8604)) by [seproDev](https://github.com/seproDev)
+
 ### 2023.12.07
 
 #### Core changes
