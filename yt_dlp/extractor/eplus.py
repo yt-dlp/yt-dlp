@@ -110,10 +110,7 @@ class EplusIbIE(InfoExtractor):
                 'loginPassword': password,
                 'Token.Default': cltft_token,
                 'op': 'nextPage',
-            }), headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Referer': urlh.url,
-            })
+            }), headers={'Referer': urlh.url})
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
