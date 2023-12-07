@@ -1179,19 +1179,23 @@ class TwitterIE(TwitterBaseIE):
         ), default={}, get_all=False) if self.is_logged_in else traverse_obj(
             data, ('tweetResult', 'result', {dict}), default={})
 
-        if result.get('__typename') not in ('Tweet', 'TweetTombstone', 'TweetUnavailable', None):
-            self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
+        typename = result.get('__typename')
+        if typename not in ('Tweet', 'TweetWithVisibilityResults', 'TweetTombstone', 'TweetUnavailable', None):
+            self.report_warning(f'Unknown typename: {typename}', twid, only_once=True)
 
         if 'tombstone' in result:
             cause = remove_end(traverse_obj(result, ('tombstone', 'text', 'text', {str})), '. Learn more')
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
-        elif result.get('__typename') == 'TweetUnavailable':
+        elif typename == 'TweetUnavailable':
             reason = result.get('reason')
             if reason == 'NsfwLoggedOut':
                 self.raise_login_required('NSFW tweet requires authentication')
             elif reason == 'Protected':
                 self.raise_login_required('You are not authorized to view this protected tweet')
             raise ExtractorError(reason or 'Requested tweet is unavailable', expected=True)
+        # Result for "stale tweet" needs additional transformation
+        elif typename == 'TweetWithVisibilityResults':
+            result = traverse_obj(result, ('tweet', {dict})) or {}
 
         status = result.get('legacy', {})
         status.update(traverse_obj(result, {
