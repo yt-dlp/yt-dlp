@@ -261,6 +261,7 @@ class Updater:
 
         path = 'latest/download' if tag == 'latest' else f'download/{tag}'
         url = f'https://github.com/{self.requested_repo}/releases/{path}/{name}'
+        print(path, url)
         self.ydl.write_debug(f'Downloading {name} from {url}')
         return self.ydl.urlopen(url).read()
 
@@ -416,6 +417,7 @@ class Updater:
 
         if _output:
             update_label = _make_label(self.requested_repo, result_tag, result_version)
+            print(update_label)
             self.ydl.to_screen(
                 f'Current version: {current_label}\n{latest_or_requested}'
                 + (f'\nUpgradable to: {update_label}' if update_label != requested_label else ''))
