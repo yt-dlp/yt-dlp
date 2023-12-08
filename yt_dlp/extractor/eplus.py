@@ -82,7 +82,7 @@ class EplusIbIE(InfoExtractor):
 
         cltft_token = urlh.headers.get('X-CLTFT-Token')
         if not cltft_token:
-            raise ExtractorError('Unable to get X-CLTFT-Token', expected=False)
+            raise ExtractorError('Unable to get X-CLTFT-Token')
         self._set_cookie('live.eplus.jp', 'X-CLTFT-Token', cltft_token)
 
         login_json = self._download_json(
