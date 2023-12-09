@@ -239,30 +239,30 @@ jobs:
       # NB: Building universal2 does not work with python from actions/setup-python
       - name: Install Requirements
         run: |
-          brew install coreutils gnu-sed python@3.11
-          python3.11 -m pip install -U --user pip setuptools wheel delocate
+          brew install coreutils gnu-sed
+          python3 -m pip install -U --user pip setuptools wheel delocate
           # curl_cffi must be removed from reqs
           gsed -i -E '/^curl_cffi.*/d' requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
-          python3.11 -m pip install -U --user --no-binary :all: Pyinstaller==5.13.2 -r requirements.txt
+          python3 -m pip install -U --user --no-binary :all: Pyinstaller==5.13.2 -r requirements.txt
           mkdir curl_cffi_whls curl_cffi_universal2
-          python3.11 -m pip download --only-binary=:all: --platform macosx_11_0_arm64 curl_cffi --pre -d curl_cffi_whls
-          python3.11 -m pip download --only-binary=:all: --platform macosx_11_0_x86_64 curl_cffi --pre -d curl_cffi_whls
-          python3.11 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi* -w curl_cffi_universal2
-          python3.11 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi-* -w curl_cffi_universal2
+          python3 -m pip download --only-binary=:all: --platform macosx_11_0_arm64 curl_cffi --pre -d curl_cffi_whls
+          python3 -m pip download --only-binary=:all: --platform macosx_11_0_x86_64 curl_cffi --pre -d curl_cffi_whls
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/curl_cffi* -w curl_cffi_universal2
+          python3 -m delocate.cmd.delocate_fuse curl_cffi_whls/cffi-* -w curl_cffi_universal2
           cd curl_cffi_universal2
           for file in *cffi-*x86_64*; do mv -n -- "${file}" "${file/x86_64/universal2}"; done
-          python3.11 -m pip install -U --user curl_cffi-* cffi-*
+          python3 -m pip install -U --user curl_cffi-* cffi-*
 
       - name: Prepare
         run: |
-          python3.11 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
-          python3.11 devscripts/make_lazy_extractors.py
+          python3 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
+          python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python3.11 pyinst.py --target-architecture universal2 --onedir
+          python3 pyinst.py --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
-          python3.11 pyinst.py --target-architecture universal2
+          python3 pyinst.py --target-architecture universal2
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
