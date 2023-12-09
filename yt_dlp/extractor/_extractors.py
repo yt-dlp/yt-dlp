@@ -144,6 +144,7 @@ from .arte import (
     ArteTVCategoryIE,
 )
 from .arnes import ArnesIE
+from .asobistage import AsobiStageIE
 from .atresplayer import AtresPlayerIE
 from .atscaleconf import AtScaleConfEventIE
 from .atvat import ATVAtIE
