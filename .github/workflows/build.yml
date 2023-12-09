@@ -244,7 +244,7 @@ jobs:
           # curl_cffi must be removed from reqs
           gsed -i -E '/^curl_cffi.*/d' requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
-          python3.11 -m pip install -U --user --no-binary :all: Pyinstaller -r requirements.txt
+          python3.11 -m pip install -U --user --no-binary :all: Pyinstaller==5.13.2 -r requirements.txt
           mkdir curl_cffi_whls curl_cffi_universal2
           python3.11 -m pip download --only-binary=:all: --platform macosx_11_0_arm64 curl_cffi --pre -d curl_cffi_whls
           python3.11 -m pip download --only-binary=:all: --platform macosx_11_0_x86_64 curl_cffi --pre -d curl_cffi_whls
