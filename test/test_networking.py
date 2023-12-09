@@ -196,7 +196,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._headers()
         elif self.path.startswith('/308-to-headers'):
             self.send_response(308)
-            # get server port
+            # redirect to "localhost" for testing cookie redirection handling
             self.send_header('Location', f'http://localhost:{self.connection.getsockname()[1]}/headers')
             self.send_header('Content-Length', '0')
             self.end_headers()
@@ -443,7 +443,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests', 'CurlCFFI'], indirect=True)
     def test_request_cookie_header(self, handler):
         # We should accept a Cookie header being passed as in normal headers and handle it appropriately.
-        with handler(verbose=True) as rh:
+        with handler() as rh:
             # Specified Cookie header should be used
             res = validate_and_send(
                 rh, Request(
@@ -942,9 +942,9 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
             # but when not impersonating don't remove std_headers
             res = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', headers={'x-custom': 'test'})).read().decode().lower()
-            assert std_headers['user-agent'].lower() in res
-            assert std_headers['accept-language'].lower() in res
-            assert 'x-custom: test' in res
+            # std_headers should be present
+            for k, v in std_headers.items():
+                assert f'{k}: {v}'.lower() in res
 
     @pytest.mark.parametrize('raised,expected,match', [
         (lambda: curl_cffi.requests.errors.RequestsError(
