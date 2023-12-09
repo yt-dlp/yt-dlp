@@ -129,7 +129,7 @@ jobs:
           brotli-python
           secretstorage
           EOF
-          sed -E '/^(brotli|secretstorage).*/d' requirements.txt >> "$reqs"
+          sed -E '/^(brotli|secretstorage|curl_cffi).*/d' requirements.txt >> "$reqs"
           mamba create -n build --file "$reqs"
 
       - name: Prepare
@@ -144,9 +144,6 @@ jobs:
         run: |
           unset LD_LIBRARY_PATH  # Harmful; set by setup-python
           conda activate build
-          python -m pip install -U pip setuptools wheel pip-tools
-          python -m piptools compile  -o requirements-all.txt --extra curl_cffi setup.py
-          python -m pip install -U -r requirements-all.txt
           python pyinst.py --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
           python pyinst.py
@@ -306,9 +303,8 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip setuptools wheel pip-tools
-          python3 -m piptools compile -o requirements-all.txt --extra curl_cffi setup.py
-          python3 -m pip install -U --user Pyinstaller -r requirements-all.txt
+          python3 -m pip install -U --user pip setuptools wheel
+          python3 -m pip install -U --user Pyinstaller -r requirements.txt
 
       - name: Prepare
         run: |
@@ -347,9 +343,8 @@ jobs:
           python-version: "3.8"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-          python -m pip install -U pip setuptools wheel py2exe pip-tools
-          python -m piptools compile  -o requirements-all.txt --extra curl_cffi setup.py
-          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements-all.txt
+          python -m pip install -U pip setuptools wheel py2exe
+          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
 
       - name: Prepare
         run: |
