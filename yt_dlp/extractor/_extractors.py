@@ -858,6 +858,11 @@ from .japandiet import (
     SangiinIE,
 )
 from .jeuxvideo import JeuxVideoIE
+from .jiocinema import (
+    JioCinemaTVIE,
+    JioCinemaMovieIE,
+    JioCinemaTVSeasonIE
+)
 from .jiosaavn import (
     JioSaavnSongIE,
     JioSaavnAlbumIE,
