@@ -1179,6 +1179,7 @@ class YoutubeDL:
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
+            '*': float.__mul__,
         }
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int, slice or "{field, ...}"
@@ -1200,6 +1201,15 @@ class YoutubeDL:
                 (?:\|(?P<default>.*?))?
             )$''')
 
+        def _from_user_input(field):
+            if field == ':':
+                return ...
+            elif ':' in field:
+                return slice(*map(int_or_none, field.split(':')))
+            elif int_or_none(field) is not None:
+                return int(field)
+            return field
+
         def _traverse_infodict(fields):
             fields = [f for x in re.split(r'\.({.+?})\.?', fields)
                       for f in ([x] if x.startswith('{') else x.split('.'))]
@@ -1209,11 +1219,12 @@ class YoutubeDL:
 
             for i, f in enumerate(fields):
                 if not f.startswith('{'):
+                    fields[i] = _from_user_input(f)
                     continue
                 assert f.endswith('}'), f'No closing brace for {f} in {fields}'
-                fields[i] = {k: k.split('.') for k in f[1:-1].split(',')}
+                fields[i] = {k: list(map(_from_user_input, k.split('.'))) for k in f[1:-1].split(',')}
 
-            return traverse_obj(info_dict, fields, is_user_input=True, traverse_string=True)
+            return traverse_obj(info_dict, fields, traverse_string=True)
 
         def get_value(mdict):
             # Object traversal
