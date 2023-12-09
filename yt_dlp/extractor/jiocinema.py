@@ -40,7 +40,6 @@ class JioCinemaBaseIE(InfoExtractor):
         metadata_endpoint = metadata_endpoint_template.format(media_id=media_id)
 
         media_metadata_response = self._download_json(metadata_endpoint, None, 'Fetching Episode Metadata')
-        print(media_metadata_response)
 
         if media_metadata_response and 'result' in media_metadata_response and media_metadata_response['result']:
             media_metadata_response = media_metadata_response['result'][0]
@@ -100,9 +99,16 @@ class JioCinemaBaseIE(InfoExtractor):
 
         stream_response = self._download_json(url_or_request=stream_endpoint, video_id=None, note='Extracting Stream URL', data=bytes(json.dumps(payload), encoding='utf8'), headers=headers)
 
+        mpd_url = None
+        m3u8_url = None
+
         for url_data in stream_response['data']['playbackUrls']:
             if url_data['encryption'] == 'widevine':
-                return url_data['url']
+                mpd_url = url_data['url']
+            elif url_data['encryption'] == 'aes128':
+                m3u8_url = url_data['url']
+
+        return mpd_url, m3u8_url
 
     def _real_initialize(self):
         super()._real_initialize()
@@ -118,10 +124,11 @@ class JioCinemaBaseIE(InfoExtractor):
             return
 
         media_metadata = self._get_media_metadata(media_id)
-        mpd_url = self._get_stream_url(self.auth_token, media_id)
+        mpd_url, m3u8_url = self._get_stream_url(self.auth_token, media_id)
 
         formats = []
         formats.extend(self._extract_mpd_formats(mpd_url, media_id))
+        formats.extend(self._extract_m3u8_formats(m3u8_url, media_id))
 
         response_dict = {
             'id': media_id,
@@ -148,7 +155,7 @@ class JioCinemaTVIE(JioCinemaBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo'
+            'format': 'best'
         }
     }
 
@@ -165,7 +172,7 @@ class JioCinemaMovieIE(JioCinemaBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo'
+            'format': 'best'
         }
     }
 
@@ -187,7 +194,7 @@ class JioCinemaTVSeasonIE(JioCinemaBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo'
+            'format': 'best'
         }
     }
 
