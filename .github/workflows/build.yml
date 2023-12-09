@@ -393,7 +393,7 @@ jobs:
       - name: Install Requirements
         run: |
           python -m pip install -U pip setuptools wheel
-          type requirements.txt | find /v "curl_cffi" > requirements_used.txt
+          Get-Content -Path requirements.txt | where {$_ -like 'curl_cffi*'} | Set-Content requirements_used.txt
           pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl" -r requirements_used.txt
 
       - name: Prepare
