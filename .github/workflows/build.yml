@@ -393,6 +393,7 @@ jobs:
       - name: Install Requirements
         run: |
           python -m pip install -U pip setuptools wheel
+          python -c "import platform;print(platform.machine())"
           pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
 
       - name: Prepare
