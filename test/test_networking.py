@@ -1495,6 +1495,26 @@ class TestYoutubeDLNetworking:
             rh = self.build_handler(ydl, IRH)
             assert rh.impersonate == ('firefox', None, None, None)
 
+    def test_get_impersonate_targets(self):
+        handlers = []
+        for target_client in ('firefox', 'chrome', 'edge'):
+            class TestRH(ImpersonateRequestHandler):
+                def _send(self, request: Request):
+                    pass
+                _SUPPORTED_URL_SCHEMES = ('http',)
+                _SUPPORTED_IMPERSONATE_TARGET_TUPLES = [(target_client,)]
+                RH_KEY = target_client
+                RH_NAME = target_client
+            handlers.append(TestRH)
+
+        with FakeYDL() as ydl:
+            ydl._request_director = ydl.build_request_director(handlers)
+            assert set(ydl.get_impersonate_targets()) == {('firefox', 'firefox'), ('chrome', 'chrome'), ('edge', 'edge')}
+            assert ydl.impersonate_target_available(('firefox', ))
+            assert ydl.impersonate_target_available(())
+            assert not ydl.impersonate_target_available(('safari',))
+
+
     @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
         ('http', '__noproxy__', None),
         ('no', '127.0.0.1,foo.bar', '127.0.0.1,foo.bar'),
