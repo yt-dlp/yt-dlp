@@ -366,7 +366,6 @@ from .clubic import ClubicIE
 from .clyp import ClypIE
 from .cmt import CMTIE
 from .cnbc import (
-    CNBCIE,
     CNBCVideoIE,
 )
 from .cnn import (
