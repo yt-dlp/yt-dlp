@@ -513,8 +513,8 @@ def create_parser():
     )
     network.add_option(
         '--impersonate',
-        metavar='CLIENT[:[VERSION][:[OS][:OS_VERSION]]]', dest='impersonate', default=None,
-        help='Client to impersonate for requests',
+        metavar='[CLIENT[:[VERSION][:[OS][:OS_VERSION]]]]', dest='impersonate', default=None,
+        help='Client to impersonate for requests. Pass in an empty string (--impersonate "") to impersonate any client',
     )
     network.add_option(
         '--list-impersonate-targets',

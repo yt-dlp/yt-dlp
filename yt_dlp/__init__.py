@@ -386,7 +386,7 @@ def validate_options(opts):
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
         opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
-    if opts.impersonate:
+    if opts.impersonate is not None:
         target = parse_impersonate_target(opts.impersonate)
         if target is None:
             raise ValueError(f'invalid impersonate target "{opts.impersonate}"')

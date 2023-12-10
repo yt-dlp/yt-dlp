@@ -1144,7 +1144,9 @@ class TestRequestHandlerValidation:
             ({'unsupported': 'value'}, UnsupportedRequest),
             ({'impersonate': ('badtarget', None, None, None)}, UnsupportedRequest),
             ({'impersonate': 123}, AssertionError),
-            ({'impersonate': ('chrome', None, None, None)}, False)
+            ({'impersonate': ('chrome', None, None, None)}, False),
+            ({'impersonate': (None, None, None, None)}, False),
+            ({'impersonate': ()}, False)
         ]),
         (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
@@ -1799,7 +1801,10 @@ class TestImpersonate:
         ('firefox:::', ('firefox', None, None, None)),
         ('firefox:120::5', ('firefox', '120', None, '5')),
         ('firefox:120:', ('firefox', '120', None, None)),
-        ('::120', None)
+        ('::120', (None, None, '120', None)),
+        (':', (None, None, None, None)),
+        (':::', (None, None, None, None)),
+        ('', (None, None, None, None)),
     ])
     def test_parse_impersonate_target(self, target, expected):
         assert parse_impersonate_target(target) == expected
@@ -1812,9 +1817,10 @@ class TestImpersonate:
         (('firefox', None, 'linux', None), 'firefox::linux'),
         (('firefox', None, None, '5'), 'firefox:::5'),
         (('firefox', '120', None, '5'), 'firefox:120::5'),
-        ((None, '120', None, None), None),
+        ((None, '120', None, None), ':120'),
         (('firefox', ), 'firefox'),
         (('firefox', None, 'linux'), 'firefox::linux'),
+        ((None, None, None, None), ''),
     ])
     def test_compile_impersonate_target(self, target_tuple, expected):
         assert compile_impersonate_target(*target_tuple) == expected

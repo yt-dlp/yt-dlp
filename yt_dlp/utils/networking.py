@@ -167,7 +167,7 @@ def normalize_url(url):
     ).geturl()
 
 
-def parse_impersonate_target(target: str) -> Tuple[str, Optional[str], Optional[str], Optional[str]] | None:
+def parse_impersonate_target(target: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]] | None:
     """
     Parse an impersonate target string into a tuple of (client, version, os, os_vers)
     If the target is invalid, return None
@@ -175,13 +175,10 @@ def parse_impersonate_target(target: str) -> Tuple[str, Optional[str], Optional[
     client, version, os, os_vers = [None if (v or '').strip() == '' else v for v in (
         target.split(':') + [None, None, None, None])][:4]
 
-    if client is not None:
-        return client, version, os, os_vers
+    return client, version, os, os_vers
 
 
 def compile_impersonate_target(*args) -> str | None:
     client, version, os, os_vers = (list(args) + [None, None, None, None])[:4]
-    if not client:
-        return
     filtered_parts = [str(part) if part is not None else '' for part in (client, version, os, os_vers)]
     return ':'.join(filtered_parts).rstrip(':')

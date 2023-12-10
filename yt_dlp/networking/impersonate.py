@@ -8,14 +8,11 @@ from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
 from ..utils.networking import std_headers
 
-ImpersonateTarget = Tuple[str, Optional[str], Optional[str], Optional[str]]
+ImpersonateTarget = Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]
 
 
 def _target_within(target1: ImpersonateTarget, target2: ImpersonateTarget):
-    if target1[0] != target2[0]:
-        return False
-
-    for i in range(1, min(len(target1), len(target2))):
+    for i in range(0, min(len(target1), len(target2))):
         if (
             target1[i]
             and target2[i]
@@ -75,13 +72,13 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
     def _resolve_target(self, target: ImpersonateTarget | None):
         """Resolve a target to a supported target."""
-        if not target:
+        if target is None:
             return
         for supported_target in self.get_supported_targets():
             if _target_within(target, supported_target):
                 if self.verbose:
                     self._logger.stdout(
-                        f'{self.RH_NAME}: resolved impersonate target "{target}" to "{supported_target}"')
+                        f'{self.RH_NAME}: resolved impersonate target {target} to {supported_target}')
                 return supported_target
 
     def get_supported_targets(self) -> tuple[ImpersonateTarget]:
@@ -106,7 +103,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
     def _get_impersonate_headers(self, request):
         headers = self._merge_headers(request.headers)
-        if self._get_request_target(request):
+        if self._get_request_target(request) is not None:
             # remove all headers present in std_headers
             headers.pop('User-Agent', None)
             for header in std_headers:
@@ -117,6 +114,6 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
 
 @register_preference(ImpersonateRequestHandler)
 def impersonate_preference(rh, request):
-    if request.extensions.get('impersonate') or rh.impersonate:
+    if request.extensions.get('impersonate') is not None or rh.impersonate is not None:
         return 1000
     return 0

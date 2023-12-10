@@ -714,7 +714,7 @@ class YoutubeDL:
             self.deprecated_feature(msg)
 
         impersonate_target = self.params.get('impersonate')
-        if impersonate_target:
+        if impersonate_target is not None:
             # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
             results = self._request_director.collect_from_handlers(
                 lambda x: [x.is_supported_target(impersonate_target)],
