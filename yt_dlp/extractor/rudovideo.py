@@ -1,34 +1,10 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, traverse_obj, js_to_json, update_url_query
+from ..utils import ExtractorError, js_to_json, traverse_obj, update_url_query
 
 
-class RudoVideoBaseIE(InfoExtractor):
-    def get_title(self, webpage):
-        return self._search_regex(r'var\s+titleVideo\s*=\s*[\'"]([^\'"]+)', webpage, 'title', default=None) or self._og_search_title(webpage)
-
-    def get_thumbnail(self, webpage):
-        return self._search_regex(r'var\s+posterIMG\s*=\s*[\'"]([^?\'"]+)', webpage, 'thumbnail', default=None) or self._og_search_thumbnail(webpage)
-
-    def get_creator(self, webpage):
-        return self._search_regex(r'var\s+videoAuthor\s*=\s*[\'"]([^?\'"]+)', webpage, "videoAuthor", default=None)
-
-    def get_stream_url(self, webpage, video_id):
-        stream_url = self._search_regex(r'var\s+streamURL\s*=\s*[\'"]([^?\'"]+)', webpage, 'streamUrl', default=None) or self._search_regex(r'<source[^>]+src=[\'"]([^\'"]+)', webpage, 'sourceUrl', default=None)
-        youtube_url = self._search_regex(r'file:\s*[\'"]((?:https?:)//(?:www\.)?youtube.com[^\'"]+)', webpage, 'youtubeUrl', default=None)
-        if stream_url is None:
-            if youtube_url is None:
-                raise ExtractorError('Unable to extract stream url')
-            return self.url_result(youtube_url, display_id=video_id)
-        return stream_url
-
-    def check_geo_restricted(self, webpage):
-        if 'Streaming is not available in your area.' in webpage:
-            self.raise_geo_restricted()
-
-
-class RudoVideoIE(RudoVideoBaseIE):
-    _VALID_URL = r'https?://rudo\.video/(?:vod|podcast)/(?P<id>[^/?]+)'
-    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)//rudo\.video/(?:vod|podcast)/[^\'"]+)']
+class RudoVideoIE(InfoExtractor):
+    _VALID_URL = r'https?://rudo\.video/(?P<type>vod|podcast|live)/(?P<id>[^/?&#]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)//rudo\.video/(?:vod|podcast|live)/[^\'"]+)']
     _TESTS = [{
         'url': 'https://rudo.video/podcast/cz2wrUy8l0o',
         'md5': '28ed82b477708dc5e12e072da2449221',
@@ -57,29 +33,7 @@ class RudoVideoIE(RudoVideoBaseIE):
             'ext': 'mp4',
             'thumbnail': r're:^(?:https?:)?//.*\.(png|jpg)$',
         },
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        self.check_geo_restricted(webpage)
-
-        stream_url = self.get_stream_url(webpage, video_id)
-
-        return {
-            'id': video_id,
-            'title': self.get_title(webpage),
-            'formats': self._extract_m3u8_formats(stream_url, video_id, live=True),
-            'creator': self.get_creator(webpage),
-            'thumbnail': self.get_thumbnail(webpage),
-        }
-
-
-class RudoVideoLiveIE(RudoVideoBaseIE):
-    _VALID_URL = r'https?://rudo\.video/live/(?P<id>[^/?]+)'
-    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)//rudo\.video/live/[^\'"]+)']
-    _TESTS = [{
+    }, {
         'url': 'https://rudo.video/live/bbtv',
         'info_dict': {
             'id': 'bbtv',
@@ -108,25 +62,44 @@ class RudoVideoLiveIE(RudoVideoBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, type_ = self._match_valid_url(url).group('id', 'type')
+        is_live = type_ == 'live'
+
         webpage = self._download_webpage(url, video_id)
+        if 'Streaming is not available in your area' in webpage:
+            self.raise_geo_restricted()
 
-        self.check_geo_restricted(webpage)
+        m3u8_url = self._search_regex(
+            r'var\s+streamURL\s*=\s*[\'"]([^?\'"]+)', webpage, 'stream url', default=None) or \
+            self._search_regex(r'<source[^>]+src=[\'"]([^\'"]+)', webpage, 'sourceUrl', default=None)
+        if not m3u8_url:
+            youtube_url = self._search_regex(r'file:\s*[\'"]((?:https?:)//(?:www\.)?youtube\.com[^\'"]+)',
+                                             webpage, 'youtube url', default=None)
+            if youtube_url:
+                return self.url_result(youtube_url, 'Youtube')
+            raise ExtractorError('Unable to extract stream url')
 
-        stream_url = self.get_stream_url(webpage, video_id)
-        token_array = self._search_json(r'<script>var\s+_\$_[a-zA-Z0-9]+\s*=', webpage, 'access token array', video_id,
-                                        contains_pattern=r'\[(?s:.+)\]', default=None, transform_source=js_to_json)
+        token_array = self._search_json(
+            r'<script>var\s+_\$_[a-zA-Z0-9]+\s*=', webpage, 'access token array', video_id,
+            contains_pattern=r'\[(?s:.+)\]', default=None, transform_source=js_to_json)
         if token_array:
             if len(token_array) != 9:
-                raise ExtractorError('Couldnt get access token array', video_id=video_id)
+                raise ExtractorError('Invalid access token array')
             access_token = self._download_json(token_array[0], video_id, note='Downloading access token')
-            stream_url = update_url_query(stream_url, {'auth-token': traverse_obj(access_token, ('data', 'authToken'))})
+            m3u8_url = update_url_query(m3u8_url, {
+                'auth-token': traverse_obj(access_token, ('data', 'authToken'))
+            })
 
         return {
             'id': video_id,
-            'title': self.get_title(webpage),
-            'formats': self._extract_m3u8_formats(stream_url, video_id, live=True),
-            'is_live': True,
-            'creator': self.get_creator(webpage),
-            'thumbnail': self.get_thumbnail(webpage),
+            'title': (self._search_regex(r'var\s+titleVideo\s*=\s*[\'"]([^\'"]+)',
+                                         webpage, 'title', default=None)
+                      or self._og_search_title(webpage)),
+            'creator': self._search_regex(r'var\s+videoAuthor\s*=\s*[\'"]([^?\'"]+)',
+                                          webpage, 'videoAuthor', default=None),
+            'thumbnail': (self._search_regex(r'var\s+posterIMG\s*=\s*[\'"]([^?\'"]+)',
+                                             webpage, 'thumbnail', default=None)
+                          or self._og_search_thumbnail(webpage)),
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id, live=is_live),
+            'is_live': is_live,
         }
