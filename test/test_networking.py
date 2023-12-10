@@ -29,7 +29,7 @@ from http.cookiejar import CookieJar
 from test.conftest import validate_and_send
 from test.helper import FakeYDL, http_server_port
 from yt_dlp.cookies import YoutubeDLCookieJar
-from yt_dlp.dependencies import brotli, requests, urllib3, curl_cffi
+from yt_dlp.dependencies import brotli, curl_cffi, requests, urllib3
 from yt_dlp.networking import (
     HEADRequest,
     PUTRequest,
@@ -957,6 +957,7 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
         import curl_cffi.requests
+
         from yt_dlp.networking._curlcffi import CurlCFFIResponseAdapter
         curl_res = curl_cffi.requests.Response()
         res = CurlCFFIResponseAdapter(curl_res)
@@ -1513,7 +1514,6 @@ class TestYoutubeDLNetworking:
             assert ydl.impersonate_target_available(('firefox', ))
             assert ydl.impersonate_target_available(())
             assert not ydl.impersonate_target_available(('safari',))
-
 
     @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
         ('http', '__noproxy__', None),
