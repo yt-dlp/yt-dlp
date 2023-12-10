@@ -716,11 +716,7 @@ class YoutubeDL:
         impersonate_target = self.params.get('impersonate')
         if impersonate_target is not None:
             # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
-            results = self._request_director.collect_from_handlers(
-                lambda x: [x.is_supported_target(impersonate_target)],
-                [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
-            )
-            if not any(results):
+            if not self.impersonate_target_available(impersonate_target):
                 raise ValueError(
                     f'Impersonate target "{compile_impersonate_target(*self.params.get("impersonate"))}" is not available. '
                     f'Use --list-impersonate-targets to see available targets.')
@@ -4058,6 +4054,11 @@ class YoutubeDL:
             lambda rh: [(*target, rh.RH_NAME) for target in rh.get_supported_targets()],
             [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
         ), key=lambda x: x[0])
+
+    def impersonate_target_available(self, target):
+        return any(self._request_director.collect_from_handlers(
+            lambda x: [x.is_supported_target(target)],
+            [lambda _, v: isinstance(v, ImpersonateRequestHandler)]))
 
     def urlopen(self, req):
         """ Start an HTTP download """
