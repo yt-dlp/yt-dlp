@@ -40,10 +40,10 @@ class AsobiStageIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _real_extract(self, channel_list_url):
-        video_id = self._match_id(channel_list_url)
-        video_type_name = self._match_valid_url(channel_list_url).group('type')
-        webpage = self._download_webpage(channel_list_url, video_id)
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        video_type_name = self._match_valid_url(url).group('type')
+        webpage = self._download_webpage(url, video_id)
 
         video_type_id, live_status = {
             'archive': ['archives', 'was_live'],
