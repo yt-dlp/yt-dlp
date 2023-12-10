@@ -3,8 +3,8 @@ from ..utils import (
     int_or_none,
     ExtractorError,
     traverse_obj,
-    parse_codecs,
 )
+
 
 class AmadeusTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?amadeus\.tv/library/(?P<id>[\da-f]+)'
