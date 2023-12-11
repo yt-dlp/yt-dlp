@@ -780,7 +780,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             yield ('-metadata', f'{name}={value}')
 
         stream_idx = 0
-        for fmt in info.get('requested_formats') or []:
+        for fmt in info.get('requested_formats') or [info]:
             stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
             lang = ISO639Utils.short2long(fmt.get('language') or '') or fmt.get('language')
             for i in range(stream_idx, stream_idx + stream_count):

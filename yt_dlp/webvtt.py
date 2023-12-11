@@ -95,6 +95,7 @@ _REGEX_TS = re.compile(r'''(?x)
 _REGEX_EOF = re.compile(r'\Z')
 _REGEX_NL = re.compile(r'(?:\r\n|[\r\n]|$)')
 _REGEX_BLANK = re.compile(r'(?:\r\n|[\r\n])+')
+_REGEX_OPTIONAL_WHITESPACE = re.compile(r'[ \t]*')
 
 
 def _parse_ts(ts):
@@ -285,6 +286,7 @@ class CueBlock(Block):
         m1 = parser.consume(_REGEX_TS)
         if not m1:
             return None
+        parser.consume(_REGEX_OPTIONAL_WHITESPACE)
         m2 = parser.consume(cls._REGEX_SETTINGS)
         if not parser.consume(_REGEX_NL):
             return None
