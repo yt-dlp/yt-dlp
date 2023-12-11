@@ -318,7 +318,7 @@ class HotStarIE(HotStarBaseIE):
 
         if not formats and geo_restricted:
             self.raise_geo_restricted(countries=['IN'], metadata_available=True)
-        self._remove_duplicate_formats(formats)
+        # self._remove_duplicate_formats(formats)
         thumbnails = []
         img_list = video_data.get('images')
         base_url = "https://img1.hotstarext.com/image/upload/f_auto/"
@@ -333,7 +333,7 @@ class HotStarIE(HotStarBaseIE):
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
         if formats:
-            print("Downloading URL:", formats[0]['url'])
+            # print("Downloading URL:", formats[0]['url'])
             print("License URL:", licence_url)
 
         return {
