@@ -621,6 +621,9 @@
  - **Jamendo**
  - **JamendoAlbum**
  - **JeuxVideo**
+ - **JioCinemaMovie**
+ - **JioCinemaTV**
+ - **JioCinemaTVSeason**
  - **JioSaavnAlbum**
  - **JioSaavnSong**
  - **Joj**

@@ -4,6 +4,14 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.12.11.140041
+
+#### Core changes
+- [Remove duplicate url filter is disabled temporarliy](https://github.com/Rajeshwaran2001/yt-dlp/commit/2a1c113369f4bdba9e065a5fc7e652aa642670ff) by [Rajeshwaran](https://github.com/Rajeshwaran)
+- [Update jiocinema.py](https://github.com/Rajeshwaran2001/yt-dlp/commit/3871dde37cb839d94d530c4149589e5c7d1dbd76) by [Rajeshwaran](https://github.com/Rajeshwaran)
+- [jiocinema extractor added](https://github.com/Rajeshwaran2001/yt-dlp/commit/c07b418fcbef13e4349a32d8dfc8e5924643a5a5) by [Rajeshwaran](https://github.com/Rajeshwaran)
+- [write-all-thumbnails set as default](https://github.com/Rajeshwaran2001/yt-dlp/commit/3d5c6339e96d8b60c65111653f1eeb0fd9ac7d15) by [Rajeshwaran](https://github.com/Rajeshwaran)
+
 ### 2023.12.07.10
 
 #### Core changes
