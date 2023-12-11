@@ -65,7 +65,7 @@ class AsobiStageIE(InfoExtractor):
         if event_data.get('thumbnail'):
             thumbnails.append({'id': 'main', 'url': event_data['thumbnail']})
 
-        channel_list_url = functools.reduce(lambda base, path: urljoin(base, path), [
+        channel_list_url = functools.reduce(urljoin, [
             self._search_regex(
                 r'"(?P<url>https://asobistage\.asobistore\.jp/cdn/[^/]+/)', webpage,
                 'cdn endpoint url', group=('url')),
@@ -73,7 +73,7 @@ class AsobiStageIE(InfoExtractor):
         channels_json = self._download_json(
             channel_list_url, video_id, fatal=False,
             note='Getting channel list', errnote='Unable to get channel list')
-        cuids = traverse_obj(channels_json, (
+        channel_ids = traverse_obj(channels_json, (
             video_type_id, lambda _, v: v['broadcast_slug'] == event_data['slug'], 'channels',
             lambda _, v: v['chennel_vspf_id'] != '00000', 'chennel_vspf_id'))
 
@@ -82,13 +82,12 @@ class AsobiStageIE(InfoExtractor):
             note='Getting token', errnote='Unable to get token')
 
         entries = []
-        for cuid in cuids:
-            channel_id = f'{video_id}/{cuid}'
+        for channel_id in channel_ids:
             channel_data = {}
 
             if video_type_name == 'archive':
                 channel_json = self._download_json(
-                    f'https://survapi.channel.or.jp/proxy/v1/contents/{cuid}/get_by_cuid', video_id,
+                    f'https://survapi.channel.or.jp/proxy/v1/contents/{channel_id}/get_by_cuid', f'{video_id}/{channel_id}',
                     note='Getting archive channel info', errnote='Unable to get archive channel info',
                     headers={'Authorization': f'Bearer {token}'})
                 channel_data = traverse_obj(channel_json, ('ex_content', {
@@ -98,7 +97,7 @@ class AsobiStageIE(InfoExtractor):
                 }))
             elif video_type_name == 'player':
                 channel_json = self._download_json(
-                    f'https://survapi.channel.or.jp/ex/events/{cuid}', video_id,
+                    f'https://survapi.channel.or.jp/ex/events/{channel_id}', f'{video_id}/{channel_id}',
                     note='Getting live channel info', errnote='Unable to get live channel info',
                     headers={'Authorization': f'Bearer {token}'}, query={'embed': 'channel'})
                 channel_data = traverse_obj(channel_json, ('data', {
@@ -114,11 +113,11 @@ class AsobiStageIE(InfoExtractor):
             entries.append({
                 'id': channel_id,
                 'title': channel_data.get('title'),
-                'formats': self._extract_m3u8_formats(m3u8_url, video_id=channel_id, fatal=False),
+                'formats': self._extract_m3u8_formats(m3u8_url, video_id=f'{video_id}/{channel_id}', fatal=False),
                 'live_status': live_status,
                 'thumbnail': channel_data.get('thumbnail'),
             })
-            thumbnails.append({'id': cuid, 'url': channel_data.get('thumbnail')})
+            thumbnails.append({'id': channel_id, 'url': channel_data.get('thumbnail')})
 
         return {
             '_type': 'playlist',
