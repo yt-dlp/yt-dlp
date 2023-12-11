@@ -1333,6 +1333,7 @@ The available fields are:
  - `was_live` (boolean): Whether this video was originally a live stream
  - `playable_in_embed` (string): Whether this video is allowed to play in embedded players on other sites
  - `availability` (string): Whether the video is "private", "premium_only", "subscriber_only", "needs_auth", "unlisted" or "public"
+ - `media_type` (string): The type of media as classified by the site, e.g. "episode", "clip", "trailer"
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
  - `extractor` (string): Name of the extractor
