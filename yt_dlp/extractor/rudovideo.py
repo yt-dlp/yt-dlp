@@ -69,9 +69,12 @@ class RudoVideoIE(InfoExtractor):
         if 'Streaming is not available in your area' in webpage:
             self.raise_geo_restricted()
 
-        m3u8_url = self._search_regex(
-            r'var\s+streamURL\s*=\s*[\'"]([^?\'"]+)', webpage, 'stream url', default=None) or \
-            self._search_regex(r'<source[^>]+src=[\'"]([^\'"]+)', webpage, 'sourceUrl', default=None)
+        m3u8_url = (
+            self._search_regex(
+                r'var\s+streamURL\s*=\s*[\'"]([^?\'"]+)', webpage, 'stream url', default=None)
+            # Source URL must be used only if streamURL is unavailable
+            or self._search_regex(
+                r'<source[^>]+src=[\'"]([^\'"]+)', webpage, 'source url', default=None))
         if not m3u8_url:
             youtube_url = self._search_regex(r'file:\s*[\'"]((?:https?:)//(?:www\.)?youtube\.com[^\'"]+)',
                                              webpage, 'youtube url', default=None)
