@@ -576,7 +576,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                     ie=ARDBetaMediathekIE.ie_key()))
 
             if (show_page['pagination']['pageSize'] * (pageNumber + 1)
-               >= show_page['pagination']['totalElements']):
+                >= show_page['pagination']['totalElements']):
                 # we've processed enough pages to get all playlist entries
                 break
             pageNumber = pageNumber + 1
@@ -593,50 +593,17 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             return self._ARD_extract_playlist(url, video_id, display_id, client, playlist_type)
 
         player_page = self._download_json(
-            'https://api.ardmediathek.de/public-gateway',
-            display_id, data=json.dumps({
-                'query': '''{
-  playerPage(client:"%s", clipId: "%s") {
-    blockedByFsk
-    broadcastedOn
-    maturityContentRating
-    mediaCollection {
-      _duration
-      _geoblocked
-      _isLive
-      _mediaArray {
-        _mediaStreamArray {
-          _quality
-          _server
-          _stream
-        }
-      }
-      _previewImage
-      _subtitleUrl
-      _type
-    }
-    show {
-      title
-    }
-    image {
-      src
-    }
-    synopsis
-    title
-    tracking {
-      atiCustomVars {
-        contentId
-      }
-    }
-  }
-}''' % (client, video_id),
-            }).encode(), headers={
+            f"https://api.ardmediathek.de/page-gateway/pages/ard/item/{video_id}", display_id, headers={
                 'Content-Type': 'application/json'
-            })['data']['playerPage']
-        title = player_page['title']
+            }
+        )
+
         content_id = str_or_none(try_get(
             player_page, lambda x: x['tracking']['atiCustomVars']['contentId']))
-        media_collection = player_page.get('mediaCollection') or {}
+
+        player_page = try_get(player_page.get("widgets"), lambda x: x[0])
+        title = player_page['title']
+        media_collection = player_page.get('mediaCollection', {}).get("embedded") or {}
         if not media_collection and content_id:
             media_collection = self._download_json(
                 'https://www.ardmediathek.de/play/media/' + content_id,
