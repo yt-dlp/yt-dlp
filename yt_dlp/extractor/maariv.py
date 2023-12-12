@@ -10,7 +10,7 @@ from ..utils.traversal import traverse_obj
 
 class MaarivIE(InfoExtractor):
     IE_NAME = 'maariv.co.il'
-    _VALID_URL = r'https?://player.maariv.co.il/public/player.html\?(?:[^#]+&)?media=(?P<id>\d+)'
+    _VALID_URL = r'https?://player\.maariv\.co\.il/public/player\.html\?(?:[^#]+&)?media=(?P<id>\d+)'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://player.maariv.co.il/public/player.html?media=1044008',
