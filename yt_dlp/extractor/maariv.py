@@ -13,17 +13,25 @@ class MaarivIE(InfoExtractor):
     _VALID_URL = r'https?://player\.maariv\.co\.il/public/player\.html\?(?:[^#]+&)?media=(?P<id>\d+)'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
-        'url': 'https://player.maariv.co.il/public/player.html?media=1044008',
+        'url': 'https://player.maariv.co.il/public/player.html?player=maariv-desktop&media=3611585',
         'info_dict': {
-            'id': '1044008',
-            'ext': 'mp4',
+            'id': '3611585',
+            'duration': 75,
+             'ext': 'mp4',
+            'upload_date': '20231009',
+            'title': 'מבצע חרבות ברזל',
+            'timestamp': 1696851301,
         },
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.maariv.co.il/news/law/Article-1044008',
         'info_dict': {
-            'id': '1044008',
-            'ext': 'mp4',
+            'id': '3611585',
+            'duration': 75,
+             'ext': 'mp4',
+            'upload_date': '20231009',
+            'title': 'מבצע חרבות ברזל',
+            'timestamp': 1696851301,
         },
     }]
 
