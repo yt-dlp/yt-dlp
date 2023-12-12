@@ -98,7 +98,7 @@ class CNBCVideoIE(InfoExtractor):
                 webpage,
                 'channel name',
                 fatal=False),
-            'formats': self._extract_akamai_formats(url, str(display_id)),
+            'formats': self._extract_akamai_formats(link, str(display_id)),
             'id': display_id,
             'upload_date': unified_strdate(upload_date) if upload_date else None,
             'url': link,
