@@ -104,6 +104,10 @@ class ThePlatformBaseIE(OnceIE):
                 _add_chapter(chapter.get('startTime'), chapter.get('endTime'))
             _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
 
+        def extract_site_specific_field(field):
+            # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
+            return traverse_obj(info, lambda k, v: v and k.endswith(f'${field}'), get_all=False)
+
         return {
             'title': info['title'],
             'subtitles': subtitles,
@@ -113,6 +117,14 @@ class ThePlatformBaseIE(OnceIE):
             'timestamp': int_or_none(info.get('pubDate'), 1000) or None,
             'uploader': info.get('billingCode'),
             'chapters': chapters,
+            'creator': traverse_obj(info, ('author', {str})) or None,
+            'categories': traverse_obj(info, (
+                'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
+            'tags': traverse_obj(info, ('keywords', {lambda x: re.split(r'[;,]\s?', x) if x else None})),
+            'location': extract_site_specific_field('region'),
+            'series': extract_site_specific_field('show'),
+            'season_number': int_or_none(extract_site_specific_field('seasonNumber')),
+            'media_type': extract_site_specific_field('programmingType') or extract_site_specific_field('type'),
         }
 
     def _extract_theplatform_metadata(self, path, video_id):
