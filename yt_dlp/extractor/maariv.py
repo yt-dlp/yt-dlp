@@ -23,49 +23,27 @@ class MaarivIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        data = self._download_json(
+            f'https://dal.walla.co.il/media/{video_id}?origin=player.maariv.co.il', video_id, fatal=False)['data']
 
-        # Find the correct iframes
-        video_urls = re.findall(r'<iframe [^>]?poster="([^"]+)"[^>]+ src="([^"]+)"', webpage)
-        video_info_list = []
+        formats = []
+        hls_url = traverse_obj(data, ('video', 'url', {url_or_none}))
+        if hls_url:
+            formats.extend(self._extract_m3u8_formats(hls_url, video_id, m3u8_id='hls', fatal=False))
 
-        for thumbnail, src in video_urls:
-            media_param = re.search(r'media=(\d+)', src).group(1)
-            info_json = self._download_json(f"https://dal.walla.co.il/media/{media_param}?origin=player.maariv.co.il",
-                                            video_id)
-            data = info_json['data']
-            main_video_to_download_filename = data['video']['file_name']
-            main_video_to_download_url = data['video']['url']
-            duration_seconds = int(data['video']['duration'])
+        for http_format in traverse_obj(data, ('video', 'stream_urls', ..., 'stream_url', {url_or_none})):
+            formats.append({
+                'url': http_format,
+                'format_id': 'http',
+                **parse_resolution(http_format),
+            })
 
-            format_list = [
-                {
-                    'format_id': '0',
-                    'url': main_video_to_download_url,
-                    'resolution': 'Main Video',
-                }
-            ]
-
-            for format_id, stream_url_object in enumerate(data['video']['stream_urls'], start=1):
-                stream_url = stream_url_object['stream_url']
-                format_list.append({
-                    'format_id': str(format_id),
-                    'url': stream_url,
-                    'resolution': self.extract_resolution(stream_url),
-                })
-
-            video_info = {
-                'id': media_param,
-                'title': main_video_to_download_filename,
-                'thumbnail': thumbnail,
-                'duration': duration_seconds,
-                'formats': format_list,
-            }
-
-            video_info_list.append(video_info)
-
-        if len(video_info_list) == 1:
-            return video_info_list[0]
-        else:
-            # If there are multiple videos, create a playlist
-            return self.playlist_result(video_info_list, video_id)
+        return {
+            'id': video_id,
+            **traverse_obj(data, {
+                'title': 'title',
+                'duration': ('video', 'duration', {int_or_none}),
+                'timestamp': ('upload_date', {unified_timestamp}),
+            }),
+            'formats': formats,
+        }
