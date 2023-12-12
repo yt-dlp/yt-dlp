@@ -96,7 +96,7 @@ class RudoVideoIE(InfoExtractor):
             if not token_url:
                 raise ExtractorError('Invalid access token array')
             access_token = self._download_json(
-                    token_url, video_id, note='Downloading access token')['data']['authToken']
+                token_url, video_id, note='Downloading access token')['data']['authToken']
             m3u8_url = update_url_query(m3u8_url, {'auth-token': access_token})
 
         return {
