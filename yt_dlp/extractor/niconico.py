@@ -8,12 +8,11 @@ import time
 from urllib.parse import urlparse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..dependencies import websockets
+from ..networking import Request
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    WebSocketsWrapper,
     bug_reports_message,
     clean_html,
     float_or_none,
@@ -934,8 +933,6 @@ class NiconicoLiveIE(InfoExtractor):
     _KNOWN_LATENCY = ('high', 'low')
 
     def _real_extract(self, url):
-        if not websockets:
-            raise ExtractorError('websockets library is not available. Please install it.', expected=True)
         video_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
 
@@ -950,17 +947,13 @@ class NiconicoLiveIE(InfoExtractor):
         })
 
         hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
-        cookies = try_get(urlh.url, self._downloader._calc_cookies)
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
             latency = 'high'
 
-        ws = WebSocketsWrapper(ws_url, {
-            'Cookies': str_or_none(cookies) or '',
-            'Origin': f'https://{hostname}',
-            'Accept': '*/*',
-            'User-Agent': self.get_param('http_headers')['User-Agent'],
-        })
+        ws = self._request_webpage(
+            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
+            video_id=video_id, note='Connecting to WebSocket server')
 
         self.write_debug('[debug] Sending HLS server request')
         ws.send(json.dumps({
@@ -1034,7 +1027,6 @@ class NiconicoLiveIE(InfoExtractor):
                 'protocol': 'niconico_live',
                 'ws': ws,
                 'video_id': video_id,
-                'cookies': cookies,
                 'live_latency': latency,
                 'origin': hostname,
             })

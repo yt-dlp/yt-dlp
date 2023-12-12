@@ -41,6 +41,18 @@ class WatIE(InfoExtractor):
             'expected_warnings': ["Ce contenu n'est pas disponible pour l'instant."],
             'skip': 'This content is no longer available',
         },
+        {
+            'url': 'wat:14010600',
+            'info_dict': {
+                'id': '14010600',
+                'title': 'Burger Quiz - S03 EP21 avec Eye Haidara, Anne Depétrini, Jonathan Zaccaï et Pio Marmaï',
+                'thumbnail': 'https://photos.tf1.fr/1280/720/burger-quiz-11-9adb79-0@1x.jpg',
+                'upload_date': '20230819',
+                'duration': 2312,
+                'ext': 'mp4',
+            },
+            'params': {'skip_download': 'm3u8'},
+        }
     ]
     _GEO_BYPASS = False
 
@@ -54,7 +66,7 @@ class WatIE(InfoExtractor):
         #     'http://www.wat.tv/interface/contentv4s/' + video_id, video_id)
         video_data = self._download_json(
             'https://mediainfo.tf1.fr/mediainfocombo/' + video_id,
-            video_id, query={'context': 'MYTF1', 'pver': '4020003'})
+            video_id, query={'pver': '5010000'})
         video_info = video_data['media']
 
         error_desc = video_info.get('error_desc')
