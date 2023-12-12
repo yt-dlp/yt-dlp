@@ -114,6 +114,8 @@ class ScrippsNetworksIE(InfoExtractor):
             'timestamp': 1475678834,
             'upload_date': '20161005',
             'uploader': 'SCNI-SCND',
+            'tags': 'count:10',
+            'creator': 'Cooking Channel',
             'duration': 29.995,
             'chapters': [{'start_time': 0.0, 'end_time': 29.995, 'title': '<Untitled Chapter 1>'}],
             'thumbnail': 'https://images.dds.discovery.com/up/tp/Scripps_-_Food_Category_Prod/122/987/0260338_630x355.jpg',

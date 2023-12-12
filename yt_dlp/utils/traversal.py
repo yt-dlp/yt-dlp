@@ -8,7 +8,7 @@ from ._utils import (
     IDENTITY,
     NO_DEFAULT,
     LazyList,
-    int_or_none,
+    deprecation_warning,
     is_iterable_like,
     try_call,
     variadic,
@@ -17,7 +17,7 @@ from ._utils import (
 
 def traverse_obj(
         obj, *paths, default=NO_DEFAULT, expected_type=None, get_all=True,
-        casesense=True, is_user_input=False, traverse_string=False):
+        casesense=True, is_user_input=NO_DEFAULT, traverse_string=False):
     """
     Safely traverse nested `dict`s and `Iterable`s
 
@@ -63,10 +63,8 @@ def traverse_obj(
     @param get_all          If `False`, return the first matching result, otherwise all matching ones.
     @param casesense        If `False`, consider string dictionary keys as case insensitive.
 
-    The following are only meant to be used by YoutubeDL.prepare_outtmpl and are not part of the API
+    `traverse_string` is only meant to be used by YoutubeDL.prepare_outtmpl and is not part of the API
 
-    @param is_user_input    Whether the keys are generated from user input.
-                            If `True` strings get converted to `int`/`slice` if needed.
     @param traverse_string  Whether to traverse into objects as strings.
                             If `True`, any non-compatible object will first be
                             converted into a string and then traversed into.
@@ -80,6 +78,9 @@ def traverse_obj(
                             If no `default` is given and the last path branches, a `list` of results
                             is always returned. If a path ends on a `dict` that result will always be a `dict`.
     """
+    if is_user_input is not NO_DEFAULT:
+        deprecation_warning('The is_user_input parameter is deprecated and no longer works')
+
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
 
     if isinstance(expected_type, type):
@@ -195,14 +196,6 @@ def traverse_obj(
 
         key = None
         for last, key in lazy_last(variadic(path, (str, bytes, dict, set))):
-            if is_user_input and isinstance(key, str):
-                if key == ':':
-                    key = ...
-                elif ':' in key:
-                    key = slice(*map(int_or_none, key.split(':')))
-                elif int_or_none(key) is not None:
-                    key = int(key)
-
             if not casesense and isinstance(key, str):
                 key = key.casefold()
 
