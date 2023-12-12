@@ -78,10 +78,10 @@ class AsobiStageIE(InfoExtractor):
             lambda _, v: v['chennel_vspf_id'] != '00000', 'chennel_vspf_id'))
 
         token = self._search_regex(
-            r'\"(?P<token>.+)\"', self._download_webpage(
+            r'\"([^"]+)\"', self._download_webpage(
                 'https://asobistage-api.asobistore.jp/api/v1/vspf/token', video_id,
                 note='Getting token', errnote='Unable to get token'),
-            name="token", group='token')
+            name="token")
 
         entries = []
         for channel_id in channel_ids:
