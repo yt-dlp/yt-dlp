@@ -16,11 +16,6 @@ class MaarivIE(InfoExtractor):
         }
     ]
 
-    @staticmethod
-    def extract_resolution(url):
-        match = re.search(r'(\d{2,4}x\d{2,4})\.mp4$', url)
-        return match.group(1) if match else None
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
