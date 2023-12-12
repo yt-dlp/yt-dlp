@@ -18,6 +18,7 @@ class MaarivIE(InfoExtractor):
             'info_dict': {
                 'id': '1044008',
                 'title': '.*',
+                'ext': 'mp4',
             },
         }
     ]
