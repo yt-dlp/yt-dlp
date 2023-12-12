@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, js_to_json, traverse_obj, update_url_query
+from ..utils import (
+    ExtractorError,
+    js_to_json,
+    traverse_obj,
+    update_url_query,
+    url_or_none,
+)
 
 
 class RudoVideoIE(InfoExtractor):
@@ -86,12 +92,12 @@ class RudoVideoIE(InfoExtractor):
             r'<script>var\s+_\$_[a-zA-Z0-9]+\s*=', webpage, 'access token array', video_id,
             contains_pattern=r'\[(?s:.+)\]', default=None, transform_source=js_to_json)
         if token_array:
-            if len(token_array) != 9:
+            token_url = traverse_obj(token_array, (..., {url_or_none}), get_all=False)
+            if not token_url:
                 raise ExtractorError('Invalid access token array')
-            access_token = self._download_json(token_array[0], video_id, note='Downloading access token')
-            m3u8_url = update_url_query(m3u8_url, {
-                'auth-token': traverse_obj(access_token, ('data', 'authToken'))
-            })
+            access_token = self._download_json(
+                    token_url, video_id, note='Downloading access token')['data']['authToken']
+            m3u8_url = update_url_query(m3u8_url, {'auth-token': access_token})
 
         return {
             'id': video_id,
