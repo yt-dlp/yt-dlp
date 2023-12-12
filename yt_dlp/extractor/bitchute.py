@@ -7,8 +7,10 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     clean_html,
+    extract_attributes,
     get_element_by_class,
     get_element_by_id,
+    get_element_html_by_class,
     get_elements_html_by_class,
     int_or_none,
     orderedSet,
@@ -17,6 +19,7 @@ from ..utils import (
     traverse_obj,
     unified_strdate,
     urlencode_postdata,
+    urljoin,
 )
 
 
@@ -34,6 +37,25 @@ class BitChuteIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20170103',
+            'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+            'channel': 'BitChute',
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
+        },
+    }, {
+        # test case: video with different channel and uploader
+        'url': 'https://www.bitchute.com/video/Yti_j9A-UZ4/',
+        'md5': 'f10e6a8e787766235946d0868703f1d0',
+        'info_dict': {
+            'id': 'Yti_j9A-UZ4',
+            'ext': 'mp4',
+            'title': 'Israel at War | Full Measure',
+            'description': 'md5:38cf7bc6f42da1a877835539111c69ef',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'sharylattkisson',
+            'upload_date': '20231106',
+            'uploader_url': 'https://www.bitchute.com/profile/9K0kUWA9zmd9/',
+            'channel': 'Full Measure with Sharyl Attkisson',
+            'channel_url': 'https://www.bitchute.com/channel/sharylattkisson/'
         },
     }, {
         # video not downloadable in browser, but we can recover it
@@ -48,6 +70,9 @@ class BitChuteIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20181113',
+            'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+            'channel': 'BitChute',
+            'channel_url': 'https://www.bitchute.com/channel/bitchute/'
         },
         'params': {'check_formats': None},
     }, {
@@ -99,6 +124,11 @@ class BitChuteIE(InfoExtractor):
             reason = clean_html(get_element_by_id('page-detail', webpage)) or page_title
             self.raise_geo_restricted(reason)
 
+    @staticmethod
+    def _make_url(html):
+        path = extract_attributes(get_element_html_by_class('spa', html) or '').get('href')
+        return urljoin('https://www.bitchute.com', path)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
@@ -121,12 +151,19 @@ class BitChuteIE(InfoExtractor):
                 'Video is unavailable. Please make sure this video is playable in the browser '
                 'before reporting this issue.', expected=True, video_id=video_id)
 
+        details = get_element_by_class('details', webpage) or ''
+        uploader_html = get_element_html_by_class('creator', details) or ''
+        channel_html = get_element_html_by_class('name', details) or ''
+
         return {
             'id': video_id,
             'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'uploader': clean_html(get_element_by_class('owner', webpage)),
+            'uploader': clean_html(uploader_html),
+            'uploader_url': self._make_url(uploader_html),
+            'channel': clean_html(channel_html),
+            'channel_url': self._make_url(channel_html),
             'upload_date': unified_strdate(self._search_regex(
                 r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
             'formats': formats,
@@ -154,6 +191,9 @@ class BitChuteChannelIE(InfoExtractor):
                     'thumbnail': r're:^https?://.*\.jpg$',
                     'uploader': 'BitChute',
                     'upload_date': '20170103',
+                    'uploader_url': 'https://www.bitchute.com/profile/I5NgtHZn9vPj/',
+                    'channel': 'BitChute',
+                    'channel_url': 'https://www.bitchute.com/channel/bitchute/',
                     'duration': 16,
                     'view_count': int,
                 },
@@ -169,7 +209,7 @@ class BitChuteChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'wV9Imujxasw9',
             'title': 'Bruce MacDonald and "The Light of Darkness"',
-            'description': 'md5:04913227d2714af1d36d804aa2ab6b1e',
+            'description': 'md5:747724ef404eebdfc04277714f81863e',
         }
     }]
 
