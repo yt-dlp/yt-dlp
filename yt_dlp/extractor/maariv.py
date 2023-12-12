@@ -17,7 +17,7 @@ class MaarivIE(InfoExtractor):
         'info_dict': {
             'id': '3611585',
             'duration': 75,
-             'ext': 'mp4',
+            'ext': 'mp4',
             'upload_date': '20231009',
             'title': 'מבצע חרבות ברזל',
             'timestamp': 1696851301,
@@ -28,7 +28,7 @@ class MaarivIE(InfoExtractor):
         'info_dict': {
             'id': '3611585',
             'duration': 75,
-             'ext': 'mp4',
+            'ext': 'mp4',
             'upload_date': '20231009',
             'title': 'מבצע חרבות ברזל',
             'timestamp': 1696851301,
