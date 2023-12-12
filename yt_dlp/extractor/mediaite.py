@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class MediaiteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mediaite.com(?!/category)(?:/[\w-]+){2}'
+    _VALID_URL = r'https?://(?:www\.)?mediaite\.com(?!/category)(?:/[\w-]+){2}'
     _TESTS = [{
         'url': 'https://www.mediaite.com/sports/bill-burr-roasts-nfl-for-promoting-black-lives-matter-while-scheduling-more-games-after-all-the-sht-they-know-about-cte/',
         'info_dict': {
