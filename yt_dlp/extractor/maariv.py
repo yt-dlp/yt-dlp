@@ -13,7 +13,7 @@ class MaarivIE(InfoExtractor):
     _VALID_URL = r'https?://player.maariv.co.il/public/player.html\?(?:[^#]+&)?media=(?P<id>\d+)'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
-        'url': 'https://dal.walla.co.il/media/1044008?origin=player.maariv.co.il',
+        'url': 'https://player.maariv.co.il/public/player.html?media=1044008',
         'info_dict': {
             'id': '1044008',
             'ext': 'mp4',
