@@ -1,5 +1,12 @@
+import datetime
+
 from .common import InfoExtractor
-from ..utils import UserNotLive, traverse_obj
+from ..utils import (
+    datetime_from_str,
+    UserNotLive,
+    traverse_obj,
+    unified_timestamp,
+)
 
 
 class MixchIE(InfoExtractor):
@@ -62,20 +69,44 @@ class MixchArchiveIE(InfoExtractor):
             'id': '421',
             'title': '96NEKO SHOW TIME',
         }
+    }, {
+        'url': 'https://mixch.tv/archive/1213',
+        'skip': 'paid video, no DRM. expires at Dec 31, 2023',
+        'info_dict': {
+            'id': '1213',
+            'title': '【特別トーク番組アーカイブス】Merm4id×燐舞曲 2nd LIVE「VERSUS」',
+            'live_status': 'not_live',
+            'release_timestamp': 1701421200,
+        }
+    }, {
+        'url': 'https://mixch.tv/archive/1214',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
 
-        html5_videos = self._parse_html5_media_entries(
-            url, webpage.replace('video-js', 'video'), video_id, 'hls')
-        if not html5_videos:
+        info_json, urlh = self._download_json_handle(
+            f'https://mixch.tv/api-web/archive/{video_id}', video_id, expected_status=(401))
+        if urlh.status == 401:
             self.raise_login_required(method='cookies')
-        infodict = html5_videos[0]
-        infodict.update({
-            'id': video_id,
-            'title': self._html_search_regex(r'class="archive-title">(.+?)</', webpage, 'title')
-        })
+            return
 
-        return infodict
+        release_timestamp = None
+        month, day, hour, min = self._search_regex(
+            r'(?P<month>\d{1,2})月(?P<day>\d{1,2})日\([月火水木金土日]\)(?P<hour>\d{1,2}):(?P<min>\d{1,2})',
+            traverse_obj(info_json, ("archive", 'start')), name='start datetime',
+            default=(None, None, None, None), group=('month', 'day', 'hour', 'min'))
+        if month and day and hour and min:
+            year = (datetime_from_str('today') + datetime.timedelta(hours=9)).strftime("%Y")
+            release_timestamp = unified_timestamp(f'{year}/{month}/{day} {hour}:{min} +09:00')
+
+        return {
+            'id': video_id,
+            'title': traverse_obj(info_json, ("archive", 'title')),
+            'formats': self._extract_m3u8_formats(
+                traverse_obj(info_json, ("archive", 'archiveURL')), video_id),
+            'live_status': 'not_live',
+            'thumbnail': traverse_obj(info_json, ("archive", 'thumbnailURL')),
+            'release_timestamp': release_timestamp,
+        }
