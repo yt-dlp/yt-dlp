@@ -12,16 +12,20 @@ class MaarivIE(InfoExtractor):
     IE_NAME = 'maariv.co.il'
     _VALID_URL = r'https?://player.maariv.co.il/public/player.html\?(?:[^#]+&)?media=(?P<id>\d+)'
     _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
-    _TESTS = [
-        {
-            'url': 'https://www.maariv.co.il/news/law/Article-1044008',
-            'info_dict': {
-                'id': '1044008',
-                'title': '.*',
-                'ext': 'mp4',
-            },
-        }
-    ]
+    _TESTS = [{
+        'url': 'https://dal.walla.co.il/media/1044008?origin=player.maariv.co.il',
+        'info_dict': {
+            'id': '1044008',
+            'ext': 'mp4',
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.maariv.co.il/news/law/Article-1044008',
+        'info_dict': {
+            'id': '1044008',
+            'ext': 'mp4',
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
