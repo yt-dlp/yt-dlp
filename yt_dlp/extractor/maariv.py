@@ -4,7 +4,8 @@ import re
 
 class MaarivIE(InfoExtractor):
     IE_NAME = 'maariv.co.il'
-    _VALID_URL = r'(https?://)?(www\.)?(m\.)?maariv\.co\.il(?:/[^/]+)*/Article-(?P<id>\d{7})'
+    _VALID_URL = r'https?://player.maariv.co.il/public/player.html\?(?:[^#]+&)?media=(?P<id>\d+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [
         {
             'url': 'https://www.maariv.co.il/news/law/Article-1044008',
