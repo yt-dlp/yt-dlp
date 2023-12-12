@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-import re
+from ..utils import (
+    int_or_none,
+    parse_resolution,
+    unified_timestamp,
+    url_or_none,
+)
+from ..utils.traversal import traverse_obj
 
 
 class MaarivIE(InfoExtractor):
