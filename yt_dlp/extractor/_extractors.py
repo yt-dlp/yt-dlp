@@ -1249,6 +1249,7 @@ from .niconico import (
     NicovideoTagURLIE,
     NiconicoLiveIE,
 )
+from .ninaprotocol import NinaProtocolIE
 from .ninecninemedia import (
     NineCNineMediaIE,
     CPTwentyFourIE,
