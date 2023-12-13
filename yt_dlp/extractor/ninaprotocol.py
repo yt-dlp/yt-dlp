@@ -56,4 +56,3 @@ class NinaProtocolIE(InfoExtractor):
             'thumbnail': thumbnail,
             # Add additional properties as needed
         }
-        
