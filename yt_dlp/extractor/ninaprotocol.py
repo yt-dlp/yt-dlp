@@ -2,6 +2,7 @@ import re
 import json
 from .common import InfoExtractor
 
+
 class NinaProtocolIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ninaprotocol\.com/releases/(?P<id>[a-zA-Z0-9\-]+)'
 
@@ -29,15 +30,15 @@ class NinaProtocolIE(InfoExtractor):
 
         # Extract JSON-like data within JavaScript
         json_str = self._search_regex(
-        r'self\.__next_f\.push\(\[1,"24:\[\\"(.+?)\\"\]\]"\)',
-        webpage, 'JSON data', fatal=False)
+            r'self\.__next_f\.push\(\[1,"24:\[\\"(.+?)\\"\]\]"\)',
+            webpage, 'JSON data', fatal=False)
 
         # Parse JSON data if found
         audio_url = None
         if json_str:
             try:
                 # Clean up the JSON string and load it
-                json_str = re.sub(r'\\u003c|\\u003e|\\u0026', '', json_str) 
+                json_str = re.sub(r'\\u003c|\\u003e|\\u0026', '', json_str)
                 json_data = json.loads(f'[{json_str}]')  # Wrap in array brackets to form valid JSON
                 # Navigate through the JSON structure to find the audio URL
                 audio_url = json_data[0].get('animation_url')
@@ -55,3 +56,4 @@ class NinaProtocolIE(InfoExtractor):
             'thumbnail': thumbnail,
             # Add additional properties as needed
         }
+        
