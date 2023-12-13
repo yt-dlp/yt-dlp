@@ -119,6 +119,6 @@
         "action": "change",
         "when": "15f22b4880b6b3f71f350c64d70976ae65b9f1ca",
         "short": "[webvtt] Allow spaces before newlines for CueBlock (#7681)",
-        "authors": ["TSBerry"]
+        "authors": ["TSRBerry"]
     }
 ]
