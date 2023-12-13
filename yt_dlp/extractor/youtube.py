@@ -4480,14 +4480,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if mobj:
                                 info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
                                 break
-            sbr_tooltip = try_get(
-                vpir, lambda x: x['sentimentBar']['sentimentBarRenderer']['tooltip'])
-            if sbr_tooltip:
-                like_count, dislike_count = sbr_tooltip.split(' / ')
-                info.update({
-                    'like_count': str_to_int(like_count),
-                    'dislike_count': str_to_int(dislike_count),
-                })
+
+            info['like_count'] = traverse_obj(vpir, (
+                'videoActions', 'menuRenderer', 'topLevelButtons', ...,
+                'segmentedLikeDislikeButtonViewModel', 'likeButtonViewModel', 'likeButtonViewModel',
+                'toggleButtonViewModel', 'toggleButtonViewModel', 'defaultButtonViewModel',
+                'buttonViewModel', 'accessibilityText', {parse_count}), get_all=False)
+
             vcr = traverse_obj(vpir, ('viewCount', 'videoViewCountRenderer'))
             if vcr:
                 vc = self._get_count(vcr, 'viewCount')
