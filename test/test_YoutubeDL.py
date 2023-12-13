@@ -797,6 +797,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title|%)s %(title|%%)s', '% %%')
         test('%(id+1-height+3)05d', '00158')
         test('%(width+100)05d', 'NA')
+        test('%(filesize*8)d', '8192')
         test('%(formats.0) 15s', ('% 15s' % FORMATS[0], None))
         test('%(formats.0)r', (repr(FORMATS[0]), None))
         test('%(height.0)03d', '001')
