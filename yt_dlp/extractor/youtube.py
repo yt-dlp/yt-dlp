@@ -4483,9 +4483,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             info['like_count'] = traverse_obj(vpir, (
                 'videoActions', 'menuRenderer', 'topLevelButtons', ...,
-                'segmentedLikeDislikeButtonViewModel', 'likeButtonViewModel',
-                'likeButtonViewModel', 'toggleButtonViewModel', 'toggleButtonViewModel',
-                'defaultButtonViewModel', 'buttonViewModel', 'accessibilityText', {parse_count}), get_all=False)
+                'segmentedLikeDislikeButtonViewModel', 'likeButtonViewModel', 'likeButtonViewModel',
+                'toggleButtonViewModel', 'toggleButtonViewModel', 'defaultButtonViewModel',
+                'buttonViewModel', 'accessibilityText', {parse_count}), get_all=False)
 
             vcr = traverse_obj(vpir, ('viewCount', 'videoViewCountRenderer'))
             if vcr:
