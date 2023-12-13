@@ -4480,10 +4480,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if mobj:
                                 info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
                                 break
-            
+
             info['like_count'] = traverse_obj(vpir, (
-                'videoActions', 'menuRenderer', 'topLevelButtons', ..., 
-                'segmentedLikeDislikeButtonViewModel', 'likeButtonViewModel', 
+                'videoActions', 'menuRenderer', 'topLevelButtons', ...,
+                'segmentedLikeDislikeButtonViewModel', 'likeButtonViewModel',
                 'likeButtonViewModel', 'toggleButtonViewModel', 'toggleButtonViewModel',
                 'defaultButtonViewModel', 'buttonViewModel', 'accessibilityText', {parse_count}), get_all=False)
 
