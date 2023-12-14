@@ -95,18 +95,18 @@ class MixchArchiveIE(InfoExtractor):
         release_timestamp = None
         month, day, hour, min = self._search_regex(
             r'(?P<month>\d{1,2})月(?P<day>\d{1,2})日\([月火水木金土日]\)(?P<hour>\d{1,2}):(?P<min>\d{1,2})',
-            traverse_obj(info_json, ("archive", 'start')), name='start datetime',
+            traverse_obj(info_json, ('archive', 'start')), name='start datetime',
             default=(None, None, None, None), group=('month', 'day', 'hour', 'min'))
         if month and day and hour and min:
-            year = (datetime_from_str('today') + datetime.timedelta(hours=9)).strftime("%Y")
+            year = (datetime_from_str('today') + datetime.timedelta(hours=9)).strftime('%Y')
             release_timestamp = unified_timestamp(f'{year}/{month}/{day} {hour}:{min} +09:00')
 
         return {
             'id': video_id,
-            'title': traverse_obj(info_json, ("archive", 'title')),
+            'title': traverse_obj(info_json, ('archive', 'title')),
             'formats': self._extract_m3u8_formats(
-                traverse_obj(info_json, ("archive", 'archiveURL')), video_id),
+                traverse_obj(info_json, ('archive', 'archiveURL')), video_id),
             'live_status': 'not_live',
-            'thumbnail': traverse_obj(info_json, ("archive", 'thumbnailURL')),
+            'thumbnail': traverse_obj(info_json, ('archive', 'thumbnailURL')),
             'release_timestamp': release_timestamp,
         }
