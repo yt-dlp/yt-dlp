@@ -25,8 +25,6 @@ class RinseFMIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        info = self._search_nextjs_data(webpage, video_id)
-
         entry = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['entry']
         return {
             'id': entry['id'],
