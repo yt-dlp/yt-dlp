@@ -13,10 +13,11 @@ def write_file(fname, content, mode='w'):
         return f.write(content)
 
 
-def read_version(fname='yt_dlp/version.py'):
+def read_version(fname='yt_dlp/version.py', varname='__version__'):
     """Get the version without importing the package"""
-    exec(compile(read_file(fname), fname, 'exec'))
-    return locals()['__version__']
+    items = {}
+    exec(compile(read_file(fname), fname, 'exec'), items)
+    return items[varname]
 
 
 def get_filename_args(has_infile=False, default_outfile=None):

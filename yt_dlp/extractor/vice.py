@@ -302,12 +302,6 @@ class ViceArticleIE(ViceBaseIE):
         if vice_url:
             return _url_res(vice_url, ViceIE.ie_key())
 
-        embed_code = self._search_regex(
-            r'embedCode=([^&\'"]+)', body,
-            'ooyala embed code', default=None)
-        if embed_code:
-            return _url_res('ooyala:%s' % embed_code, 'Ooyala')
-
         youtube_url = YoutubeIE._extract_url(body)
         if youtube_url:
             return _url_res(youtube_url, YoutubeIE.ie_key())
