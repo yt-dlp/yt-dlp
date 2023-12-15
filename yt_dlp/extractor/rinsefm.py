@@ -1,5 +1,3 @@
-import re
-import json
 from datetime import datetime, timezone
 
 from .common import InfoExtractor
