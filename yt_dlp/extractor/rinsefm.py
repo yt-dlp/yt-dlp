@@ -1,10 +1,9 @@
-from datetime import datetime, timezone
-
 from .common import InfoExtractor
 from ..utils import (
     parse_iso8601,
     format_field,
 )
+
 
 class RinseFMIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rinse\.fm/episodes/(?P<id>[^/?#]+)'
