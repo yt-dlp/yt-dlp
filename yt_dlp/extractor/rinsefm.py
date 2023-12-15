@@ -15,6 +15,8 @@ class RinseFMIE(InfoExtractor):
             'ext': 'mp3',
             'title': 'Cameo Blush - 01/09/2023 - 23:00',
             'thumbnail': r're:^https?://.*\.JPG$',
+            'release_timestamp': 1693522800,
+            'release_date': '20230831'
         }
     }]
 
@@ -22,8 +24,7 @@ class RinseFMIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        response = re.findall(r'<script[^>]*id\s*=\s*[\'"]__NEXT_DATA__[\'"][^>]*>(.*?)<\/script>', webpage, re.DOTALL)
-        info = json.loads(response[0])
+        info = self._search_nextjs_data(webpage, video_id)
 
         entry = info['props']['pageProps']['entry']
 
