@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_iso8601,
-    format_field,
-)
+from ..utils import format_field, parse_iso8601
 
 
 class RinseFMIE(InfoExtractor):
