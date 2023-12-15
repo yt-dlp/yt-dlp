@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 
 from .common import InfoExtractor
-
+from ..utils import (
+    parse_iso8601,
+    format_field,
+)
 
 class RinseFMIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rinse\.fm/episodes/(?P<id>.+)'
+    _VALID_URL = r'https?://(?:www\.)?rinse\.fm/episodes/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://rinse.fm/episodes/cameo-blush-01-09-2023-2300/',
         'md5': '9284abbd785e6b86e67d1cdca6224feb',
@@ -24,21 +27,13 @@ class RinseFMIE(InfoExtractor):
 
         info = self._search_nextjs_data(webpage, video_id)
 
-        entry = info['props']['pageProps']['entry']
-
-        track_id = entry['id']
-        title = entry['title']
-
-        date_obj = datetime.fromisoformat(entry['episodeDate'])
-        unix_timestamp = int(date_obj.replace(tzinfo=timezone.utc).timestamp())
-
-        url = entry['fileUrl']
-        thumbnail = "https://rinse.imgix.net/media/" + entry['featuredImage'][0]['filename']
-
+        entry = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['entry']
         return {
-            'id': track_id,
-            'title': title,
-            'url': url,
-            'release_timestamp': unix_timestamp,
-            'thumbnail': thumbnail
+            'id': entry['id'],
+            'title': entry.get('title'),
+            'url': entry['fileUrl'],
+            'vcodec': 'none',
+            'release_timestamp': parse_iso8601(entry.get('episodeDate')),
+            'thumbnail': format_field(
+                entry, [('featuredImage', 0, 'filename')], 'https://rinse.imgix.net/media/%s', default=None),
         }
