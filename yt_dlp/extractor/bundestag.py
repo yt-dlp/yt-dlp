@@ -2,6 +2,7 @@ import re
 from functools import partial
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     bug_reports_message,
@@ -12,7 +13,6 @@ from ..utils import (
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
-from ..networking.exceptions import HTTPError
 
 
 class BundestagIE(InfoExtractor):
