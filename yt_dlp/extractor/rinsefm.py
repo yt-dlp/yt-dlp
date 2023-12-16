@@ -5,15 +5,15 @@ from ..utils import format_field, parse_iso8601
 class RinseFMIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rinse\.fm/episodes/(?P<id>[^/?#]+)'
     _TESTS = [{
-        'url': 'https://rinse.fm/episodes/cameo-blush-01-09-2023-2300/',
-        'md5': '9284abbd785e6b86e67d1cdca6224feb',
+        'url': 'https://rinse.fm/episodes/club-glow-15-12-2023-2000/',
+        'md5': '76ee0b719315617df42e15e710f46c7b',
         'info_dict': {
-            'id': '1351562',
+            'id': '1536535',
             'ext': 'mp3',
-            'title': 'Cameo Blush - 01/09/2023 - 23:00',
-            'thumbnail': r're:^https?://.*\.JPG$',
-            'release_timestamp': 1693522800,
-            'release_date': '20230831'
+            'title': 'Club Glow - 15/12/2023 - 20:00',
+            'thumbnail': r're:^https?://.*\.(jpg|JPG)$',
+            'release_timestamp': 1702598400,
+            'release_date': '20231215'
         }
     }]
 
