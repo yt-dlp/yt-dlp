@@ -18,10 +18,10 @@ class RinseFMIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        entry = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['entry']
 
-        entry = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['entry']
         return {
             'id': entry['id'],
             'title': entry.get('title'),
