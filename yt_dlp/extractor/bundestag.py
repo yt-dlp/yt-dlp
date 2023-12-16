@@ -66,34 +66,36 @@ class BundestagIE(InfoExtractor):
             if not isinstance(name, str) or not name.startswith('audio') or not url_or_none(url):
                 continue
 
-            match = re.search(self._SHARE_AUDIO_REGEX, url)
-            yield {
-                'format_id': name,
-                'url': url,
-                'vcodec': 'none',
-                **traverse_obj(match, {
-                    'acodec': 'codec',
-                    'abr': ('bitrate', {int_or_none}),
-                    'ext': 'ext',
-                }),
-            }
-
         for name, url in share_data.items():
-            if not isinstance(name, str) or not name.startswith('download') or not url_or_none(url):
+            if not isinstance(name, str) or not url_or_none(url):
                 continue
 
-            match = re.search(self._SHARE_VIDEO_REGEX, url)
-            yield {
-                'format_id': name,
-                'url': url,
-                **traverse_obj(match, {
-                    'vcodec': 'codec',
-                    'tbr': ('bitrate', {int_or_none}),
-                    'width': ('width', {int_or_none}),
-                    'height': ('height', {int_or_none}),
-                    'ext': 'ext',
-                }),
-            }
+            elif name.startswith('audio'):
+                match = re.search(self._SHARE_AUDIO_REGEX, url)
+                yield {
+                    'format_id': name,
+                    'url': url,
+                    'vcodec': 'none',
+                    **traverse_obj(match, {
+                        'acodec': 'codec',
+                        'abr': ('bitrate', {int_or_none}),
+                        'ext': 'ext',
+                    }),
+                }
+
+            elif name.startswith('download'):
+                match = re.search(self._SHARE_VIDEO_REGEX, url)
+                yield {
+                    'format_id': name,
+                    'url': url,
+                    **traverse_obj(match, {
+                        'vcodec': 'codec',
+                        'tbr': ('bitrate', {int_or_none}),
+                        'width': ('width', {int_or_none}),
+                        'height': ('height', {int_or_none}),
+                        'ext': 'ext',
+                    }),
+                }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -101,27 +103,25 @@ class BundestagIE(InfoExtractor):
         result = {'id': video_id, 'formats': formats}
 
         try:
-            formats.extend(self._extract_m3u8_formats(self._INSTANCE_FORMAT.format(video_id), video_id))
+            formats.extend(self._extract_m3u8_formats(
+                self._INSTANCE_FORMAT.format(video_id), video_id, m3u8_id='instance'))
         except ExtractorError as error:
             if isinstance(error.cause, HTTPError) and error.cause.status == 404:
-                raise ExtractorError('Could not find video id', expected=True) from None
+                raise ExtractorError('Could not find video id', expected=True)
             self.report_warning(f'Error extracting hls formats: {error}', video_id)
         formats.extend(self._bt_extract_share_formats(video_id))
         if not formats:
             self.raise_no_formats('Could not find suitable formats', video_id=video_id)
 
-        metadata_overlay_html = self._download_webpage(
+        result.update(traverse_obj(self._download_webpage(
             self._OVERLAY_URL, video_id,
             query={'videoid': video_id, 'view': 'main'},
-            note='Downloading metadata overlay', fatal=False)
-        if isinstance(metadata_overlay_html, str) and not metadata_overlay_html.isspace():
-            result.update(traverse_obj(metadata_overlay_html, {
-                'title': (
-                    {partial(get_element_text_and_html_by_tag, 'h3')}, 0,
-                    {partial(re.sub, r'<span[^>]*>[^<]+</span>', '')}, {clean_html}),
-                'description': ({partial(get_element_text_and_html_by_tag, 'p')}, 0, {clean_html}),
-            }))
-        else:
-            self.report_warning('Error in metadata overlay', video_id)
+            note='Downloading metadata overlay', fatal=False,
+        ), {
+            'title': (
+                {partial(get_element_text_and_html_by_tag, 'h3')}, 0,
+                {partial(re.sub, r'<span[^>]*>[^<]+</span>', '')}, {clean_html}),
+            'description': ({partial(get_element_text_and_html_by_tag, 'p')}, 0, {clean_html}),
+        }))
 
         return result
