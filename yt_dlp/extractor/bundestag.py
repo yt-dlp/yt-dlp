@@ -48,7 +48,7 @@ class BundestagIE(InfoExtractor):
     _INSTANCE_FORMAT = 'https://cldf-wzw-od.r53.cdn.tv1.eu/13014bundestagod/_definst_/13014bundestag/ondemand/3777parlamentsfernsehen/archiv/app144277506/145293313/{0}/{0}_playlist.smil/playlist.m3u8'
 
     _SHARE_URL = 'https://webtv.bundestag.de/player/macros/_x_s-144277506/shareData.json?contentId='
-    _SHARE_AUDIO_REGEX = r'/\d+_(?P<codec>\w+)_(?P<bitrate>\d+)kb_\w+_\w+_\d+\.(?P<ext>\w+)'
+    _SHARE_AUDIO_REGEX = r'/\d+_(?P<codec>\w+)_(?P<bitrate>\d+)kb_(?P<channels>\w+)_\w+_\d+\.(?P<ext>\w+)'
     _SHARE_VIDEO_REGEX = r'/\d+_(?P<codec>\w+)_(?P<width>\w+)_(?P<height>\w+)_(?P<bitrate>\d+)kb_\w+_\w+_\d+\.(?P<ext>\w+)'
 
     def _bt_extract_share_formats(self, video_id):
@@ -63,10 +63,6 @@ class BundestagIE(InfoExtractor):
             return
 
         for name, url in share_data.items():
-            if not isinstance(name, str) or not name.startswith('audio') or not url_or_none(url):
-                continue
-
-        for name, url in share_data.items():
             if not isinstance(name, str) or not url_or_none(url):
                 continue
 
@@ -78,6 +74,7 @@ class BundestagIE(InfoExtractor):
                     'vcodec': 'none',
                     **traverse_obj(match, {
                         'acodec': 'codec',
+                        'audio_channels': ('channels', {{'mono': 1, 'stereo': 2}.get}),
                         'abr': ('bitrate', {int_or_none}),
                         'ext': 'ext',
                     }),
