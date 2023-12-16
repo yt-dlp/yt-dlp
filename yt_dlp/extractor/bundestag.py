@@ -54,8 +54,7 @@ class BundestagIE(InfoExtractor):
     def _bt_extract_share_formats(self, video_id):
         share_data = self._download_json(
             f'{self._SHARE_URL}{video_id}', video_id, note='Downloading share format JSON')
-        error = traverse_obj(share_data, ('status', 'code', {int}))
-        if error != 1:
+        if traverse_obj(share_data, ('status', 'code', {int})) != 1:
             self.report_warning(format_field(
                 share_data, [('status', 'message', {str})],
                 'Share API response: %s', default='Unknown Share API Error')
