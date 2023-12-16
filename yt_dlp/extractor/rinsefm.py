@@ -11,7 +11,7 @@ class RinseFMIE(InfoExtractor):
             'id': '1536535',
             'ext': 'mp3',
             'title': 'Club Glow - 15/12/2023 - 20:00',
-            'thumbnail': r're:^https?://.*\.(jpg|JPG)$',
+            'thumbnail': r're:^https://.+\.(?:jpg|JPG)$',
             'release_timestamp': 1702598400,
             'release_date': '20231215'
         }
