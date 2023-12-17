@@ -305,6 +305,7 @@ from .cbc import (
     CBCPlayerIE,
     CBCPlayerPlaylistIE,
     CBCGemIE,
+    CBCGemEpisodeIE,
     CBCGemPlaylistIE,
     CBCGemLiveIE,
 )
