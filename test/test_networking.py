@@ -1484,7 +1484,7 @@ class TestYoutubeDLNetworking:
                 pass
 
             _SUPPORTED_URL_SCHEMES = ('http',)
-            _SUPPORTED_IMPERSONATE_TARGET_TUPLES = [('firefox',)]
+            _SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP = {('firefox',): 'test'}
 
         # Bypass the check on initialize
         brh = FakeYDL.build_request_director
@@ -1503,7 +1503,7 @@ class TestYoutubeDLNetworking:
                 def _send(self, request: Request):
                     pass
                 _SUPPORTED_URL_SCHEMES = ('http',)
-                _SUPPORTED_IMPERSONATE_TARGET_TUPLES = [(target_client,)]
+                _SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP = {(target_client,): 'test'}
                 RH_KEY = target_client
                 RH_NAME = target_client
             handlers.append(TestRH)
