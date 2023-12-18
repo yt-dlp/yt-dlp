@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class JoqrAgIE(InfoExtractor):
-    IE_DESC = '超!A&G+ 文化放送 Nippon Cultural Broadcasting, Inc. (JOQR, AGQR)'
+    IE_DESC = '超!A&G+ 文化放送 (f.k.a. AGQR) Nippon Cultural Broadcasting, Inc. (JOQR)'
     _VALID_URL = [r'https?://www\.uniqueradio\.jp/agplayer5/(?:player|inc-player-hls)\.php',
                   r'https?://(?:www\.)?joqr\.co\.jp/ag/',
                   r'https?://(?:www\.)?joqr\.co\.jp/qr/ag(?:daily|regular)program/?(?:$|[#?])']
