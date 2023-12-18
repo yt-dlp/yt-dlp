@@ -62,7 +62,7 @@ from .utils import (
     variadic,
     write_string,
 )
-from .utils.networking import std_headers, parse_impersonate_target, compile_impersonate_target
+from .utils.networking import std_headers
 from .YoutubeDL import YoutubeDL
 
 _IN_CLI = False

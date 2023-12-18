@@ -54,8 +54,6 @@ from yt_dlp.networking.impersonate import ImpersonateRequestHandler, Impersonate
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
-    compile_impersonate_target,
-    parse_impersonate_target,
     std_headers,
 )
 
