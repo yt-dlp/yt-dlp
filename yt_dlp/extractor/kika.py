@@ -9,28 +9,39 @@ from ..utils import (
 
 class KikaIE(InfoExtractor):
     IE_DESC = 'KiKA.de'
-    _VALID_URL = r'https?://(?:www\.)?kika\.de/(?:.*)/[a-z-]+-?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?kika\.de/(?:.*)/(?P<id>[a-z-]+-?\d+)'
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
-        'url': 'https://www.kika.de/beutolomaeus-und-der-wahre-weihnachtsmann/videos/video59362',
-        'md5': 'b163ac8872f0cea1eb075cae3c275935',
+        'url': 'https://www.kika.de/beutolomaeus-und-der-wahre-weihnachtsmann/videos/eins-der-neue-weihnachtsmann-102',
+        'md5': '25ceea8790417f3c6dcf1d4342f8a97a',
         'info_dict': {
-            'id': '59362',
+            'id': 'eins-der-neue-weihnachtsmann-102',
             'ext': 'mp4',
             'title': '1. Der neue Weihnachtsmann',
             'description': 'md5:61b1e6f32882e8ca2a0ddfd135d03c6b',
             'duration': 787,
-            'uploader': 'KIKA',
-            'timestamp': 1669914628,
-            'upload_date': '20221201'
-        },
+            'timestamp': 1700584500,
+            'upload_date': '20231121'
+        }
+    }, {
+        'url': 'https://www.kika.de/kaltstart/videos/video92498',
+        'md5': '710ece827e5055094afeb474beacb7aa',
+        'info_dict': {
+            'id': 'video92498',
+            'ext': 'mp4',
+            'title': '7. Wo ist Leo?',
+            'description': 'md5:fb48396a5b75068bcac1df74f1524920',
+            'duration': 436,
+            'timestamp': 1702926876,
+            'upload_date': '20231218'
+        }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        doc = self._download_json(f'https://www.kika.de/_next-api/proxy/v1/videos/video{video_id}', video_id)
+        doc = self._download_json(f'https://www.kika.de/_next-api/proxy/v1/videos/{video_id}', video_id)
         video_assets = self._download_json(doc['assets']['url'], video_id)
 
         subtitles = {}
@@ -54,8 +65,7 @@ class KikaIE(InfoExtractor):
             'timestamp': parse_iso8601(doc.get('date')),
             'duration': parse_duration(doc.get('duration')),
             'formats': list(self._extract_formats(video_assets, video_id)),
-            'subtitles': subtitles,
-            'uploader': 'KIKA'
+            'subtitles': subtitles
         }
 
     def _extract_formats(self, media_info, video_id):
