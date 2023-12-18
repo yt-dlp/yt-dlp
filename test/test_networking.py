@@ -50,7 +50,7 @@ from yt_dlp.networking.exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from yt_dlp.networking.impersonate import ImpersonateRequestHandler
+from yt_dlp.networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
@@ -913,9 +913,9 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
 
     @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
     @pytest.mark.parametrize('params,extensions', [
-        ({}, {'impersonate': ('chrome',)}),
-        ({'impersonate': ('chrome', '110')}, {}),
-        ({'impersonate': ('chrome', '99')}, {'impersonate': ('chrome', '110')}),
+        ({}, {'impersonate': ImpersonateTarget('chrome')}),
+        ({'impersonate': ImpersonateTarget('chrome', '110')}, {}),
+        ({'impersonate': ImpersonateTarget('chrome', '99')}, {'impersonate': ImpersonateTarget('chrome', '110')}),
     ])
     def test_impersonate(self, handler, params, extensions):
         with handler(headers=std_headers, **params) as rh:
@@ -931,7 +931,7 @@ class TestCurlCFFIRequestHandler(TestRequestHandlerBase):
             # Ensure curl-impersonate overrides our standard headers (usually added
             res = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/headers', extensions={
-                    'impersonate': ('safari', )}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
+                    'impersonate': ImpersonateTarget('safari')}, headers={'x-custom': 'test', 'sec-fetch-mode': 'custom'})).read().decode().lower()
 
             assert std_headers['user-agent'].lower() not in res
             assert std_headers['accept-language'].lower() not in res
@@ -1143,11 +1143,12 @@ class TestRequestHandlerValidation:
             ({'timeout': 1}, False),
             ({'timeout': 'notatimeout'}, AssertionError),
             ({'unsupported': 'value'}, UnsupportedRequest),
-            ({'impersonate': ('badtarget', None, None, None)}, UnsupportedRequest),
+            ({'impersonate': ImpersonateTarget('badtarget', None, None, None)}, UnsupportedRequest),
             ({'impersonate': 123}, AssertionError),
-            ({'impersonate': ('chrome', None, None, None)}, False),
-            ({'impersonate': (None, None, None, None)}, False),
-            ({'impersonate': ()}, False)
+            ({'impersonate': ImpersonateTarget('chrome', None, None, None)}, False),
+            ({'impersonate': ImpersonateTarget(None, None, None, None)}, False),
+            ({'impersonate': ImpersonateTarget()}, False),
+            ({'impersonate': 'chrome'}, AssertionError)
         ]),
         (NoCheckRH, 'http', [
             ({'cookiejar': 'notacookiejar'}, False),
@@ -1447,7 +1448,7 @@ class TestYoutubeDLNetworking:
                 RequestError,
                 match=r'Impersonate target "test" is not available. This request requires browser impersonation'
             ):
-                ydl.urlopen(Request('http://', extensions={'impersonate': ('test', None, None, None)}))
+                ydl.urlopen(Request('http://', extensions={'impersonate': ImpersonateTarget('test', None, None, None)}))
 
     def test_unsupported_impersonate_extension(self):
         class FakeHTTPRHYDL(FakeYDL):
@@ -1457,7 +1458,7 @@ class TestYoutubeDLNetworking:
                         pass
 
                     _SUPPORTED_URL_SCHEMES = ('http',)
-                    _SUPPORTED_IMPERSONATE_TARGET_TUPLES = [('firefox',)]
+                    _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('firefox',): 'test'}
                     _SUPPORTED_PROXY_SCHEMES = None
 
                 super().__init__(*args, **kwargs)
@@ -1468,14 +1469,14 @@ class TestYoutubeDLNetworking:
                 RequestError,
                 match=r'Impersonate target "test" is not available. This request requires browser impersonation'
             ):
-                ydl.urlopen(Request('http://', extensions={'impersonate': ('test', None, None, None)}))
+                ydl.urlopen(Request('http://', extensions={'impersonate': ImpersonateTarget('test', None, None, None)}))
 
     def test_raise_impersonate_error(self):
         with pytest.raises(
             ValueError,
             match=r'Impersonate target "test" is not available. Use --list-impersonate-targets to see available targets.'
         ):
-            FakeYDL({'impersonate': ('test', None, None, None)})
+            FakeYDL({'impersonate': ImpersonateTarget('test', None, None, None)})
 
     def test_pass_impersonate_param(self, monkeypatch):
 
@@ -1484,17 +1485,17 @@ class TestYoutubeDLNetworking:
                 pass
 
             _SUPPORTED_URL_SCHEMES = ('http',)
-            _SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP = {('firefox',): 'test'}
+            _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget('firefox'): 'test'}
 
         # Bypass the check on initialize
         brh = FakeYDL.build_request_director
         monkeypatch.setattr(FakeYDL, 'build_request_director', lambda cls, handlers, preferences=None: brh(cls, handlers=[IRH]))
 
         with FakeYDL({
-            'impersonate': ('firefox', None, None, None)
+            'impersonate': ImpersonateTarget('firefox', None, None, None)
         }) as ydl:
             rh = self.build_handler(ydl, IRH)
-            assert rh.impersonate == ('firefox', None, None, None)
+            assert rh.impersonate == ImpersonateTarget('firefox', None, None, None)
 
     def test_get_impersonate_targets(self):
         handlers = []
@@ -1503,17 +1504,21 @@ class TestYoutubeDLNetworking:
                 def _send(self, request: Request):
                     pass
                 _SUPPORTED_URL_SCHEMES = ('http',)
-                _SUPPORTED_IMPERSONATE_TARGET_TUPLE_MAP = {(target_client,): 'test'}
+                _SUPPORTED_IMPERSONATE_TARGET_MAP = {ImpersonateTarget(target_client,): 'test'}
                 RH_KEY = target_client
                 RH_NAME = target_client
             handlers.append(TestRH)
 
         with FakeYDL() as ydl:
             ydl._request_director = ydl.build_request_director(handlers)
-            assert set(ydl.get_available_impersonate_targets()) == {('firefox', 'firefox'), ('chrome', 'chrome'), ('edge', 'edge')}
-            assert ydl.impersonate_target_available(('firefox', ))
-            assert ydl.impersonate_target_available(())
-            assert not ydl.impersonate_target_available(('safari',))
+            assert set(ydl.get_available_impersonate_targets()) == {
+                (ImpersonateTarget('chrome'), 'chrome'),
+                (ImpersonateTarget('firefox'), 'firefox'),
+                (ImpersonateTarget('edge'), 'edge')
+            }
+            assert ydl.impersonate_target_available(ImpersonateTarget('firefox'))
+            assert ydl.impersonate_target_available(ImpersonateTarget())
+            assert not ydl.impersonate_target_available(ImpersonateTarget('safari'))
 
     @pytest.mark.parametrize('proxy_key,proxy_url,expected', [
         ('http', '__noproxy__', None),
@@ -1809,38 +1814,51 @@ class TestResponse:
             assert res.getheader('test') == res.get_header('test')
 
 
-# TODO: move these to test_utils.py when that moves to pytest
-class TestImpersonate:
-    @pytest.mark.parametrize('target,expected', [
-        ('firefox', ('firefox', None, None, None)),
-        ('firefox:120', ('firefox', '120', None, None)),
-        ('firefox:120:linux', ('firefox', '120', 'linux', None)),
-        ('firefox:120:linux:5', ('firefox', '120', 'linux', '5')),
-        ('firefox::linux', ('firefox', None, 'linux', None)),
-        ('firefox:::5', ('firefox', None, None, '5')),
-        ('firefox:::', ('firefox', None, None, None)),
-        ('firefox:120::5', ('firefox', '120', None, '5')),
-        ('firefox:120:', ('firefox', '120', None, None)),
-        ('::120', (None, None, '120', None)),
-        (':', (None, None, None, None)),
-        (':::', (None, None, None, None)),
-        ('', (None, None, None, None)),
+class TestImpersonateTarget:
+    @pytest.mark.parametrize('target_str,expected', [
+        ('firefox', ImpersonateTarget('firefox', None, None, None)),
+        ('firefox:120', ImpersonateTarget('firefox', '120', None, None)),
+        ('firefox:120:linux', ImpersonateTarget('firefox', '120', 'linux', None)),
+        ('firefox:120:linux:5', ImpersonateTarget('firefox', '120', 'linux', '5')),
+        ('firefox::linux', ImpersonateTarget('firefox', None, 'linux', None)),
+        ('firefox:::5', ImpersonateTarget('firefox', None, None, '5')),
+        ('firefox:::', ImpersonateTarget('firefox', None, None, None)),
+        ('firefox:120::5', ImpersonateTarget('firefox', '120', None, '5')),
+        ('firefox:120:', ImpersonateTarget('firefox', '120', None, None)),
+        ('::120', ImpersonateTarget(None, None, '120', None)),
+        (':', ImpersonateTarget(None, None, None, None)),
+        (':::', ImpersonateTarget(None, None, None, None)),
+        ('', ImpersonateTarget(None, None, None, None)),
     ])
-    def test_parse_impersonate_target(self, target, expected):
-        assert parse_impersonate_target(target) == expected
+    def test_target_from_str(self, target_str, expected):
+        assert ImpersonateTarget.from_str(target_str) == expected
 
-    @pytest.mark.parametrize('target_tuple,expected', [
-        (('firefox', None, None, None), 'firefox'),
-        (('firefox', '120', None, None), 'firefox:120'),
-        (('firefox', '120', 'linux', None), 'firefox:120:linux'),
-        (('firefox', '120', 'linux', '5'), 'firefox:120:linux:5'),
-        (('firefox', None, 'linux', None), 'firefox::linux'),
-        (('firefox', None, None, '5'), 'firefox:::5'),
-        (('firefox', '120', None, '5'), 'firefox:120::5'),
-        ((None, '120', None, None), ':120'),
-        (('firefox', ), 'firefox'),
-        (('firefox', None, 'linux'), 'firefox::linux'),
-        ((None, None, None, None), ''),
+    @pytest.mark.parametrize('target,expected', [
+        (ImpersonateTarget('firefox', None, None, None), 'firefox'),
+        (ImpersonateTarget('firefox', '120', None, None), 'firefox:120'),
+        (ImpersonateTarget('firefox', '120', 'linux', None), 'firefox:120:linux'),
+        (ImpersonateTarget('firefox', '120', 'linux', '5'), 'firefox:120:linux:5'),
+        (ImpersonateTarget('firefox', None, 'linux', None), 'firefox::linux'),
+        (ImpersonateTarget('firefox', None, None, '5'), 'firefox:::5'),
+        (ImpersonateTarget('firefox', '120', None, '5'), 'firefox:120::5'),
+        (ImpersonateTarget(None, '120', None, None), ':120'),
+        (ImpersonateTarget('firefox', ), 'firefox'),
+        (ImpersonateTarget('firefox', None, 'linux'), 'firefox::linux'),
+        (ImpersonateTarget(None, None, None, None), ''),
     ])
-    def test_compile_impersonate_target(self, target_tuple, expected):
-        assert compile_impersonate_target(*target_tuple) == expected
+    def test_str(self, target, expected):
+        assert str(target) == expected
+
+    @pytest.mark.parametrize('target1,target2,is_in,is_eq', [
+        (ImpersonateTarget('firefox', None, None, None), ImpersonateTarget('firefox', None, None, None), True, True),
+        (ImpersonateTarget('firefox', None, None, None), ImpersonateTarget('firefox', '120', None, None), True, False),
+        (ImpersonateTarget('firefox', None, 'linux', 'test'), ImpersonateTarget('firefox', '120', 'linux', None), True, False),
+        (ImpersonateTarget('firefox', '121', 'linux', 'test'), ImpersonateTarget('firefox', '120', 'linux', 'test'), False, False),
+        (ImpersonateTarget('firefox'), ImpersonateTarget('firefox', '120', 'linux', 'test'), True, False),
+        (ImpersonateTarget('firefox', '120', 'linux', 'test'), ImpersonateTarget('firefox'), True, False),
+        (ImpersonateTarget(), ImpersonateTarget('firefox', '120', 'linux'), True, False),
+        (ImpersonateTarget(), ImpersonateTarget(), True, True),
+    ])
+    def test_impersonate_target_in(self, target1, target2, is_in, is_eq):
+        assert (target1 in target2) is is_in
+        assert (target1 == target2) is is_eq

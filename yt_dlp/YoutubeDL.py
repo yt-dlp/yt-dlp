@@ -164,7 +164,6 @@ from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
     clean_proxies,
-    compile_impersonate_target,
     std_headers,
 )
 from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
@@ -407,7 +406,7 @@ class YoutubeDL:
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
     impersonate:       Client to impersonate for requests.
-                        A tuple in the form (client, version, os, os_version)
+                        An ImpersonateTarget (from yt_dlp.networking.impersonate)
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
@@ -718,7 +717,7 @@ class YoutubeDL:
             # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
             if not self.impersonate_target_available(impersonate_target):
                 raise ValueError(
-                    f'Impersonate target "{compile_impersonate_target(*self.params.get("impersonate"))}" is not available. '
+                    f'Impersonate target "{self.params.get("impersonate")}" is not available. '
                     f'Use --list-impersonate-targets to see available targets.')
 
         if 'list-formats' in self.params['compat_opts']:
@@ -4052,7 +4051,7 @@ class YoutubeDL:
     def get_available_impersonate_targets(self):
         return sorted(
             itertools.chain.from_iterable(
-                [[(*target, rh.RH_NAME) for target in rh.supported_targets]
+                [[(target, rh.RH_NAME) for target in rh.supported_targets]
                  for rh in self._request_director.handlers.values()
                  if isinstance(rh, ImpersonateRequestHandler)]), key=lambda x: x[0])
 
@@ -4111,7 +4110,7 @@ class YoutubeDL:
 
                 elif re.match(r'unsupported (?:extensions: impersonate|impersonate target)', ue.msg.lower()):
                     raise RequestError(
-                        f'Impersonate target "{compile_impersonate_target(*req.extensions["impersonate"])}" is not available.'
+                        f'Impersonate target "{req.extensions["impersonate"]}" is not available.'
                         f' This request requires browser impersonation, however you may be missing dependencies'
                         f' required to support this target. See the documentation for more information.')
             raise

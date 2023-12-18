@@ -1,5 +1,7 @@
 import sys
 
+from .networking.impersonate import ImpersonateTarget
+
 if sys.version_info < (3, 8):
     raise ImportError(
         f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
@@ -387,10 +389,7 @@ def validate_options(opts):
         opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
     if opts.impersonate is not None:
-        target = parse_impersonate_target(opts.impersonate)
-        if target is None:
-            raise ValueError(f'invalid impersonate target "{opts.impersonate}"')
-        opts.impersonate = target
+        opts.impersonate = ImpersonateTarget.from_str(opts.impersonate)
 
     # MetadataParser
     def metadataparser_actions(f):
@@ -987,8 +986,10 @@ def _real_main(argv=None):
 
         if opts.list_impersonate_targets:
             available_targets = ydl.get_available_impersonate_targets()
-            rows = [[*[item or '' for item in target], compile_impersonate_target(*target)] for target in
-                    available_targets]
+            rows = [
+                [target.client, target.version, target.os, target.os_vers, handler, str(target)]
+                for target, handler in available_targets
+            ]
 
             ydl.to_screen('[info] Available impersonate targets')
             ydl.to_stdout(
