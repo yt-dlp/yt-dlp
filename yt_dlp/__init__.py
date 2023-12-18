@@ -986,7 +986,7 @@ def _real_main(argv=None):
             ydl._download_retcode = 100
 
         if opts.list_impersonate_targets:
-            available_targets = ydl.get_impersonate_targets()
+            available_targets = ydl.get_available_impersonate_targets()
             rows = [[*[item or '' for item in target], compile_impersonate_target(*target)] for target in
                     available_targets]
 

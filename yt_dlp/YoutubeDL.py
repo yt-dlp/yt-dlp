@@ -4049,16 +4049,18 @@ class YoutubeDL:
         handler = self._request_director.handlers['Urllib']
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
-    def get_impersonate_targets(self):
-        return sorted(self._request_director.collect_from_handlers(
-            lambda rh: [(*target, rh.RH_NAME) for target in rh.supported_targets],
-            [lambda _, v: isinstance(v, ImpersonateRequestHandler)]
-        ), key=lambda x: x[0])
+    def get_available_impersonate_targets(self):
+        return sorted(
+            itertools.chain.from_iterable(
+                [[(*target, rh.RH_NAME) for target in rh.supported_targets]
+                 for rh in self._request_director.handlers.values()
+                 if isinstance(rh, ImpersonateRequestHandler)]), key=lambda x: x[0])
 
     def impersonate_target_available(self, target):
-        return any(self._request_director.collect_from_handlers(
-            lambda x: [x.is_supported_target(target)],
-            [lambda _, v: isinstance(v, ImpersonateRequestHandler)]))
+        return any(
+            rh.is_supported_target(target)
+            for rh in self._request_director.handlers.values()
+            if isinstance(rh, ImpersonateRequestHandler))
 
     def urlopen(self, req):
         """ Start an HTTP download """

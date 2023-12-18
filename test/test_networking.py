@@ -1510,7 +1510,7 @@ class TestYoutubeDLNetworking:
 
         with FakeYDL() as ydl:
             ydl._request_director = ydl.build_request_director(handlers)
-            assert set(ydl.get_impersonate_targets()) == {('firefox', 'firefox'), ('chrome', 'chrome'), ('edge', 'edge')}
+            assert set(ydl.get_available_impersonate_targets()) == {('firefox', 'firefox'), ('chrome', 'chrome'), ('edge', 'edge')}
             assert ydl.impersonate_target_available(('firefox', ))
             assert ydl.impersonate_target_available(())
             assert not ydl.impersonate_target_available(('safari',))
