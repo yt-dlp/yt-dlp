@@ -900,8 +900,8 @@ def formatSeconds(secs, delim=':', msec=False):
 def bug_reports_message(before=';'):
     from ..update import REPOSITORY
 
-    msg = (f'please report this issue on  https://github.com/{REPOSITORY}/issues?q= , '
-           'filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U')
+    msg = (f'please report this issue on https://github.com/{REPOSITORY}/issues?q= , '
+           'filling out the appropriate issue template. Confirm you are on the latest version using yt-dlp -U')
 
     before = before.rstrip()
     if not before or before.endswith(('.', '!', '?')):
