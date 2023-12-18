@@ -2467,7 +2467,7 @@ class YoutubeDL:
 
         # HACK: Python 3.12 changed the underlying parser, rendering '7_a' invalid
         #       Prefix numbers with random letters to avoid it being classified as a number
-        #       See: https://github.com/yt-dlp/yt-dlp/pulls/8796
+        #       See: https://github.com/yt-dlp/yt-dlp/pulls/8797
         # TODO: Implement parser not reliant on tokenize.tokenize
         prefix = ''.join(random.choices(string.ascii_letters, k=32))
         stream = io.BytesIO(re.sub(r'\d[_\d]*', rf'{prefix}\g<0>', format_spec).encode())
