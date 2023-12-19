@@ -49,8 +49,7 @@ class ImpersonateTarget:
     @classmethod
     def from_str(cls, target: str):
         return ImpersonateTarget(*[
-            None if (v or '').strip() == '' else v
-            for v in (target.split(':') + [None, None, None, None])[:4]
+            None if (v or '').strip() == '' else v for v in target.split(':')
         ])
 
     def __hash__(self):

@@ -4,7 +4,6 @@ import collections
 import random
 import urllib.parse
 import urllib.request
-from typing import Optional, Tuple
 
 from ._utils import remove_start
 

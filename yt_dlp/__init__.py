@@ -389,7 +389,7 @@ def validate_options(opts):
         opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
     if opts.impersonate is not None:
-        opts.impersonate = ImpersonateTarget.from_str(opts.impersonate)
+        opts.impersonate = ImpersonateTarget.from_str(opts.impersonate.lower())
 
     # MetadataParser
     def metadataparser_actions(f):
@@ -987,19 +987,18 @@ def _real_main(argv=None):
         if opts.list_impersonate_targets:
             available_targets = ydl.get_available_impersonate_targets()
             rows = [
-                [target.client, target.version, target.os, target.os_vers, handler, str(target)]
+                [target.client, target.version, target.os, target.os_vers, handler]
                 for target, handler in available_targets
             ]
 
             ydl.to_screen('[info] Available impersonate targets')
             ydl.to_stdout(
-                render_table(['Client', 'Version', 'OS', 'OS Version', 'Handler', 'Example'], rows)
+                render_table(['Client', 'Version', 'OS', 'OS Version', 'Source'], rows)
             )
             if not available_targets:
                 ydl.to_stdout('You are missing dependencies for impersonation. See the README for more info.')
             ydl.to_stdout(
-                'If the above table is missing targets, you may be missing dependencies for impersonation. '
-                'See the documentation for more information.')
+                'If the above table is missing targets, you may be missing dependencies for impersonation.')
             return
 
         if not actual_use:

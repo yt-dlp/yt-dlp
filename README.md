@@ -476,10 +476,11 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --socket-timeout SECONDS        Time to wait before giving up, in seconds
     --source-address IP             Client-side IP address to bind to
     --impersonate [CLIENT[:[VERSION][:[OS][:OS_VERSION]]]]
-                                    Client to impersonate for requests. Pass in
+                                    Client to impersonate for requests. E.g.
+                                    chrome, chrome:110, chrome::android. Pass in
                                     an empty string (--impersonate "") to
-                                    impersonate any client
-    --list-impersonate-targets      List available clients to impersonate
+                                    impersonate any client.
+    --list-impersonate-targets      List available clients to impersonate.
     -4, --force-ipv4                Make all connections via IPv4
     -6, --force-ipv6                Make all connections via IPv6
     --enable-file-urls              Enable file:// URLs. This is disabled by

@@ -24,7 +24,6 @@ import traceback
 import unicodedata
 
 from .cache import Cache
-
 from .compat import functools, urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
@@ -62,13 +61,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import (
-    REPOSITORY,
-    _get_system_deprecation,
-    _make_label,
-    current_git_head,
-    detect_variant,
-)
+from .update import REPOSITORY, _get_system_deprecation, _make_label, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -714,7 +707,6 @@ class YoutubeDL:
 
         impersonate_target = self.params.get('impersonate')
         if impersonate_target is not None:
-            # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
             if not self.impersonate_target_available(impersonate_target):
                 raise ValueError(
                     f'Impersonate target "{self.params.get("impersonate")}" is not available. '
@@ -3909,9 +3901,10 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
-        from .extractor.extractors import \
+        from .extractor.extractors import (
+            _PLUGIN_CLASSES as plugin_ies,
             _PLUGIN_OVERRIDES as plugin_ie_overrides
+        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
@@ -4056,6 +4049,7 @@ class YoutubeDL:
                  if isinstance(rh, ImpersonateRequestHandler)]), key=lambda x: x[0])
 
     def impersonate_target_available(self, target):
+        # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
         return any(
             rh.is_supported_target(target)
             for rh in self._request_director.handlers.values()
@@ -4095,9 +4089,10 @@ class YoutubeDL:
                 if (
                     'unsupported proxy type: "https"' in ue.msg.lower()
                     and 'requests' not in self._request_director.handlers
+                    and 'curl_cffi' not in self._request_director.handlers
                 ):
                     raise RequestError(
-                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests, curl_cffi')
 
                 elif (
                     re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
