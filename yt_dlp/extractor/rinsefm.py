@@ -37,7 +37,6 @@ class RinseFMArtistPlaylistIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rinse\.fm/shows/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://rinse.fm/shows/resources/',
-        'md5': '76ee0b719315617df42e15e710f46c7b',
         'info_dict': {
             'id': 'resources',
             'title': '[re]sources',
@@ -46,7 +45,6 @@ class RinseFMArtistPlaylistIE(InfoExtractor):
         'playlist_mincount': 40
     }, {
         'url': 'https://rinse.fm/shows/ivy/',
-        'md5': '4b2e8c70530a89b8d905a2b572316eb8',
         'info_dict': {
             'id': 'ivy',
             'title': '[IVY]',
