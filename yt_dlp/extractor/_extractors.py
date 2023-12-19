@@ -865,6 +865,7 @@ from .jiosaavn import (
 )
 from .jove import JoveIE
 from .joj import JojIE
+from .joqrag import JoqrAgIE
 from .jstream import JStreamIE
 from .jtbc import (
     JTBCIE,
