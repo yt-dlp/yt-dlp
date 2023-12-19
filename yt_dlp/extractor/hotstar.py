@@ -317,19 +317,13 @@ class HotStarIE(HotStarBaseIE):
         if not formats and geo_restricted:
             self.raise_geo_restricted(countries=['IN'], metadata_available=True)
         self._remove_duplicate_formats(formats)
-        for f in formats:
-            f.setdefault('http_headers', {}).update(headers)
-        thumbnails = []
-        img_list = video_data.get('images')
-        base_url = "https://img1.hotstarext.com/image/upload/f_auto/"
-        for index, (key, value) in enumerate(img_list.items()):
-            thumbnail_url = base_url + value
-            thumbnail_entry = {
-                "url": thumbnail_url,
-                "preference": index,
-                "id": str(index)
-            }
-            thumbnails.append(thumbnail_entry)
+        prefix = 'https://img1.hotstarext.com/image/upload/f_auto/'
+
+        custom_traverse_obj = lambda obj, key, default=None, transform=None, traverse_string=False: (
+            transform(obj[key]) if key in obj and transform else obj[key]) if key in obj else default
+
+        prefix = 'https://img1.hotstarext.com/image/upload/f_auto/'
+        thumbnail = custom_traverse_obj(video_data.get('images'), 'h', default=None, transform=lambda x: f'{prefix}{x}', traverse_string=True)
 
         return {
             'id': video_id,
@@ -348,7 +342,7 @@ class HotStarIE(HotStarBaseIE):
             'season_id': video_data.get('seasonId'),
             'episode': video_data.get('title'),
             'episode_number': int_or_none(video_data.get('episodeNo')),
-            'thumbnails': thumbnails,
+            'thumbnail': thumbnail,
         }
 
 
