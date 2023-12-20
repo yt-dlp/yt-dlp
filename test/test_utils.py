@@ -2370,6 +2370,11 @@ Line 1
         headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
 
+        # common mistake: strip whitespace from values
+        # https://github.com/yt-dlp/yt-dlp/issues/8729
+        headers5 = HTTPHeaderDict({'ytdl-test': ' data; '})
+        self.assertEqual(set(headers5.items()), {('Ytdl-Test', 'data;')})
+
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)
         assert extract_basic_auth('http://foo.bar') == ('http://foo.bar', None)
