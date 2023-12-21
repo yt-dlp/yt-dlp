@@ -636,32 +636,30 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                     'Content-Type': 'application/json'
                 })['data']['playerPage']
 
-            content_id = str_or_none(try_get(
-                player_page, lambda x: x['tracking']['atiCustomVars']['contentId']))
+            raw_player_page = player_page
         except ExtractorError as e:
-            # try to get data from website API endpoint as public gateway failed with 503
-            if isinstance(e.cause, HTTPError) and e.cause.status == 503:
+            if not isinstance(e.cause, HTTPError) or e.cause.status != 503:
+                raise
+            else:  # try to get data from website API endpoint as public gateway failed with 503
                 player_page = self._download_json(
-                    f"https://api.ardmediathek.de/page-gateway/pages/ard/item/{video_id}", display_id, headers={
+                    f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{video_id}', display_id, headers={
                         'Content-Type': 'application/json'
-                    }
+                    }, note='Downloading fallback JSON metadata'
                 )
 
-                # get the content id before overriding the player_page outer json below
-                content_id = str_or_none(try_get(
-                    player_page, lambda x: x['tracking']['atiCustomVars']['contentId']))
+                raw_player_page = player_page
+                player_page = try_get(player_page.get('widgets'), lambda x: x[0])
 
-                player_page = try_get(player_page.get("widgets"), lambda x: x[0])
-            else:
-                raise e
+        content_id = str_or_none(try_get(
+            raw_player_page, lambda x: x['tracking']['atiCustomVars']['contentId']))
 
         title = player_page['title']
         media_collection = player_page.get('mediaCollection', {}) or {}
 
         # if embedded is present, the website API was used
-        # the required attributes stored within the "embedded" json object
-        if "embedded" in media_collection:
-            media_collection = media_collection["embedded"]
+        # the required attributes stored within the 'embedded' json object
+        if 'embedded' in media_collection:
+            media_collection = media_collection['embedded']
         if not media_collection and content_id:
             media_collection = self._download_json(
                 'https://www.ardmediathek.de/play/media/' + content_id,
