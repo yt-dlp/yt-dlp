@@ -1188,7 +1188,7 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
         if initial_data is None:
             initial_data = self._search_regex(
                 r'window\.__INITIAL_DATA__\s*=\s*({.+?})\s*;', webpage,
-                'preload state', default={})
+                'preload state', default='{}')
         else:
             initial_data = self._parse_json(initial_data or '"{}"', playlist_id, fatal=False)
         initial_data = self._parse_json(initial_data, playlist_id, fatal=False)
