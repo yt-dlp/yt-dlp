@@ -644,8 +644,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                 player_page = self._download_json(
                     f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{video_id}', display_id, headers={
                         'Content-Type': 'application/json'
-                    }, note='Downloading fallback JSON metadata'
-                )
+                    }, note='Downloading fallback JSON metadata')
 
                 raw_player_page = player_page
                 player_page = try_get(player_page.get('widgets'), lambda x: x[0])
