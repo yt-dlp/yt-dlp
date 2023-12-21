@@ -286,8 +286,8 @@ class CueBlock(Block):
         m1 = parser.consume(_REGEX_TS)
         if not m1:
             return None
-        parser.consume(_REGEX_OPTIONAL_WHITESPACE)
         m2 = parser.consume(cls._REGEX_SETTINGS)
+        parser.consume(_REGEX_OPTIONAL_WHITESPACE)
         if not parser.consume(_REGEX_NL):
             return None
 

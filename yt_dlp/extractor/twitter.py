@@ -479,9 +479,9 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
-            'view_count': int,
             'tags': [],
             'age_limit': 18,
+            '_old_archive_ids': ['twitter 643211948184596480'],
         },
     }, {
         'url': 'https://twitter.com/giphz/status/657991469417025536/photo/1',
@@ -515,6 +515,7 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'tags': ['TV', 'StarWars', 'TheForceAwakens'],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 665052190608723968'],
         },
     }, {
         'url': 'https://twitter.com/BTNBrentYarina/status/705235433198714880',
@@ -558,9 +559,9 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
-            'view_count': int,
             'tags': ['Damndaniel'],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 700207533655363584'],
         },
     }, {
         'url': 'https://twitter.com/Filmdrunk/status/713801302971588609',
@@ -599,9 +600,9 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
-            'view_count': int,
             'tags': [],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 719944021058060289'],
         },
     }, {
         'url': 'https://twitter.com/OPP_HSD/status/779210622571536384',
@@ -616,6 +617,7 @@ class TwitterIE(TwitterBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
         },
         'add_ie': ['Periscope'],
+        'skip': 'Broadcast not found',
     }, {
         # has mp4 formats via mobile API
         'url': 'https://twitter.com/news_al3alm/status/852138619213144067',
@@ -635,9 +637,9 @@ class TwitterIE(TwitterBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
             'tags': [],
             'repost_count': int,
-            'view_count': int,
             'like_count': int,
             'comment_count': int,
+            '_old_archive_ids': ['twitter 852138619213144067'],
         },
     }, {
         'url': 'https://twitter.com/i/web/status/910031516746514432',
@@ -657,9 +659,9 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
-            'view_count': int,
             'tags': ['Maria'],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 910031516746514432'],
         },
         'params': {
             'skip_download': True,  # requires ffmpeg
@@ -683,9 +685,9 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
-            'view_count': int,
             'tags': [],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 1001551623938805763'],
         },
         'params': {
             'skip_download': True,  # requires ffmpeg
@@ -749,6 +751,7 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'tags': [],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 1349794411333394432'],
         },
         'params': {
             'skip_download': True,
@@ -771,18 +774,18 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
-            'view_count': int,
             'tags': [],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 1577855540407197696'],
         },
         'params': {'skip_download': True},
     }, {
         'url': 'https://twitter.com/UltimaShadowX/status/1577719286659006464',
         'info_dict': {
             'id': '1577719286659006464',
-            'title': 'Ultima📛| New Era - Test',
+            'title': 'Ultima - Test',
             'description': 'Test https://t.co/Y3KEZD7Dad',
-            'uploader': 'Ultima📛| New Era',
+            'uploader': 'Ultima',
             'uploader_id': 'UltimaShadowX',
             'uploader_url': 'https://twitter.com/UltimaShadowX',
             'upload_date': '20221005',
@@ -813,9 +816,9 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
-            'view_count': int,
             'tags': ['HurricaneIan'],
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 1575560063510810624'],
         },
     }, {
         # Adult content, fails if not logged in
@@ -951,10 +954,10 @@ class TwitterIE(TwitterBaseIE):
             'uploader_url': 'https://twitter.com/CTVJLaidlaw',
             'display_id': '1600649710662213632',
             'like_count': int,
-            'view_count': int,
             'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
             'upload_date': '20221208',
             'age_limit': 0,
+            '_old_archive_ids': ['twitter 1600649710662213632'],
         },
         'params': {'noplaylist': True},
     }, {
@@ -979,7 +982,7 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'view_count': int,
+            '_old_archive_ids': ['twitter 1621117700482416640'],
         },
     }, {
         'url': 'https://twitter.com/hlo_again/status/1599108751385972737/video/2',
@@ -995,13 +998,13 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'duration': 9.531,
             'comment_count': int,
-            'view_count': int,
             'upload_date': '20221203',
             'age_limit': 0,
             'timestamp': 1670092210.0,
             'tags': [],
             'uploader': '\u06ea',
             'description': '\U0001F48B https://t.co/bTj9Qz7vQP',
+            '_old_archive_ids': ['twitter 1599108751385972737'],
         },
         'params': {'noplaylist': True},
     }, {
@@ -1012,7 +1015,6 @@ class TwitterIE(TwitterBaseIE):
             'ext': 'mp4',
             'uploader_url': 'https://twitter.com/MunTheShinobi',
             'description': 'This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525 https://t.co/cNsA0MoOml',
-            'view_count': int,
             'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
             'age_limit': 0,
             'uploader': 'Mün',
@@ -1025,6 +1027,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': 'MunTheShinobi',
             'duration': 139.987,
             'timestamp': 1670306984.0,
+            '_old_archive_ids': ['twitter 1600009574919962625'],
         },
     }, {
         # retweeted_status (private)
@@ -1068,8 +1071,8 @@ class TwitterIE(TwitterBaseIE):
             'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'like_count': int,
             'repost_count': int,
-            'view_count': int,
             'comment_count': int,
+            '_old_archive_ids': ['twitter 1695424220702888009'],
         },
     }, {
         # retweeted_status w/ legacy API
@@ -1091,18 +1094,24 @@ class TwitterIE(TwitterBaseIE):
             'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'like_count': int,
             'repost_count': int,
+            '_old_archive_ids': ['twitter 1695424220702888009'],
         },
         'params': {'extractor_args': {'twitter': {'api': ['legacy']}}},
     }, {
         # Broadcast embedded in tweet
-        'url': 'https://twitter.com/JessicaDobsonWX/status/1693057346933600402',
+        'url': 'https://twitter.com/JessicaDobsonWX/status/1731121063248175384',
         'info_dict': {
-            'id': '1yNGaNLjEblJj',
+            'id': '1rmxPMjLzAXKN',
             'ext': 'mp4',
-            'title': 'Jessica Dobson - WAVE Weather Now - Saturday 8/19/23 Update',
+            'title': 'WAVE Weather Now - Saturday 12/2/23 Update',
             'uploader': 'Jessica Dobson',
-            'uploader_id': '1DZEoDwDovRQa',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'uploader_id': 'JessicaDobsonWX',
+            'uploader_url': 'https://twitter.com/JessicaDobsonWX',
+            'timestamp': 1701566398,
+            'upload_date': '20231203',
+            'live_status': 'was_live',
+            'thumbnail': r're:https://[^/]+pscp\.tv/.+\.jpg',
+            'concurrent_view_count': int,
             'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
@@ -1125,6 +1134,30 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'extractor_args': {'twitter': {'api': ['syndication']}}},
         'expected_warnings': ['Not all metadata'],
+    }, {
+        # "stale tweet" with typename "TweetWithVisibilityResults"
+        'url': 'https://twitter.com/RobertKennedyJr/status/1724884212803834154',
+        'md5': '62b1e11cdc2cdd0e527f83adb081f536',
+        'info_dict': {
+            'id': '1724883339285544960',
+            'ext': 'mp4',
+            'title': 'md5:cc56716f9ed0b368de2ba54c478e493c',
+            'description': 'md5:9dc14f5b0f1311fc7caf591ae253a164',
+            'display_id': '1724884212803834154',
+            'uploader': 'Robert F. Kennedy Jr',
+            'uploader_id': 'RobertKennedyJr',
+            'uploader_url': 'https://twitter.com/RobertKennedyJr',
+            'upload_date': '20231115',
+            'timestamp': 1700079417.0,
+            'duration': 341.048,
+            'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
+            'tags': ['Kennedy24'],
+            'repost_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+            '_old_archive_ids': ['twitter 1724884212803834154'],
+        },
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -1179,19 +1212,23 @@ class TwitterIE(TwitterBaseIE):
         ), default={}, get_all=False) if self.is_logged_in else traverse_obj(
             data, ('tweetResult', 'result', {dict}), default={})
 
-        if result.get('__typename') not in ('Tweet', 'TweetTombstone', 'TweetUnavailable', None):
-            self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
+        typename = result.get('__typename')
+        if typename not in ('Tweet', 'TweetWithVisibilityResults', 'TweetTombstone', 'TweetUnavailable', None):
+            self.report_warning(f'Unknown typename: {typename}', twid, only_once=True)
 
         if 'tombstone' in result:
             cause = remove_end(traverse_obj(result, ('tombstone', 'text', 'text', {str})), '. Learn more')
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
-        elif result.get('__typename') == 'TweetUnavailable':
+        elif typename == 'TweetUnavailable':
             reason = result.get('reason')
             if reason == 'NsfwLoggedOut':
                 self.raise_login_required('NSFW tweet requires authentication')
             elif reason == 'Protected':
                 self.raise_login_required('You are not authorized to view this protected tweet')
             raise ExtractorError(reason or 'Requested tweet is unavailable', expected=True)
+        # Result for "stale tweet" needs additional transformation
+        elif typename == 'TweetWithVisibilityResults':
+            result = traverse_obj(result, ('tweet', {dict})) or {}
 
         status = result.get('legacy', {})
         status.update(traverse_obj(result, {
@@ -1377,7 +1414,7 @@ class TwitterIE(TwitterBaseIE):
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
-                'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),
+                'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),  # No longer available
                 'duration': float_or_none(traverse_obj(media, ('video_info', 'duration_millis')), 1000),
                 # The codec of http formats are unknown
                 '_format_sort_fields': ('res', 'br', 'size', 'proto'),
