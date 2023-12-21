@@ -80,12 +80,12 @@ on:
         default: true
         type: boolean
       origin:
-        description: .
+        description: Origin
         required: false
-        default: ''
+        default: 'current repo'
         type: choice
         options:
-        - ''
+        - 'current repo'
 
 permissions:
   contents: read
@@ -99,7 +99,7 @@ jobs:
       - name: Process origin
         id: process_origin
         run: |
-          echo "origin=${{ inputs.origin || github.repository }}" >> "$GITHUB_OUTPUT"
+          echo "origin=${{ inputs.origin == 'current repo' && github.repository || inputs.origin }}" | tee "$GITHUB_OUTPUT"
 
   unix:
     needs: process

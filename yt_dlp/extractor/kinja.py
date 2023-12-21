@@ -41,7 +41,6 @@ class KinjaEmbedIE(InfoExtractor):
             kinjavideo|
             mcp|
             megaphone|
-            ooyala|
             soundcloud(?:-playlist)?|
             tumblr-post|
             twitch-stream|
@@ -60,9 +59,6 @@ class KinjaEmbedIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://kinja.com/ajax/inset/iframe?id=megaphone-PPY1300931075',
-        'only_matching': True,
-    }, {
-        'url': 'https://kinja.com/ajax/inset/iframe?id=ooyala-xzMXhleDpopuT0u1ijt_qZj3Va-34pEX%2FZTIxYmJjZDM2NWYzZDViZGRiOWJjYzc5',
         'only_matching': True,
     }, {
         'url': 'https://kinja.com/ajax/inset/iframe?id=soundcloud-128574047',
@@ -103,7 +99,6 @@ class KinjaEmbedIE(InfoExtractor):
         'jwplayer-video': _JWPLATFORM_PROVIDER,
         'jwp-video': _JWPLATFORM_PROVIDER,
         'megaphone': ('player.megaphone.fm/', 'Generic'),
-        'ooyala': ('player.ooyala.com/player.js?embedCode=', 'Ooyala'),
         'soundcloud': ('api.soundcloud.com/tracks/', 'Soundcloud'),
         'soundcloud-playlist': ('api.soundcloud.com/playlists/', 'SoundcloudPlaylist'),
         'tumblr-post': ('%s.tumblr.com/post/%s', 'Tumblr'),
@@ -129,8 +124,6 @@ class KinjaEmbedIE(InfoExtractor):
                 video_id, playlist_id = video_id.split('/')
                 result_url = provider[0] % (video_id, playlist_id)
             else:
-                if video_type == 'ooyala':
-                    video_id = video_id.split('/')[0]
                 result_url = provider[0] + video_id
             return self.url_result('http://' + result_url, provider[1])
 

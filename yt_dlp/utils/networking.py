@@ -67,7 +67,7 @@ class HTTPHeaderDict(collections.UserDict, dict):
     def __setitem__(self, key, value):
         if isinstance(value, bytes):
             value = value.decode('latin-1')
-        super().__setitem__(key.title(), str(value))
+        super().__setitem__(key.title(), str(value).strip())
 
     def __getitem__(self, key):
         return super().__getitem__(key.title())
