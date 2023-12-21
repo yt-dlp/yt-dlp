@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    determine_ext,
     js_to_json,
     traverse_obj,
     update_url_query,
@@ -27,6 +28,15 @@ class RudoVideoIE(InfoExtractor):
             'id': 'bQkt07',
             'title': 'Tubular Bells',
             'ext': 'mp4',
+            'thumbnail': r're:^(?:https?:)?//.*\.(png|jpg)$',
+        },
+    }, {
+        'url': 'https://rudo.video/podcast/b42ZUznHX0',
+        'md5': 'b91c70d832938871367f8ad10c895821',
+        'info_dict': {
+            'id': 'b42ZUznHX0',
+            'title': 'Columna Ruperto Concha',
+            'ext': 'mp3',
             'thumbnail': r're:^(?:https?:)?//.*\.(png|jpg)$',
         },
     }, {
@@ -75,13 +85,13 @@ class RudoVideoIE(InfoExtractor):
         if 'Streaming is not available in your area' in webpage:
             self.raise_geo_restricted()
 
-        m3u8_url = (
+        media_url = (
             self._search_regex(
                 r'var\s+streamURL\s*=\s*[\'"]([^?\'"]+)', webpage, 'stream url', default=None)
             # Source URL must be used only if streamURL is unavailable
             or self._search_regex(
                 r'<source[^>]+src=[\'"]([^\'"]+)', webpage, 'source url', default=None))
-        if not m3u8_url:
+        if not media_url:
             youtube_url = self._search_regex(r'file:\s*[\'"]((?:https?:)//(?:www\.)?youtube\.com[^\'"]+)',
                                              webpage, 'youtube url', default=None)
             if youtube_url:
@@ -97,7 +107,12 @@ class RudoVideoIE(InfoExtractor):
                 raise ExtractorError('Invalid access token array')
             access_token = self._download_json(
                 token_url, video_id, note='Downloading access token')['data']['authToken']
-            m3u8_url = update_url_query(m3u8_url, {'auth-token': access_token})
+            media_url = update_url_query(m3u8_url, {'auth-token': access_token})
+
+        if determine_ext(media_url) == 'm3u8':
+            formats = self._extract_m3u8_formats(media_url, video_id, live=is_live)
+        else:
+            formats = [{'url': media_url}]
 
         return {
             'id': video_id,
@@ -109,6 +124,6 @@ class RudoVideoIE(InfoExtractor):
             'thumbnail': (self._search_regex(r'var\s+posterIMG\s*=\s*[\'"]([^?\'"]+)',
                                              webpage, 'thumbnail', default=None)
                           or self._og_search_thumbnail(webpage)),
-            'formats': self._extract_m3u8_formats(m3u8_url, video_id, live=is_live),
+            'formats': formats,
             'is_live': is_live,
         }
