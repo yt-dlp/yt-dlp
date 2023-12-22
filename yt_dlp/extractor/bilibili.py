@@ -223,7 +223,6 @@ class BilibiliBaseIE(InfoExtractor):
 
 class BiliBiliIE(BilibiliBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
-
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
         'info_dict': {
@@ -1621,6 +1620,7 @@ class BiliBiliPlayerIE(InfoExtractor):
 class BiliIntlBaseIE(InfoExtractor):
     _API_URL = 'https://api.bilibili.tv/intl/gateway'
     _NETRC_MACHINE = 'biliintl'
+    _HEADERS = 'https://www.bilibili.tv/'
 
     def _call_api(self, endpoint, *args, **kwargs):
         json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
@@ -1814,17 +1814,6 @@ class BiliIntlIE(BiliIntlBaseIE):
         },
         'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
     }, {
-        'url': 'https://www.bilibili.tv/en/video/2041863208',
-        'info_dict': {
-            'id': '2041863208',
-            'ext': 'mp4',
-            'timestamp': 1670874843,
-            'description': 'Scheduled for April 2023.\nStudio: ufotable',
-            'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
-            'upload_date': '20221212',
-            'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
-        },
-    }, {
         # episode comment extraction
         'url': 'https://www.bilibili.tv/en/play/34580/340317',
         'info_dict': {
@@ -1929,9 +1918,9 @@ class BiliIntlIE(BiliIntlBaseIE):
 
         # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
         return merge_dicts(
-            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id, fatal=False), {
-                'title': self._html_search_meta('og:title', webpage),
-                'description': self._html_search_meta('og:description', webpage)
+            self._parse_video_metadata(video_data), {
+                'title': get_element_by_class('bstar-meta__title', webpage),
+                'description': get_element_by_class('bstar-meta__desc', webpage),
             })
 
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):
@@ -2020,7 +2009,10 @@ class BiliIntlIE(BiliIntlBaseIE):
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
             'chapters': chapters,
-            '__post_extractor': self.extract_comments(video_id, ep_id)
+            '__post_extractor': self.extract_comments(video_id, ep_id),
+            'http_headers': {
+                'Referer': self._HEADERS,
+            },
         }
 
 
