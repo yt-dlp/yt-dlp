@@ -612,7 +612,8 @@ class FacebookIE(InfoExtractor):
                 nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
                 attachments = traverse_obj(nodes, (
                     ..., 'comet_sections', 'content', 'story', (None, 'attached_story'), 'attachments',
-                    ..., ('styles', 'throwbackStyles', 'style_type_renderer'), (None, ...), 'attachment'), expected_type=dict) or []
+                    ..., ('styles', 'style_type_renderer', ('throwbackStyles', 'attachment_target_renderer')),
+                    'attachment'), expected_type=dict) or []
                 for attachment in attachments:
                     ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
                                       (..., 'attachments', ..., 'styles', 'attachment', {dict}))
