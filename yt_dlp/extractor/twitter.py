@@ -309,7 +309,6 @@ class TwitterBaseIE(InfoExtractor):
         } if self.is_logged_in else {
             'x-guest-token': self._fetch_guest_token(video_id)
         })
-
         allowed_status = {400, 401, 403, 404} if graphql else {403}
         result = self._download_json(
             (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
