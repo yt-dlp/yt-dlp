@@ -88,19 +88,27 @@ class YouPornIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
-        definitions = self._download_json(
-            f'https://www.youporn.com/api/video/media_definitions/{video_id}/', display_id or video_id)
+        webpage = self._download_webpage(
+            f"https://www.youporn.com/watch/{video_id}", display_id or video_id,
+            headers={'Cookie': 'age_verified=1'},
+        )
 
-        def get_format_data(data, f):
-            return traverse_obj(data, lambda _, v: v['format'] == f and url_or_none(v['videoUrl']))
+        playervars = self._search_regex(r'^\s*playervars:\s*(\{.+?\})$', webpage, 'playervars', flags=re.MULTILINE)
+        playervars = self._parse_json(playervars, display_id or video_id)
+        defs_by_format = {x['format'] : x for x in playervars.get('mediaDefinitions', {})}
+
+        def get_format_data(f):
+            if not f in defs_by_format:
+                return []
+            return self._download_json(defs_by_format[f]['videoUrl'], display_id or video_id, f"{f}-formats")
 
         formats = []
         # Try to extract only the actual master m3u8 first, avoiding the duplicate single resolution "master" m3u8s
-        for hls_url in traverse_obj(get_format_data(definitions, 'hls'), (
+        for hls_url in traverse_obj(get_format_data('hls'), (
                 lambda _, v: not isinstance(v['defaultQuality'], bool), 'videoUrl'), (..., 'videoUrl')):
             formats.extend(self._extract_m3u8_formats(hls_url, video_id, 'mp4', fatal=False, m3u8_id='hls'))
 
-        for definition in get_format_data(definitions, 'mp4'):
+        for definition in get_format_data('mp4'):
             f = traverse_obj(definition, {
                 'url': 'videoUrl',
                 'filesize': ('videoSize', {int_or_none})
@@ -122,10 +130,6 @@ class YouPornIE(InfoExtractor):
                 })
             f['height'] = height
             formats.append(f)
-
-        webpage = self._download_webpage(
-            'http://www.youporn.com/watch/%s' % video_id, display_id,
-            headers={'Cookie': 'age_verified=1'})
 
         title = self._html_search_regex(
             r'(?s)<div[^>]+class=["\']watchVideoTitle[^>]+>(.+?)</div>',
