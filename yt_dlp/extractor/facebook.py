@@ -244,6 +244,8 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20171124',
             'uploader': 'Vickie Gentry',
             'uploader_id': 'pfbid0FuZhHCeWDAxWxEbr3yKPFaRstXvRxgsp9uCPG6GjD4J2AitB35NUAuJ4Q75KcjiDl',
+            'thumbnail': r're:^https?://.*',
+            'duration': 148.435,
         },
     }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
