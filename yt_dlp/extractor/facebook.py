@@ -616,7 +616,7 @@ class FacebookIE(InfoExtractor):
                     'attachment'), expected_type=dict) or []
                 for attachment in attachments:
                     ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
-                                      (..., 'attachments', ..., 'styles', 'attachment', {dict}))
+                                      ('target', 'attachments', ..., 'styles', 'attachment', {dict}))
                     for n in ns:
                         parse_attachment(n)
                     parse_attachment(attachment)
