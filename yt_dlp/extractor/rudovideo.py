@@ -109,8 +109,14 @@ class RudoVideoIE(InfoExtractor):
                 token_url, video_id, note='Downloading access token')['data']['authToken']
             media_url = update_url_query(media_url, {'auth-token': access_token})
 
-        if determine_ext(media_url) == 'm3u8':
+        ext = determine_ext(media_url)
+        if ext == 'm3u8':
             formats = self._extract_m3u8_formats(media_url, video_id, live=is_live)
+        elif ext == 'mp3':
+            formats = [{
+                'url': media_url,
+                'vcodec': 'none',
+            }]
         else:
             formats = [{'url': media_url}]
 
