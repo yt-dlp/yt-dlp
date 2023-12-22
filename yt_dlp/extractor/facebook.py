@@ -233,6 +233,19 @@ class FacebookIE(InfoExtractor):
         },
         'skip': 'Requires logging in',
     }, {
+        # data.node.comet_sections.content.story.attachments[].throwbackStyles.attachment_target_renderer.attachment.target.attachments[].styles.attachment.media
+        'url': 'https://www.facebook.com/groups/1645456212344334/posts/3737828833107051/',
+        'info_dict': {
+            'id': '1569199726448814',
+            'ext': 'mp4',
+            'title': 'Pence MUST GO!',
+            'description': 'Vickie Gentry shared a memory.',
+            'timestamp': 1511548260,
+            'upload_date': '20171124',
+            'uploader': 'Vickie Gentry',
+            'uploader_id': 'pfbid0FuZhHCeWDAxWxEbr3yKPFaRstXvRxgsp9uCPG6GjD4J2AitB35NUAuJ4Q75KcjiDl',
+        },
+    }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,
     }, {
