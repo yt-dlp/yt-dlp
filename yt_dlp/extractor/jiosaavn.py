@@ -40,7 +40,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
             'https://www.jiosaavn.com/api.php', audio_id, data=urlencode_postdata({
                 '__call': 'song.generateAuthToken',
                 '_format': 'json',
-                'bitrate': '128',
+                'bitrate': '320',
                 'url': song_data['encrypted_media_url'],
             }))
 
