@@ -1620,7 +1620,7 @@ class BiliBiliPlayerIE(InfoExtractor):
 class BiliIntlBaseIE(InfoExtractor):
     _API_URL = 'https://api.bilibili.tv/intl/gateway'
     _NETRC_MACHINE = 'biliintl'
-    _HEADERS = 'https://www.bilibili.tv/'
+    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
 
     def _call_api(self, endpoint, *args, **kwargs):
         json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
@@ -1716,7 +1716,9 @@ class BiliIntlBaseIE(InfoExtractor):
     def _parse_video_metadata(self, video_data):
         return {
             'title': video_data.get('title_display') or video_data.get('title'),
+            'description': video_data.get('desc'),
             'thumbnail': video_data.get('cover'),
+            'timestamp': unified_timestamp(video_data.get('formatted_pub_date')),
             'episode_number': int_or_none(self._search_regex(
                 r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
         }
@@ -1853,7 +1855,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'description': 'md5:693b6f3967fb4e7e7764ea817857c33a',
             'timestamp': 1667891924,
             'upload_date': '20221108',
-            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan - Bstation',
+            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan',
             'comment_count': int,
             'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
         },
@@ -2010,9 +2012,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
             'chapters': chapters,
             '__post_extractor': self.extract_comments(video_id, ep_id),
-            'http_headers': {
-                'Referer': self._HEADERS,
-            },
+            'http_headers': self._HEADERS,
         }
 
 
