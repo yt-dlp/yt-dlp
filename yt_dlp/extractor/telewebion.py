@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from textwrap import dedent
 from functools import partial
+from textwrap import dedent
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, format_field, int_or_none, parse_iso8601
@@ -10,11 +10,11 @@ from ..utils.traversal import traverse_obj
 
 
 def _fmt_url(url):
-    return partial(format_field, template=url)
+    return partial(format_field, template=url, default=None)
 
 
 class TelewebionIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?telewebion\.com/episode/(?P<id>(0x[a-fA-F\d]+|\d+))'
+    _VALID_URL = r'https?://(?:www\.)?telewebion\.com/episode/(?P<id>(?:0x[a-fA-F\d]+|\d+))'
     _TESTS = [{
         'url': 'http://www.telewebion.com/episode/0x1b3139c/',
         'info_dict': {

@@ -1,16 +1,14 @@
-import re
-from functools import partial
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
-    traverse_obj,
-    str_or_none,
     int_or_none,
-    url_or_none,
+    orderedSet,
     parse_iso8601,
     parse_qs,
-    orderedSet,
+    parse_resolution,
+    str_or_none,
+    traverse_obj,
+    url_or_none,
 )
 
 
@@ -56,19 +54,13 @@ class EpidemicSoundIE(InfoExtractor):
         if not url_or_none(url):
             return None
 
-        if '?' in url:
-            info = traverse_obj(url, ({parse_qs}, {
+        return {
+            'url': url,
+            **(traverse_obj(url, ({parse_qs}, {
                 'width': ('width', 0, {int_or_none}),
                 'height': ('height', 0, {int_or_none}),
-            }))
-        else:
-            info = traverse_obj(url, ({partial(re.search, r'/(?P<width>\d+)x(?P<height>\d+)')}, {
-                'width': ('width', {int_or_none}),
-                'height': ('height', {int_or_none}),
-            }))
-
-        info['url'] = url
-        return info
+            })) or parse_resolution(url)),
+        }
 
     @staticmethod
     def _epidemic_fmt_or_none(f):
@@ -92,7 +84,7 @@ class EpidemicSoundIE(InfoExtractor):
         thumb_base_url = traverse_obj(json_data, ('coverArt', 'baseUrl', {url_or_none}))
         if thumb_base_url:
             thumbnails.extend(traverse_obj(json_data, (
-                'coverArt', 'sizes', ..., {str}, {thumb_base_url.__add__})))
+                'coverArt', 'sizes', ..., {thumb_base_url.__add__})))
 
         return traverse_obj(json_data, {
             'id': ('id', {str_or_none}),
