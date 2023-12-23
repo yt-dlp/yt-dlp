@@ -205,6 +205,12 @@ class FacebookIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.facebook.com/story.php?story_fbid=pfbid0Fnzhm8UuzjBYpPMNFzaSpFE9UmLdU4fJN8qTANi1Dmtj5q7DNrL5NERXfsAzDEV7l&id=100073071055552',
+        'only_matching': True,
+    }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,
     }, {
