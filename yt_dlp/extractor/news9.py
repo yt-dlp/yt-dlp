@@ -1,10 +1,7 @@
 from .common import InfoExtractor
-from ._extractors import BrightcoveNewIE
+from .brightcove import BrightcoveNewIE
 
-from ..utils import (
-    ExtractorError,
-    traverse_obj,
-)
+from ..utils import (ExtractorError, traverse_obj, )
 
 
 class News9IE(InfoExtractor):
