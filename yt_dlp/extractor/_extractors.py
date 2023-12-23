@@ -1205,6 +1205,7 @@ from .newgrounds import (
 )
 from .newspicks import NewsPicksIE
 from .newsy import NewsyIE
+from .news9 import News9IE
 from .nextmedia import (
     NextMediaIE,
     NextMediaActionNewsIE,
