@@ -76,13 +76,14 @@ class News9IE(InfoExtractor):
             'title': ('article', ..., 'headline'),
             'description': ('article', ..., 'description', {clean_html}), }, get_all=False)
 
-        if not info.get('video_id') or not info.get('account'):
+        video_id = info.get('video_id')
+        account = info.get('account')
+
+        if not video_id or not account:
             raise ExtractorError('Unable to get the required video data')
 
-        video_id = info.get('video_id')
-
         video_json = self._download_json(
-            f'https://edge.api.brightcove.com/playback/v1/accounts/{info.get('account')}/videos/{video_id}',
+            f'https://edge.api.brightcove.com/playback/v1/accounts/{account}/videos/{video_id}',
             article_id, headers=self._HEADERS, fatal=True)
 
         video_info = traverse_obj(video_json, {
