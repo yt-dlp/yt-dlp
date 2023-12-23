@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from .brightcove import BrightcoveNewIE
 
-from ..utils import (ExtractorError, traverse_obj, )
+from ..utils import ExtractorError, traverse_obj
 
 
 class News9IE(InfoExtractor):
@@ -56,17 +56,11 @@ class News9IE(InfoExtractor):
     def _real_extract(self, url):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
-        initial_state = self._search_json(r'var\s__INITIAL_STATE__\s*=', webpage, 'initial state', article_id)
-
-        info = traverse_obj(initial_state, {
-            'video_id': ('videoIndex', 'currentVideo', 'brightcoveId'),
-            'account': ('videoIndex', 'config', 'account'),
-        }) or traverse_obj(initial_state, {
-            'video_id': ('article', ..., 'media', lambda _, v: v['type'] == 'video', 'urn'),
-            'account': ('videoIndex', 'config', 'video', 'account')}, get_all=False)
-
-        video_id = info.get('video_id')
-        account = info.get('account')
+        initial_state = self._search_json(r'var\s+__INITIAL_STATE__\s*=', webpage, 'initial state', article_id)
+        video_id = traverse_obj(
+            initial_state, ('videoIndex', 'currentVideo', 'brightcoveId'),
+            ('article', ..., 'media', lambda _, v: v['type'] == 'video', 'urn'), get_all=False)
+        account = traverse_obj(initial_state, ('videoIndex', 'config', (None, 'video'), 'account'), get_all=False)
 
         if not video_id or not account:
             raise ExtractorError('Unable to get the required video data')
