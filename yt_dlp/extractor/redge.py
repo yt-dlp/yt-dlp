@@ -1,14 +1,18 @@
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     int_or_none,
+    join_nonempty,
+    mimetype2ext,
+    parse_qs,
     traverse_obj,
 )
 
-from urllib.parse import parse_qs
+from urllib.parse import urlencode
 
 
 class RedCDNLivxIE(InfoExtractor):
-    _VALID_URL = r'https?://[^.]+\.dcs\.redcdn\.pl/[^/]+/o2/(?P<tenant>[^/]+)/(?P<id>[^/]+)/(?P<filename>[^./]+)\.livx\?(?P<qs>.+)'
+    _VALID_URL = r'https?://[^.]+\.(?:dcs\.redcdn|atmcdn)\.pl/(?:live(?:dash|hls|ss)|nvr)/o2/(?P<tenant>[^/]+)/(?P<id>[^?#]+)\.livx'
     IE_NAME = 'redcdnlivx'
 
     _TESTS = [{
@@ -17,7 +21,8 @@ class RedCDNLivxIE(InfoExtractor):
             'id': 'ENC02-638272860000-638292544000',
             'ext': 'mp4',
             'title': 'ENC02',
-            'duration': 19684,
+            'duration': 19683.982,
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://r.dcs.redcdn.pl/livedash/o2/sejm/ENC18/live.livx?indexMode=true&startTime=722333096000&stopTime=722335562000',
@@ -25,44 +30,102 @@ class RedCDNLivxIE(InfoExtractor):
             'id': 'ENC18-722333096000-722335562000',
             'ext': 'mp4',
             'title': 'ENC18',
-            'duration': 2466,
+            'duration': 2463.995,
+            'live_status': 'was_live',
         },
+    }, {
+        'url': 'https://r.dcs.redcdn.pl/livehls/o2/sportevolution/live/triathlon2018/warsaw.livx/playlist.m3u8?startTime=550305000000&stopTime=550327620000',
+        'info_dict': {
+            'id': 'triathlon2018-warsaw-550305000000-550327620000',
+            'ext': 'mp4',
+            'title': 'triathlon2018/warsaw',
+            'duration': 22619.98,
+            'live_status': 'was_live',
+        },
+    }, {
+        'url': 'https://n-25-12.dcs.redcdn.pl/nvr/o2/sejm/Migacz-ENC01/1.livx?startTime=722347200000&stopTime=722367345000',
+        'only_matching': True,
+    }, {
+        'url': 'https://redir.atmcdn.pl/nvr/o2/sejm/ENC08/1.livx?startTime=503831270000&stopTime=503840040000',
+        'only_matching': True,
     }]
 
+    """
+    Known methods (first in url path):
+    - `livedash` - DASH MPD
+    - `livehls` - HTTP Live Streaming
+    - `livess` - IIS Smooth Streaming
+    - `nvr` - CCTV mode, directly returns a file, typically flv, avc1, aac
+    - `sc` - shoutcast/icecast (audio streams, like radio)
+    """
+
     def _real_extract(self, url):
-        tenant, camera, filename, qs = self._match_valid_url(url).group('tenant', 'id', 'filename', 'qs')
-        qs = parse_qs(qs)
-        start_time = int(traverse_obj(qs, ("startTime", 0)))
-        stop_time = int_or_none(traverse_obj(qs, ("stopTime", 0)))
+        tenant, path = self._match_valid_url(url).group('tenant', 'id')
+        qs = parse_qs(url)
+        start_time = int_or_none(traverse_obj(qs, ('startTime', 0)))
+        stop_time = int_or_none(traverse_obj(qs, ('stopTime', 0)))
 
         def livx_mode(mode, suffix=''):
-            file = f'https://r.dcs.redcdn.pl/{mode}/o2/{tenant}/{camera}/{filename}.livx{suffix}?startTime={start_time}'
+            file = f'https://r.dcs.redcdn.pl/{mode}/o2/{tenant}/{path}.livx{suffix}?'
+            file_qs = {}
+            if start_time:
+                file_qs['startTime'] = start_time
             if stop_time:
-                file += f'&stopTime={stop_time}'
-            return file + ('&nolimit=1' if mode == 'nvr' else '&indexMode=true')
+                file_qs['stopTime'] = stop_time
+            if mode == 'nvr':
+                file_qs['nolimit'] = 1
+            elif mode != 'sc':
+                file_qs['indexMode'] = 'true'
+            return file + urlencode(file_qs)
 
-        # no id for a transmission
-        video_id = f'{camera}-{start_time}-{stop_time}'
+        # no id or title for a transmission. making ones up.
+        title = path \
+            .replace('/live/', '/').replace('/live', '').replace('live/', '') \
+            .replace('/channel/', '/').replace('/channel', '').replace('channel/', '')
+        video_id = join_nonempty(title.replace('/', '-'), start_time, stop_time)
 
-        formats = [{
+        formats = []
+        # downloading the manifest separately here instead of _extract_ism_formats to also get some stream metadata
+        ism_res = self._download_xml_handle(
+            livx_mode('livess', '/manifest'), video_id,
+            note='Downloading ISM manifest',
+            errnote='Failed to download ISM manifest',
+            fatal=False)
+        ism_doc = None
+        if ism_res is not False:
+            ism_doc, ism_urlh = ism_res
+            formats, _ = self._parse_ism_formats_and_subtitles(ism_doc, ism_urlh.url, 'ss')
+
+        formats.append({
             'url': livx_mode('nvr'),
             'ext': 'flv',
             'format_id': 'direct-0',
-            'preference': -1,   # VERY slow to download (~200 KiB/s, compared to ~10-15 MiB/s by DASH/HLS)
-        }]
+            'preference': -1,   # might be slow
+        })
         formats.extend(self._extract_mpd_formats(livx_mode('livedash'), video_id, mpd_id='dash', fatal=False))
         formats.extend(self._extract_m3u8_formats(
             livx_mode('livehls', '/playlist.m3u8'), video_id, m3u8_id='hls', ext='mp4', fatal=False))
-        formats.extend(self._extract_ism_formats(
-            livx_mode('livess', '/manifest'), video_id, ism_id='ss', fatal=False))
 
-        duration = (stop_time - start_time) // 1000
+        duration = None
+        if ism_doc is not None:
+            duration = int_or_none(ism_doc.get('Duration'))
+            if duration is not None:
+                duration = duration / (int_or_none(ism_doc.get('TimeScale')) or 10000000)
+                if duration == 0:
+                    duration = None
+        elif duration is None and start_time is not None and stop_time is not None:
+            duration = (stop_time - start_time) // 1000
+        
+        live_status = None
+        if ism_doc.get('IsLive') == 'TRUE':
+            live_status = 'is_live'
+        elif duration:
+            live_status = 'was_live'
 
         return {
             'id': video_id,
-            'title': camera,
+            'title': title,
             'formats': formats,
             'duration': duration,
-            # if there's no stop, it's live
-            'is_live': stop_time is None,
+            'live_status': live_status,
         }
