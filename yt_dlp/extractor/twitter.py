@@ -1416,8 +1416,8 @@ class TwitterIE(TwitterBaseIE):
                 'thumbnails': thumbnails,
                 'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),  # No longer available
                 'duration': float_or_none(traverse_obj(media, ('video_info', 'duration_millis')), 1000),
-                # The codec of http formats are unknown
-                '_format_sort_fields': ('res', 'br', 'size', 'proto'),
+                # Prioritize m3u8 formats for compat, see https://github.com/yt-dlp/yt-dlp/issues/8117
+                '_format_sort_fields': ('res', 'proto:m3u8', 'br', 'size'),  # http format codec is unknown
             }
 
         def extract_from_card_info(card):
