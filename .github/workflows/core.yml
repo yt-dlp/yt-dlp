@@ -1,5 +1,25 @@
 name: Core Tests
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - .github/**
+      - devscripts/**
+      - test/**
+      - yt_dlp/**.py
+      - '!yt_dlp/extractor/*.py'
+      - yt_dlp/extractor/__init__.py
+      - yt_dlp/extractor/common.py
+      - yt_dlp/extractor/extractors.py
+  pull_request:
+    paths:
+      - .github/**
+      - devscripts/**
+      - test/**
+      - yt_dlp/**.py
+      - '!yt_dlp/extractor/*.py'
+      - yt_dlp/extractor/__init__.py
+      - yt_dlp/extractor/common.py
+      - yt_dlp/extractor/extractors.py
 permissions:
   contents: read
 
