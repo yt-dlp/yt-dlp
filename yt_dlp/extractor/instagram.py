@@ -10,6 +10,7 @@ from ..utils import (
     ExtractorError,
     decode_base_n,
     encode_base_n,
+    filter_dict,
     float_or_none,
     format_field,
     get_element_by_attribute,
@@ -728,6 +729,6 @@ class InstagramStoryIE(InstagramBaseIE):
                 info_data.append({
                     'uploader': full_name,
                     'uploader_id': user_id,
-                    **highlight_data,
+                    **filter_dict(highlight_data),
                 })
         return self.playlist_result(info_data, playlist_id=story_id, playlist_title=story_title)
