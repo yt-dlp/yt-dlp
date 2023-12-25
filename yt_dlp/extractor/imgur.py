@@ -191,7 +191,7 @@ class ImgurIE(ImgurBaseIE):
                 'duration': ('duration', {float_or_none}),
                 'timestamp': (('updated_at', 'created_at'), {parse_iso8601}),
                 'release_timestamp': ('created_at', {parse_iso8601}),
-            })),
+            }), get_all=False),
             'id': video_id,
             'formats': formats,
             'title': self._og_search_title(webpage, default='Imgur video ' + video_id),
