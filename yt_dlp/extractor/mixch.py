@@ -67,6 +67,7 @@ class MixchArchiveIE(InfoExtractor):
         'skip': 'paid video, no DRM. expires at Jan 23',
         'info_dict': {
             'id': '421',
+            'ext': 'mp4',
             'title': '96NEKO SHOW TIME',
         }
     }, {
@@ -74,9 +75,12 @@ class MixchArchiveIE(InfoExtractor):
         'skip': 'paid video, no DRM. expires at Dec 31, 2023',
         'info_dict': {
             'id': '1213',
+            'ext': 'mp4',
             'title': '【特別トーク番組アーカイブス】Merm4id×燐舞曲 2nd LIVE「VERSUS」',
             'live_status': 'not_live',
             'release_timestamp': 1701421200,
+            'release_date': '20231201',
+            'thumbnail': str,
         }
     }, {
         'url': 'https://mixch.tv/archive/1214',
