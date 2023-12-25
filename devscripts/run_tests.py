@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 
 
@@ -15,53 +16,63 @@ fix_test_name = functools.partial(re.compile(r'IE(_all|_\d+)?$').sub, r'\1')
 def parse_args():
     parser = argparse.ArgumentParser(description='Run selected yt-dlp tests')
     parser.add_argument(
-        'test', help='An extractor test, or one of "core" or "download"', nargs='*')
+        'test', help='a extractor tests, or one of "core" or "download"', nargs='*')
     parser.add_argument(
-        '-k', help='Run a test matching the expression. Same as "pytest -k"', metavar='EXPRESSION')
+        '-k', help='run a test matching EXPRESSION. Same as "pytest -k"', metavar='EXPRESSION')
     return parser.parse_args()
 
 
 def run_tests(*tests, pattern=None):
-    unittest_supported = True
-    arguments = []
+    werror = ('error', None, Warning, None, 0) in warnings.filters
+    run_core = 'core' in tests or not tests
+    run_download = 'download' in tests
+    tests = list(map(fix_test_name, tests))
 
-    for test in tests:
-        if test == 'core':
-            arguments += ['-m', 'not download']
-            unittest_supported = False
-        elif test == 'download':
-            arguments += ['-m', 'download']
-            unittest_supported = False
-        else:
-            arguments.append(f'test/test_download.py::TestDownload::test_{fix_test_name(test)}')
+    arguments = ['pytest', '--tb', 'short']
+    if werror:
+        arguments.append('-Werror')
+    if run_core:
+        arguments.extend(['-m', 'not download'])
+    elif run_download:
+        arguments.extend(['-m', 'download'])
+    elif pattern:
+        arguments.extend(['-k', pattern])
+    else:
+        arguments.extend(
+            f'test/test_download.py::TestDownload::test_{test}' for test in tests)
 
-    if pattern:
-        arguments += ['-k', pattern]
-
-    if not arguments:
-        arguments = ['-m', 'not download']
-
-    print(f'Running pytest with short traceback on {arguments}')
+    print(f'Running {arguments}')
     try:
-        subprocess.run(['pytest', '--tb', 'short'] + arguments)
+        subprocess.run(arguments)
         return
     except FileNotFoundError:
         pass
 
-    if not unittest_supported:
-        print('"pytest" needs to be installed to run the specified tests', file=sys.stderr)
+    arguments = [sys.executable]
+    if werror:
+        arguments.append('-Werror')
+    arguments.extend(['-m', 'unittest'])
+
+    if run_core:
+        print('"pytest" needs to be installed to run core tests', file=sys.stderr)
         return
+    elif run_download:
+        arguments.append('test.test_download')
+    elif pattern:
+        arguments.extend(['-k', pattern])
+    else:
+        arguments.extend(
+            f'test.test_download.TestDownload.test_{test}' for test in tests)
 
-    arguments = [f'test.test_download.TestDownload.test_{fix_test_name(test)}' for test in tests]
-    if pattern:
-        arguments += ['-k', pattern]
-
-    print(f'Running unittest with {arguments}')
-    subprocess.run([sys.executable, '-m', 'unittest'] + arguments)
+    print(f'Running {arguments}')
+    subprocess.run(arguments)
 
 
 if __name__ == '__main__':
-    args = parse_args()
+    try:
+        args = parse_args()
 
-    os.chdir(Path(__file__).parent.parent)
-    run_tests(*args.test, pattern=args.k)
+        os.chdir(Path(__file__).parent.parent)
+        run_tests(*args.test, pattern=args.k)
+    except KeyboardInterrupt:
+        pass
