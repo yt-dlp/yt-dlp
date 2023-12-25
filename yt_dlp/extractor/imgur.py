@@ -35,7 +35,7 @@ class ImgurBaseIE(InfoExtractor):
 
 
 class ImgurIE(ImgurBaseIE):
-    _VALID_URL = r'''https?://(?:i\.)?imgur\.com/(?!(?:a|gallery|t|topic|r)/)(?P<id>[a-zA-Z0-9]+)'''
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?!(?:a|gallery|t|topic|r)/)(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
         'url': 'https://imgur.com/A61SaA1',
