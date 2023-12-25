@@ -66,7 +66,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
 
 
 class JioSaavnAlbumIE(JioSaavnBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/album/[^/?#]+/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:jio)?saavn\.com/(?:s/playlist|album)/[^/?#]+/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/album/96/buIOjYZDrNA_',
         'info_dict': {
