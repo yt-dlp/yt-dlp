@@ -62,7 +62,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
                 'thumbnail': ('image', 0, {url_or_none}),
             }),
             })
-        return self.playlist_result(formats);
+        return self.playlist_result(formats)
 
 
 class JioSaavnAlbumIE(JioSaavnBaseIE):
