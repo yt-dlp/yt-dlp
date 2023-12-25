@@ -24,7 +24,7 @@ def parse_args():
 
 def run_tests(*tests, pattern=None):
     werror = ('error', None, Warning, None, 0) in warnings.filters
-    run_core = 'core' in tests or not tests
+    run_core = 'core' in tests or (not pattern and not tests)
     run_download = 'download' in tests
     tests = list(map(fix_test_name, tests))
 
