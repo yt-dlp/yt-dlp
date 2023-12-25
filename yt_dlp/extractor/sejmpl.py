@@ -3,9 +3,7 @@ from .redge import RedCDNLivxIE
 from ..utils import (
     clean_html,
     js_to_json,
-    parse_iso8601,
     strip_or_none,
-    traverse_obj,
 )
 
 import datetime
