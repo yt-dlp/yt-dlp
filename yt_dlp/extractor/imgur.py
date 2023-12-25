@@ -9,6 +9,7 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     parse_iso8601,
+    str_or_none,
     traverse_obj,
     url_or_none,
 )
@@ -45,6 +46,12 @@ class ImgurIE(ImgurBaseIE):
             'title': 're:Imgur GIF$|MRW gifv is up and running without any bugs$',
             'timestamp': 1416446068,
             'upload_date': '20141120',
+            'dislike_count': int,
+            'comment_count': int,
+            'release_timestamp': 1416446068,
+            'release_date': '20141120',
+            'like_count': int,
+            'thumbnail': 'https://i.imgur.com/A61SaA1h.jpg',
         },
     }, {
         'url': 'https://i.imgur.com/A61SaA1.gifv',
@@ -53,7 +60,6 @@ class ImgurIE(ImgurBaseIE):
         'url': 'https://i.imgur.com/crGpqCV.mp4',
         'only_matching': True,
     }, {
-        # previously, no title
         'url': 'https://i.imgur.com/jxBXAMC.gifv',
         'info_dict': {
             'id': 'jxBXAMC',
@@ -61,6 +67,13 @@ class ImgurIE(ImgurBaseIE):
             'title': 'Fahaka puffer feeding',
             'timestamp': 1533835503,
             'upload_date': '20180809',
+            'release_date': '20180809',
+            'like_count': int,
+            'duration': 30.0,
+            'comment_count': int,
+            'release_timestamp': 1533835503,
+            'thumbnail': 'https://i.imgur.com/jxBXAMCh.jpg',
+            'dislike_count': int,
         },
     }]
 
@@ -173,8 +186,10 @@ class ImgurIE(ImgurBaseIE):
             formats.extend(tw_formats)
 
         return {
+            'title': self._og_search_title(webpage, default='Imgur video ' + video_id),
+            'description': self.get_description(self._og_search_description(webpage)),
             **traverse_obj(data, {
-                'uploader_id': ('account_id', {lambda x: x or None},
+                'uploader_id': ('account_id', {lambda x: x or None}, {str_or_none},
                                 {lambda a: a if int_or_none(a) != 0 else None}),
                 'uploader': ('account', 'username', {lambda x: x or None}),
                 'uploader_url': ('account', 'avatar_url', {url_or_none}),
@@ -194,8 +209,6 @@ class ImgurIE(ImgurBaseIE):
             }), get_all=False),
             'id': video_id,
             'formats': formats,
-            'title': self._og_search_title(webpage, default='Imgur video ' + video_id),
-            'description': self.get_description(self._og_search_description(webpage)),
             'thumbnail': url_or_none(self._html_search_meta('thumbnailUrl', webpage, default=None)),
         }
 
@@ -267,6 +280,13 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'upload_date': '20130119',
             'uploader_id': '1648642',
             'uploader': 'wittyusernamehere',
+            'release_timestamp': 1358554297,
+            'thumbnail': 'https://i.imgur.com/YcAQlkxh.jpg',
+            'release_date': '20130119',
+            'uploader_url': 'https://i.imgur.com/u3R4I2S_d.png?maxwidth=290&fidelity=grand',
+            'comment_count': int,
+            'dislike_count': int,
+            'like_count': int,
         },
     }, {
         # TODO: static image - replace with animated/video gallery
@@ -283,6 +303,13 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'upload_date': '20161015',
             'uploader_id': '19138530',
             'uploader': 'thematrixcam',
+            'comment_count': int,
+            'dislike_count': int,
+            'uploader_url': 'https://i.imgur.com/qCjr5Pi_d.png?maxwidth=290&fidelity=grand',
+            'release_timestamp': 1476494751,
+            'like_count': int,
+            'release_date': '20161015',
+            'thumbnail': 'https://i.imgur.com/VQcQPhMh.jpg',
         },
     },
         # from https://github.com/ytdl-org/youtube-dl/pull/16674
@@ -302,6 +329,13 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'title': 'Intruder',
             'timestamp': 1528129683,
             'upload_date': '20180604',
+            'release_timestamp': 1528129683,
+            'release_date': '20180604',
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'duration': 30.03,
+            'thumbnail': 'https://i.imgur.com/ZVMv45ih.jpg',
         },
     }, {
         'url': 'https://imgur.com/t/unmuted/wXSK0YH',
@@ -313,6 +347,13 @@ class ImgurGalleryIE(ImgurGalleryBaseIE):
             'description': 'Luka’s vocal stylings.\n\nFP edit: don’t encourage me. I’ll never stop posting Luka and friends.',
             'timestamp': 1527809525,
             'upload_date': '20180531',
+            'like_count': int,
+            'dislike_count': int,
+            'duration': 30.03,
+            'comment_count': int,
+            'release_timestamp': 1527809525,
+            'thumbnail': 'https://i.imgur.com/JCAP4ioh.jpg',
+            'release_date': '20180531',
         },
     }]
 
