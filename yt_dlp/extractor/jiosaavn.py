@@ -36,25 +36,33 @@ class JioSaavnSongIE(JioSaavnBaseIE):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
         song_data = self._extract_initial_data(url, audio_id)['song']['song']
-        media_data = self._download_json(
-            'https://www.jiosaavn.com/api.php', audio_id, data=urlencode_postdata({
-                '__call': 'song.generateAuthToken',
-                '_format': 'json',
-                'bitrate': '320',
-                'url': song_data['encrypted_media_url'],
-            }))
-
-        return {
-            'id': audio_id,
-            'url': media_data['auth_url'],
-            'ext': media_data.get('type'),
-            'vcodec': 'none',
-            **traverse_obj(song_data, {
+        formats = []
+        # available bitrates are 16, 32, 64, 128, 320
+        for bitrate in self._configuration_arg('bitrate', ['16','32','64','128', '320'], ie_key='JioSaavn'):
+            media_data = self._download_json(
+                'https://www.jiosaavn.com/api.php', audio_id, f'Downloading format info for {bitrate}',
+                fatal=False, data=urlencode_postdata({
+                    '__call': 'song.generateAuthToken',
+                    '_format': 'json',
+                    'bitrate': bitrate,
+                    'url': song_data['encrypted_media_url'],
+                }))
+            if not media_data.get('auth_url'):
+                self.report_warning(f'Unable to extract format info for {bitrate}')
+                continue
+            formats.append({
+                'url': media_data['auth_url'],
+                'ext': media_data.get('type'),
+                'id': bitrate,
+                'abr': int(bitrate),
+                'vcodec': 'none',
+                **traverse_obj(song_data, {
                 'title': ('title', 'text'),
                 'album': ('album', 'text'),
                 'thumbnail': ('image', 0, {url_or_none}),
             }),
-        }
+            })
+        return self.playlist_result(formats);
 
 
 class JioSaavnAlbumIE(JioSaavnBaseIE):
