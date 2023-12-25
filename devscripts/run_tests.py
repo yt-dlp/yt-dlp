@@ -9,8 +9,7 @@ import sys
 from pathlib import Path
 
 
-IE_TEST_PATTERN = re.compile(r'IE(_all|_\d+)?$')
-fix_test_name = functools.partial(IE_TEST_PATTERN.sub, r'\1')
+fix_test_name = functools.partial(re.compile(r'IE(_all|_\d+)?$').sub, r'\1')
 
 
 def parse_args():
