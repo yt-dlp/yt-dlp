@@ -195,6 +195,8 @@ After you have ensured this site is distributing its content legally, you can fo
                 #     'description': 'md5:098f6bcd4621d373cade4e832627b4f6',
                 # * A regular expression; start the string with 're:', e.g.:
                 #     'thumbnail': r're:^https?://.*\.jpg$',
+                # * A count of elements in a list; start the string with 'count:', e.g.:
+                #     'tags': 'count:10',
                 # * Any Python type, e.g. int or float
             }
         }]
