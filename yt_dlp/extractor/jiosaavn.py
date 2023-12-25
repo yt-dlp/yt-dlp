@@ -38,7 +38,7 @@ class JioSaavnSongIE(JioSaavnBaseIE):
         song_data = self._extract_initial_data(url, audio_id)['song']['song']
         formats = []
         # available bitrates are 16, 32, 64, 128, 320
-        for bitrate in self._configuration_arg('bitrate', ['16','32','64','128', '320'], ie_key='JioSaavn'):
+        for bitrate in self._configuration_arg('bitrate', ['16', '32', '64', '128', '320'], ie_key='JioSaavn'):
             media_data = self._download_json(
                 'https://www.jiosaavn.com/api.php', audio_id, f'Downloading format info for {bitrate}',
                 fatal=False, data=urlencode_postdata({
@@ -57,10 +57,10 @@ class JioSaavnSongIE(JioSaavnBaseIE):
                 'abr': int(bitrate),
                 'vcodec': 'none',
                 **traverse_obj(song_data, {
-                'title': ('title', 'text'),
-                'album': ('album', 'text'),
-                'thumbnail': ('image', 0, {url_or_none}),
-            }),
+                    'title': ('title', 'text'),
+                    'album': ('album', 'text'),
+                    'thumbnail': ('image', 0, {url_or_none}),
+                }),
             })
         return self.playlist_result(formats)
 
