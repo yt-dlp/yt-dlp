@@ -1,9 +1,7 @@
 from .common import InfoExtractor
-from ..networking import HEADRequest
 from ..utils import (
     int_or_none,
     join_nonempty,
-    mimetype2ext,
     parse_qs,
     traverse_obj,
 )
@@ -115,7 +113,7 @@ class RedCDNLivxIE(InfoExtractor):
                     duration = None
         elif duration is None and start_time is not None and stop_time is not None:
             duration = (stop_time - start_time) // 1000
-        
+
         live_status = None
         if ism_doc.get('IsLive') == 'TRUE':
             live_status = 'is_live'
