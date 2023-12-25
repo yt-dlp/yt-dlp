@@ -94,7 +94,6 @@ class MixchArchiveIE(InfoExtractor):
             f'https://mixch.tv/api-web/archive/{video_id}', video_id, expected_status=(401))
         if urlh.status == 401:
             self.raise_login_required(method='cookies')
-            return
 
         release_timestamp = None
         month, day, hour, min = self._search_regex(
