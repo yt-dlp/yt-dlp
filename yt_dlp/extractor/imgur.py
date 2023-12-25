@@ -9,14 +9,13 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     parse_iso8601,
-    str_or_none,
+    strip_or_none,
     traverse_obj,
     url_or_none,
 )
 
 
 class ImgurBaseIE(InfoExtractor):
-    # hard-coded value, as also used by ArchiveTeam
     _CLIENT_ID = '546c25a59c58ad7'
 
     @classmethod
@@ -80,30 +79,29 @@ class ImgurIE(ImgurBaseIE):
     def _extract_twitter_formats(self, html):
         tw_stream = self._html_search_meta('twitter:player:stream', html, default=None)
         if not tw_stream:
-            return []
+            return
         ext = mimetype2ext(self._html_search_meta(
             'twitter:player:stream:content_type', html, default=None))
         width, height = (int_or_none(self._html_search_meta(f'twitter:player:{v}', html, default=None))
                          for v in ('width', 'height'))
-        return [{
+        yield {
             'format_id': 'twitter',
             'url': tw_stream,
             'ext': ext,
             'width': width,
             'height': height,
-        }]
+        }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         data = self._call_api('media', video_id)
         if not traverse_obj(data, ('media', 0, (
                 ('type', {lambda t: t == 'video' or None}),
                 ('metadata', 'is_animated'))), get_all=False):
             raise ExtractorError(f'{video_id} is not a video or animated image', expected=True)
-
         webpage = self._download_webpage(
             f'https://i.imgur.com/{video_id}.gifv', video_id, fatal=False) or ''
+        formats = []
 
         media_fmt = traverse_obj(data, ('media', 0, {
             'url': ('url', {url_or_none}),
@@ -113,7 +111,6 @@ class ImgurIE(ImgurBaseIE):
             'filesize': ('size', {int_or_none}),
             'acodec': ('metadata', 'has_sound', {lambda b: None if b else 'none'}),
         }))
-
         media_url = media_fmt.get('url')
         if media_url:
             if not media_fmt.get('ext'):
@@ -122,31 +119,23 @@ class ImgurIE(ImgurBaseIE):
             if traverse_obj(data, ('media', 0, 'type')) == 'image':
                 media_fmt['acodec'] = 'none'
                 media_fmt.setdefault('preference', -10)
+            formats.append(media_fmt)
 
-        tw_formats = self._extract_twitter_formats(webpage)
-        if traverse_obj(tw_formats, (0, 'url')) == media_url:
-            tw_formats = []
-        else:
-            # maybe this isn't an animated image/video?
-            self._check_formats(tw_formats, video_id)
+        formats.extend(self._extract_twitter_formats(webpage))
 
         video_elements = self._search_regex(
             r'(?s)<div class="video-elements">(.*?)</div>',
             webpage, 'video elements', default=None)
-        if not (video_elements or tw_formats or media_url):
-            raise ExtractorError(
-                f'No sources found for video {video_id}. Maybe a plain image?', expected=True)
 
-        formats = []
         if video_elements:
             def og_get_size(media_type):
                 return {
-                    p: int_or_none(self._og_search_property(':'.join((media_type, p)), webpage, default=None))
+                    p: int_or_none(self._og_search_property(f'{media_type}:{p}', webpage, default=None))
                     for p in ('width', 'height')
                 }
 
             size = og_get_size('video')
-            if all(v is None for v in size.values()):
+            if not any(size.values()):
                 size = og_get_size('image')
 
             formats = traverse_obj(
@@ -178,20 +167,17 @@ class ImgurIE(ImgurBaseIE):
                 })
                 formats.append(gif_json)
 
-        # maybe add formats from JSON or page Twitter metadata
-        if not any((u == media_url) for u in traverse_obj(formats, (..., 'url'))):
-            formats.append(media_fmt)
-        tw_url = traverse_obj(tw_formats, (0, 'url'))
-        if not any((u == tw_url) for u in traverse_obj(formats, (..., 'url'))):
-            formats.extend(tw_formats)
+        if not formats:
+            self.raise_no_formats(
+                f'No sources found for video {video_id}. Maybe a plain image?', expected=True)
+        self._remove_duplicate_formats(formats)
 
         return {
-            'title': self._og_search_title(webpage, default='Imgur video ' + video_id),
-            'description': self.get_description(self._og_search_description(webpage)),
+            'title': self._og_search_title(webpage, default=None),
+            'description': self.get_description(self._og_search_description(webpage, default='')),
             **traverse_obj(data, {
-                'uploader_id': ('account_id', {lambda x: x or None}, {str_or_none},
-                                {lambda a: a if int_or_none(a) != 0 else None}),
-                'uploader': ('account', 'username', {lambda x: x or None}),
+                'uploader_id': ('account_id', {lambda a: str(a) if int_or_none(a) else None}),
+                'uploader': ('account', 'username', {lambda x: strip_or_none(x) or None}),
                 'uploader_url': ('account', 'avatar_url', {url_or_none}),
                 'like_count': ('upvote_count', {int_or_none}),
                 'dislike_count': ('downvote_count', {int_or_none}),
@@ -201,7 +187,7 @@ class ImgurIE(ImgurBaseIE):
                 'release_timestamp': ('created_at', {parse_iso8601}),
             }, get_all=False),
             **traverse_obj(data, ('media', 0, 'metadata', {
-                'title': ('title', {lambda x: x or None}),
+                'title': ('title', {lambda x: strip_or_none(x) or None}),
                 'description': ('description', {self.get_description}),
                 'duration': ('duration', {float_or_none}),
                 'timestamp': (('updated_at', 'created_at'), {parse_iso8601}),
@@ -222,7 +208,7 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
         data = self._call_api('albums', gallery_id, fatal=False, expected_status=404)
 
         info = traverse_obj(data, {
-            'title': ('title', {lambda x: x or None}),
+            'title': ('title', {lambda x: strip_or_none(x) or None}),
             'description': ('description', {self.get_description}),
         })
 
@@ -231,7 +217,7 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
             def yield_media_ids():
                 for m_id in traverse_obj(data, (
                         'media', lambda _, v: v.get('type') == 'video' or v['metadata']['is_animated'],
-                        'id', {lambda x: x or None})):
+                        'id', {lambda x: str(x) or None})):
                     yield m_id
 
             # if a gallery with exactly one video, apply album metadata to video
@@ -255,7 +241,7 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
 
 class ImgurGalleryIE(ImgurGalleryBaseIE):
     IE_NAME = 'imgur:gallery'
-    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/[^/]+)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:i\.)?imgur\.com/(?:gallery|(?:t(?:opic)?|r)/[^/?#]+)/(?P<id>[a-zA-Z0-9]+)'
 
     _TESTS = [{
         'url': 'http://imgur.com/gallery/Q95ko',
