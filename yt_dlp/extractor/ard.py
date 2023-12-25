@@ -292,7 +292,7 @@ class ARDIE(InfoExtractor):
     _TESTS = [{
         # available till 7.12.2023
         'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-video-424.html',
-        'md5': 'a438f671e87a7eba04000336a119ccc4',
+        'md5': '94812e6438488fb923c361a44469614b',
         'info_dict': {
             'id': 'maischberger-video-424',
             'display_id': 'maischberger-video-424',
@@ -403,26 +403,25 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
     _VALID_URL = r'''(?x)https://
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:(?P<client>[^/]+)/)?
-        (?:player|live|video|(?P<playlist>sendung|sammlung))/
+        (?:player|live|video|(?P<playlist>sendung|serie|sammlung))/
         (?:(?P<display_id>(?(playlist)[^?#]+?|[^?#]+))/)?
         (?P<id>(?(playlist)|Y3JpZDovL)[a-zA-Z0-9]+)
         (?(playlist)/(?P<season>\d+)?/?(?:[?#]|$))'''
 
     _TESTS = [{
-        'url': 'https://www.ardmediathek.de/video/filme-im-mdr/wolfsland-die-traurigen-schwestern/mdr-fernsehen/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy8xZGY0ZGJmZS00ZWQwLTRmMGItYjhhYy0wOGQ4ZmYxNjVhZDI',
-        'md5': '3fd5fead7a370a819341129c8d713136',
+        'url': 'https://www.ardmediathek.de/video/filme-im-mdr/liebe-auf-vier-pfoten/mdr-fernsehen/Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC80MjIwOTEtNDAyNTM0',
+        'md5': 'b6e8ab03f2bcc6e1f9e6cef25fcc03c4',
         'info_dict': {
-            'display_id': 'filme-im-mdr/wolfsland-die-traurigen-schwestern/mdr-fernsehen',
-            'id': '12172961',
-            'title': 'Wolfsland - Die traurigen Schwestern',
-            'description': r're:^Als der Polizeiobermeister Raaben',
-            'duration': 5241,
-            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:efa186f7b0054957',
-            'timestamp': 1670710500,
-            'upload_date': '20221210',
+            'display_id': 'filme-im-mdr/liebe-auf-vier-pfoten/mdr-fernsehen',
+            'id': '12939099',
+            'title': 'Liebe auf vier Pfoten',
+            'description': r're:^Claudia Schmitt, Anwältin in Salzburg',
+            'duration': 5222,
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:aee7cbf8f06de976?w=960&ch=ae4d0f2ee47d8b9b',
+            'timestamp': 1701343800,
+            'upload_date': '20231130',
             'ext': 'mp4',
-            'age_limit': 12,
-            'episode': 'Wolfsland - Die traurigen Schwestern',
+            'episode': 'Liebe auf vier Pfoten',
             'series': 'Filme im MDR'
         },
     }, {
@@ -454,7 +453,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'duration': 915,
             'episode': 'tagesschau, 20:00 Uhr',
             'series': 'tagesschau',
-            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:fbb21142783b0a49',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:fbb21142783b0a49?w=960&ch=ee69108ae344f678',
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -476,6 +475,10 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         'url': 'https://www.ardmediathek.de/ard/sendung/doctor-who/Y3JpZDovL3dkci5kZS9vbmUvZG9jdG9yIHdobw/',
         'only_matching': True,
     }, {
+        # playlist of type 'serie'
+        'url': 'https://www.ardmediathek.de/serie/nachtstreife/staffel-1/Y3JpZDovL3N3ci5kZS9zZGIvc3RJZC8xMjQy/1',
+        'only_matching': True,
+    }, {
         # playlist of type 'sammlung'
         'url': 'https://www.ardmediathek.de/ard/sammlung/team-muenster/5JpTzLSbWUAK8184IOvEir/',
         'only_matching': True,
@@ -487,10 +490,11 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         'only_matching': True,
     }]
 
-    def _ARD_load_playlist_snipped(self, playlist_id, display_id, client, mode, pageNumber):
+    def _ARD_load_playlist_snippet(self, playlist_id, display_id, client, mode, page_number):
         """ Query the ARD server for playlist information
         and returns the data in "raw" format """
-        if mode == 'sendung':
+        assert mode in ('sendung', 'serie', 'sammlung')
+        if mode in ('sendung', 'serie'):
             graphQL = json.dumps({
                 'query': '''{
                     showPage(
@@ -507,7 +511,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                             links { target { id href title } }
                             type
                         }
-                    }}''' % (client, playlist_id, pageNumber),
+                    }}''' % (client, playlist_id, page_number),
             }).encode()
         else:  # mode == 'sammlung'
             graphQL = json.dumps({
@@ -528,7 +532,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                                 type
                             }
                         }
-                    }}''' % (client, playlist_id, pageNumber),
+                    }}''' % (client, playlist_id, page_number),
             }).encode()
         # Ressources for ARD graphQL debugging:
         # https://api-test.ardmediathek.de/public-gateway
@@ -538,7 +542,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             data=graphQL,
             headers={'Content-Type': 'application/json'})['data']
         # align the structure of the returned data:
-        if mode == 'sendung':
+        if mode in ('sendung', 'serie'):
             show_page = show_page['showPage']
         else:  # mode == 'sammlung'
             show_page = show_page['morePage']['widget']
@@ -546,12 +550,12 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
 
     def _ARD_extract_playlist(self, url, playlist_id, display_id, client, mode):
         """ Collects all playlist entries and returns them as info dict.
-        Supports playlists of mode 'sendung' and 'sammlung', and also nested
-        playlists. """
+        Supports playlists of mode 'sendung', 'serie', and 'sammlung',
+        as well as nested playlists. """
         entries = []
         pageNumber = 0
         while True:  # iterate by pageNumber
-            show_page = self._ARD_load_playlist_snipped(
+            show_page = self._ARD_load_playlist_snippet(
                 playlist_id, display_id, client, mode, pageNumber)
             for teaser in show_page['teasers']:  # process playlist items
                 if '/compilation/' in teaser['links']['target']['href']:
