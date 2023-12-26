@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import collections
 import random
 import urllib.parse
