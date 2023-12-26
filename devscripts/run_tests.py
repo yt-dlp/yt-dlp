@@ -21,12 +21,14 @@ def parse_args():
     return parser.parse_args()
 
 
-def run_tests(*tests, pattern=None):
+def run_tests(*tests, pattern=None, ci=False):
     run_core = 'core' in tests or (not pattern and not tests)
     run_download = 'download' in tests
     tests = list(map(fix_test_name, tests))
 
-    arguments = ['pytest', '-Werror', '--tb', 'short']
+    arguments = ['pytest', '-Werror', '--tb=short']
+    if ci:
+        arguments.append('--color=yes')
     if run_core:
         arguments.extend(['-m', 'not download'])
     elif run_download:
@@ -37,17 +39,16 @@ def run_tests(*tests, pattern=None):
         arguments.extend(
             f'test/test_download.py::TestDownload::test_{test}' for test in tests)
 
-    print(f'Running {arguments}')
+    print(f'Running {arguments}', flush=True)
     try:
-        subprocess.run(arguments)
-        return
+        return subprocess.call(arguments)
     except FileNotFoundError:
         pass
 
     arguments = [sys.executable, '-Werror', '-m', 'unittest']
     if run_core:
-        print('"pytest" needs to be installed to run core tests', file=sys.stderr)
-        return
+        print('"pytest" needs to be installed to run core tests', file=sys.stderr, flush=True)
+        return 1
     elif run_download:
         arguments.append('test.test_download')
     elif pattern:
@@ -56,8 +57,8 @@ def run_tests(*tests, pattern=None):
         arguments.extend(
             f'test.test_download.TestDownload.test_{test}' for test in tests)
 
-    print(f'Running {arguments}')
-    subprocess.run(arguments)
+    print(f'Running {arguments}', flush=True)
+    return subprocess.call(arguments)
 
 
 if __name__ == '__main__':
@@ -65,6 +66,6 @@ if __name__ == '__main__':
         args = parse_args()
 
         os.chdir(Path(__file__).parent.parent)
-        run_tests(*args.test, pattern=args.k)
+        sys.exit(run_tests(*args.test, pattern=args.k, ci=bool(os.getenv('CI'))))
     except KeyboardInterrupt:
         pass
