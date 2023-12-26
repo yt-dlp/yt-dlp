@@ -9,6 +9,7 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     parse_iso8601,
+    str_or_none,
     strip_or_none,
     traverse_obj,
     url_or_none,
@@ -217,7 +218,7 @@ class ImgurGalleryBaseIE(ImgurBaseIE):
             def yield_media_ids():
                 for m_id in traverse_obj(data, (
                         'media', lambda _, v: v.get('type') == 'video' or v['metadata']['is_animated'],
-                        'id', {lambda x: str(x) or None})):
+                        'id', {lambda x: str_or_none(x) or None})):
                     yield m_id
 
             # if a gallery with exactly one video, apply album metadata to video
