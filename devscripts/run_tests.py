@@ -6,7 +6,6 @@ import os
 import re
 import subprocess
 import sys
-import warnings
 from pathlib import Path
 
 
@@ -23,14 +22,11 @@ def parse_args():
 
 
 def run_tests(*tests, pattern=None):
-    werror = ('error', None, Warning, None, 0) in warnings.filters
     run_core = 'core' in tests or (not pattern and not tests)
     run_download = 'download' in tests
     tests = list(map(fix_test_name, tests))
 
-    arguments = ['pytest', '--tb', 'short']
-    if werror:
-        arguments.append('-Werror')
+    arguments = ['pytest', '-Werror', '--tb', 'short']
     if run_core:
         arguments.extend(['-m', 'not download'])
     elif run_download:
@@ -48,11 +44,7 @@ def run_tests(*tests, pattern=None):
     except FileNotFoundError:
         pass
 
-    arguments = [sys.executable]
-    if werror:
-        arguments.append('-Werror')
-    arguments.extend(['-m', 'unittest'])
-
+    arguments = [sys.executable, '-Werror', '-m', 'unittest']
     if run_core:
         print('"pytest" needs to be installed to run core tests', file=sys.stderr)
         return

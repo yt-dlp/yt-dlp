@@ -18,7 +18,7 @@ jobs:
       run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: true
-      run: python3 -Werror ./devscripts/run_tests.py download
+      run: python3 ./devscripts/run_tests.py download
 
   full:
     name: Full Download Tests
@@ -45,4 +45,4 @@ jobs:
       run: pip install pytest -r requirements.txt
     - name: Run tests
       continue-on-error: true
-      run: python3 -Werror ./devscripts/run_tests.py download
+      run: python3 ./devscripts/run_tests.py download
