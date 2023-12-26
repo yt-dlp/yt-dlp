@@ -189,15 +189,16 @@ After you have ensured this site is distributing its content legally, you can fo
                 'ext': 'mp4',
                 # Then if the test run fails, it will output the missing/incorrect fields.
                 # Properties can be added as:
-                # * A value, e.g.:
+                # * A value, e.g.
                 #     'title': 'Video title goes here',
-                # * MD5 checksum; start the string with 'md5:', e.g.:
+                # * MD5 checksum; start the string with 'md5:', e.g.
                 #     'description': 'md5:098f6bcd4621d373cade4e832627b4f6',
-                # * A regular expression; start the string with 're:', e.g.:
+                # * A regular expression; start the string with 're:', e.g.
                 #     'thumbnail': r're:^https?://.*\.jpg$',
-                # * A count of elements in a list; start the string with 'count:', e.g.:
+                # * A count of elements in a list; start the string with 'count:', e.g.
                 #     'tags': 'count:10',
-                # * Any Python type, e.g. int or float
+                # * Any Python type, e.g.
+                #     'view_count': int,
             }
         }]
 
