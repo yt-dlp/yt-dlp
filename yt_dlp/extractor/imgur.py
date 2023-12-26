@@ -1,3 +1,4 @@
+import functools
 import re
 
 from .common import InfoExtractor
@@ -77,22 +78,6 @@ class ImgurIE(ImgurBaseIE):
         },
     }]
 
-    def _extract_twitter_formats(self, html):
-        tw_stream = self._html_search_meta('twitter:player:stream', html, default=None)
-        if not tw_stream:
-            return
-        ext = mimetype2ext(self._html_search_meta(
-            'twitter:player:stream:content_type', html, default=None))
-        width, height = (int_or_none(self._html_search_meta(f'twitter:player:{v}', html, default=None))
-                         for v in ('width', 'height'))
-        yield {
-            'format_id': 'twitter',
-            'url': tw_stream,
-            'ext': ext,
-            'width': width,
-            'height': height,
-        }
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._call_api('media', video_id)
@@ -121,8 +106,6 @@ class ImgurIE(ImgurBaseIE):
                 media_fmt['acodec'] = 'none'
                 media_fmt.setdefault('preference', -10)
             formats.append(media_fmt)
-
-        formats.extend(self._extract_twitter_formats(webpage))
 
         video_elements = self._search_regex(
             r'(?s)<div class="video-elements">(.*?)</div>',
@@ -168,6 +151,18 @@ class ImgurIE(ImgurBaseIE):
                 })
                 formats.append(gif_json)
 
+        search = functools.partial(self._html_search_meta, html=webpage, default=None)
+
+        twitter_fmt = {
+            'id': 'twitter',
+            'url': url_or_none(search('twitter:player:stream')),
+            'ext': mimetype2ext(search('twitter:player:stream:content_type')),
+            'width': int_or_none(search('twitter:width')),
+            'height': int_or_none(search('twitter:height')),
+        }
+        if twitter_fmt['url']:
+            formats.append(twitter_fmt)
+
         if not formats:
             self.raise_no_formats(
                 f'No sources found for video {video_id}. Maybe a plain image?', expected=True)
@@ -196,7 +191,7 @@ class ImgurIE(ImgurBaseIE):
             }), get_all=False),
             'id': video_id,
             'formats': formats,
-            'thumbnail': url_or_none(self._html_search_meta('thumbnailUrl', webpage, default=None)),
+            'thumbnail': url_or_none(search('thumbnailUrl')),
         }
 
 
