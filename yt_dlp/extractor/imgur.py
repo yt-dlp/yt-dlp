@@ -154,7 +154,7 @@ class ImgurIE(ImgurBaseIE):
         search = functools.partial(self._html_search_meta, html=webpage, default=None)
 
         twitter_fmt = {
-            'id': 'twitter',
+            'format_id': 'twitter',
             'url': url_or_none(search('twitter:player:stream')),
             'ext': mimetype2ext(search('twitter:player:stream:content_type')),
             'width': int_or_none(search('twitter:width')),
