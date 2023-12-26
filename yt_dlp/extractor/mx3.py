@@ -1,16 +1,18 @@
 import re
 
 from .common import InfoExtractor
+from ..utils import urlhandle_detect_ext
+from ..networking import HEADRequest
 
 
 class Mx3IE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://mx3.ch/t/1Cru',
-        'md5': '4aa5e93c3a2da01048e22d7851dc0a70',
+        'md5': '82510bf4c21f17da41bff7e1ffd84e78',
         'info_dict': {
             'id': '1Cru',
-            # This one is audio-only. Looks like an ordinary mp3.
+            # This one is audio-only. It's a mp3, but we have to make a HEAD request to find out.
             'ext': 'mp3',
             'artist': 'Tortue Tortue',
             'genre': 'Rock',
@@ -19,7 +21,7 @@ class Mx3IE(InfoExtractor):
         }
     }, {
         'url': 'https://mx3.ch/t/1LIY',
-        'md5': '87c856be272aa614febb9455aecb5833',
+        'md5': '4117489dff8c763ecfbb0b95a67d6c8e',
         'info_dict': {
             'id': '1LIY',
             # This is a music video. 'file' says: ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]
@@ -28,6 +30,18 @@ class Mx3IE(InfoExtractor):
             'genre': 'Electro',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_xlarge/frame_0000.png?1686963670',
             'title': 'The Broots-Larytta remix "Begging For Help"',
+        }
+    }, {
+        'url': 'https://mx3.ch/t/1C6E',
+        'md5': '1afcd578493ddb8e5008e94bb6d97e25',
+        'info_dict': {
+            'id': '1C6E',
+            # This one has a download button, yielding a WAV.
+            'ext': 'wav',
+            'artist': 'Alien Bubblegum',
+            'genre': 'Punk',
+            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/1551/square_xlarge/pandora-s-box-cover-with-title.png?1627054733',
+            'title': 'Alien Bubblegum - Wide Awake',
         }
     }]
 
@@ -43,12 +57,40 @@ class Mx3IE(InfoExtractor):
 
         genre = self._html_search_regex(r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>',
                                         webpage, 'genre', fatal=False, flags=re.DOTALL)
-        is_video = json.get('type') == 'video'
+
+        formats = []
+
+        def add_format(fmt):
+            urlh = self._request_webpage(HEADRequest(fmt['url']), track_id, note='Fetching media headers', fatal=False)
+            if urlh:
+                fmt['ext'] = urlhandle_detect_ext(urlh)
+                formats.append(fmt)
+
+        add_format({
+            'url': 'https://mx3.ch/' + json['url'],
+            'format_id': 'default',
+            'quality': 1,
+        })
+
+        if 'hd_url' in json:
+            add_format({
+                'url': 'https://mx3.ch/' + json['hd_url'],
+                'format_id': 'hd',
+                'quality': 10,
+            })
+
+        # the "download" feature is not available everywhere
+        if f'/tracks/{track_id}/download' in webpage:
+            add_format({
+                'url': f'https://mx3.ch/tracks/{track_id}/download',
+                'format_id': 'download',
+                'quality': 11,
+                'format_note': 'usually uncompressed WAV',
+            })
 
         return {
             'id': track_id,
-            'url': f'https://mx3.ch/tracks/{track_id}/player_asset',
-            'ext': 'mp4' if is_video else 'mp3',
+            'formats': formats,
             'title': title,
             'artist': artist,
             'genre': genre,
