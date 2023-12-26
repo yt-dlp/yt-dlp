@@ -14,7 +14,7 @@ class Mx3IE(InfoExtractor):
             'ext': 'mp3',
             'artist': 'Tortue Tortue',
             'genre': 'Rock',
-            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_large/1-s-envoler-1.jpg?1630272813',
+            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_xlarge/1-s-envoler-1.jpg?1630272813',
             'title': 'Tortue Tortue - S\'envoler',
         }
     }, {
@@ -26,25 +26,24 @@ class Mx3IE(InfoExtractor):
             'ext': 'mp4',
             'artist': 'The Broots',
             'genre': 'Electro',
-            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_large/frame_0000.png?1686963670',
-            'title': 'The Broots - The Broots-Larytta remix "Begging For Help"',
+            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_xlarge/frame_0000.png?1686963670',
+            'title': 'The Broots-Larytta remix "Begging For Help"',
         }
     }]
 
     def _real_extract(self, url):
         track_id = self._match_id(url)
         webpage = self._download_webpage(url, track_id)
+        json = self._download_json(f'https://mx3.ch/t/{track_id}.json', track_id)
 
-        title = self._og_search_title(webpage)
+        title = json['title']
+        artist = json.get('artist')
+        if artist and not title.startswith(artist):
+            title = artist + ' - ' + title
+
         genre = self._html_search_regex(r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>',
                                         webpage, 'genre', fatal=False, flags=re.DOTALL)
-        thumbnail = self._og_search_thumbnail(webpage)
-        is_video = 'central-player-placeholder video' in webpage or '/video' in thumbnail
-
-        if ' - ' in title:
-            artist, _track = title.split(' - ', maxsplit=1)
-        else:
-            artist = None
+        is_video = json.get('type') == 'video'
 
         return {
             'id': track_id,
@@ -53,5 +52,5 @@ class Mx3IE(InfoExtractor):
             'title': title,
             'artist': artist,
             'genre': genre,
-            'thumbnail': thumbnail,
+            'thumbnail': json.get('picture_url_xlarge') or json.get('picture_url'),
         }
