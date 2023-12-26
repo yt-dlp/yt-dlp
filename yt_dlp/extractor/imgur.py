@@ -44,7 +44,7 @@ class ImgurIE(ImgurBaseIE):
         'info_dict': {
             'id': 'A61SaA1',
             'ext': 'mp4',
-            'title': 're:Imgur GIF$|MRW gifv is up and running without any bugs$',
+            'title': 'MRW gifv is up and running without any bugs',
             'timestamp': 1416446068,
             'upload_date': '20141120',
             'dislike_count': int,
@@ -91,7 +91,7 @@ class ImgurIE(ImgurBaseIE):
 
         media_fmt = traverse_obj(data, ('media', 0, {
             'url': ('url', {url_or_none}),
-            'ext': 'ext',
+            'ext': ('ext', {str}),
             'width': ('width', {int_or_none}),
             'height': ('height', {int_or_none}),
             'filesize': ('size', {int_or_none}),
