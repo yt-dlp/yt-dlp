@@ -4,10 +4,15 @@ from ..utils import (
     clean_html,
     js_to_json,
     strip_or_none,
+    ExtractorError,
 )
 
 import datetime
-from zoneinfo import ZoneInfo
+try:
+    from zoneinfo import ZoneInfo
+    _HAS_ZONEINFO = True
+except ImportError:
+    _HAS_ZONEINFO = False
 
 
 class SejmIE(InfoExtractor):
@@ -114,6 +119,8 @@ class SejmIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        if not _HAS_ZONEINFO:
+            raise ExtractorError('zoneinfo is required. Use Python 3.9+', expected=True)
         term, video_id = self._match_valid_url(url).group('term', 'id')
         frame = self._download_webpage(
             f'https://sejm-embed.redcdn.pl/Sejm{term}.nsf/VideoFrame.xsp/{video_id}',
