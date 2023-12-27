@@ -995,7 +995,7 @@ class FacebookAdLibIE(FacebookIE):
                             'format_note': [None, 'SD, Watermarked', None, 'HD, Watermarked'][i],
                             'url': url,
                             'ext': 'mp4',
-                            'preference': int(i/2),
+                            'preference': int(i / 2),
                         }
                         f.update(self._get_video_metadata(url))
                         formats.append(f)
@@ -1022,7 +1022,7 @@ class FacebookAdLibIE(FacebookIE):
                     for entry in group:
                         if entry.get('video_sd_url') or entry.get('watermarked_video_sd_url') or entry.get('video_hd_url') or entry.get('watermarked_video_hd_url'):
                             entries.append({
-                                'id': f'{video_id}_%s' % str(len(entries)+1),
+                                'id': f'{video_id}_%s' % str(len(entries) + 1),
                                 'title': entry.get('title') or title,
                                 'description': entry.get('link_description') or description,
                                 'thumbnail': entry.get('video_preview_image_url'),
