@@ -986,16 +986,16 @@ class FacebookAdLibIE(FacebookIE):
             def extract_format(video_dict):
                 formats = []
                 for i, url in enumerate(
-                    [url_or_none(video_dict.get('video_sd_url')), url_or_none(video_dict.get('watermarked_video_sd_url')),
-                     url_or_none(video_dict.get('video_hd_url')), url_or_none(video_dict.get('watermarked_video_hd_url'))]
+                    [url_or_none(video_dict.get('watermarked_video_sd_url')), url_or_none(video_dict.get('video_sd_url')),
+                     url_or_none(video_dict.get('watermarked_video_hd_url')), url_or_none(video_dict.get('video_hd_url'))]
                 ):
                     if url:
                         f = {
-                            'format_id': ['sd', 'sd-wmk', 'hd', 'hd-wmk'][i],
-                            'format_note': [None, 'SD, Watermarked', None, 'HD, Watermarked'][i],
+                            'format_id': ['sd-wmk', 'sd', 'hd-wmk', 'hd'][i],
+                            'format_note': ['SD, Watermarked', None, 'HD, Watermarked', None][i],
                             'url': url,
                             'ext': 'mp4',
-                            'preference': int(i / 2),
+                            'preference': i,
                         }
                         f.update(self._get_video_metadata(url))
                         formats.append(f)
