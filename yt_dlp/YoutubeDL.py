@@ -2465,9 +2465,16 @@ class YoutubeDL:
                 return selector_function(ctx_copy)
             return final_selector
 
-        stream = io.BytesIO(format_spec.encode())
+        # HACK: Python 3.12 changed the underlying parser, rendering '7_a' invalid
+        #       Prefix numbers with random letters to avoid it being classified as a number
+        #       See: https://github.com/yt-dlp/yt-dlp/pulls/8797
+        # TODO: Implement parser not reliant on tokenize.tokenize
+        prefix = ''.join(random.choices(string.ascii_letters, k=32))
+        stream = io.BytesIO(re.sub(r'\d[_\d]*', rf'{prefix}\g<0>', format_spec).encode())
         try:
-            tokens = list(_remove_unused_ops(tokenize.tokenize(stream.readline)))
+            tokens = list(_remove_unused_ops(
+                token._replace(string=token.string.replace(prefix, ''))
+                for token in tokenize.tokenize(stream.readline)))
         except tokenize.TokenError:
             raise syntax_error('Missing closing/opening brackets or parenthesis', (0, len(format_spec)))
 
