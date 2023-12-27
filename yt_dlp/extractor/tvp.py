@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import random
 import re
@@ -10,6 +11,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
+    parse_iso8601,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -21,7 +23,7 @@ from ..utils import (
 class TVPIE(InfoExtractor):
     IE_NAME = 'tvp'
     IE_DESC = 'Telewizja Polska'
-    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)(?:[/?#]|$)'
 
     _TESTS = [{
         # TVPlayer 2 in js wrapper
@@ -493,6 +495,7 @@ class TVPVODBaseIE(InfoExtractor):
         raise ExtractorError(f'Woronicza said: {document.get("code")} (HTTP {urlh.status})')
 
     def _parse_video(self, video, with_url=True):
+        type_ = video['type_']
         info_dict = traverse_obj(video, {
             'id': ('id', {str_or_none}),
             'title': 'title',
@@ -503,6 +506,14 @@ class TVPVODBaseIE(InfoExtractor):
             'thumbnails': ('images', ..., ..., {'url': ('url', {url_or_none})}),
         })
         info_dict['description'] = clean_html(dict_get(video, ('lead', 'description')))
+        if type_ in ('PROGRAMME', 'LIVE'):
+            now = datetime.datetime.now().astimezone(datetime.timezone.utc).timestamp()
+            if parse_iso8601(video.get('since')) > now:
+                info_dict['live_status'] = 'is_upcoming'
+            elif video.get('till') is None or parse_iso8601(video.get('till')) >= now:
+                info_dict['live_status'] = 'is_live'
+            else:
+                info_dict['live_status'] = 'was_live'
         if with_url:
             info_dict.update({
                 '_type': 'url',
@@ -514,7 +525,7 @@ class TVPVODBaseIE(InfoExtractor):
 
 class TVPVODVideoIE(TVPVODBaseIE):
     IE_NAME = 'tvp:vod'
-    _VALID_URL = r'https?://vod\.tvp\.pl/[a-z\d-]+,\d+/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)(?:\?[^#]+)?(?:#.+)?$'
+    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/(?:[a-z\d-]+,\d+/)*(?:(?P<date>\d{4}-\d{2}-\d{2})/)?[a-z\d-]+(?:,S\d+E\d+)?,(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
@@ -560,12 +571,30 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'thumbnail': 're:https?://.+',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://vod.tvp.pl/live,1/tvp-world,399731',
+        'info_dict': {
+            'id': '399731',
+            'ext': 'mp4',
+            'title': r're:TVP WORLD \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'live_status': 'is_live',
+            'thumbnail': 're:https?://.+',
+        },
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        category, date, video_id = self._match_valid_url(url).group('category', 'date', 'id')
 
-        info_dict = self._parse_video(self._call_api(f'vods/{video_id}', video_id), with_url=False)
+        entity = 'vods'
+        if category == 'live,1':
+            # programs broadcasted on tv can be linked to by their EPG item.
+            # it's not really playable.
+            if date:
+                raise ExtractorError('EPG items cannot be downloaded. Find it on VOD.', expected=True)
+            else:
+                entity = 'lives'
+
+        info_dict = self._parse_video(self._call_api(f'{entity}/{video_id}', video_id), with_url=False)
 
         playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
 
