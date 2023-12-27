@@ -495,7 +495,7 @@ class TVPVODBaseIE(InfoExtractor):
         raise ExtractorError(f'Woronicza said: {document.get("code")} (HTTP {urlh.status})')
 
     def _parse_video(self, video, with_url=True):
-        type_ = video['type_']
+        type_ = video.get('type_')
         info_dict = traverse_obj(video, {
             'id': ('id', {str_or_none}),
             'title': 'title',
@@ -525,7 +525,7 @@ class TVPVODBaseIE(InfoExtractor):
 
 class TVPVODVideoIE(TVPVODBaseIE):
     IE_NAME = 'tvp:vod'
-    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/(?:[a-z\d-]+,\d+/)*(?:(?P<date>\d{4}-\d{2}-\d{2})/)?[a-z\d-]+(?:,S\d+E\d+)?,(?P<id>\d+)'
+    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/(?:[a-z\d-]+,\d+/)*(?:(?P<date>\d{4}-\d{2}-\d{2})/)?[a-z\d-]+(?<!-odcinki)(?:,S\d+E\d+)?,(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
