@@ -19,7 +19,7 @@ jobs:
     - name: Run tests
       run: |
         python3 -m yt_dlp -v || true
-        ./devscripts/run_tests.sh core
+        python3 ./devscripts/run_tests.py core
   flake8:
     name: Linter
     if: "!contains(github.event.head_commit.message, 'ci skip all')"
