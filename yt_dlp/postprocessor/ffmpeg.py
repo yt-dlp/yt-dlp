@@ -2,7 +2,6 @@ import collections
 import contextvars
 import itertools
 import json
-import mutagen
 import os
 import re
 import subprocess
@@ -10,6 +9,7 @@ import time
 
 from .common import PostProcessor
 from ..compat import functools, imghdr
+from ..dependencies import mutagen
 from ..utils import (
     MEDIA_EXTENSIONS,
     ISO639Utils,
