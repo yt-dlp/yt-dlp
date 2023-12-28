@@ -59,6 +59,8 @@ ACODECS = {
     'alac': ('m4a', None, ('-acodec', 'alac')),
     'wav': ('wav', None, ('-f', 'wav')),
 }
+
+
 def create_mapping_re(supported):
     return re.compile(r'{0}(?:/{0})*$'.format(r'(?:\s*\w+\s*>)?\s*(?:%s)\s*' % '|'.join(supported)))
 
@@ -585,7 +587,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
-    AUDIO_EXTS = ('mp3','m4a','flac','opus')
+    AUDIO_EXTS = ('mp3', 'm4a', 'flac', 'opus')
     SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka')
 
     def __init__(self, downloader=None, already_have_subtitle=False):
@@ -674,7 +676,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             raise PostProcessingError('LRC subtitles required. Use "--convert-subs lrc" to convert')
         else:
             with open(subs, 'r', encoding='utf-8') as f:
-                lyrics=f.read().strip()
+                lyrics = f.read().strip()
             if audio_file.endswith('.mp3'):
                 audio = mutagen.id3.ID3(audio_file)
                 audio.add(mutagen.id3.USLT(encoding=3, lang='eng', desc='', text=lyrics))

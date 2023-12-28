@@ -93,7 +93,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             # Using ffmpeg to embed the thumbnail in mp3 files is messing up lyrics
             # Using using mutagen instead
             audio = mutagen.id3.ID3(filename)
-            if 'APIC' in audio:del audio['APIC']
+            if 'APIC' in audio:
+                del audio['APIC']
             with open(thumbnail_filename, 'rb') as thumbfile:
                 audio['APIC'] = mutagen.id3.APIC(
                     encoding=3, mime='image/%s' % thumbnail_ext, type=3,
@@ -218,7 +219,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         else:
             raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov')
 
-        if info['ext']!='mp3' and success and temp_filename != filename:
+        if info['ext'] != 'mp3' and success and temp_filename != filename:
             os.replace(temp_filename, filename)
 
         self.try_utime(filename, mtime, mtime)
