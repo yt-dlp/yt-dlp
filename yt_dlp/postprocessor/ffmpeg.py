@@ -585,7 +585,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
-    AUDIO_EXTS = ('mp3','m4a','flac','opus','acc')
+    AUDIO_EXTS = ('mp3','m4a','flac','opus')
     SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka')
 
     def __init__(self, downloader=None, already_have_subtitle=False):
@@ -671,7 +671,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         audio_file = input_files[0]
         subs = input_files[1]
         if not subs.endswith('.lrc'):
-            self.report_error('LRC subtitles required. Use "--convert-subs lrc" to convert')
+            raise PostProcessingError('LRC subtitles required. Use "--convert-subs lrc" to convert')
         else:
             with open(subs, 'r', encoding='utf-8') as f:
                 lyrics=f.read().strip()
