@@ -135,7 +135,6 @@ from .arkena import ArkenaIE
 from .ard import (
     ARDBetaMediathekIE,
     ARDIE,
-    ARDMediathekIE,
 )
 from .arte import (
     ArteTVIE,

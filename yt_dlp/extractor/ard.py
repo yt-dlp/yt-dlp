@@ -2,13 +2,10 @@ import json
 import re
 
 from .common import InfoExtractor
-from .generic import GenericIE
 from ..utils import (
     determine_ext,
-    ExtractorError,
     int_or_none,
     parse_duration,
-    qualities,
     str_or_none,
     try_get,
     unified_strdate,
@@ -18,7 +15,6 @@ from ..utils import (
     url_or_none,
     xpath_text,
 )
-from ..compat import compat_etree_fromstring
 
 
 class ARDMediathekBaseIE(InfoExtractor):
@@ -153,138 +149,6 @@ class ARDMediathekBaseIE(InfoExtractor):
                             f['vcodec'] = 'none'
                         formats.append(f)
         return formats
-
-
-class ARDMediathekIE(ARDMediathekBaseIE):
-    IE_NAME = 'ARD:mediathek'
-    _VALID_URL = r'^https?://(?:(?:(?:www|classic)\.)?ardmediathek\.de|mediathek\.(?:daserste|rbb-online)\.de|one\.ard\.de)/(?:.*/)(?P<video_id>[0-9]+|[^0-9][^/\?]+)[^/\?]*(?:\?.*)?'
-
-    _TESTS = [{
-        # available till 26.07.2022
-        'url': 'http://www.ardmediathek.de/tv/S%C3%9CDLICHT/Was-ist-die-Kunst-der-Zukunft-liebe-Ann/BR-Fernsehen/Video?bcastId=34633636&documentId=44726822',
-        'info_dict': {
-            'id': '44726822',
-            'ext': 'mp4',
-            'title': 'Was ist die Kunst der Zukunft, liebe Anna McCarthy?',
-            'description': 'md5:4ada28b3e3b5df01647310e41f3a62f5',
-            'duration': 1740,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        }
-    }, {
-        'url': 'https://one.ard.de/tv/Mord-mit-Aussicht/Mord-mit-Aussicht-6-39-T%C3%B6dliche-Nach/ONE/Video?bcastId=46384294&documentId=55586872',
-        'only_matching': True,
-    }, {
-        # audio
-        'url': 'http://www.ardmediathek.de/tv/WDR-H%C3%B6rspiel-Speicher/Tod-eines-Fu%C3%9Fballers/WDR-3/Audio-Podcast?documentId=28488308&bcastId=23074086',
-        'only_matching': True,
-    }, {
-        'url': 'http://mediathek.daserste.de/sendungen_a-z/328454_anne-will/22429276_vertrauen-ist-gut-spionieren-ist-besser-geht',
-        'only_matching': True,
-    }, {
-        # audio
-        'url': 'http://mediathek.rbb-online.de/radio/Hörspiel/Vor-dem-Fest/kulturradio/Audio?documentId=30796318&topRessort=radio&bcastId=9839158',
-        'only_matching': True,
-    }, {
-        'url': 'https://classic.ardmediathek.de/tv/Panda-Gorilla-Co/Panda-Gorilla-Co-Folge-274/Das-Erste/Video?bcastId=16355486&documentId=58234698',
-        'only_matching': True,
-    }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if ARDBetaMediathekIE.suitable(url) else super(ARDMediathekIE, cls).suitable(url)
-
-    def _real_extract(self, url):
-        # determine video id from url
-        m = self._match_valid_url(url)
-
-        document_id = None
-
-        numid = re.search(r'documentId=([0-9]+)', url)
-        if numid:
-            document_id = video_id = numid.group(1)
-        else:
-            video_id = m.group('video_id')
-
-        webpage = self._download_webpage(url, video_id)
-
-        ERRORS = (
-            ('>Leider liegt eine Störung vor.', 'Video %s is unavailable'),
-            ('>Der gewünschte Beitrag ist nicht mehr verfügbar.<',
-             'Video %s is no longer available'),
-        )
-
-        for pattern, message in ERRORS:
-            if pattern in webpage:
-                raise ExtractorError(message % video_id, expected=True)
-
-        if re.search(r'[\?&]rss($|[=&])', url):
-            doc = compat_etree_fromstring(webpage.encode('utf-8'))
-            if doc.tag == 'rss':
-                return GenericIE()._extract_rss(url, video_id, doc)
-
-        title = self._og_search_title(webpage, default=None) or self._html_search_regex(
-            [r'<h1(?:\s+class="boxTopHeadline")?>(.*?)</h1>',
-             r'<meta name="dcterms\.title" content="(.*?)"/>',
-             r'<h4 class="headline">(.*?)</h4>',
-             r'<title[^>]*>(.*?)</title>'],
-            webpage, 'title')
-        description = self._og_search_description(webpage, default=None) or self._html_search_meta(
-            'dcterms.abstract', webpage, 'description', default=None)
-        if description is None:
-            description = self._html_search_meta(
-                'description', webpage, 'meta description', default=None)
-        if description is None:
-            description = self._html_search_regex(
-                r'<p\s+class="teasertext">(.+?)</p>',
-                webpage, 'teaser text', default=None)
-
-        # Thumbnail is sometimes not present.
-        # It is in the mobile version, but that seems to use a different URL
-        # structure altogether.
-        thumbnail = self._og_search_thumbnail(webpage, default=None)
-
-        media_streams = re.findall(r'''(?x)
-            mediaCollection\.addMediaStream\([0-9]+,\s*[0-9]+,\s*"[^"]*",\s*
-            "([^"]+)"''', webpage)
-
-        if media_streams:
-            QUALITIES = qualities(['lo', 'hi', 'hq'])
-            formats = []
-            for furl in set(media_streams):
-                if furl.endswith('.f4m'):
-                    fid = 'f4m'
-                else:
-                    fid_m = re.match(r'.*\.([^.]+)\.[^.]+$', furl)
-                    fid = fid_m.group(1) if fid_m else None
-                formats.append({
-                    'quality': QUALITIES(fid),
-                    'format_id': fid,
-                    'url': furl,
-                })
-            info = {
-                'formats': formats,
-            }
-        else:  # request JSON file
-            if not document_id:
-                video_id = self._search_regex(
-                    (r'/play/(?:config|media|sola)/(\d+)', r'contentId["\']\s*:\s*(\d+)'),
-                    webpage, 'media id', default=None)
-            info = self._extract_media_info(
-                'http://www.ardmediathek.de/play/media/%s' % video_id,
-                webpage, video_id)
-
-        info.update({
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-        })
-        info.update(self._ARD_extract_episode_info(info['title']))
-
-        return info
 
 
 class ARDIE(InfoExtractor):
