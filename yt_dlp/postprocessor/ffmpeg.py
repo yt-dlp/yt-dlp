@@ -2,6 +2,7 @@ import collections
 import contextvars
 import itertools
 import json
+import mutagen
 import os
 import re
 import subprocess
@@ -58,8 +59,6 @@ ACODECS = {
     'alac': ('m4a', None, ('-acodec', 'alac')),
     'wav': ('wav', None, ('-f', 'wav')),
 }
-
-
 def create_mapping_re(supported):
     return re.compile(r'{0}(?:/{0})*$'.format(r'(?:\s*\w+\s*>)?\s*(?:%s)\s*' % '|'.join(supported)))
 
@@ -586,6 +585,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
+    AUDIO_EXTS = ('mp3','m4a','flac','opus','acc')
     SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka')
 
     def __init__(self, downloader=None, already_have_subtitle=False):
@@ -594,8 +594,8 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if info['ext'] not in self.SUPPORTED_EXTS:
-            self.to_screen(f'Subtitles can only be embedded in {", ".join(self.SUPPORTED_EXTS)} files')
+        if info['ext'] not in self.SUPPORTED_EXTS + self.AUDIO_EXTS:
+            self.to_screen(f'Subtitles can only be embedded in {", ".join(self.SUPPORTED_EXTS+self.AUDIO_EXTS)} files')
             return [], info
         subtitles = info.get('requested_subtitles')
         if not subtitles:
@@ -637,7 +637,6 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
                 mp4_ass_warn = True
                 self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
-
         if not sub_langs:
             return [], info
 
@@ -659,11 +658,31 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen('Embedding subtitles in "%s"' % filename)
-        self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
-        os.replace(temp_filename, filename)
+        if info['ext'] in self.AUDIO_EXTS:
+            self.embed_lyrics(input_files)
+        else:
+            self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
+            os.replace(temp_filename, filename)
 
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, info
+
+    def embed_lyrics(self, input_files):
+        audio_file = input_files[0]
+        subs = input_files[1]
+        if not subs.endswith('.lrc'):
+            self.report_error('LRC subtitles required. Use "--convert-subs lrc" to convert')
+        else:
+            with open(subs, 'r', encoding='utf-8') as f:
+                lyrics=f.read().strip()
+            if audio_file.endswith('.mp3'):
+                audio = mutagen.id3.ID3(audio_file)
+                audio.add(mutagen.id3.USLT(encoding=3, lang='eng', desc='', text=lyrics))
+                audio.save()
+            else:
+                metadata = mutagen.File(audio_file)
+                metadata['©lyr' if audio_file.endswith('.m4a') else 'lyrics'] = [lyrics]
+                metadata.save()
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
