@@ -1317,6 +1317,12 @@ from .nytimes import (
     NYTimesArticleIE,
     NYTimesCookingIE,
 )
+from .nuum import (
+    NuumLiveIE,
+    NuumStreamIE,
+    NuumVideoIE,
+    NuumClipIE,
+)
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
 from .nzonscreen import NZOnScreenIE
