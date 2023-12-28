@@ -2271,11 +2271,6 @@ from .washingtonpost import (
     WashingtonPostIE,
     WashingtonPostArticleIE,
 )
-from .wasdtv import (
-    WASDTVStreamIE,
-    WASDTVRecordIE,
-    WASDTVClipIE,
-)
 from .wat import WatIE
 from .wdr import (
     WDRIE,
