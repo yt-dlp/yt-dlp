@@ -90,16 +90,31 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         success = True
         if info['ext'] == 'mp3':
-            # Using ffmpeg to embed the thumbnail in mp3 files is messing up lyrics
-            # Using using mutagen instead
-            audio = mutagen.id3.ID3(filename)
-            if 'APIC' in audio:
-                del audio['APIC']
-            with open(thumbnail_filename, 'rb') as thumbfile:
-                audio['APIC'] = mutagen.id3.APIC(
-                    encoding=3, mime='image/%s' % thumbnail_ext, type=3,
-                    desc=u'Cover (front)', data=thumbfile.read())
-            audio.save()
+            # Method 1: Use mutagen
+            # Prioritize mutagen over ffmpeg since ffmpeg messes up the lyrics data
+            if mutagen:
+                try:
+                    self._report_run('mutagen', filename)
+                    audio = mutagen.id3.ID3(filename)
+                    if 'APIC' in audio:
+                        del audio['APIC']
+                    with open(thumbnail_filename, 'rb') as thumbfile:
+                        audio['APIC'] = mutagen.id3.APIC(
+                            encoding=3, mime='image/%s' % thumbnail_ext, type=3,
+                            desc=u'Cover (front)', data=thumbfile.read())
+                    audio.save()
+                    temp_filename = filename # Mutagen saves to the original file
+                except Exception as err:
+                    self.report_warning('unable to embed using mutagen; %s' % error_to_compat_str(err))
+                    success = False
+            # Method 2: Use ffmpeg
+            else:
+                options = [
+                    '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
+                    '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']
+
+                self._report_run('ffmpeg', filename)
+                self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
         elif info['ext'] in ['mkv', 'mka']:
             options = list(self.stream_copy_opts())
@@ -219,7 +234,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         else:
             raise EmbedThumbnailPPError('Supported filetypes for thumbnail embedding are: mp3, mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov')
 
-        if info['ext'] != 'mp3' and success and temp_filename != filename:
+        if success and temp_filename != filename:
             os.replace(temp_filename, filename)
 
         self.try_utime(filename, mtime, mtime)
