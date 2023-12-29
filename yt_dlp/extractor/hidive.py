@@ -1,3 +1,5 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -31,6 +33,8 @@ class HiDiveIE(InfoExtractor):
         },
         'skip': 'Requires Authentication',
     }]
+
+    _SUBTITLE_ATTR_RE = re.compile(r'\bdata-captions="([^"]+)"')
 
     def _perform_login(self, username, password):
         webpage = self._download_webpage(self._LOGIN_URL, None)
@@ -71,19 +75,15 @@ class HiDiveIE(InfoExtractor):
             'https://www.hidive.com/play/settings', video_id,
             data=urlencode_postdata(data), **kwargs) or {}
 
-    def _real_extract(self, url):
-        video_id, title, key = self._match_valid_url(url).group('id', 'title', 'key')
-        settings = self._call_api(video_id, title, key)
-
-        restriction = settings.get('restrictionReason')
+    def _parse_one_setting(self, setting, video_id, formats, subtitles, parsed_urls):
+        restriction = setting.get('restrictionReason')
         if restriction == 'RegionRestricted':
             self.raise_geo_restricted()
         if restriction and restriction != 'None':
             raise ExtractorError(
                 '%s said: %s' % (self.IE_NAME, restriction), expected=True)
 
-        formats, parsed_urls = [], {None}
-        for rendition_id, rendition in settings['renditions'].items():
+        for rendition_id, rendition in setting['renditions'].items():
             audio, version, extra = rendition_id.split('_')
             m3u8_url = url_or_none(try_get(rendition, lambda x: x['bitrates']['hls']))
             if m3u8_url not in parsed_urls:
@@ -95,15 +95,29 @@ class HiDiveIE(InfoExtractor):
                     f['format_note'] = f'{version}, {extra}'
                 formats.extend(frmt)
 
-        subtitles = {}
-        for rendition_id, rendition in settings['renditions'].items():
-            audio, version, extra = rendition_id.split('_')
+        for rendition in setting['renditions'].values():
             for cc_file in rendition.get('ccFiles') or []:
                 cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
                 cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
                 if cc_url not in parsed_urls and cc_lang:
                     parsed_urls.add(cc_url)
-                    subtitles.setdefault(cc_lang, []).append({'url': cc_url})
+                    subtitles.setdefault(cc_lang, []).append({'url': cc_url, 'name': cc_file[1]})
+
+    def _real_extract(self, url):
+        video_id, title, key = self._match_valid_url(url).group('id', 'title', 'key')
+        video_page = self._download_webpage(url, video_id, 'Fetching subtitle languages')
+
+        subtitle_languages = set(self._SUBTITLE_ATTR_RE.findall(video_page))
+        settings = [
+            self._call_api(video_id, title, key, {'Captions': sl})
+            for sl in subtitle_languages
+        ]
+
+        formats, parsed_urls = [], {None}
+        subtitles = {}
+
+        for a_setting in settings:
+            self._parse_one_setting(a_setting, video_id, formats, subtitles, parsed_urls)
 
         return {
             'id': video_id,
