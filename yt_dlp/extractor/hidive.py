@@ -3,9 +3,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    extract_attributes,
-    get_element_by_id,
-    get_element_html_by_attribute,
     int_or_none,
     traverse_obj,
     try_get,
@@ -68,27 +65,6 @@ class HiDiveIE(InfoExtractor):
                 'returnUrl': '/dashboard'
             }))
 
-    def _get_preferred_content_language(self):
-        profile_html = self._download_webpage('https://www.hidive.com/profile/edit', None,
-                                              'Fetching user profile information')
-
-        lang_select_html = get_element_by_id('UserProfile_Language', profile_html)
-        if not lang_select_html:
-            return None
-
-        selected_lang_option = get_element_html_by_attribute('selected', 'selected', lang_select_html, tag='option')
-        if not selected_lang_option:
-            return None
-
-        return extract_attributes(selected_lang_option).get('value')
-
-    def _real_initialize(self):
-        self._preferred_content_language = self._get_preferred_content_language()
-        self.write_debug(f'Preferred content language: {self._preferred_content_language}')
-
-        if not self._preferred_content_language:
-            self.report_warning('Failed to determine preferred content language, format sorting might be incorrect')
-
     def _call_api(self, video_id, title, key, data={}, **kwargs):
         data = {
             **data,
@@ -117,7 +93,6 @@ class HiDiveIE(InfoExtractor):
                     m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id=rendition_id, fatal=False)
                 for f in frmt:
                     f['language'] = audio
-                    f['language_preference'] = 10 if audio == self._preferred_content_language else -1
                     f['format_note'] = f'{version}, {extra}'
                 formats.extend(frmt)
 
