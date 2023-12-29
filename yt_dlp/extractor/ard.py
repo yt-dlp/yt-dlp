@@ -385,7 +385,7 @@ class ARDBetaMediathekIE(InfoExtractor):
 
         formats = []
         subtitles = {}
-        for stream in media_data.get('streams') or []:
+        for stream in traverse_obj(media_data, ('streams', ..., {dict})):
             kind = stream.get('kind')
             # Prioritize main stream over sign language and others
             preference = 1 if kind == 'main' else None
@@ -420,8 +420,8 @@ class ARDBetaMediathekIE(InfoExtractor):
                         }),
                     })
 
-        for sub in media_data.get('subtitles') or []:
-            for sources in sub.get('sources') or []:
+        for sub in traverse_obj(media_data, ('subtitles', ..., {dict})):
+            for sources in traverse_obj(sub, ('sources', ..., {dict})):
                 subtitles.setdefault(sub.get('languageCode') or 'deu', []).append({
                     'url': sources.get('url'),
                     'ext': {'webvtt': 'vtt', 'ebutt': 'ttml'}.get(sources.get('kind')),
@@ -537,7 +537,7 @@ class ARDMediathekCollectionIE(InfoExtractor):
                 })
 
         def fetch_page(i):
-            for item in call_api(i).get('teasers') or []:
+            for item in traverse_obj(call_api(i), ('teasers', ..., {dict})):
                 item_id = traverse_obj(item, ('links', 'target', ('urlId', 'id')), 'id', get_all=False)
                 if not item_id:
                     continue
