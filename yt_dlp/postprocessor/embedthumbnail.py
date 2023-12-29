@@ -103,7 +103,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                             encoding=3, mime='image/%s' % thumbnail_ext, type=3,
                             desc=u'Cover (front)', data=thumbfile.read())
                     audio.save()
-                    temp_filename = filename # Mutagen saves to the original file
+                    temp_filename = filename  # Mutagen saves to the original file
                 except Exception as err:
                     self.report_warning('unable to embed using mutagen; %s' % error_to_compat_str(err))
                     success = False
