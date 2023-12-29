@@ -70,14 +70,13 @@ class HiDiveIE(InfoExtractor):
 
     def _get_preferred_content_language(self):
         profile_html = self._download_webpage('https://www.hidive.com/profile/edit', None,
-            'Fetching user profile information')
+                                              'Fetching user profile information')
 
         lang_select_html = get_element_by_id('UserProfile_Language', profile_html)
         if not lang_select_html:
             return None
 
-        selected_lang_option = get_element_html_by_attribute('selected', 'selected',
-            lang_select_html, tag='option')
+        selected_lang_option = get_element_html_by_attribute('selected', 'selected', lang_select_html, tag='option')
         if not selected_lang_option:
             return None
 
