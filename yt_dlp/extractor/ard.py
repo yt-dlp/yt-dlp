@@ -290,6 +290,24 @@ class ARDBetaMediathekIE(InfoExtractor):
             '_old_archive_ids': ['ardbetamediathekie 10049223'],
         },
     }, {
+        'url': 'https://www.ardmediathek.de/video/7-tage/7-tage-unter-harten-jungs/hr-fernsehen/N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
+        'md5': '1e73ded21cb79bac065117e80c81dc88',
+        'info_dict': {
+            'id': 'N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
+            'ext': 'mp4',
+            'duration': 2700,
+            'episode': '7 Tage ... unter harten Jungs',
+            'description': 'md5:0f215470dcd2b02f59f4bd10c963f072',
+            'upload_date': '20231005',
+            'timestamp': 1696491171,
+            'display_id': '7-tage/7-tage-unter-harten-jungs/hr-fernsehen',
+            'series': '7 Tage ...',
+            'channel': 'HR',
+            'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:f6e6d5ffac41925c?w=960&ch=fa32ba69bc87989a',
+            'title': '7 Tage ... unter harten Jungs',
+            '_old_archive_ids': ['ardbetamediathekie 94834686'],
+        },
+    }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
         'only_matching': True,
     }, {
@@ -440,10 +458,51 @@ class ARDMediathekCollectionIE(InfoExtractor):
         (?P<playlist>sendung|serie|sammlung)/
         (?:(?P<display_id>[^?#]+?)/)?
         (?P<id>[a-zA-Z0-9]+)
-        (?:/(?P<season>\d+)(?:/(?P<ov>OV))?)?/?(?:[?#]|$)'''
+        (?:/(?P<season>\d+)(?:/(?P<version>OV|AD))?)?/?(?:[?#]|$)'''
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
+        'url': 'https://www.ardmediathek.de/serie/quiz/staffel-1-originalversion/Y3JpZDovL3dkci5kZS9vbmUvcXVpeg/1/OV',
+        'info_dict': {
+            'id': 'Y3JpZDovL3dkci5kZS9vbmUvcXVpeg_1_OV',
+            'display_id': 'quiz/staffel-1-originalversion',
+            'title': 'Staffel 1 Originalversion',
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-4-mit-audiodeskription/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu/4/AD',
+        'info_dict': {
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu_4_AD',
+            'display_id': 'babylon-berlin/staffel-4-mit-audiodeskription',
+            'title': 'Staffel 4 mit Audiodeskription',
+        },
+        'playlist_count': 12,
+    }, {
+        'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu/1/',
+        'info_dict': {
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu_1',
+            'display_id': 'babylon-berlin/staffel-1',
+            'title': 'Staffel 1',
+        },
+        'playlist_count': 8,
+    }, {
+        'url': 'https://www.ardmediathek.de/sendung/tatort/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydA',
+        'info_dict': {
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydA',
+            'display_id': 'tatort',
+            'title': 'Tatort',
+        },
+        'playlist_mincount': 500,
+    }, {
+        'url': 'https://www.ardmediathek.de/sammlung/die-kirche-bleibt-im-dorf/5eOHzt8XB2sqeFXbIoJlg2',
+        'info_dict': {
+            'id': '5eOHzt8XB2sqeFXbIoJlg2',
+            'display_id': 'die-kirche-bleibt-im-dorf',
+            'title': 'Die Kirche bleibt im Dorf',
+            'description': 'Die Kirche bleibt im Dorf',
+        },
+        'playlist_count': 4,
+    }, {
         # playlist of type 'sendung'
         'url': 'https://www.ardmediathek.de/ard/sendung/doctor-who/Y3JpZDovL3dkci5kZS9vbmUvZG9jdG9yIHdobw/',
         'only_matching': True,
@@ -460,8 +519,8 @@ class ARDMediathekCollectionIE(InfoExtractor):
     _PAGE_SIZE = 100
 
     def _real_extract(self, url):
-        playlist_id, display_id, playlist_type, season_number, original_version = self._match_valid_url(url).group(
-            'id', 'display_id', 'playlist', 'season', 'ov')
+        playlist_id, display_id, playlist_type, season_number, version = self._match_valid_url(url).group(
+            'id', 'display_id', 'playlist', 'season', 'version')
 
         def call_api(i):
             api_path = 'compilations/ard' if playlist_type == 'sammlung' else 'widgets/ard/asset'
@@ -472,7 +531,8 @@ class ARDMediathekCollectionIE(InfoExtractor):
                     **({
                         'seasoned': 'true',
                         'seasonNumber': season_number,
-                        'withOriginalversion': 'true' if original_version else 'false',
+                        'withOriginalversion': 'true' if version == 'OV' else 'false',
+                        'withAudiodescription': 'true' if version == 'AD' else 'false',
                     } if season_number else {}),
                 })
 
@@ -489,7 +549,8 @@ class ARDMediathekCollectionIE(InfoExtractor):
                     timestamp=parse_iso8601(item.get('broadcastedOn')))
 
         page_data = call_api(0)
+        full_id = join_nonempty(playlist_id, season_number, version, delim='_')
 
         return self.playlist_result(
-            OnDemandPagedList(fetch_page, self._PAGE_SIZE), playlist_id, display_id=display_id,
+            OnDemandPagedList(fetch_page, self._PAGE_SIZE), full_id, display_id=display_id,
             title=page_data.get('title'), description=page_data.get('synopsis'))
