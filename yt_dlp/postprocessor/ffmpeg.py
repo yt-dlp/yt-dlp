@@ -674,17 +674,17 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         subs = input_files[1]
         if not subs.endswith('.lrc'):
             raise PostProcessingError('LRC subtitles required. Use "--convert-subs lrc" to convert')
+
+        with open(subs, 'r', encoding='utf-8') as f:
+            lyrics = f.read().strip()
+        if audio_file.endswith('.mp3'):
+            audio = mutagen.id3.ID3(audio_file)
+            audio.add(mutagen.id3.USLT(encoding=3, lang='eng', desc='', text=lyrics))
+            audio.save()
         else:
-            with open(subs, 'r', encoding='utf-8') as f:
-                lyrics = f.read().strip()
-            if audio_file.endswith('.mp3'):
-                audio = mutagen.id3.ID3(audio_file)
-                audio.add(mutagen.id3.USLT(encoding=3, lang='eng', desc='', text=lyrics))
-                audio.save()
-            else:
-                metadata = mutagen.File(audio_file)
-                metadata['©lyr' if audio_file.endswith('.m4a') else 'lyrics'] = [lyrics]
-                metadata.save()
+            metadata = mutagen.File(audio_file)
+            metadata['©lyr' if audio_file.endswith('.m4a') else 'lyrics'] = [lyrics]
+            metadata.save()
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
