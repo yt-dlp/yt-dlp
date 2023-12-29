@@ -291,7 +291,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.ardmediathek.de/video/7-tage/7-tage-unter-harten-jungs/hr-fernsehen/N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
-        'md5': '1e73ded21cb79bac065117e80c81dc88',
+        'md5': 'c428b9effff18ff624d4f903bda26315',
         'info_dict': {
             'id': 'N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
             'ext': 'mp4',
