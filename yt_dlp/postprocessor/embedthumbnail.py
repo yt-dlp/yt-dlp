@@ -105,7 +105,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     audio.save()
                     temp_filename = filename  # Mutagen saves to the original file
                 except Exception as err:
-                    self.report_warning('unable to embed using mutagen; %s' % error_to_compat_str(err))
+                    self.report_warning(f'unable to embed using mutagen; {err}')
                     success = False
             # Method 2: Use ffmpeg
             else:
