@@ -639,6 +639,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             if not mp4_ass_warn and ext == 'mp4' and sub_ext == 'ass':
                 mp4_ass_warn = True
                 self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
+
         if not sub_langs:
             return [], info
 
