@@ -1,4 +1,5 @@
 import re
+from functools import partial
 
 from .common import InfoExtractor
 from ..utils import (
@@ -328,12 +329,7 @@ class ARDBetaMediathekIE(InfoExtractor):
     }]
 
     def _extract_episode_info(self, title):
-        """Try to extract season/episode data from the title."""
-        res = {}
-        if not title:
-            return res
-
-        for pattern in [
+        patterns = [
             # Pattern for title like "Homo sapiens (S06/E07) - Originalversion"
             # from: https://www.ardmediathek.de/one/sendung/doctor-who/Y3JpZDovL3dkci5kZS9vbmUvZG9jdG9yIHdobw
             r'.*(?P<ep_info> \(S(?P<season_number>\d+)/E(?P<episode_number>\d+)\)).*',
@@ -346,25 +342,17 @@ class ARDBetaMediathekIE(InfoExtractor):
             # E.g.: title="Folge 1063 - Vertrauen"
             # from: https://www.ardmediathek.de/ard/sendung/die-fallers/Y3JpZDovL3N3ci5kZS8yMzAyMDQ4/
             r'.*(?P<ep_info>Folge (?P<episode_number>\d+)(?:/\d+)?(?:\:| -|) ).*',
-        ]:
-            m = re.match(pattern, title)
-            if m:
-                groupdict = m.groupdict()
-                res['season_number'] = int_or_none(groupdict.get('season_number'))
-                res['episode_number'] = int_or_none(groupdict.get('episode_number'))
-                res['episode'] = str_or_none(groupdict.get('episode'))
-                # Build the episode title by removing numeric episode information:
-                if groupdict.get('ep_info') and not res['episode']:
-                    res['episode'] = str_or_none(
-                        title.replace(groupdict.get('ep_info'), ''))
-                if res['episode']:
-                    res['episode'] = res['episode'].strip()
-                break
+        ]
 
-        # As a fallback use the whole title as the episode name:
-        if not res.get('episode'):
-            res['episode'] = title.strip()
-        return res
+        return traverse_obj(patterns, (..., {partial(re.match, string=title)}, {
+            'season_number': ('season_number', {int_or_none}),
+            'episode_number': ('episode_number', {int_or_none}),
+            'episode': ((
+                ('episode', {str_or_none}),
+                ('ep_info', {lambda x: title.replace(x, '')}),
+                {lambda _: title},
+            ), {str.strip}),
+        }), get_all=False)
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
