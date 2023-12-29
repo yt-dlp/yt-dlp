@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    traverse_obj,
     try_get,
     url_or_none,
     urlencode_postdata,
@@ -101,7 +102,9 @@ class HiDiveIE(InfoExtractor):
                 cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
                 if cc_url not in parsed_urls and cc_lang:
                     parsed_urls.add(cc_url)
-                    subtitles.setdefault(cc_lang, []).append({'url': cc_url, 'name': cc_file[1]})
+                    subtitles.setdefault(cc_lang, []).append(
+                        {'url': cc_url, 'name': traverse_obj(cc_file, 1, expected_type=str)}
+                    )
 
     def _real_extract(self, url):
         video_id, title, key = self._match_valid_url(url).group('id', 'title', 'key')
