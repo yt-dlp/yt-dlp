@@ -672,6 +672,8 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
     def embed_lyrics(self, input_files):
         audio_file = input_files[0]
         subs = input_files[1]
+        if len(input_files) > 2:
+            self.report_warning('More than one subtitle file found. Only one will be embedded')
         if not subs.endswith('.lrc'):
             raise PostProcessingError('LRC subtitles required. Use "--convert-subs lrc" to convert')
 
@@ -679,7 +681,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             lyrics = f.read().strip()
         if audio_file.endswith('.mp3'):
             audio = mutagen.id3.ID3(audio_file)
-            audio.add(mutagen.id3.USLT(encoding=3, lang='eng', desc='', text=lyrics))
+            audio.add(mutagen.id3.USLT(encoding=mutagen.id3.Encoding.UTF8, lang='und', desc='', text=lyrics))
             audio.save()
         else:
             metadata = mutagen.File(audio_file)
