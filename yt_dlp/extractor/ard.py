@@ -255,7 +255,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'series': 'Filme im MDR',
             'age_limit': 0,
             'channel': 'MDR',
-            '_old_archive_ids': ['ardbetamediathekie 12939099'],
+            '_old_archive_ids': ['ardbetamediathek 12939099'],
         },
     }, {
         'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
@@ -288,7 +288,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'series': 'tagesschau',
             'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:fbb21142783b0a49?w=960&ch=ee69108ae344f678',
             'channel': 'ARD-Aktuell',
-            '_old_archive_ids': ['ardbetamediathekie 10049223'],
+            '_old_archive_ids': ['ardbetamediathek 10049223'],
         },
     }, {
         'url': 'https://www.ardmediathek.de/video/7-tage/7-tage-unter-harten-jungs/hr-fernsehen/N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
@@ -306,7 +306,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'channel': 'HR',
             'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:f6e6d5ffac41925c?w=960&ch=fa32ba69bc87989a',
             'title': '7 Tage ... unter harten Jungs',
-            '_old_archive_ids': ['ardbetamediathekie 94834686'],
+            '_old_archive_ids': ['ardbetamediathek 94834686'],
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -435,7 +435,7 @@ class ARDBetaMediathekIE(InfoExtractor):
                 'channel': 'clipSourceName',
             })),
             **self._extract_episode_info(page_data.get('title')),
-            '_old_archive_ids': [make_archive_id('ARDBetaMediathekIE', old_id)],
+            '_old_archive_ids': [make_archive_id(ARDBetaMediathekIE, old_id)],
         }
 
 
