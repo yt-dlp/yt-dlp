@@ -231,10 +231,10 @@ class ARDBetaMediathekIE(InfoExtractor):
     _VALID_URL = r'''(?x)https://
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:[^/]+/)?
-        (?:player|live|video|(?P<playlist>sendung|serie|sammlung))/
-        (?:(?P<display_id>(?(playlist)[^?#]+?|[^?#]+))/)?
+        (?:player|live|video)/
+        (?:(?P<display_id>[^?#]+)/)?
         (?P<id>[a-zA-Z0-9]+)
-        (?(playlist)/(?:(?P<season>\d+)(?:/(?P<ov>OV))?))?/?(?:[?#]|$)'''
+        /?(?:[?#]|$)'''
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
@@ -305,18 +305,6 @@ class ARDBetaMediathekIE(InfoExtractor):
         'url': 'https://www.ardmediathek.de/swr/live/Y3JpZDovL3N3ci5kZS8xMzQ4MTA0Mg',
         'only_matching': True,
     }, {
-        # playlist of type 'sendung'
-        'url': 'https://www.ardmediathek.de/ard/sendung/doctor-who/Y3JpZDovL3dkci5kZS9vbmUvZG9jdG9yIHdobw/',
-        'only_matching': True,
-    }, {
-        # playlist of type 'serie'
-        'url': 'https://www.ardmediathek.de/serie/nachtstreife/staffel-1/Y3JpZDovL3N3ci5kZS9zZGIvc3RJZC8xMjQy/1',
-        'only_matching': True,
-    }, {
-        # playlist of type 'sammlung'
-        'url': 'https://www.ardmediathek.de/ard/sammlung/team-muenster/5JpTzLSbWUAK8184IOvEir/',
-        'only_matching': True,
-    }, {
         'url': 'https://www.ardmediathek.de/video/coronavirus-update-ndr-info/astrazeneca-kurz-lockdown-und-pims-syndrom-81/ndr/Y3JpZDovL25kci5kZS84NzE0M2FjNi0wMWEwLTQ5ODEtOTE5NS1mOGZhNzdhOTFmOTI/',
         'only_matching': True,
     }]
@@ -360,38 +348,8 @@ class ARDBetaMediathekIE(InfoExtractor):
             res['episode'] = title.strip()
         return res
 
-    _PAGE_SIZE = 100
-
-    def _extract_playlist(self, playlist_id, playlist_type, season_number, original_version):
-        def fetch_page(i):
-            api_path = 'compilations/ard' if playlist_type == 'sammlung' else 'widgets/ard/asset'
-            page_data = self._download_json(
-                f'https://api.ardmediathek.de/page-gateway/{api_path}/{playlist_id}', playlist_id, query={
-                    'pageNumber': i,
-                    'pageSize': self._PAGE_SIZE,
-                    **({
-                        'seasoned': 'true',
-                        'seasonNumber': season_number,
-                        'withOriginalversion': 'true' if original_version else 'false',
-                    } if season_number else {}),
-                })
-            for item in page_data.get('teasers') or []:
-                item_id = traverse_obj(item, ('links', 'target', ('urlId', 'id')), 'id', get_all=False)
-                if not item_id:
-                    continue
-                item_mode = 'sammlung' if item.get('type') == 'compilation' else 'video'
-                yield self.url_result(
-                    f'https://www.ardmediathek.de/{item_mode}/{item_id}', ie=ARDBetaMediathekIE,
-                    id=item.get('id'), title=item.get('longTitle'), duration=int_or_none(item.get('duration')),
-                    timestamp=parse_iso8601(item.get('broadcastedOn')))
-        return self.playlist_result(OnDemandPagedList(fetch_page, self._PAGE_SIZE), playlist_id)
-
     def _real_extract(self, url):
-        video_id, display_id, playlist_type, season_number, original_version = self._match_valid_url(url).group(
-            'id', 'display_id', 'playlist', 'season', 'ov')
-
-        if playlist_type:
-            return self._extract_playlist(video_id, playlist_type, season_number, original_version)
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
 
         page_data = self._download_json(
             f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{video_id}', video_id, query={
@@ -473,3 +431,65 @@ class ARDBetaMediathekIE(InfoExtractor):
             **self._extract_episode_info(page_data.get('title')),
             '_old_archive_ids': [make_archive_id('ARDBetaMediathekIE', old_id)],
         }
+
+
+class ARDMediathekCollectionIE(InfoExtractor):
+    _VALID_URL = r'''(?x)https://
+        (?:(?:beta|www)\.)?ardmediathek\.de/
+        (?:[^/]+/)?
+        (?P<playlist>sendung|serie|sammlung)/
+        (?:(?P<display_id>[^?#]+?)/)?
+        (?P<id>[a-zA-Z0-9]+)
+        (?:/(?P<season>\d+)(?:/(?P<ov>OV))?)?/?(?:[?#]|$)'''
+    _GEO_COUNTRIES = ['DE']
+
+    _TESTS = [{
+        # playlist of type 'sendung'
+        'url': 'https://www.ardmediathek.de/ard/sendung/doctor-who/Y3JpZDovL3dkci5kZS9vbmUvZG9jdG9yIHdobw/',
+        'only_matching': True,
+    }, {
+        # playlist of type 'serie'
+        'url': 'https://www.ardmediathek.de/serie/nachtstreife/staffel-1/Y3JpZDovL3N3ci5kZS9zZGIvc3RJZC8xMjQy/1',
+        'only_matching': True,
+    }, {
+        # playlist of type 'sammlung'
+        'url': 'https://www.ardmediathek.de/ard/sammlung/team-muenster/5JpTzLSbWUAK8184IOvEir/',
+        'only_matching': True,
+    }]
+
+    _PAGE_SIZE = 100
+
+    def _real_extract(self, url):
+        playlist_id, display_id, playlist_type, season_number, original_version = self._match_valid_url(url).group(
+            'id', 'display_id', 'playlist', 'season', 'ov')
+
+        def call_api(i):
+            api_path = 'compilations/ard' if playlist_type == 'sammlung' else 'widgets/ard/asset'
+            return self._download_json(
+                f'https://api.ardmediathek.de/page-gateway/{api_path}/{playlist_id}', playlist_id, query={
+                    'pageNumber': i,
+                    'pageSize': self._PAGE_SIZE,
+                    **({
+                        'seasoned': 'true',
+                        'seasonNumber': season_number,
+                        'withOriginalversion': 'true' if original_version else 'false',
+                    } if season_number else {}),
+                })
+
+        def fetch_page(i):
+            for item in call_api(i).get('teasers') or []:
+                item_id = traverse_obj(item, ('links', 'target', ('urlId', 'id')), 'id', get_all=False)
+                if not item_id:
+                    continue
+                item_mode = 'sammlung' if item.get('type') == 'compilation' else 'video'
+                yield self.url_result(
+                    f'https://www.ardmediathek.de/{item_mode}/{item_id}',
+                    ie=(ARDMediathekCollectionIE if item_mode == 'sammlung' else ARDBetaMediathekIE),
+                    id=item.get('id'), title=item.get('longTitle'), duration=int_or_none(item.get('duration')),
+                    timestamp=parse_iso8601(item.get('broadcastedOn')))
+
+        page_data = call_api(0)
+
+        return self.playlist_result(
+            OnDemandPagedList(fetch_page, self._PAGE_SIZE), playlist_id, display_id=display_id,
+            title=page_data.get('title'), description=page_data.get('synopsis'))
