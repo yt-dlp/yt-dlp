@@ -85,8 +85,9 @@ class KukuluLiveIE(InfoExtractor):
 
             formats = []
             for source in sources_json:
+                path = source.get('file')
                 formats.append({
-                    'url': f'https://live.erinn.biz{source.get('file')}',
+                    'url': f'https://live.erinn.biz{path}',
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                 })
