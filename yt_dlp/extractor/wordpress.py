@@ -70,7 +70,7 @@ class WordpressPlaylistEmbedIE(InfoExtractor):
                 'height': int_or_none(traverse_obj(track, ('dimensions', 'original', 'height'))),
                 'width': int_or_none(traverse_obj(track, ('dimensions', 'original', 'width'))),
             } for track in traverse_obj(playlist_json, ('tracks', ...), expected_type=dict)]
-            yield self.playlist_result(entries, self._generic_id(url) + f'-wp-playlist-{i+1}', 'Wordpress Playlist')
+            yield self.playlist_result(entries, self._generic_id(url) + f'-wp-playlist-{i + 1}', 'Wordpress Playlist')
 
 
 class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
