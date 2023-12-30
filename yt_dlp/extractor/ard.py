@@ -530,7 +530,7 @@ class ARDMediathekCollectionIE(InfoExtractor):
         def fetch_page(page_num):
             for item in traverse_obj(call_api(page_num), ('teasers', ..., {dict})):
                 item_id = traverse_obj(item, ('links', 'target', ('urlId', 'id')), 'id', get_all=False)
-                if not item_id:
+                if not item_id or item_id == playlist_id:
                     continue
                 item_mode = 'sammlung' if item.get('type') == 'compilation' else 'video'
                 yield self.url_result(
