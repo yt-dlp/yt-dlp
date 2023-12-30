@@ -662,7 +662,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen('Embedding subtitles in "%s"' % filename)
         if info['ext'] in self.SUPPORTS_LYRICS:
-            self.embed_lyrics(info['filepath'],sub_dict=info['requested_subtitles'])
+            self.embed_lyrics(info['filepath'], sub_dict=info['requested_subtitles'])
         else:
             self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
             os.replace(temp_filename, filename)
@@ -670,7 +670,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, info
 
-    def embed_lyrics(self, audio_file,sub_dict):
+    def embed_lyrics(self, audio_file, sub_dict):
         if len(sub_dict) > 1:
             self.report_warning('More than one subtitle file found. Your media player will likely be unable to display all of them.')
 
