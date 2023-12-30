@@ -107,8 +107,10 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 except Exception as err:
                     self.report_warning(f'unable to embed using mutagen; {err}')
                     success = False
-            # Method 2: Use ffmpeg
             else:
+                success = False
+            # Method 2: Use ffmpeg
+            if not success:
                 options = [
                     '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
                     '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']

@@ -587,8 +587,8 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
-    AUDIO_EXTS = ('mp3', 'm4a', 'flac', 'opus')
-    SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka')
+    SUPPORTS_LYRICS = ('mp3', 'm4a', 'flac', 'opus')
+    SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka', *SUPPORTS_LYRICS)
 
     def __init__(self, downloader=None, already_have_subtitle=False):
         super().__init__(downloader)
@@ -596,8 +596,8 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if info['ext'] not in self.SUPPORTED_EXTS + self.AUDIO_EXTS:
-            self.to_screen(f'Subtitles can only be embedded in {", ".join(self.SUPPORTED_EXTS+self.AUDIO_EXTS)} files')
+        if info['ext'] not in self.SUPPORTED_EXTS:
+            self.to_screen(f'Subtitles can only be embedded in {", ".join(self.SUPPORTED_EXTS)} files')
             return [], info
         subtitles = info.get('requested_subtitles')
         if not subtitles:
@@ -661,8 +661,8 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         temp_filename = prepend_extension(filename, 'temp')
         self.to_screen('Embedding subtitles in "%s"' % filename)
-        if info['ext'] in self.AUDIO_EXTS:
-            self.embed_lyrics(input_files)
+        if info['ext'] in self.SUPPORTS_LYRICS:
+            self.embed_lyrics(info['filepath'],sub_dict=info['requested_subtitles'])
         else:
             self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
             os.replace(temp_filename, filename)
@@ -670,23 +670,24 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
         return files_to_delete, info
 
-    def embed_lyrics(self, input_files):
-        audio_file = input_files[0]
-        subs = input_files[1]
-        if len(input_files) > 2:
-            self.report_warning('More than one subtitle file found. Only one will be embedded')
-        if not subs.endswith('.lrc'):
+    def embed_lyrics(self, audio_file,sub_dict):
+        if len(sub_dict) > 1:
+            self.report_warning('More than one subtitle file found. Your media player will likely be unable to display all of them.')
+
+        if sub_dict[list(sub_dict.keys())[0]]['ext'] != 'lrc':
             raise PostProcessingError('LRC subtitles required. Use "--convert-subs lrc" to convert')
 
-        with open(subs, 'r', encoding='utf-8') as f:
-            lyrics = f.read().strip()
+        lyrics_list = []
+        for lyrics in sub_dict.keys():
+            lyrics_list.append(sub_dict[lyrics]['data'])
         if audio_file.endswith('.mp3'):
-            audio = mutagen.id3.ID3(audio_file)
-            audio.add(mutagen.id3.USLT(encoding=mutagen.id3.Encoding.UTF8, lang='und', desc='', text=lyrics))
-            audio.save()
+            for lyrics in lyrics_list:
+                audio = mutagen.id3.ID3(audio_file)
+                audio.add(mutagen.id3.USLT(encoding=3, lang='und', desc='', text=lyrics))
+                audio.save()
         else:
             metadata = mutagen.File(audio_file)
-            metadata['©lyr' if audio_file.endswith('.m4a') else 'lyrics'] = [lyrics]
+            metadata['©lyr' if audio_file.endswith('.m4a') else 'lyrics'] = lyrics_list
             metadata.save()
 
 
