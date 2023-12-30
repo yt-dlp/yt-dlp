@@ -134,8 +134,8 @@ from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
 from .ard import (
     ARDBetaMediathekIE,
+    ARDMediathekCollectionIE,
     ARDIE,
-    ARDMediathekIE,
 )
 from .arte import (
     ArteTVIE,
@@ -548,6 +548,7 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
+from .epidemicsound import EpidemicSoundIE
 from .eplus import EplusIbIE
 from .epoch import EpochIE
 from .eporner import EpornerIE
@@ -1647,6 +1648,7 @@ from .rumble import (
     RumbleIE,
     RumbleChannelIE,
 )
+from .rudovideo import RudoVideoIE
 from .rutube import (
     RutubeIE,
     RutubeChannelIE,
