@@ -382,8 +382,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             for media in traverse_obj(stream, ('media', lambda _, v: url_or_none(v['url']))):
                 media_url = media['url']
 
-                audio_kind = traverse_obj(media,
-                    ('audios', 0, 'kind', {str}), default='').replace('standard', '')
+                audio_kind = traverse_obj(media, ('audios', 0, 'kind', {str}), default='').replace('standard', '')
                 lang_code = traverse_obj(media, ('audios', 0, 'languageCode', {str})) or 'deu'
                 lang = join_nonempty(lang_code, audio_kind)
                 language_preference = 10 if lang == 'deu' else -10
