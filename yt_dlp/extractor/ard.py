@@ -342,6 +342,8 @@ class ARDBetaMediathekIE(InfoExtractor):
             # E.g.: title="Folge 1063 - Vertrauen"
             # from: https://www.ardmediathek.de/ard/sendung/die-fallers/Y3JpZDovL3N3ci5kZS8yMzAyMDQ4/
             r'.*(?P<ep_info>Folge (?P<episode_number>\d+)(?:/\d+)?(?:\:| -|) ).*',
+            # As a fallback use the full title
+            r'(?P<title>.*)',
         ]
 
         return traverse_obj(patterns, (..., {partial(re.match, string=title)}, {
@@ -350,7 +352,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'episode': ((
                 ('episode', {str_or_none}),
                 ('ep_info', {lambda x: title.replace(x, '')}),
-                {lambda _: title},
+                ('title', {str}),
             ), {str.strip}),
         }), get_all=False)
 
@@ -378,16 +380,17 @@ class ARDBetaMediathekIE(InfoExtractor):
             # Prioritize main stream over sign language and others
             preference = 1 if kind == 'main' else None
             for media in traverse_obj(stream, ('media', lambda _, v: url_or_none(v['url']))):
-                url = media['url']
+                media_url = media['url']
 
-                audio_kind = (traverse_obj(media, ('audios', 0, 'kind')) or '').replace('standard', '')
-                lang_code = traverse_obj(media, ('audios', 0, 'languageCode')) or 'deu'
+                audio_kind = traverse_obj(media,
+                    ('audios', 0, 'kind', {str}), default='').replace('standard', '')
+                lang_code = traverse_obj(media, ('audios', 0, 'languageCode', {str})) or 'deu'
                 lang = join_nonempty(lang_code, audio_kind)
                 language_preference = 10 if lang == 'deu' else -10
 
-                if determine_ext(url) == 'm3u8':
+                if determine_ext(media_url) == 'm3u8':
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                        url, video_id, m3u8_id=f'hls-{kind}', preference=preference, fatal=False, live=is_live)
+                        media_url, video_id, m3u8_id=f'hls-{kind}', preference=preference, fatal=False, live=is_live)
                     for f in fmts:
                         f['language'] = lang
                         f['language_preference'] = language_preference
@@ -395,23 +398,23 @@ class ARDBetaMediathekIE(InfoExtractor):
                     self._merge_subtitles(subs, target=subtitles)
                 else:
                     formats.append({
-                        'url': url,
+                        'url': media_url,
                         'format_id': f'http-{kind}',
                         'preference': preference,
                         'language': lang,
                         'language_preference': language_preference,
                         **traverse_obj(media, {
-                            'format_note': 'forcedLabel',
+                            'format_note': ('forcedLabel', {str}),
                             'width': ('maxHResolutionPx', {int_or_none}),
                             'height': ('maxVResolutionPx', {int_or_none}),
-                            'vcodec': 'videoCodec',
+                            'vcodec': ('videoCodec', {str}),
                         }),
                     })
 
         for sub in traverse_obj(media_data, ('subtitles', ..., {dict})):
-            for sources in traverse_obj(sub, ('sources', ..., {dict})):
+            for sources in traverse_obj(sub, ('sources', lambda _, v: url_or_none(v['url']))):
                 subtitles.setdefault(sub.get('languageCode') or 'deu', []).append({
-                    'url': sources.get('url'),
+                    'url': sources['url'],
                     'ext': {'webvtt': 'vtt', 'ebutt': 'ttml'}.get(sources.get('kind')),
                 })
 
@@ -442,7 +445,7 @@ class ARDBetaMediathekIE(InfoExtractor):
 class ARDMediathekCollectionIE(InfoExtractor):
     _VALID_URL = r'''(?x)https://
         (?:(?:beta|www)\.)?ardmediathek\.de/
-        (?:[^/]+/)?
+        (?:[^/?#]+/)?
         (?P<playlist>sendung|serie|sammlung)/
         (?:(?P<display_id>[^?#]+?)/)?
         (?P<id>[a-zA-Z0-9]+)
@@ -510,11 +513,12 @@ class ARDMediathekCollectionIE(InfoExtractor):
         playlist_id, display_id, playlist_type, season_number, version = self._match_valid_url(url).group(
             'id', 'display_id', 'playlist', 'season', 'version')
 
-        def call_api(i):
+        def call_api(page_num):
             api_path = 'compilations/ard' if playlist_type == 'sammlung' else 'widgets/ard/asset'
             return self._download_json(
-                f'https://api.ardmediathek.de/page-gateway/{api_path}/{playlist_id}', playlist_id, query={
-                    'pageNumber': i,
+                f'https://api.ardmediathek.de/page-gateway/{api_path}/{playlist_id}', playlist_id,
+                f'Downloading playlist page {page_num}', query={
+                    'pageNumber': page_num,
                     'pageSize': self._PAGE_SIZE,
                     **({
                         'seasoned': 'true',
@@ -524,8 +528,8 @@ class ARDMediathekCollectionIE(InfoExtractor):
                     } if season_number else {}),
                 })
 
-        def fetch_page(i):
-            for item in traverse_obj(call_api(i), ('teasers', ..., {dict})):
+        def fetch_page(page_num):
+            for item in traverse_obj(call_api(page_num), ('teasers', ..., {dict})):
                 item_id = traverse_obj(item, ('links', 'target', ('urlId', 'id')), 'id', get_all=False)
                 if not item_id:
                     continue
@@ -533,8 +537,12 @@ class ARDMediathekCollectionIE(InfoExtractor):
                 yield self.url_result(
                     f'https://www.ardmediathek.de/{item_mode}/{item_id}',
                     ie=(ARDMediathekCollectionIE if item_mode == 'sammlung' else ARDBetaMediathekIE),
-                    id=item.get('id'), title=item.get('longTitle'), duration=int_or_none(item.get('duration')),
-                    timestamp=parse_iso8601(item.get('broadcastedOn')))
+                    **traverse_obj(item, {
+                        'id': ('id', {str}),
+                        'title': ('longTitle', {str}),
+                        'duration': ('duration', {int_or_none}),
+                        'timestamp': ('broadcastedOn', {parse_iso8601}),
+                    }))
 
         page_data = call_api(0)
         full_id = join_nonempty(playlist_id, season_number, version, delim='_')
