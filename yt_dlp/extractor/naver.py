@@ -1,20 +1,24 @@
+import base64
+import hashlib
+import hmac
 import itertools
 import re
-from urllib.parse import urlparse, parse_qs
+import time
+from urllib.parse import parse_qs, urlparse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    clean_html,
     dict_get,
     int_or_none,
     join_nonempty,
     merge_dicts,
-    parse_duration,
+    parse_iso8601,
     traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
+    url_or_none,
 )
 
 
@@ -125,52 +129,71 @@ class NaverIE(NaverBaseIE):
             'upload_date': '20130903',
             'uploader': '메가스터디, 합격불변의 법칙',
             'uploader_id': 'megastudy',
+            'uploader_url': 'https://tv.naver.com/megastudy',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'duration': 2118,
+            'thumbnail': r're:^https?://.*\.jpg',
         },
     }, {
         'url': 'http://tv.naver.com/v/395837',
-        'md5': '8a38e35354d26a17f73f4e90094febd3',
+        'md5': '7791205fa89dbed2f5e3eb16d287ff05',
         'info_dict': {
             'id': '395837',
             'ext': 'mp4',
             'title': '9년이 지나도 아픈 기억, 전효성의 아버지',
-            'description': 'md5:eb6aca9d457b922e43860a2a2b1984d3',
+            'description': 'md5:c76be23e21403a6473d8119678cdb5cb',
             'timestamp': 1432030253,
             'upload_date': '20150519',
-            'uploader': '4가지쇼 시즌2',
-            'uploader_id': 'wrappinguser29',
+            'uploader': '4가지쇼',
+            'uploader_id': '4show',
+            'uploader_url': 'https://tv.naver.com/4show',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'duration': 277,
+            'thumbnail': r're:^https?://.*\.jpg',
         },
-        'skip': 'Georestricted',
     }, {
         'url': 'http://tvcast.naver.com/v/81652',
         'only_matching': True,
     }]
 
+    def _call_api(self, api_path, video_id):
+        key = b'nbxvs5nwNG9QKEWK0ADjYA4JZoujF4gHcIwvoCxFTPAeamq5eemvt5IWAYXxrbYM'
+        msgpad = int(time.time() * 1000)
+        md = base64.b64encode(hmac.HMAC(
+            key, f'{api_path[:255]}{msgpad}'.encode(), digestmod=hashlib.sha1).digest()).decode()
+
+        return self._download_json(api_path, video_id=video_id, headers=self.geo_verification_headers(), query={
+            'msgpad': msgpad,
+            'md': md,
+        })
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        content = self._download_json(
-            'https://tv.naver.com/api/json/v/' + video_id,
-            video_id, headers=self.geo_verification_headers())
-        player_info_json = content.get('playerInfoJson') or {}
-        current_clip = player_info_json.get('currentClip') or {}
+        content = self._call_api(
+            f'https://apis.naver.com/now_web2/now_web_api/v1/clips/{video_id}/play-info', video_id)['result']
 
-        vid = current_clip.get('videoId')
-        in_key = current_clip.get('inKey')
+        vid = traverse_obj(content, ('clip', 'videoId', {str}))
+        in_key = traverse_obj(content, ('play', 'inKey', {str}))
 
-        if not vid or not in_key:
-            player_auth = try_get(player_info_json, lambda x: x['playerOption']['auth'])
-            if player_auth == 'notCountry':
-                self.raise_geo_restricted(countries=['KR'])
-            elif player_auth == 'notLogin':
-                self.raise_login_required()
-            raise ExtractorError('couldn\'t extract vid and key')
         info = self._extract_video_info(video_id, vid, in_key)
-        info.update({
-            'description': clean_html(current_clip.get('description')),
-            'timestamp': int_or_none(current_clip.get('firstExposureTime'), 1000),
-            'duration': parse_duration(current_clip.get('displayPlayTime')),
-            'like_count': int_or_none(current_clip.get('recommendPoint')),
-            'age_limit': 19 if current_clip.get('adult') else None,
-        })
+        info.update(traverse_obj(content, ('clip', {
+            'title': 'title',
+            'description': 'description',
+            'timestamp': ('firstExposureDatetime', {parse_iso8601}),
+            'duration': ('playTime', {int_or_none}),
+            'like_count': ('likeItCount', {int_or_none}),
+            'view_count': ('playCount', {int_or_none}),
+            'comment_count': ('commentCount', {int_or_none}),
+            'thumbnail': ('thumbnailImageUrl', {url_or_none}),
+            'uploader': 'channelName',
+            'uploader_id': 'channelId',
+            'uploader_url': ('channelUrl', {url_or_none}),
+            'age_limit': ('adultVideo', {lambda x: 19 if x else None}),
+        })))
         return info
 
 
