@@ -87,7 +87,8 @@ class AsobiChannelIE(AsobiChannelBaseIE):
         if live_start is None:
             live_status = None
         elif now_ts < live_start:
-            live_status = 'is_upcoming'
+            # live_status should be 'is_upcoming', but stream is not available at this point
+            self.raise_no_formats(f'Live stream will be available at {live_start}', expected=True)
         else:
             live_status = 'is_live'
 
