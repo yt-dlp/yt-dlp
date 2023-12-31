@@ -6,6 +6,8 @@ import sys
 
 import pytest
 
+from yt_dlp.utils import find_available_port
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import http.client
@@ -227,6 +229,8 @@ class TestWebsSocketRequestHandlerConformance:
     @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
+        if find_available_port(source_address) is None:
+            pytest.skip(f'Unable to bind to source address {source_address} (address may not exist)')
         with handler(source_address=source_address) as rh:
             ws = validate_and_send(rh, Request(self.ws_base_url))
             ws.send('source_address')
