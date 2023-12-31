@@ -157,6 +157,7 @@ from .utils import (
     windows_enable_vt_mode,
     write_json_file,
     write_string,
+    YoutubeDLError,
 )
 from .utils._utils import _YDLLogger
 from .utils.networking import (
@@ -714,9 +715,10 @@ class YoutubeDL:
         impersonate_target = self.params.get('impersonate')
         if impersonate_target is not None:
             if not self.impersonate_target_available(impersonate_target):
-                raise ValueError(
+                raise YoutubeDLError(
                     f'Impersonate target "{self.params.get("impersonate")}" is not available. '
-                    f'Use --list-impersonate-targets to see available targets.')
+                    f'Use --list-impersonate-targets to see available targets. '
+                    f'You may be missing dependencies required to support this target - check the manual for what dependencies you may need to install.')
 
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
@@ -4133,8 +4135,9 @@ class YoutubeDL:
                 elif re.match(r'unsupported (?:extensions: impersonate|impersonate target)', ue.msg.lower()):
                     raise RequestError(
                         f'Impersonate target "{req.extensions["impersonate"]}" is not available.'
+                        f' See --list-impersonate-targets for available targets.'
                         f' This request requires browser impersonation, however you may be missing dependencies'
-                        f' required to support this target. See the documentation for more information.')
+                        f' required to support this target. Check the manual for what dependencies you may need to install.')
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):

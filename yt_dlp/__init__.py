@@ -997,10 +997,6 @@ def _real_main(argv=None):
             ydl.to_stdout(
                 render_table(['Client', 'Version', 'OS', 'OS Version', 'Source'], rows)
             )
-            if not available_targets:
-                ydl.to_stdout('You are missing dependencies for impersonation. See the README for more info.')
-            ydl.to_stdout(
-                'If the above table is missing targets, you may be missing dependencies for impersonation.')
             return
 
         if not actual_use:
