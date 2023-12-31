@@ -114,5 +114,11 @@
         "action": "add",
         "when": "f04b5bedad7b281bee9814686bba1762bae092eb",
         "short": "[priority] Security: [[CVE-2023-46121](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-46121)] Patch [Generic Extractor MITM Vulnerability via Arbitrary Proxy Injection](https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-3ch3-jhc6-5r8x)\n\t- Disallow smuggling of arbitrary `http_headers`; extractors now only use specific headers"
+    },
+    {
+        "action": "change",
+        "when": "15f22b4880b6b3f71f350c64d70976ae65b9f1ca",
+        "short": "[webvtt] Allow spaces before newlines for CueBlock (#7681)",
+        "authors": ["TSRBerry"]
     }
 ]

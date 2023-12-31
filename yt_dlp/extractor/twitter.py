@@ -10,6 +10,7 @@ from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlparse,
 )
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     dict_get,
@@ -1317,41 +1318,51 @@ class TwitterIE(TwitterBaseIE):
             }
         }
 
-    def _extract_status(self, twid):
-        if self.is_logged_in or self._selected_api == 'graphql':
-            status = self._graphql_to_legacy(self._call_graphql_api(self._GRAPHQL_ENDPOINT, twid), twid)
-
-        elif self._selected_api == 'legacy':
-            status = self._call_api(f'statuses/show/{twid}.json', twid, {
-                'cards_platform': 'Web-12',
-                'include_cards': 1,
-                'include_reply_count': 1,
-                'include_user_entities': 0,
-                'tweet_mode': 'extended',
+    def _call_syndication_api(self, twid):
+        self.report_warning(
+            'Not all metadata or media is available via syndication endpoint', twid, only_once=True)
+        status = self._download_json(
+            'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
+            headers={'User-Agent': 'Googlebot'}, query={
+                'id': twid,
+                # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
+                'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
             })
+        if not status:
+            raise ExtractorError('Syndication endpoint returned empty JSON response')
+        # Transform the result so its structure matches that of legacy/graphql
+        media = []
+        for detail in traverse_obj(status, ((None, 'quoted_tweet'), 'mediaDetails', ..., {dict})):
+            detail['id_str'] = traverse_obj(detail, (
+                'video_info', 'variants', ..., 'url', {self._MEDIA_ID_RE.search}, 1), get_all=False) or twid
+            media.append(detail)
+        status['extended_entities'] = {'media': media}
 
-        elif self._selected_api == 'syndication':
-            self.report_warning(
-                'Not all metadata or media is available via syndication endpoint', twid, only_once=True)
-            status = self._download_json(
-                'https://cdn.syndication.twimg.com/tweet-result', twid, 'Downloading syndication JSON',
-                headers={'User-Agent': 'Googlebot'}, query={
-                    'id': twid,
-                    # TODO: token = ((Number(twid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '')
-                    'token': ''.join(random.choices('123456789abcdefghijklmnopqrstuvwxyz', k=10)),
+        return status
+
+    def _extract_status(self, twid):
+        if self._selected_api not in ('graphql', 'legacy', 'syndication'):
+            raise ExtractorError(f'{self._selected_api!r} is not a valid API selection', expected=True)
+
+        try:
+            if self.is_logged_in or self._selected_api == 'graphql':
+                status = self._graphql_to_legacy(self._call_graphql_api(self._GRAPHQL_ENDPOINT, twid), twid)
+            elif self._selected_api == 'legacy':
+                status = self._call_api(f'statuses/show/{twid}.json', twid, {
+                    'cards_platform': 'Web-12',
+                    'include_cards': 1,
+                    'include_reply_count': 1,
+                    'include_user_entities': 0,
+                    'tweet_mode': 'extended',
                 })
-            if not status:
-                raise ExtractorError('Syndication endpoint returned empty JSON response')
-            # Transform the result so its structure matches that of legacy/graphql
-            media = []
-            for detail in traverse_obj(status, ((None, 'quoted_tweet'), 'mediaDetails', ..., {dict})):
-                detail['id_str'] = traverse_obj(detail, (
-                    'video_info', 'variants', ..., 'url', {self._MEDIA_ID_RE.search}, 1), get_all=False) or twid
-                media.append(detail)
-            status['extended_entities'] = {'media': media}
+        except ExtractorError as e:
+            if not isinstance(e.cause, HTTPError) or not e.cause.status == 429:
+                raise
+            self.report_warning('Rate-limit exceeded; falling back to syndication endpoint')
+            status = self._call_syndication_api(twid)
 
-        else:
-            raise ExtractorError(f'"{self._selected_api}" is not a valid API selection', expected=True)
+        if self._selected_api == 'syndication':
+            status = self._call_syndication_api(twid)
 
         return traverse_obj(status, 'retweeted_status', None, expected_type=dict) or {}
 
@@ -1416,8 +1427,8 @@ class TwitterIE(TwitterBaseIE):
                 'thumbnails': thumbnails,
                 'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),  # No longer available
                 'duration': float_or_none(traverse_obj(media, ('video_info', 'duration_millis')), 1000),
-                # The codec of http formats are unknown
-                '_format_sort_fields': ('res', 'br', 'size', 'proto'),
+                # Prioritize m3u8 formats for compat, see https://github.com/yt-dlp/yt-dlp/issues/8117
+                '_format_sort_fields': ('res', 'proto:m3u8', 'br', 'size'),  # http format codec is unknown
             }
 
         def extract_from_card_info(card):

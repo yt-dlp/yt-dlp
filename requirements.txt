@@ -1,6 +1,5 @@
 mutagen
 pycryptodomex
-websockets
 brotli; implementation_name=='cpython'
 brotlicffi; implementation_name!='cpython'
 certifi
