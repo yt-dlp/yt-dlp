@@ -1,52 +1,35 @@
 name: Release (nightly)
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - "yt_dlp/**.py"
-      - "!yt_dlp/version.py"
-concurrency:
-  group: release-nightly
-  cancel-in-progress: true
+  schedule:
+    - cron: '23 23 * * *'
 permissions:
   contents: read
 
 jobs:
-  prepare:
+  check_nightly:
     if: vars.BUILD_NIGHTLY != ''
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.get_version.outputs.version }}
-
+      commit: ${{ steps.check_for_new_commits.outputs.commit }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Get version
-        id: get_version
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for new commits
+        id: check_for_new_commits
         run: |
-          python devscripts/update-version.py "$(date -u +"%H%M%S")" | grep -Po "version=\d+(\.\d+){3}" >> "$GITHUB_OUTPUT"
+          relevant_files=("yt_dlp/*.py" ':!yt_dlp/version.py' "setup.py" "pyinst.py")
+          echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
-  build:
-    needs: prepare
-    uses: ./.github/workflows/build.yml
+  release:
+    needs: [check_nightly]
+    if: ${{ needs.check_nightly.outputs.commit }}
+    uses: ./.github/workflows/release.yml
     with:
-      version: ${{ needs.prepare.outputs.version }}
-      channel: nightly
-    permissions:
-      contents: read
-      packages: write # For package cache
-    secrets:
-      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-
-  publish:
-    needs: [prepare, build]
-    uses: ./.github/workflows/publish.yml
-    secrets:
-      ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+      prerelease: true
+      source: nightly
     permissions:
       contents: write
-    with:
-      channel: nightly
-      prerelease: true
-      version: ${{ needs.prepare.outputs.version }}
-      target_commitish: ${{ github.sha }}
+      packages: write
+      id-token: write  # mandatory for trusted publishing
+    secrets: inherit

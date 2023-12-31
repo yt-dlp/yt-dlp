@@ -152,7 +152,7 @@ class BanByeChannelIE(BanByeBaseIE):
                 'sort': 'new',
                 'limit': self._PAGE_SIZE,
                 'offset': page_num * self._PAGE_SIZE,
-            }, note=f'Downloading page {page_num+1}')
+            }, note=f'Downloading page {page_num + 1}')
             return [
                 self.url_result(f"{self._VIDEO_BASE}/{video['_id']}", BanByeIE)
                 for video in data['items']

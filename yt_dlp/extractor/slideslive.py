@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..utils import (
@@ -469,11 +470,12 @@ class SlidesLiveIE(InfoExtractor):
             slides = self._download_xml(
                 player_info['slides_xml_url'], video_id, fatal=False,
                 note='Downloading slides XML', errnote='Failed to download slides info')
-            slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s%s'
-            for slide_id, slide in enumerate(slides.findall('./slide') if slides else [], 1):
-                slides_info.append((
-                    slide_id, xpath_text(slide, './slideName', 'name'), '.jpg',
-                    int_or_none(xpath_text(slide, './timeSec', 'time'))))
+            if isinstance(slides, xml.etree.ElementTree.Element):
+                slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s%s'
+                for slide_id, slide in enumerate(slides.findall('./slide')):
+                    slides_info.append((
+                        slide_id, xpath_text(slide, './slideName', 'name'), '.jpg',
+                        int_or_none(xpath_text(slide, './timeSec', 'time'))))
 
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
@@ -528,7 +530,7 @@ class SlidesLiveIE(InfoExtractor):
             if service_name == 'vimeo':
                 info['url'] = smuggle_url(
                     f'https://player.vimeo.com/video/{service_id}',
-                    {'http_headers': {'Referer': url}})
+                    {'referer': url})
 
         video_slides = traverse_obj(slides, ('slides', ..., 'video', 'id'))
         if not video_slides:
