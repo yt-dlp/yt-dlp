@@ -59,23 +59,23 @@ class AsobiChannelIE(AsobiChannelBaseIE):
         },
     }]
 
-    def _get_survapi_header(self, video_id):
-        request_token = self._download_json(
-            'https://asobichannel-api.asobistore.jp/api/v1/vspf/token', video_id,
+    _survapi_header = None
+
+    def _real_initialize(self):
+        token = self._download_json(
+            'https://asobichannel-api.asobistore.jp/api/v1/vspf/token', None,
             note='Retrieving API token')
-        return {'Authorization': f'Bearer {request_token}'}
+        self._survapi_header = {'Authorization': f'Bearer {token}'}
 
     def _process_vod(self, video_id, metadata):
         content_id = metadata['contents']['video_id']
 
         vod_data = self._download_json(
             f'https://survapi.channel.or.jp/proxy/v1/contents/{content_id}/get_by_cuid', video_id,
-            headers=self._get_survapi_header(video_id), note='Downloading vod data')
-
-        m3u8_url = vod_data['ex_content']['streaming_url']
+            headers=self._survapi_header, note='Downloading vod data')
 
         return {
-            'formats': self._extract_m3u8_formats(m3u8_url, video_id),
+            'formats': self._extract_m3u8_formats(vod_data['ex_content']['streaming_url'], video_id),
         }
 
     def _process_live(self, video_id, metadata):
@@ -93,13 +93,13 @@ class AsobiChannelIE(AsobiChannelBaseIE):
 
         event_data = self._download_json(
             f'https://survapi.channel.or.jp/ex/events/{content_id}?embed=channel', video_id,
-            headers=self._get_survapi_header(video_id), note='Downloading event data')
+            headers=self._survapi_header, note='Downloading event data')
 
         live_url = event_data['data']['Channel']['Custom_live_url']
 
         return {
             'live_status': live_status,
-            'formats': self._extract_m3u8_formats(live_url, video_id),
+            'formats': self._extract_m3u8_formats(live_url, video_id, live=True),
         }
 
     def _real_extract(self, url):
@@ -145,7 +145,7 @@ class AsobiChannelTagURLIE(AsobiChannelBaseIE):
         tag_id = self._match_id(url)
 
         webpage = self._download_webpage(url, tag_id)
-        webpage_data = self._search_nextjs_data(webpage, tag_id)['props']['pageProps']
+        title = traverse_obj(self._search_nextjs_data(webpage, tag_id, fatal=False), ('props', 'pageProps', 'data', 'name'))
 
         media_list = self._download_json(
             f'https://channel.microcms.io/api/v1/media?limit=999&filters=(tag[contains]{tag_id})', tag_id,
@@ -153,8 +153,8 @@ class AsobiChannelTagURLIE(AsobiChannelBaseIE):
 
         entries = [{
             '_type': 'url',
-            'url': f'https://asobichannel.asobistore.jp/watch/{metadata['id']}',
+            'url': f'https://asobichannel.asobistore.jp/watch/{metadata["id"]}',
             **self._extract_info(metadata),
         } for metadata in media_list.get('contents', [])]
 
-        return self.playlist_result(entries, tag_id, traverse_obj(webpage_data, ('data', 'name')))
+        return self.playlist_result(entries, tag_id, title)
