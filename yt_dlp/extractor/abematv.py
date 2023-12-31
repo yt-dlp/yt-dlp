@@ -136,6 +136,9 @@ class AbemaTVBaseIE(InfoExtractor):
         if self._USERTOKEN:
             return self._USERTOKEN
 
+        AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
+        add_opener(self._downloader, AbemaLicenseHandler(self))
+
         username, _ = self._get_login_info()
         AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
         if AbemaTVBaseIE._USERTOKEN:
@@ -146,7 +149,6 @@ class AbemaTVBaseIE(InfoExtractor):
             except ExtractorError as e:
                 self.report_warning(f'Failed to login with cached user token; obtaining a fresh one ({e})')
 
-        AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
         aks = self._generate_aks(self._DEVICE_ID)
         user_data = self._download_json(
             'https://api.abema.io/v1/users', None, note='Authorizing',
@@ -159,7 +161,6 @@ class AbemaTVBaseIE(InfoExtractor):
             })
         AbemaTVBaseIE._USERTOKEN = user_data['token']
 
-        add_opener(self._downloader, AbemaLicenseHandler(self))
         return self._USERTOKEN
 
     def _get_media_token(self, invalidate=False, to_show=True):
