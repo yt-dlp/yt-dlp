@@ -5,7 +5,7 @@ from ..utils import orderedSet
 
 
 class CTVNewsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)'
+    _VALID_URL = r'https?://(?:.+?\.)?ctvnews\.ca/(?:video\?(?:clip|playlist|bin)Id=|.*?)(?P<id>[0-9.]+)(?:$|[^\w.-])'
     _TESTS = [{
         'url': 'http://www.ctvnews.ca/video?clipId=901995',
         'md5': '9b8624ba66351a23e0b6e1391971f9af',
@@ -31,6 +31,13 @@ class CTVNewsIE(InfoExtractor):
             'id': '1.2876780',
         },
         'playlist_mincount': 100,
+    }, {
+        'url': 'https://www.ctvnews.ca/it-s-been-23-years-since-toronto-called-in-the-army-after-a-major-snowstorm-1.5736957',
+        'info_dict':
+        {
+            'id': '1.5736957',
+        },
+        'playlist_mincount': 6,
     }, {
         'url': 'http://www.ctvnews.ca/1.810401',
         'only_matching': True,
