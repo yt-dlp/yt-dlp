@@ -52,6 +52,7 @@ from yt_dlp.networking.exceptions import (
 )
 from yt_dlp.networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
+from yt_dlp.utils import YoutubeDLError
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     std_headers,
@@ -762,6 +763,18 @@ class TestClientCertificate:
         })
 
 
+@pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
+class TestHTTPImpersonateRequestHandler(TestRequestHandlerBase):
+    def test_supported_impersonate_targets(self, handler):
+        with handler(headers=std_headers) as rh:
+            # note: this assumes the impersonate request handler supports the impersonate extension
+            for target in rh.supported_targets:
+                res = validate_and_send(rh, Request(
+                    f'http://127.0.0.1:{self.http_port}/headers', extensions={'impersonate': target}))
+                assert res.status == 200
+                assert std_headers['user-agent'].lower() not in res.read().decode().lower()
+
+
 class TestUrllibRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib'], indirect=True)
     def test_file_urls(self, handler):
@@ -1444,7 +1457,7 @@ class TestYoutubeDLNetworking:
         with FakeImpersonationRHYDL() as ydl:
             with pytest.raises(
                 RequestError,
-                match=r'Impersonate target "test" is not available. This request requires browser impersonation'
+                match=r'Impersonate target "test" is not available'
             ):
                 ydl.urlopen(Request('http://', extensions={'impersonate': ImpersonateTarget('test', None, None, None)}))
 
@@ -1465,14 +1478,14 @@ class TestYoutubeDLNetworking:
         with FakeHTTPRHYDL() as ydl:
             with pytest.raises(
                 RequestError,
-                match=r'Impersonate target "test" is not available. This request requires browser impersonation'
+                match=r'Impersonate target "test" is not available'
             ):
                 ydl.urlopen(Request('http://', extensions={'impersonate': ImpersonateTarget('test', None, None, None)}))
 
     def test_raise_impersonate_error(self):
         with pytest.raises(
-            ValueError,
-            match=r'Impersonate target "test" is not available. Use --list-impersonate-targets to see available targets.'
+            YoutubeDLError,
+            match=r'Impersonate target "test" is not available'
         ):
             FakeYDL({'impersonate': ImpersonateTarget('test', None, None, None)})
 
