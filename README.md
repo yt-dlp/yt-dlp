@@ -1357,7 +1357,10 @@ The available fields are:
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
  - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
- 
+ - `categories` (list): List of categories the video belongs to
+ - `tags` (list): List of tags assigned to the video
+ - `cast` (list): List of cast members
+
 All the fields in [Filtering Formats](#filtering-formats) can also be used
 
 Available for the video that belongs to some logical chapter or section:
