@@ -26,7 +26,7 @@ import zlib
 from email.message import Message
 from http.cookiejar import CookieJar
 
-from test.helper import FakeYDL, http_server_port
+from test.helper import FakeYDL, http_server_port, verify_address_availability
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli, requests, urllib3
 from yt_dlp.networking import (
@@ -50,7 +50,6 @@ from yt_dlp.networking.exceptions import (
     UnsupportedRequest,
 )
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
-from yt_dlp.utils import find_available_port
 from yt_dlp.utils.networking import HTTPHeaderDict
 
 from test.conftest import validate_and_send
@@ -539,8 +538,9 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests'], indirect=True)
     def test_source_address(self, handler):
         source_address = f'127.0.0.{random.randint(5, 255)}'
-        if find_available_port(source_address) is None:
-            pytest.skip(f'Unable to bind to source address {source_address} (address may not exist)')
+        # on some systems these loopback addresses we need for testing may not be available
+        # see: https://github.com/yt-dlp/yt-dlp/issues/8890
+        verify_address_availability(source_address)
         with handler(source_address=source_address) as rh:
             data = validate_and_send(
                 rh, Request(f'http://127.0.0.1:{self.http_port}/source_address')).read().decode()
