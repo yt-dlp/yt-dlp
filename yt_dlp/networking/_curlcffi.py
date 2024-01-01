@@ -112,11 +112,11 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
         ImpersonateTarget('chrome', '104', 'windows', '10'): curl_cffi.requests.BrowserType.chrome104,
         ImpersonateTarget('chrome', '101', 'windows', '10'): curl_cffi.requests.BrowserType.chrome101,
         ImpersonateTarget('chrome', '99', 'windows', '10'): curl_cffi.requests.BrowserType.chrome99,
-        ImpersonateTarget('chrome', '99', 'android', '12'): curl_cffi.requests.BrowserType.chrome99_android,
         ImpersonateTarget('edge', '101', 'windows', '10'): curl_cffi.requests.BrowserType.edge101,
         ImpersonateTarget('edge', '99', 'windows', '10'): curl_cffi.requests.BrowserType.edge99,
-        ImpersonateTarget('safari', '15.5', 'macos', '12.4'): curl_cffi.requests.BrowserType.safari15_5,
-        ImpersonateTarget('safari', '15.3', 'macos', '11.6.4'): curl_cffi.requests.BrowserType.safari15_3,
+        ImpersonateTarget('safari', '15.5', 'macos', '12'): curl_cffi.requests.BrowserType.safari15_5,
+        ImpersonateTarget('safari', '15.3', 'macos', '11'): curl_cffi.requests.BrowserType.safari15_3,
+        ImpersonateTarget('chrome', '99', 'android', '12'): curl_cffi.requests.BrowserType.chrome99_android,
     }
 
     def _create_instance(self, cookiejar=None):
