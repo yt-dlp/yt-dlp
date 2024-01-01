@@ -4071,11 +4071,11 @@ class YoutubeDL:
         return handler._get_instance(cookiejar=self.cookiejar, proxies=self.proxies)
 
     def get_available_impersonate_targets(self):
-        return sorted(
+        return list(
             itertools.chain.from_iterable(
                 [[(target, rh.RH_NAME) for target in rh.supported_targets]
                  for rh in self._request_director.handlers.values()
-                 if isinstance(rh, ImpersonateRequestHandler)]), key=lambda x: x[0])
+                 if isinstance(rh, ImpersonateRequestHandler)]))
 
     def impersonate_target_available(self, target):
         # This assumes that all handlers that support impersonation subclass ImpersonateRequestHandler
