@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import parse_iso8601, traverse_obj, try_call
+from ..utils import parse_iso8601, str_or_none, traverse_obj, try_call
 
 
 class PrankCastIE(InfoExtractor):
@@ -13,7 +13,7 @@ class PrankCastIE(InfoExtractor):
             'display_id': 'Beverly-is-back-like-a-heart-attack-',
             'timestamp': 1661391575,
             'uploader': 'Devonanustart',
-            'channel_id': 4,
+            'channel_id': '4',
             'duration': 7918,
             'cast': ['Devonanustart', 'Phonelosers'],
             'description': '',
@@ -30,7 +30,7 @@ class PrankCastIE(InfoExtractor):
             'display_id': 'NOT-COOL',
             'timestamp': 1665028364,
             'uploader': 'phonelosers',
-            'channel_id': 6,
+            'channel_id': '6',
             'duration': 4044,
             'cast': ['phonelosers'],
             'description': '',
@@ -57,7 +57,7 @@ class PrankCastIE(InfoExtractor):
             'url': f'{json_info["broadcast_url"]}{json_info["recording_hash"]}.mp3',
             'timestamp': start_date,
             'uploader': uploader,
-            'channel_id': json_info.get('user_id'),
+            'channel_id': str_or_none(json_info.get('user_id')),
             'duration': try_call(lambda: parse_iso8601(json_info['end_date']) - start_date),
             'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
             'description': json_info.get('broadcast_description'),

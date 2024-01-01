@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
+    str_or_none,
     try_get,
     update_url_query,
     url_or_none,
@@ -21,7 +22,7 @@ class XinpianchangIE(InfoExtractor):
             'duration': 151,
             'thumbnail': r're:^https?://oss-xpc0\.xpccdn\.com.+/assets/',
             'uploader': '正时文创',
-            'uploader_id': 10357277,
+            'uploader_id': '10357277',
             'categories': ['宣传片', '国家城市', '广告', '其他'],
             'tags': ['北京冬奥会', '冰墩墩', '再见', '告别', '冰墩墩哭了', '感动', '闭幕式', '熄火']
         },
@@ -35,7 +36,7 @@ class XinpianchangIE(InfoExtractor):
             'duration': 136,
             'thumbnail': r're:^https?://oss-xpc0\.xpccdn\.com.+/assets/',
             'uploader': '精品动画',
-            'uploader_id': 10858927,
+            'uploader_id': '10858927',
             'categories': ['动画', '三维CG'],
             'tags': ['France Télévisions', '法国3台', '蠢萌', '冬奥会']
         },
@@ -81,7 +82,7 @@ class XinpianchangIE(InfoExtractor):
             'tags': data.get('keywords'),
             'thumbnail': data.get('cover'),
             'uploader': try_get(data, lambda x: x['owner']['username']),
-            'uploader_id': try_get(data, lambda x: x['owner']['id']),
+            'uploader_id': str_or_none(try_get(data, lambda x: x['owner']['id'])),
             'formats': formats,
             'subtitles': subtitles,
         }

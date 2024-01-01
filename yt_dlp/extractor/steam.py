@@ -2,9 +2,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    extract_attributes,
     ExtractorError,
+    extract_attributes,
     get_element_by_class,
+    str_or_none,
 )
 
 
@@ -131,7 +132,7 @@ class SteamCommunityBroadcastIE(InfoExtractor):
             'id': '76561199073851486',
             'title': r're:Steam Community :: pepperm!nt :: Broadcast 2022-06-26 \d{2}:\d{2}',
             'ext': 'mp4',
-            'uploader_id': 1113585758,
+            'uploader_id': '1113585758',
             'uploader': 'pepperm!nt',
             'live_status': 'is_live',
         },
@@ -164,6 +165,6 @@ class SteamCommunityBroadcastIE(InfoExtractor):
             'live_status': 'is_live',
             'view_count': json_data.get('num_view'),
             'uploader': uploader_json.get('persona_name'),
-            'uploader_id': uploader_json.get('accountid'),
+            'uploader_id': str_or_none(uploader_json.get('accountid')),
             'subtitles': subs,
         }

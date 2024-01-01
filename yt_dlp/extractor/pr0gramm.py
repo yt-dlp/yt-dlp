@@ -9,6 +9,7 @@ from ..utils import (
     int_or_none,
     make_archive_id,
     mimetype2ext,
+    str_or_none,
     urljoin,
 )
 from ..utils.traversal import traverse_obj
@@ -25,7 +26,7 @@ class Pr0grammIE(InfoExtractor):
             'title': 'pr0gramm-5466437 by g11st',
             'tags': ['Neon Genesis Evangelion', 'Touhou Project', 'Fly me to the Moon', 'Marisad', 'Marisa Kirisame', 'video', 'sound', 'Marisa', 'Anime'],
             'uploader': 'g11st',
-            'uploader_id': 394718,
+            'uploader_id': '394718',
             'timestamp': 1671590240,
             'upload_date': '20221221',
             'like_count': int,
@@ -43,7 +44,7 @@ class Pr0grammIE(InfoExtractor):
             'title': 'pr0gramm-3052805 by Hansking1',
             'tags': 'count:15',
             'uploader': 'Hansking1',
-            'uploader_id': 385563,
+            'uploader_id': '385563',
             'timestamp': 1552930408,
             'upload_date': '20190318',
             'like_count': int,
@@ -61,7 +62,7 @@ class Pr0grammIE(InfoExtractor):
             'title': 'pr0gramm-5848332 by erd0pfel',
             'tags': 'count:18',
             'uploader': 'erd0pfel',
-            'uploader_id': 349094,
+            'uploader_id': '349094',
             'timestamp': 1694489652,
             'upload_date': '20230912',
             'like_count': int,
@@ -178,7 +179,7 @@ class Pr0grammIE(InfoExtractor):
             '_old_archive_ids': [make_archive_id('Pr0grammStatic', video_id)],
             **traverse_obj(video_info, {
                 'uploader': ('user', {str}),
-                'uploader_id': ('userId', {int}),
+                'uploader_id': ('userId', {str_or_none}),
                 'like_count': ('up', {int}),
                 'dislike_count': ('down', {int}),
                 'timestamp': ('created', {int}),

@@ -32,7 +32,7 @@ class DuoplayIE(InfoExtractor):
             'season_number': 2,
             'episode': 'Operatsioon "Öö"',
             'episode_number': 12,
-            'episode_id': 24,
+            'episode_id': '24',
         },
     }, {
         'note': 'Empty title',
@@ -50,7 +50,7 @@ class DuoplayIE(InfoExtractor):
             'series_id': '17',
             'season': 'Season 2',
             'season_number': 2,
-            'episode_id': 14,
+            'episode_id': '14',
             'release_year': 2010,
         },
     }, {
@@ -99,6 +99,6 @@ class DuoplayIE(InfoExtractor):
                 'season_number': ('season_id', {int_or_none}),
                 'episode': 'subtitle',
                 'episode_number': ('episode_nr', {int_or_none}),
-                'episode_id': ('episode_id', {int_or_none}),
+                'episode_id': ('episode_id', {str_or_none}),
             }, get_all=False) if episode_attr.get('category') != 'movies' else {}),
         }
