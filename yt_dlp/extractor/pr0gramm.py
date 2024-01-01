@@ -1,5 +1,4 @@
 import json
-from datetime import date
 from urllib.parse import unquote
 
 from .common import InfoExtractor
@@ -27,7 +26,7 @@ class Pr0grammIE(InfoExtractor):
             'tags': ['Neon Genesis Evangelion', 'Touhou Project', 'Fly me to the Moon', 'Marisad', 'Marisa Kirisame', 'video', 'sound', 'Marisa', 'Anime'],
             'uploader': 'g11st',
             'uploader_id': 394718,
-            'upload_timestamp': 1671590240,
+            'timestamp': 1671590240,
             'upload_date': '20221221',
             'like_count': int,
             'dislike_count': int,
@@ -45,7 +44,7 @@ class Pr0grammIE(InfoExtractor):
             'tags': 'count:15',
             'uploader': 'Hansking1',
             'uploader_id': 385563,
-            'upload_timestamp': 1552930408,
+            'timestamp': 1552930408,
             'upload_date': '20190318',
             'like_count': int,
             'dislike_count': int,
@@ -63,7 +62,7 @@ class Pr0grammIE(InfoExtractor):
             'tags': 'count:18',
             'uploader': 'erd0pfel',
             'uploader_id': 349094,
-            'upload_timestamp': 1694489652,
+            'timestamp': 1694489652,
             'upload_date': '20230912',
             'like_count': int,
             'dislike_count': int,
@@ -182,8 +181,7 @@ class Pr0grammIE(InfoExtractor):
                 'uploader_id': ('userId', {int}),
                 'like_count': ('up', {int}),
                 'dislike_count': ('down', {int}),
-                'upload_timestamp': ('created', {int}),
-                'upload_date': ('created', {int}, {date.fromtimestamp}, {lambda x: x.strftime('%Y%m%d')}),
+                'timestamp': ('created', {int}),
                 'thumbnail': ('thumb', {lambda x: urljoin('https://thumb.pr0gramm.com', x)})
             }),
         }

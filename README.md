@@ -1304,6 +1304,8 @@ The available fields are:
  - `description` (string): The description of the video
  - `display_id` (string): An alternative identifier for the video
  - `uploader` (string): Full name of the video uploader
+ - `uploader_id` (string): Nickname or id of the video uploader
+ - `uploader_url` (string): URL to the video uploader's profile
  - `license` (string): License name the video is licensed under
  - `creator` (string): The creator of the video
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
@@ -1313,9 +1315,9 @@ The available fields are:
  - `release_year` (numeric): Year (YYYY) when the video or album was released
  - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
  - `modified_date` (string): The date (YYYYMMDD) when the video was last modified in UTC
- - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
+ - `channel_url` (string): URL of the channel
  - `channel_follower_count` (numeric): Number of followers of the channel
  - `channel_is_verified` (boolean): Whether the channel is verified on the platform
  - `location` (string): Physical location where the video was filmed
@@ -1367,6 +1369,7 @@ Available for the video that belongs to some logical chapter or section:
 Available for the video that is an episode of some series or programme:
 
  - `series` (string): Title of the series or programme the video episode belongs to
+ - `series_id` (string): Id of the series or programme the video episode belongs to
  - `season` (string): Title of the season the video episode belongs to
  - `season_number` (numeric): Number of the season the video episode belongs to
  - `season_id` (string): Id of the season the video episode belongs to
@@ -1385,6 +1388,7 @@ Available for the media that is a track or a part of a music album:
  - `album_type` (string): Type of the album
  - `album_artist` (string): List of all artists appeared on the album
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
+ - `composer` (string): Name of the composer
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 

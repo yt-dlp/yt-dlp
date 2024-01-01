@@ -22,7 +22,7 @@ class VideofyMeIE(InfoExtractor):
             'uploader': 'VideofyMe',
             'uploader_id': 'thisisvideofyme',
             'view_count': int,
-            'likes': int,
+            'like_count': int,
             'comment_count': int,
         },
     }
@@ -45,6 +45,6 @@ class VideofyMeIE(InfoExtractor):
             'uploader': blog.get('name'),
             'uploader_id': blog.get('identifier'),
             'view_count': int_or_none(self._search_regex(r'([0-9]+)', video.get('views'), 'view count', fatal=False)),
-            'likes': int_or_none(video.get('likes')),
+            'like_count': int_or_none(video.get('likes')),
             'comment_count': int_or_none(video.get('nrOfComments')),
         }
