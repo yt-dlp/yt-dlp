@@ -30,7 +30,6 @@ class SteamIE(InfoExtractor):
                     'ext': 'mp4',
                     'title': 'Terraria video 256785003',
                     'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
-                    'n_entries': 2,
                 }
             },
             {
@@ -39,9 +38,7 @@ class SteamIE(InfoExtractor):
                     'id': '2040428',
                     'ext': 'mp4',
                     'title': 'Terraria video 2040428',
-                    'playlist_index': 2,
                     'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
-                    'n_entries': 2,
                 }
             }
         ],
@@ -55,12 +52,10 @@ class SteamIE(InfoExtractor):
     }, {
         'url': 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
         'info_dict': {
-            'id': '256757115',
-            'title': 'Grand Theft Auto V video 256757115',
-            'ext': 'mp4',
-            'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
-            'n_entries': 20,
+            'id': '271590',
+            'title': 'Grand Theft Auto V',
         },
+        'playlist_count': 23,
     }]
 
     def _real_extract(self, url):
