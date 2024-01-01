@@ -136,19 +136,21 @@ class AbemaTVBaseIE(InfoExtractor):
         if self._USERTOKEN:
             return self._USERTOKEN
 
-        AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
         add_opener(self._downloader, AbemaLicenseHandler(self))
 
         username, _ = self._get_login_info()
-        AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
+        auth_cache = username and self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.01')
+        AbemaTVBaseIE._USERTOKEN = auth_cache and auth_cache.get('usertoken')
         if AbemaTVBaseIE._USERTOKEN:
             # try authentication with locally stored token
             try:
+                AbemaTVBaseIE._DEVICE_ID = auth_cache.get('device_id')
                 self._get_media_token(True)
                 return
             except ExtractorError as e:
                 self.report_warning(f'Failed to login with cached user token; obtaining a fresh one ({e})')
 
+        AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
         aks = self._generate_aks(self._DEVICE_ID)
         user_data = self._download_json(
             'https://api.abema.io/v1/users', None, note='Authorizing',
@@ -256,7 +258,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
     def _perform_login(self, username, password):
         self._get_device_token()
-        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
+        if self.cache.load(self._NETRC_MACHINE, username, min_ver="2024.01.01") and self._get_media_token():
             self.write_debug('Skipping logging in')
             return
 
@@ -279,7 +281,11 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         AbemaTVBaseIE._USERTOKEN = login_response['token']
         self._get_media_token(True)
-        self.cache.store(self._NETRC_MACHINE, username, AbemaTVBaseIE._USERTOKEN)
+        auth_cache = {
+            'device_id': AbemaTVBaseIE._DEVICE_ID,
+            'usertoken': AbemaTVBaseIE._USERTOKEN,
+        }
+        self.cache.store(self._NETRC_MACHINE, username, auth_cache)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
