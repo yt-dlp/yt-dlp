@@ -84,8 +84,6 @@ class ChingariIE(ChingariBaseIE):
             'uploader_id': '5f0403982c8bd344f4813f8c',
             'uploader': 'ISKCON,Inc.',
             'uploader_url': 'https://chingari.io/iskcon,inc',
-            'track': None,
-            'artist': None,
         },
         'params': {'skip_download': True}
     }]

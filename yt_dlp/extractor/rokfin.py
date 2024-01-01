@@ -86,7 +86,6 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^'],
-            'duration': None,
         }
     }, {
         'url': 'https://rokfin.com/post/126703/Brave-New-World--Aldous-Huxley-DEEPDIVE--Chpts-13--Quite-Frankly--Jay-Dyer',

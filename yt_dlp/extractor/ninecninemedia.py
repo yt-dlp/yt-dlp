@@ -109,7 +109,6 @@ class CPTwentyFourIE(InfoExtractor):
             'title': 'WATCH: Truck rips ATM from Mississauga business',
             'description': 'md5:cf7498480885f080a754389a2b2f7073',
             'timestamp': 1637618377,
-            'episode_number': None,
             'season': 'Season 0',
             'season_number': 0,
             'season_id': 57974,

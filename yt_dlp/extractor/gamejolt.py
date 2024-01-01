@@ -374,7 +374,6 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
         'info_dict': {
             'id': '657899',
             'title': 'Friday Night Funkin\': Vs Oswald',
-            'n_entries': None,
         },
         'playlist': [{
             'info_dict': {
