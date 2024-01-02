@@ -991,7 +991,6 @@ from .lrt import (
 from .lsm import (
     LSMLREmbedIE,
     LSMLTVEmbedIE,
-    LSMLTVIE,
     LSMReplayIE
 )
 from .lumni import (

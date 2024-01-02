@@ -14,11 +14,6 @@ from ..utils import (
 from ..utils.traversal import traverse_obj
 
 
-class LSMBaseIE(InfoExtractor):
-    def fix_nuxt_data(self, webpage):
-        return re.sub(r'Object\.create\(null(?:,(\{.+\}))?\)', lambda m: m.group(1) or 'null', webpage)
-
-
 class LSMLREmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:latvijasradio|lr1|lr2|klasika|lr4|naba|radioteatris)\.lsm|pieci)\.lv/[^/]+/(?:pleijeris|embed)'
     _TESTS = [{
@@ -225,42 +220,7 @@ class LSMLTVEmbedIE(InfoExtractor):
             }))
 
 
-class LSMLTVIE(LSMBaseIE):
-    _VALID_URL = r'https?://ltv\.lsm\.lv/.*/raksts/.*\.id(?P<id>\d+)'
-    _TESTS = [{
-        'url': 'https://ltv.lsm.lv/lv/raksts/21.11.2023-4-studija-zolitudes-tragedija-un-incupes-stacija.id311130',
-        'md5': '64f72a360ca530d5ed89c77646c9eee5',
-        'info_dict': {
-            'id': '46k_d23-6000-105',
-            'ext': 'mp4',
-            'timestamp': 1700586300,
-            'duration': 1442,
-            'upload_date': '20231121',
-            'title': '4. studija. Zolitūdes traģēdija un Inčupes stacija',
-            'thumbnail': 'https://ltv.lsm.lv/storage/media/8/7/large/5/1f9604e1.jpg',
-        }
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        json = self._search_nuxt_data(self.fix_nuxt_data(webpage), video_id)
-
-        return {
-            '_type': 'url_transparent',
-            'ie_key': 'LSMLTVEmbed',
-            'id': video_id,
-            **traverse_obj(json, ('article', {
-                'url': ('videoMediaItem', 'video', 'embed_id', {lambda x: x and f'https://ltv.lsm.lv/embed?c={x}'}),
-                'title': 'title',
-                'timestamp': ('aired_at', {parse_iso8601}),
-                'thumbnail': ('thumbnail', {url_or_none}),
-            })),
-        }
-
-
-class LSMReplayIE(LSMBaseIE):
+class LSMReplayIE(InfoExtractor):
     _VALID_URL = r'https?://replay\.lsm\.lv/.*/(?:ieraksts|statja)/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://replay.lsm.lv/lv/ieraksts/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
@@ -292,6 +252,9 @@ class LSMReplayIE(LSMBaseIE):
         'url': 'https://replay.lsm.lv/ru/statja/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
         'only_matching': True,
     }]
+
+    def fix_nuxt_data(self, webpage):
+        return re.sub(r'Object\.create\(null(?:,(\{.+\}))?\)', lambda m: m.group(1) or 'null', webpage)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
