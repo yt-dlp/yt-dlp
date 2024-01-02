@@ -201,11 +201,10 @@ def traverse_obj(
             if not xpath:
                 result = apply_specials(obj)
             else:
-                findings = obj.iterfind(xpath)
+                result = obj.iterfind(xpath)
                 if has_specials:
-                    result = list(map(apply_specials, findings))
-                else:
-                    result = list(findings)
+                    result = map(apply_specials, result)
+                result = list(result)
 
         return branching, result if branching else (result,)
 
