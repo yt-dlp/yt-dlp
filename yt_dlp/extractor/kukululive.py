@@ -1,5 +1,10 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    get_element_by_id,
+    urljoin,
+)
 from ..compat import compat_parse_qs
 
 
@@ -20,8 +25,7 @@ class KukuluLiveIE(InfoExtractor):
                 'force_h264': force_h264,
             },
             note=f'Downloading {description} quality metadata',
-            errnote=f'Unable to download {description} quality metadata'
-        )
+            errnote=f'Unable to download {description} quality metadata')
         return compat_parse_qs(qs)
 
     def _add_quality_formats(self, formats, quality_meta):
@@ -58,17 +62,11 @@ class KukuluLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        html = self._download_webpage(
-            url, video_id,
-            note='Downloading html',
-            errnote='Unable to download html'
-        )
+        html = self._download_webpage(url, video_id)
 
-        # https://regex101.com/r/SNbBwa/1
-        title = self._search_regex(r'<SPAN id=\"livetitle\">([^<]+)</SPAN>', html, 'title', fatal=False)
+        title = clean_html(get_element_by_id('livetitle', html.replace('<SPAN', '<span').replace('SPAN>', 'span>')))
         description = self._html_search_meta('Description', html)
-        thumbnail_url = self._html_search_meta(['og:image', 'twitter:image'], html)
-        thumbnails = [{'url': thumbnail_url}]
+        thumbnail = self._html_search_meta(['og:image', 'twitter:image'], html)
 
         is_live_stream = 'var timeshift = false;' in html
         is_vod = 'var timeshift = true;' in html
@@ -87,10 +85,10 @@ class KukuluLiveIE(InfoExtractor):
                     self._add_quality_formats(formats, h264_meta)
 
             return {
-                'id': str(video_id),
+                'id': video_id,
                 'title': title,
                 'description': description,
-                'thumbnails': thumbnails,
+                'thumbnail': thumbnail,
                 'is_live': True,
                 'formats': formats,
             }
@@ -100,8 +98,7 @@ class KukuluLiveIE(InfoExtractor):
                 'https://live.erinn.biz/live.timeshift.fplayer.php', video_id,
                 query={'hash': video_id},
                 note='Downloading player html',
-                errnote='Unable to download player html'
-            )
+                errnote='Unable to download player html')
 
             # https://regex101.com/r/3AXpSA/3
             sources = self._search_regex(r'var fplayer_source = ([^;]+)', player_html, 'sources')
@@ -111,17 +108,17 @@ class KukuluLiveIE(InfoExtractor):
             for source in sources_json:
                 path = source.get('file')
                 formats.append({
-                    'url': f'https://live.erinn.biz{path}',
+                    'url': urljoin('https://live.erinn.biz', path),
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                 })
 
             return {
-                'id': str(video_id),
+                'id': video_id,
                 'title': title,
                 'description': description,
                 'timestamp': sources_json[0].get('time_start'),
-                'thumbnails': thumbnails,
+                'thumbnail': thumbnail,
                 'formats': formats,
             }
 
