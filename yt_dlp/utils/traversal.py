@@ -169,7 +169,7 @@ def traverse_obj(
                 result = next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
 
         elif isinstance(key, (int, slice)):
-            if is_iterable_like(obj, collections.abc.Sequence) or isinstance(obj, xml.etree.ElementTree.Element):
+            if is_iterable_like(obj, (collections.abc.Sequence, xml.etree.ElementTree.Element)):
                 branching = isinstance(key, slice)
                 with contextlib.suppress(IndexError):
                     result = obj[key]
@@ -178,10 +178,10 @@ def traverse_obj(
                     result = str(obj)[key]
 
         elif isinstance(obj, xml.etree.ElementTree.Element) and isinstance(key, str):
-            xpath, sep, special = key.rpartition('/')
-            has_specials = special.startswith('@') or special == 'text()'
-            if not has_specials:
-                xpath = f'{xpath}{sep}{special}'
+            xpath, _, special = key.rpartition('/')
+            if not special.startswith('@') and special != 'text()':
+                xpath = key
+                special = None
 
             # Allow abbreviations of relative paths, absolute paths error
             if xpath.startswith('/'):
@@ -190,21 +190,20 @@ def traverse_obj(
                 xpath = f'./{xpath}'
 
             def apply_specials(element):
+                if special is None:
+                    return element
                 if special == '@':
                     return element.attrib
                 if special.startswith('@'):
                     return try_call(element.attrib.get, args=(special[1:],))
                 if special == 'text()':
                     return element.text
-                return None
+                assert False, f'apply_specials is missing case for {special!r}'
 
-            if not xpath:
-                result = apply_specials(obj)
+            if xpath:
+                result = list(map(apply_specials, obj.iterfind(xpath)))
             else:
-                result = obj.iterfind(xpath)
-                if has_specials:
-                    result = map(apply_specials, result)
-                result = list(result)
+                result = apply_specials(obj)
 
         return branching, result if branching else (result,)
 

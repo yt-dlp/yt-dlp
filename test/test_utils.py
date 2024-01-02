@@ -2362,8 +2362,8 @@ Line 1
                 <neighbor name="Colombia" direction="E"/>
             </country>
         </data>''')
-        self.assertEqual(traverse_obj(etree, ''), None,
-                         msg='empty str key should return `None`')
+        self.assertEqual(traverse_obj(etree, ''), etree,
+                         msg='empty str key should return the element itself')
         self.assertEqual(traverse_obj(etree, 'country'), list(etree),
                          msg='str key should lead all children with that tag name')
         self.assertEqual(traverse_obj(etree, ...), list(etree),
