@@ -180,16 +180,13 @@ def traverse_obj(
         elif isinstance(obj, xml.etree.ElementTree.Element) and isinstance(key, str):
             xpath, sep, special = key.rpartition('/')
             has_specials = special.startswith('@') or special == 'text()'
-
             if not has_specials:
                 xpath = f'{xpath}{sep}{special}'
 
             # Allow abbreviations of relative paths, absolute paths error
             if xpath.startswith('/'):
                 xpath = f'.{xpath}'
-            elif not xpath:
-                pass
-            elif not xpath.startswith('./'):
+            elif xpath and not xpath.startswith('./'):
                 xpath = f'./{xpath}'
 
             findings = obj.iterfind(xpath) if xpath else [obj]
