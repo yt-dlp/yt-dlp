@@ -2110,6 +2110,8 @@ Line 1
         self.assertEqual(traverse_obj(_TEST_DATA, (..., {str_or_none})),
                          [item for item in map(str_or_none, _TEST_DATA.values()) if item is not None],
                          msg='Function in set should be a transformation')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('fail', {lambda _: 'const'})), 'const',
+                         msg='Function in set should always be called')
         if __debug__:
             with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
                 traverse_obj(_TEST_DATA, set())
@@ -2317,23 +2319,6 @@ Line 1
         self.assertEqual(traverse_obj({}, (0, slice(1)), traverse_string=True), [],
                          msg='branching should result in list if `traverse_string`')
 
-        # Test is_user_input behavior
-        _IS_USER_INPUT_DATA = {'range8': list(range(8))}
-        self.assertEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', '3'),
-                                      is_user_input=True), 3,
-                         msg='allow for string indexing if `is_user_input`')
-        self.assertCountEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', '3:'),
-                                           is_user_input=True), tuple(range(8))[3:],
-                              msg='allow for string slice if `is_user_input`')
-        self.assertCountEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':4:2'),
-                                           is_user_input=True), tuple(range(8))[:4:2],
-                              msg='allow step in string slice if `is_user_input`')
-        self.assertCountEqual(traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':'),
-                                           is_user_input=True), range(8),
-                              msg='`:` should be treated as `...` if `is_user_input`')
-        with self.assertRaises(TypeError, msg='too many params should result in error'):
-            traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':::'), is_user_input=True)
-
         # Test re.Match as input obj
         mobj = re.fullmatch(r'0(12)(?P<group>3)(4)?', '0123')
         self.assertEqual(traverse_obj(mobj, ...), [x for x in mobj.groups() if x is not None],
@@ -2386,6 +2371,11 @@ Line 1
 
         headers4 = HTTPHeaderDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+
+        # common mistake: strip whitespace from values
+        # https://github.com/yt-dlp/yt-dlp/issues/8729
+        headers5 = HTTPHeaderDict({'ytdl-test': ' data; '})
+        self.assertEqual(set(headers5.items()), {('Ytdl-Test', 'data;')})
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)

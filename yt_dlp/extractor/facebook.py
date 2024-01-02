@@ -52,7 +52,7 @@ class FacebookIE(InfoExtractor):
                             )\?(?:.*?)(?:v|video_id|story_fbid)=|
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
-                            groups/[^/]+/permalink/|
+                            groups/[^/]+/(?:permalink|posts)/|
                             watchparty/
                         )|
                     facebook:
@@ -232,6 +232,21 @@ class FacebookIE(InfoExtractor):
             'uploader_id': '100013949973717',
         },
         'skip': 'Requires logging in',
+    }, {
+        # data.node.comet_sections.content.story.attachments[].throwbackStyles.attachment_target_renderer.attachment.target.attachments[].styles.attachment.media
+        'url': 'https://www.facebook.com/groups/1645456212344334/posts/3737828833107051/',
+        'info_dict': {
+            'id': '1569199726448814',
+            'ext': 'mp4',
+            'title': 'Pence MUST GO!',
+            'description': 'Vickie Gentry shared a memory.',
+            'timestamp': 1511548260,
+            'upload_date': '20171124',
+            'uploader': 'Vickie Gentry',
+            'uploader_id': 'pfbid0FuZhHCeWDAxWxEbr3yKPFaRstXvRxgsp9uCPG6GjD4J2AitB35NUAuJ4Q75KcjiDl',
+            'thumbnail': r're:^https?://.*',
+            'duration': 148.435,
+        },
     }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,
@@ -612,9 +627,11 @@ class FacebookIE(InfoExtractor):
                 nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
                 attachments = traverse_obj(nodes, (
                     ..., 'comet_sections', 'content', 'story', (None, 'attached_story'), 'attachments',
-                    ..., ('styles', 'style_type_renderer'), 'attachment'), expected_type=dict) or []
+                    ..., ('styles', 'style_type_renderer', ('throwbackStyles', 'attachment_target_renderer')),
+                    'attachment', {dict}))
                 for attachment in attachments:
-                    ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
+                    ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
+                                      ('target', 'attachments', ..., 'styles', 'attachment', {dict}))
                     for n in ns:
                         parse_attachment(n)
                     parse_attachment(attachment)
@@ -637,7 +654,7 @@ class FacebookIE(InfoExtractor):
                 if len(entries) > 1:
                     return self.playlist_result(entries, video_id)
 
-                video_info = entries[0]
+                video_info = entries[0] if entries else {'id': video_id}
                 webpage_info = extract_metadata(webpage)
                 # honor precise duration in video info
                 if video_info.get('duration'):

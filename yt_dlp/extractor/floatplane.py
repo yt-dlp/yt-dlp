@@ -173,8 +173,8 @@ class FloatplaneIE(InfoExtractor):
                 'formats': formats,
             })
 
-        uploader_url = format_field(traverse_obj(
-            post_data, 'creator'), 'urlname', 'https://www.floatplane.com/channel/%s/home', default=None)
+        uploader_url = format_field(
+            post_data, [('creator', 'urlname')], 'https://www.floatplane.com/channel/%s/home') or None
         channel_url = urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname')))
 
         post_info = {
@@ -248,7 +248,7 @@ class FloatplaneChannelIE(InfoExtractor):
         for post in page_data or []:
             yield self.url_result(
                 f'https://www.floatplane.com/post/{post["id"]}',
-                ie=FloatplaneIE, video_id=post['id'], video_title=post.get('title'),
+                FloatplaneIE, id=post['id'], title=post.get('title'),
                 release_timestamp=parse_iso8601(post.get('releaseDate')))
 
     def _real_extract(self, url):
@@ -264,5 +264,5 @@ class FloatplaneChannelIE(InfoExtractor):
 
         return self.playlist_result(OnDemandPagedList(functools.partial(
             self._fetch_page, display_id, creator_data['id'], channel_data.get('id')), self._PAGE_SIZE),
-            display_id, playlist_title=channel_data.get('title') or creator_data.get('title'),
-            playlist_description=channel_data.get('about') or creator_data.get('about'))
+            display_id, title=channel_data.get('title') or creator_data.get('title'),
+            description=channel_data.get('about') or creator_data.get('about'))

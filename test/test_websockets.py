@@ -148,7 +148,7 @@ class TestWebsSocketRequestHandlerConformance:
     @pytest.mark.parametrize('handler', ['Websockets'], indirect=True)
     def test_ssl_error(self, handler):
         with handler(verify=False) as rh:
-            with pytest.raises(SSLError, match='sslv3 alert handshake failure') as exc_info:
+            with pytest.raises(SSLError, match=r'ssl(?:v3|/tls) alert handshake failure') as exc_info:
                 validate_and_send(rh, Request(self.bad_wss_host))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
