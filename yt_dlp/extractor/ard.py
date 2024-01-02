@@ -358,13 +358,24 @@ class ARDBetaMediathekIE(InfoExtractor):
         }), get_all=False)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        display_id = self._match_id(url)
 
         page_data = self._download_json(
-            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{video_id}', video_id, query={
+            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
                 'embedded': 'false',
                 'mcV6': 'true',
             })
+
+        # For user convenience we use the old contentId instead of the longer crid
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
+        old_id = traverse_obj(page_data, ('tracking', 'atiCustomVars', 'contentId', {str_or_none}))
+        if old_id:
+            video_id = old_id
+            archive_ids = [make_archive_id(ARDBetaMediathekIE, video_id)]
+        else:
+            self.report_warning(f'Could not extract contentId{bug_reports_message()}')
+            video_id = display_id
+            archive_ids = None
 
         player_data = traverse_obj(
             page_data, ('widgets', lambda _, v: v['type'] in ('player_ondemand', 'player_live'), {dict}), get_all=False)
@@ -420,8 +431,9 @@ class ARDBetaMediathekIE(InfoExtractor):
                 })
 
         age_limit = traverse_obj(page_data, ('fskRating', {lambda x: remove_start(x, 'FSK')}, {int_or_none}))
-        result = {
-            'display_id': video_id,
+        return {
+            'id': video_id,
+            'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
@@ -436,19 +448,8 @@ class ARDBetaMediathekIE(InfoExtractor):
                 'channel': 'clipSourceName',
             })),
             **self._extract_episode_info(page_data.get('title')),
+            '_old_archive_ids': archive_ids,
         }
-
-        # For user convenience we use the old contentId instead of the longer crid
-        # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
-        old_id = traverse_obj(page_data, ('tracking', 'atiCustomVars', 'contentId', {str_or_none}))
-        if old_id:
-            result['id'] = old_id
-            result['_old_archive_ids'] = [make_archive_id(ARDBetaMediathekIE, video_id)]
-        else:
-            self.report_warning(f'Could not extract contentId{bug_reports_message()}')
-            result['id'] = video_id
-
-        return result
 
 
 class ARDMediathekCollectionIE(InfoExtractor):
