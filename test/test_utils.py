@@ -2362,6 +2362,8 @@ Line 1
                 <neighbor name="Colombia" direction="E"/>
             </country>
         </data>''')
+        self.assertEqual(traverse_obj(etree, ''), None,
+                         msg='empty str key should return `None`')
         self.assertEqual(traverse_obj(etree, 'country'), list(etree),
                          msg='str key should lead all children with that tag name')
         self.assertEqual(traverse_obj(etree, ...), list(etree),
@@ -2383,9 +2385,9 @@ Line 1
                          msg='`text()` at end of path should give the inner text')
         self.assertEqual(traverse_obj(etree, '//*[@direction]/@direction'), ['E', 'W', 'N', 'W', 'E'],
                          msg='full python xpath features should be supported')
-        self.assertEqual(traverse_obj(etree, (0, '@name', 0)), 'Liechtenstein',
+        self.assertEqual(traverse_obj(etree, (0, '@name')), 'Liechtenstein',
                          msg='special transformations should act on current element')
-        self.assertEqual(traverse_obj(etree, ('country', 0, ..., 'text()', 0, {int_or_none})), [1, 2008, 141100],
+        self.assertEqual(traverse_obj(etree, ('country', 0, ..., 'text()', {int_or_none})), [1, 2008, 141100],
                          msg='special transformations should act on current element')
 
     def test_http_header_dict(self):

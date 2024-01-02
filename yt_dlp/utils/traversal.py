@@ -189,17 +189,23 @@ def traverse_obj(
             elif xpath and not xpath.startswith('./'):
                 xpath = f'./{xpath}'
 
-            findings = obj.iterfind(xpath) if xpath else [obj]
-            if has_specials:
-                result = [
-                    element.attrib if special == '@'
-                    else try_call(element.attrib.get, args=(special[1:],)) if special.startswith('@')
-                    else element.text if special == 'text()'
-                    else None
-                    for element in findings
-                ]
+            def apply_specials(element):
+                if special == '@':
+                    return element.attrib
+                if special.startswith('@'):
+                    return try_call(element.attrib.get, args=(special[1:],))
+                if special == 'text()':
+                    return element.text
+                return None
+
+            if not xpath:
+                result = apply_specials(obj)
             else:
-                result = list(findings)
+                findings = obj.iterfind(xpath)
+                if has_specials:
+                    result = list(map(apply_specials, findings))
+                else:
+                    result = list(findings)
 
         return branching, result if branching else (result,)
 
