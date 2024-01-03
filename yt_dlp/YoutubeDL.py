@@ -24,7 +24,6 @@ import traceback
 import unicodedata
 
 from .cache import Cache
-
 from .compat import functools, urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
@@ -1756,7 +1755,6 @@ class YoutubeDL:
         for deprecated_field, new_field in deprecated_multivalue_fields.items():
             if deprecated_field not in ie_result:
                 continue
-            self.deprecation_warning(f'"{deprecated_field}" field is deprecated. Use "{new_field}" instead')
             ie_result[new_field] = re.split(r', ?', ie_result[deprecated_field])
 
     def add_default_extra_info(self, ie_result, ie, url):
