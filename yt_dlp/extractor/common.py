@@ -423,7 +423,7 @@ class InfoExtractor:
     track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
                     as a unicode string.
     artists:        List of artists of the track.
-    composers:      List of composers of the piece
+    composers:      List of composers of the piece.
     genres:         List of genres of the track.
     album:          Title of the album the track belongs to.
     album_type:     Type of the album (e.g. "Demo", "Full-length", "Split", "Compilation", etc).

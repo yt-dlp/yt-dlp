@@ -1379,11 +1379,12 @@ Available for the media that is a track or a part of a music album:
  - `track` (string): Title of the track
  - `track_number` (numeric): Number of the track within an album or a disc
  - `track_id` (string): Id of the track
- - `artist` (string): Artist(s) of the track
- - `genre` (string): Genre(s) of the track
+ - `artists` (list): Artist(s) of the track
+ - `composers` (list): Composer(s) of the piece
+ - `genres` (list): Genre(s) of the track
  - `album` (string): Title of the album the track belongs to
  - `album_type` (string): Type of the album
- - `album_artist` (string): List of all artists appeared on the album
+ - `album_artists` (list): List of all artists appeared on the album
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
