@@ -23,7 +23,6 @@ from ..utils import (
     encodeFilename,
     filter_dict,
     float_or_none,
-    is_iterable_like,
     is_outdated_version,
     orderedSet,
     prepend_extension,
@@ -742,9 +741,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 info[key] for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
                 if info.get(key) is not None), None)
             if value not in ('', None):
-                if is_iterable_like(value):
-                    value = ', '.join(value)
-                value = str(value)
+                value = ', '.join(map(str, variadic(value)))
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
                 metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
