@@ -24,6 +24,7 @@ import traceback
 import unicodedata
 
 from .cache import Cache
+
 from .compat import functools, urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
@@ -1735,6 +1736,7 @@ class YoutubeDL:
                 '_type': 'compat_list',
                 'entries': ie_result,
             }
+        self.fix_deprecated_fields(ie_result)
         if extra_info.get('original_url'):
             ie_result.setdefault('original_url', extra_info['original_url'])
         self.add_default_extra_info(ie_result, ie, url)
@@ -1743,6 +1745,19 @@ class YoutubeDL:
             return self.process_ie_result(ie_result, download, extra_info)
         else:
             return ie_result
+
+    def fix_deprecated_fields(self, ie_result):
+        deprecated_multivalue_fields = {
+            'artist': 'artist_list',
+            'composer': 'composer_list',
+            'album_artist': 'album_artist_list',
+            'genre': 'genre_list',
+        }
+        for deprecated_field, new_field in deprecated_multivalue_fields.items():
+            if deprecated_field not in ie_result:
+                continue
+            self.deprecation_warning(f'"{deprecated_field}" field is deprecated. Use "{new_field}" instead')
+            ie_result[new_field] = re.split(r', ?', ie_result[deprecated_field])
 
     def add_default_extra_info(self, ie_result, ie, url):
         if url is not None:
@@ -3918,10 +3933,9 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
+        from .extractor.extractors import \
             _PLUGIN_OVERRIDES as plugin_ie_overrides
-        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))

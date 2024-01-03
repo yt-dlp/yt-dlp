@@ -23,6 +23,7 @@ from ..utils import (
     encodeFilename,
     filter_dict,
     float_or_none,
+    is_iterable_like,
     is_outdated_version,
     orderedSet,
     prepend_extension,
@@ -738,9 +739,12 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
         def add(meta_list, info_list=None):
             value = next((
-                str(info[key]) for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
+                info[key] for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
                 if info.get(key) is not None), None)
             if value not in ('', None):
+                if is_iterable_like(value):
+                    value = ', '.join(value)
+                value = str(value)
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
                 metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
@@ -754,10 +758,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add(('description', 'synopsis'), 'description')
         add(('purl', 'comment'), 'webpage_url')
         add('track', 'track_number')
-        add('artist', ('artist', 'creator', 'uploader', 'uploader_id'))
-        add('genre')
+        add('artist', ('artist_list', 'creator', 'uploader', 'uploader_id'))
+        add('composer', 'composer_list')
+        add('genre', 'genre_list')
         add('album')
-        add('album_artist')
+        add('album_artist', 'album_artist_list')
         add('disc', 'disc_number')
         add('show', 'series')
         add('season_number')
