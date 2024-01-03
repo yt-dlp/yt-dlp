@@ -167,7 +167,7 @@ class ArchiveOrgIE(InfoExtractor):
             'upload_date': '20160610',
             'description': 'md5:f70956a156645a658a0dc9513d9e78b7',
             'uploader': 'dimitrios@archive.org',
-            'creator': ['British Broadcasting Corporation', 'Time-Life Films'],
+            'creator': 'British Broadcasting Corporation, Time-Life Films',
             'timestamp': 1465594947,
         },
         'playlist': [
@@ -257,7 +257,8 @@ class ArchiveOrgIE(InfoExtractor):
             'title': m['title'],
             'description': clean_html(m.get('description')),
             'uploader': dict_get(m, ['uploader', 'adder']),
-            'creator': m.get('creator'),
+            'creator': traverse_obj(m, (
+                'creator', (({list}, {lambda x: join_nonempty(*x, delim=', ')}), {str})), get_all=False) or None,
             'license': m.get('licenseurl'),
             'release_date': unified_strdate(m.get('date')),
             'timestamp': unified_timestamp(dict_get(m, ['publicdate', 'addeddate'])),
@@ -272,7 +273,8 @@ class ArchiveOrgIE(InfoExtractor):
                     'title': f.get('title') or f['name'],
                     'display_id': f['name'],
                     'description': clean_html(f.get('description')),
-                    'creator': f.get('creator'),
+                    'creator': traverse_obj(f, (
+                        'creator', (({list}, {lambda x: join_nonempty(*x, delim=', ')}), {str})), get_all=False) or None,
                     'duration': parse_duration(f.get('length')),
                     'track_number': int_or_none(f.get('track')),
                     'album': f.get('album'),
