@@ -5,7 +5,6 @@ if mutagen:
     from mutagen.easymp4 import EasyMP4
     from mutagen.flac import FLAC
     from mutagen.mp3 import EasyMP3
-    from mutagen.musepack import Musepack
     from mutagen.oggopus import OggOpus
     from mutagen.oggvorbis import OggVorbis
 
@@ -19,7 +18,7 @@ class MutagenMetadataPP(PostProcessor):
         extension = information['ext']
         ret = [], information
         if not mutagen:
-            if extension in ['mp3', 'm4a', 'ogg', 'opus', 'flac', '.mpc']:
+            if extension in ['mp3', 'm4a', 'ogg', 'opus', 'flac']:
                 self.report_warning('module mutagen was not found. Tags with multiple values (e.g. artist, album artist and genre) may be set incorrectly. Please install using `python -m pip install mutagen`')
             return ret
         tag_mapping = {
@@ -28,7 +27,7 @@ class MutagenMetadataPP(PostProcessor):
             'genre': 'genres',
             'composer': 'composers'
         }
-        supported_formats = [EasyMP3, EasyMP4, OggVorbis, OggOpus, FLAC, Musepack]
+        supported_formats = [EasyMP3, EasyMP4, OggVorbis, OggOpus, FLAC]
         file = mutagen.File(information['filepath'], supported_formats)
         if not file:
             return ret
