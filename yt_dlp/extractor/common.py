@@ -422,23 +422,23 @@ class InfoExtractor:
     track_number:   Number of the track within an album or a disc, as an integer.
     track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
                     as a unicode string.
-    artist_list:    List of artists of the track.
-    composer_list:  List of composers of the piece
-    genre_list:     List of genres of the track.
+    artists:        List of artists of the track.
+    composers:      List of composers of the piece
+    genres:         List of genres of the track.
     album:          Title of the album the track belongs to.
     album_type:     Type of the album (e.g. "Demo", "Full-length", "Split", "Compilation", etc).
-    album_artist_list: List of all artists appeared on the album.
+    album_artists:  List of all artists appeared on the album.
                     E.g. ["Ash Borer", "Fell Voices"] or ["Various Artists"].
                     Useful for splits and compilations.
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
-    composer:       Deprecated; use "composer_list" instead.
+    composer:       Deprecated; use "composers" instead.
                     Composer(s) of the piece, comma-separated.
-    artist:         Deprecated; use "artist_list" instead.
+    artist:         Deprecated; use "artists" instead.
                     Artist(s) of the track, comma-separated.
-    genre:          Deprecated; use "genre_list" instead.
+    genre:          Deprecated; use "genres" instead.
                     Genre(s) of the track, comma-separated.
-    album_artist:   Deprecated; use "album_artist_list" instead.
+    album_artist:   Deprecated; use "album_artists" instead.
                     All artists appeared on the album, comma-separated.
 
     The following fields should only be set for clips that should be cut from the original video:

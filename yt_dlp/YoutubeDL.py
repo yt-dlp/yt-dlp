@@ -24,6 +24,7 @@ import traceback
 import unicodedata
 
 from .cache import Cache
+
 from .compat import functools, urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
@@ -1735,7 +1736,6 @@ class YoutubeDL:
                 '_type': 'compat_list',
                 'entries': ie_result,
             }
-        self.fix_deprecated_fields(ie_result)
         if extra_info.get('original_url'):
             ie_result.setdefault('original_url', extra_info['original_url'])
         self.add_default_extra_info(ie_result, ie, url)
@@ -1744,17 +1744,6 @@ class YoutubeDL:
             return self.process_ie_result(ie_result, download, extra_info)
         else:
             return ie_result
-
-    def fix_deprecated_fields(self, ie_result):
-        deprecated_multivalue_fields = {
-            'artist': 'artist_list',
-            'composer': 'composer_list',
-            'album_artist': 'album_artist_list',
-            'genre': 'genre_list',
-        }
-        for deprecated_field, new_field in deprecated_multivalue_fields.items():
-            if ie_result.get(deprecated_field):
-                ie_result[new_field] = re.split(r', ?', ie_result[deprecated_field])
 
     def add_default_extra_info(self, ie_result, ie, url):
         if url is not None:
@@ -2652,6 +2641,16 @@ class YoutubeDL:
         for field in ('chapter', 'season', 'episode'):
             if final and info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
+
+        deprecated_multivalue_fields = {
+            'artist': 'artists',
+            'composer': 'composers',
+            'album_artist': 'album_artists',
+            'genre': 'genres',
+        }
+        for deprecated_field, new_field in deprecated_multivalue_fields.items():
+            if info_dict.get(deprecated_field):
+                info_dict[new_field] = re.split(r', ?', info_dict[deprecated_field])
 
     def _raise_pending_errors(self, info):
         err = info.pop('__pending_error', None)

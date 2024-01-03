@@ -23,10 +23,10 @@ class MutagenMetadataPP(PostProcessor):
                 self.report_warning('module mutagen was not found. Tags with multiple values (e.g. artist, album artist and genre) may be set incorrectly. Please install using `python -m pip install mutagen`')
             return ret
         tag_mapping = {
-            'artist': 'artist_list',
-            'albumartist': 'album_artist_list',
-            'genre': 'genre_list',
-            'composer': 'composer_list'
+            'artist': 'artists',
+            'albumartist': 'album_artists',
+            'genre': 'genres',
+            'composer': 'composers'
         }
         supported_formats = [EasyMP3, EasyMP4, OggVorbis, OggOpus, FLAC, Musepack]
         file = mutagen.File(information['filepath'], supported_formats)
