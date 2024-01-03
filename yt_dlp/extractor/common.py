@@ -427,8 +427,8 @@ class InfoExtractor:
     genre_list:     List of genres of the track.
     album:          Title of the album the track belongs to.
     album_type:     Type of the album (e.g. "Demo", "Full-length", "Split", "Compilation", etc).
-    album_artist_list: List of all artists appeared on the album. E.g.
-                    ["Ash Borer", "Fell Voices"] or ["Various Artists"].
+    album_artist_list: List of all artists appeared on the album.
+                    E.g. ["Ash Borer", "Fell Voices"] or ["Various Artists"].
                     Useful for splits and compilations.
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
