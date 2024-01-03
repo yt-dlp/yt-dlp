@@ -1753,9 +1753,8 @@ class YoutubeDL:
             'genre': 'genre_list',
         }
         for deprecated_field, new_field in deprecated_multivalue_fields.items():
-            if deprecated_field not in ie_result:
-                continue
-            ie_result[new_field] = re.split(r', ?', ie_result[deprecated_field])
+            if ie_result.get(deprecated_field):
+                ie_result[new_field] = re.split(r', ?', ie_result[deprecated_field])
 
     def add_default_extra_info(self, ie_result, ie, url):
         if url is not None:
