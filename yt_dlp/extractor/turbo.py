@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     get_element_html_by_class,
