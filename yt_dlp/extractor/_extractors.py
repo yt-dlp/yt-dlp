@@ -134,8 +134,8 @@ from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
 from .ard import (
     ARDBetaMediathekIE,
+    ARDMediathekCollectionIE,
     ARDIE,
-    ARDMediathekIE,
 )
 from .arte import (
     ArteTVIE,
