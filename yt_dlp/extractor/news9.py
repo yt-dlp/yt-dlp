@@ -56,11 +56,13 @@ class News9IE(InfoExtractor):
     def _real_extract(self, url):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
-        initial_state = self._search_json(r'var\s+__INITIAL_STATE__\s*=', webpage, 'initial state', article_id)
+        initial_state = self._search_json(
+            r'var\s+__INITIAL_STATE__\s*=', webpage, 'initial state', article_id)
         video_id = traverse_obj(
             initial_state, ('videoIndex', 'currentVideo', 'brightcoveId'),
             ('article', ..., 'media', lambda _, v: v['type'] == 'video', 'urn'), get_all=False)
-        account = traverse_obj(initial_state, ('videoIndex', 'config', (None, 'video'), 'account'), get_all=False)
+        account = traverse_obj(initial_state, (
+            'videoIndex', 'config', (None, 'video'), 'account'), get_all=False)
 
         if not video_id or not account:
             raise ExtractorError('Unable to get the required video data')
