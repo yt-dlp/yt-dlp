@@ -3,40 +3,40 @@ from ..utils import parse_iso8601, traverse_obj, try_call
 
 
 class PrankCastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?prankcast\.com/[^/?#]+/showreel/(?P<id>\d+)-(?P<display_id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?prankcast\.com/[^/?#]+/posts/(?P<id>\d+)-(?P<display_id>[^/?#]+)'
     _TESTS = [{
-        'url': 'https://prankcast.com/Devonanustart/showreel/1561-Beverly-is-back-like-a-heart-attack-',
+        'url': 'https://prankcast.com/devonanustart/posts/6214-happy-national-rachel-day-',
         'info_dict': {
-            'id': '1561',
+            'id': '6214',
             'ext': 'mp3',
-            'title': 'Beverly is back like a heart attack!',
-            'display_id': 'Beverly-is-back-like-a-heart-attack-',
-            'timestamp': 1661391575,
+            'title': 'Happy National Rachel Day!',
+            'display_id': 'happy-national-rachel-day-',
+            'timestamp': 1704333938,
             'uploader': 'Devonanustart',
             'channel_id': 4,
-            'duration': 7918,
-            'cast': ['Devonanustart', 'Phonelosers'],
+            'duration': 13175,
+            'cast': ['Devonanustart'],
             'description': '',
-            'categories': ['prank'],
-            'tags': ['prank call', 'prank', 'live show'],
-            'upload_date': '20220825'
+            'categories': ['prank call'],
+            'tags': [''],
+            'upload_date': '20240104'
         }
     }, {
-        'url': 'https://prankcast.com/phonelosers/showreel/2048-NOT-COOL',
+        'url': 'https://prankcast.com/despicabledogs/posts/6217-jake-the-work-crow-',
         'info_dict': {
-            'id': '2048',
+            'id': '6217',
             'ext': 'mp3',
-            'title': 'NOT COOL',
-            'display_id': 'NOT-COOL',
-            'timestamp': 1665028364,
-            'uploader': 'phonelosers',
-            'channel_id': 6,
-            'duration': 4044,
-            'cast': ['phonelosers'],
-            'description': '',
-            'categories': ['prank'],
-            'tags': ['prank call', 'prank', 'live show'],
-            'upload_date': '20221006'
+            'title': 'Jake the Work Crow!',
+            'display_id': 'jake-the-work-crow-',
+            'timestamp': 1704346592,
+            'uploader': 'despicabledogs',
+            'channel_id': 957,
+            'duration': 263,
+            'cast': ['despicabledogs'],
+            'description': 'https://imgur.com/a/vtxLvKU',
+            'categories': [],
+            'tags': [''],
+            'upload_date': '20240104'
         }
     }]
 
@@ -44,23 +44,27 @@ class PrankCastIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
 
         webpage = self._download_webpage(url, video_id)
-        json_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['ssr_data_showreel']
+        json_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['ssr_data_posts']
+        json_post_info = self._parse_json(json_info['post_contents_json'], video_id)[0]
 
         uploader = json_info.get('user_name')
-        guests_json = self._parse_json(json_info.get('guests_json') or '{}', video_id)
-        start_date = parse_iso8601(json_info.get('start_date'))
+        guests_json = self._parse_json(json_post_info.get('guests_json') or '{}', video_id)
+
+        broadcast_id = json_info.get('content_id')
+        live_chat_url = f'https://prankcast.com/api/private/chat/select-broadcast?id={broadcast_id}&cache='
 
         return {
             'id': video_id,
-            'title': json_info.get('broadcast_title') or self._og_search_title(webpage),
+            'title': json_info.get('post_title') or self._og_search_title(webpage),
             'display_id': display_id,
-            'url': f'{json_info["broadcast_url"]}{json_info["recording_hash"]}.mp3',
-            'timestamp': start_date,
+            'url': json_post_info.get('url'),
+            'timestamp': parse_iso8601(json_post_info.get('start_date') or json_post_info.get('crdate'), ' '),
             'uploader': uploader,
             'channel_id': json_info.get('user_id'),
-            'duration': try_call(lambda: parse_iso8601(json_info['end_date']) - start_date),
+            'duration': round(json_post_info.get('duration') or 0),
             'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
-            'description': json_info.get('broadcast_description'),
-            'categories': [json_info.get('broadcast_category')],
-            'tags': try_call(lambda: json_info['broadcast_tags'].split(','))
+            'description': json_info.get('post_body'),
+            'categories': list(filter(None, [json_post_info.get('category')])),
+            'tags': try_call(lambda: json_info['post_tags'].split(',')),
+            'subtitles': {'live_chat': [{'url': live_chat_url}]} if broadcast_id else None
         }
