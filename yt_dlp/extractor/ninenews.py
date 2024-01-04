@@ -4,7 +4,7 @@ from .brightcove import BrightcoveNewIE
 from ..utils import ExtractorError, traverse_obj
 
 
-class News9IE(InfoExtractor):
+class NineNewsIE(InfoExtractor):
     IE_NAME = '9News'
     _VALID_URL = r'https?://(?:www\.)?9news\.com\.au/\w+/(?:\w+/)?[^/]+/(?P<id>[^/]+)(?:$|[?#])'
     _TESTS = [{
