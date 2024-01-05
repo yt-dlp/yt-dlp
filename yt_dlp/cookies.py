@@ -186,7 +186,7 @@ def _firefox_browser_dir():
     if sys.platform in ('cygwin', 'win32'):
         return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
     elif sys.platform == 'darwin':
-        return os.path.expanduser('~/Library/Application Support/Firefox')
+        return os.path.expanduser('~/Library/Application Support/Firefox/Profiles')
     return os.path.expanduser('~/.mozilla/firefox')
 
 

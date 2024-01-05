@@ -536,7 +536,7 @@ class PanoptoListIE(PanoptoBaseIE):
         }
 
         response = self._call_api(
-            base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page+1}',
+            base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page + 1}',
             data={'queryParameters': params}, fatal=False)
 
         for result in get_first(response, 'Results', default=[]):
