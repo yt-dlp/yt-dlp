@@ -4,6 +4,7 @@ from ..utils import (
     url_or_none,
     urlencode_postdata,
     urljoin,
+    int_or_none
 )
 from ..utils.traversal import traverse_obj
 
@@ -35,10 +36,14 @@ class JioSaavnSongIE(JioSaavnBaseIE):
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
-        song_data = self._extract_initial_data(url, audio_id)['song']['song']
         formats = []
         # available bitrates are 16, 32, 64, 128, 320
-        for bitrate in self._configuration_arg('bitrate', ['16', '32', '64', '128', '320'], ie_key='JioSaavn'):
+        extract_bitrates = self._configuration_arg('bitrate', ['16', '32', '64', '128', '320'], ie_key='JioSaavn')
+        if not all(bitrate in ('16', '32', '64', '128', '320') for bitrate in extract_bitrates):
+            raise ValueError(f'Invalid bitrate(s) {extract_bitrates}')
+        song_data = self._extract_initial_data(url, audio_id)['song']['song']
+        formats = []
+        for bitrate in extract_bitrates:
             media_data = self._download_json(
                 'https://www.jiosaavn.com/api.php', audio_id, f'Downloading format info for {bitrate}',
                 fatal=False, data=urlencode_postdata({
@@ -53,18 +58,22 @@ class JioSaavnSongIE(JioSaavnBaseIE):
             formats.append({
                 'url': media_data['auth_url'],
                 'ext': media_data.get('type'),
-                'id': bitrate,
                 'format_id': bitrate,
                 'abr': int(bitrate),
                 'vcodec': 'none',
-                'acodec': media_data.get('type'),
-                **traverse_obj(song_data, {
-                    'title': ('title', 'text'),
-                    'album': ('album', 'text'),
-                    'thumbnail': ('image', 0, {url_or_none}),
-                }),
             })
-        return self.playlist_result(formats)
+        return {
+            'id': audio_id,
+            'formats': formats,
+            **traverse_obj(song_data, {
+                'title': ('title', 'text'),
+                'album': ('album', 'text'),
+                'thumbnail': ('image', 0, {url_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'view_count': ('play_count', {int_or_none}),
+                'release_year': ('year', {int_or_none}),
+            }),
+        }
 
 
 class JioSaavnAlbumIE(JioSaavnBaseIE):
