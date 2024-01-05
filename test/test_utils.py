@@ -2368,7 +2368,7 @@ Line 1
                          msg='str key should lead all children with that tag name')
         self.assertEqual(traverse_obj(etree, ...), list(etree),
                          msg='`...` as key should return all children')
-        self.assertEqual(traverse_obj(etree, lambda _, x: x[0].text == "4"), [etree[1]],
+        self.assertEqual(traverse_obj(etree, lambda _, x: x[0].text == '4'), [etree[1]],
                          msg='function as key should get element as value')
         self.assertEqual(traverse_obj(etree, lambda i, _: i == 1), [etree[1]],
                          msg='function as key should get index as key')
