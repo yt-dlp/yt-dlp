@@ -371,7 +371,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         old_id = traverse_obj(page_data, ('tracking', 'atiCustomVars', 'contentId', {str_or_none}))
         if old_id:
             video_id = old_id
-            archive_ids = [make_archive_id(ARDBetaMediathekIE, video_id)]
+            archive_ids = [make_archive_id(ARDBetaMediathekIE, display_id)]
         else:
             self.report_warning(f'Could not extract contentId{bug_reports_message()}')
             video_id = display_id
