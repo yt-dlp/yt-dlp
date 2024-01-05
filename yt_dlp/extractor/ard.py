@@ -368,9 +368,9 @@ class ARDBetaMediathekIE(InfoExtractor):
 
         # For user convenience we use the old contentId instead of the longer crid
         # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
-        old_id = traverse_obj(page_data, ('tracking', 'atiCustomVars', 'contentId', {str_or_none}))
-        if old_id:
-            video_id = old_id
+        old_id = traverse_obj(page_data, ('tracking', 'atiCustomVars', 'contentId', {int}))
+        if old_id is not None:
+            video_id = str(old_id)
             archive_ids = [make_archive_id(ARDBetaMediathekIE, display_id)]
         else:
             self.report_warning(f'Could not extract contentId{bug_reports_message()}')
