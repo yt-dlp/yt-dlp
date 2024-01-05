@@ -7,8 +7,6 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
-    str_or_none,
-    strip_or_none,
     traverse_obj,
     try_get,
     unified_timestamp,
@@ -388,14 +386,36 @@ class SVTSeriesIE(SVTPlayBaseIE):
             dict_get(series, ('longDescription', 'shortDescription')))
 
 
-class SVTPageIE(InfoExtractor):
+class SVTPageIE(SVTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?svt\.se/(?P<path>(?:[^/]+/)*(?P<id>[^/?&#]+))'
     _TESTS = [{
+        'url': 'https://www.svt.se/nyheter/lokalt/skane/viktor-18-forlorade-armar-och-ben-i-sepsis-vill-ateruppta-karaten-och-bli-svetsare',
+        'info_dict': {
+            'title': 'Viktor, 18, förlorade armar och ben i sepsis – vill återuppta karaten och bli svetsare',
+            'id': 'viktor-18-forlorade-armar-och-ben-i-sepsis-vill-ateruppta-karaten-och-bli-svetsare',
+        },
+        'playlist_count': 2,
+    }, {
+        'url': 'https://www.svt.se/nyheter/lokalt/skane/forsvarsmakten-om-trafikkaoset-pa-e22-kunde-inte-varit-dar-snabbare',
+        'info_dict': {
+            'id': 'forsvarsmakten-om-trafikkaoset-pa-e22-kunde-inte-varit-dar-snabbare',
+            'title': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
+        },
+        'playlist_count': 1,
+    }, {
+        'url': 'https://www.svt.se/nyheter/svtforum/2023-tungt-ar-for-svensk-media',
+        'info_dict': {
+            'title': '2023 tungt år för svensk media',
+            'id': '2023-tungt-ar-for-svensk-media',
+        },
+        'playlist_count': 1,
+    }, {
         'url': 'https://www.svt.se/sport/ishockey/bakom-masken-lehners-kamp-mot-mental-ohalsa',
         'info_dict': {
             'id': '25298267',
             'title': 'Bakom masken – Lehners kamp mot mental ohälsa',
         },
+        'only_matching': True,
         'playlist_count': 4,
     }, {
         'url': 'https://www.svt.se/nyheter/utrikes/svenska-andrea-ar-en-mil-fran-branderna-i-kalifornien',
@@ -403,6 +423,7 @@ class SVTPageIE(InfoExtractor):
             'id': '24243746',
             'title': 'Svenska Andrea redo att fly sitt hem i Kalifornien',
         },
+        'only_matching': True,
         'playlist_count': 2,
     }, {
         # only programTitle
@@ -414,6 +435,7 @@ class SVTPageIE(InfoExtractor):
             'duration': 27,
             'age_limit': 0,
         },
+        'only_matching': True,
     }, {
         'url': 'https://www.svt.se/nyheter/lokalt/vast/svt-testar-tar-nagon-upp-skrapet-1',
         'only_matching': True,
@@ -429,24 +451,27 @@ class SVTPageIE(InfoExtractor):
     def _real_extract(self, url):
         path, display_id = self._match_valid_url(url).groups()
 
-        article = self._download_json(
-            'https://api.svt.se/nss-api/page/' + path, display_id,
-            query={'q': 'articles'})['articles']['content'][0]
-
+        webpage = self._download_webpage(url, display_id)
+        title = self._og_search_title(webpage)
         entries = []
 
-        def _process_content(content):
-            if content.get('_type') in ('VIDEOCLIP', 'VIDEOEPISODE'):
-                video_id = compat_str(content['image']['svtId'])
-                entries.append(self.url_result(
-                    'svt:' + video_id, SVTPlayIE.ie_key(), video_id))
+        urqlJson = self._search_json(r'window\.svt\.nyh\.urqlState[^{]+', webpage, 'video_id', display_id, default=None)
 
-        for media in article.get('media', []):
-            _process_content(media)
+        data = self._parse_json(traverse_obj(urqlJson, (..., 'data'), default=None, get_all=False), display_id)
+        video_ids = []
+        video_ids.append(traverse_obj(data, ('page', 'topMedia', 'svtId'), default=''))
+        video_ids.extend(traverse_obj(data, ('page', 'body', ..., 'video', 'svtId'), get_all=True, default=[]))
 
-        for obj in article.get('structuredBody', []):
-            _process_content(obj.get('content') or {})
+        for video_id in video_ids:
+            if not video_id or len(video_id) == 0:
+                continue
 
-        return self.playlist_result(
-            entries, str_or_none(article.get('id')),
-            strip_or_none(article.get('title')))
+            video_info = self._download_json('https://api.svt.se/video/' + video_id, video_id)
+
+            info_dict = self._extract_video(video_info, video_id)
+            info_dict.update({
+                'title': title
+            })
+            entries.append(info_dict)
+
+        return self.playlist_result(entries, display_id, title)
