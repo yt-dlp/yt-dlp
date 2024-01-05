@@ -1,12 +1,15 @@
-from time import time
+import re
+import time
+
+from datetime import datetime
 from .common import InfoExtractor
 from ..cookies import LenientSimpleCookie
-from ..utils import urlencode_postdata, ExtractorError, RegexNotFoundError
+from ..utils import urlencode_postdata, ExtractorError
 
 
 class AcademyMelIE(InfoExtractor):
     _TEST_EMAIL = 'meriat@jaga.email'  # use this as username in the test/local_parameters.json if running the test
-    _TEST_PASSWORD = 'bBY-ccbp$8'      # use this as password in the test/local_parameters.json if running the test
+    _TEST_PASSWORD = 'bBY-ccbp$8'  # use this as password in the test/local_parameters.json if running the test
 
     _CACHE_KEY = 'academymel'
     _CACHE_SUBKEY = 'login-cookie-header'
@@ -43,7 +46,7 @@ class AcademyMelIE(InfoExtractor):
             'params[object_id]': -1,
             'params[email]': username,
             'params[password]': password,
-            'requestTime': int(time())
+            'requestTime': int(time.time())
         })
 
         try:
@@ -62,6 +65,16 @@ class AcademyMelIE(InfoExtractor):
         set_cookie_header = LenientSimpleCookie(cookie_header)
         set_cookie_header.load(cookie_header)
         self.cache.store(self._CACHE_KEY, self._CACHE_SUBKEY, set_cookie_header)
+
+    def playlist_from_entries(self, entries, valid_url):
+        current_timestamp = int(time.time())
+        current_datetime = datetime.fromtimestamp(current_timestamp)
+        formatted_datetime = current_datetime.strftime("%d.%m.%Y, %H:%M")
+
+        return self.playlist_result(entries,
+                                    'academymel-playlist-%d' % current_timestamp,
+                                    'AcademyMel playlist (%s)' % formatted_datetime,
+                                    'AcademyMel playlist for %s (at %s)' % (valid_url, formatted_datetime))
 
     def _real_extract(self, url):
         valid_url = self._match_valid_url(url)
@@ -84,14 +97,11 @@ class AcademyMelIE(InfoExtractor):
         except ExtractorError:
             raise ExtractorError('Could not download the video website at "%s"' % url, expected=True)
 
-        try:
-            video_url = self._search_regex(
-                r'<iframe[^>]+src=\"(?P<url>https?:\/\/[^\/]+\.getcourse\.ru\/sign-player\/\?.*)\"', webpage,
-                'url',
-                fatal=True)
-        except RegexNotFoundError:
-            raise ExtractorError('Could not extract a GetCourse.ru video URL', expected=True)
+        entries = []
+        for video_url in re.findall(
+            r'<iframe[^>]+src=\"(?P<url>https?://[^/]+\.getcourse\.ru/sign-player/\?.*)\"',
+                webpage):
+            self.to_screen('AcademyMel video URL found: %s' % video_url)
+            entries.append(self.url_result(video_url, 'GetCourseRu'))
 
-        self.to_screen('AcademyMel video URL found: %s' % video_url)
-
-        return self.url_result(video_url, 'GetCourseRu')
+        return self.playlist_from_entries(entries, valid_url)
