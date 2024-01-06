@@ -38,7 +38,7 @@ class Rule34VideoIE(InfoExtractor):
                 'uploader': 'Sweet HMV',
                 'uploader_url': 'https://rule34video.com/members/22119/',
                 'categories': ['3D', 'MMD', 'iwara'],
-                'tags': 'count:14'
+                'tags': 'mincount:10'
             }
         },
         {
@@ -58,7 +58,7 @@ class Rule34VideoIE(InfoExtractor):
                 'uploader': 'CerZule',
                 'uploader_url': 'https://rule34video.com/members/36281/',
                 'categories': ['3D', 'Tomb Raider'],
-                'tags': 'count:50'
+                'tags': 'mincount:40'
             }
         },
     ]
