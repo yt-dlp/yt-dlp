@@ -5,7 +5,6 @@ from ..utils import (
     extract_attributes,
     get_element_by_attribute,
     get_element_by_class,
-    get_element_by_id,
     get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
@@ -52,6 +51,7 @@ class Rule34VideoIE(InfoExtractor):
                 'age_limit': 18,
                 'like_count': int,
                 'comment_count': int,
+                'description': '',
                 'creator': 'WildeerStudio',
                 'uploader': 'CerZule',
                 'uploader_url': 'https://rule34video.com/members/36281/',
@@ -75,21 +75,15 @@ class Rule34VideoIE(InfoExtractor):
                 'quality': quality,
             })
 
+        json_ld = self._search_json_ld(webpage, video_id, default={})
+
         title = self._html_extract_title(webpage)
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
         like_count = str_to_int(remove_end(get_element_by_class('voters count', webpage), ' likes'))
         comment_count = int_or_none(self._search_regex(r'[^(]+\((\d+)\)', get_element_by_attribute(
             'href', '#tab_comments', webpage), 'comment count', fatal=False))
-
-        description = None
-        video_info_element = get_element_by_id('tab_video_info', webpage)
-        info_labels = get_elements_by_class('label', video_info_element)
-        for label in info_labels:
-            label_clean = label.strip(' \n\t')
-            if label_clean.startswith('Description:'):
-                description = clean_html(label_clean[len('Description:'):])
-                break
+        description = json_ld.get('description')
 
         categories = None
         creator = None
