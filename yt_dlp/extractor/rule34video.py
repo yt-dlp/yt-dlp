@@ -34,7 +34,9 @@ class Rule34VideoIE(InfoExtractor):
                 'age_limit': 18,
                 'like_count': int,
                 'comment_count': int,
+                'timestamp': 1639872000,
                 'description': 'https://discord.gg/aBqPrHSHvv',
+                'upload_date': '20211219',
                 'uploader': 'Sweet HMV',
                 'uploader_url': 'https://rule34video.com/members/22119/',
                 'categories': ['3D', 'MMD', 'iwara'],
@@ -53,8 +55,10 @@ class Rule34VideoIE(InfoExtractor):
                 'age_limit': 18,
                 'like_count': int,
                 'comment_count': int,
+                'timestamp': 1640131200,
                 'description': '',
                 'creator': 'WildeerStudio',
+                'upload_date': '20211222',
                 'uploader': 'CerZule',
                 'uploader_url': 'https://rule34video.com/members/36281/',
                 'categories': ['3D', 'Tomb Raider'],
@@ -86,6 +90,7 @@ class Rule34VideoIE(InfoExtractor):
         like_count = str_to_int(remove_end(get_element_by_class('voters count', webpage), ' likes')) or json_ld.get('like_count')
         comment_count = int_or_none(self._search_regex(r'[^(]+\((\d+)\)', get_element_by_attribute(
             'href', '#tab_comments', webpage), 'comment count', fatal=False))
+        timestamp = json_ld.get('timestamp')
         description = json_ld.get('description')
 
         categories = None
@@ -110,6 +115,7 @@ class Rule34VideoIE(InfoExtractor):
             'age_limit': 18,
             'like_count': like_count,
             'comment_count': comment_count,
+            'timestamp': timestamp,
             'description': description,
             'creator': creator,
             'uploader': uploader,
