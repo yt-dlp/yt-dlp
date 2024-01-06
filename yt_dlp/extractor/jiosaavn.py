@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
     js_to_json,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    int_or_none
 )
 from ..utils.traversal import traverse_obj
 
@@ -37,10 +37,11 @@ class JioSaavnSongIE(JioSaavnBaseIE):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
         formats = []
-        # available bitrates are 16, 32, 64, 128, 320
-        extract_bitrates = self._configuration_arg('bitrate', ['16', '32', '64', '128', '320'], ie_key='JioSaavn')
+
+        extract_bitrates = self._configuration_arg('bitrate', ['128', '320'], ie_key='JioSaavn')
         if not all(bitrate in ('16', '32', '64', '128', '320') for bitrate in extract_bitrates):
             raise ValueError(f'Invalid bitrate(s) {extract_bitrates}')
+
         song_data = self._extract_initial_data(url, audio_id)['song']['song']
         formats = []
         for bitrate in extract_bitrates:
