@@ -12,7 +12,9 @@ from ..utils import (
     parse_duration,
     remove_end,
     str_to_int,
+    traverse_obj,
     unescapeHTML,
+    url_or_none,
 )
 from .common import InfoExtractor
 
@@ -77,10 +79,11 @@ class Rule34VideoIE(InfoExtractor):
 
         json_ld = self._search_json_ld(webpage, video_id, default={})
 
-        title = self._html_extract_title(webpage)
-        thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
-        duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
-        like_count = str_to_int(remove_end(get_element_by_class('voters count', webpage), ' likes'))
+        title = self._html_extract_title(webpage) or json_ld.get('title')
+        thumbnail = (self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
+                     or traverse_obj(json_ld.get('thumbnails'), (0, 'url'), expected_type=url_or_none))
+        duration = parse_duration(self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)) or json_ld.get('duration')
+        like_count = str_to_int(remove_end(get_element_by_class('voters count', webpage), ' likes')) or json_ld.get('like_count')
         comment_count = int_or_none(self._search_regex(r'[^(]+\((\d+)\)', get_element_by_attribute(
             'href', '#tab_comments', webpage), 'comment count', fatal=False))
         description = json_ld.get('description')
@@ -103,7 +106,7 @@ class Rule34VideoIE(InfoExtractor):
             'formats': formats,
             'title': title,
             'thumbnail': thumbnail,
-            'duration': parse_duration(duration),
+            'duration': duration,
             'age_limit': 18,
             'like_count': like_count,
             'comment_count': comment_count,
