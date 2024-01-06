@@ -32,6 +32,7 @@ class Rule34VideoIE(InfoExtractor):
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065157/preview.jpg',
                 'duration': 347.0,
                 'age_limit': 18,
+                'view_count': int,
                 'like_count': int,
                 'comment_count': int,
                 'timestamp': 1639872000,
@@ -53,6 +54,7 @@ class Rule34VideoIE(InfoExtractor):
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'duration': 938.0,
                 'age_limit': 18,
+                'view_count': int,
                 'like_count': int,
                 'comment_count': int,
                 'timestamp': 1640131200,
@@ -87,6 +89,7 @@ class Rule34VideoIE(InfoExtractor):
         thumbnail = (self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
                      or traverse_obj(json_ld.get('thumbnails'), (0, 'url'), expected_type=url_or_none))
         duration = parse_duration(self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)) or json_ld.get('duration')
+        view_count = int_or_none(self._html_search_regex(r'"icon-eye"></i>\s+<span>([ \d]+)', webpage, 'views', default='').replace(' ', '')) or json_ld.get('view_count')
         like_count = str_to_int(remove_end(get_element_by_class('voters count', webpage), ' likes')) or json_ld.get('like_count')
         comment_count = int_or_none(self._search_regex(r'[^(]+\((\d+)\)', get_element_by_attribute(
             'href', '#tab_comments', webpage), 'comment count', fatal=False))
@@ -113,6 +116,7 @@ class Rule34VideoIE(InfoExtractor):
             'thumbnail': thumbnail,
             'duration': duration,
             'age_limit': 18,
+            'view_count': view_count,
             'like_count': like_count,
             'comment_count': comment_count,
             'timestamp': timestamp,
