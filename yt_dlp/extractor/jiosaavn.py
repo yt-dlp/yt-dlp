@@ -39,7 +39,6 @@ class JioSaavnSongIE(JioSaavnBaseIE):
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
-        formats = []
 
         extract_bitrates = self._configuration_arg('bitrate', ['128', '320'], ie_key='JioSaavn')
         if not all(bitrate in ('16', '32', '64', '128', '320') for bitrate in extract_bitrates):
