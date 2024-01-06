@@ -21,13 +21,16 @@ class JioSaavnSongIE(JioSaavnBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?:jiosaavn\.com/song/[^/?#]+/|saavn\.com/s/song/(?:[^/?#]+/){3})(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.jiosaavn.com/song/leja-re/OQsEfQFVUXk',
-        'md5': '7b1f70de088ede3a152ea34aece4df42',
+        'md5': '3b84396d15ed9e083c3106f1fa589c04',
         'info_dict': {
             'id': 'OQsEfQFVUXk',
-            'ext': 'mp3',
+            'ext': 'mp4',
             'title': 'Leja Re',
             'album': 'Leja Re',
             'thumbnail': 'https://c.saavncdn.com/258/Leja-Re-Hindi-2018-20181124024539-500x500.jpg',
+            'duration': 205,
+            'view_count': int,
+            'release_year': 2018,
         },
     }, {
         'url': 'https://www.saavn.com/s/song/hindi/Saathiya/O-Humdum-Suniyo-Re/KAMiazoCblU',
