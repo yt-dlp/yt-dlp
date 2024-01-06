@@ -4,6 +4,7 @@ from functools import partial
 from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
+    bug_reports_message,
     determine_ext,
     int_or_none,
     join_nonempty,
@@ -233,7 +234,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:[^/]+/)?
         (?:player|live|video)/
-        (?:(?P<display_id>[^?#]+)/)?
+        (?:[^?#]+/)?
         (?P<id>[a-zA-Z0-9]+)
         /?(?:[?#]|$)'''
     _GEO_COUNTRIES = ['DE']
@@ -242,8 +243,8 @@ class ARDBetaMediathekIE(InfoExtractor):
         'url': 'https://www.ardmediathek.de/video/filme-im-mdr/liebe-auf-vier-pfoten/mdr-fernsehen/Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC80MjIwOTEtNDAyNTM0',
         'md5': 'b6e8ab03f2bcc6e1f9e6cef25fcc03c4',
         'info_dict': {
-            'display_id': 'filme-im-mdr/liebe-auf-vier-pfoten/mdr-fernsehen',
-            'id': 'Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC80MjIwOTEtNDAyNTM0',
+            'display_id': 'Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC80MjIwOTEtNDAyNTM0',
+            'id': '12939099',
             'title': 'Liebe auf vier Pfoten',
             'description': r're:^Claudia Schmitt, Anwältin in Salzburg',
             'duration': 5222,
@@ -255,7 +256,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             'series': 'Filme im MDR',
             'age_limit': 0,
             'channel': 'MDR',
-            '_old_archive_ids': ['ardbetamediathek 12939099'],
+            '_old_archive_ids': ['ardbetamediathek Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC80MjIwOTEtNDAyNTM0'],
         },
     }, {
         'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
@@ -276,37 +277,37 @@ class ARDBetaMediathekIE(InfoExtractor):
         'url': 'https://www.ardmediathek.de/video/tagesschau-oder-tagesschau-20-00-uhr/das-erste/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhZ2Vzc2NoYXUvZmM4ZDUxMjgtOTE0ZC00Y2MzLTgzNzAtNDZkNGNiZWJkOTll',
         'md5': '1e73ded21cb79bac065117e80c81dc88',
         'info_dict': {
-            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhZ2Vzc2NoYXUvZmM4ZDUxMjgtOTE0ZC00Y2MzLTgzNzAtNDZkNGNiZWJkOTll',
+            'id': '10049223',
             'ext': 'mp4',
             'title': 'tagesschau, 20:00 Uhr',
             'timestamp': 1636398000,
             'description': 'md5:39578c7b96c9fe50afdf5674ad985e6b',
             'upload_date': '20211108',
-            'display_id': 'tagesschau-oder-tagesschau-20-00-uhr/das-erste',
+            'display_id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhZ2Vzc2NoYXUvZmM4ZDUxMjgtOTE0ZC00Y2MzLTgzNzAtNDZkNGNiZWJkOTll',
             'duration': 915,
             'episode': 'tagesschau, 20:00 Uhr',
             'series': 'tagesschau',
             'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:fbb21142783b0a49?w=960&ch=ee69108ae344f678',
             'channel': 'ARD-Aktuell',
-            '_old_archive_ids': ['ardbetamediathek 10049223'],
+            '_old_archive_ids': ['ardbetamediathek Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhZ2Vzc2NoYXUvZmM4ZDUxMjgtOTE0ZC00Y2MzLTgzNzAtNDZkNGNiZWJkOTll'],
         },
     }, {
         'url': 'https://www.ardmediathek.de/video/7-tage/7-tage-unter-harten-jungs/hr-fernsehen/N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
         'md5': 'c428b9effff18ff624d4f903bda26315',
         'info_dict': {
-            'id': 'N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
+            'id': '94834686',
             'ext': 'mp4',
             'duration': 2700,
             'episode': '7 Tage ... unter harten Jungs',
             'description': 'md5:0f215470dcd2b02f59f4bd10c963f072',
             'upload_date': '20231005',
             'timestamp': 1696491171,
-            'display_id': '7-tage/7-tage-unter-harten-jungs/hr-fernsehen',
+            'display_id': 'N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3',
             'series': '7 Tage ...',
             'channel': 'HR',
             'thumbnail': 'https://api.ardmediathek.de/image-service/images/urn:ard:image:f6e6d5ffac41925c?w=960&ch=fa32ba69bc87989a',
             'title': '7 Tage ... unter harten Jungs',
-            '_old_archive_ids': ['ardbetamediathek 94834686'],
+            '_old_archive_ids': ['ardbetamediathek N2I2YmM5MzgtNWFlOS00ZGFlLTg2NzMtYzNjM2JlNjk4MDg3'],
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -357,13 +358,24 @@ class ARDBetaMediathekIE(InfoExtractor):
         }), get_all=False)
 
     def _real_extract(self, url):
-        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
+        display_id = self._match_id(url)
 
         page_data = self._download_json(
-            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{video_id}', video_id, query={
+            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
                 'embedded': 'false',
                 'mcV6': 'true',
             })
+
+        # For user convenience we use the old contentId instead of the longer crid
+        # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
+        old_id = traverse_obj(page_data, ('tracking', 'atiCustomVars', 'contentId', {int}))
+        if old_id is not None:
+            video_id = str(old_id)
+            archive_ids = [make_archive_id(ARDBetaMediathekIE, display_id)]
+        else:
+            self.report_warning(f'Could not extract contentId{bug_reports_message()}')
+            video_id = display_id
+            archive_ids = None
 
         player_data = traverse_obj(
             page_data, ('widgets', lambda _, v: v['type'] in ('player_ondemand', 'player_live'), {dict}), get_all=False)
@@ -419,8 +431,6 @@ class ARDBetaMediathekIE(InfoExtractor):
                 })
 
         age_limit = traverse_obj(page_data, ('fskRating', {lambda x: remove_start(x, 'FSK')}, {int_or_none}))
-        old_id = traverse_obj(page_data, ('tracking', 'atiCustomVars', 'contentId'))
-
         return {
             'id': video_id,
             'display_id': display_id,
@@ -438,7 +448,7 @@ class ARDBetaMediathekIE(InfoExtractor):
                 'channel': 'clipSourceName',
             })),
             **self._extract_episode_info(page_data.get('title')),
-            '_old_archive_ids': [make_archive_id(ARDBetaMediathekIE, old_id)],
+            '_old_archive_ids': archive_ids,
         }
 
 
