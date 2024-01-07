@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import inspect
 from collections.abc import MutableMapping
 
 from ..utils import try_call
@@ -112,15 +111,18 @@ def lazy_ie(klass: type[InfoExtractor] | None = None, /):
         _old_extract = _default_lazy_extract
 
     lazy_members = {}
-    for _, member in inspect.getmembers(klass):
-        fields = getattr(member, lazy_fields._field_name, None)
+    for name in dir(klass):
+        if not name.startswith("_"):
+            continue
+        func = getattr(klass, name)
+        fields = getattr(func, lazy_fields._field_name, None)
         if not isinstance(fields, tuple):
             continue
 
         for field in fields:
-            lazy_members[field] = member
+            lazy_members[field] = func
 
-    @functools.wraps(_old_extract)
+    @functools.wraps(klass._real_extract)
     def _real_extract(self, url):
         result = _old_extract(self, url)
         assert isinstance(result, dict), 'Lazy extractors need to return a dict'
