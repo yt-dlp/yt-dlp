@@ -39,13 +39,15 @@ class JupiterIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': traverse_obj(data, ('mainContent', 'subHeading')),
-            'description': traverse_obj(data, ('mainContent', 'lead')),
             'formats': formats,
             'subtitles': subtitles,
-            'timestamp': traverse_obj(data, ('mainContent', 'scheduleStart')),
-            'series': traverse_obj(data, ('mainContent', 'heading')),
-            'season_number': int_or_none(traverse_obj(data, ('mainContent', 'season'))),
-            'episode': traverse_obj(data, ('mainContent', 'subHeading')),
-            'episode_number': int_or_none(traverse_obj(data, ('mainContent', 'episode'))),
+            **traverse_obj(data, {
+                'title': ('mainContent', 'subHeading'),
+                'description': ('mainContent', 'lead'),
+                'timestamp': ('mainContent', 'scheduleStart'),
+                'series': ('mainContent', 'heading'),
+                'episode': ('mainContent', 'subHeading'),
+                'season_number': ('mainContent', 'season', {int_or_none}),
+                'episode_number': ('mainContent', 'episode', {int_or_none}),
+            }),
         }
