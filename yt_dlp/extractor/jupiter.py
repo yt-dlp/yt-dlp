@@ -29,10 +29,10 @@ class JupiterIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         content_url = f"https://services.err.ee/api/v2/vodContent/getContentPageData?contentId={video_id}"
-        data = traverse_obj(self._download_json(content_url, video_id), 'data')
+        data = traverse_obj(self._download_json(content_url, video_id), ('data', 'mainContent'))
 
         formats, subtitles = [], {}
-        for url in traverse_obj(data, ('mainContent', 'medias', ..., 'src', 'hls')):
+        for url in traverse_obj(data, ('medias', ..., 'src', 'hls')):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
@@ -42,14 +42,14 @@ class JupiterIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(data, {
-                'title': ('mainContent', 'subHeading'),
-                'description': ('mainContent', 'lead'),
-                'timestamp': ('mainContent', 'scheduleStart'),
-                'series': ('mainContent', 'heading'),
-                'series_id': ('mainContent', 'rootContentId', {int_or_none}),
-                'episode': ('mainContent', 'subHeading'),
-                'season_number': ('mainContent', 'season', {int_or_none}),
-                'episode_number': ('mainContent', 'episode', {int_or_none}),
-                'episode_id': ('mainContent', 'id', {int_or_none}),
+                'title': 'subHeading',
+                'description': 'lead',
+                'timestamp': 'scheduleStart',
+                'series': 'heading',
+                'series_id': ('rootContentId', {int_or_none}),
+                'episode': 'subHeading',
+                'season_number': ('season', {int_or_none}),
+                'episode_number': ('episode', {int_or_none}),
+                'episode_id': ('id', {int_or_none}),
             }),
         }
