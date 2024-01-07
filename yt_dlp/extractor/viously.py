@@ -8,7 +8,7 @@ from ..utils import (
 class ViouslyIE(InfoExtractor):
     _VALID_URL = False
     _API_URL = 'https://www.viously.com/video/hls/{0:}/index.m3u8'
-    _TEST = {
+    _WEBPAGE_TESTS = [{
         'url': 'http://www.turbo.fr/videos-voiture/454443-turbo-du-07-09-2014-renault-twingo-3-bentley-continental-gt-speed-ces-guide-achat-dacia.html',
         'md5': '37a6c3381599381ff53a7e1e0575c0bc',
         'info_dict': {
@@ -20,7 +20,7 @@ class ViouslyIE(InfoExtractor):
             'upload_date': str,
             'timestamp': float,
         }
-    }
+    }]
 
     def _extract_from_webpage(self, url, webpage):
         has_vously_player = get_element_html_by_class('viously-player', webpage) or get_element_html_by_class('vsly-player', webpage)
