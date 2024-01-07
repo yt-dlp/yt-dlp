@@ -44,6 +44,7 @@ class JupiterIE(InfoExtractor):
             **traverse_obj(data, {
                 'title': 'subHeading',
                 'description': 'lead',
+                'release_year': ('year', {int_or_none}),
                 'timestamp': 'scheduleStart',
                 'series': 'heading',
                 'series_id': ('rootContentId', {int_or_none}),
