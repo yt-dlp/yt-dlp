@@ -30,15 +30,19 @@ class JupiterIE(InfoExtractor):
         video_id = self._match_id(url)
         content_url = f"https://services.err.ee/api/v2/vodContent/getContentPageData?contentId={video_id}"
         data = traverse_obj(self._download_json(content_url, video_id), 'data')
-        formats = []
+
+        formats, subtitles = [], {}
         for url in traverse_obj(data, ('mainContent', 'medias', ..., 'src', 'hls')):
-            formats.extend(self._extract_m3u8_formats(url, video_id, 'mp4'))
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
 
         return {
             'id': video_id,
             'title': traverse_obj(data, ('mainContent', 'subHeading')),
             'description': traverse_obj(data, ('mainContent', 'lead')),
             'formats': formats,
+            'subtitles': subtitles,
             'timestamp': traverse_obj(data, ('mainContent', 'scheduleStart')),
             'series': traverse_obj(data, ('mainContent', 'heading')),
             'season_number': int_or_none(traverse_obj(data, ('mainContent', 'season'))),
