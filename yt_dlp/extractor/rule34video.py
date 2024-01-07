@@ -1,5 +1,6 @@
 import re
 
+from .common import InfoExtractor
 from ..utils import (
     clean_html,
     extract_attributes,
@@ -12,11 +13,9 @@ from ..utils import (
     parse_duration,
     remove_end,
     str_to_int,
-    traverse_obj,
     unescapeHTML,
-    url_or_none,
 )
-from .common import InfoExtractor
+from ..utils.traversal import traverse_obj
 
 
 class Rule34VideoIE(InfoExtractor):
@@ -83,19 +82,6 @@ class Rule34VideoIE(InfoExtractor):
                 'quality': quality,
             })
 
-        json_ld = self._search_json_ld(webpage, video_id, default={})
-
-        title = self._html_extract_title(webpage) or json_ld.get('title')
-        thumbnail = (self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
-                     or traverse_obj(json_ld.get('thumbnails'), (0, 'url'), expected_type=url_or_none))
-        duration = parse_duration(self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)) or json_ld.get('duration')
-        view_count = int_or_none(self._html_search_regex(r'"icon-eye"></i>\s+<span>([ \d]+)', webpage, 'views', default='').replace(' ', '')) or json_ld.get('view_count')
-        like_count = str_to_int(remove_end(get_element_by_class('voters count', webpage), ' likes')) or json_ld.get('like_count')
-        comment_count = int_or_none(self._search_regex(r'[^(]+\((\d+)\)', get_element_by_attribute(
-            'href', '#tab_comments', webpage), 'comment count', fatal=False))
-        timestamp = json_ld.get('timestamp')
-        description = json_ld.get('description')
-
         categories = None
         creator = None
         uploader, uploader_url = None, None
@@ -109,18 +95,32 @@ class Rule34VideoIE(InfoExtractor):
                 uploader = clean_html(get_element_by_class('name', col))
                 uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
 
+        json_ld = self._search_json_ld(webpage, video_id, default={})
+
         return {
+            **traverse_obj(json_ld, ({
+                'title': 'title',
+                'view_count': 'view_count',
+                'like_count': 'like_count',
+                'duration': 'duration',
+                'timestamp': 'timestamp',
+                'description': 'description',
+                'thumbnail': ('thumbnails', 0, 'url'),
+            })),
             'id': video_id,
             'formats': formats,
-            'title': title,
-            'thumbnail': thumbnail,
-            'duration': duration,
+            'title': self._html_extract_title(webpage),
+            'thumbnail': self._html_search_regex(
+                r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None),
+            'duration': parse_duration(self._html_search_regex(
+                r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)),
+            'view_count': int_or_none(self._html_search_regex(
+                r'"icon-eye"></i>\s+<span>([ \d]+)', webpage, 'views', default='').replace(' ', '')),
+            'like_count': str_to_int(remove_end(
+                get_element_by_class('voters count', webpage), ' likes')),
+            'comment_count': int_or_none(self._search_regex(
+                r'[^(]+\((\d+)\)', get_element_by_attribute('href', '#tab_comments', webpage), 'comment count', fatal=False)),
             'age_limit': 18,
-            'view_count': view_count,
-            'like_count': like_count,
-            'comment_count': comment_count,
-            'timestamp': timestamp,
-            'description': description,
             'creator': creator,
             'uploader': uploader,
             'uploader_url': uploader_url,
