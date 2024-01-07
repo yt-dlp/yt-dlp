@@ -46,8 +46,10 @@ class JupiterIE(InfoExtractor):
                 'description': ('mainContent', 'lead'),
                 'timestamp': ('mainContent', 'scheduleStart'),
                 'series': ('mainContent', 'heading'),
+                'series_id': ('mainContent', 'rootContentId', {int_or_none}),
                 'episode': ('mainContent', 'subHeading'),
                 'season_number': ('mainContent', 'season', {int_or_none}),
                 'episode_number': ('mainContent', 'episode', {int_or_none}),
+                'episode_id': ('mainContent', 'id', {int_or_none}),
             }),
         }
