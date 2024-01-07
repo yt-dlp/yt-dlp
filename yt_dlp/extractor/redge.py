@@ -1,12 +1,14 @@
 from .common import InfoExtractor
 from ..utils import (
+    float_or_none,
     int_or_none,
     join_nonempty,
     parse_qs,
     traverse_obj,
+    update_url_query,
 )
 
-from urllib.parse import urlencode
+from functools import partial
 
 
 class RedCDNLivxIE(InfoExtractor):
@@ -60,11 +62,15 @@ class RedCDNLivxIE(InfoExtractor):
     def _real_extract(self, url):
         tenant, path = self._match_valid_url(url).group('tenant', 'id')
         qs = parse_qs(url)
-        start_time = int_or_none(traverse_obj(qs, ('startTime', 0)))
-        stop_time = int_or_none(traverse_obj(qs, ('stopTime', 0)))
+        start_time = traverse_obj(qs, ('startTime', 0, {int_or_none}))
+        stop_time = traverse_obj(qs, ('stopTime', 0, {int_or_none}))
 
-        def livx_mode(mode, suffix=''):
-            file = f'https://r.dcs.redcdn.pl/{mode}/o2/{tenant}/{path}.livx{suffix}?'
+        def livx_mode(mode):
+            suffix = ''
+            if mode == 'livess':
+                suffix = '/manifest'
+            elif mode == 'livehls':
+                suffix = '/playlist.m3u8'
             file_qs = {}
             if start_time:
                 file_qs['startTime'] = start_time
@@ -74,7 +80,7 @@ class RedCDNLivxIE(InfoExtractor):
                 file_qs['nolimit'] = 1
             elif mode != 'sc':
                 file_qs['indexMode'] = 'true'
-            return file + urlencode(file_qs)
+            return update_url_query(f'https://r.dcs.redcdn.pl/{mode}/o2/{tenant}/{path}.livx{suffix}', file_qs)
 
         # no id or title for a transmission. making ones up.
         title = path \
@@ -85,7 +91,7 @@ class RedCDNLivxIE(InfoExtractor):
         formats = []
         # downloading the manifest separately here instead of _extract_ism_formats to also get some stream metadata
         ism_res = self._download_xml_handle(
-            livx_mode('livess', '/manifest'), video_id,
+            livx_mode('livess'), video_id,
             note='Downloading ISM manifest',
             errnote='Failed to download ISM manifest',
             fatal=False)
@@ -102,20 +108,14 @@ class RedCDNLivxIE(InfoExtractor):
         })
         formats.extend(self._extract_mpd_formats(livx_mode('livedash'), video_id, mpd_id='dash', fatal=False))
         formats.extend(self._extract_m3u8_formats(
-            livx_mode('livehls', '/playlist.m3u8'), video_id, m3u8_id='hls', ext='mp4', fatal=False))
+            livx_mode('livehls'), video_id, m3u8_id='hls', ext='mp4', fatal=False))
 
-        duration = None
-        if ism_doc is not None:
-            duration = int_or_none(ism_doc.get('Duration'))
-            if duration is not None:
-                duration = duration / (int_or_none(ism_doc.get('TimeScale')) or 10000000)
-                if duration == 0:
-                    duration = None
-        elif duration is None and start_time is not None and stop_time is not None:
-            duration = (stop_time - start_time) // 1000
+        time_scale = traverse_obj(ism_doc, ('@TimeScale', {int_or_none})) or 10000000
+        duration = traverse_obj(
+            ism_doc, ('@Duration', {partial(float_or_none, scale=time_scale)})) or None
 
         live_status = None
-        if ism_doc.get('IsLive') == 'TRUE':
+        if traverse_obj(ism_doc, '@IsLive') == 'TRUE':
             live_status = 'is_live'
         elif duration:
             live_status = 'was_live'
