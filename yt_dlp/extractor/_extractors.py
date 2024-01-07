@@ -2223,6 +2223,7 @@ from .viki import (
     VikiIE,
     VikiChannelIE,
 )
+from .viously import ViouslyIE
 from .viqeo import ViqeoIE
 from .viu import (
     ViuIE,
