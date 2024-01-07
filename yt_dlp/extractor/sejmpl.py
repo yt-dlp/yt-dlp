@@ -4,6 +4,8 @@ from ..utils import (
     clean_html,
     js_to_json,
     strip_or_none,
+    traverse_obj,
+    update_url_query,
     ExtractorError,
 )
 
@@ -164,11 +166,11 @@ class SejmIE(InfoExtractor):
         def add_entry(file, legacy_file=False):
             if not file:
                 return
-            file = f'https:{file}'
+            file = f'https:{file}' if file.startswith('//') else file
             if not legacy_file:
-                file += f'?startTime={start_time}'
+                update_url_query(file, {'startTime': start_time})
                 if stop_time is not None:
-                    file += f'&stopTime={stop_time}'
+                    update_url_query(file, {'stopTime': stop_time})
                 stream_id = self._search_regex(r'/o2/sejm/([^/]+)/[^./]+\.livx', file, 'stream id')
             common_info = {
                 'url': file,
@@ -193,8 +195,7 @@ class SejmIE(InfoExtractor):
             r'var\s+cameras\s*=', frame, 'camera list', video_id,
             contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json,
             fatal=not self.get_param('ignore_no_formats_error')) or []
-        for camera in cameras:
-            camera_file = camera['file']
+        for camera_file in traverse_obj(cameras, (..., 'file', {dict})):
             if camera_file.get('flv'):
                 add_entry(camera_file['flv'])
             elif camera_file.get('mp4'):
