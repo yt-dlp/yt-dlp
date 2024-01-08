@@ -2648,8 +2648,11 @@ class YoutubeDL:
             'genre': 'genres',
         }
         for deprecated_field, new_field in deprecated_multivalue_fields.items():
-            if info_dict.get(deprecated_field):
-                info_dict[new_field] = re.split(r', ?', info_dict[deprecated_field])
+            if deprecated_value := info_dict.get(deprecated_field):
+                info_dict[new_field] = re.split(r', ?', deprecated_value)
+            elif new_value := info_dict.get(new_field):
+                info_dict[deprecated_field] = new_value.join(', ')
+
 
     def _raise_pending_errors(self, info):
         err = info.pop('__pending_error', None)
