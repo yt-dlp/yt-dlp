@@ -1471,6 +1471,7 @@
  - **TuneInPodcast**
  - **TuneInPodcastEpisode**
  - **TuneInStation**
+ - **Turbo**
  - **tv.dfb.de**
  - **TV2**
  - **TV2Article**
@@ -1600,7 +1601,6 @@
  - **ViMP:Playlist**
  - **Vine**
  - **vine:user**
- - **viously**
  - **Viqeo**
  - **Viu**
  - **viu:ott**: [*viu*](## "netrc machine")
