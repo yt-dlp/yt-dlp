@@ -1762,11 +1762,11 @@ Metadata fields            | From
 `description`,  `synopsis` | `description`
 `purl`, `comment`          | `webpage_url`
 `track`                    | `track_number`
-`artist`                   | `artists`, `creator`, `uploader` or `uploader_id`
-`composer`                 | `composers`
-`genre`                    | `genres`
+`artist`                   | `artist`, `creator`, `uploader` or `uploader_id`
+`composer`                 | `composer`
+`genre`                    | `genre`
 `album`                    | `album`
-`album_artist`             | `album_artists`
+`album_artist`             | `album_artist`
 `disc`                     | `disc_number`
 `show`                     | `series`
 `season_number`            | `season_number`
