@@ -24,6 +24,7 @@ import traceback
 import unicodedata
 
 from .cache import Cache
+
 from .compat import functools, urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
@@ -2652,7 +2653,6 @@ class YoutubeDL:
                 info_dict[new_field] = re.split(r', ?', deprecated_value)
             elif new_value := info_dict.get(new_field):
                 info_dict[deprecated_field] = new_value.join(', ')
-
 
     def _raise_pending_errors(self, info):
         err = info.pop('__pending_error', None)
