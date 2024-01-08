@@ -4,8 +4,12 @@ from ..utils import (
     clean_html,
     get_element_by_id,
     urljoin,
+    js_to_json,
+    traverse_obj,
+    int_or_none,
+    url_or_none,
 )
-from ..compat import compat_parse_qs
+from urllib.parse import parse_qs
 
 
 class KukuluLiveIE(InfoExtractor):
@@ -26,39 +30,32 @@ class KukuluLiveIE(InfoExtractor):
             },
             note=f'Downloading {description} quality metadata',
             errnote=f'Unable to download {description} quality metadata')
-        return compat_parse_qs(qs)
+        return parse_qs(qs)
 
     def _add_quality_formats(self, formats, quality_meta):
-        vcodec = quality_meta.get('vcodec')[0]
-        quality = quality_meta.get('now_quality')[0]
+        vcodec = traverse_obj(quality_meta, ('vcodec', 0))
+        quality = traverse_obj(quality_meta, ('now_quality', 0))
         quality_priority = {
             'high': 3,
             'h264': 2,
             'low': 1,
-        }
-        formats.extend([
-            {
+        }.get(quality, 0)
+        if traverse_obj(quality_meta, ('hlsaddr', 0, {url_or_none})):
+            formats.append({
                 'format_id': quality,
-                'url': quality_meta.get('hlsaddr')[0],
+                'url': quality_meta['hlsaddr'][0],
                 'ext': 'mp4',
                 'vcodec': vcodec,
-                'quality': quality_priority[quality],
-            },
-            {
-                'format_id': f'{quality}-rtmp',
-                'url': quality_meta.get('streamaddr')[0],
-                'ext': 'mp4',
-                'vcodec': vcodec,
-                'quality': quality_priority[quality] - 5,
-            },
-            {
+                'quality': quality_priority,
+            })
+        if traverse_obj(quality_meta, ('hlsaddr_audioonly', 0, {url_or_none})):
+            formats.append({
                 'format_id': f'{quality}-audioonly',
-                'url': quality_meta.get('hlsaddr_audioonly')[0],
-                'ext': 'aac',
+                'url': quality_meta['hlsaddr_audioonly'][0],
+                'ext': 'm4a',
                 'vcodec': 'none',
-                'quality': quality_priority[quality] - 10,
-            },
-        ])
+                'quality': quality_priority,
+            })
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -100,26 +97,28 @@ class KukuluLiveIE(InfoExtractor):
                 note='Downloading player html',
                 errnote='Unable to download player html')
 
-            # https://regex101.com/r/3AXpSA/3
-            sources = self._search_regex(r'var fplayer_source = ([^;]+)', player_html, 'sources')
-            sources_json = self._parse_json(sources.replace('.mp4",', '.mp4"'), video_id)
+            sources_json = self._search_json(
+                r'var\s+fplayer_source\s*=', player_html, 'stream data', video_id,
+                contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json)
 
-            formats = []
-            for source in sources_json:
-                path = source.get('file')
-                formats.append({
+            entries = []
+            for i, segment in enumerate(sources_json):
+                path = segment.get('file')
+                if not path:
+                    continue
+                formats = [{
                     'url': urljoin('https://live.erinn.biz', path),
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
+                }]
+                entries.append({
+                    'id': f'{video_id}_{i}',
+                    'title': f'{title} (Part {i + 1})',
+                    'description': description,
+                    'timestamp': traverse_obj(segment, ('time_start', {int_or_none})),
+                    'thumbnail': thumbnail,
+                    'formats': formats,
                 })
+            return self.playlist_result(entries, video_id, title, description, multi_video=True)
 
-            return {
-                'id': video_id,
-                'title': title,
-                'description': description,
-                'timestamp': sources_json[0].get('time_start'),
-                'thumbnail': thumbnail,
-                'formats': formats,
-            }
-
-        raise ExtractorError('Cannot parse live stream or VOD', expected=True)
+        raise ExtractorError('Could not detect media type', expected=True)
