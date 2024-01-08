@@ -168,9 +168,9 @@ class SejmIE(InfoExtractor):
                 return
             file = f'https:{file}' if file.startswith('//') else file
             if not legacy_file:
-                update_url_query(file, {'startTime': start_time})
+                file = update_url_query(file, {'startTime': start_time})
                 if stop_time is not None:
-                    update_url_query(file, {'stopTime': stop_time})
+                    file = update_url_query(file, {'stopTime': stop_time})
                 stream_id = self._search_regex(r'/o2/sejm/([^/]+)/[^./]+\.livx', file, 'stream id')
             common_info = {
                 'url': file,
