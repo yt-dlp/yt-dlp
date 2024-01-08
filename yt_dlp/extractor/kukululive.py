@@ -101,24 +101,34 @@ class KukuluLiveIE(InfoExtractor):
                 r'var\s+fplayer_source\s*=', player_html, 'stream data', video_id,
                 contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json)
 
-            entries = []
-            for i, segment in enumerate(sources_json):
+            def _parse_segment(segment, id, title):
                 path = segment.get('file')
                 if not path:
-                    continue
+                    return None
                 formats = [{
                     'url': urljoin('https://live.erinn.biz', path),
                     'ext': 'mp4',
                     'protocol': 'm3u8_native',
                 }]
-                entries.append({
-                    'id': f'{video_id}_{i}',
-                    'title': f'{title} (Part {i + 1})',
+                return {
+                    'id': id,
+                    'title': title,
                     'description': description,
                     'timestamp': traverse_obj(segment, ('time_start', {int_or_none})),
                     'thumbnail': thumbnail,
                     'formats': formats,
-                })
-            return self.playlist_result(entries, video_id, title, description, multi_video=True)
+                }
 
-        raise ExtractorError('Could not detect media type', expected=True)
+            is_playlist = len(sources_json) > 1
+            if is_playlist:
+                entries = []
+                for i, segment in enumerate(sources_json):
+                    entry = _parse_segment(segment, f'{video_id}_{i}', f'{title} (Part {i + 1})')
+                    if not entry:
+                        continue
+                    entries.append(entry)
+                return self.playlist_result(entries, video_id, title, description, multi_video=True)
+            else:
+                return _parse_segment(sources_json[0], video_id, title)
+
+        raise ExtractorError('Could not detect media type')
