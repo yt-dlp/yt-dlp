@@ -1,13 +1,17 @@
+import base64
+
 from .common import InfoExtractor
 from ..utils import (
-    get_element_html_by_class,
+    extract_attributes,
     get_elements_html_by_class,
+    int_or_none,
+    parse_iso8601,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ViouslyIE(InfoExtractor):
     _VALID_URL = False
-    _API_URL = 'https://www.viously.com/video/hls/{0:}/index.m3u8'
     _WEBPAGE_TESTS = [{
         'url': 'http://www.turbo.fr/videos-voiture/454443-turbo-du-07-09-2014-renault-twingo-3-bentley-continental-gt-speed-ces-guide-achat-dacia.html',
         'md5': '37a6c3381599381ff53a7e1e0575c0bc',
@@ -23,16 +27,32 @@ class ViouslyIE(InfoExtractor):
     }]
 
     def _extract_from_webpage(self, url, webpage):
-        has_vously_player = get_element_html_by_class('viously-player', webpage) or get_element_html_by_class('vsly-player', webpage)
-        if not has_vously_player:
-            return
         viously_players = get_elements_html_by_class('viously-player', webpage) + get_elements_html_by_class('vsly-player', webpage)
-        for viously_player in viously_players:
-            video_id = self._html_search_regex(r'id="([-_\w]+)"', viously_player, 'video_id')
-            title = self._html_extract_title(webpage)
+        if not viously_players:
+            return
+
+        def custom_decode(text):
+            STANDARD_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+            CUSTOM_ALPHABET = 'VIOUSLYABCDEFGHJKMNPQRTWXZviouslyabcdefghjkmnpqrtwxz9876543210+/='
+            data = base64.b64decode(text.translate(str.maketrans(CUSTOM_ALPHABET, STANDARD_ALPHABET)))
+            return data.decode('utf-8').strip('\x00')
+
+        for video_id in traverse_obj(viously_players, (..., {extract_attributes}, 'id')):
+            formats = self._extract_m3u8_formats(
+                f'https://www.viously.com/video/hls/{video_id}/index.m3u8', video_id, fatal=False)
+            data = self._download_json(
+                f'https://www.viously.com/export/json/{video_id}', video_id,
+                transform_source=custom_decode, fatal=False)
+            if not formats or not data:
+                continue
             yield {
                 'id': video_id,
-                'title': title,
-                'description': title,
-                'formats': self._extract_m3u8_formats(self._API_URL.format(video_id), video_id),
+                'formats': formats,
+                **traverse_obj(data, ('video', {
+                    'title': 'title',
+                    'description': 'description',
+                    'duration': ('duration', {int_or_none}),
+                    'timestamp': ('iso_date', {parse_iso8601}),
+                    'categories': ('category', {lambda x: [x['name']]}),
+                })),
             }
