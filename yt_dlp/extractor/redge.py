@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -100,12 +101,16 @@ class RedCDNLivxIE(InfoExtractor):
             ism_doc, ism_urlh = ism_res
             formats, _ = self._parse_ism_formats_and_subtitles(ism_doc, ism_urlh.url, 'ss')
 
-        formats.append({
-            'url': livx_mode('nvr'),
-            'ext': 'flv',
-            'format_id': 'direct-0',
-            'preference': -1,   # might be slow
-        })
+        nvr_urlh = self._request_webpage(
+            HEADRequest(livx_mode('nvr')), video_id, 'Follow flv file redirect', fatal=False,
+            expected_status=lambda _: True)
+        if nvr_urlh and nvr_urlh.getcode() == 200:
+            formats.append({
+                'url': nvr_urlh.url,
+                'ext': 'flv',
+                'format_id': 'direct-0',
+                'preference': -1,   # might be slow
+            })
         formats.extend(self._extract_mpd_formats(livx_mode('livedash'), video_id, mpd_id='dash', fatal=False))
         formats.extend(self._extract_m3u8_formats(
             livx_mode('livehls'), video_id, m3u8_id='hls', ext='mp4', fatal=False))
