@@ -1761,6 +1761,7 @@ from .sky import (
 from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
+from .smithsonianchannel import SmithsonianChannelIE
 from .smotrim import SmotrimIE
 from .snotr import SnotrIE
 from .sohu import (
