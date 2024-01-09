@@ -1,4 +1,5 @@
 import re
+import random
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
@@ -128,28 +129,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
         video_id = self._id_from_uri(uri)
         self.report_extraction(video_id)
         content_el = itemdoc.find('%s/%s' % (_media_xml_tag('group'), _media_xml_tag('content')))
-        mediagen_url = content_el.attrib['url'].replace('device={device}', 'device=') # impacts which CDN is used
-        mediagen_url = self._remove_template_parameter(mediagen_url)
-
-        if 'acceptMethods' not in mediagen_url:
-            mediagen_url += '&' if '?' in mediagen_url else '?'
-            mediagen_url += 'acceptMethods='
-            mediagen_url += 'hls' if use_hls else 'fms'
-
-        self.write_debug(mediagen_url)
-        mediagen_doc = self._download_xml(
-            mediagen_url, video_id, 'Downloading video urls', fatal=False)
-
-        if not isinstance(mediagen_doc, xml.etree.ElementTree.Element):
-            return None
-
-        item = mediagen_doc.find('./video/item')
-        if item is not None and item.get('type') == 'text':
-            message = '%s returned error: ' % self.IE_NAME
-            if item.get('code') is not None:
-                message += '%s - ' % item.get('code')
-            message += item.text
-            raise ExtractorError(message, expected=True)
 
         description = strip_or_none(xpath_text(itemdoc, 'description'))
 
@@ -195,7 +174,38 @@ class MTVServicesInfoExtractor(InfoExtractor):
         if mtvn_id_node is not None:
             mtvn_id = mtvn_id_node.text
 
-        formats = self._extract_video_formats(mediagen_doc, mtvn_id, video_id)
+        # Some CDNs are missing/inaccessible, mutating the URL parameters we can usually
+        # get a different (working) CDN
+        attempts = 0
+        formats = False
+        while not formats and attempts < 3:
+            mediagen_url = self._remove_template_parameter(content_el.attrib['url'])
+
+            if 'acceptMethods' not in mediagen_url:
+                mediagen_url += '&' if '?' in mediagen_url else '?'
+                mediagen_url += 'acceptMethods='
+                mediagen_url += 'hls' if use_hls else 'fms'
+
+            if attempts > 0:
+                mediagen_url += '&nonce=' + ''.join(random.choices('0123456789abcdef', k=16))
+
+            self.write_debug(mediagen_url)
+            mediagen_doc = self._download_xml(
+                mediagen_url, video_id, 'Downloading video urls', fatal=False)
+
+            if not isinstance(mediagen_doc, xml.etree.ElementTree.Element):
+                return None
+
+            item = mediagen_doc.find('./video/item')
+            if item is not None and item.get('type') == 'text':
+                message = '%s returned error: ' % self.IE_NAME
+                if item.get('code') is not None:
+                    message += '%s - ' % item.get('code')
+                message += item.text
+                raise ExtractorError(message, expected=True)
+
+            formats = self._extract_video_formats(mediagen_doc, mtvn_id, video_id)
+            attempts += 1
 
         # Some parts of complete video may be missing (e.g. missing Act 3 in
         # http://www.southpark.de/alle-episoden/s14e01-sexual-healing)
