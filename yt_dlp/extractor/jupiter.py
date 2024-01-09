@@ -15,7 +15,7 @@ class JupiterIE(InfoExtractor):
             'id': '1609145945',
             'ext': 'mp4',
             'title': 'Loteriipilet hooldekodusse',
-            'description': 'md5:d1770e868afffd5d42b886283574941e',
+            'description': 'md5:fa8a2ed0cdccb130211513443ee4d571',
             'upload_date': '20231107',
             'timestamp': 1699380000,
             'series': 'Impulss',
@@ -23,6 +23,9 @@ class JupiterIE(InfoExtractor):
             'season_number': 1,
             'episode': 'Loteriipilet hooldekodusse',
             'episode_number': 6,
+            'series_id': 1609108187,
+            'release_year': 2023,
+            'episode_id': 1609145945,
         },
     }]
 
