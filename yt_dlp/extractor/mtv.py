@@ -522,6 +522,12 @@ class MTVDEIE(MTVServicesInfoExtractor):
             'mgid': uri,
         }
 
+    def _extract_mgid(self, webpage):
+        mgid = super()._extract_mgid(webpage)
+        # if accessing outside of geo-restrictions, mgid will contain invalid mtv.intl domain instead of correct mtv.de domain
+        if mgid:
+            return mgid.replace('mtv.intl', 'mtv.de')
+
 
 class MTVItaliaIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtv.it'
@@ -549,6 +555,12 @@ class MTVItaliaIE(MTVServicesInfoExtractor):
             'arcEp': 'mtv.it',
             'mgid': uri,
         }
+
+    def _extract_mgid(self, webpage):
+        mgid = super()._extract_mgid(webpage)
+        # if accessing outside of geo-restrictions, mgid will contain invalid mtv.intl domain instead of correct mtv.it domain
+        if mgid:
+            return mgid.replace('mtv.intl', 'mtv.it')
 
 
 class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete IE
