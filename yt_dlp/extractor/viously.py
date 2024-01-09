@@ -51,10 +51,10 @@ class ViouslyIE(InfoExtractor):
                 'id': video_id,
                 'formats': formats,
                 **traverse_obj(data, ('video', {
-                    'title': 'title',
-                    'description': 'description',
+                    'title': ('title', {str}),
+                    'description': ('description', {str}),
                     'duration': ('duration', {int_or_none}),
                     'timestamp': ('iso_date', {parse_iso8601}),
-                    'categories': ('category', {lambda x: [x['name']]}),
+                    'categories': ('category', 'name', {str}, {lambda x: [x] if x else None}),
                 })),
             }
