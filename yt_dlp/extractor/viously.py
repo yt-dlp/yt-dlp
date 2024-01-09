@@ -18,11 +18,13 @@ class ViouslyIE(InfoExtractor):
         'info_dict': {
             'id': 'F_xQzS2jwb3',
             'ext': 'mp4',
-            'title': 'Turbo du 07/09/2014 : Renault Twingo 3, Bentley Continental GT Speed, CES, Guide Achat Dacia...',
-            'description': 'Turbo du 07/09/2014 : Renault Twingo 3, Bentley Continental GT Speed, CES, Guide Achat Dacia...',
+            'title': 'Turbo du 07/09/2014\xa0: Renault Twingo 3, Bentley Continental GT Speed, CES, Guide Achat Dacia...',
+            'description': 'Turbo du 07/09/2014\xa0: Renault Twingo 3, Bentley Continental GT Speed, CES, Guide Achat Dacia...',
             'age_limit': 0,
-            'upload_date': str,
-            'timestamp': float,
+            'upload_date': '20230328',
+            'timestamp': 1680037507,
+            'duration': 3716,
+            'categories': ['motors'],
         }
     }]
 
