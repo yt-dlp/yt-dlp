@@ -1,9 +1,9 @@
 import base64
+import re
 
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
-    get_elements_html_by_class,
     int_or_none,
     parse_iso8601,
 )
@@ -27,7 +27,7 @@ class ViouslyIE(InfoExtractor):
     }]
 
     def _extract_from_webpage(self, url, webpage):
-        viously_players = get_elements_html_by_class('viously-player', webpage) + get_elements_html_by_class('vsly-player', webpage)
+        viously_players = re.findall(r'<div[^>]*class="(?:[^"]*\s)?v(?:iou)?sly-player(?:\s[^"]*)?"[^>]*>', webpage)
         if not viously_players:
             return
 
