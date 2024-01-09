@@ -5,7 +5,8 @@ from .mtv import MTVServicesInfoExtractor
 
 class VH1IE(MTVServicesInfoExtractor):
     IE_NAME = 'vh1.com'
-    _FEED_URL = 'http://www.vh1.com/feeds/mrss/'
+    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
+
     _TESTS = [{
         'url': 'https://www.vh1.com/episodes/0aqivv/nick-cannon-presents-wild-n-out-foushee-season-16-ep-12',
         'info_dict': {
@@ -31,3 +32,9 @@ class VH1IE(MTVServicesInfoExtractor):
     }]
 
     _VALID_URL = r'https?://(?:www\.)?vh1\.com/(?:video-clips|episodes)/(?P<id>[^/?#.]+)'
+
+    def _get_feed_query(self, uri):
+        return {
+            'arcEp': 'vh1.com',
+            'mgid': uri,
+        }
