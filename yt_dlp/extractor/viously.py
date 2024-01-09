@@ -42,11 +42,11 @@ class ViouslyIE(InfoExtractor):
         for video_id in traverse_obj(viously_players, (..., {extract_attributes}, 'id')):
             formats = self._extract_m3u8_formats(
                 f'https://www.viously.com/video/hls/{video_id}/index.m3u8', video_id, fatal=False)
+            if not formats:
+                continue
             data = self._download_json(
                 f'https://www.viously.com/export/json/{video_id}', video_id,
                 transform_source=custom_decode, fatal=False)
-            if not formats or not data:
-                continue
             yield {
                 'id': video_id,
                 'formats': formats,
