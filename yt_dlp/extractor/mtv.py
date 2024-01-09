@@ -128,13 +128,15 @@ class MTVServicesInfoExtractor(InfoExtractor):
         video_id = self._id_from_uri(uri)
         self.report_extraction(video_id)
         content_el = itemdoc.find('%s/%s' % (_media_xml_tag('group'), _media_xml_tag('content')))
-        mediagen_url = self._remove_template_parameter(content_el.attrib['url'])
-        mediagen_url = mediagen_url.replace('device={device}', '')
+        mediagen_url = content_el.attrib['url'].replace('device={device}', 'device=') # impacts which CDN is used
+        mediagen_url = self._remove_template_parameter(mediagen_url)
+
         if 'acceptMethods' not in mediagen_url:
             mediagen_url += '&' if '?' in mediagen_url else '?'
             mediagen_url += 'acceptMethods='
             mediagen_url += 'hls' if use_hls else 'fms'
 
+        self.write_debug(mediagen_url)
         mediagen_doc = self._download_xml(
             mediagen_url, video_id, 'Downloading video urls', fatal=False)
 
@@ -358,7 +360,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
 class MTVIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtv'
     _VALID_URL = r'https?://(?:www\.)?mtv\.com/(?:video-clips|(?:full-)?episodes)/(?P<id>[^/?#.]+)'
-    _FEED_URL = 'http://www.mtv.com/feeds/mrss/'
+    _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
 
     _TESTS = [{
         'url': 'http://www.mtv.com/video-clips/vl8qof/unlocking-the-truth-trailer',
@@ -378,6 +380,12 @@ class MTVIE(MTVServicesInfoExtractor):
         'url': 'http://www.mtv.com/episodes/g8xu7q/teen-mom-2-breaking-the-wall-season-7-ep-713',
         'only_matching': True,
     }]
+
+    def _get_feed_query(self, uri):
+        return {
+            'arcEp': 'mtv.com',
+            'mgid': uri,
+        }
 
 
 class MTVJapanIE(MTVServicesInfoExtractor):
