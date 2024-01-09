@@ -317,7 +317,8 @@ class MTVServicesInfoExtractor(InfoExtractor):
             if video_player:
                 mgid = try_get(video_player, lambda x: x['props']['media']['video']['config']['uri'])
             else:
-                flex_wrapper = self._extract_child_with_type(ab_testing or main_container, 'FlexWrapper')
+                avia_wrapper = self._extract_child_with_type(ab_testing or main_container, 'AviaWrapper')
+                flex_wrapper = self._extract_child_with_type(avia_wrapper or ab_testing or main_container, 'FlexWrapper')
                 auth_suite_wrapper = self._extract_child_with_type(flex_wrapper, 'AuthSuiteWrapper')
                 player = self._extract_child_with_type(auth_suite_wrapper or flex_wrapper, 'Player')
                 if player:
@@ -369,7 +370,7 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
 
 class MTVIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtv'
-    _VALID_URL = r'https?://(?:www\.)?mtv\.com/(?:video-clips|(?:full-)?episodes)/(?P<id>[^/?#.]+)'
+    _VALID_URL = r'https?://(?:www\.)?mtv\.com/(?:vma/)?(?:video-clips|video-playlists|(?:full-)?episodes|movies)/(?P<id>[^/?#.]+)'
     _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
 
     _TESTS = [{
