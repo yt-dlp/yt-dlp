@@ -395,6 +395,7 @@ class FacebookIE(InfoExtractor):
         try:
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
+            # TODO: Request couldn't be processed is returned always
             if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
                 error = self._html_search_regex(
                     r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
@@ -465,6 +466,7 @@ class FacebookIE(InfoExtractor):
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = (
                 get_first(media, ('owner', {dict}))
+                or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict})) or {})
 
@@ -555,7 +557,7 @@ class FacebookIE(InfoExtractor):
         def extract_relay_prefetched_data(_filter):
             return traverse_obj(extract_relay_data(_filter), (
                 'require', (None, (..., ..., ..., '__bbox', 'require')),
-                lambda _, v: 'RelayPrefetchedStreamCache' in v, ..., ...,
+                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v if isinstance(key, str)), ..., ...,
                 '__bbox', 'result', 'data', {dict}), get_all=False) or {}
 
         if not video_data:
