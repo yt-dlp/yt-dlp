@@ -26,7 +26,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -41,20 +40,18 @@ classifiers = [
 dynamic = ["version", "readme"]
 
 dependencies = [
-    "pycryptodomex",
-    "websockets",
     "brotli; implementation_name=='cpython'",
     "brotlicffi; implementation_name!='cpython'",
     "certifi",
-    "secretstorage; sys_platform=='linux' and (implementation_name!='pypy' or python_version>='3.10')",
+    "pycryptodomex",
+    "requests>=2.31.0,<3",
+    "urllib3>=1.26.17,<3",
+    "websockets>=12.0",
 ]
 
 [project.optional-dependencies]
-requests = [
-    "requests>=2.31.0,<3",
-    "urllib3>=1.26.17,<3",
-]
 mutagen = ["mutagen"]
+secretstorage = ["secretstorage"]
 
 [project.urls]
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
@@ -66,7 +63,7 @@ Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collabo
 packages = ["yt_dlp"]
 
 [tool.setuptools.dynamic]
-version = {attr = "yt_dlp.version.__version__"}
+version = {attr = "yt_dlp.version._pkg_version"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [project.scripts]
