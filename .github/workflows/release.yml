@@ -266,7 +266,7 @@ jobs:
         run: |
           python devscripts/update-version.py -c "${{ env.channel }}" -r "${{ env.target_repo }}" -s "${{ env.suffix }}" "${{ env.version }}"
           python devscripts/make_lazy_extractors.py
-          sed -i -E "s/(name=')[^']+(',  # package name)/\1${{ env.pypi_project }}\2/" setup.py
+          sed -i -E '0,/(name = ")[^"]+(")/s//\1${{ env.pypi_project }}\2/' pyproject.toml
 
       - name: Build
         run: |
