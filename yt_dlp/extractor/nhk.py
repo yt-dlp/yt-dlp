@@ -665,7 +665,7 @@ class NhkRadiruLiveIE(InfoExtractor):
 
         noa_info = self._download_json(
             f'https:{config.find(".//url_program_noa").text}'.format(area=data.find('areakey').text),
-            station, note=f'Downloading {area} station metadata')
+            station, note=f'Downloading {area} station metadata', fatal=False)
         present_info = traverse_obj(noa_info, ('nowonair_list', self._NOA_STATION_IDS.get(station), 'present'))
 
         return {
