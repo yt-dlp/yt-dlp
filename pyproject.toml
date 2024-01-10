@@ -11,7 +11,7 @@ maintainers = [
     {name = "Grub4K", email = "contact@grub4k.xyz"},
 ]
 description = "A youtube-dl fork with additional features and patches"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords = [
     "youtube-dl",
     "video-downloader",
