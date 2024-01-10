@@ -352,7 +352,7 @@ class NiconicoIE(InfoExtractor):
         return info_dict, heartbeat_info_dict
 
     def _get_dms_manifest_url(self, info_dict):
-        formats = info_dict['url'].split(':')[1].split('/')[1:2]
+        formats = info_dict['url'].split(':')[1].split('/')[1:3]
         payload = json.dumps({
             'outputs': [formats]
         }).encode("utf-8")
