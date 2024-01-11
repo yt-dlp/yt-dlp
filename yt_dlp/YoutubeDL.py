@@ -2220,7 +2220,7 @@ class YoutubeDL:
             selectors = []
             current_selector = None
             for type, string_, start, _, _ in tokens:
-                # ENCODING is only defined in python 3.x
+                # ENCODING is only defined in Python 3.x
                 if type == getattr(tokenize, 'ENCODING', None):
                     continue
                 elif type in [tokenize.NAME, tokenize.NUMBER]:

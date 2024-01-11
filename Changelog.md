@@ -1936,7 +1936,7 @@ Since Python 3.7 has reached end-of-life, support for it will be dropped soon. [
 * [utils] `format_decimal_suffix`: Fix for very large numbers by [s0u1h](https://github.com/s0u1h)
 * [utils] `traverse_obj`: Allow filtering by value
 * [utils] Add `filter_dict`, `get_first`, `try_call`
-* [utils] ExtractorError: Fix for older python versions
+* [utils] ExtractorError: Fix for older Python versions
 * [utils] WebSocketsWrapper: Allow omitting `__enter__` invocation by [Lesmiscore](https://github.com/Lesmiscore)
 * [docs] Add an `.editorconfig` file by [fstirlitz](https://github.com/fstirlitz)
 * [docs] Clarify the exact `BSD` license of dependencies by [MrRawes](https://github.com/MrRawes)
@@ -3400,7 +3400,7 @@ Since Python 3.7 has reached end-of-life, support for it will be dropped soon. [
 * [cleanup] code formatting, youtube tests and readme
 
 ### 2021.05.11
-* **Deprecate support for python versions < 3.6**
+* **Deprecate support for Python versions < 3.6**
 * **Subtitle extraction from manifests** by [fstirlitz](https://github.com/fstirlitz). See [be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 * **Improve output template:**
     * Allow slicing lists/strings using `field.start:end:step`
@@ -3690,7 +3690,7 @@ Since Python 3.7 has reached end-of-life, support for it will be dropped soon. [
     * Remove unnecessary `field_preference` and misuse of `preference` from extractors
 * Build improvements:
     * Fix hash output by [shirt](https://github.com/shirt-dev)
-    * Lock python package versions for x86 and use `wheels` by [shirt](https://github.com/shirt-dev)
+    * Lock Python package versions for x86 and use `wheels` by [shirt](https://github.com/shirt-dev)
     * Exclude `vcruntime140.dll` from UPX by [jbruchon](https://github.com/jbruchon)
     * Set version number based on UTC time, not local time
     * Publish on PyPi only if token is set
@@ -3757,7 +3757,7 @@ Since Python 3.7 has reached end-of-life, support for it will be dropped soon. [
 * Fix "Default format spec" appearing in quiet mode
 * [FormatSort] Allow user to prefer av01 over vp9 (The default is still vp9)
 * [FormatSort] fix bug where `quality` had more priority than `hasvid`
-* [pyinst] Automatically detect python architecture and working directory
+* [pyinst] Automatically detect Python architecture and working directory
 * Strip out internal fields such as `_filename` from infojson
 
 

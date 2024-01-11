@@ -151,7 +151,7 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
-    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    # optparse is deprecated since Python 3.2. So assume a stable interface even for private methods
     ALIAS_DEST = '_triggered_aliases'
     ALIAS_TRIGGER_LIMIT = 100
 
