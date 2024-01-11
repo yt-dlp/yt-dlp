@@ -169,7 +169,7 @@ Example usage:
 yt-dlp --update-to nightly
 
 # To install nightly with pip:
-python -m pip install -U --pre yt-dlp
+python3 -m pip install -U --pre yt-dlp
 ```
 
 ## DEPENDENCIES

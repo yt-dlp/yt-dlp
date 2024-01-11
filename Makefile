@@ -8,7 +8,7 @@ tar: yt-dlp.tar.gz
 
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
-# make pypi-files && python setup.py sdist
+# make pypi-files && python3 setup.py sdist
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
 	        completions yt-dlp.1 requirements.txt setup.cfg devscripts/* test/*
 
