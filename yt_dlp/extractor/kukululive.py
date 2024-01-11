@@ -1,15 +1,16 @@
+from urllib.parse import parse_qs
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
     get_element_by_id,
-    urljoin,
-    js_to_json,
-    traverse_obj,
     int_or_none,
+    js_to_json,
     url_or_none,
+    urljoin,
 )
-from urllib.parse import parse_qs
+from ..utils.traversal import traverse_obj
 
 
 class KukuluLiveIE(InfoExtractor):
@@ -125,7 +126,7 @@ class KukuluLiveIE(InfoExtractor):
                 r'var\s+fplayer_source\s*=', player_html, 'stream data', video_id,
                 contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json)
 
-            def _parse_segment(segment, id, title):
+            def parse_segment(segment, segment_id, segment_title):
                 path = segment.get('file')
                 if not path:
                     return None
@@ -135,24 +136,21 @@ class KukuluLiveIE(InfoExtractor):
                     'protocol': 'm3u8_native',
                 }]
                 return {
-                    'id': id,
-                    'title': title,
+                    'id': segment_id,
+                    'title': segment_title,
                     'description': description,
                     'timestamp': traverse_obj(segment, ('time_start', {int_or_none})),
                     'thumbnail': thumbnail,
                     'formats': formats,
                 }
 
-            is_playlist = len(sources_json) > 1
-            if is_playlist:
-                entries = []
-                for i, segment in enumerate(sources_json):
-                    entry = _parse_segment(segment, f'{video_id}_{i}', f'{title} (Part {i + 1})')
-                    if not entry:
-                        continue
+            if len(sources_json) == 1:
+                return parse_segment(sources_json[0], video_id, title)
+
+            entries = []
+            for i, segment in enumerate(sources_json):
+                if entry := parse_segment(segment, f'{video_id}_{i}', f'{title} (Part {i + 1})'):
                     entries.append(entry)
-                return self.playlist_result(entries, video_id, title, description, multi_video=True)
-            else:
-                return _parse_segment(sources_json[0], video_id, title)
+            return self.playlist_result(entries, video_id, title, description, multi_video=True)
 
         raise ExtractorError('Could not detect media type')
