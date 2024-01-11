@@ -16,6 +16,30 @@ class KukuluLiveIE(InfoExtractor):
     _VALID_URL = r'https?://live\.erinn\.biz/live\.php\?h(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://live.erinn.biz/live.php?h675134569',
+        'md5': 'e380fa6a47fc703d91cea913ab44ec2e',
+        'info_dict': {
+            'id': '675134569',
+            'ext': 'mp4',
+            'title': 'プロセカ',
+            'description': 'テストも兼ねたプロセカ配信。',
+            'timestamp': 1702689148,
+            'upload_date': '20231216',
+            'thumbnail': r're:^https?://.*',
+        },
+    }, {
+        'url': 'https://live.erinn.biz/live.php?h102338092',
+        'md5': 'dcf5167a934b1c60333461e13a81a6e2',
+        'info_dict': {
+            'id': '102338092',
+            'ext': 'mp4',
+            'title': 'Among Usで遊びます！！',
+            'description': 'VTuberになりましたねんねこ㌨ですよろしくお願いします',
+            'timestamp': 1704603118,
+            'upload_date': '20240107',
+            'thumbnail': r're:^https?://.*',
+        },
+    }, {
+        'url': 'https://live.erinn.biz/live.php?h878049531',
         'only_matching': True,
     }]
 
