@@ -449,8 +449,11 @@ class FacebookIE(InfoExtractor):
                 raise ExtractorError('Failed to login with provided data.', expected=True)
 
         if props := get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView', 'props'), expected_type=dict, default={}):
-            if props.get('title') == 'This content isn\'t available at the moment':
-                raise ExtractorError('Content removed. Facebook said: "%s"' % props.get('body', ''), expected=True)
+            if props.get('title') in (
+                'This content isn\'t available at the moment',
+                'This content isn\'t available right now'
+            ):
+                raise ExtractorError('Content removed or not accessible. Facebook said: "%s"' % props.get('body', ''), expected=True)
 
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
