@@ -395,7 +395,9 @@ class FacebookIE(InfoExtractor):
         try:
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
-            # TODO: Request couldn't be processed is returned always
+            if self._html_search_regex(r'(Your Request Couldn.+? be Processed)', login_results, "request error", default=None) is not None:
+                raise ExtractorError('Failed to perform login request. Report a bug.')
+
             if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
                 error = self._html_search_regex(
                     r'(?s)<div[^>]+class=(["\']).*?login_error_box.*?\1[^>]*><div[^>]*>.*?</div><div[^>]*>(?P<error>.+?)</div>',
@@ -431,6 +433,20 @@ class FacebookIE(InfoExtractor):
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
+
+        if (self.get_param("username") and self.get_param("password")) or self.get_param("cookiefile"):
+            if 'We\'ve suspended your account' in webpage:
+                raise ExtractorError('Login account is suspended.', expected=True)
+
+            sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
+            userinfo = get_first(sjs_data, ('require', ..., ..., ..., "__bbox", "define", lambda _, v: 'CurrentUserInitialData' in v, lambda _, v: 'ACCOUNT_ID' in v))
+            try:
+                user_id = int(userinfo['ACCOUNT_ID'])
+            except (TypeError, ValueError):
+                user_id = 0
+            if user_id == 0:
+                raise ExtractorError('Failed to login with provided data.', expected=True)
 
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
