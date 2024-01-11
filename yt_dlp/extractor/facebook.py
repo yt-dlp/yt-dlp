@@ -434,12 +434,12 @@ class FacebookIE(InfoExtractor):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
+        sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+            r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
         if (self.get_param("username") and self.get_param("password")) or self.get_param("cookiefile"):
             if 'We\'ve suspended your account' in webpage:
                 raise ExtractorError('Login account is suspended.', expected=True)
 
-            sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             userinfo = get_first(sjs_data, ('require', ..., ..., ..., "__bbox", "define", lambda _, v: 'CurrentUserInitialData' in v, lambda _, v: 'ACCOUNT_ID' in v))
             try:
                 user_id = int(userinfo['ACCOUNT_ID'])
@@ -447,6 +447,10 @@ class FacebookIE(InfoExtractor):
                 user_id = 0
             if user_id == 0:
                 raise ExtractorError('Failed to login with provided data.', expected=True)
+
+        if props := get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView', 'props'), expected_type=dict, default={}):
+            if props.get('title') == 'This content isn\'t available at the moment':
+                raise ExtractorError('Content removed. Facebook said: "%s"' % props.get('body', ''), expected=True)
 
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
