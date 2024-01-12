@@ -2649,10 +2649,10 @@ class YoutubeDL:
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
 
         for old_key, new_key in self._deprecated_multivalue_fields.items():
-            if old_value := info_dict.get(old_key):
-                if new_key in info_dict:
-                    self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
-                info_dict.setdefault(new_key, old_value.split(', '))
+            if new_key in info_dict and old_key in info_dict:
+                self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
+            elif old_value := info_dict.get(old_key):
+                info_dict[new_key] = old_value.split(', ')
             elif new_value := info_dict.get(new_key):
                 info_dict[old_key] = ', '.join(v.replace(',', '\N{FULLWIDTH COMMA}') for v in new_value)
 
