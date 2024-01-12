@@ -2654,7 +2654,7 @@ class YoutubeDL:
                     self.deprecation_warning(f'Do not return {old_key!r} when {new_key!r} is present')
                 info_dict.setdefault(new_key, old_value.split(', '))
             elif new_value := info_dict.get(new_key):
-                info_dict[old_key] = ', '.join(new_value)
+                info_dict[old_key] = ', '.join(v.replace(',', '\N{FULLWIDTH COMMA}') for v in new_value)
 
     def _raise_pending_errors(self, info):
         err = info.pop('__pending_error', None)
