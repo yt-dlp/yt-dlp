@@ -1767,11 +1767,11 @@ Metadata fields            | From
 `description`,  `synopsis` | `description`
 `purl`, `comment`          | `webpage_url`
 `track`                    | `track_number`
-`artist`                   | `artist`, `artists`, `creator`, `uploader` or `uploader_id`
-`composer`                 | `composer`, `composers`
-`genre`                    | `genre`, `genres`
+`artist`                   | `artist`, `artists`, `creator`, `creators`, `uploader` or `uploader_id`
+`composer`                 | `composer` or `composers`
+`genre`                    | `genre` or `genres`
 `album`                    | `album`
-`album_artist`             | `album_artist`, `album_artists`
+`album_artist`             | `album_artist` or `album_artists`
 `disc`                     | `disc_number`
 `show`                     | `series`
 `season_number`            | `season_number`
