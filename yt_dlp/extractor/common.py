@@ -432,14 +432,6 @@ class InfoExtractor:
                     Useful for splits and compilations.
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
-    composer:       Deprecated; use "composers" instead.
-                    Composer(s) of the piece, comma-separated.
-    artist:         Deprecated; use "artists" instead.
-                    Artist(s) of the track, comma-separated.
-    genre:          Deprecated; use "genres" instead.
-                    Genre(s) of the track, comma-separated.
-    album_artist:   Deprecated; use "album_artists" instead.
-                    All artists appeared on the album, comma-separated.
 
     The following fields should only be set for clips that should be cut from the original video:
 
@@ -449,6 +441,16 @@ class InfoExtractor:
     The following fields should only be set for storyboards:
     rows:           Number of rows in each storyboard fragment, as an integer
     columns:        Number of columns in each storyboard fragment, as an integer
+
+    The following fields are deprecated and should not be set by new code:
+    composer:       Use "composers" instead.
+                    Composer(s) of the piece, comma-separated.
+    artist:         Use "artists" instead.
+                    Artist(s) of the track, comma-separated.
+    genre:          Use "genres" instead.
+                    Genre(s) of the track, comma-separated.
+    album_artist:   Use "album_artists" instead.
+                    All artists appeared on the album, comma-separated.
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 

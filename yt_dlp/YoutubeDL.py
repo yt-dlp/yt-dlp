@@ -24,7 +24,6 @@ import traceback
 import unicodedata
 
 from .cache import Cache
-
 from .compat import functools, urllib  # isort: split
 from .compat import compat_os_name, compat_shlex_quote, urllib_req_to_req
 from .cookies import LenientSimpleCookie, load_cookies
@@ -2642,17 +2641,17 @@ class YoutubeDL:
             if final and info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
 
-        deprecated_multivalue_fields = {
+        multivalue_fields = {
+            'album_artist': 'album_artists',
             'artist': 'artists',
             'composer': 'composers',
-            'album_artist': 'album_artists',
             'genre': 'genres',
         }
-        for deprecated_field, new_field in deprecated_multivalue_fields.items():
-            if deprecated_value := info_dict.get(deprecated_field):
-                info_dict[new_field] = re.split(r', ?', deprecated_value)
-            elif new_value := info_dict.get(new_field):
-                info_dict[deprecated_field] = new_value.join(', ')
+        for old_key, new_key in multivalue_fields.items():
+            if old_value := info_dict.get(old_key):
+                info_dict[new_key] = re.split(r', ?', old_value)
+            elif new_value := info_dict.get(new_key):
+                info_dict[old_key] = ', '.join(new_value)
 
     def _raise_pending_errors(self, info):
         err = info.pop('__pending_error', None)
