@@ -1189,7 +1189,9 @@ def create_parser():
     verbosity.add_option(
         '-j', '--dump-json',
         action='store_true', dest='dumpjson', default=False,
-        help='Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. See "OUTPUT TEMPLATE" for a description of available keys')
+        help=(
+            'Quiet, but print JSON information for each video. Simulate unless --no-simulate is used. '
+            'See "OUTPUT TEMPLATE" for a description of available keys'))
     verbosity.add_option(
         '-J', '--dump-single-json',
         action='store_true', dest='dump_single_json', default=False,
@@ -1311,7 +1313,7 @@ def create_parser():
     filesystem.add_option(
         '--output-na-placeholder',
         dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
-        help=('Placeholder for unavailable fields in "OUTPUT TEMPLATE" (default: "%default")'))
+        help=('Placeholder for unavailable fields in --output (default: "%default")'))
     filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,

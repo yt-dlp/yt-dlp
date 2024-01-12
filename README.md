@@ -583,7 +583,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     -o, --output [TYPES:]TEMPLATE   Output filename template; see "OUTPUT
                                     TEMPLATE" for details
     --output-na-placeholder TEXT    Placeholder for unavailable fields in
-                                    "OUTPUT TEMPLATE" (default: "NA")
+                                    --output (default: "NA")
     --restrict-filenames            Restrict filenames to only ASCII characters,
                                     and avoid "&" and spaces in filenames
     --no-restrict-filenames         Allow Unicode characters, "&" and spaces in
