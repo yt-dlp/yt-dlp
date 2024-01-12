@@ -1,4 +1,4 @@
-from urllib.parse import parse_qs
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -55,7 +55,7 @@ class KukuluLiveIE(InfoExtractor):
             },
             note=f'Downloading {description} quality metadata',
             errnote=f'Unable to download {description} quality metadata')
-        return parse_qs(qs)
+        return urllib.parse.parse_qs(qs)
 
     def _add_quality_formats(self, formats, quality_meta):
         vcodec = traverse_obj(quality_meta, ('vcodec', 0))
