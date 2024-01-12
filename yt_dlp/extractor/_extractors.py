@@ -297,7 +297,6 @@ from .cammodels import CamModelsIE
 from .camsoda import CamsodaIE
 from .camtasia import CamtasiaEmbedIE
 from .canal1 import Canal1IE
-from .capitalcy import CapitalTVCyIE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
@@ -542,6 +541,7 @@ from .egghead import (
 from .eighttracks import EightTracksIE
 from .einthusan import EinthusanIE
 from .eitb import EitbIE
+from .elementorgeneral import ElementorGeneralIE
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
 from .eltrecetv import ElTreceTVIE
