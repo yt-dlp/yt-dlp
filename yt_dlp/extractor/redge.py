@@ -85,8 +85,9 @@ class RedCDNLivxIE(InfoExtractor):
 
         # no id or title for a transmission. making ones up.
         title = path \
-            .replace('/live/', '/').replace('/live', '').replace('live/', '') \
-            .replace('/channel/', '/').replace('/channel', '').replace('channel/', '')
+            .replace('/live', '').replace('live/', '') \
+            .replace('/channel', '').replace('channel/', '') \
+            .strip('/')
         video_id = join_nonempty(title.replace('/', '-'), start_time, stop_time)
 
         formats = []
