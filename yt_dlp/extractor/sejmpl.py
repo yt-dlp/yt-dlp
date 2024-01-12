@@ -6,15 +6,24 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     update_url_query,
-    ExtractorError,
 )
 
-import datetime
-try:
-    from zoneinfo import ZoneInfo
-    _HAS_ZONEINFO = True
-except ImportError:
-    _HAS_ZONEINFO = False
+from datetime import datetime, timedelta
+
+
+def is_dst(date):
+    year = date.year
+    # last sunday of march and october, respectively. might break on switch days.
+    # but if they meet on a sunday, we probably got bigger problems than videos, right?
+    dst_start = datetime(year, 3, 31, 2) - timedelta(days=(datetime(year, 3, 31).weekday() + 1) % 7)
+    dst_end = datetime(year, 10, 31, 3) - timedelta(days=(datetime(year, 10, 31).weekday() + 1) % 7)
+    return dst_start <= date <= dst_end
+
+
+def rfc3339_to_atende(date):
+    date = datetime.fromisoformat(date)
+    date = date + timedelta(hours=1 if is_dst(date) else 0)
+    return int((date.timestamp() - 978307200) * 1000)
 
 
 class SejmIE(InfoExtractor):
@@ -121,8 +130,6 @@ class SejmIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        if not _HAS_ZONEINFO:
-            raise ExtractorError('zoneinfo is required. Use Python 3.9+', expected=True)
         term, video_id = self._match_valid_url(url).group('term', 'id')
         frame = self._download_webpage(
             f'https://sejm-embed.redcdn.pl/Sejm{term}.nsf/VideoFrame.xsp/{video_id}',
@@ -134,13 +141,6 @@ class SejmIE(InfoExtractor):
         params = data['params']
 
         title = data['title'].strip()
-
-        def rfc3339_to_atende(date):
-            date = datetime.datetime.fromisoformat(date)
-            # marks naive as CET/CEST
-            date.replace(tzinfo=ZoneInfo('Europe/Warsaw'))
-            # UTC timestamp with an offset
-            return int((date.astimezone(datetime.timezone.utc).timestamp() - 978307200) * 1000)
 
         if data.get('status') == 'VIDEO_ENDED':
             live_status = 'was_live'
