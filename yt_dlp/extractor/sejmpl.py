@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 def is_dst(date):
     year = date.year
     # last sunday of march and october, respectively. might break on switch days.
-    # but if they meet on a sunday, we probably got bigger problems than videos, right?
     dst_start = datetime(year, 3, 31, 2) - timedelta(days=(datetime(year, 3, 31).weekday() + 1) % 7)
     dst_end = datetime(year, 10, 31, 3) - timedelta(days=(datetime(year, 10, 31).weekday() + 1) % 7)
     return dst_start <= date <= dst_end
