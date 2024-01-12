@@ -396,7 +396,7 @@ class FacebookIE(InfoExtractor):
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
             if self._html_search_regex(r'(Your Request Couldn.+? be Processed)', login_results, "request error", default=None) is not None:
-                raise ExtractorError('Failed to perform login request. Report a bug.')
+                raise ExtractorError('Failed to perform login request.')
 
             if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
                 error = self._html_search_regex(
@@ -436,11 +436,12 @@ class FacebookIE(InfoExtractor):
 
         sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
             r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
-        if (self.get_param("username") and self.get_param("password")) or self.get_param("cookiefile"):
+        if (self.get_param('username') and self.get_param('password')) or self.get_param('cookiefile'):
             if 'We\'ve suspended your account' in webpage:
                 raise ExtractorError('Login account is suspended.', expected=True)
 
-            userinfo = get_first(sjs_data, ('require', ..., ..., ..., "__bbox", "define", lambda _, v: 'CurrentUserInitialData' in v, lambda _, v: 'ACCOUNT_ID' in v))
+            userinfo = get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'define',
+                lambda _, v: 'CurrentUserInitialData' in v, lambda _, v: 'ACCOUNT_ID' in v))
             try:
                 user_id = int(userinfo['ACCOUNT_ID'])
             except (TypeError, ValueError):
@@ -448,11 +449,11 @@ class FacebookIE(InfoExtractor):
             if user_id == 0:
                 raise ExtractorError('Failed to login with provided data.', expected=True)
 
-        if props := get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView', 'props'), expected_type=dict, default={}):
-            if props.get('title') in (
-                'This content isn\'t available at the moment',
-                'This content isn\'t available right now'
-            ):
+        if props := get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'require',
+            ..., ..., ..., 'rootView', 'props'), expected_type=dict, default={}):
+
+            if props.get('title') in ('This content isn\'t available at the moment',
+                'This content isn\'t available right now'):
                 raise ExtractorError('Content removed or not accessible. Facebook said: "%s"' % props.get('body', ''), expected=True)
 
         def extract_metadata(webpage):
@@ -489,7 +490,8 @@ class FacebookIE(InfoExtractor):
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = (
                 get_first(media, ('owner', {dict}))
-                or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
+                or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media',
+                    lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict})) or {})
 
@@ -580,8 +582,8 @@ class FacebookIE(InfoExtractor):
         def extract_relay_prefetched_data(_filter):
             return traverse_obj(extract_relay_data(_filter), (
                 'require', (None, (..., ..., ..., '__bbox', 'require')),
-                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v if isinstance(key, str)), ..., ...,
-                '__bbox', 'result', 'data', {dict}), get_all=False) or {}
+                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v if isinstance(key, str)),
+                ..., ..., '__bbox', 'result', 'data', {dict}), get_all=False) or {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
