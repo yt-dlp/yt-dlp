@@ -755,7 +755,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add(('description', 'synopsis'), 'description')
         add(('purl', 'comment'), 'webpage_url')
         add('track', 'track_number')
-        add('artist', ('artist', 'artists', 'creator', 'uploader', 'uploader_id'))
+        add('artist', ('artist', 'artists', 'creator', 'creators', 'uploader', 'uploader_id'))
         add('composer', 'composer')
         add('genre', ('genre', 'genres'))
         add('album')

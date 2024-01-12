@@ -2645,6 +2645,7 @@ class YoutubeDL:
             'album_artist': 'album_artists',
             'artist': 'artists',
             'composer': 'composers',
+            'creator': 'creators',
             'genre': 'genres',
         }
         for old_key, new_key in multivalue_fields.items():

@@ -1305,7 +1305,8 @@ The available fields are:
  - `display_id` (string): An alternative identifier for the video
  - `uploader` (string): Full name of the video uploader
  - `license` (string): License name the video is licensed under
- - `creator` (string): The creator of the video
+ - `creators` (list): The creators of the video
+ - `creator` (string): The creators of the video; comma-separated
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date in UTC (YYYYMMDD)
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released

@@ -278,7 +278,7 @@ class InfoExtractor:
     description:    Full video description.
     uploader:       Full name of the video uploader.
     license:        License name the video is licensed under.
-    creator:        The creator of the video.
+    creators:       List of creators of the video.
     timestamp:      UNIX timestamp of the moment the video was uploaded
     upload_date:    Video upload date in UTC (YYYYMMDD).
                     If not explicitly set, calculated from timestamp
@@ -451,6 +451,8 @@ class InfoExtractor:
                     Genre(s) of the track, comma-separated.
     album_artist:   Use "album_artists" instead.
                     All artists appeared on the album, comma-separated.
+    creator:        Use "creators" instead.
+                    The creator of the video.
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 
