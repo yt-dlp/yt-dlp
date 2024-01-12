@@ -73,11 +73,14 @@ Repository = "https://github.com/yt-dlp/yt-dlp"
 Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
 Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators"
 
+[project.scripts]
+yt-dlp = "yt_dlp:main"
+
+[project.entry-points.pyinstaller40]
+hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
+
 [tool.setuptools]
 packages = ["yt_dlp"]
 
 [tool.setuptools.dynamic]
 version = {attr = "yt_dlp.version._pkg_version"}
-
-[project.scripts]
-yt-dlp = "yt_dlp:main"
