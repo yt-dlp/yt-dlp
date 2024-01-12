@@ -140,6 +140,8 @@ class TestFormatSelection(unittest.TestCase):
         test('example-with-dashes', 'example-with-dashes')
         test('all', '2', '47', '45', 'example-with-dashes', '35')
         test('mergeall', '2+47+45+example-with-dashes+35', multi=True)
+        # See: https://github.com/yt-dlp/yt-dlp/pulls/8797
+        test('7_a/worst', '35')
 
     def test_format_selection_audio(self):
         formats = [
@@ -728,7 +730,7 @@ class TestYoutubeDL(unittest.TestCase):
                 self.assertEqual(got_dict.get(info_field), expected, info_field)
             return True
 
-        test('%()j', (expect_same_infodict, str))
+        test('%()j', (expect_same_infodict, None))
 
         # NA placeholder
         NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(x|def)s-%(id)s.%(ext)s'
