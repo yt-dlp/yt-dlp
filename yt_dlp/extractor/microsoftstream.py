@@ -1,4 +1,4 @@
-import base64
+from base64 import b64decode
 
 from .common import InfoExtractor
 from ..utils import (
@@ -81,7 +81,7 @@ class MicrosoftStreamIE(InfoExtractor):
                 'url': thumbnail_url,
             }
             thumb_name = url_basename(thumbnail_url)
-            thumb_name = str(base64.b64decode(thumb_name + '=' * (-len(thumb_name) % 4)))
+            thumb_name = str(b64decode(thumb_name + '=' * (-len(thumb_name) % 4)))
             thumb.update(parse_resolution(thumb_name))
             thumbnails.append(thumb)
 

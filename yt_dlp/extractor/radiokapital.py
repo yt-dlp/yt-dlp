@@ -1,14 +1,18 @@
-import itertools
-import urllib.parse
-
 from .common import InfoExtractor
-from ..utils import clean_html, traverse_obj, unescapeHTML
+from ..utils import (
+    clean_html,
+    traverse_obj,
+    unescapeHTML,
+)
+
+import itertools
+from urllib.parse import urlencode
 
 
 class RadioKapitalBaseIE(InfoExtractor):
     def _call_api(self, resource, video_id, note='Downloading JSON metadata', qs={}):
         return self._download_json(
-            f'https://www.radiokapital.pl/wp-json/kapital/v1/{resource}?{urllib.parse.urlencode(qs)}',
+            f'https://www.radiokapital.pl/wp-json/kapital/v1/{resource}?{urlencode(qs)}',
             video_id, note=note)
 
     def _parse_episode(self, data):
