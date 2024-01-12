@@ -38,11 +38,11 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dynamic = ["version"]
-
 dependencies = [
     "brotli; implementation_name=='cpython'",
     "brotlicffi; implementation_name!='cpython'",
     "certifi",
+    "mutagen",
     "pycryptodomex",
     "requests>=2.31.0,<3",
     "urllib3>=1.26.17,<3",
@@ -50,7 +50,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mutagen = ["mutagen"]
 secretstorage = ["secretstorage"]
 
 [project.urls]
