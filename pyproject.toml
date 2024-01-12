@@ -9,6 +9,7 @@ maintainers = [
     {name = "Grub4K", email = "contact@grub4k.xyz"},
 ]
 description = "A youtube-dl fork with additional features and patches"
+readme = "README.md"
 requires-python = ">=3.8"
 keywords = [
     "youtube-dl",
@@ -36,7 +37,7 @@ classifiers = [
     "License :: Public Domain",
     "Operating System :: OS Independent",
 ]
-dynamic = ["version", "readme"]
+dynamic = ["version"]
 
 dependencies = [
     "brotli; implementation_name=='cpython'",
@@ -63,7 +64,6 @@ packages = ["yt_dlp"]
 
 [tool.setuptools.dynamic]
 version = {attr = "yt_dlp.version._pkg_version"}
-readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [project.scripts]
 yt-dlp = "yt_dlp:main"
