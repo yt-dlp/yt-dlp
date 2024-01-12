@@ -9,7 +9,7 @@ from ..utils import (
 
 class ElementorGeneralIE(InfoExtractor):
     _VALID_URL = False
-    _TESTS = [{
+    _WEBPAGE_TESTS = [{
         'url': 'https://capitaltv.cy/2023/12/14/υγεια-και-ζωη-14-12-2023-δρ-ξενια-κωσταντινιδο/',
         'info_dict': {
             'id': 'KgzuxwuQwM4',
