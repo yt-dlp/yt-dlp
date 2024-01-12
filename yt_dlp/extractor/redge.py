@@ -104,7 +104,7 @@ class RedCDNLivxIE(InfoExtractor):
         nvr_urlh = self._request_webpage(
             HEADRequest(livx_mode('nvr')), video_id, 'Follow flv file redirect', fatal=False,
             expected_status=lambda _: True)
-        if nvr_urlh and nvr_urlh.getcode() == 200:
+        if nvr_urlh and nvr_urlh.status == 200:
             formats.append({
                 'url': nvr_urlh.url,
                 'ext': 'flv',
