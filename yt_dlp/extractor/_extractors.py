@@ -2019,7 +2019,6 @@ from .tunein import (
     TuneInPodcastEpisodeIE,
     TuneInShortenerIE,
 )
-from .turbo import TurboIE
 from .tv2 import (
     TV2IE,
     TV2ArticleIE,
@@ -2223,6 +2222,7 @@ from .viki import (
     VikiIE,
     VikiChannelIE,
 )
+from .viously import ViouslyIE
 from .viqeo import ViqeoIE
 from .viu import (
     ViuIE,
