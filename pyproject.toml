@@ -51,6 +51,21 @@ dependencies = [
 
 [project.optional-dependencies]
 secretstorage = ["secretstorage"]
+build = [
+    "pip"
+    "setuptools>=61"
+    "wheel"
+]
+pyinst = ["Pyinstaller>=6.3"]
+ci = [
+    "flake8"
+    "pytest"
+]
+dev = [
+    "flake8"
+    "isort"
+    "pytest"
+]
 
 [project.urls]
 Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
