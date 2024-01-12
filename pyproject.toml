@@ -1,8 +1,6 @@
 [build-system]
-build-backend = 'setuptools.build_meta'
-# https://github.com/yt-dlp/yt-dlp/issues/5941
-# https://github.com/pypa/distutils/issues/17
-requires = ['setuptools > 50']
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61"]
 
 [project]
 name = "yt-dlp"
