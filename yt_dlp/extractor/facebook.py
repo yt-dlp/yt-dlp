@@ -440,7 +440,8 @@ class FacebookIE(InfoExtractor):
             if 'We\'ve suspended your account' in webpage:
                 raise ExtractorError('Login account is suspended.', expected=True)
 
-            userinfo = get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'define',
+            userinfo = get_first(sjs_data, (
+                'require', ..., ..., ..., '__bbox', 'define',
                 lambda _, v: 'CurrentUserInitialData' in v, lambda _, v: 'ACCOUNT_ID' in v))
             try:
                 user_id = int(userinfo['ACCOUNT_ID'])
@@ -449,11 +450,12 @@ class FacebookIE(InfoExtractor):
             if user_id == 0:
                 raise ExtractorError('Failed to login with provided data.', expected=True)
 
-        if props := get_first(sjs_data, ('require', ..., ..., ..., '__bbox', 'require',
-            ..., ..., ..., 'rootView', 'props'), expected_type=dict, default={}):
+        if props := get_first(sjs_data, (
+            'require', ..., ..., ..., '__bbox', 'require',
+            ..., ..., ..., 'rootView', 'props'), expected_type=dict, default={}
+        ):
 
-            if props.get('title') in ('This content isn\'t available at the moment',
-                'This content isn\'t available right now'):
+            if props.get('title') in ('This content isn\'t available at the moment', 'This content isn\'t available right now'):
                 raise ExtractorError('Content removed or not accessible. Facebook said: "%s"' % props.get('body', ''), expected=True)
 
         def extract_metadata(webpage):
@@ -490,8 +492,7 @@ class FacebookIE(InfoExtractor):
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = (
                 get_first(media, ('owner', {dict}))
-                or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media',
-                    lambda k, v: k == 'owner' and v['name']))
+                or get_first(post, ('video', 'creation_story', 'attachments', ..., 'media', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
                 or get_first(post, ('node', 'actors', ..., {dict})) or {})
 
