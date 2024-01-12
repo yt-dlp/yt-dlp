@@ -2650,7 +2650,7 @@ class YoutubeDL:
         }
         for old_key, new_key in multivalue_fields.items():
             if old_value := info_dict.get(old_key):
-                info_dict[new_key] = re.split(r', ?', old_value)
+                info_dict[new_key] = old_value.split(', ')
             elif new_value := info_dict.get(new_key):
                 info_dict[old_key] = ', '.join(new_value)
 
