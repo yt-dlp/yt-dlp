@@ -1397,7 +1397,6 @@ Available for the media that is a track or a part of a music album:
  - `album_artists` (list): All artists appeared on the album
  - `album_artist` (string): All artists appeared on the album; comma-separated
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
- - `composer` (string): Name of the composer
 
 Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 
