@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import format_field, parse_iso8601, traverse_obj
+from ..utils import parse_iso8601, traverse_obj, url_or_none
 
 
 class RinseFMBaseIE(InfoExtractor):
@@ -7,14 +7,14 @@ class RinseFMBaseIE(InfoExtractor):
     def _parse_entry(entry):
         return {
             **traverse_obj(entry, {
-                'id': ('id'),
-                'title': ('title'),
-                'url': ('fileUrl'),
-                'vcode': 'none',
+                'id': ('id', {str}),
+                'title': ('title', {str}),
+                'url': ('fileUrl', {url_or_none}),
                 'release_timestamp': ('episodeDate', {parse_iso8601}),
+                'thumbnail': ('featuredImage', 0, 'filename', {str},
+                              {lambda x: x and f'https://rinse.imgix.net/media/{x}'}),
             }),
-            'thumbnail': format_field(
-                entry, [('featuredImage', 0, 'filename')], 'https://rinse.imgix.net/media/%s', default=None),
+            'vcodec': 'none',
         }
 
 
