@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import parse_iso8601, traverse_obj, url_or_none
+from ..utils import (
+    MEDIA_EXTENSIONS,
+    determine_ext,
+    parse_iso8601,
+    traverse_obj,
+    url_or_none,
+)
 
 
 class RinseFMBaseIE(InfoExtractor):
@@ -15,6 +21,8 @@ class RinseFMBaseIE(InfoExtractor):
                               {lambda x: x and f'https://rinse.imgix.net/media/{x}'}),
             }),
             'vcodec': 'none',
+            'extractor_key': RinseFMIE.ie_key(),
+            'extractor': RinseFMIE.IE_NAME,
         }
 
 
@@ -74,7 +82,8 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
 
         episodes = traverse_obj(
             self._search_nextjs_data(webpage, playlist_id),
-            ('props', 'pageProps', 'episodes', lambda _, v: v['fileUrl'].endswith('mp3')))
+            ('props', 'pageProps', 'episodes',
+             lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio))
 
         return self.playlist_result(
             self._entries(episodes), playlist_id, title, description=description)
