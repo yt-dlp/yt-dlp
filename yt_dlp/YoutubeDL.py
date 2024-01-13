@@ -101,6 +101,7 @@ from .utils import (
     SameFileError,
     UnavailableVideoError,
     UserNotLive,
+    YoutubeDLError,
     age_restricted,
     args_to_str,
     bug_reports_message,
@@ -157,7 +158,6 @@ from .utils import (
     windows_enable_vt_mode,
     write_json_file,
     write_string,
-    YoutubeDLError,
 )
 from .utils._utils import _YDLLogger
 from .utils.networking import (

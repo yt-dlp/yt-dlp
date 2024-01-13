@@ -50,13 +50,13 @@ from yt_dlp.networking.exceptions import (
     TransportError,
     UnsupportedRequest,
 )
-from yt_dlp.networking.impersonate import ImpersonateRequestHandler, ImpersonateTarget
-from yt_dlp.utils._utils import _YDLLogger as FakeLogger
-from yt_dlp.utils import YoutubeDLError
-from yt_dlp.utils.networking import (
-    HTTPHeaderDict,
-    std_headers,
+from yt_dlp.networking.impersonate import (
+    ImpersonateRequestHandler,
+    ImpersonateTarget,
 )
+from yt_dlp.utils import YoutubeDLError
+from yt_dlp.utils._utils import _YDLLogger as FakeLogger
+from yt_dlp.utils.networking import HTTPHeaderDict, std_headers
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
