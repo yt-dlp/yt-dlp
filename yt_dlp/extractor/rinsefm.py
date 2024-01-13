@@ -19,6 +19,8 @@ class RinseFMBaseIE(InfoExtractor):
                 'release_timestamp': ('episodeDate', {parse_iso8601}),
                 'thumbnail': ('featuredImage', 0, 'filename', {str},
                               {lambda x: x and f'https://rinse.imgix.net/media/{x}'}),
+                'webpage_url': ('slug', {str},
+                                {lambda x: x and f'https://rinse.fm/episodes/{x}'}),
             }),
             'vcodec': 'none',
             'extractor_key': RinseFMIE.ie_key(),
