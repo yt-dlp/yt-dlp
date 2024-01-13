@@ -8,7 +8,6 @@ from .common import RequestHandler, register_preference
 from .exceptions import UnsupportedRequest
 from ..compat.types import NoneType
 from ..utils import classproperty
-from ..utils.networking import std_headers
 
 
 @dataclass(order=True)
@@ -78,6 +77,26 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
     """
     _SUPPORTED_IMPERSONATE_TARGET_MAP: dict[ImpersonateTarget, Any] = {}
 
+    _IMPERSONATE_HEADERS_BLACKLIST = [
+        # Headers to remove from provided headers when impersonating.
+        # In the networking framework, the provided headers are intended
+        # to give a consistent user agent across request handlers.
+        # However, it is intended that the impersonation implementation will add the required headers to mimic a client.
+        # So we need to remove provided headers that may interfere with this behaviour.
+        # TODO(future): Add a method of excluding headers from this blacklist, such as User-Agent in certain cases.
+        # TODO(future): "Accept" should be included here, however it is currently required for some sites.
+        'User-Agent',
+        'Accept-Language',
+        'Sec-Fetch-Mode',
+        'Sec-Fetch-Site',
+        'Sec-Fetch-User',
+        'Sec-Fetch-Dest',
+        'Upgrade-Insecure-Requests',
+        'Sec-Ch-Ua',
+        'Sec-Ch-Ua-Mobile',
+        'Sec-Ch-Ua-Platform',
+    ]
+
     def __init__(self, *, impersonate: ImpersonateTarget = None, **kwargs):
         super().__init__(**kwargs)
         self.impersonate = impersonate
@@ -130,10 +149,8 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
     def _get_impersonate_headers(self, request):
         headers = self._merge_headers(request.headers)
         if self._get_request_target(request) is not None:
-            # remove all headers present in std_headers
-            for header in std_headers:
-                if header in headers and std_headers[header] == headers[header]:
-                    headers.pop(header, None)
+            for header in self._IMPERSONATE_HEADERS_BLACKLIST:
+                headers.pop(header, None)
         return headers
 
 
