@@ -987,15 +987,39 @@ def _real_main(argv=None):
             ydl._download_retcode = 100
 
         if opts.list_impersonate_targets:
+
+            known_targets = [
+                # List of simplified targets we know are supported,
+                # to help users know what dependencies may be required.
+                (ImpersonateTarget('chrome'), 'curl_cffi'),
+                (ImpersonateTarget('edge'), 'curl_cffi'),
+                (ImpersonateTarget('safari'), 'curl_cffi'),
+                (ImpersonateTarget('chrome', os='android'), 'curl_cffi'),
+            ]
+
             available_targets = ydl.get_available_impersonate_targets()
+
             rows = [
-                [target.client, target.version, target.os, target.os_vers, handler]
+                [target.client or '-', target.version or '-', target.os or '-', target.os_vers or '-', handler]
                 for target, handler in available_targets
             ]
 
+            for known_target, known_handler in known_targets:
+                if not any(
+                    known_target in target and handler == known_handler
+                    for target, handler in available_targets
+                ):
+                    rows.append([
+                        ydl._format_out(known_target.client or '-', ydl.Styles.SUPPRESS),
+                        ydl._format_out(known_target.version or '-', ydl.Styles.SUPPRESS),
+                        ydl._format_out(known_target.os or '-', ydl.Styles.SUPPRESS),
+                        ydl._format_out(known_target.os_vers or '-', ydl.Styles.SUPPRESS),
+                        ydl._format_out(f'{known_handler} (not installed)', ydl.Styles.SUPPRESS),
+                    ])
+
             ydl.to_screen('[info] Available impersonate targets')
             ydl.to_stdout(
-                render_table(['Client', 'Version', 'OS', 'OS Version', 'Source'], rows)
+                render_table(['Client', 'Version', 'OS', 'OS Version', 'Source'], rows, extra_gap=1)
             )
             return
 
