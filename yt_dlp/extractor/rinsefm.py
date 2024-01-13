@@ -1,8 +1,24 @@
 from .common import InfoExtractor
-from ..utils import format_field, parse_iso8601, traverse_obj, urljoin
+from ..utils import format_field, parse_iso8601, traverse_obj
 
 
-class RinseFMIE(InfoExtractor):
+class RinseFMBaseIE(InfoExtractor):
+    @staticmethod
+    def _parse_entry(entry):
+        return {
+            **traverse_obj(entry, {
+                'id': ('id'),
+                'title': ('title'),
+                'url': ('fileUrl'),
+                'vcode': 'none',
+                'release_timestamp': ('episodeDate', {parse_iso8601}),
+            }),
+            'thumbnail': format_field(
+                entry, [('featuredImage', 0, 'filename')], 'https://rinse.imgix.net/media/%s', default=None),
+        }
+
+
+class RinseFMIE(RinseFMBaseIE):
     _VALID_URL = r'https?://(?:www\.)?rinse\.fm/episodes/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://rinse.fm/episodes/club-glow-15-12-2023-2000/',
@@ -22,18 +38,10 @@ class RinseFMIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         entry = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['entry']
 
-        return {
-            'id': entry['id'],
-            'title': entry.get('title'),
-            'url': entry['fileUrl'],
-            'vcodec': 'none',
-            'release_timestamp': parse_iso8601(entry.get('episodeDate')),
-            'thumbnail': format_field(
-                entry, [('featuredImage', 0, 'filename')], 'https://rinse.imgix.net/media/%s', default=None),
-        }
+        return self._parse_entry(entry)
 
 
-class RinseFMArtistPlaylistIE(InfoExtractor):
+class RinseFMArtistPlaylistIE(RinseFMBaseIE):
     _VALID_URL = r'https?://(?:www\.)?rinse\.fm/shows/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://rinse.fm/shows/resources/',
@@ -50,12 +58,12 @@ class RinseFMArtistPlaylistIE(InfoExtractor):
             'title': '[IVY]',
             'description': 'A dedicated space for DNB/Turbo House and 4x4.'
         },
-        'playlist_mincount': 9
+        'playlist_mincount': 7
     }]
 
     def _entries(self, episodes):
         for episode in episodes:
-            yield episode.get('slug')
+            yield self._parse_entry(episode)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -64,9 +72,9 @@ class RinseFMArtistPlaylistIE(InfoExtractor):
         description = self._og_search_description(webpage) or self._html_search_meta(
             'description', webpage)
 
-        episodes = traverse_obj(self._search_nextjs_data(
-            webpage, playlist_id), ('props', 'pageProps', 'episodes'))
+        episodes = traverse_obj(
+            self._search_nextjs_data(webpage, playlist_id),
+            ('props', 'pageProps', 'episodes', lambda _, v: v['fileUrl'].endswith('mp3')))
 
-        return self.playlist_from_matches(
-            self._entries(episodes), playlist_id, title, description=description,
-            ie=RinseFMIE, getter=lambda x: urljoin('https://rinse.fm/episodes/', x))
+        return self.playlist_result(
+            self._entries(episodes), playlist_id, title, description=description)
