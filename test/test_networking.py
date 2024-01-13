@@ -886,6 +886,24 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
         assert exc_info.type is expected
 
+    @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
+    def test_close(self, handler, monkeypatch):
+        rh = handler()
+        session = rh._get_instance(cookiejar=rh.cookiejar)
+        called = False
+        original_close = session.close
+
+        def mock_close(*args, **kwargs):
+            nonlocal called
+            called = True
+            return original_close(*args, **kwargs)
+
+        monkeypatch.setattr(session, 'close', mock_close)
+
+        rh.close()
+
+        assert called is True
+
 
 def run_validation(handler, error, req, **handler_kwargs):
     with handler(**handler_kwargs) as rh:
@@ -1195,6 +1213,19 @@ class TestRequestDirector:
         assert director.send(Request('http://')).read() == b''
         assert director.send(Request('http://', headers={'prefer': '1'})).read() == b'supported'
 
+    def test_close(self, monkeypatch):
+        director = RequestDirector(logger=FakeLogger())
+        director.add_handler(FakeRH(logger=FakeLogger()))
+        called = False
+
+        def mock_close(*args, **kwargs):
+            nonlocal called
+            called = True
+
+        monkeypatch.setattr(director.handlers[FakeRH.RH_KEY], 'close', mock_close)
+        director.close()
+        assert called is True
+
 
 # XXX: do we want to move this to test_YoutubeDL.py?
 class TestYoutubeDLNetworking:
@@ -1376,6 +1407,23 @@ class TestYoutubeDLNetworking:
             director = ydl.build_request_director([UrllibRH])
             assert len(director.preferences) == 1
             assert director.preferences.pop()(UrllibRH, None)
+
+    def test_close(self, monkeypatch):
+        with FakeYDL() as ydl:
+            director = ydl._request_director
+            called = False
+            original_close = director.close
+
+            def mock_close(*args, **kwargs):
+                nonlocal called
+                called = True
+                return original_close(*args, **kwargs)
+
+            monkeypatch.setattr(director, 'close', mock_close)
+
+            ydl.close()
+
+            assert called is True
 
 
 class TestRequest:
