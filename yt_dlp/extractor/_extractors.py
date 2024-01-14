@@ -540,7 +540,7 @@ from .egghead import (
 from .eighttracks import EightTracksIE
 from .einthusan import EinthusanIE
 from .eitb import EitbIE
-from .elementorgeneral import ElementorGeneralIE
+from .elementorgeneral import ElementorEmbedIE
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
 from .eltrecetv import ElTreceTVIE
