@@ -14,9 +14,9 @@ PYTHON ?= /usr/bin/env python3
 
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
-# make pypi-files && python setup.py sdist
+# make pypi-files && python3 -m build -s .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
-	        completions yt-dlp.1 requirements.txt setup.cfg devscripts/* test/*
+	        completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
 	-mv -f pyproject.toml.old pyproject.toml
 	cp -f pyproject.toml pyproject.toml.old
 	$(PYTHON) devscripts/include_data_files.py pyproject.toml
@@ -149,7 +149,7 @@ yt-dlp.tar.gz: all
 		README.md supportedsites.md Changelog.md LICENSE \
 		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
 		Makefile MANIFEST.in yt-dlp.1 README.txt completions \
-		setup.py setup.cfg yt-dlp yt_dlp requirements.txt \
+		setup.cfg yt-dlp yt_dlp pyproject.toml \
 		devscripts test
 
 AUTHORS: .mailmap
