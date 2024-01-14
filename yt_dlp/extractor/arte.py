@@ -143,7 +143,6 @@ class ArteTVIE(ArteTVBaseIE):
         updated_subs = {}
         for lang, sub_formats in subs.items():
             for format in sub_formats:
-                print(format.get('url', ''))
                 if format.get('url', '').endswith('-MAL.m3u8'):
                     lang += '-acc'
                 updated_subs.setdefault(lang, []).append(format)
