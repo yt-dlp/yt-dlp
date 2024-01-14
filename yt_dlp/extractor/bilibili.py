@@ -1667,7 +1667,7 @@ class BiliIntlBaseIE(InfoExtractor):
             sub_data = self._download_webpage(
                 sub['url'], ep_id or aid, fatal=False,
                 encoding='utf-8-sig' if sub_ext == 'ass' else None,
-                note=f'Downloading subtitles{format_field(sub, "lang", "for %s")} ({sub_lang})',
+                note=f'Downloading subtitles{format_field(sub, "lang", " for %s")} ({sub_lang})',
                 errnote='Unable to download subtitles')
             if sub_ext != 'ass':
                 sub_ext, sub_data = 'srt', self.json2srt(sub_data)
@@ -1689,7 +1689,7 @@ class BiliIntlBaseIE(InfoExtractor):
             if sub.get('srt'):
                 sub_data = self._download_json(
                     traverse_obj(sub, ('srt', 'url')), ep_id or aid, fatal=False,
-                    note=f'Downloading subtitles{format_field(sub, "lang", "for %s")} ({sub_lang})',
+                    note=f'Downloading subtitles{format_field(sub, "lang", " for %s")} ({sub_lang})',
                     errnote='Unable to download subtitles')
                 if sub_data:
                     subtitles.setdefault(sub_lang, []).append({
