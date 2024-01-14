@@ -16,6 +16,7 @@ from ..utils import (
     determine_ext,
     error_to_compat_str,
     float_or_none,
+    format_field,
     get_element_by_id,
     get_first,
     int_or_none,
@@ -51,7 +52,7 @@ class FacebookIE(InfoExtractor):
                             )\?(?:.*?)(?:v|video_id|story_fbid)=|
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
-                            groups/[^/]+/permalink/|
+                            groups/[^/]+/(?:permalink|posts)/|
                             watchparty/
                         )|
                     facebook:
@@ -74,6 +75,22 @@ class FacebookIE(InfoExtractor):
     _VIDEO_PAGE_TAHOE_TEMPLATE = 'https://www.facebook.com/video/tahoe/async/%s/?chain=true&isvideo=true&payloadtype=primary'
 
     _TESTS = [{
+        'url': 'https://www.facebook.com/radiokicksfm/videos/3676516585958356/',
+        'info_dict': {
+            'id': '3676516585958356',
+            'ext': 'mp4',
+            'title': 'dr Adam Przygoda',
+            'description': 'md5:34675bda53336b1d16400265c2bb9b3b',
+            'uploader': 'RADIO KICKS FM',
+            'upload_date': '20230818',
+            'timestamp': 1692346159,
+            'thumbnail': r're:^https?://.*',
+            'uploader_id': '100063551323670',
+            'duration': 3132.184,
+            'view_count': int,
+            'concurrent_view_count': 0,
+        },
+    }, {
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
         'info_dict': {
@@ -97,7 +114,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20140506',
             'timestamp': 1399398998,
             'thumbnail': r're:^https?://.*',
-            'uploader_id': 'pfbid04scW44U4P9iTyLZAGy8y8W3pR3i2VugvHCimiRudUAVbN3MPp9eXBaYFcgVworZwl',
+            'uploader_id': 'pfbid028wxorhX2ErLFJ578N6P3crHD3PHmXTCqCvfBpsnbSLmbokwSY75p5hWBjHGkG4zxl',
             'duration': 131.03,
             'concurrent_view_count': int,
         },
@@ -179,7 +196,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1486648217,
             'upload_date': '20170209',
             'uploader': 'Yaroslav Korpan',
-            'uploader_id': 'pfbid029y8j22EwH3ikeqgH3SEP9G3CAi9kmWKgXJJG9s5geV7mo3J2bvURqHCdgucRgAyhl',
+            'uploader_id': 'pfbid06AScABAWcW91qpiuGrLt99Ef9tvwHoXP6t8KeFYEqkSfreMtfa9nTveh8b2ZEVSWl',
             'concurrent_view_count': int,
             'thumbnail': r're:^https?://.*',
             'view_count': int,
@@ -215,6 +232,21 @@ class FacebookIE(InfoExtractor):
             'uploader_id': '100013949973717',
         },
         'skip': 'Requires logging in',
+    }, {
+        # data.node.comet_sections.content.story.attachments[].throwbackStyles.attachment_target_renderer.attachment.target.attachments[].styles.attachment.media
+        'url': 'https://www.facebook.com/groups/1645456212344334/posts/3737828833107051/',
+        'info_dict': {
+            'id': '1569199726448814',
+            'ext': 'mp4',
+            'title': 'Pence MUST GO!',
+            'description': 'Vickie Gentry shared a memory.',
+            'timestamp': 1511548260,
+            'upload_date': '20171124',
+            'uploader': 'Vickie Gentry',
+            'uploader_id': 'pfbid0FuZhHCeWDAxWxEbr3yKPFaRstXvRxgsp9uCPG6GjD4J2AitB35NUAuJ4Q75KcjiDl',
+            'thumbnail': r're:^https?://.*',
+            'duration': 148.435,
+        },
     }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,
@@ -274,7 +306,7 @@ class FacebookIE(InfoExtractor):
             'title': 'Josef',
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
-            'uploader_id': 'pfbid02gXHbDwxumkaKJQaTGUf3znYfYzTuidGEWawiramNx4YamSj2afwYSRkpcjtHtMRJl',
+            'uploader_id': 'pfbid0cibUN6tV7DYgdbJdsUFN46wc4jKpVSPAvJQhFofGqBGmVn3V3JtAs2tfUwziw2hUl',
             'timestamp': 1549275572,
             'duration': 3.413,
             'uploader': 'Josef Novak',
@@ -401,9 +433,32 @@ class FacebookIE(InfoExtractor):
 
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'handleWithCustomApplyEach\(\s*ScheduledApplyEach\s*,\s*(\{.+?\})\s*\);', webpage)]
+                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
-                ..., 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+                ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+
+            automatic_captions, subtitles = {}, {}
+            subs_data = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')))
+            is_video_broadcast = get_first(subs_data, 'is_video_broadcast', expected_type=bool)
+            captions = get_first(subs_data, 'video_available_captions_locales', 'captions_url')
+            if url_or_none(captions):  # if subs_data only had a 'captions_url'
+                locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+                subtitles[locale] = [{'url': captions}]
+            # or else subs_data had 'video_available_captions_locales', a list of dicts
+            for caption in traverse_obj(captions, (
+                {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
+            ):
+                lang = caption.get('localized_language') or ''
+                subs = {
+                    'url': caption['captions_url'],
+                    'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
+                }
+                if caption.get('localized_creation_method') or is_video_broadcast:
+                    automatic_captions.setdefault(caption['locale'], []).append(subs)
+                else:
+                    subtitles.setdefault(caption['locale'], []).append(subs)
+
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -447,6 +502,8 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'automatic_captions': automatic_captions,
+                'subtitles': subtitles,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -489,18 +546,17 @@ class FacebookIE(InfoExtractor):
             # with non-browser User-Agent.
             for f in info['formats']:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-            info['_format_sort_fields'] = ('res', 'quality')
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
-                r'handleWithCustomApplyEach\([^,]+,\s*({.*?%s.*?})\);' % _filter,
+                r'data-sjs>({.*?%s.*?})</script>' % _filter,
                 webpage, 'replay data', default='{}'), video_id, fatal=False) or {}
 
         def extract_relay_prefetched_data(_filter):
-            replay_data = extract_relay_data(_filter)
-            for require in (replay_data.get('require') or []):
-                if require[0] == 'RelayPrefetchedStreamCache':
-                    return try_get(require, lambda x: x[3][1]['__bbox']['result']['data'], dict) or {}
+            return traverse_obj(extract_relay_data(_filter), (
+                'require', (None, (..., ..., ..., '__bbox', 'require')),
+                lambda _, v: 'RelayPrefetchedStreamCache' in v, ..., ...,
+                '__bbox', 'result', 'data', {dict}), get_all=False) or {}
 
         if not video_data:
             server_js_data = self._parse_json(self._search_regex([
@@ -511,7 +567,7 @@ class FacebookIE(InfoExtractor):
 
         if not video_data:
             data = extract_relay_prefetched_data(
-                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)"\s*:\s*"[^"]+"')
+                r'"(?:dash_manifest|playable_url(?:_quality_hd)?)')
             if data:
                 entries = []
 
@@ -526,7 +582,8 @@ class FacebookIE(InfoExtractor):
                     formats = []
                     q = qualities(['sd', 'hd'])
                     for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
-                                           ('playable_url_dash', '')):
+                                           ('playable_url_dash', ''), ('browser_native_hd_url', 'hd'),
+                                           ('browser_native_sd_url', 'sd')):
                         playable_url = video.get(key)
                         if not playable_url:
                             continue
@@ -535,7 +592,8 @@ class FacebookIE(InfoExtractor):
                         else:
                             formats.append({
                                 'format_id': format_id,
-                                'quality': q(format_id),
+                                # sd, hd formats w/o resolution info should be deprioritized below DASH
+                                'quality': q(format_id) - 3,
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
@@ -569,9 +627,11 @@ class FacebookIE(InfoExtractor):
                 nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
                 attachments = traverse_obj(nodes, (
                     ..., 'comet_sections', 'content', 'story', (None, 'attached_story'), 'attachments',
-                    ..., ('styles', 'style_type_renderer'), 'attachment'), expected_type=dict) or []
+                    ..., ('styles', 'style_type_renderer', ('throwbackStyles', 'attachment_target_renderer')),
+                    'attachment', {dict}))
                 for attachment in attachments:
-                    ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
+                    ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
+                                      ('target', 'attachments', ..., 'styles', 'attachment', {dict}))
                     for n in ns:
                         parse_attachment(n)
                     parse_attachment(attachment)
@@ -594,7 +654,7 @@ class FacebookIE(InfoExtractor):
                 if len(entries) > 1:
                     return self.playlist_result(entries, video_id)
 
-                video_info = entries[0]
+                video_info = entries[0] if entries else {'id': video_id}
                 webpage_info = extract_metadata(webpage)
                 # honor precise duration in video info
                 if video_info.get('duration'):
@@ -702,9 +762,11 @@ class FacebookIE(InfoExtractor):
                 for src_type in ('src', 'src_no_ratelimit'):
                     src = f[0].get('%s_%s' % (quality, src_type))
                     if src:
-                        preference = -10 if format_id == 'progressive' else -1
+                        # sd, hd formats w/o resolution info should be deprioritized below DASH
+                        # TODO: investigate if progressive or src formats still exist
+                        preference = -10 if format_id == 'progressive' else -3
                         if quality == 'hd':
-                            preference += 5
+                            preference += 1
                         formats.append({
                             'format_id': '%s_%s_%s' % (format_id, quality, src_type),
                             'url': src,

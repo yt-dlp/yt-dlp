@@ -37,14 +37,14 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
     @staticmethod
     def _smuggle_referrer(url, referrer_url):
-        return smuggle_url(url, {'http_headers': {'Referer': referrer_url}})
+        return smuggle_url(url, {'referer': referrer_url})
 
     def _unsmuggle_headers(self, url):
         """@returns (url, smuggled_data, headers)"""
         url, data = unsmuggle_url(url, {})
         headers = self.get_param('http_headers').copy()
-        if 'http_headers' in data:
-            headers.update(data['http_headers'])
+        if 'referer' in data:
+            headers['Referer'] = data['referer']
         return url, data, headers
 
     def _perform_login(self, username, password):

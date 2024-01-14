@@ -1,4 +1,5 @@
 import re
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -137,7 +138,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
         mediagen_doc = self._download_xml(
             mediagen_url, video_id, 'Downloading video urls', fatal=False)
 
-        if mediagen_doc is False:
+        if not isinstance(mediagen_doc, xml.etree.ElementTree.Element):
             return None
 
         item = mediagen_doc.find('./video/item')

@@ -81,6 +81,7 @@ class VootBaseIE(InfoExtractor):
 
 
 class VootIE(VootBaseIE):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                     (?:
                         voot:|
@@ -169,6 +170,7 @@ class VootIE(VootBaseIE):
 
 
 class VootSeriesIE(VootBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?voot\.com/shows/[^/]+/(?P<id>\d{3,})'
     _TESTS = [{
         'url': 'https://www.voot.com/shows/chakravartin-ashoka-samrat/100002',

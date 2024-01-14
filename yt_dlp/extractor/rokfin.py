@@ -40,7 +40,6 @@ class RokfinIE(InfoExtractor):
             'channel': 'Jimmy Dore',
             'channel_id': 65429,
             'channel_url': 'https://rokfin.com/TheJimmyDoreShow',
-            'duration': 213.0,
             'availability': 'public',
             'live_status': 'not_live',
             'dislike_count': int,
