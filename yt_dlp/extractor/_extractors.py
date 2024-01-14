@@ -681,9 +681,7 @@ from .genius import (
     GeniusIE,
     GeniusLyricsIE,
 )
-from .getcourseru import (
-    GetCourseRuIE
-)
+from .getcourseru import GetCourseRuIE
 from .gettr import (
     GettrIE,
     GettrStreamingIE,
