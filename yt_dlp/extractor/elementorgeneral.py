@@ -5,7 +5,7 @@ from ..utils import unescapeHTML, url_or_none
 from ..utils.traversal import traverse_obj
 
 
-class ElementorGeneralIE(InfoExtractor):
+class ElementorEmbedIE(InfoExtractor):
     _VALID_URL = False
     _WEBPAGE_TESTS = [{
         'url': 'https://capitaltv.cy/2023/12/14/υγεια-και-ζωη-14-12-2023-δρ-ξενια-κωσταντινιδο/',
