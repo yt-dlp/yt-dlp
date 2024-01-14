@@ -46,7 +46,7 @@ class ElementorGeneralIE(InfoExtractor):
             'description': 'md5:7f52c52715ee9e54fd7f82210511673d',
             'thumbnail': 'https://elementor.com/academy/wp-content/uploads/2021/07/Theme-Builder-1.png',
         },
-        'playlist_mincount': 2,
+        'playlist_count': 11,
         'params': {
             'skip_download': True,
         },
