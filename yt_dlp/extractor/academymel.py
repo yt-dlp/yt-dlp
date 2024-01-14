@@ -10,9 +10,6 @@ class AcademyMelIE(InfoExtractor):
     _TEST_EMAIL = 'meriat@jaga.email'  # use this as username in the test/local_parameters.json if running the test
     _TEST_PASSWORD = 'bBY-ccbp$8'  # use this as password in the test/local_parameters.json if running the test
 
-    _CACHE_KEY = 'academymel'
-    _CACHE_SUBKEY = 'login-cookie-header'
-
     _NETRC_MACHINE = 'academymel'
     _LOGIN_URL = 'https://academymel.online/cms/system/login'
     _VALID_URL = r'^https?:\/\/academymel\.online\/(?P<url>.*)$'

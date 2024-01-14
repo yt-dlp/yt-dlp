@@ -38,12 +38,6 @@ class GetCourseRuIE(InfoExtractor):
             video_id=None,
             fatal=True)
 
-        self.to_screen('videoId: %s, videoHash: %s, masterPlaylistUrl: %s, thumbnail_url: %s'
-                       % (window_configs.get('videoId'),
-                          window_configs.get('videoHash'),
-                          window_configs.get('masterPlaylistUrl'),
-                          window_configs.get('previewUrl')))
-
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             window_configs.get('masterPlaylistUrl'),
             window_configs.get('videoId'))
