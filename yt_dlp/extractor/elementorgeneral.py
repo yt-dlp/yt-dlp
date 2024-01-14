@@ -53,9 +53,10 @@ class ElementorGeneralIE(InfoExtractor):
     }]
 
     def _extract_from_webpage(self, url, webpage):
-        for element in re.findall(r'<div[^>]+class="[^"]*elementor-widget-(?:video|video-playlist)[^"]*"[^>]*data-settings="([^"]*)"', webpage):
-            data_settings = unescapeHTML(clean_html(element))
-            data = self._parse_json(data_settings, None, fatal=False)
+        for data_settings in re.findall(
+            r'<div[^>]+class="[^"]*elementor-widget-video(?:-playlist)?[^"]*"[^>]*data-settings="([^"]*)"', webpage):
+
+            data = self._parse_json(data_settings, None, fatal=False, transform_source=unescapeHTML)
             tabs = data.get('tabs', [])
             if tabs:  # Handling playlists
                 for tab in tabs:
