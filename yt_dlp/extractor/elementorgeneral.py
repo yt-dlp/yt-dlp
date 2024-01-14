@@ -1,10 +1,8 @@
-from .common import InfoExtractor
 import re
-from ..utils import (
-    traverse_obj,
-    clean_html,
-    unescapeHTML,
-)
+
+from .common import InfoExtractor
+from ..utils import unescapeHTML, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class ElementorGeneralIE(InfoExtractor):
