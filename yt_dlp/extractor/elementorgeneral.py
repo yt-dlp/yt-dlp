@@ -57,39 +57,17 @@ class ElementorGeneralIE(InfoExtractor):
             r'<div[^>]+class="[^"]*elementor-widget-video(?:-playlist)?[^"]*"[^>]*data-settings="([^"]*)"', webpage):
 
             data = self._parse_json(data_settings, None, fatal=False, transform_source=unescapeHTML)
-            tabs = data.get('tabs', [])
-            if tabs:  # Handling playlists
-                for tab in tabs:
-                    video_url = tab.get('youtube_url') or tab.get('vimeo_url') or tab.get('dailymotion_url') or tab.get('videopress_url')
-                    if video_url:
-                        title = tab.get('title') or self._og_search_title(webpage)
-                        thumbnail = tab.get('thumbnail', {}).get('url') or self._og_search_thumbnail(webpage)
-                        ie_key = self._get_ie_key(video_url)
-                        yield self._build_result(video_url, title, thumbnail, ie_key)
-            else:
-                video_url = data.get('youtube_url') or data.get('vimeo_url') or data.get('dailymotion_url') or data.get('videopress_url')
-                title = data.get('title') or self._og_search_title(webpage)
-                thumbnail = traverse_obj(data, ('image_overlay', 'url')) or self._og_search_thumbnail(webpage)
-                ie_key = self._get_ie_key(video_url)
-                yield self._build_result(video_url, title, thumbnail, ie_key)
+            if youtube_url := traverse_obj(data, ('youtube_url', {url_or_none})):
+                yield self.url_result(youtube_url, ie='Youtube')
 
-    def _get_ie_key(self, url):
-        if 'youtube' in url or 'youtu.be' in url:
-            return 'Youtube'
-        elif 'vimeo' in url:
-            return 'Vimeo'
-        elif 'dailymotion' in url:
-            return 'Dailymotion'
-        elif 'videopress' in url:
-            return 'Videopress'
-        return 'Generic'
-
-    def _build_result(self, video_url, title, thumbnail, ie_key):
-        return {
-            'id': video_url,
-            'title': title,
-            '_type': 'url_transparent',
-            'url': video_url,
-            'thumbnail': thumbnail,
-            'ie_key': ie_key,
-        }
+            for video in traverse_obj(data, ('tabs', lambda _, v: v['_id'], {dict})):
+                if youtube_url := traverse_obj(video, ('youtube_url', {url_or_none})):
+                    yield self.url_result(youtube_url, ie='Youtube')
+                if vimeo_url := traverse_obj(video, ('vimeo_url', {url_or_none})):
+                    yield self.url_result(vimeo_url, ie='Vimeo')
+                for direct_url in traverse_obj(video, (('hosted_url', 'external_url'), 'url', {url_or_none})):
+                    yield {
+                        'id': video['_id'],
+                        'url': direct_url,
+                        'title': video.get('title'),
+                    }
