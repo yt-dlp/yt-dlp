@@ -57,6 +57,7 @@ build = [
     "wheel"
 ]
 pyinst = ["Pyinstaller>=6.3"]
+py2exe = ["py2exe>=0.12"]
 ci = [
     "flake8"
     "pytest"
