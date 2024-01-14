@@ -253,8 +253,7 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
-          python -m pip install -U pip setuptools wheel twine
-          python -m pip install -U -r requirements.txt
+          python -m pip install -U build setuptools wheel
 
       - name: Prepare
         env:
@@ -273,7 +272,7 @@ jobs:
           rm -rf dist/*
           make pypi-files
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
-          python setup.py sdist bdist_wheel
+          python -m build --no-isolation .
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
