@@ -51,9 +51,7 @@ class ElementorGeneralIE(InfoExtractor):
     }]
 
     def _extract_from_webpage(self, url, webpage):
-        for data_settings in re.findall(
-            r'<div[^>]+class="[^"]*elementor-widget-video(?:-playlist)?[^"]*"[^>]*data-settings="([^"]*)"', webpage):
-
+        for data_settings in re.findall(r'<div[^>]+class="[^"]*elementor-widget-video(?:-playlist)?[^"]*"[^>]*data-settings="([^"]*)"', webpage):
             data = self._parse_json(data_settings, None, fatal=False, transform_source=unescapeHTML)
             if youtube_url := traverse_obj(data, ('youtube_url', {url_or_none})):
                 yield self.url_result(youtube_url, ie='Youtube')
