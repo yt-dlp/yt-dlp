@@ -16,7 +16,6 @@ from ..utils import (
 class ArteTVBaseIE(InfoExtractor):
     _ARTE_LANGUAGES = 'fr|de|en|es|it|pl'
     _API_BASE = 'https://api.arte.tv/api/player/v2'
-    _ARTE_ACCESSIBLE_SUBS_SUFFIX = '-MAL.m3u8'
 
 
 class ArteTVIE(ArteTVBaseIE):
@@ -71,7 +70,24 @@ class ArteTVIE(ArteTVBaseIE):
             'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
             'upload_date': '20230930',
             'ext': 'mp4',
-        }
+        },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/085374-003-A/im-hohen-norden-geboren/',
+        'info_dict': {
+            'id': '085374-003-A',
+            'ext': 'mp4',
+            'description': 'md5:ab79ec7cc472a93164415b4e4916abf9',
+            'timestamp': 1702872000,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/TnyHBfPxv3v2GEY3suXGZP/940x530',
+            'duration': 2594,
+            'title': 'Die kurze Zeit der Jugend',
+            'alt_title': 'Im hohen Norden geboren',
+            'upload_date': '20231218',
+            'subtitles': {
+                'fr': 'mincount:1',
+                'fr-acc': 'mincount:1',
+            },
+        },
     }]
 
     _GEO_BYPASS = True
@@ -122,23 +138,16 @@ class ArteTVIE(ArteTVBaseIE):
         ),
     }
 
-    def _contvert_accessible_subs_locale(self, subs):
-        """Gives a different locale code to accessible subttiles.
-
-        Some videos have multiple subtitles for the same language. A normal
-        subtitle and some accessible subtitles. This method will transform
-        the language code for accessible subtitles by appending a '-acc' suffix
-        to its language code.
-        """
-        extracted_subs = {}
-
-        for locale, sub_content in subs.items():
-            if any(item.get('url', '').endswith(self._ARTE_ACCESSIBLE_SUBS_SUFFIX) for item in sub_content):
-                locale += '-acc'
-
-            extracted_subs[locale] = sub_content
-
-        return extracted_subs
+    @staticmethod
+    def _fix_accessible_subs_locale(subs):
+        updated_subs = {}
+        for lang, sub_formats in subs.items():
+            for format in sub_formats:
+                print(format.get('url', ''))
+                if format.get('url', '').endswith('-MAL.m3u8'):
+                    lang += '-acc'
+                updated_subs.setdefault(lang, []).append(format)
+        return updated_subs
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -184,7 +193,6 @@ class ArteTVIE(ArteTVBaseIE):
             if 'HLS' in stream['protocol']:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
-                subs = self._contvert_accessible_subs_locale(subs)
                 for fmt in fmts:
                     fmt.update({
                         'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
@@ -194,6 +202,7 @@ class ArteTVIE(ArteTVBaseIE):
                     secondary_formats.extend(fmts)
                 else:
                     formats.extend(fmts)
+                subs = self._fix_accessible_subs_locale(subs)
                 self._merge_subtitles(subs, target=subtitles)
 
             elif stream['protocol'] in ('HTTPS', 'RTMP'):
