@@ -15,11 +15,11 @@ class Mx3IE(InfoExtractor):
             'id': '1Cru',
             # This one is audio-only. It's a mp3, but we have to make a HEAD request to find out.
             'ext': 'mp3',
-            'artist': ['Tortue Tortue', 'Godina'],
+            'artist': 'Tortue Tortue, Godina',
             'composer': 'Olivier Godinat',
-            'genre': ['Rock'],
+            'genre': 'Rock',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_xlarge/1-s-envoler-1.jpg?1630272813',
-            'title': 'Tortue Tortue, Godina - S\'envoler',
+            'title': 'S\'envoler',
         }
     }, {
         'url': 'https://mx3.ch/t/1LIY',
@@ -28,9 +28,9 @@ class Mx3IE(InfoExtractor):
             'id': '1LIY',
             # This is a music video. 'file' says: ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]
             'ext': 'mp4',
-            'artist': ['The Broots', 'Tania Kimfumu'],
+            'artist': 'The Broots, Tania Kimfumu',
             'composer': 'Emmanuel Diserens',
-            'genre': ['Electro'],
+            'genre': 'Electro',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_xlarge/frame_0000.png?1686963670',
             'title': 'The Broots-Larytta remix "Begging For Help"',
         }
@@ -41,11 +41,11 @@ class Mx3IE(InfoExtractor):
             'id': '1C6E',
             # This one has a download button, yielding a WAV.
             'ext': 'wav',
-            'artist': ['Alien Bubblegum'],
+            'artist': 'Alien Bubblegum',
             'composer': 'Alien Bubblegum',
-            'genre': ['Punk'],
+            'genre': 'Punk',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/1551/square_xlarge/pandora-s-box-cover-with-title.png?1627054733',
-            'title': 'Alien Bubblegum - Wide Awake',
+            'title': 'Wide Awake',
         }
     }]
 
@@ -54,8 +54,6 @@ class Mx3IE(InfoExtractor):
         webpage = self._download_webpage(url, track_id)
         json = self._download_json(f'https://{self._MX3_DOMAIN}/t/{track_id}.json', track_id)
 
-        title = json['title']
-
         artists = []
         if json.get('artist'):
             artists.append(json['artist'])
@@ -63,14 +61,10 @@ class Mx3IE(InfoExtractor):
         if performer and performer not in artists:
             artists.append(performer)
 
-        if artists and not title.startswith(artists[0]):
-            title = ', '.join(artists) + ' - ' + title
+        title = json['title']
 
         genre = self._html_search_regex(r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>',
                                         webpage, 'genre', fatal=False, flags=re.DOTALL)
-        if genre:
-            assert isinstance(genre, str)
-            genre = [s.strip() for s in genre.split(',')]
 
         formats = []
 
@@ -107,7 +101,7 @@ class Mx3IE(InfoExtractor):
             'id': track_id,
             'formats': formats,
             'title': title,
-            'artist': artists,
+            'artist': ', '.join(artists),
             'composer': json.get('composer_name', None),
             'genre': genre,
             'thumbnail': json.get('picture_url_xlarge') or json.get('picture_url'),
@@ -123,10 +117,10 @@ class Mx3NeoIE(Mx3IE):
         'info_dict': {
             'id': '1hpd',
             'ext': 'mp3',
-            'artist': ['Kammerorchester Basel', 'Baptiste Lopez'],
+            'artist': 'Kammerorchester Basel, Baptiste Lopez',
             'composer': 'Jannik Giger',
-            'genre': ['Composition', 'Orchestra'],
-            'title': 'Kammerorchester Basel, Baptiste Lopez - Troisième œil. Für Kammerorchester (2023)',
+            'genre': 'Composition, Orchestra',
+            'title': 'Troisième œil. Für Kammerorchester (2023)',
             'thumbnail': 'https://neo.mx3.ch/pictures/neo/file/0000/0241/square_xlarge/kammerorchester-basel-group-photo-2_c_-lukasz-rajchert.jpg?1560341252'
         }
     }]
@@ -141,10 +135,10 @@ class Mx3VolksmusikIE(Mx3IE):
         'info_dict': {
             'id': 'Zx',
             'ext': 'mp3',
-            'artist': ['Ländlerkapelle GrischArt'],
+            'artist': 'Ländlerkapelle GrischArt',
             'composer': 'Urs Glauser',
-            'genre': ['Instrumental', 'Graubünden'],
-            'title': 'Ländlerkapelle GrischArt - Chämilouf',
+            'genre': 'Instrumental, Graubünden',
+            'title': 'Chämilouf',
             'thumbnail': 'https://volksmusik.mx3.ch/pictures/vxm/file/0000/3815/square_xlarge/grischart1.jpg?1450530120',
         }
     }]
