@@ -93,6 +93,7 @@ from .alura import (
     AluraIE,
     AluraCourseIE
 )
+from .amadeustv import AmadeusTVIE
 from .amara import AmaraIE
 from .amcnetworks import AMCNetworksIE
 from .amazon import (
@@ -2463,5 +2464,3 @@ from .zingmp3 import (
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
-
-from .amadeustv import AmadeusTVIE
