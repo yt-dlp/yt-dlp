@@ -3,17 +3,13 @@ import time
 
 from .common import InfoExtractor
 from .getcourseru import GetCourseRuIE
-from ..utils import urlencode_postdata, update_url_query
+from ..utils import update_url_query, urlencode_postdata
 
 
 class AcademyMelIE(InfoExtractor):
-    _TEST_EMAIL = 'meriat@jaga.email'  # use this as username in the test/local_parameters.json if running the test
-    _TEST_PASSWORD = 'bBY-ccbp$8'  # use this as password in the test/local_parameters.json if running the test
-
-    _LOGIN_URL = 'https://academymel.online/cms/system/login'
     _NETRC_MACHINE = 'academymel'
     _VALID_URL = r'https?://academymel\.online/(?P<id>[^/?#]+)'
-
+    _LOGIN_URL = 'https://academymel.online/cms/system/login'
     _TESTS = [{
         'url': 'http://academymel.online/3video_1',
         'info_dict': {
