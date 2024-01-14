@@ -5,6 +5,6 @@ include README.md
 include completions/*/*
 include supportedsites.md
 include yt-dlp.1
-include requirements.txt
+include pyproject.toml
 recursive-include devscripts *
 recursive-include test *
