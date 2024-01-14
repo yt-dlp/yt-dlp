@@ -270,3 +270,40 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
 
     def _correct_path(self, url, item_id):
         return urllib.parse.urljoin(url, f'/GV{item_id}')
+
+
+class MotherlessUploaderIE(MotherlessPaginatedIE):
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/u/(?P<id>[a-zA-Z0-9_]+)($|\?t=v)'
+    _TESTS = [{
+        'url': 'https://motherless.com/u/Mrgo4hrs2023',
+        'info_dict': {
+            'id': 'Mrgo4hrs2023',
+            'title': "Mrgo4hrs2023's Uploads - Videos",
+        },
+        'playlist_mincount': 32,
+    }, {
+        'url': 'https://motherless.com/u/Happy_couple?t=v',
+        'info_dict': {
+            'id': 'Happy_couple',
+            'title': "Happy_couple's Uploads - Videos",
+        },
+        'playlist_mincount': 8,
+    }]
+
+    def _real_extract(self, url):
+        item_id = self._match_id(url)
+        real_url = self._correct_path(url, item_id)
+        webpage = self._download_webpage(real_url, item_id, 'Downloading page 1')
+
+        def get_page(idx):
+            page = idx + 1
+            current_page = webpage if not idx else self._download_webpage(
+                real_url, item_id, note=f'Downloading page {page}', query={'page': page, 't': 'v'})
+            yield from self._extract_entries(current_page, real_url)
+
+        return self.playlist_result(
+            OnDemandPagedList(get_page, self._PAGE_SIZE), item_id,
+            remove_end(self._html_extract_title(webpage), ' | MOTHERLESS.COM ™'))
+
+    def _correct_path(self, url, item_id):
+        return urllib.parse.urljoin(url, f'/u/{item_id}?t=v')
