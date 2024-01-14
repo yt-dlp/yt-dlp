@@ -1344,6 +1344,7 @@ from .onet import (
     OnetMVPIE,
     OnetPlIE,
 )
+from .onf import ONFIE
 from .onionstudios import OnionStudiosIE
 from .opencast import (
     OpencastIE,

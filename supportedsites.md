@@ -493,6 +493,7 @@
  - **gem.cbc.ca**: [*cbcgem*](## "netrc machine")
  - **gem.cbc.ca:live**
  - **gem.cbc.ca:playlist**
+ - **generic**: Generic downloader that works on some sites
  - **Genius**
  - **GeniusLyrics**
  - **Gettr**
@@ -984,6 +985,7 @@
  - **onet.tv**
  - **onet.tv:channel**
  - **OnetMVP**
+ - **ONF**
  - **OnionStudios**
  - **Opencast**
  - **OpencastPlaylist**
@@ -1471,7 +1473,6 @@
  - **TuneInPodcast**
  - **TuneInPodcastEpisode**
  - **TuneInStation**
- - **Turbo**
  - **tv.dfb.de**
  - **TV2**
  - **TV2Article**
@@ -1601,6 +1602,7 @@
  - **ViMP:Playlist**
  - **Vine**
  - **vine:user**
+ - **Viously**
  - **Viqeo**
  - **Viu**
  - **viu:ott**: [*viu*](## "netrc machine")
