@@ -14,7 +14,7 @@ PYTHON ?= /usr/bin/env python3
 
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
-# make pypi-files && python3 -m build -s .
+# make pypi-files && python3 -m build -sn .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
 	        completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
 	-mv -f pyproject.toml.old pyproject.toml
