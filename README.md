@@ -322,9 +322,11 @@ If you do not have the necessary dependencies for a task you are attempting, yt-
 ### Standalone PyInstaller Builds
 To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used.
 
-    python3 -m pip install -U pyinstaller -r requirements.txt
-    python3 devscripts/make_lazy_extractors.py
-    python3 pyinst.py
+```
+python3 devscripts/install_deps.py --include pyinst
+python3 devscripts/make_lazy_extractors.py
+python3 pyinst.py
+```
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
@@ -345,18 +347,22 @@ You can also run `make yt-dlp` instead to compile only the binary without updati
 
 While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and needs VC++14** on the target computer to run.
 
-If you wish to build it anyway, install Python and py2exe, and then simply run `setup.py py2exe`
+If you wish to build it anyway, install Python and py2exe, and then simply run `py py2exe`
 
-    py -m pip install -U py2exe -r requirements.txt
-    py devscripts/make_lazy_extractors.py
-    py setup.py py2exe
+```
+py devscripts/install_deps.py --include py2exe
+py devscripts/make_lazy_extractors.py
+py py2exe.py
+```
 
 ### Related scripts
 
+* **`devscripts/install_deps.py`** - Install dependencies for yt-dlp.
 * **`devscripts/update-version.py`** - Update the version number based on current date.
 * **`devscripts/set-variant.py`** - Set the build variant of the executable.
 * **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
 * **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
+* **`devscripts/include_data_files.py`** - Running this before building a wheel will ensure any generated documentation and/or shell completions will be included in the wheel.
 
 Note: See their `--help` for more info.
 
