@@ -72,10 +72,10 @@ class TrtWorldIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        nuxtjs_data = self._search_nuxt_data(webpage, display_id)['videoData']['content']
+        nuxtjs_data = self._search_nuxt_data(webpage, display_id)['videoData']['content']['platforms']
         formats = []
         for media_url in traverse_obj(nuxtjs_data, (
-                'platforms', ('website', 'ott'), 'metadata', ('hls_url', 'url'), {url_or_none})):
+                ('website', 'ott'), 'metadata', ('hls_url', 'url'), {url_or_none})):
             # NB: Website sometimes serves mp4 files under `hls_url` key
             if media_url.endswith('.m3u8'):
                 formats.extend(self._extract_m3u8_formats(media_url, display_id, fatal=False))
@@ -85,16 +85,16 @@ class TrtWorldIE(InfoExtractor):
                     'url': media_url,
                 })
         if not formats:
-            if youtube_id := traverse_obj(nuxtjs_data, ('platforms', 'youtube', 'metadata', 'youtubeId')):
+            if youtube_id := traverse_obj(nuxtjs_data, ('youtube', 'metadata', 'youtubeId')):
                 return self.url_result(youtube_id, 'Youtube')
             raise ExtractorError('No video found', expected=True)
 
         return {
             'id': display_id,
             'formats': formats,
-            **traverse_obj(nuxtjs_data, ('platforms', ('website', 'ott'), {
-                'title': ('fields', 'title', 'text'),
-                'description': ('fields', 'description', 'text'),
+            **traverse_obj(nuxtjs_data, (('website', 'ott'), {
+                'title': ('fields', 'title', 'text', {str}),
+                'description': ('fields', 'description', 'text', {str}),
                 'thumbnail': ('fields', 'thumbnail', 'url', {url_or_none}),
                 'release_timestamp': ('published', 'date', {parse_iso8601}),
             }), get_all=False),
