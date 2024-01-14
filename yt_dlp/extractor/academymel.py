@@ -13,11 +13,18 @@ class AcademyMelIE(InfoExtractor):
     _TESTS = [{
         'url': 'http://academymel.online/3video_1',
         'info_dict': {
-            'id': '4885302',
+            'id': '3video_1',
             'title': 'Промоуроки Академии МЕЛ',
-            'ext': 'mp4',
-            'duration': 1693
-        }
+        },
+        'playlist_count': 1,
+        'playlist': [{
+            'info_dict': {
+                'id': '4885302',
+                'ext': 'mp4',
+                'title': 'Промоуроки Академии МЕЛ',
+                'duration': 1693
+            },
+        }]
     }]
 
     def _perform_login(self, username, password):
