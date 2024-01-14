@@ -1124,7 +1124,11 @@ from .musicdex import (
     MusicdexArtistIE,
     MusicdexPlaylistIE,
 )
-from .mx3 import Mx3IE
+from .mx3 import (
+    Mx3IE,
+    Mx3NeoIE,
+    Mx3VolksmusikIE,
+)
 from .mxplayer import (
     MxplayerIE,
     MxplayerShowIE,
