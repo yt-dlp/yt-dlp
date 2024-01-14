@@ -211,6 +211,7 @@ class GoogleDriveIE(InfoExtractor):
             'https://drive.usercontent.google.com/download', {
                 'id': video_id,
                 'export': 'download',
+                'confirm': 't',
             })
 
         def request_source_file(source_url, kind, data=None):
