@@ -6,11 +6,20 @@ doc: README.md CONTRIBUTING.md issuetemplates supportedsites
 ot: offlinetest
 tar: yt-dlp.tar.gz
 
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+MANDIR ?= $(PREFIX)/man
+SHAREDIR ?= $(PREFIX)/share
+PYTHON ?= /usr/bin/env python3
+
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
 # make pypi-files && python setup.py sdist
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
 	        completions yt-dlp.1 requirements.txt setup.cfg devscripts/* test/*
+	-mv -f pyproject.toml.old pyproject.toml
+	cp -f pyproject.toml pyproject.toml.old
+	$(PYTHON) devscripts/include_data_files.py pyproject.toml
 
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
@@ -20,6 +29,7 @@ clean-test:
 	*.3gp *.ape *.ass *.avi *.desktop *.f4v *.flac *.flv *.gif *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 \
 	*.mp4 *.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
+	-mv -f pyproject.toml.old pyproject.toml
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
@@ -31,12 +41,6 @@ completion-bash: completions/bash/yt-dlp
 completion-fish: completions/fish/yt-dlp.fish
 completion-zsh: completions/zsh/_yt-dlp
 lazy-extractors: yt_dlp/extractor/lazy_extractors.py
-
-PREFIX ?= /usr/local
-BINDIR ?= $(PREFIX)/bin
-MANDIR ?= $(PREFIX)/man
-SHAREDIR ?= $(PREFIX)/share
-PYTHON ?= /usr/bin/env python3
 
 # set SYSCONFDIR to /etc if PREFIX=/usr or PREFIX=/usr/local
 SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then echo /etc; else echo $(PREFIX)/etc; fi)
