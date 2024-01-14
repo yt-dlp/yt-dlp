@@ -25,21 +25,34 @@ class GetCourseRuIE(InfoExtractor):
         if not valid_url:
             raise ExtractorError('Invalid URL found', expected=True)
 
-        try:
-            webpage = self._download_webpage(url,
-                                             None,
-                                             fatal=True,
-                                             note='Retrieving masterPlaylist URL...',
-                                             errnote='Failed to retrieve the masterPlaylist URL')
-        except ExtractorError:
-            raise ExtractorError('Failed to retrieve the masterPlaylist URL', expected=True)
+        webpage = self._download_webpage(url,
+                                         None,
+                                         fatal=True,
+                                         note='Retrieving metadata...',
+                                         errnote='Failed to retrieve metadata')
 
-        try:
-            m3u8_url = (self._search_regex(r'\"masterPlaylistUrl\":\"(?P<m3u8>.*?)\"', webpage, 'm3u8', fatal=True)
-                        .replace('\\', ''))
-        except ExtractorError:
-            raise ExtractorError('Could not extract the masterPlaylist URL from the GetCourse.ru response', expected=True)
+        window_configs = self._search_json(
+            r'window\.configs\s*=\s*',
+            webpage,
+            'config',
+            video_id=None,
+            fatal=True)
 
-        self.to_screen('masterPlaylistUrl is "%s"' % m3u8_url)
+        self.to_screen('videoId: %s, videoHash: %s, masterPlaylistUrl: %s, thumbnail_url: %s'
+                       % (window_configs.get('videoId'),
+                          window_configs.get('videoHash'),
+                          window_configs.get('masterPlaylistUrl'),
+                          window_configs.get('previewUrl')))
 
-        return self.url_result(m3u8_url, 'Generic')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            window_configs.get('masterPlaylistUrl'),
+            window_configs.get('videoId'))
+
+        return {
+            'id': str(window_configs.get('videoId')),
+            'title': window_configs.get('videoHash'),
+            'thumbnail': window_configs.get('thumbnailUrl'),
+            'duration': int(window_configs.get('videoDuration')),
+            'formats': formats,
+            'subtitles': subtitles
+        }
