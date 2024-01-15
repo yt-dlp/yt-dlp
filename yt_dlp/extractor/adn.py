@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_b64decode
 from ..networking.exceptions import HTTPError
+from ..utils.traversal import traverse_obj
 from ..utils import (
     ass_subtitles_timecode,
     bytes_to_intlist,
@@ -43,14 +44,9 @@ class ADNBaseIE(InfoExtractor):
         'end': 4,
     }
 
-    def _get_distribution_language(self, url):
-        if 'network.de' in url:
-            return 'de'
-        return 'fr'
-
 
 class ADNIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(fr|de)/video/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/[^/]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
@@ -178,7 +174,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             self.report_warning(message or self._LOGIN_ERR_MESSAGE)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        lang, video_id = self._match_valid_url(url).group('lang', 'id')
         video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
         player = self._download_json(
             video_base_url + 'configuration', video_id,
@@ -216,7 +212,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
                         'X-Player-Token': authorization,
-                        'X-Target-Distribution': self._get_distribution_language(url),
+                        'X-Target-Distribution': lang,
+                        **self._HEADERS
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
@@ -293,7 +290,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(fr|de)/video/(?P<id>[^/]+)/?$'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/]+)/?$'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/tokyo-mew-mew-new',
         'playlist_count': 12,
@@ -305,27 +302,23 @@ class ADNSeasonIE(ADNBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_show_slug = self._match_id(url)
-        video_base_url = self._API_BASE_URL + 'show/%s/' % video_show_slug
+        lang, video_show_slug = self._match_valid_url(url).group('lang', 'id')
         show = self._download_json(
-            video_base_url, video_show_slug,
-            'Downloading show JSON metadata',
-            headers=self._HEADERS)['show']
+            f'{self._API_BASE_URL}show/{video_show_slug}/', video_show_slug,
+            'Downloading show JSON metadata', headers=self._HEADERS)['show']
         show_id = show['id']
-        lang = self._get_distribution_language(url)
         episodes = self._download_json(
-            self._API_BASE_URL + 'video/show/%s' % show_id, video_show_slug,
+            f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
             'Downloading episode list', headers={
                 'X-Target-Distribution': lang,
+                **self._HEADERS
             }, query={
                 'order': 'asc',
                 'limit': '-1',
             })
         entries = []
-        for episode in episodes['videos']:
+        for episode_id in traverse_obj(episodes, ('videos', ..., 'id')):
             entries.append(self.url_result(
-                'https://animationdigitalnetwork.%s/video/%s/%s' % (lang, video_show_slug, episode['id']),
-                ie=ADNIE.ie_key(),
-                video_id=episode['id']
-            ))
-        return self.playlist_result(entries, show_id, show['title'])
+                f'https://animationdigitalnetwork.{lang}/video/{video_show_slug}/{episode_id}',
+                ADNIE, episode_id))
+        return self.playlist_result(entries, show_id, show.get('title'))
