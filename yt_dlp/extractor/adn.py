@@ -20,6 +20,7 @@ from ..utils import (
     long_to_bytes,
     pkcs1pad,
     strip_or_none,
+    str_or_none,
     try_get,
     unified_strdate,
     urlencode_postdata,
@@ -317,7 +318,7 @@ class ADNSeasonIE(ADNBaseIE):
                 'limit': '-1',
             })
         entries = []
-        for episode_id in traverse_obj(episodes, ('videos', ..., 'id')):
+        for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
             entries.append(self.url_result(
                 f'https://animationdigitalnetwork.{lang}/video/{video_show_slug}/{episode_id}',
                 ADNIE, episode_id))
