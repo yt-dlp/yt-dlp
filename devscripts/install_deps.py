@@ -8,9 +8,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
 import re
+import subprocess
 
 from devscripts.tomlparse import parse_toml
-from devscripts.utils import read_file, run_process
+from devscripts.utils import read_file
 
 
 def parse_args():
@@ -28,13 +29,6 @@ def parse_args():
     parser.add_argument(
         '-u', '--user', action='store_true', help='Install with pip as --user')
     return parser.parse_args()
-
-
-def pip_install(targets, *, user=False):
-    args = [sys.executable, '-m', 'pip', 'install', '-U']
-    if user:
-        args.append('--user')
-    return run_process(*args, *targets)
 
 
 def main():
@@ -60,7 +54,12 @@ def main():
             print(target)
         return
 
-    return pip_install(targets, user=args.user)
+    pip_args = [sys.executable, '-m', 'pip', 'install', '-U']
+    if args.user:
+        pip_args.append('--user')
+    pip_args.extend(targets)
+
+    return subprocess.call(pip_args)
 
 
 if __name__ == '__main__':
