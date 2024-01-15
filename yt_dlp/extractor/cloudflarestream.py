@@ -51,7 +51,6 @@ class CloudflareStreamIE(InfoExtractor):
             'm3u8_native', m3u8_id='hls', fatal=False)
         fmts, subs = self._extract_mpd_formats_and_subtitles(
             manifest_base_url + 'mpd', video_id, mpd_id='dash', fatal=False)
-        
         formats.extend(fmts)
         self._merge_subtitles(subs, target=subtitles)
 
