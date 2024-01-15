@@ -121,16 +121,15 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install zip pandoc man sed
-          reqs=$(mktemp)
-          cat > "$reqs" << EOF
+          cat > ./requirements.txt << EOF
           python=3.10.*
-          pyinstaller
           cffi
           brotli-python
-          secretstorage
           EOF
-          python devscripts/install_deps.py --print --exclude brotli --exclude brotlicffi >> "$reqs"
-          mamba create -n build --file "$reqs"
+          python devscripts/install_deps.py --print \
+            --exclude brotli --exclude brotlicffi \
+            --include secretstorage --include pyinst >> ./requirements.txt
+          mamba create -n build --file ./requirements.txt
 
       - name: Prepare
         run: |
