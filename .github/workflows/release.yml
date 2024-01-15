@@ -271,6 +271,10 @@ jobs:
         run: |
           rm -rf dist/*
           make pypi-files
+          printf '%s\n\n' \
+            'Official repository: <https://github.com/yt-dlp/yt-dlp>' \
+            '**PS**: Some links in this document will not work since this is a copy of the README.md from Github' > ./README.md.new
+          cat ./README.md >> ./README.md.new && mv -f ./README.md.new ./README.md
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
           python -m build --no-isolation .
 
