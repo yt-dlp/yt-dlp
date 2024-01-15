@@ -128,7 +128,7 @@ jobs:
           EOF
           python devscripts/install_deps.py --print \
             --exclude brotli --exclude brotlicffi \
-            --include secretstorage --include pyinst >> ./requirements.txt
+            --include secretstorage --include pyinstaller >> ./requirements.txt
           mamba create -n build --file ./requirements.txt
 
       - name: Prepare
@@ -208,7 +208,7 @@ jobs:
           run: |
             cd repo
             python3.8 devscripts/install_deps.py -o --include build
-            python3.8 devscripts/install_deps.py --include pyinst --include secretstorage  # Cached version may be out of date
+            python3.8 devscripts/install_deps.py --include pyinstaller --include secretstorage  # Cached version may be out of date
             python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 -m bundle.pyinstaller
@@ -241,7 +241,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --print --include pyinst > requirements.txt
+          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
           python3 -m pip install -U --user --no-binary :all: -r requirements.txt
 
@@ -295,7 +295,7 @@ jobs:
         run: |
           brew install coreutils
           python3 devscripts/install_deps.py --user -o --include build
-          python3 devscripts/install_deps.py --user --include pyinst
+          python3 devscripts/install_deps.py --user --include pyinstaller
 
       - name: Prepare
         run: |
