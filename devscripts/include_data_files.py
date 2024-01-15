@@ -36,7 +36,7 @@ def main():
     if TABLE_HEADER in read_file(tomlfile):
         print(
             f'{tomlfile!r} already contains a data-files table. '
-            + 'Try running "make clean" or "git checkout ."',
+            + 'Try running "make clean-pyproject" or "git restore pyproject.toml"',
             file=sys.stderr)
         return 1
 
