@@ -14,12 +14,12 @@ from py2exe import freeze
 VERSION = read_version(varname='_pkg_version')
 
 
-def py2exe_params():
+def main():
     warnings.warn(
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'It is recommended to run "pyinst.py" to build using pyinstaller instead')
 
-    return {
+    return freeze(**{
         'console': [{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
@@ -51,11 +51,7 @@ def py2exe_params():
                          'yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated'],
         },
         'zipfile': None,
-    }
-
-
-def main():
-    return freeze(py2exe_params())
+    })
 
 
 main()
