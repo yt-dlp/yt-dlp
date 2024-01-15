@@ -347,12 +347,12 @@ You can also run `make yt-dlp` instead to compile only the binary without updati
 
 While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and needs VC++14** on the target computer to run.
 
-If you wish to build it anyway, install Python and py2exe, and then simply run `py py2exe`
+If you wish to build it anyway, install Python and py2exe, and then simply run `py freeze.py`
 
 ```
 py devscripts/install_deps.py --include py2exe
 py devscripts/make_lazy_extractors.py
-py py2exe.py
+py freeze.py
 ```
 
 ### Related scripts

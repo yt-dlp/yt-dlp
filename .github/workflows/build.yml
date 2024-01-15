@@ -345,7 +345,7 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python py2exe.py
+          python freeze.py
           Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
           python pyinst.py
           python pyinst.py --onedir
