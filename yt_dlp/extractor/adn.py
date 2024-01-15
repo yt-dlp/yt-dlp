@@ -291,12 +291,12 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/]+)/?$'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/tokyo-mew-mew-new',
         'playlist_count': 12,
         'info_dict': {
-            'id': 911,
+            'id': '911',
             'title': 'Tokyo Mew Mew New',
         },
         # 'skip': 'Only available in French end German speaking Europe',
@@ -307,7 +307,7 @@ class ADNSeasonIE(ADNBaseIE):
         show = self._download_json(
             f'{self._API_BASE_URL}show/{video_show_slug}/', video_show_slug,
             'Downloading show JSON metadata', headers=self._HEADERS)['show']
-        show_id = show['id']
+        show_id = str(show['id'])
         episodes = self._download_json(
             f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
             'Downloading episode list', headers={
