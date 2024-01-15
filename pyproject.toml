@@ -83,7 +83,7 @@ hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
 
 [tool.setuptools.packages.find]
 include = ["yt_dlp*"]
-exclude = ["youtube_dl*", "youtube_dlc*", "test*", "ytdlp_plugins*", "devscripts*"]
+exclude = ["youtube_dl*", "youtube_dlc*", "test*", "ytdlp_plugins*", "devscripts*", "bundle*"]
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.setuptools.dynamic]
