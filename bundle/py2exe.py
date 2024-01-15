@@ -4,14 +4,15 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import warnings
 
-from devscripts.utils import read_version
 from py2exe import freeze
 
-VERSION = read_version(varname='_pkg_version')
+from devscripts.utils import read_version
+
+VERSION = read_version()
 
 
 def main():
@@ -54,4 +55,5 @@ def main():
     })
 
 
-main()
+if __name__ == '__main__':
+    main()
