@@ -439,6 +439,8 @@ class FacebookIE(InfoExtractor):
         if (self.get_param('username') and self.get_param('password')) or self.get_param('cookiefile'):
             if 'We\'ve suspended your account' in webpage:
                 raise ExtractorError('Login account is suspended.', expected=True)
+            if 'send a code to confirm the mobile number you give us' in webpage:
+                raise ExtractorError('Mobile number checkpoint for logged in user.', expected=True)
 
             userinfo = get_first(sjs_data, (
                 'require', ..., ..., ..., '__bbox', 'define',
