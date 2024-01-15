@@ -7,6 +7,7 @@ name = "yt-dlp"
 maintainers = [
     {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
     {name = "Grub4K", email = "contact@grub4k.xyz"},
+    {name = "bashonly", email = "bashonly@protonmail.com"},
 ]
 description = "A youtube-dl fork with additional features and patches"
 readme = "README.md"
