@@ -80,8 +80,10 @@ yt-dlp = "yt_dlp:main"
 [project.entry-points.pyinstaller40]
 hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
 
-[tool.setuptools]
-packages = ["yt_dlp"]
+[tool.setuptools.packages.find]
+include = ["yt_dlp*"]
+exclude = ["youtube_dl*", "youtube_dlc*", "test*", "ytdlp_plugins*", "devscripts*"]
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.setuptools.dynamic]
 version = {attr = "yt_dlp.version._pkg_version"}
