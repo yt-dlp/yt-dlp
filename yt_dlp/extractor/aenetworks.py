@@ -5,7 +5,6 @@ from ..utils import (
     int_or_none,
     remove_start,
     traverse_obj,
-    try_get,
     update_url_query,
     urlencode_postdata,
 )
@@ -91,11 +90,10 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         info = self._parse_theplatform_metadata(theplatform_metadata)
         auth = None
         if theplatform_metadata.get('AETN$isBehindWall'):
-            rating = try_get(theplatform_metadata, lambda x: x['ratings'][0]['rating'])
             resource = self._get_mvpd_resource(
                 requestor_id, theplatform_metadata['title'],
                 theplatform_metadata.get('AETN$PPL_pplProgramId') or theplatform_metadata.get('AETN$PPL_pplProgramId_OLD'),
-                rating)
+                traverse_obj(theplatform_metadata, ('ratings', 0, 'rating')))
             auth = self._extract_mvpd_auth(
                 url, video_id, requestor_id, resource)
         info.update(self._extract_aen_smil(media_url, video_id, auth))
