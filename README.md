@@ -320,7 +320,7 @@ If you do not have the necessary dependencies for a task you are attempting, yt-
 ## COMPILE
 
 ### Standalone PyInstaller Builds
-To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used. Once you have all the necessary dependencies installed, you can run the following commands:
+To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used. You can run the following commands:
 
 ```
 python3 devscripts/install_deps.py --include pyinstaller
@@ -347,7 +347,7 @@ You can also run `make yt-dlp` instead to compile only the binary without updati
 
 While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and needs VC++14** on the target computer to run.
 
-If you wish to build it anyway, install Python and py2exe, you can run the following commands:
+If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
 
 ```
 py devscripts/install_deps.py --include py2exe
