@@ -153,6 +153,7 @@ class AsobiChannelTagURLIE(AsobiChannelBaseIE):
         entries = [{
             '_type': 'url',
             'url': f'https://asobichannel.asobistore.jp/watch/{metadata["id"]}',
+            'ie_key': AsobiChannelIE.ie_key(),
             **self._extract_info(metadata),
         } for metadata in media_list.get('contents', [])]
 
