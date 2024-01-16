@@ -57,7 +57,7 @@ build = [
     "setuptools>=61",
     "wheel",
 ]
-pyinstaller = ["Pyinstaller>=6.3"]
+pyinstaller = ["pyinstaller>=6.3"]
 py2exe = ["py2exe>=0.12"]
 ci = [
     "flake8",
