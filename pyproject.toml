@@ -55,6 +55,7 @@ secretstorage = ["secretstorage"]
 pyinstaller = ["pyinstaller>=6.3"]
 py2exe = ["py2exe>=0.12"]
 build = [
+    "build",
     "pip",
     "setuptools>=61",
     "wheel",
