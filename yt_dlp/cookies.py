@@ -197,7 +197,7 @@ def _firefox_browser_dirs():
 
 def _firefox_cookie_dbs(roots):
     for root in map(os.path.abspath, roots):
-        for pattern in '', '*/', 'Profiles/*/':
+        for pattern in ('', '*/', 'Profiles/*/'):
             yield from glob.iglob(os.path.join(root, pattern, 'cookies.sqlite'))
 
 
