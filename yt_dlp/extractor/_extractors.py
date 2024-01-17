@@ -42,7 +42,6 @@ from .abematv import (
     AbemaTVTitleIE,
 )
 from .academicearth import AcademicEarthCourseIE
-from .academymel import AcademyMelIE
 from .acast import (
     ACastIE,
     ACastChannelIE,
@@ -681,7 +680,10 @@ from .genius import (
     GeniusIE,
     GeniusLyricsIE,
 )
-from .getcourseru import GetCourseRuIE
+from .getcourseru import (
+    GetCourseRuPlayerIE,
+    GetCourseRuIE
+)
 from .gettr import (
     GettrIE,
     GettrStreamingIE,
