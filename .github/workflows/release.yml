@@ -253,7 +253,7 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
-          python -m pip install -U build setuptools wheel
+          python devscripts/install_deps.py -o --include build
 
       - name: Prepare
         env:
