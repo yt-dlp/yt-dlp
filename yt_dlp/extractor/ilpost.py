@@ -30,20 +30,16 @@ class IlPostExtractorIE(InfoExtractor):
         webpage = self._download_webpage(url, podcast_display_id)
 
         endpoint_metadata = self._search_json(
-            start_pattern='var ilpostpodcast = ',
-            end_pattern=';',
-            string=webpage,
-            name='endpoint-metadata',
-            video_id=podcast_display_id,
-        )
+            r'var\s+ilpostpodcast\s*=', webpage, 'metadata', podcast_display_id)
         episode_id = endpoint_metadata['post_id']
         podcast_id = endpoint_metadata['podcast_id']
-        podcast_metadata = self._download_json(endpoint_metadata['ajax_url'], podcast_display_id, data=urlencode_postdata({
-            'action': 'checkpodcast',
-            'cookie': endpoint_metadata['cookie'],
-            'post_id': episode_id,
-            'podcast_id': podcast_id,
-        }))
+        podcast_metadata = self._download_json(
+            endpoint_metadata['ajax_url'], podcast_display_id, data=urlencode_postdata({
+                'action': 'checkpodcast',
+                'cookie': endpoint_metadata['cookie'],
+                'post_id': episode_id,
+                'podcast_id': podcast_id,
+            }))
         episode = traverse_obj(podcast_metadata, (
             'data', 'postcastList', lambda _, v: str(v['id']) == episode_id, {dict}), get_all=False)
         if not episode:
@@ -54,8 +50,8 @@ class IlPostExtractorIE(InfoExtractor):
             'series_id': podcast_id,
             'vcodec': 'none',
             **traverse_obj(episode, {
-                'title': 'title',
-                'description': 'description',
+                'title': ('title', {str}),
+                'description': ('description', {str}),
                 'url': ('podcast_raw_url', {url_or_none}),
                 'thumbnail': ('image', {url_or_none}),
                 'timestamp': ('timestamp', {int_or_none}),
