@@ -52,16 +52,12 @@ dependencies = [
 
 [project.optional-dependencies]
 secretstorage = ["secretstorage"]
+pyinstaller = ["pyinstaller>=6.3"]
+py2exe = ["py2exe>=0.12"]
 build = [
     "pip",
     "setuptools>=61",
     "wheel",
-]
-pyinstaller = ["pyinstaller>=6.3"]
-py2exe = ["py2exe>=0.12"]
-ci = [
-    "flake8",
-    "pytest",
 ]
 dev = [
     "flake8",
