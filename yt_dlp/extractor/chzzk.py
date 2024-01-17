@@ -108,20 +108,14 @@ class CHZZKVideoIE(InfoExtractor):
         video_meta = self._download_json(
             f'https://api.chzzk.naver.com/service/v2/videos/{video_id}', video_id,
             note='Downloading video info', errnote='Unable to download video info')['content']
-        vod_id = video_meta.get('videoId')
-        in_key = video_meta.get('inKey')
-        playback_xml = self._download_xml(
-            f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{vod_id}', video_id,
+        formats, subtitles = self._extract_mpd_formats_and_subtitles(
+            f'https://apis.naver.com/neonplayer/vodplay/v1/playback/{video_meta["videoId"]}', video_id,
             query={
-                'key': in_key,
+                'key': video_meta['inKey'],
                 'env': 'real',
                 'lc': 'en_US',
                 'cpl': 'en_US',
-            },
-            note='Downloading video playback',
-            errnote='Unable to download video playback')
-
-        formats, subtitles = self._parse_mpd_formats_and_subtitles(playback_xml)
+            }, note='Downloading video playback', errnote='Unable to download video playback')
 
         return {
             'id': video_id,
