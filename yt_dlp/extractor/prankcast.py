@@ -66,5 +66,5 @@ class PrankCastIE(InfoExtractor):
             'description': json_info.get('post_body'),
             'categories': list(filter(None, [json_post_info.get('category')])),
             'tags': try_call(lambda: json_info['post_tags'].split(',')),
-            'subtitles': {'live_chat': [{'url': live_chat_url}]} if broadcast_id else None
+            'subtitles': {'live_chat': [{'url': live_chat_url, 'ext': 'json'}]} if broadcast_id else None
         }
