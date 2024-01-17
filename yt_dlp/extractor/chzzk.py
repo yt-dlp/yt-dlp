@@ -1,11 +1,14 @@
+import functools
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    float_or_none,
     int_or_none,
     parse_iso8601,
-    traverse_obj,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class CHZZKLiveIE(InfoExtractor):
@@ -14,8 +17,8 @@ class CHZZKLiveIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://chzzk.naver.com/live/c68b8ef525fb3d2fa146344d84991753',
         'info_dict': {
-            "id": "c68b8ef525fb3d2fa146344d84991753",
-            "ext": "mp4",
+            'id': 'c68b8ef525fb3d2fa146344d84991753',
+            'ext': 'mp4',
             'title': str,
             'channel': '진짜도현',
             'channel_id': 'c68b8ef525fb3d2fa146344d84991753',
@@ -25,6 +28,7 @@ class CHZZKLiveIE(InfoExtractor):
             'upload_date': '20240117',
             'live_status': 'is_live',
             'view_count': int,
+            'concurrent_view_count': int,
         },
         'skip': 'The channel is not currently live',
     }]
@@ -66,19 +70,20 @@ class CHZZKLiveIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': str(channel_id),
-            'title': live_detail.get('liveTitle'),
+            'id': channel_id,
+            'is_live': True,
+            'formats': formats,
+            'subtitles': subtitles,
             'thumbnails': thumbnails,
             **traverse_obj(live_detail, {
-                'timestamp': ('openDate', {lambda d: parse_iso8601(d, ' ')}),
-                'view_count': ('concurrentUserCount', {int_or_none}),
+                'title': ('liveTitle', {str}),
+                'timestamp': ('openDate', {functools.partial(parse_iso8601, delimiter=' ')}),
+                'concurrent_view_count': ('concurrentUserCount', {int_or_none}),
+                'view_count': ('accumulateCount', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),
                 'channel_id': ('channel', 'channelId', {str}),
                 'channel_is_verified': ('channel', 'verifiedMark', {bool}),
             }),
-            'is_live': True,
-            'formats': formats,
-            'subtitles': subtitles,
         }
 
 
@@ -87,17 +92,17 @@ class CHZZKVideoIE(InfoExtractor):
     _VALID_URL = r'https?://chzzk\.naver\.com/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://chzzk.naver.com/video/1754',
-        "md5": "b0c0c1bb888d913b93d702b1512c7f06",
+        'md5': 'b0c0c1bb888d913b93d702b1512c7f06',
         'info_dict': {
-            "id": "1754",
-            "ext": "mp4",
+            'id': '1754',
+            'ext': 'mp4',
             'title': '치지직 테스트 방송',
             'channel': '침착맨',
             'channel_id': 'bb382c2c0cc9fa7c86ab3b037fb5799c',
             'channel_is_verified': False,
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 15577,
-            'timestamp': 1702970505,
+            'timestamp': 1702970505.417,
             'upload_date': '20231219',
             'view_count': int,
         },
@@ -124,7 +129,7 @@ class CHZZKVideoIE(InfoExtractor):
             **traverse_obj(video_meta, {
                 'title': ('videoTitle', {str}),
                 'thumbnail': ('thumbnailImageUrl', {url_or_none}),
-                'timestamp': ('publishDateAt', {lambda t: int_or_none(t / 1000)}),
+                'timestamp': ('publishDateAt', {functools.partial(float_or_none, scale=1000)}),
                 'view_count': ('readCount', {int_or_none}),
                 'duration': ('duration', {int_or_none}),
                 'channel': ('channel', 'channelName', {str}),
