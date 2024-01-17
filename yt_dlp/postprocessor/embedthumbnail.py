@@ -96,8 +96,6 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                 try:
                     self._report_run('mutagen', filename)
                     audio = mutagen.id3.ID3(filename)
-                    if 'APIC' in audio:
-                        del audio['APIC']
                     with open(thumbnail_filename, 'rb') as thumbfile:
                         audio['APIC'] = mutagen.id3.APIC(
                             encoding=mutagen.id3.Encoding.UTF8, mime='image/%s' % thumbnail_ext, type=3,

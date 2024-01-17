@@ -674,17 +674,15 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         if len(sub_dict) > 1:
             self.report_warning('More than one subtitle file found. Your media player will likely be unable to display all of them.')
 
-        if sub_dict[list(sub_dict.keys())[0]]['ext'] != 'lrc':
+        if not all(sub['ext'] == 'lrc' for sub in sub_dict.values()):
             raise PostProcessingError('LRC subtitles required. Use "--convert-subs lrc" to convert')
 
-        lyrics_list = []
-        for lyrics in sub_dict.keys():
-            lyrics_list.append(sub_dict[lyrics]['data'])
+        lyrics_list = [sub['data'] for sub in sub_dict.values()]
         if audio_file.endswith('.mp3'):
+            audio = mutagen.id3.ID3(audio_file)
             for lyrics in lyrics_list:
-                audio = mutagen.id3.ID3(audio_file)
-                audio.add(mutagen.id3.USLT(encoding=3, lang='und', desc='', text=lyrics))
-                audio.save()
+                audio.add(mutagen.id3.USLT(encoding=mutagen.id3.Encoding.UTF8, lang='und', text=lyrics))
+            audio.save()
         else:
             metadata = mutagen.File(audio_file)
             metadata['©lyr' if audio_file.endswith('.m4a') else 'lyrics'] = lyrics_list
