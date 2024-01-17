@@ -98,8 +98,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     audio = mutagen.id3.ID3(filename)
                     with open(thumbnail_filename, 'rb') as thumbfile:
                         audio['APIC'] = mutagen.id3.APIC(
-                            encoding=mutagen.id3.Encoding.UTF8, mime='image/%s' % thumbnail_ext, type=3,
-                            desc=u'Cover (front)', data=thumbfile.read())
+                            encoding=mutagen.id3.Encoding.UTF8, mime=f'image/{thumbnail_ext}',
+                            type=mutagen.id3.PictureType.COVER_FRONT, desc='Cover (front)', data=thumbfile.read())
                     audio.save()
                     temp_filename = filename  # Mutagen saves to the original file
                 except Exception as err:
