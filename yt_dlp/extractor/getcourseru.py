@@ -1,4 +1,3 @@
-import pprint
 from time import time
 from re import escape, findall
 from urllib.parse import urlparse
@@ -107,12 +106,12 @@ class GetCourseRuIE(InfoExtractor):
         parsed_url = urlparse(url)
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
 
+        # TODO: find proper `xdgetId` by parsing the login webpage and extracting it
         self._request_webpage(
             base_url + self._LOGIN_URL_SUFFIX, None, 'Logging in', 'Failed to log in',
             data=urlencode_postdata({
                 'action': 'processXdget',
                 'xdgetId': 'r6335_1_1',
-                #'xdgetId': '99945',
                 'params[action]': 'login',
                 'params[url]': update_url_query(base_url + self._LOGIN_URL_SUFFIX, {'required': 'true'}),
                 'params[object_type]': 'cms_page',
