@@ -37,16 +37,8 @@ class LoomIE(InfoExtractor):
     }]
 
     def fetch_loom_download_url(self, id):
-        request = urllib.request.Request(
-            url=f"https://www.loom.com/api/campaigns/sessions/{id}/transcoded-url",
-            headers={},
-            method="POST",
-        )
-        response = urllib.request.urlopen(request)
-        body = response.read()
-        content = json.loads(body.decode("utf-8"))
-        url = content["url"]
-        return url
+        json = self._download_json(f"https://www.loom.com/api/campaigns/sessions/{id}/transcoded-url", video_id=id, data=b'')
+        return json["url"]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -57,6 +49,8 @@ class LoomIE(InfoExtractor):
         # print(f'\n\n\n\n\n\n\n\nWebpage: {webpage}\n\n\n\n\n\n\n\n')
 
         title = self._search_regex(r'"name":"([^"]+)"', webpage, 'title')
+        
+        # title = self._search_json()
         # print(f'Title: {title}')
 
         uploader = self._search_regex(r'"owner_full_name":"([^"]+)"', webpage, 'uploader', fatal=False)
