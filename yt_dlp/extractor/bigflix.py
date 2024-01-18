@@ -63,8 +63,6 @@ class BigflixIE(InfoExtractor):
                     'url': decode_url(file_url),
                 })
 
-        self._sort_formats(formats)
-
         description = self._html_search_meta('description', webpage)
 
         return {

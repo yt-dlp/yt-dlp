@@ -73,6 +73,8 @@ class STVPlayerIE(InfoExtractor):
             })
 
         programme = result.get('programme') or {}
+        if programme.get('drmEnabled'):
+            self.report_drm(video_id)
 
         return {
             '_type': 'url_transparent',

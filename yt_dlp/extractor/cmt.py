@@ -3,7 +3,8 @@ from .mtv import MTVIE
 # TODO Remove - Reason: Outdated Site
 
 
-class CMTIE(MTVIE):
+class CMTIE(MTVIE):  # XXX: Do not subclass from concrete IE
+    _WORKING = False
     IE_NAME = 'cmt.com'
     _VALID_URL = r'https?://(?:www\.)?cmt\.com/(?:videos|shows|(?:full-)?episodes|video-clips)/(?P<id>[^/]+)'
 

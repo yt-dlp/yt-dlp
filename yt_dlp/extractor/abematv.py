@@ -1,5 +1,6 @@
 import base64
 import binascii
+import functools
 import hashlib
 import hmac
 import io
@@ -11,7 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
-
+from ..utils.networking import clean_proxies
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..utils import (
@@ -20,81 +21,27 @@ from ..utils import (
     decode_base_n,
     int_or_none,
     intlist_to_bytes,
-    request_to_url,
+    OnDemandPagedList,
     time_seconds,
     traverse_obj,
     update_url_query,
-    urljoin,
 )
 
-# NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
-
-def add_opener(ydl, handler):
-    ''' Add a handler for opening URLs, like _download_webpage '''
+def add_opener(ydl, handler):  # FIXME: Create proper API in .networking
+    """Add a handler for opening URLs, like _download_webpage"""
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    ydl._opener.add_handler(handler)
-
-
-def remove_opener(ydl, handler):
-    '''
-    Remove handler(s) for opening URLs
-    @param handler Either handler object itself or handler type.
-    Specifying handler type will remove all handler which isinstance returns True.
-    '''
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    opener = ydl._opener
-    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
-    if isinstance(handler, (type, tuple)):
-        find_cp = lambda x: isinstance(x, handler)
-    else:
-        find_cp = lambda x: x is handler
-
-    removed = []
-    for meth in dir(handler):
-        if meth in ["redirect_request", "do_open", "proxy_open"]:
-            # oops, coincidental match
-            continue
-
-        i = meth.find("_")
-        protocol = meth[:i]
-        condition = meth[i + 1:]
-
-        if condition.startswith("error"):
-            j = condition.find("_") + i + 1
-            kind = meth[j + 1:]
-            try:
-                kind = int(kind)
-            except ValueError:
-                pass
-            lookup = opener.handle_error.get(protocol, {})
-            opener.handle_error[protocol] = lookup
-        elif condition == "open":
-            kind = protocol
-            lookup = opener.handle_open
-        elif condition == "response":
-            kind = protocol
-            lookup = opener.process_response
-        elif condition == "request":
-            kind = protocol
-            lookup = opener.process_request
-        else:
-            continue
-
-        handlers = lookup.setdefault(kind, [])
-        if handlers:
-            handlers[:] = [x for x in handlers if not find_cp(x)]
-
-        removed.append(x for x in handlers if find_cp(x))
-
-    if removed:
-        for x in opener.handlers:
-            if find_cp(x):
-                x.add_parent(None)
-        opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
+    rh = ydl._request_director.handlers['Urllib']
+    if 'abematv-license' in rh._SUPPORTED_URL_SCHEMES:
+        return
+    headers = ydl.params['http_headers'].copy()
+    proxies = ydl.proxies.copy()
+    clean_proxies(proxies, headers)
+    opener = rh._get_instance(cookiejar=ydl.cookiejar, proxies=proxies)
+    assert isinstance(opener, urllib.request.OpenerDirector)
+    opener.add_handler(handler)
+    rh._SUPPORTED_URL_SCHEMES = (*rh._SUPPORTED_URL_SCHEMES, 'abematv-license')
 
 
 class AbemaLicenseHandler(urllib.request.BaseHandler):
@@ -136,26 +83,122 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
         return intlist_to_bytes(aes_ecb_decrypt(encvideokey, enckey))
 
     def abematv_license_open(self, url):
-        url = request_to_url(url)
+        url = url.get_full_url() if isinstance(url, urllib.request.Request) else url
         ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={
-            'Content-Length': len(response_data),
+            'Content-Length': str(len(response_data)),
         }, url=url, code=200)
 
 
 class AbemaTVBaseIE(InfoExtractor):
+    _USERTOKEN = None
+    _DEVICE_ID = None
+    _MEDIATOKEN = None
+
+    _SECRETKEY = b'v+Gjs=25Aw5erR!J8ZuvRrCx*rGswhB&qdHd_SYerEWdU&a?3DzN9BRbp5KwY4hEmcj5#fykMjJ=AuWz5GSMY-d@H7DMEh3M@9n2G552Us$$k9cD=3TxwWe86!x#Zyhe'
+
+    @classmethod
+    def _generate_aks(cls, deviceid):
+        deviceid = deviceid.encode('utf-8')
+        # add 1 hour and then drop minute and secs
+        ts_1hour = int((time_seconds() // 3600 + 1) * 3600)
+        time_struct = time.gmtime(ts_1hour)
+        ts_1hour_str = str(ts_1hour).encode('utf-8')
+
+        tmp = None
+
+        def mix_once(nonce):
+            nonlocal tmp
+            h = hmac.new(cls._SECRETKEY, digestmod=hashlib.sha256)
+            h.update(nonce)
+            tmp = h.digest()
+
+        def mix_tmp(count):
+            nonlocal tmp
+            for i in range(count):
+                mix_once(tmp)
+
+        def mix_twist(nonce):
+            nonlocal tmp
+            mix_once(base64.urlsafe_b64encode(tmp).rstrip(b'=') + nonce)
+
+        mix_once(cls._SECRETKEY)
+        mix_tmp(time_struct.tm_mon)
+        mix_twist(deviceid)
+        mix_tmp(time_struct.tm_mday % 5)
+        mix_twist(ts_1hour_str)
+        mix_tmp(time_struct.tm_hour % 5)
+
+        return base64.urlsafe_b64encode(tmp).rstrip(b'=').decode('utf-8')
+
+    def _get_device_token(self):
+        if self._USERTOKEN:
+            return self._USERTOKEN
+
+        username, _ = self._get_login_info()
+        AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
+        if AbemaTVBaseIE._USERTOKEN:
+            # try authentication with locally stored token
+            try:
+                self._get_media_token(True)
+                return
+            except ExtractorError as e:
+                self.report_warning(f'Failed to login with cached user token; obtaining a fresh one ({e})')
+
+        AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
+        aks = self._generate_aks(self._DEVICE_ID)
+        user_data = self._download_json(
+            'https://api.abema.io/v1/users', None, note='Authorizing',
+            data=json.dumps({
+                'deviceId': self._DEVICE_ID,
+                'applicationKeySecret': aks,
+            }).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+            })
+        AbemaTVBaseIE._USERTOKEN = user_data['token']
+
+        add_opener(self._downloader, AbemaLicenseHandler(self))
+        return self._USERTOKEN
+
+    def _get_media_token(self, invalidate=False, to_show=True):
+        if not invalidate and self._MEDIATOKEN:
+            return self._MEDIATOKEN
+
+        AbemaTVBaseIE._MEDIATOKEN = self._download_json(
+            'https://api.abema.io/v1/media/token', None, note='Fetching media token' if to_show else False,
+            query={
+                'osName': 'android',
+                'osVersion': '6.0.1',
+                'osLang': 'ja_JP',
+                'osTimezone': 'Asia/Tokyo',
+                'appId': 'tv.abema',
+                'appVersion': '3.27.1'
+            }, headers={
+                'Authorization': f'bearer {self._get_device_token()}',
+            })['token']
+
+        return self._MEDIATOKEN
+
+    def _call_api(self, endpoint, video_id, query=None, note='Downloading JSON metadata'):
+        return self._download_json(
+            f'https://api.abema.io/{endpoint}', video_id, query=query or {},
+            note=note,
+            headers={
+                'Authorization': f'bearer {self._get_device_token()}',
+            })
+
     def _extract_breadcrumb_list(self, webpage, video_id):
         for jld in re.finditer(
                 r'(?is)</span></li></ul><script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<json_ld>.+?)</script>',
                 webpage):
             jsonld = self._parse_json(jld.group('json_ld'), video_id, fatal=False)
-            if jsonld:
-                if jsonld.get('@type') != 'BreadcrumbList':
-                    continue
-                trav = traverse_obj(jsonld, ('itemListElement', ..., 'name'))
-                if trav:
-                    return trav
+            if traverse_obj(jsonld, '@type') != 'BreadcrumbList':
+                continue
+            items = traverse_obj(jsonld, ('itemListElement', ..., 'name'))
+            if items:
+                return items
         return []
 
 
@@ -168,7 +211,8 @@ class AbemaTVIE(AbemaTVBaseIE):
             'id': '194-25_s2_p1',
             'title': '第1話 「チーズケーキ」　「モーニング再び」',
             'series': '異世界食堂２',
-            'series_number': 2,
+            'season': 'シーズン2',
+            'season_number': 2,
             'episode': '第1話 「チーズケーキ」　「モーニング再び」',
             'episode_number': 1,
         },
@@ -207,89 +251,14 @@ class AbemaTVIE(AbemaTVBaseIE):
         },
         'skip': 'Not supported until yt-dlp implements native live downloader OR AbemaTV can start a local HTTP server',
     }]
-    _USERTOKEN = None
-    _DEVICE_ID = None
     _TIMETABLE = None
-    _MEDIATOKEN = None
-
-    _SECRETKEY = b'v+Gjs=25Aw5erR!J8ZuvRrCx*rGswhB&qdHd_SYerEWdU&a?3DzN9BRbp5KwY4hEmcj5#fykMjJ=AuWz5GSMY-d@H7DMEh3M@9n2G552Us$$k9cD=3TxwWe86!x#Zyhe'
-
-    def _generate_aks(self, deviceid):
-        deviceid = deviceid.encode('utf-8')
-        # add 1 hour and then drop minute and secs
-        ts_1hour = int((time_seconds(hours=9) // 3600 + 1) * 3600)
-        time_struct = time.gmtime(ts_1hour)
-        ts_1hour_str = str(ts_1hour).encode('utf-8')
-
-        tmp = None
-
-        def mix_once(nonce):
-            nonlocal tmp
-            h = hmac.new(self._SECRETKEY, digestmod=hashlib.sha256)
-            h.update(nonce)
-            tmp = h.digest()
-
-        def mix_tmp(count):
-            nonlocal tmp
-            for i in range(count):
-                mix_once(tmp)
-
-        def mix_twist(nonce):
-            nonlocal tmp
-            mix_once(base64.urlsafe_b64encode(tmp).rstrip(b'=') + nonce)
-
-        mix_once(self._SECRETKEY)
-        mix_tmp(time_struct.tm_mon)
-        mix_twist(deviceid)
-        mix_tmp(time_struct.tm_mday % 5)
-        mix_twist(ts_1hour_str)
-        mix_tmp(time_struct.tm_hour % 5)
-
-        return base64.urlsafe_b64encode(tmp).rstrip(b'=').decode('utf-8')
-
-    def _get_device_token(self):
-        if self._USERTOKEN:
-            return self._USERTOKEN
-
-        self._DEVICE_ID = str(uuid.uuid4())
-        aks = self._generate_aks(self._DEVICE_ID)
-        user_data = self._download_json(
-            'https://api.abema.io/v1/users', None, note='Authorizing',
-            data=json.dumps({
-                'deviceId': self._DEVICE_ID,
-                'applicationKeySecret': aks,
-            }).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-            })
-        self._USERTOKEN = user_data['token']
-
-        # don't allow adding it 2 times or more, though it's guarded
-        remove_opener(self._downloader, AbemaLicenseHandler)
-        add_opener(self._downloader, AbemaLicenseHandler(self))
-
-        return self._USERTOKEN
-
-    def _get_media_token(self, invalidate=False, to_show=True):
-        if not invalidate and self._MEDIATOKEN:
-            return self._MEDIATOKEN
-
-        self._MEDIATOKEN = self._download_json(
-            'https://api.abema.io/v1/media/token', None, note='Fetching media token' if to_show else False,
-            query={
-                'osName': 'android',
-                'osVersion': '6.0.1',
-                'osLang': 'ja_JP',
-                'osTimezone': 'Asia/Tokyo',
-                'appId': 'tv.abema',
-                'appVersion': '3.27.1'
-            }, headers={
-                'Authorization': 'bearer ' + self._get_device_token()
-            })['token']
-
-        return self._MEDIATOKEN
 
     def _perform_login(self, username, password):
+        self._get_device_token()
+        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
+            self.write_debug('Skipping logging in')
+            return
+
         if '@' in username:  # don't strictly check if it's email address or not
             ep, method = 'user/email', 'email'
         else:
@@ -301,14 +270,15 @@ class AbemaTVIE(AbemaTVBaseIE):
                 method: username,
                 'password': password
             }).encode('utf-8'), headers={
-                'Authorization': 'bearer ' + self._get_device_token(),
+                'Authorization': f'bearer {self._get_device_token()}',
                 'Origin': 'https://abema.tv',
                 'Referer': 'https://abema.tv/',
                 'Content-Type': 'application/json',
             })
 
-        self._USERTOKEN = login_response['token']
+        AbemaTVBaseIE._USERTOKEN = login_response['token']
         self._get_media_token(True)
+        self.cache.store(self._NETRC_MACHINE, username, AbemaTVBaseIE._USERTOKEN)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
@@ -355,7 +325,7 @@ class AbemaTVIE(AbemaTVBaseIE):
         # read breadcrumb on top of page
         breadcrumb = self._extract_breadcrumb_list(webpage, video_id)
         if breadcrumb:
-            # breadcrumb list translates to: (example is 1st test for this IE)
+            # breadcrumb list translates to: (e.g. 1st test for this IE)
             # Home > Anime (genre) > Isekai Shokudo 2 (series name) > Episode 1 "Cheese cakes" "Morning again" (episode title)
             # hence this works
             info['series'] = breadcrumb[-2]
@@ -378,12 +348,12 @@ class AbemaTVIE(AbemaTVBaseIE):
                     )?
                 ''', r'\1', og_desc)
 
-        # canonical URL may contain series and episode number
+        # canonical URL may contain season and episode number
         mobj = re.search(r's(\d+)_p(\d+)$', canonical_url)
         if mobj:
             seri = int_or_none(mobj.group(1), default=float('inf'))
             epis = int_or_none(mobj.group(2), default=float('inf'))
-            info['series_number'] = seri if seri < 100 else None
+            info['season_number'] = seri if seri < 100 else None
             # some anime like Detective Conan (though not available in AbemaTV)
             # has more than 1000 episodes (1026 as of 2021/11/15)
             info['episode_number'] = epis if epis < 2000 else None
@@ -406,10 +376,20 @@ class AbemaTVIE(AbemaTVBaseIE):
                 f'https://api.abema.io/v1/video/programs/{video_id}', video_id,
                 note='Checking playability',
                 headers=headers)
-            ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'), default=[])
+            ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'))
             if 3 not in ondemand_types:
                 # cannot acquire decryption key for these streams
                 self.report_warning('This is a premium-only stream')
+            info.update(traverse_obj(api_response, {
+                'series': ('series', 'title'),
+                'season': ('season', 'name'),
+                'season_number': ('season', 'sequence'),
+                'episode_number': ('episode', 'number'),
+            }))
+            if not title:
+                title = traverse_obj(api_response, ('episode', 'title'))
+            if not description:
+                description = traverse_obj(api_response, ('episode', 'content'))
 
             m3u8_url = f'https://vod-abematv.akamaized.net/program/{video_id}/playlist.m3u8'
         elif video_type == 'slots':
@@ -442,6 +422,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
 class AbemaTVTitleIE(AbemaTVBaseIE):
     _VALID_URL = r'https?://abema\.tv/video/title/(?P<id>[^?/]+)'
+    _PAGE_SIZE = 25
 
     _TESTS = [{
         'url': 'https://abema.tv/video/title/90-1597',
@@ -457,18 +438,39 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
             'title': '真心が届く~僕とスターのオフィス・ラブ!?~',
         },
         'playlist_mincount': 16,
+    }, {
+        'url': 'https://abema.tv/video/title/25-102',
+        'info_dict': {
+            'id': '25-102',
+            'title': 'ソードアート・オンライン アリシゼーション',
+        },
+        'playlist_mincount': 24,
     }]
 
+    def _fetch_page(self, playlist_id, series_version, page):
+        programs = self._call_api(
+            f'v1/video/series/{playlist_id}/programs', playlist_id,
+            note=f'Downloading page {page + 1}',
+            query={
+                'seriesVersion': series_version,
+                'offset': str(page * self._PAGE_SIZE),
+                'order': 'seq',
+                'limit': str(self._PAGE_SIZE),
+            })
+        yield from (
+            self.url_result(f'https://abema.tv/video/episode/{x}')
+            for x in traverse_obj(programs, ('programs', ..., 'id')))
+
+    def _entries(self, playlist_id, series_version):
+        return OnDemandPagedList(
+            functools.partial(self._fetch_page, playlist_id, series_version),
+            self._PAGE_SIZE)
+
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        playlist_id = self._match_id(url)
+        series_info = self._call_api(f'v1/video/series/{playlist_id}', playlist_id)
 
-        playlist_title, breadcrumb = None, self._extract_breadcrumb_list(webpage, video_id)
-        if breadcrumb:
-            playlist_title = breadcrumb[-1]
-
-        playlist = [
-            self.url_result(urljoin('https://abema.tv/', mobj.group(1)))
-            for mobj in re.finditer(r'<li\s*class=".+?EpisodeList.+?"><a\s*href="(/[^"]+?)"', webpage)]
-
-        return self.playlist_result(playlist, playlist_title=playlist_title, playlist_id=video_id)
+        return self.playlist_result(
+            self._entries(playlist_id, series_info['version']), playlist_id=playlist_id,
+            playlist_title=series_info.get('title'),
+            playlist_description=series_info.get('content'))

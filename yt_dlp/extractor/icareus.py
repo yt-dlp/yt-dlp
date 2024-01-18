@@ -169,7 +169,6 @@ class IcareusIE(InfoExtractor):
             'url': url_or_none(info.get('thumbnail') or assets.get('thumbnail'))
         }]
 
-        self._sort_formats(formats)
         return merge_dicts({
             'id': video_id,
             'title': None,

@@ -160,7 +160,6 @@ class PlaytvakIE(InfoExtractor):
                 'quality': quality(fmt.get('quality')),
                 'preference': preference,
             })
-        self._sort_formats(formats)
 
         title = item['title']
         is_live = item['type'] == 'stream'

@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -13,10 +11,11 @@ class ExpressenIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:www\.)?(?:expressen|di)\.se/
-                        (?:(?:tvspelare/video|videoplayer/embed)/)?
-                        tv/(?:[^/]+/)*
+                        (?:(?:tvspelare/video|video-?player/embed)/)?
+                        (?:tv|nyheter)/(?:[^/?#]+/)*
                         (?P<id>[^/?#&]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?(?:expressen|di)\.se/(?:tvspelare/video|videoplayer/embed)/tv/.+?)\1']
     _TESTS = [{
         'url': 'https://www.expressen.se/tv/ledare/ledarsnack/ledarsnack-om-arbetslosheten-bland-kvinnor-i-speciellt-utsatta-omraden/',
         'md5': 'deb2ca62e7b1dcd19fa18ba37523f66e',
@@ -43,14 +42,13 @@ class ExpressenIE(InfoExtractor):
     }, {
         'url': 'https://www.di.se/videoplayer/embed/tv/ditv/borsmorgon/implantica-rusar-70--under-borspremiaren-hor-styrelsemedlemmen/?embed=true&external=true&autoplay=true&startVolume=0&partnerId=di',
         'only_matching': True,
+    }, {
+        'url': 'https://www.expressen.se/video-player/embed/tv/nyheter/ekero-fodda-olof-gustafsson-forvaltar-knarkbaronen-pablo-escobars-namn',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.expressen.se/nyheter/efter-egna-telefonbluffen-escobar-stammer-klarna/',
+        'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url') for mobj in re.finditer(
-                r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?(?:expressen|di)\.se/(?:tvspelare/video|videoplayer/embed)/tv/.+?)\1',
-                webpage)]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -78,7 +76,6 @@ class ExpressenIE(InfoExtractor):
             formats = [{
                 'url': stream,
             }]
-        self._sort_formats(formats)
 
         title = info.get('titleRaw') or data['title']
         description = info.get('descriptionRaw')

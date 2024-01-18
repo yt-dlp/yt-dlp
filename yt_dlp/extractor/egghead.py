@@ -117,7 +117,6 @@ class EggheadLessonIE(EggheadBaseIE):
                 formats.append({
                     'url': format_url,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': lesson_id,

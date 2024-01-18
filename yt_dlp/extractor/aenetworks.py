@@ -3,12 +3,14 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     int_or_none,
+    remove_start,
+    traverse_obj,
     update_url_query,
     urlencode_postdata,
 )
 
 
-class AENetworksBaseIE(ThePlatformIE):
+class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _BASE_URL_REGEX = r'''(?x)https?://
         (?:(?:www|play|watch)\.)?
         (?P<domain>
@@ -28,14 +30,17 @@ class AENetworksBaseIE(ThePlatformIE):
     }
 
     def _extract_aen_smil(self, smil_url, video_id, auth=None):
-        query = {'mbr': 'true'}
+        query = {
+            'mbr': 'true',
+            'formats': 'M3U+none,MPEG-DASH+none,MPEG4,MP3',
+        }
         if auth:
             query['auth'] = auth
         TP_SMIL_QUERY = [{
             'assetTypes': 'high_video_ak',
-            'switch': 'hls_high_ak'
+            'switch': 'hls_high_ak',
         }, {
-            'assetTypes': 'high_video_s3'
+            'assetTypes': 'high_video_s3',
         }, {
             'assetTypes': 'high_video_s3',
             'switch': 'hls_high_fastly',
@@ -59,7 +64,6 @@ class AENetworksBaseIE(ThePlatformIE):
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
             raise last_e
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,
@@ -70,7 +74,14 @@ class AENetworksBaseIE(ThePlatformIE):
         requestor_id, brand = self._DOMAIN_MAP[domain]
         result = self._download_json(
             'https://feeds.video.aetnd.com/api/v2/%s/videos' % brand,
-            filter_value, query={'filter[%s]' % filter_key: filter_value})['results'][0]
+            filter_value, query={'filter[%s]' % filter_key: filter_value})
+        result = traverse_obj(
+            result, ('results',
+                     lambda k, v: k == 0 and v[filter_key] == filter_value),
+            get_all=False)
+        if not result:
+            raise ExtractorError('Show not found in A&E feed (too new?)', expected=True,
+                                 video_id=remove_start(filter_value, '/'))
         title = result['title']
         video_id = result['id']
         media_url = result['publicUrl']
@@ -82,7 +93,7 @@ class AENetworksBaseIE(ThePlatformIE):
             resource = self._get_mvpd_resource(
                 requestor_id, theplatform_metadata['title'],
                 theplatform_metadata.get('AETN$PPL_pplProgramId') or theplatform_metadata.get('AETN$PPL_pplProgramId_OLD'),
-                theplatform_metadata['ratings'][0]['rating'])
+                traverse_obj(theplatform_metadata, ('ratings', 0, 'rating')))
             auth = self._extract_mvpd_auth(
                 url, video_id, requestor_id, resource)
         info.update(self._extract_aen_smil(media_url, video_id, auth))
@@ -110,18 +121,28 @@ class AENetworksIE(AENetworksBaseIE):
         'info_dict': {
             'id': '22253814',
             'ext': 'mp4',
-            'title': 'Winter is Coming',
-            'description': 'md5:641f424b7a19d8e24f26dea22cf59d74',
+            'title': 'Winter Is Coming',
+            'description': 'md5:a40e370925074260b1c8a633c632c63a',
             'timestamp': 1338306241,
             'upload_date': '20120529',
             'uploader': 'AENE-NEW',
+            'duration': 2592.0,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'chapters': 'count:5',
+            'tags': 'count:14',
+            'categories': ['Mountain Men'],
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Mountain Men',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
-        'skip': 'This video is only available for users of participating TV providers.',
+        'skip': 'Geo-restricted - This content is not available in your location.'
     }, {
         'url': 'http://www.aetv.com/shows/duck-dynasty/season-9/episode-1',
         'info_dict': {
@@ -132,12 +153,22 @@ class AENetworksIE(AENetworksBaseIE):
             'timestamp': 1452634428,
             'upload_date': '20160112',
             'uploader': 'AENE-NEW',
+            'duration': 1277.695,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'chapters': 'count:4',
+            'tags': 'count:23',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 9',
+            'season_number': 9,
+            'series': 'Duck Dynasty',
         },
         'params': {
             # m3u8 download
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': 'This video is only available for users of participating TV providers.',
     }, {
         'url': 'http://www.fyi.tv/shows/tiny-house-nation/season-1/episode-8',
         'only_matching': True
@@ -326,6 +357,7 @@ class BiographyIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': '404 Not Found',
     }]
 
     def _real_extract(self, url):

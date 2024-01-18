@@ -120,7 +120,6 @@ class AppleTrailersIE(InfoExtractor):
                             'height': int_or_none(size_data.get('height')),
                             'language': version[:2],
                         })
-                self._sort_formats(formats)
 
                 entries.append({
                     'id': movie + '-' + re.sub(r'[^a-zA-Z0-9]', '', clip_title).lower(),
@@ -184,8 +183,6 @@ class AppleTrailersIE(InfoExtractor):
                     'width': int_or_none(format['width']),
                     'height': int_or_none(format['height']),
                 })
-
-            self._sort_formats(formats)
 
             playlist.append({
                 '_type': 'video',

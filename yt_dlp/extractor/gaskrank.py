@@ -93,6 +93,5 @@ class GaskrankIE(InfoExtractor):
             'view_count': view_count,
             'average_rating': average_rating,
         })
-        self._sort_formats(entry['formats'])
 
         return entry

@@ -69,7 +69,6 @@ class WallaIE(InfoExtractor):
             if m:
                 fmt['height'] = int(m.group('height'))
             formats.append(fmt)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

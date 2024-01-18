@@ -3,7 +3,7 @@ from ..utils import format_field, traverse_obj, unified_timestamp
 
 
 class LivestreamfailsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?livestreamfails\.com/clip/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?livestreamfails\.com/(?:clip|post)/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://livestreamfails.com/clip/139200',
         'md5': '8a03aea1a46e94a05af6410337463102',
@@ -17,6 +17,9 @@ class LivestreamfailsIE(InfoExtractor):
             'timestamp': 1656271785,
             'upload_date': '20220626',
         }
+    }, {
+        'url': 'https://livestreamfails.com/post/139200',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

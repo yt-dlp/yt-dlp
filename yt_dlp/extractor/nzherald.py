@@ -1,6 +1,7 @@
+import json
+
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
@@ -13,17 +14,20 @@ class NZHeraldIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?nzherald\.co\.nz/[\w\/-]+\/(?P<id>[A-Z0-9]+)'
     _TESTS = [
         {
-            'url': 'https://www.nzherald.co.nz/nz/weather-heavy-rain-gales-across-nz-most-days-this-week/PTG7QWY4E2225YHZ5NAIRBTYTQ/',
+            # Video accessible under 'video' key
+            'url': 'https://www.nzherald.co.nz/nz/queen-elizabeth-death-nz-public-holiday-announced-for-september-26/CEOPBSXO2JDCLNK3H7E3BIE2FA/',
             'info_dict': {
-                'id': '6271084466001',
+                'id': '6312191736112',
                 'ext': 'mp4',
-                'title': 'MetService severe weather warning: September 6th - 7th',
-                'timestamp': 1630891576,
-                'upload_date': '20210906',
+                'title': 'Focus: PM holds post-Cabinet press conference',
+                'duration': 238.08,
+                'upload_date': '20220912',
                 'uploader_id': '1308227299001',
-                'description': 'md5:db6ca335a22e2cdf37ab9d2bcda52902'
+                'timestamp': 1662957159,
+                'tags': [],
+                'thumbnail': r're:https?://.*\.jpg$',
+                'description': 'md5:2f17713fcbfcfbe38bb9e7dfccbb0f2e',
             }
-
         }, {
             # Webpage has brightcove embed player url
             'url': 'https://www.nzherald.co.nz/travel/pencarrow-coastal-trail/HDVTPJEPP46HJ2UEMK4EGD2DFI/',
@@ -34,9 +38,11 @@ class NZHeraldIE(InfoExtractor):
                 'timestamp': 1625102897,
                 'upload_date': '20210701',
                 'uploader_id': '1308227299001',
-                'description': 'md5:d361aaa0c6498f7ac1bc4fc0a0aec1e4'
+                'description': 'md5:d361aaa0c6498f7ac1bc4fc0a0aec1e4',
+                'thumbnail': r're:https?://.*\.jpg$',
+                'tags': ['travel', 'video'],
+                'duration': 43.627,
             }
-
         }, {
             # two video embeds of the same video
             'url': 'https://www.nzherald.co.nz/nz/truck-driver-captured-cutting-off-motorist-on-state-highway-1-in-canterbury/FIHNJB7PLLPHWQPK4S7ZBDUC4I/',
@@ -48,6 +54,22 @@ class NZHeraldIE(InfoExtractor):
                 'upload_date': '20210429',
                 'uploader_id': '1308227299001',
                 'description': 'md5:4cae7dfb7613ac4c73b9e73a75c6b5d7'
+            },
+            'skip': 'video removed',
+        }, {
+            # customVideo embed requiring additional API call
+            'url': 'https://www.nzherald.co.nz/nz/politics/reserve-bank-rejects-political-criticisms-stands-by-review/2JO5Q4WLZRCBBNWTLACZMOP4RA/',
+            'info_dict': {
+                'id': '6315123873112',
+                'ext': 'mp4',
+                'timestamp': 1667862725,
+                'title': 'Focus: Luxon on re-appointment of Reserve Bank governor Adrian Orr',
+                'upload_date': '20221107',
+                'description': 'md5:df2f1f7033a8160c66e28e4743f5d934',
+                'uploader_id': '1308227299001',
+                'tags': ['video', 'nz herald focus', 'politics', 'politics videos'],
+                'thumbnail': r're:https?://.*\.jpg$',
+                'duration': 99.584,
             }
         }, {
             'url': 'https://www.nzherald.co.nz/kahu/kaupapa-companies-my-taiao-supporting-maori-in-study-and-business/PQBO2J25WCG77VGRX7W7BVYEAI/',
@@ -80,6 +102,12 @@ class NZHeraldIE(InfoExtractor):
                 self._search_regex(r'Fusion\.globalContent\s*=\s*({.+?})\s*;', webpage, 'fusion metadata'), article_id)
 
             video_metadata = fusion_metadata.get('video')
+            if not video_metadata:
+                custom_video_id = traverse_obj(fusion_metadata, ('customVideo', 'embed', 'id'), expected_type=str)
+                if custom_video_id:
+                    video_metadata = self._download_json(
+                        'https://www.nzherald.co.nz/pf/api/v3/content/fetch/full-content-by-id', article_id,
+                        query={'query': json.dumps({'id': custom_video_id, 'site': 'nzh'}), '_website': 'nzh'})
             bc_video_id = traverse_obj(
                 video_metadata or fusion_metadata,  # fusion metadata is the video metadata for video-only pages
                 'brightcoveId', ('content_elements', ..., 'referent', 'id'),

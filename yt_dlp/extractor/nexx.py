@@ -114,8 +114,8 @@ class NexxIE(InfoExtractor):
             webpage)
         return mobj.group('id') if mobj else None
 
-    @staticmethod
-    def _extract_urls(webpage):
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         # Reference:
         # 1. https://nx-s.akamaized.net/files/201510/44.pdf
 
@@ -134,10 +134,6 @@ class NexxIE(InfoExtractor):
         # TODO: support more embed formats
 
         return entries
-
-    @staticmethod
-    def _extract_url(webpage):
-        return NexxIE._extract_urls(webpage)[0]
 
     def _handle_error(self, response):
         if traverse_obj(response, ('metadata', 'notice'), expected_type=str):
@@ -456,8 +452,6 @@ class NexxIE(InfoExtractor):
         else:
             self.raise_no_formats(f'{cdn} formats are currently not supported', video_id)
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for sub in video.get('captiondata') or []:
             if sub.get('data'):
@@ -498,6 +492,8 @@ class NexxIE(InfoExtractor):
 
 class NexxEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://embed\.nexx(?:\.cloud|cdn\.com)/\d+/(?:video/)?(?P<id>[^/?#&]+)'
+    # Reference. https://nx-s.akamaized.net/files/201510/44.pdf
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//embed\.nexx(?:\.cloud|cdn\.com)/\d+/(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'http://embed.nexx.cloud/748/KC1614647Z27Y7T?autoplay=1',
         'md5': '16746bfc28c42049492385c989b26c4a',
@@ -520,16 +516,6 @@ class NexxEmbedIE(InfoExtractor):
         'url': 'https://embed.nexx.cloud/11888/video/DSRTO7UVOX06S7',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        # Reference:
-        # 1. https://nx-s.akamaized.net/files/201510/44.pdf
-
-        # iFrame Embed Integration
-        return [mobj.group('url') for mobj in re.finditer(
-            r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//embed\.nexx(?:\.cloud|cdn\.com)/\d+/(?:(?!\1).)+)\1',
-            webpage)]
 
     def _real_extract(self, url):
         embed_id = self._match_id(url)

@@ -92,13 +92,12 @@ class NBAWatchBaseIE(NBACVPBaseIE):
                 formats.extend(cvp_info['formats'])
                 info = merge_dicts(info, cvp_info)
 
-        self._sort_formats(formats)
         info['formats'] = formats
         return info
 
 
 class NBAWatchEmbedIE(NBAWatchBaseIE):
-    IENAME = 'nba:watch:embed'
+    IE_NAME = 'nba:watch:embed'
     _VALID_URL = NBAWatchBaseIE._VALID_URL_BASE + r'embed\?.*?\bid=(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://watch.nba.com/embed?id=659395',
@@ -318,7 +317,6 @@ class NBABaseIE(NBACVPBaseIE):
                     subtitles = self._merge_subtitles(subtitles, cvp_info['subtitles'])
                     info = merge_dicts(info, cvp_info)
 
-            self._sort_formats(formats)
         else:
             info.update(self._embed_url_result(team, video['videoId']))
 
@@ -341,7 +339,7 @@ class NBABaseIE(NBACVPBaseIE):
 
 
 class NBAEmbedIE(NBABaseIE):
-    IENAME = 'nba:embed'
+    IE_NAME = 'nba:embed'
     _VALID_URL = r'https?://secure\.nba\.com/assets/amp/include/video/(?:topI|i)frame\.html\?.*?\bcontentId=(?P<id>[^?#&]+)'
     _TESTS = [{
         'url': 'https://secure.nba.com/assets/amp/include/video/topIframe.html?contentId=teams/bulls/2020/12/04/3478774/1607105587854-20201204_SCHEDULE_RELEASE_FINAL_DRUPAL-3478774&team=bulls&adFree=false&profile=71&videoPlayerName=TAMPCVP&baseUrl=&videoAdsection=nba.com_mobile_web_teamsites_chicagobulls&ampEnv=',
@@ -363,7 +361,7 @@ class NBAEmbedIE(NBABaseIE):
 
 
 class NBAIE(NBABaseIE):
-    IENAME = 'nba'
+    IE_NAME = 'nba'
     _VALID_URL = NBABaseIE._VALID_URL_BASE + '(?!%s)video/(?P<id>(?:[^/]+/)*[^/?#&]+)' % NBABaseIE._CHANNEL_PATH_REGEX
     _TESTS = [{
         'url': 'https://www.nba.com/bulls/video/teams/bulls/2020/12/04/3478774/1607105587854-20201204schedulereleasefinaldrupal-3478774',
@@ -390,7 +388,7 @@ class NBAIE(NBABaseIE):
 
 
 class NBAChannelIE(NBABaseIE):
-    IENAME = 'nba:channel'
+    IE_NAME = 'nba:channel'
     _VALID_URL = NBABaseIE._VALID_URL_BASE + '(?:%s)/(?P<id>[^/?#&]+)' % NBABaseIE._CHANNEL_PATH_REGEX
     _TESTS = [{
         'url': 'https://www.nba.com/blazers/video/channel/summer_league',

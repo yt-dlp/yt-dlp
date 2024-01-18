@@ -17,6 +17,7 @@ class HuffPostIE(InfoExtractor):
             HPLEmbedPlayer/\?segmentId=
         )
         (?P<id>[0-9a-f]+)'''
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://embed\.live\.huffingtonpost\.com/.+?)\1']
 
     _TEST = {
         'url': 'http://live.huffingtonpost.com/r/segment/legalese-it/52dd3e4b02a7602131000677',
@@ -77,8 +78,6 @@ class HuffPostIE(InfoExtractor):
                     'url': url,
                     'vcodec': 'none' if key.startswith('audio/') else None,
                 })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

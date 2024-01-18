@@ -20,7 +20,7 @@ class GlideIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_extract_title(webpage, default=None) or self._og_search_title(webpage)
+        title = self._generic_title('', webpage)
         video_url = self._proto_relative_url(self._search_regex(
             r'<source[^>]+src=(["\'])(?P<url>.+?)\1',
             webpage, 'video URL', default=None,

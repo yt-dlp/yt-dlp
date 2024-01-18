@@ -22,7 +22,7 @@ class BleacherReportIE(InfoExtractor):
             'upload_date': '20150615',
             'uploader': 'Team Stream Now ',
         },
-        'add_ie': ['Ooyala'],
+        'skip': 'Video removed',
     }, {
         'url': 'http://bleacherreport.com/articles/2586817-aussie-golfers-get-fright-of-their-lives-after-being-chased-by-angry-kangaroo',
         'md5': '6a5cd403418c7b01719248ca97fb0692',
@@ -70,8 +70,6 @@ class BleacherReportIE(InfoExtractor):
             video_type = video['type']
             if video_type in ('cms.bleacherreport.com', 'vid.bleacherreport.com'):
                 info['url'] = 'http://bleacherreport.com/video_embed?id=%s' % video['id']
-            elif video_type == 'ooyala.com':
-                info['url'] = 'ooyala:%s' % video['id']
             elif video_type == 'youtube.com':
                 info['url'] = video['id']
             elif video_type == 'vine.co':

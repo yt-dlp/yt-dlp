@@ -59,7 +59,6 @@ class FolketingetIE(InfoExtractor):
             'url': xpath_text(n, './url', fatal=True),
             'tbr': int_or_none(n.attrib['bitrate']),
         } for n in doc.findall('.//streams/stream')]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -168,7 +168,7 @@ class AudiusIE(AudiusBaseIE):
         }
 
 
-class AudiusTrackIE(AudiusIE):
+class AudiusTrackIE(AudiusIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'''(?x)(?:audius:)(?:https?://(?:www\.)?.+/v1/tracks/)?(?P<track_id>\w+)'''
     IE_NAME = 'audius:track'
     IE_DESC = 'Audius track ID or API link. Prepend with "audius:"'
@@ -243,7 +243,7 @@ class AudiusPlaylistIE(AudiusBaseIE):
                                     playlist_data.get('description'))
 
 
-class AudiusProfileIE(AudiusPlaylistIE):
+class AudiusProfileIE(AudiusPlaylistIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'audius:artist'
     IE_DESC = 'Audius.co profile/artist pages'
     _VALID_URL = r'https?://(?:www)?audius\.co/(?P<id>[^\/]+)/?(?:[?#]|$)'

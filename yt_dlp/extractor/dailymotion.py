@@ -3,7 +3,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -68,9 +68,9 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
                         None, 'Downloading Access Token',
                         data=urlencode_postdata(data))['access_token']
                 except ExtractorError as e:
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                         raise ExtractorError(self._parse_json(
-                            e.cause.read().decode(), xid)['error_description'], expected=True)
+                            e.cause.response.read().decode(), xid)['error_description'], expected=True)
                     raise
                 self._set_dailymotion_cookie('access_token' if username else 'client_token', token)
             self._HEADERS['Authorization'] = 'Bearer ' + token
@@ -93,12 +93,13 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player(?:/\w+)?\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
                         [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
     IE_NAME = 'dailymotion'
+    _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
     _TESTS = [{
         'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
         'md5': '074b95bdee76b9e3654137aee9c79dfe',
@@ -106,13 +107,17 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'id': 'x5kesuj',
             'ext': 'mp4',
             'title': 'Office Christmas Party Review –  Jason Bateman, Olivia Munn, T.J. Miller',
-            'description': 'Office Christmas Party Review -  Jason Bateman, Olivia Munn, T.J. Miller',
+            'description': 'Office Christmas Party Review - Jason Bateman, Olivia Munn, T.J. Miller',
             'duration': 187,
             'timestamp': 1493651285,
             'upload_date': '20170501',
             'uploader': 'Deadline',
             'uploader_id': 'x1xm8ri',
             'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+            'tags': ['hollywood', 'celeb', 'celebrity', 'movies', 'red carpet'],
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/K456B1aXqIx58LKWQ/x1080',
         },
     }, {
         'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
@@ -131,7 +136,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'view_count': int,
             'like_count': int,
             'tags': ['en_quete_d_esprit'],
-            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+            'thumbnail': r're:https://(?:s[12]\.)dmcdn\.net/v/Tncwi1YNg_RUl7ueu/x1080',
         }
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
@@ -200,6 +205,12 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     }, {
         'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
         'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/x86gw.html?video=k46oCapRs4iikoz9DWy',
+        'only_matching': True,
+    }, {
+        'url': 'https://geo.dailymotion.com/player/xakln.html?video=x8mjju4&customConfig%5BcustomParams%5D=%2Ffr-fr%2Ftennis%2Fwimbledon-mens-singles%2Farticles-video',
+        'only_matching': True,
     }]
     _GEO_BYPASS = False
     _COMMON_MEDIA_FIELDS = '''description
@@ -208,18 +219,13 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
       }
       xid'''
 
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        # Look for embedded Dailymotion player
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         # https://developer.dailymotion.com/player#player-parameters
-        for mobj in re.finditer(
-                r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1', webpage):
-            urls.append(unescapeHTML(mobj.group('url')))
+        yield from super()._extract_embed_urls(url, webpage)
         for mobj in re.finditer(
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
-            urls.append('https://www.dailymotion.com/embed/video/' + mobj.group('id'))
-        return urls
+            yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url)
@@ -297,7 +303,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             f['url'] = f['url'].split('#')[0]
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
-        self._sort_formats(formats)
 
         subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
@@ -377,6 +382,15 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
         'playlist_mincount': 20,
     }]
     _OBJECT_TYPE = 'collection'
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        # Look for embedded Dailymotion playlist player (#3822)
+        for mobj in re.finditer(
+                r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.[a-z]{2,3}/widget/jukebox\?.+?)\1',
+                webpage):
+            for p in re.findall(r'list\[\]=/playlist/([^/]+)/', unescapeHTML(mobj.group('url'))):
+                yield '//dailymotion.com/playlist/%s' % p
 
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):

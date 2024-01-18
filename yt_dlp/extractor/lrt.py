@@ -37,7 +37,6 @@ class LRTStreamIE(LRTBaseIE):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, 'mp4', m3u8_id='hls', live=True)
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
 
         stream_title = self._extract_js_var(webpage, 'video_title', 'LRT')
         return {

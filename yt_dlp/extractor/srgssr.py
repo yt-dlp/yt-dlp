@@ -128,7 +128,6 @@ class SRGSSRIE(InfoExtractor):
                     'url': podcast_url,
                     'quality': q(quality),
                 })
-        self._sort_formats(formats)
 
         if media_type == 'video':
             for sub in (media_data.get('subtitleList') or []):

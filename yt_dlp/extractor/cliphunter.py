@@ -62,7 +62,6 @@ class CliphunterIE(InfoExtractor):
                 'height': int_or_none(height),
                 'tbr': int_or_none(f.get('br')),
             })
-        self._sort_formats(formats)
 
         thumbnail = self._search_regex(
             r"var\s+mov_thumb\s*=\s*'([^']+)';",

@@ -40,7 +40,6 @@ class DLiveVODIE(InfoExtractor):
         title = broadcast['title']
         formats = self._extract_m3u8_formats(
             broadcast['playbackUrl'], vod_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
         return {
             'id': vod_id,
             'title': title,
@@ -79,7 +78,6 @@ class DLiveStreamIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             'https://live.prd.dlive.tv/hls/live/%s.m3u8' % username,
             display_name, 'mp4')
-        self._sort_formats(formats)
         return {
             'id': display_name,
             'title': title,
