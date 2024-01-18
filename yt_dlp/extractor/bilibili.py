@@ -1649,7 +1649,6 @@ class BiliIntlBaseIE(InfoExtractor):
         return data
 
     def _get_subtitles(self, *, ep_id=None, aid=None):
-        subtitles = {}
         sub_json = self._call_api(
             '/web/v2/subtitle', ep_id or aid, fatal=False,
             note='Downloading subtitles list', errnote='Unable to download subtitles list',
@@ -1659,7 +1658,7 @@ class BiliIntlBaseIE(InfoExtractor):
                 'episode_id': ep_id,
                 'aid': aid,
             })) or {}
-
+        subtitles = {}
         fetched_urls = []
         for sub in traverse_obj(sub_json, (('subtitles', 'video_subtitle'), ..., {dict})):
             for url in traverse_obj(sub, ((None, 'ass', 'srt'), 'url', {url_or_none})):
