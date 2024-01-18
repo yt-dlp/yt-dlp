@@ -1,9 +1,10 @@
-from time import time
-from re import escape, findall
-from urllib.parse import urlparse
+import re
+import time
+import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj, update_url_query, url_or_none, urlencode_postdata
+from ..utils import int_or_none, url_or_none, urlencode_postdata
+from ..utils.traversal import traverse_obj
 
 
 class GetCourseRuPlayerIE(InfoExtractor):
