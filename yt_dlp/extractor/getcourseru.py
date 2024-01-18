@@ -162,9 +162,8 @@ class GetCourseRuIE(InfoExtractor):
         title = self._html_extract_title(webpage)
 
         return self.playlist_from_matches(
-            findall(r'data-iframe-src="(https?://player\d{2,}\.getcourse\.ru/sign-player/?\?(?:[^#]+&)?json=[^"]+)',
-                    webpage),
-            playlist_id, title, ie=GetCourseRuPlayerIE, video_kwargs={
+            re.findall(GetCourseRuPlayerIE._EMBED_REGEX[0], webpage),
+            playlist_id, title, display_id=display_id, ie=GetCourseRuPlayerIE, video_kwargs={
                 'url_transparent': True,
                 'title': title,
             })
