@@ -106,12 +106,16 @@ class GetCourseRuIE(InfoExtractor):
         parsed_url = urlparse(url)
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
 
-        # TODO: find proper `xdgetId` by parsing the login webpage and extracting it
+        webpage = self._download_webpage(base_url + self._LOGIN_URL_SUFFIX, None)
+        xdget_id = self._html_search_regex(
+            r'<form[^>]*class="[^"]*state-login[^"]*"[^>]*data-xdget-id="([^"]+)"',
+            webpage, 'xdgetId')
+
         self._request_webpage(
             base_url + self._LOGIN_URL_SUFFIX, None, 'Logging in', 'Failed to log in',
             data=urlencode_postdata({
                 'action': 'processXdget',
-                'xdgetId': 'r6335_1_1',
+                'xdgetId': xdget_id,
                 'params[action]': 'login',
                 'params[url]': update_url_query(base_url + self._LOGIN_URL_SUFFIX, {'required': 'true'}),
                 'params[object_type]': 'cms_page',
