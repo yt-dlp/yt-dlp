@@ -92,6 +92,23 @@ class GetCourseRuIE(InfoExtractor):
             },
         }],
         'skip': 'paid lesson'
+    }, {
+        'url': 'https://manibeauty.getcourse.ru/pl/teach/control/lesson/view?id=272499894',
+        'info_dict': {
+            'id': '272499894',
+            'title': 'Мотивация к тренировкам',
+        },
+        'playlist_count': 1,
+        'playlist': [{
+            'info_dict': {
+                'id': '4242723',
+                'ext': 'mp4',
+                'title': 'Мотивация к тренировкам',
+                'thumbnail': 'https://preview-htz.vhcdn.com/preview/70ed5b9f489dd03b4aff55bfdff71a26/preview.jpg?version=1685115787&host=vh-71',
+                'duration': 30
+            },
+        }],
+        'skip': 'paid lesson'
     }]
     _DOMAINS = [
         'academymel.online'
