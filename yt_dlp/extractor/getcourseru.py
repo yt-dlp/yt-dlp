@@ -125,6 +125,8 @@ class GetCourseRuIE(InfoExtractor):
     ]
 
     def _login(self, url, username, password):
+        if self._get_cookies(url).get('PHPSESSID5'):
+            return
         domain = urllib.parse.urlparse(url).netloc
         login_url = f'https://{domain}{self._LOGIN_URL_PATH}'
 
@@ -157,11 +159,12 @@ class GetCourseRuIE(InfoExtractor):
         if username:
             self._login(url, username, password)
 
-        if not self._get_cookies(url).get('PHPSESSID5'):
+        display_id = self._match_id(url)
+        # NB: 404 is returned due to yt-dlp not properly following redirects #9020
+        webpage, urlh = self._download_webpage_handle(url, display_id, expected_status=404)
+        if self._LOGIN_URL_PATH in urlh.url or urlh.status == 404:
             self.raise_login_required()
 
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
         playlist_id = self._search_regex(
             r'window\.lessonId\s*=\s*(\d+)', webpage, 'playlist id', default=display_id)
 
