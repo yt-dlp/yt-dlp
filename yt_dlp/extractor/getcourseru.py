@@ -127,11 +127,10 @@ class GetCourseRuIE(InfoExtractor):
         rf'{_BASE_URL_RE}/(:?pl/)?teach/control/lesson/view\?(?:[^#]+&)?id=(?P<id>\d+)',
     ]
 
-    def _login(self, url, username, password):
-        if self._get_cookies(url).get('PHPSESSID5'):
+    def _login(self, hostanme, username, password):
+        if self._get_cookies(f'https://{hostanme}').get('PHPSESSID5'):
             return
-        domain = urllib.parse.urlparse(url).netloc
-        login_url = f'https://{domain}{self._LOGIN_URL_PATH}'
+        login_url = f'https://{hostanme}{self._LOGIN_URL_PATH}'
 
         webpage = self._download_webpage(login_url, None)
         xdget_id = self._html_search_regex(
@@ -158,9 +157,10 @@ class GetCourseRuIE(InfoExtractor):
             }))
 
     def _real_extract(self, url):
-        username, password = self._get_login_info()
+        hostanme = urllib.parse.urlparse(url).hostname
+        username, password = self._get_login_info(netrc_machine=hostanme)
         if username:
-            self._login(url, username, password)
+            self._login(hostanme, username, password)
 
         display_id = self._match_id(url)
         # NB: 404 is returned due to yt-dlp not properly following redirects #9020
