@@ -996,7 +996,7 @@ from .lynda import (
 )
 from .maariv import MaarivIE
 from .magellantv import MagellanTVIE
-from .magentamusik360 import MagentaMusik360IE
+from .magentamusik import MagentaMusikIE
 from .mailru import (
     MailRuIE,
     MailRuMusicIE,
