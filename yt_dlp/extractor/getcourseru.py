@@ -133,6 +133,10 @@ class GetCourseRuIE(InfoExtractor):
             r'<form[^>]*class="[^"]*state-login[^"]*"[^>]*data-xdget-id="([^"]+)"',
             webpage, 'xdgetId')
 
+        simple_sign = self._html_search_regex(
+            r'window.requestSimpleSign\s*=\s*"([\da-f]+)"',
+            webpage, 'simple sign')
+
         self._request_webpage(
             login_url, None, 'Logging in', 'Failed to log in',
             data=urlencode_postdata({
@@ -144,7 +148,8 @@ class GetCourseRuIE(InfoExtractor):
                 'params[object_id]': -1,
                 'params[email]': username,
                 'params[password]': password,
-                'requestTime': int(time())
+                'requestTime': int(time.time()),
+                'requestSimpleSign': simple_sign,
             }))
 
     def _real_extract(self, url):
