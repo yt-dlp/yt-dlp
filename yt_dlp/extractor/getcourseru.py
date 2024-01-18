@@ -3,7 +3,7 @@ import time
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import int_or_none, url_or_none, urlencode_postdata
+from ..utils import ExtractorError, int_or_none, url_or_none, urlencode_postdata
 from ..utils.traversal import traverse_obj
 
 
@@ -161,7 +161,9 @@ class GetCourseRuIE(InfoExtractor):
         # NB: 404 is returned due to yt-dlp not properly following redirects #9020
         webpage, urlh = self._download_webpage_handle(url, display_id, expected_status=404)
         if self._LOGIN_URL_PATH in urlh.url or urlh.status == 404:
-            self.raise_login_required()
+            raise ExtractorError(
+                f'This video is only available for registered users. {self._login_hint("any", netrc=hostname)}',
+                expected=True)
 
         playlist_id = self._search_regex(
             r'window\.(?:lessonId|gcsObjectId)\s*=\s*(\d+)', webpage, 'playlist id', default=display_id)
