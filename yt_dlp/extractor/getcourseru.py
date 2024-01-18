@@ -110,6 +110,9 @@ class GetCourseRuIE(InfoExtractor):
             },
         }],
         'skip': 'paid lesson'
+    }, {
+        'url': 'https://gaismasmandalas.getcourse.io/ATLAUTSEVBUT',
+        'only_matching': True,
     }]
     _DOMAINS = [
         'academymel.online'
