@@ -30,14 +30,15 @@ class MagentaMusikIE(InfoExtractor):
         if not player_config:
             raise ExtractorError('No video found', expected=True)
 
-        asset_id = player_config.get('assetId')
-        if not asset_id:
-            raise ExtractorError('No assetId found in player config')
+        asset_id = player_config['assetId']
         asset_details = self._download_json(
             f'https://wcps.t-online.de/cvss/magentamusic/vodclient/v2/assetdetails/58938/{asset_id}',
             display_id, note='Downloading asset details')
 
-        video_id = traverse_obj(asset_details, ('content', 'partnerInformation', ..., 'reference'), get_all=False)
+        video_id = traverse_obj(
+            asset_details, ('content', 'partnerInformation', ..., 'reference', {str}), get_all=False)
+        if not video_id:
+            raise ExtractorError('Unable to extract video id')
 
         vod_data = self._download_json(
             f'https://wcps.t-online.de/cvss/magentamusic/vodclient/v2/player/58935/{video_id}/Main%20Movie', video_id)
