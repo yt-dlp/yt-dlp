@@ -10,9 +10,8 @@ from ..utils import (
     get_elements_by_class,
     int_or_none,
     join_nonempty,
+    parse_count,
     parse_duration,
-    remove_end,
-    str_to_int,
     unescapeHTML,
 )
 from ..utils.traversal import traverse_obj
@@ -82,9 +81,7 @@ class Rule34VideoIE(InfoExtractor):
                 'quality': quality,
             })
 
-        categories = None
-        creator = None
-        uploader, uploader_url = None, None
+        categories, creator, uploader, uploader_url = [None] * 4
         for col in get_elements_by_class('col', webpage):
             label = clean_html(get_element_by_class('label', col))
             if label == 'Categories:':
@@ -95,10 +92,8 @@ class Rule34VideoIE(InfoExtractor):
                 uploader = clean_html(get_element_by_class('name', col))
                 uploader_url = extract_attributes(get_element_html_by_class('name', col) or '').get('href')
 
-        json_ld = self._search_json_ld(webpage, video_id, default={})
-
         return {
-            **traverse_obj(json_ld, ({
+            **traverse_obj(self._search_json_ld(webpage, video_id, default={}), ({
                 'title': 'title',
                 'view_count': 'view_count',
                 'like_count': 'like_count',
@@ -116,8 +111,7 @@ class Rule34VideoIE(InfoExtractor):
                 r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)),
             'view_count': int_or_none(self._html_search_regex(
                 r'"icon-eye"></i>\s+<span>([ \d]+)', webpage, 'views', default='').replace(' ', '')),
-            'like_count': str_to_int(remove_end(
-                get_element_by_class('voters count', webpage), ' likes')),
+            'like_count': parse_count(get_element_by_class('voters count', webpage)),
             'comment_count': int_or_none(self._search_regex(
                 r'[^(]+\((\d+)\)', get_element_by_attribute('href', '#tab_comments', webpage), 'comment count', fatal=False)),
             'age_limit': 18,
