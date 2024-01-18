@@ -7,7 +7,7 @@ from ..utils import int_or_none, traverse_obj, update_url_query, url_or_none, ur
 
 
 class GetCourseRuPlayerIE(InfoExtractor):
-    _VALID_URL = r'https?://player\d{2,}\.getcourse\.ru/sign-player/?\?(?:[^#]+&)?json=(?P<id>[^#&]+)'
+    _VALID_URL = r'https?://player02\.getcourse\.ru/sign-player/?\?(?:[^#]+&)?json=[^#&]+'
     _TESTS = [{
         'url': 'http://player02.getcourse.ru/sign-player/?json=eyJ2aWRlb19oYXNoIjoiMTkwYmRmOTNmMWIyOTczNTMwOTg1M2E3YTE5ZTI0YjMiLCJ1c2VyX2lkIjozNTk1MjUxODMsInN1Yl9sb2dpbl91c2VyX2lkIjpudWxsLCJsZXNzb25faWQiOm51bGwsImlwIjoiNDYuMTQyLjE4Mi4yNDciLCJnY19ob3N0IjoiYWNhZGVteW1lbC5vbmxpbmUiLCJ0aW1lIjoxNzA1NDQ5NjQyLCJwYXlsb2FkIjoidV8zNTk1MjUxODMiLCJ1aV9sYW5ndWFnZSI6InJ1IiwiaXNfaGF2ZV9jdXN0b21fc3R5bGUiOnRydWV9&s=354ad2c993d95d5ac629e3133d6cefea&vh-static-feature=zigzag',
         'info_dict': {
@@ -113,7 +113,7 @@ class GetCourseRuIE(InfoExtractor):
     _DOMAINS = [
         'academymel.online'
     ]
-    _BASE_URL_RE = rf'https?://(?:(?!player\d+)[^.]+\.getcourse\.ru|{"|".join(map(escape, _DOMAINS))})'
+    _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
     _VALID_URL = [
         rf'{_BASE_URL_RE}/(?P<id>[^/?#]+)/?(?:[?#]|$)',
         rf'{_BASE_URL_RE}/[^?#]+/view/?\?(?:[^#]+&)?id=(?P<id>\d+)',
