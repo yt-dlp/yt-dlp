@@ -1659,12 +1659,12 @@ class BiliIntlBaseIE(InfoExtractor):
                 'aid': aid,
             })) or {}
         subtitles = {}
-        fetched_urls = []
+        fetched_urls = set()
         for sub in traverse_obj(sub_json, (('subtitles', 'video_subtitle'), ..., {dict})):
             for url in traverse_obj(sub, ((None, 'ass', 'srt'), 'url', {url_or_none})):
                 if url in fetched_urls:
                     continue
-                fetched_urls.append(url)
+                fetched_urls.add(url)
                 sub_ext = determine_ext(url)
                 sub_lang = sub.get('lang_key') or 'en'
 
