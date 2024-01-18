@@ -20,7 +20,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
         },
         'skip': 'JWT expired',
     }]
-    _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL}[^\'"]*)']
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL}[^\'"]*)']
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None, 'Downloading player page')
@@ -134,7 +134,7 @@ class GetCourseRuIE(InfoExtractor):
 
         webpage = self._download_webpage(login_url, None)
         xdget_id = self._html_search_regex(
-            r'<form[^>]*class="[^"]*state-login[^"]*"[^>]*data-xdget-id="([^"]+)"',
+            r'<form[^>]+\bclass="[^"]*\bstate-login[^"]*"[^>]+\bdata-xdget-id="([^"]+)"',
             webpage, 'xdgetId')
 
         simple_sign = self._html_search_regex(
