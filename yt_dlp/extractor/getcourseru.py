@@ -11,7 +11,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
     _TESTS = [{
         'url': 'http://player02.getcourse.ru/sign-player/?json=eyJ2aWRlb19oYXNoIjoiMTkwYmRmOTNmMWIyOTczNTMwOTg1M2E3YTE5ZTI0YjMiLCJ1c2VyX2lkIjozNTk1MjUxODMsInN1Yl9sb2dpbl91c2VyX2lkIjpudWxsLCJsZXNzb25faWQiOm51bGwsImlwIjoiNDYuMTQyLjE4Mi4yNDciLCJnY19ob3N0IjoiYWNhZGVteW1lbC5vbmxpbmUiLCJ0aW1lIjoxNzA1NDQ5NjQyLCJwYXlsb2FkIjoidV8zNTk1MjUxODMiLCJ1aV9sYW5ndWFnZSI6InJ1IiwiaXNfaGF2ZV9jdXN0b21fc3R5bGUiOnRydWV9&s=354ad2c993d95d5ac629e3133d6cefea&vh-static-feature=zigzag',
         'info_dict': {
-            'id': '4885302',
+            'id': '513573381',
             'title': '190bdf93f1b29735309853a7a19e24b3',
             'ext': 'mp4',
             'thumbnail': 'https://preview-htz.kinescopecdn.net/preview/190bdf93f1b29735309853a7a19e24b3/preview.jpg?version=1702370546&host=vh-80',
@@ -25,7 +25,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
         webpage = self._download_webpage(url, None, 'Downloading player page')
         window_configs = self._search_json(
             r'window\.configs\s*=', webpage, 'config', None)
-        video_id = str(window_configs['videoId'])
+        video_id = str(window_configs['gcFileId'])
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             window_configs['masterPlaylistUrl'], video_id)
 
@@ -53,7 +53,7 @@ class GetCourseRuIE(InfoExtractor):
         'playlist_count': 1,
         'playlist': [{
             'info_dict': {
-                'id': '4885302',
+                'id': '513573381',
                 'ext': 'mp4',
                 'title': 'Промоуроки Академии МЕЛ',
                 'thumbnail': 'https://preview-htz.kinescopecdn.net/preview/190bdf93f1b29735309853a7a19e24b3/preview.jpg?version=1702370546&host=vh-80',
@@ -69,7 +69,7 @@ class GetCourseRuIE(InfoExtractor):
         'playlist_count': 1,
         'playlist': [{
             'info_dict': {
-                'id': '4885302',
+                'id': '513573381',
                 'ext': 'mp4',
                 'title': 'Промоуроки Академии МЕЛ',
                 'thumbnail': 'https://preview-htz.kinescopecdn.net/preview/190bdf93f1b29735309853a7a19e24b3/preview.jpg?version=1702370546&host=vh-80',
