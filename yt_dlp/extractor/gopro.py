@@ -3,10 +3,18 @@ from ..utils import (
     int_or_none,
     remove_end,
     str_or_none,
+    strip_or_none,
     try_get,
     unified_timestamp,
     url_or_none,
 )
+
+
+# gopro.com returns empty string as author/track for some video. Treat it as
+# if it were null.
+def nonempty_or_none(s):
+    v = strip_or_none(s)
+    return None if v == '' else v
 
 
 class GoProIE(InfoExtractor):
@@ -98,8 +106,8 @@ class GoProIE(InfoExtractor):
                 try_get(metadata, lambda x: x['account']['nickname'])),
             'duration': int_or_none(
                 video_info.get('source_duration')),
-            'artist': str_or_none(
+            'artist': nonempty_or_none(
                 video_info.get('music_track_artist')),
-            'track': str_or_none(
+            'track': nonempty_or_none(
                 video_info.get('music_track_name')),
         }
