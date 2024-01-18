@@ -47,7 +47,8 @@ class GetCourseRuIE(InfoExtractor):
     _TESTS = [{
         'url': 'http://academymel.online/3video_1',
         'info_dict': {
-            'id': '3video_1',
+            'id': '3059742',
+            'display_id': '3video_1',
             'title': 'Промоуроки Академии МЕЛ',
         },
         'playlist_count': 1,
@@ -63,7 +64,8 @@ class GetCourseRuIE(InfoExtractor):
     }, {
         'url': 'https://academymel.getcourse.ru/3video_1',
         'info_dict': {
-            'id': '3video_1',
+            'id': '3059742',
+            'display_id': '3video_1',
             'title': 'Промоуроки Академии МЕЛ',
         },
         'playlist_count': 1,
@@ -166,7 +168,7 @@ class GetCourseRuIE(InfoExtractor):
             self.raise_login_required()
 
         playlist_id = self._search_regex(
-            r'window\.lessonId\s*=\s*(\d+)', webpage, 'playlist id', default=display_id)
+            r'window\.(?:lessonId|gcsObjectId)\s*=\s*(\d+)', webpage, 'playlist id', default=display_id)
 
         title = self._html_extract_title(webpage) or self._og_search_title(webpage)
 
