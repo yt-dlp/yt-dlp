@@ -134,8 +134,8 @@ from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
 from .ard import (
     ARDBetaMediathekIE,
+    ARDMediathekCollectionIE,
     ARDIE,
-    ARDMediathekIE,
 )
 from .arte import (
     ArteTVIE,
@@ -276,6 +276,7 @@ from .brilliantpala import (
 )
 from .businessinsider import BusinessInsiderIE
 from .bundesliga import BundesligaIE
+from .bundestag import BundestagIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
@@ -547,6 +548,7 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
+from .epidemicsound import EpidemicSoundIE
 from .eplus import EplusIbIE
 from .epoch import EpochIE
 from .eporner import EpornerIE
@@ -864,6 +866,7 @@ from .jiosaavn import (
 )
 from .jove import JoveIE
 from .joj import JojIE
+from .joqrag import JoqrAgIE
 from .jstream import JStreamIE
 from .jtbc import (
     JTBCIE,
@@ -992,6 +995,7 @@ from .lynda import (
     LyndaIE,
     LyndaCourseIE
 )
+from .maariv import MaarivIE
 from .magellantv import MagellanTVIE
 from .magentamusik360 import MagentaMusik360IE
 from .mailru import (
@@ -1591,6 +1595,7 @@ from .restudy import RestudyIE
 from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
 from .rheinmaintv import RheinMainTVIE
+from .rinsefm import RinseFMIE
 from .rmcdecouverte import RMCDecouverteIE
 from .rockstargames import RockstarGamesIE
 from .rokfin import (
@@ -1644,6 +1649,7 @@ from .rumble import (
     RumbleIE,
     RumbleChannelIE,
 )
+from .rudovideo import RudoVideoIE
 from .rutube import (
     RutubeIE,
     RutubeChannelIE,
@@ -2014,7 +2020,6 @@ from .tunein import (
     TuneInPodcastEpisodeIE,
     TuneInShortenerIE,
 )
-from .turbo import TurboIE
 from .tv2 import (
     TV2IE,
     TV2ArticleIE,
@@ -2218,6 +2223,7 @@ from .viki import (
     VikiIE,
     VikiChannelIE,
 )
+from .viously import ViouslyIE
 from .viqeo import ViqeoIE
 from .viu import (
     ViuIE,
