@@ -149,7 +149,8 @@ class GetCourseRuIE(InfoExtractor):
 
     def _real_extract(self, url):
         username, password = self._get_login_info()
-        self._login(url, username, password)
+        if username:
+            self._login(url, username, password)
 
         if not self._get_cookies(url).get('PHPSESSID5'):
             self.raise_login_required()
