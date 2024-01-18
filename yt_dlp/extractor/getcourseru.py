@@ -115,7 +115,8 @@ class GetCourseRuIE(InfoExtractor):
         'only_matching': True,
     }]
     _DOMAINS = [
-        'academymel.online'
+        'academymel.online',
+        'marafon.mani-beauty.com',
     ]
     _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
     _VALID_URL = [
