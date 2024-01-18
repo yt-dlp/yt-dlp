@@ -131,21 +131,15 @@ class GetCourseRuIE(InfoExtractor):
         if self._get_cookies(f'https://{hostname}').get('PHPSESSID5'):
             return
         login_url = f'https://{hostname}{self._LOGIN_URL_PATH}'
-
         webpage = self._download_webpage(login_url, None)
-        xdget_id = self._html_search_regex(
-            r'<form[^>]+\bclass="[^"]*\bstate-login[^"]*"[^>]+\bdata-xdget-id="([^"]+)"',
-            webpage, 'xdgetId')
-
-        simple_sign = self._html_search_regex(
-            r'window.requestSimpleSign\s*=\s*"([\da-f]+)"',
-            webpage, 'simple sign')
 
         self._request_webpage(
             login_url, None, 'Logging in', 'Failed to log in',
             data=urlencode_postdata({
                 'action': 'processXdget',
-                'xdgetId': xdget_id,
+                'xdgetId': self._html_search_regex(
+                    r'<form[^>]+\bclass="[^"]*\bstate-login[^"]*"[^>]+\bdata-xdget-id="([^"]+)"',
+                    webpage, 'xdgetId'),
                 'params[action]': 'login',
                 'params[url]': login_url,
                 'params[object_type]': 'cms_page',
@@ -153,7 +147,8 @@ class GetCourseRuIE(InfoExtractor):
                 'params[email]': username,
                 'params[password]': password,
                 'requestTime': int(time.time()),
-                'requestSimpleSign': simple_sign,
+                'requestSimpleSign': self._html_search_regex(
+                    r'window.requestSimpleSign\s*=\s*"([\da-f]+)"', webpage, 'simple sign'),
             }))
 
     def _real_extract(self, url):
