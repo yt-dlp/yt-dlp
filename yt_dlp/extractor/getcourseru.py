@@ -1,6 +1,6 @@
 import pprint
 from time import time
-from re import findall
+from re import escape, findall
 from urllib.parse import urlparse
 
 from .common import InfoExtractor
@@ -76,12 +76,32 @@ class GetCourseRuIE(InfoExtractor):
                 'duration': 1693
             },
         }]
+    }, {
+        'url': 'https://academymel.getcourse.ru/pl/teach/control/lesson/view?id=319141781&editMode=0',
+        'info_dict': {
+            'id': '319141781',
+            'title': '1. Разминка у стены',
+        },
+        'playlist_count': 1,
+        'playlist': [{
+            'info_dict': {
+                'id': '4919601',
+                'ext': 'mp4',
+                'title': '1. Разминка у стены',
+                'thumbnail': 'https://preview-htz.vhcdn.com/preview/5a521788e7dc25b4f70c3dff6512d90e/preview.jpg?version=1703223532&host=vh-81',
+                'duration': 704
+            },
+        }],
+        'skip': 'paid lesson'
     }]
     _DOMAINS = [
-        r'(?!player\d{2,})[^.]+\.getcourse\.ru',
         'academymel.online'
     ]
-    _VALID_URL = rf'https?://({"|".join(_DOMAINS)})/(?P<id>[^#]+)'
+    _BASE_URL_RE = rf'https?://(?:(?!player\d+)[^.]+\.getcourse\.ru|{"|".join(map(escape, _DOMAINS))})'
+    _VALID_URL = [
+        rf'{_BASE_URL_RE}/(?P<id>[^/?#]+)/?(?:[?#]|$)',
+        rf'{_BASE_URL_RE}/[^?#]+/view/?\?(?:[^#]+&)?id=(?P<id>\d+)',
+    ]
 
     def _login(self, url, username, password):
         parsed_url = urlparse(url)
@@ -92,6 +112,7 @@ class GetCourseRuIE(InfoExtractor):
             data=urlencode_postdata({
                 'action': 'processXdget',
                 'xdgetId': 'r6335_1_1',
+                #'xdgetId': '99945',
                 'params[action]': 'login',
                 'params[url]': update_url_query(base_url + self._LOGIN_URL_SUFFIX, {'required': 'true'}),
                 'params[object_type]': 'cms_page',
@@ -104,11 +125,15 @@ class GetCourseRuIE(InfoExtractor):
     def _real_extract(self, url):
         username, password = self._get_login_info()
         self._login(url, username, password)
+
         if not self._get_cookies(url).get('PHPSESSID5'):
             self.raise_login_required()
 
-        playlist_id = self._match_id(url)
-        webpage = self._download_webpage(url, playlist_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        playlist_id = self._search_regex(
+            r'window\.lessonId\s*=\s*(\d+)', webpage, 'playlist id', default=display_id)
+
         title = self._html_extract_title(webpage)
 
         return self.playlist_from_matches(
