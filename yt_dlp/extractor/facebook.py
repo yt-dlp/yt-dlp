@@ -57,7 +57,7 @@ class FacebookIE(InfoExtractor):
                         )|
                     facebook:
                 )
-                (?P<id>[a-zA-Z0-9]+)
+                (?P<id>pfbid[A-Za-z0-9]+|\d+)
                 '''
     _EMBED_REGEX = [
         r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
