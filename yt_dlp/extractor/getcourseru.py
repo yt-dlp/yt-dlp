@@ -19,6 +19,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
         },
         'skip': 'JWT expired',
     }]
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL}[^\'"]*)']
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None, 'Downloading player page')
