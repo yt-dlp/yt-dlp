@@ -43,7 +43,7 @@ class GetCourseRuPlayerIE(InfoExtractor):
 
 class GetCourseRuIE(InfoExtractor):
     _NETRC_MACHINE = 'getcourseru'
-    _LOGIN_URL_SUFFIX = 'cms/system/login'
+    _LOGIN_URL_PATH = '/cms/system/login'
     _TESTS = [{
         'url': 'http://academymel.online/3video_1',
         'info_dict': {
@@ -125,21 +125,21 @@ class GetCourseRuIE(InfoExtractor):
     ]
 
     def _login(self, url, username, password):
-        parsed_url = urlparse(url)
-        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+        domain = urllib.parse.urlparse(url).netloc
+        login_url = f'https://{domain}{self._LOGIN_URL_PATH}'
 
-        webpage = self._download_webpage(base_url + self._LOGIN_URL_SUFFIX, None)
+        webpage = self._download_webpage(login_url, None)
         xdget_id = self._html_search_regex(
             r'<form[^>]*class="[^"]*state-login[^"]*"[^>]*data-xdget-id="([^"]+)"',
             webpage, 'xdgetId')
 
         self._request_webpage(
-            base_url + self._LOGIN_URL_SUFFIX, None, 'Logging in', 'Failed to log in',
+            login_url, None, 'Logging in', 'Failed to log in',
             data=urlencode_postdata({
                 'action': 'processXdget',
                 'xdgetId': xdget_id,
                 'params[action]': 'login',
-                'params[url]': update_url_query(base_url + self._LOGIN_URL_SUFFIX, {'required': 'true'}),
+                'params[url]': login_url,
                 'params[object_type]': 'cms_page',
                 'params[object_id]': -1,
                 'params[email]': username,
