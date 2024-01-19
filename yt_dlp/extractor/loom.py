@@ -1,13 +1,6 @@
 from .common import InfoExtractor
 from datetime import datetime
-
-'''
-This scraper was made really fast without really following best practices.
-The webpage string has json data inside it and it would be better if the
-video data was grabbed from there instead of using regex.
-Because loom could change their video requesting api at any time, I decided
-not to work too much on this. If you want to make this scraper better, feel free to do so.
-'''
+from yt_dlp.utils.traversal import traverse_obj
 
 
 class LoomIE(InfoExtractor):
@@ -42,54 +35,28 @@ class LoomIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        # print(f'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
-        # print(f'Id: {video_id}')
-        # print(f'\n\n\n\n\n\n\n\nWebpage: {webpage}\n\n\n\n\n\n\n\n')
-
-        title = self._search_regex(r'"name":"([^"]+)"', webpage, 'title')
-
-        # title = self._search_json()
-        # print(f'Title: {title}')
-
-        uploader = self._search_regex(r'"owner_full_name":"([^"]+)"', webpage, 'uploader', fatal=False)
-        # print(f'Uploader: {uploader}')
-
+        json = self._search_json(start_pattern=r'window\.loomSSRVideo\s*=', string=webpage, name="Json from Loom Webpage", video_id=video_id)
         videourl = self.fetch_loom_download_url(video_id)
-        # print(f'Url: {url}')
-
         ext = self._search_regex(r'([a-zA-Z0-9]+)(?=\?)', videourl, 'ext', fatal=False)
-        # print(f'Ext: {ext}')
 
-        width = self._search_regex(r'"width":([0-9]+)', webpage, 'width', fatal=False)
-        # print(f'Width: {width}')
-
-        height = self._search_regex(r'"height":([0-9]+)', webpage, 'height', fatal=False)
-        # print(f'Height: {height}')
-
-        date_string = self._search_regex(r'"visibility":"(?:[^"]+)","createdAt":"([^"]+)"', webpage, 'date', fatal=False)
+        date_string = json.get('createdAt')
         date = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y%m%d")
-
-        # filesize = self._search_regex(r'"file_size":([0-9]+)', webpage, 'filesize', fatal=False)
-        # print(f'Filesize: {filesize}')
-
-        # description =
-        # print(description)
-        # print(f'\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
 
         formats = []
         formats.append({
             'url': videourl,
-            'width': int(width),
-            'height': int(height),
+            'width': traverse_obj(json, ('video_properties', 'width')),
+            'height': traverse_obj(json, ('video_properties', 'height')),
             'ext': ext,
-            # 'filesize': int(filesize),
+            'filesize': traverse_obj(json, ('video_properties', 'name')),
         })
 
         return {
             'id': video_id,
-            'title': title,
-            'uploader': uploader,
+            'title': json.get('name'),
+            'uploader': json.get('owner_full_name'),
             'upload_date': date,
             'formats': formats,
+            # 'view_count': json["total_views"], # View Count is always changing so don't know how to test this.
             # TODO more properties (see yt_dlp/extractor/common.py)
         }
