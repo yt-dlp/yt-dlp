@@ -64,7 +64,7 @@ class AmadeusTVIE(InfoExtractor):
             'display_id': display_id,
             'formats': formats,
             **traverse_obj(video_data, {
-                'title': ('videoInfo', 'basicInfo', 'name'),
+                'title': ('videoInfo', 'basicInfo', 'name', {str}),
                 'thumbnail': ('coverInfo', 'coverUrl', {url_or_none}),
                 'duration': ('videoInfo', 'sourceVideo', ('floatDuration', 'duration'), {float_or_none}),
             }, get_all=False),
