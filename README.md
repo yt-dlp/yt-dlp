@@ -1889,7 +1889,7 @@ The following extractors use this feature:
 * `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
 
 #### jiosaavn
-* `bitrate`: Which bitrates to request. Valid options are `16`, `32`, `64`, `128`, and `320` or a comma-separated list of these values. Defaults to `128,320`.
+* `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

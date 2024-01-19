@@ -37,12 +37,15 @@ class JioSaavnSongIE(JioSaavnBaseIE):
         'only_matching': True,
     }]
 
+    _VALID_BITRATES = ('16', '32', '64', '128', '320')
+
     def _real_extract(self, url):
         audio_id = self._match_id(url)
-
         extract_bitrates = self._configuration_arg('bitrate', ['128', '320'], ie_key='JioSaavn')
-        if not all(bitrate in ('16', '32', '64', '128', '320') for bitrate in extract_bitrates):
-            raise ValueError(f'Invalid bitrate(s) {extract_bitrates}')
+        if invalid_bitrates := [br for br in extract_bitrates if br not in self._VALID_BITRATES]:
+            raise ValueError(
+                f'Invalid bitrate(s): {", ".join(invalid_bitrates)}. '
+                + f'Valid bitrates are: {", ".join(self._VALID_BITRATES)}')
 
         song_data = self._extract_initial_data(url, audio_id)['song']['song']
         formats = []
