@@ -223,6 +223,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 class BiliBiliIE(BilibiliBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/\w+\?(?:[^#]*&)?bvid=)[aAbB][vV](?P<id>[^/?#&]+)'
+
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
         'info_dict': {
