@@ -139,7 +139,7 @@ class AbemaTVBaseIE(InfoExtractor):
         add_opener(self._downloader, AbemaLicenseHandler(self))
 
         username, _ = self._get_login_info()
-        auth_cache = username and self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.01')
+        auth_cache = username and self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.19')
         AbemaTVBaseIE._USERTOKEN = auth_cache and auth_cache.get('usertoken')
         if AbemaTVBaseIE._USERTOKEN:
             # try authentication with locally stored token
@@ -258,7 +258,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
     def _perform_login(self, username, password):
         self._get_device_token()
-        if self.cache.load(self._NETRC_MACHINE, username, min_ver="2024.01.01") and self._get_media_token():
+        if self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.19') and self._get_media_token():
             self.write_debug('Skipping logging in')
             return
 
