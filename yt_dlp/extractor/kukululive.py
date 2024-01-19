@@ -89,12 +89,8 @@ class KukuluLiveIE(InfoExtractor):
         thumbnail = self._html_search_meta(['og:image', 'twitter:image'], html)
 
         if self._search_regex(r'(var\s+timeshift\s*=\s*false)', html, 'is livestream', default=False):
-            streams = [
-                ('high', 'Z'),
-                ('low', 'ForceLow'),
-            ]
             formats = []
-            for (desc, code) in streams:
+            for (desc, code) in [('high', 'Z'), ('low', 'ForceLow')]:
                 quality_meta = self._get_quality_meta(video_id, desc, code)
                 self._add_quality_formats(formats, quality_meta)
                 if desc == 'high' and quality_meta.get('vcodec')[0] == 'HEVC':
