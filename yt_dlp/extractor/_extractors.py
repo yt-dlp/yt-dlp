@@ -47,7 +47,7 @@ from .acast import (
     ACastChannelIE,
 )
 from .acfun import AcFunVideoIE, AcFunBangumiIE
-from .adn import ADNIE
+from .adn import ADNIE, ADNSeasonIE
 from .adobeconnect import AdobeConnectIE
 from .adobetv import (
     AdobeTVEmbedIE,
