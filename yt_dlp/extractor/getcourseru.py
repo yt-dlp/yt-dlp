@@ -9,6 +9,7 @@ from ..utils.traversal import traverse_obj
 
 class GetCourseRuPlayerIE(InfoExtractor):
     _VALID_URL = r'https?://player02\.getcourse\.ru/sign-player/?\?(?:[^#]+&)?json=[^#&]+'
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL}[^\'"]*)']
     _TESTS = [{
         'url': 'http://player02.getcourse.ru/sign-player/?json=eyJ2aWRlb19oYXNoIjoiMTkwYmRmOTNmMWIyOTczNTMwOTg1M2E3YTE5ZTI0YjMiLCJ1c2VyX2lkIjozNTk1MjUxODMsInN1Yl9sb2dpbl91c2VyX2lkIjpudWxsLCJsZXNzb25faWQiOm51bGwsImlwIjoiNDYuMTQyLjE4Mi4yNDciLCJnY19ob3N0IjoiYWNhZGVteW1lbC5vbmxpbmUiLCJ0aW1lIjoxNzA1NDQ5NjQyLCJwYXlsb2FkIjoidV8zNTk1MjUxODMiLCJ1aV9sYW5ndWFnZSI6InJ1IiwiaXNfaGF2ZV9jdXN0b21fc3R5bGUiOnRydWV9&s=354ad2c993d95d5ac629e3133d6cefea&vh-static-feature=zigzag',
         'info_dict': {
@@ -20,7 +21,6 @@ class GetCourseRuPlayerIE(InfoExtractor):
         },
         'skip': 'JWT expired',
     }]
-    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL}[^\'"]*)']
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None, 'Downloading player page')
@@ -54,7 +54,6 @@ class GetCourseRuIE(InfoExtractor):
         rf'{_BASE_URL_RE}/(?!pl/|teach/)(?P<id>[^?#]+)',
         rf'{_BASE_URL_RE}/(:?pl/)?teach/control/lesson/view\?(?:[^#]+&)?id=(?P<id>\d+)',
     ]
-    _LOGIN_URL_PATH = '/cms/system/login'
     _TESTS = [{
         'url': 'http://academymel.online/3video_1',
         'info_dict': {
@@ -127,6 +126,8 @@ class GetCourseRuIE(InfoExtractor):
         'url': 'https://gaismasmandalas.getcourse.io/ATLAUTSEVBUT',
         'only_matching': True,
     }]
+
+    _LOGIN_URL_PATH = '/cms/system/login'
 
     def _login(self, hostname, username, password):
         if self._get_cookies(f'https://{hostname}').get('PHPSESSID5'):
