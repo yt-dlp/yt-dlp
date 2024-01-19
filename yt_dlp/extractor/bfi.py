@@ -5,6 +5,7 @@ from ..utils import extract_attributes
 
 
 class BFIPlayerIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'bfi:player'
     _VALID_URL = r'https?://player\.bfi\.org\.uk/[^/]+/film/watch-(?P<id>[\w-]+)-online'
     _TEST = {

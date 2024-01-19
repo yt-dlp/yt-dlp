@@ -4,7 +4,14 @@ from urllib.parse import unquote
 
 from .common import InfoExtractor
 from ..compat import functools
-from ..utils import ExtractorError, make_archive_id, urljoin
+from ..utils import (
+    ExtractorError,
+    float_or_none,
+    int_or_none,
+    make_archive_id,
+    mimetype2ext,
+    urljoin,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -26,6 +33,7 @@ class Pr0grammIE(InfoExtractor):
             'dislike_count': int,
             'age_limit': 0,
             'thumbnail': r're:^https://thumb\.pr0gramm\.com/.*\.jpg',
+            '_old_archive_ids': ['pr0grammstatic 5466437'],
         },
     }, {
         # Tags require account
@@ -43,6 +51,7 @@ class Pr0grammIE(InfoExtractor):
             'dislike_count': int,
             'age_limit': 0,
             'thumbnail': r're:^https://thumb\.pr0gramm\.com/.*\.jpg',
+            '_old_archive_ids': ['pr0grammstatic 3052805'],
         },
     }, {
         # Requires verified account
@@ -60,6 +69,7 @@ class Pr0grammIE(InfoExtractor):
             'dislike_count': int,
             'age_limit': 18,
             'thumbnail': r're:^https://thumb\.pr0gramm\.com/.*\.jpg',
+            '_old_archive_ids': ['pr0grammstatic 5848332'],
         },
     }, {
         'url': 'https://pr0gramm.com/static/5466437',
@@ -110,37 +120,61 @@ class Pr0grammIE(InfoExtractor):
 
         return data
 
+    @staticmethod
+    def _create_source_url(path):
+        return urljoin('https://img.pr0gramm.com', path)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = traverse_obj(
             self._call_api('get', video_id, {'id': video_id, 'flags': self._maximum_flags}),
             ('items', 0, {dict}))
 
-        source = urljoin('https://img.pr0gramm.com', video_info.get('image'))
+        source = video_info.get('image')
         if not source or not source.endswith('mp4'):
             self.raise_no_formats('Could not extract a video', expected=bool(source), video_id=video_id)
 
         tags = None
         if self._is_logged_in:
-            metadata = self._call_api('info', video_id, {'itemId': video_id})
+            metadata = self._call_api('info', video_id, {'itemId': video_id}, note='Downloading tags')
             tags = traverse_obj(metadata, ('tags', ..., 'tag', {str}))
             # Sorted by "confidence", higher confidence = earlier in list
             confidences = traverse_obj(metadata, ('tags', ..., 'confidence', ({int}, {float})))
             if confidences:
                 tags = [tag for _, tag in sorted(zip(confidences, tags), reverse=True)]
 
+        formats = traverse_obj(video_info, ('variants', ..., {
+            'format_id': ('name', {str}),
+            'url': ('path', {self._create_source_url}),
+            'ext': ('mimeType', {mimetype2ext}),
+            'vcodec': ('codec', {str}),
+            'width': ('width', {int_or_none}),
+            'height': ('height', {int_or_none}),
+            'bitrate': ('bitRate', {float_or_none}),
+            'filesize': ('fileSize', {int_or_none}),
+        })) if video_info.get('variants') else [{
+            'ext': 'mp4',
+            'format_id': 'source',
+            **traverse_obj(video_info, {
+                'url': ('image', {self._create_source_url}),
+                'width': ('width', {int_or_none}),
+                'height': ('height', {int_or_none}),
+            }),
+        }]
+
+        subtitles = {}
+        for subtitle in traverse_obj(video_info, ('subtitles', lambda _, v: v['language'])):
+            subtitles.setdefault(subtitle['language'], []).append(traverse_obj(subtitle, {
+                'url': ('path', {self._create_source_url}),
+                'note': ('label', {str}),
+            }))
+
         return {
             'id': video_id,
             'title': f'pr0gramm-{video_id} by {video_info.get("user")}',
-            'formats': [{
-                'url': source,
-                'ext': 'mp4',
-                **traverse_obj(video_info, {
-                    'width': ('width', {int}),
-                    'height': ('height', {int}),
-                }),
-            }],
             'tags': tags,
+            'formats': formats,
+            'subtitles': subtitles,
             'age_limit': 18 if traverse_obj(video_info, ('flags', {0b110.__and__})) else 0,
             '_old_archive_ids': [make_archive_id('Pr0grammStatic', video_id)],
             **traverse_obj(video_info, {

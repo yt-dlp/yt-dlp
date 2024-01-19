@@ -1,12 +1,14 @@
 from .common import InfoExtractor
+from .dailymotion import DailymotionIE
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     format_field,
+    int_or_none,
+    join_nonempty,
     parse_iso8601,
     parse_qs,
 )
-from .dailymotion import DailymotionIE
 
 
 class FranceTVBaseInfoExtractor(InfoExtractor):
@@ -82,6 +84,8 @@ class FranceTVIE(InfoExtractor):
         videos = []
         title = None
         subtitle = None
+        episode_number = None
+        season_number = None
         image = None
         duration = None
         timestamp = None
@@ -112,7 +116,9 @@ class FranceTVIE(InfoExtractor):
             if meta:
                 if title is None:
                     title = meta.get('title')
-                # XXX: what is meta['pre_title']?
+                # meta['pre_title'] contains season and episode number for series in format "S<ID> E<ID>"
+                season_number, episode_number = self._search_regex(
+                    r'S(\d+)\s*E(\d+)', meta.get('pre_title'), 'episode info', group=(1, 2), default=(None, None))
                 if subtitle is None:
                     subtitle = meta.get('additional_title')
                 if image is None:
@@ -191,19 +197,19 @@ class FranceTVIE(InfoExtractor):
                 } for sheet in spritesheets]
             })
 
-        if subtitle:
-            title += ' - %s' % subtitle
-        title = title.strip()
-
         return {
             'id': video_id,
-            'title': title,
+            'title': join_nonempty(title, subtitle, delim=' - ').strip(),
             'thumbnail': image,
             'duration': duration,
             'timestamp': timestamp,
             'is_live': is_live,
             'formats': formats,
             'subtitles': subtitles,
+            'episode': subtitle if episode_number else None,
+            'series': title if episode_number else None,
+            'episode_number': int_or_none(episode_number),
+            'season_number': int_or_none(season_number),
         }
 
     def _real_extract(self, url):
@@ -230,14 +236,31 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
             'id': 'ec217ecc-0733-48cf-ac06-af1347b849d1',
             'ext': 'mp4',
             'title': '13h15, le dimanche... - Les mystères de Jésus',
-            'description': 'md5:75efe8d4c0a8205e5904498ffe1e1a42',
             'timestamp': 1502623500,
+            'duration': 2580,
+            'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20170813',
         },
         'params': {
             'skip_download': True,
         },
         'add_ie': [FranceTVIE.ie_key()],
+    }, {
+        'url': 'https://www.france.tv/enfants/six-huit-ans/foot2rue/saison-1/3066387-duel-au-vieux-port.html',
+        'info_dict': {
+            'id': 'a9050959-eedd-4b4a-9b0d-de6eeaa73e44',
+            'ext': 'mp4',
+            'title': 'Foot2Rue - Duel au vieux port',
+            'episode': 'Duel au vieux port',
+            'series': 'Foot2Rue',
+            'episode_number': 1,
+            'season_number': 1,
+            'timestamp': 1642761360,
+            'upload_date': '20220121',
+            'season': 'Season 1',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 1441,
+        },
     }, {
         # france3
         'url': 'https://www.france.tv/france-3/des-chiffres-et-des-lettres/139063-emission-du-mardi-9-mai-2017.html',

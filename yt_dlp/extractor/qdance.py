@@ -15,7 +15,7 @@ from ..utils import (
 
 class QDanceIE(InfoExtractor):
     _NETRC_MACHINE = 'qdance'
-    _VALID_URL = r'https?://(?:www\.)?q-dance\.com/network/(?:library|live)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?q-dance\.com/network/(?:library|live)/(?P<id>[\w-]+)'
     _TESTS = [{
         'note': 'vod',
         'url': 'https://www.q-dance.com/network/library/146542138',
@@ -53,6 +53,27 @@ class QDanceIE(InfoExtractor):
             'channel_id': 'qdancenetwork.video_149170353',
         },
         'skip': 'Completed livestream',
+    }, {
+        'note': 'vod with alphanumeric id',
+        'url': 'https://www.q-dance.com/network/library/WhDleSIWSfeT3Q9ObBKBeA',
+        'info_dict': {
+            'id': 'WhDleSIWSfeT3Q9ObBKBeA',
+            'ext': 'mp4',
+            'title': 'Aftershock I Defqon.1 Weekend Festival 2023 I Sunday I BLUE',
+            'display_id': 'naam-i-defqon-1-weekend-festival-2023-i-dag-i-podium',
+            'description': 'Relive Defqon.1 Path of the Warrior with Aftershock at the BLUE 🔥',
+            'series': 'Defqon.1',
+            'series_id': '31840378',
+            'season': 'Defqon.1 Weekend Festival 2023',
+            'season_id': '141735599',
+            'duration': 3507,
+            'availability': 'premium_only',
+            'thumbnail': 'https://images.q-dance.network/1698158361-230625-135716-defqon-1-aftershock.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.q-dance.com/network/library/-uRFKXwmRZGVnve7av9uqA',
+        'only_matching': True,
     }]
 
     _access_token = None

@@ -138,7 +138,7 @@ class DubokuIE(InfoExtractor):
             # of the video.
             return {
                 '_type': 'url_transparent',
-                'url': smuggle_url(data_url, {'http_headers': headers}),
+                'url': smuggle_url(data_url, {'referer': webpage_url}),
                 'id': video_id,
                 'title': title,
                 'series': series_title,

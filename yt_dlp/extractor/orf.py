@@ -4,15 +4,16 @@ import re
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
+    InAdvancePagedList,
     clean_html,
     determine_ext,
     float_or_none,
-    InAdvancePagedList,
     int_or_none,
     join_nonempty,
+    make_archive_id,
+    mimetype2ext,
     orderedSet,
     remove_end,
-    make_archive_id,
     smuggle_url,
     strip_jsonp,
     try_call,
@@ -21,6 +22,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ORFTVthekIE(InfoExtractor):
@@ -332,6 +334,45 @@ class ORFRadioIE(InfoExtractor):
 
         return self.playlist_result(
             self._entries(data, station or station2), show_id, data.get('title'), clean_html(data.get('subtitle')))
+
+
+class ORFPodcastIE(InfoExtractor):
+    IE_NAME = 'orf:podcast'
+    _STATION_RE = '|'.join(map(re.escape, (
+        'bgl', 'fm4', 'ktn', 'noe', 'oe1', 'oe3',
+        'ooe', 'sbg', 'stm', 'tir', 'tv', 'vbg', 'wie')))
+    _VALID_URL = rf'https?://sound\.orf\.at/podcast/(?P<station>{_STATION_RE})/(?P<show>[\w-]+)/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://sound.orf.at/podcast/oe3/fruehstueck-bei-mir/nicolas-stockhammer-15102023',
+        'md5': '526a5700e03d271a1505386a8721ab9b',
+        'info_dict': {
+            'id': 'nicolas-stockhammer-15102023',
+            'ext': 'mp3',
+            'title': 'Nicolas Stockhammer (15.10.2023)',
+            'duration': 3396.0,
+            'series': 'Frühstück bei mir',
+        },
+        'skip': 'ORF podcasts are only available for a limited time'
+    }]
+
+    def _real_extract(self, url):
+        station, show, show_id = self._match_valid_url(url).group('station', 'show', 'id')
+        data = self._download_json(
+            f'https://audioapi.orf.at/radiothek/api/2.0/podcast/{station}/{show}/{show_id}', show_id)
+
+        return {
+            'id': show_id,
+            'ext': 'mp3',
+            'vcodec': 'none',
+            **traverse_obj(data, ('payload', {
+                'url': ('enclosures', 0, 'url'),
+                'ext': ('enclosures', 0, 'type', {mimetype2ext}),
+                'title': 'title',
+                'description': ('description', {clean_html}),
+                'duration': ('duration', {functools.partial(float_or_none, scale=1000)}),
+                'series': ('podcast', 'title'),
+            })),
+        }
 
 
 class ORFIPTVIE(InfoExtractor):

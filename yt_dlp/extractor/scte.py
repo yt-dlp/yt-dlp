@@ -46,6 +46,7 @@ class SCTEBaseIE(InfoExtractor):
 
 
 class SCTEIE(SCTEBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://learning\.scte\.org/mod/scorm/view\.php?.*?\bid=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://learning.scte.org/mod/scorm/view.php?id=31484',
@@ -93,6 +94,7 @@ class SCTEIE(SCTEBaseIE):
 
 
 class SCTECourseIE(SCTEBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://learning\.scte\.org/(?:mod/sub)?course/view\.php?.*?\bid=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://learning.scte.org/mod/subcourse/view.php?id=31491',

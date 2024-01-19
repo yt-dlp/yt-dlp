@@ -49,7 +49,7 @@ class Socks5AddressType:
     ATYP_IPV6 = 0x04
 
 
-class ProxyError(socket.error):
+class ProxyError(OSError):
     ERR_SUCCESS = 0x00
 
     def __init__(self, code=None, msg=None):
