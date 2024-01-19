@@ -48,7 +48,7 @@ class LoomIE(InfoExtractor):
             'width': traverse_obj(json, ('video_properties', 'width')),
             'height': traverse_obj(json, ('video_properties', 'height')),
             'ext': ext,
-            'filesize': traverse_obj(json, ('video_properties', 'name')),
+            'filesize': traverse_obj(json, ('video_properties', 'byte_size')),
         })
 
         return {
