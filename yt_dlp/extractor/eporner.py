@@ -1,3 +1,4 @@
+import re
 from .common import InfoExtractor
 from ..utils import (
     encode_base_n,
@@ -7,6 +8,8 @@ from ..utils import (
     parse_duration,
     str_to_int,
     url_or_none,
+    get_elements_by_class,
+    join_nonempty
 )
 
 
@@ -81,6 +84,7 @@ class EpornerIE(InfoExtractor):
         sources = video['sources']
 
         formats = []
+        av1 = True if len (get_elements_by_class("download-av1", webpage)) > 0 else False
         for kind, formats_dict in sources.items():
             if not isinstance(formats_dict, dict):
                 continue
@@ -106,6 +110,14 @@ class EpornerIE(InfoExtractor):
                         'height': height,
                         'fps': fps,
                     })
+                    if av1:
+                        formats.append({
+                            'url': re.sub('(.*)(.mp4)', '\\1-av1\\2', src),
+                            'format_id': join_nonempty('AV1',format_id),
+                            'height': height,
+                            'fps': fps,
+                            'vcodec': 'av1',
+                        })
 
         json_ld = self._search_json_ld(webpage, display_id, default={})
 
