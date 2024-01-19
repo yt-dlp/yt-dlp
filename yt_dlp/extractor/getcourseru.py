@@ -169,8 +169,7 @@ class GetCourseRuIE(InfoExtractor):
 
         playlist_id = self._search_regex(
             r'window\.(?:lessonId|gcsObjectId)\s*=\s*(\d+)', webpage, 'playlist id', default=display_id)
-
-        title = self._html_extract_title(webpage) or self._og_search_title(webpage)
+        title = self._og_search_title(webpage) or self._html_extract_title(webpage)
 
         return self.playlist_from_matches(
             re.findall(GetCourseRuPlayerIE._EMBED_REGEX[0], webpage),
