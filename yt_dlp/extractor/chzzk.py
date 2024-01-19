@@ -47,7 +47,7 @@ class CHZZKLiveIE(InfoExtractor):
         thumbnails = []
         thumbnail_template = traverse_obj(
             live_playback, ('thumbnail', 'snapshotThumbnailTemplate', {url_or_none}))
-        if thumbnail_template:
+        if thumbnail_template and '{type}' in thumbnail_template:
             for width in traverse_obj(live_playback, ('thumbnail', 'types', ..., {str})):
                 thumbnails.append({
                     'id': width,
