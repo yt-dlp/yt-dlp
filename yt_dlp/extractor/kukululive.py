@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
+    filter_dict,
     get_element_by_id,
     int_or_none,
     join_nonempty,
@@ -46,17 +47,17 @@ class KukuluLiveIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _get_quality_meta(self, video_id, desc, code, force_h264=''):
-        description = desc if force_h264 == '' else f'{desc} (force_h264)'
+    def _get_quality_meta(self, video_id, desc, code, force_h264=None):
+        if force_h264:
+            desc += ' (force_h264)'
         qs = self._download_webpage(
             'https://live.erinn.biz/live.player.fplayer.php', video_id,
-            query={
+            f'Downloading {desc} quality metadata', f'Unable to download {desc} quality metadata',
+            query=filter_dict({
                 'hash': video_id,
                 'action': f'get{code}liveByAjax',
                 'force_h264': force_h264,
-            },
-            note=f'Downloading {description} quality metadata',
-            errnote=f'Unable to download {description} quality metadata')
+            }))
         return urllib.parse.parse_qs(qs)
 
     def _add_quality_formats(self, formats, quality_meta):
