@@ -69,8 +69,8 @@ class AmadeusTVIE(InfoExtractor):
                 'duration': ('videoInfo', 'sourceVideo', ('floatDuration', 'duration'), {float_or_none}),
             }, get_all=False),
             **traverse_obj(nuxt_data, ('item', {
-                'title': (('title', 'title_en', 'title_cn'), ),
-                'description': (('description', 'description_en', 'description_cn'), ),
+                'title': (('title', 'title_en', 'title_cn'), {str}),
+                'description': (('description', 'description_en', 'description_cn'), {str}),
                 'timestamp': ('date', {parse_iso8601}),
                 'view_count': ('view', {int_or_none}),
             }), get_all=False),
