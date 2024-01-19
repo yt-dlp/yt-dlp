@@ -8,7 +8,6 @@ from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_b64decode
 from ..networking.exceptions import HTTPError
-from ..utils.traversal import traverse_obj
 from ..utils import (
     ass_subtitles_timecode,
     bytes_to_intlist,
@@ -25,14 +24,14 @@ from ..utils import (
     unified_strdate,
     urlencode_postdata,
 )
-
+from ..utils.traversal import traverse_obj
 
 class ADNBaseIE(InfoExtractor):
     IE_DESC = 'Animation Digital Network'
     _NETRC_MACHINE = 'animationdigitalnetwork'
     _BASE = 'animationdigitalnetwork.fr'
-    _API_BASE_URL = 'https://gw.api.' + _BASE + '/'
-    _PLAYER_BASE_URL = _API_BASE_URL + 'player/'
+    _API_BASE_URL = f'https://gw.api.{_BASE}/'
+    _PLAYER_BASE_URL = f'{_API_BASE_URL}player/'
     _HEADERS = {}
     _LOGIN_ERR_MESSAGE = 'Unable to log in'
     _RSA_KEY = (0x9B42B08905199A5CCE2026274399CA560ECB209EE9878A708B1C0812E1BB8CB5D1FB7441861147C1A1F2F3A0476DD63A9CAC20D3E983613346850AA6CB38F16DC7D720FD7D86FC6E5B3D5BBC72E14CD0BF9E869F2CEA2CCAD648F1DCE38F1FF916CEFB2D339B64AA0264372344BC775E265E8A852F88144AB0BD9AA06C1A4ABB, 65537)
@@ -47,7 +46,7 @@ class ADNBaseIE(InfoExtractor):
 
 
 class ADNIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
@@ -291,7 +290,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
 
 class ADNSeasonIE(ADNBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/?#]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/tokyo-mew-mew-new',
         'playlist_count': 12,
@@ -317,9 +316,11 @@ class ADNSeasonIE(ADNBaseIE):
                 'order': 'asc',
                 'limit': '-1',
             })
-        entries = []
-        for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
-            entries.append(self.url_result(
-                f'https://animationdigitalnetwork.{lang}/video/{video_show_slug}/{episode_id}',
-                ADNIE, episode_id))
-        return self.playlist_result(entries, show_id, show.get('title'))
+
+        def entries():
+            for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
+                yield self.url_result(
+                    f'https://animationdigitalnetwork.{lang}/video/{video_show_slug}/{episode_id}',
+                    ADNIE, episode_id)
+
+        return self.playlist_result(entries(), show_id, show.get('title'))
