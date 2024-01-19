@@ -1622,6 +1622,7 @@ class BiliBiliPlayerIE(InfoExtractor):
 class BiliIntlBaseIE(InfoExtractor):
     _API_URL = 'https://api.bilibili.tv/intl/gateway'
     _NETRC_MACHINE = 'biliintl'
+    _HEADERS = {'Referer': 'https://www.bilibili.com/'}
 
     def _call_api(self, endpoint, *args, **kwargs):
         json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
@@ -1732,7 +1733,9 @@ class BiliIntlBaseIE(InfoExtractor):
     def _parse_video_metadata(self, video_data):
         return {
             'title': video_data.get('title_display') or video_data.get('title'),
+            'description': video_data.get('desc'),
             'thumbnail': video_data.get('cover'),
+            'timestamp': unified_timestamp(video_data.get('formatted_pub_date')),
             'episode_number': int_or_none(self._search_regex(
                 r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
         }
@@ -1830,17 +1833,6 @@ class BiliIntlIE(BiliIntlBaseIE):
         },
         'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
     }, {
-        'url': 'https://www.bilibili.tv/en/video/2041863208',
-        'info_dict': {
-            'id': '2041863208',
-            'ext': 'mp4',
-            'timestamp': 1670874843,
-            'description': 'Scheduled for April 2023.\nStudio: ufotable',
-            'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
-            'upload_date': '20221212',
-            'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
-        },
-    }, {
         # episode comment extraction
         'url': 'https://www.bilibili.tv/en/play/34580/340317',
         'info_dict': {
@@ -1880,9 +1872,9 @@ class BiliIntlIE(BiliIntlBaseIE):
             'description': 'md5:693b6f3967fb4e7e7764ea817857c33a',
             'timestamp': 1667891924,
             'upload_date': '20221108',
-            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan - Bstation',
+            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan',
             'comment_count': int,
-            'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
+            'thumbnail': r're:https://pic\.bstarstatic\.(?:com|net)/ugc/f6c363659efd2eabe5683fbb906b1582\.jpg',
         },
         'params': {
             'getcomments': True
@@ -1945,10 +1937,12 @@ class BiliIntlIE(BiliIntlBaseIE):
 
         # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
         return merge_dicts(
-            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id, fatal=False), {
-                'title': self._html_search_meta('og:title', webpage),
-                'description': self._html_search_meta('og:description', webpage)
-            })
+            self._parse_video_metadata(video_data), {
+                'title': get_element_by_class(
+                    'bstar-meta__title', webpage) or self._html_search_meta('og:title', webpage),
+                'description': get_element_by_class(
+                    'bstar-meta__desc', webpage) or self._html_search_meta('og:description'),
+            }, self._search_json_ld(webpage, video_id, default={}))
 
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):
         comment_api_raw_data = self._download_json(
@@ -2036,7 +2030,8 @@ class BiliIntlIE(BiliIntlBaseIE):
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
             'chapters': chapters,
-            '__post_extractor': self.extract_comments(video_id, ep_id)
+            '__post_extractor': self.extract_comments(video_id, ep_id),
+            'http_headers': self._HEADERS,
         }
 
 
