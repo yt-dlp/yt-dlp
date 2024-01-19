@@ -1269,6 +1269,7 @@ from .niconicochannelplus import (
     NiconicoChannelPlusChannelLivesIE,
 )
 from .ninegag import NineGagIE
+from .ninenews import NineNewsIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
 from .nitter import NitterIE
