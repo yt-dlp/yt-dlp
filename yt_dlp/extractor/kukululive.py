@@ -2,6 +2,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     get_element_by_id,
     int_or_none,
@@ -83,6 +84,9 @@ class KukuluLiveIE(InfoExtractor):
         video_id = self._match_id(url)
         html = self._download_webpage(url, video_id)
 
+        if 'タイムシフトが見つかりませんでした。' in html:
+            raise ExtractorError('This stream has expired', expected=True)
+
         title = clean_html(
             get_element_by_id('livetitle', html.replace('<SPAN', '<span').replace('SPAN>', 'span>')))
         description = self._html_search_meta('Description', html)
@@ -93,7 +97,7 @@ class KukuluLiveIE(InfoExtractor):
             for (desc, code) in [('high', 'Z'), ('low', 'ForceLow')]:
                 quality_meta = self._get_quality_meta(video_id, desc, code)
                 self._add_quality_formats(formats, quality_meta)
-                if desc == 'high' and quality_meta.get('vcodec')[0] == 'HEVC':
+                if desc == 'high' and traverse_obj(quality_meta, ('vcodec', 0)) == 'HEVC':
                     self._add_quality_formats(
                         formats, self._get_quality_meta(video_id, desc, code, force_h264='1'))
 
