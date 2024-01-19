@@ -1857,7 +1857,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'upload_date': '20221108',
             'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan',
             'comment_count': int,
-            'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
+            'thumbnail': r're:https://pic.bstarstatic\.com|\.net/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
         },
         'params': {
             'getcomments': True
@@ -1925,7 +1925,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'bstar-meta__title', webpage) or self._html_search_meta('og:title', webpage),
                 'description': get_element_by_class(
                     'bstar-meta__desc', webpage) or self._html_search_meta('og:description'),
-            } or self._search_json_ld(webpage, video_id, fatal=False))
+            }, self._search_json_ld(webpage, video_id, default={}))
 
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):
         comment_api_raw_data = self._download_json(
