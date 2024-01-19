@@ -138,11 +138,15 @@ class AbemaTVBaseIE(InfoExtractor):
         if self._USERTOKEN:
             return self._USERTOKEN
 
+        add_opener(self._downloader, AbemaLicenseHandler(self))
+
         username, _ = self._get_login_info()
-        AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
+        auth_cache = username and self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.19')
+        AbemaTVBaseIE._USERTOKEN = auth_cache and auth_cache.get('usertoken')
         if AbemaTVBaseIE._USERTOKEN:
             # try authentication with locally stored token
             try:
+                AbemaTVBaseIE._DEVICE_ID = auth_cache.get('device_id')
                 self._get_media_token(True)
                 return
             except ExtractorError as e:
@@ -161,7 +165,6 @@ class AbemaTVBaseIE(InfoExtractor):
             })
         AbemaTVBaseIE._USERTOKEN = user_data['token']
 
-        add_opener(self._downloader, AbemaLicenseHandler(self))
         return self._USERTOKEN
 
     def _get_media_token(self, invalidate=False, to_show=True):
@@ -185,7 +188,7 @@ class AbemaTVBaseIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         self._get_device_token()
-        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
+        if self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.19') and self._get_media_token():
             self.write_debug('Skipping logging in')
             return
 
@@ -208,7 +211,11 @@ class AbemaTVBaseIE(InfoExtractor):
 
         AbemaTVBaseIE._USERTOKEN = login_response['token']
         self._get_media_token(True)
-        self.cache.store(self._NETRC_MACHINE, username, AbemaTVBaseIE._USERTOKEN)
+        auth_cache = {
+            'device_id': AbemaTVBaseIE._DEVICE_ID,
+            'usertoken': AbemaTVBaseIE._USERTOKEN,
+        }
+        self.cache.store(self._NETRC_MACHINE, username, auth_cache)
 
     def _call_api(self, endpoint, video_id, query=None, note='Downloading JSON metadata'):
         return self._download_json(

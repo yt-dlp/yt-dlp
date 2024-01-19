@@ -345,6 +345,10 @@ from .chingari import (
     ChingariIE,
     ChingariUserIE,
 )
+from .chzzk import (
+    CHZZKLiveIE,
+    CHZZKVideoIE,
+)
 from .cinemax import CinemaxIE
 from .cinetecamilano import CinetecaMilanoIE
 from .cineverse import (
@@ -540,6 +544,7 @@ from .egghead import (
 from .eighttracks import EightTracksIE
 from .einthusan import EinthusanIE
 from .eitb import EitbIE
+from .elementorembed import ElementorEmbedIE
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
 from .eltrecetv import ElTreceTVIE
@@ -787,6 +792,7 @@ from .iheart import (
     IHeartRadioIE,
     IHeartRadioPodcastIE,
 )
+from .ilpost import IlPostIE
 from .iltalehti import IltalehtiIE
 from .imdb import (
     ImdbIE,
@@ -996,7 +1002,7 @@ from .lynda import (
 )
 from .maariv import MaarivIE
 from .magellantv import MagellanTVIE
-from .magentamusik360 import MagentaMusik360IE
+from .magentamusik import MagentaMusikIE
 from .mailru import (
     MailRuIE,
     MailRuMusicIE,
@@ -2019,7 +2025,6 @@ from .tunein import (
     TuneInPodcastEpisodeIE,
     TuneInShortenerIE,
 )
-from .turbo import TurboIE
 from .tv2 import (
     TV2IE,
     TV2ArticleIE,
@@ -2223,6 +2228,7 @@ from .viki import (
     VikiIE,
     VikiChannelIE,
 )
+from .viously import ViouslyIE
 from .viqeo import ViqeoIE
 from .viu import (
     ViuIE,
