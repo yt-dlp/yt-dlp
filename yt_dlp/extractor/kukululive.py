@@ -88,7 +88,7 @@ class KukuluLiveIE(InfoExtractor):
         description = self._html_search_meta('Description', html)
         thumbnail = self._html_search_meta(['og:image', 'twitter:image'], html)
 
-        if self._search_regex(r'var\s+timeshift\s*=\s*false', html, 'is livestream', default=False):
+        if self._search_regex(r'(var\s+timeshift\s*=\s*false)', html, 'is livestream', default=False):
             streams = [
                 ('high', 'Z'),
                 ('low', 'ForceLow'),
