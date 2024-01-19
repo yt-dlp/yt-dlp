@@ -105,7 +105,7 @@ class GetCourseRuIE(InfoExtractor):
         'playlist_count': 1,
         'playlist': [{
             'info_dict': {
-                'id': '4242723',
+                'id': '447479687',
                 'ext': 'mp4',
                 'title': 'Мотивация к тренировкам',
                 'thumbnail': 'https://preview-htz.vhcdn.com/preview/70ed5b9f489dd03b4aff55bfdff71a26/preview.jpg?version=1685115787&host=vh-71',
@@ -120,6 +120,7 @@ class GetCourseRuIE(InfoExtractor):
     _DOMAINS = [
         'academymel.online',
         'marafon.mani-beauty.com',
+        'on.psbook.ru'
     ]
     _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
     _VALID_URL = [
