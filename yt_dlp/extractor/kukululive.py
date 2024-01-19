@@ -2,7 +2,6 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     clean_html,
     get_element_by_id,
     int_or_none,
@@ -46,8 +45,6 @@ class KukuluLiveIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _QUALITIES = qualities(('low', 'h264', 'high'))
-
     def _get_quality_meta(self, video_id, desc, code, force_h264=''):
         description = desc if force_h264 == '' else f'{desc} (force_h264)'
         qs = self._download_webpage(
@@ -64,7 +61,7 @@ class KukuluLiveIE(InfoExtractor):
     def _add_quality_formats(self, formats, quality_meta):
         vcodec = traverse_obj(quality_meta, ('vcodec', 0, {str}))
         quality = traverse_obj(quality_meta, ('now_quality', 0, {str}))
-        quality_priority = self._QUALITIES(quality)
+        quality_priority = qualities(('low', 'h264', 'high'))(quality)
         if traverse_obj(quality_meta, ('hlsaddr', 0, {url_or_none})):
             formats.append({
                 'format_id': quality,
@@ -91,10 +88,7 @@ class KukuluLiveIE(InfoExtractor):
         description = self._html_search_meta('Description', html)
         thumbnail = self._html_search_meta(['og:image', 'twitter:image'], html)
 
-        is_live_stream = 'var timeshift = false;' in html
-        is_vod = 'var timeshift = true;' in html
-
-        if is_live_stream:
+        if self._search_regex(r'var\s+timeshift\s*=\s*false', html, 'is livestream', default=False):
             streams = [
                 ('high', 'Z'),
                 ('low', 'ForceLow'),
@@ -116,42 +110,31 @@ class KukuluLiveIE(InfoExtractor):
                 'formats': formats,
             }
 
-        if is_vod:
-            player_html = self._download_webpage(
-                'https://live.erinn.biz/live.timeshift.fplayer.php', video_id,
-                query={'hash': video_id},
-                note='Downloading player html',
-                errnote='Unable to download player html')
+        # VOD extraction
+        player_html = self._download_webpage(
+            'https://live.erinn.biz/live.timeshift.fplayer.php', video_id,
+            'Downloading player html', 'Unable to download player html', query={'hash': video_id})
 
-            sources_json = self._search_json(
-                r'var\s+fplayer_source\s*=', player_html, 'stream data', video_id,
-                contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json)
+        sources = traverse_obj(self._search_json(
+            r'var\s+fplayer_source\s*=', player_html, 'stream data', video_id,
+            contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json), lambda _, v: v['file'])
 
-            def parse_segment(segment, segment_id, segment_title):
-                path = segment.get('file')
-                if not path:
-                    return None
-                formats = [{
-                    'url': urljoin('https://live.erinn.biz', path),
-                    'ext': 'mp4',
-                    'protocol': 'm3u8_native',
-                }]
-                return {
-                    'id': segment_id,
-                    'title': segment_title,
+        def entries(segments, playlist=True):
+            for i, segment in enumerate(segments, 1):
+                yield {
+                    'id': f'{video_id}_{i}' if playlist else video_id,
+                    'title': f'{title} (Part {i})' if playlist else title,
                     'description': description,
                     'timestamp': traverse_obj(segment, ('time_start', {int_or_none})),
                     'thumbnail': thumbnail,
-                    'formats': formats,
+                    'formats': [{
+                        'url': urljoin('https://live.erinn.biz', segment['file']),
+                        'ext': 'mp4',
+                        'protocol': 'm3u8_native',
+                    }],
                 }
 
-            if len(sources_json) == 1:
-                return parse_segment(sources_json[0], video_id, title)
+        if len(sources) == 1:
+            return next(entries(sources, playlist=False))
 
-            entries = []
-            for i, segment in enumerate(sources_json):
-                if entry := parse_segment(segment, f'{video_id}_{i}', f'{title} (Part {i + 1})'):
-                    entries.append(entry)
-            return self.playlist_result(entries, video_id, title, description, multi_video=True)
-
-        raise ExtractorError('Could not detect media type')
+        return self.playlist_result(entries(sources), video_id, title, description, multi_video=True)
