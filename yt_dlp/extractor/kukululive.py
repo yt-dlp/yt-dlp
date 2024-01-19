@@ -48,8 +48,7 @@ class KukuluLiveIE(InfoExtractor):
     }]
 
     def _get_quality_meta(self, video_id, desc, code, force_h264=None):
-        if force_h264:
-            desc += ' (force_h264)'
+        desc += ' (force_h264)' if force_h264 else ''
         qs = self._download_webpage(
             'https://live.erinn.biz/live.player.fplayer.php', video_id,
             f'Downloading {desc} quality metadata', f'Unable to download {desc} quality metadata',
