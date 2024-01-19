@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, parse_iso8601, url_or_none
+from ..utils import ExtractorError, determine_ext, parse_iso8601, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -77,7 +77,7 @@ class TrtWorldIE(InfoExtractor):
         for media_url in traverse_obj(nuxtjs_data, (
                 ('website', 'ott'), 'metadata', ('hls_url', 'url'), {url_or_none})):
             # NB: Website sometimes serves mp4 files under `hls_url` key
-            if media_url.endswith('.m3u8'):
+            if determine_ext(media_url) == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(media_url, display_id, fatal=False))
             else:
                 formats.append({
