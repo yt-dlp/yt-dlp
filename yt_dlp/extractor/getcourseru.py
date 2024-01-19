@@ -44,6 +44,16 @@ class GetCourseRuPlayerIE(InfoExtractor):
 
 class GetCourseRuIE(InfoExtractor):
     _NETRC_MACHINE = 'getcourseru'
+    _DOMAINS = [
+        'academymel.online',
+        'marafon.mani-beauty.com',
+        'on.psbook.ru'
+    ]
+    _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
+    _VALID_URL = [
+        rf'{_BASE_URL_RE}/(?!pl/|teach/)(?P<id>[^?#]+)',
+        rf'{_BASE_URL_RE}/(:?pl/)?teach/control/lesson/view\?(?:[^#]+&)?id=(?P<id>\d+)',
+    ]
     _LOGIN_URL_PATH = '/cms/system/login'
     _TESTS = [{
         'url': 'http://academymel.online/3video_1',
@@ -117,16 +127,6 @@ class GetCourseRuIE(InfoExtractor):
         'url': 'https://gaismasmandalas.getcourse.io/ATLAUTSEVBUT',
         'only_matching': True,
     }]
-    _DOMAINS = [
-        'academymel.online',
-        'marafon.mani-beauty.com',
-        'on.psbook.ru'
-    ]
-    _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
-    _VALID_URL = [
-        rf'{_BASE_URL_RE}/(?!pl/|teach/)(?P<id>[^?#]+)',
-        rf'{_BASE_URL_RE}/(:?pl/)?teach/control/lesson/view\?(?:[^#]+&)?id=(?P<id>\d+)',
-    ]
 
     def _login(self, hostname, username, password):
         if self._get_cookies(f'https://{hostname}').get('PHPSESSID5'):
