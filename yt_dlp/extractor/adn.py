@@ -26,6 +26,7 @@ from ..utils import (
 )
 from ..utils.traversal import traverse_obj
 
+
 class ADNBaseIE(InfoExtractor):
     IE_DESC = 'Animation Digital Network'
     _NETRC_MACHINE = 'animationdigitalnetwork'
