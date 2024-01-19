@@ -1,12 +1,18 @@
 import functools
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, float_or_none, int_or_none, url_or_none, urlencode_postdata
+from ..utils import (
+    ExtractorError,
+    float_or_none,
+    int_or_none,
+    url_or_none,
+    urlencode_postdata,
+)
 from ..utils.traversal import traverse_obj
 
 
-class IlPostExtractorIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ilpost\.it/episodes/(?P<id>[^/?]+).*'
+class IlPostIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?ilpost\.it/episodes/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.ilpost.it/episodes/1-avis-akvasas-ka/',
         'md5': '43649f002d85e1c2f319bb478d479c40',
@@ -26,15 +32,15 @@ class IlPostExtractorIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        podcast_display_id = self._match_id(url)
-        webpage = self._download_webpage(url, podcast_display_id)
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
 
         endpoint_metadata = self._search_json(
-            r'var\s+ilpostpodcast\s*=', webpage, 'metadata', podcast_display_id)
+            r'var\s+ilpostpodcast\s*=', webpage, 'metadata', display_id)
         episode_id = endpoint_metadata['post_id']
         podcast_id = endpoint_metadata['podcast_id']
         podcast_metadata = self._download_json(
-            endpoint_metadata['ajax_url'], podcast_display_id, data=urlencode_postdata({
+            endpoint_metadata['ajax_url'], display_id, data=urlencode_postdata({
                 'action': 'checkpodcast',
                 'cookie': endpoint_metadata['cookie'],
                 'post_id': episode_id,
@@ -46,7 +52,7 @@ class IlPostExtractorIE(InfoExtractor):
             raise ExtractorError('Episode could not be extracted')
         return {
             'id': episode_id,
-            'display_id': podcast_display_id,
+            'display_id': display_id,
             'series_id': podcast_id,
             'vcodec': 'none',
             **traverse_obj(episode, {

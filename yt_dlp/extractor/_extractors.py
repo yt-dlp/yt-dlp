@@ -787,7 +787,7 @@ from .iheart import (
     IHeartRadioIE,
     IHeartRadioPodcastIE,
 )
-from .ilpost import IlPostExtractorIE
+from .ilpost import IlPostIE
 from .iltalehti import IltalehtiIE
 from .imdb import (
     ImdbIE,
