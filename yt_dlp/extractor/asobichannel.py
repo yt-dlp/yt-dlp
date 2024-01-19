@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, clean_html, merge_dicts, parse_iso8601
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    merge_dicts,
+    parse_iso8601,
+    url_or_none,
+)
 from ..utils.traversal import traverse_obj
 
 
@@ -11,7 +17,7 @@ class AsobiChannelBaseIE(InfoExtractor):
             'id': ('id', {str}),
             'title': ('title', {str}),
             'description': ('body', {clean_html}),
-            'thumbnail': ('contents', 'video_thumb', 'url'),
+            'thumbnail': ('contents', 'video_thumb', 'url', {url_or_none}),
             'timestamp': ('publishedAt', {parse_iso8601}),
             'modified_timestamp': ('updatedAt', {parse_iso8601}),
             'channel': ('channel', 'name', {str}),
