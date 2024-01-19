@@ -93,6 +93,7 @@ from .alura import (
     AluraIE,
     AluraCourseIE
 )
+from .amadeustv import AmadeusTVIE
 from .amara import AmaraIE
 from .amcnetworks import AMCNetworksIE
 from .amazon import (
