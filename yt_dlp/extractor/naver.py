@@ -246,13 +246,12 @@ class NaverLiveIE(NaverBaseIE):
         if status == 'CLOSED':
             raise ExtractorError('Stream is offline.', expected=True)
         elif status != 'OPENED':
-            raise ExtractorError(f'Unknown status {status}')
-
-        playback_info = traverse_obj(data, ('playbackBody', {json.loads}))
+            raise ExtractorError(f'Unknown status {status!r}')
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(traverse_obj(playback_info, ('media', 0, 'path')), video_id, live=True),
+            'formats': self._extract_m3u8_formats(
+                traverse_obj(data, ('playbackBody', {json.loads}, 'media', 0, 'path')), video_id, live=True),
             **traverse_obj(data, ('live', {
                 'title': 'title',
                 'channel': 'channelName',
