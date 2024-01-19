@@ -5,49 +5,8 @@ from ..utils import urlhandle_detect_ext
 from ..networking import HEADRequest
 
 
-class Mx3IE(InfoExtractor):
-    _MX3_DOMAIN = 'mx3.ch'
-    _VALID_URL = r'https?://(?:www\.)?mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
-    _TESTS = [{
-        'url': 'https://mx3.ch/t/1Cru',
-        'md5': '82510bf4c21f17da41bff7e1ffd84e78',
-        'info_dict': {
-            'id': '1Cru',
-            # This one is audio-only. It's a mp3, but we have to make a HEAD request to find out.
-            'ext': 'mp3',
-            'artist': 'Tortue Tortue, Godina',
-            'composer': 'Olivier Godinat',
-            'genre': 'Rock',
-            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_xlarge/1-s-envoler-1.jpg?1630272813',
-            'title': 'S\'envoler',
-        }
-    }, {
-        'url': 'https://mx3.ch/t/1LIY',
-        'md5': '4117489dff8c763ecfbb0b95a67d6c8e',
-        'info_dict': {
-            'id': '1LIY',
-            # This is a music video. 'file' says: ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]
-            'ext': 'mp4',
-            'artist': 'The Broots, Tania Kimfumu',
-            'composer': 'Emmanuel Diserens',
-            'genre': 'Electro',
-            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_xlarge/frame_0000.png?1686963670',
-            'title': 'The Broots-Larytta remix "Begging For Help"',
-        }
-    }, {
-        'url': 'https://mx3.ch/t/1C6E',
-        'md5': '1afcd578493ddb8e5008e94bb6d97e25',
-        'info_dict': {
-            'id': '1C6E',
-            # This one has a download button, yielding a WAV.
-            'ext': 'wav',
-            'artist': 'Alien Bubblegum',
-            'composer': 'Alien Bubblegum',
-            'genre': 'Punk',
-            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/1551/square_xlarge/pandora-s-box-cover-with-title.png?1627054733',
-            'title': 'Wide Awake',
-        }
-    }]
+class Mx3BaseIE(InfoExtractor):
+    _MX3_DOMAIN = None
 
     def _real_extract(self, url):
         track_id = self._match_id(url)
@@ -108,7 +67,52 @@ class Mx3IE(InfoExtractor):
         }
 
 
-class Mx3NeoIE(Mx3IE):
+class Mx3IE(Mx3BaseIE):
+    _MX3_DOMAIN = 'mx3.ch'
+    _VALID_URL = r'https?://(?:www\.)?mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
+    _TESTS = [{
+        'url': 'https://mx3.ch/t/1Cru',
+        'md5': '82510bf4c21f17da41bff7e1ffd84e78',
+        'info_dict': {
+            'id': '1Cru',
+            # This one is audio-only. It's a mp3, but we have to make a HEAD request to find out.
+            'ext': 'mp3',
+            'artist': 'Tortue Tortue, Godina',
+            'composer': 'Olivier Godinat',
+            'genre': 'Rock',
+            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_xlarge/1-s-envoler-1.jpg?1630272813',
+            'title': 'S\'envoler',
+        }
+    }, {
+        'url': 'https://mx3.ch/t/1LIY',
+        'md5': '4117489dff8c763ecfbb0b95a67d6c8e',
+        'info_dict': {
+            'id': '1LIY',
+            # This is a music video. 'file' says: ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]
+            'ext': 'mp4',
+            'artist': 'The Broots, Tania Kimfumu',
+            'composer': 'Emmanuel Diserens',
+            'genre': 'Electro',
+            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_xlarge/frame_0000.png?1686963670',
+            'title': 'The Broots-Larytta remix "Begging For Help"',
+        }
+    }, {
+        'url': 'https://mx3.ch/t/1C6E',
+        'md5': '1afcd578493ddb8e5008e94bb6d97e25',
+        'info_dict': {
+            'id': '1C6E',
+            # This one has a download button, yielding a WAV.
+            'ext': 'wav',
+            'artist': 'Alien Bubblegum',
+            'composer': 'Alien Bubblegum',
+            'genre': 'Punk',
+            'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/1551/square_xlarge/pandora-s-box-cover-with-title.png?1627054733',
+            'title': 'Wide Awake',
+        }
+    }]
+
+
+class Mx3NeoIE(Mx3BaseIE):
     _MX3_DOMAIN = 'neo.mx3.ch'
     _VALID_URL = r'https?://(?:www\.)?neo.mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
@@ -126,7 +130,7 @@ class Mx3NeoIE(Mx3IE):
     }]
 
 
-class Mx3VolksmusikIE(Mx3IE):
+class Mx3VolksmusikIE(Mx3BaseIE):
     _MX3_DOMAIN = 'volksmusik.mx3.ch'
     _VALID_URL = r'https?://(?:www\.)?volksmusik.mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
