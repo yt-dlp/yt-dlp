@@ -6,7 +6,9 @@ from ..utils import (
     clean_html,
     get_element_by_id,
     int_or_none,
+    join_nonempty,
     js_to_json,
+    qualities,
     url_or_none,
     urljoin,
 )
@@ -44,6 +46,8 @@ class KukuluLiveIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _QUALITIES = qualities(('low', 'h264', 'high'))
+
     def _get_quality_meta(self, video_id, desc, code, force_h264=''):
         description = desc if force_h264 == '' else f'{desc} (force_h264)'
         qs = self._download_webpage(
@@ -58,13 +62,9 @@ class KukuluLiveIE(InfoExtractor):
         return urllib.parse.parse_qs(qs)
 
     def _add_quality_formats(self, formats, quality_meta):
-        vcodec = traverse_obj(quality_meta, ('vcodec', 0))
-        quality = traverse_obj(quality_meta, ('now_quality', 0))
-        quality_priority = {
-            'high': 3,
-            'h264': 2,
-            'low': 1,
-        }.get(quality, 0)
+        vcodec = traverse_obj(quality_meta, ('vcodec', 0, {str}))
+        quality = traverse_obj(quality_meta, ('now_quality', 0, {str}))
+        quality_priority = self._QUALITIES(quality)
         if traverse_obj(quality_meta, ('hlsaddr', 0, {url_or_none})):
             formats.append({
                 'format_id': quality,
@@ -75,7 +75,7 @@ class KukuluLiveIE(InfoExtractor):
             })
         if traverse_obj(quality_meta, ('hlsaddr_audioonly', 0, {url_or_none})):
             formats.append({
-                'format_id': f'{quality}-audioonly',
+                'format_id': join_nonempty(quality, 'audioonly'),
                 'url': quality_meta['hlsaddr_audioonly'][0],
                 'ext': 'm4a',
                 'vcodec': 'none',
@@ -86,7 +86,8 @@ class KukuluLiveIE(InfoExtractor):
         video_id = self._match_id(url)
         html = self._download_webpage(url, video_id)
 
-        title = clean_html(get_element_by_id('livetitle', html.replace('<SPAN', '<span').replace('SPAN>', 'span>')))
+        title = clean_html(
+            get_element_by_id('livetitle', html.replace('<SPAN', '<span').replace('SPAN>', 'span>')))
         description = self._html_search_meta('Description', html)
         thumbnail = self._html_search_meta(['og:image', 'twitter:image'], html)
 
@@ -94,17 +95,17 @@ class KukuluLiveIE(InfoExtractor):
         is_vod = 'var timeshift = true;' in html
 
         if is_live_stream:
-            qualities = [
+            streams = [
                 ('high', 'Z'),
                 ('low', 'ForceLow'),
             ]
             formats = []
-            for (desc, code) in qualities:
+            for (desc, code) in streams:
                 quality_meta = self._get_quality_meta(video_id, desc, code)
                 self._add_quality_formats(formats, quality_meta)
                 if desc == 'high' and quality_meta.get('vcodec')[0] == 'HEVC':
-                    h264_meta = self._get_quality_meta(video_id, desc, code, force_h264='1')
-                    self._add_quality_formats(formats, h264_meta)
+                    self._add_quality_formats(
+                        formats, self._get_quality_meta(video_id, desc, code, force_h264='1'))
 
             return {
                 'id': video_id,
