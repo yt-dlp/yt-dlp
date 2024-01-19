@@ -58,7 +58,7 @@ class GoProIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         metadata = self._search_json(
-            r'<script>window\.__reflectData\s*=', webpage, 'metadata', video_id)
+            r'window\.__reflectData\s*=', webpage, 'metadata', video_id)
 
         video_info = metadata['collectionMedia'][0]
         media_data = self._download_json(
