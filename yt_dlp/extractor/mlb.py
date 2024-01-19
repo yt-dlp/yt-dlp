@@ -371,7 +371,7 @@ class MLBArticleIE(InfoExtractor):
             apollo_cache_json, ('ROOT_QUERY', lambda k, _: k.startswith('getArticle')), get_all=False)
 
         return self.playlist_from_matches(
-            traverse_obj(content_real_info, ('parts', lambda _, v: (v['__typename'] == 'Video' or v['type'] == 'video'))),
+            traverse_obj(content_real_info, ('parts', lambda _, v: v['__typename'] == 'Video' or v['type'] == 'video')),
             getter=lambda x: f'https://www.mlb.com/video/{x["slug"]}',
             ie=MLBVideoIE, playlist_id=content_real_info.get('translationId'),
             title=self._html_search_meta('og:title', webpage),
