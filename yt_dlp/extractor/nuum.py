@@ -43,7 +43,7 @@ class NuumBaseIE(InfoExtractor):
         stream = traverse_obj(container, ('media_container_streams', 0))
         media = try_get(stream, lambda x: x['stream_media'][0])
         if not media:
-            raise ExtractorError('Can not extract media data.', expected=True)
+            raise ExtractorError('Cannot extract media data', expected=True)
         media_meta = media.get('media_meta')
         media_url, is_live = self._get_media_url(media_meta)
         video_id = media.get('media_id') or container.get('media_container_id')
@@ -79,8 +79,7 @@ class NuumLiveIE(NuumBaseIE):
                 'with_deleted': 'true',
             }
         )
-        channel = broadcast.get('channel')
-        if not channel.get('channel_is_live'):
+        if not traverse_obj(broadcast, ('channel', 'channel_is_live')):
             raise ExtractorError('The channel is not currently live', expected=True)
         return broadcast.get('media_container')
 
