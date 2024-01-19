@@ -1921,9 +1921,11 @@ class BiliIntlIE(BiliIntlBaseIE):
         # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
         return merge_dicts(
             self._parse_video_metadata(video_data), {
-                'title': get_element_by_class('bstar-meta__title', webpage),
-                'description': get_element_by_class('bstar-meta__desc', webpage),
-            })
+                'title': get_element_by_class(
+                    'bstar-meta__title', webpage) or self._html_search_meta('og:title', webpage),
+                'description': get_element_by_class(
+                    'bstar-meta__desc', webpage) or self._html_search_meta('og:description'),
+            } or self._search_json_ld(webpage, video_id, fatal=False))
 
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):
         comment_api_raw_data = self._download_json(
