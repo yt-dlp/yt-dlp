@@ -84,7 +84,7 @@ class KukuluLiveIE(InfoExtractor):
         video_id = self._match_id(url)
         html = self._download_webpage(url, video_id)
 
-        if 'タイムシフトが見つかりませんでした。' in html:
+        if '>タイムシフトが見つかりませんでした。<' in html:
             raise ExtractorError('This stream has expired', expected=True)
 
         title = clean_html(
