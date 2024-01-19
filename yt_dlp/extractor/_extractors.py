@@ -345,6 +345,10 @@ from .chingari import (
     ChingariIE,
     ChingariUserIE,
 )
+from .chzzk import (
+    CHZZKLiveIE,
+    CHZZKVideoIE,
+)
 from .cinemax import CinemaxIE
 from .cinetecamilano import CinetecaMilanoIE
 from .cineverse import (
