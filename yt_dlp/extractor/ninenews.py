@@ -1,12 +1,12 @@
 from .common import InfoExtractor
 from .brightcove import BrightcoveNewIE
-
-from ..utils import ExtractorError, traverse_obj
+from ..utils import ExtractorError
+from ..utils.traversal import traverse_obj
 
 
 class NineNewsIE(InfoExtractor):
     IE_NAME = '9News'
-    _VALID_URL = r'https?://(?:www\.)?9news\.com\.au/\w+/(?:\w+/)?[^/]+/(?P<id>[^/]+)(?:$|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?9news\.com\.au/(?:[\w-]+/){2,3}(?P<id>[\w-]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://www.9news.com.au/videos/national/fair-trading-pulls-dozens-of-toys-from-shelves/clqgc7dvj000y0jnvfism0w5m',
         'md5': 'd1a65b2e9d126e5feb9bc5cb96e62c80',
@@ -59,14 +59,14 @@ class NineNewsIE(InfoExtractor):
         initial_state = self._search_json(
             r'var\s+__INITIAL_STATE__\s*=', webpage, 'initial state', article_id)
         video_id = traverse_obj(
-            initial_state, ('videoIndex', 'currentVideo', 'brightcoveId'),
-            ('article', ..., 'media', lambda _, v: v['type'] == 'video', 'urn'), get_all=False)
+            initial_state, ('videoIndex', 'currentVideo', 'brightcoveId', {str}),
+            ('article', ..., 'media', lambda _, v: v['type'] == 'video', 'urn', {str}), get_all=False)
         account = traverse_obj(initial_state, (
-            'videoIndex', 'config', (None, 'video'), 'account'), get_all=False)
+            'videoIndex', 'config', (None, 'video'), 'account', {str}), get_all=False)
 
         if not video_id or not account:
             raise ExtractorError('Unable to get the required video data')
 
         return self.url_result(
             f'https://players.brightcove.net/{account}/default_default/index.html?videoId={video_id}',
-            ie=BrightcoveNewIE, video_id=video_id)
+            BrightcoveNewIE, video_id)
