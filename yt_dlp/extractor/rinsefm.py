@@ -71,8 +71,10 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
         'playlist_mincount': 7
     }]
 
-    def _entries(self, episodes):
-        for episode in episodes:
+    def _entries(self, data):
+        for episode in traverse_obj(data, (
+            'props', 'pageProps', 'episodes', lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio)
+        ):
             yield self._parse_entry(episode)
 
     def _real_extract(self, url):
@@ -81,11 +83,7 @@ class RinseFMArtistPlaylistIE(RinseFMBaseIE):
         title = self._og_search_title(webpage) or self._html_search_meta('title', webpage)
         description = self._og_search_description(webpage) or self._html_search_meta(
             'description', webpage)
-
-        episodes = traverse_obj(
-            self._search_nextjs_data(webpage, playlist_id),
-            ('props', 'pageProps', 'episodes',
-             lambda _, v: determine_ext(v['fileUrl']) in MEDIA_EXTENSIONS.audio))
+        data = self._search_nextjs_data(webpage, playlist_id)
 
         return self.playlist_result(
-            self._entries(episodes), playlist_id, title, description=description)
+            self._entries(data), playlist_id, title, description=description)
