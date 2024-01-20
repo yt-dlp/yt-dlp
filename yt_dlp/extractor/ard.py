@@ -17,6 +17,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     xpath_text,
+    jwt_decode_hs256,
 )
 from ..utils.traversal import traverse_obj
 
@@ -360,11 +361,29 @@ class ARDBetaMediathekIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        page_data = self._download_json(
-            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
-                'embedded': 'false',
-                'mcV6': 'true',
-            })
+        token = self._download_json('https://sso.ardmediathek.de/sso/token', display_id)
+
+        id_token = traverse_obj(token, 'idToken')
+
+        if id_token:
+            jwt_token_decoded = jwt_decode_hs256(id_token)
+            user_id = traverse_obj(jwt_token_decoded, 'user_id', 'sub')
+
+            page_data = self._download_json(
+                f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
+                    'embedded': 'false',
+                    'mcV6': 'true',
+                    'userId': user_id
+                }, headers= {
+                    'x-authorization': f'Bearer {id_token}'
+                })
+        else:
+            page_data = self._download_json(
+                f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
+                    'embedded': 'false',
+                    'mcV6': 'true'
+                })
+
 
         # For user convenience we use the old contentId instead of the longer crid
         # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
