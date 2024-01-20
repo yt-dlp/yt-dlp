@@ -177,6 +177,7 @@ class MotherlessIE(InfoExtractor):
 
 
 class MotherlessPaginatedIE(InfoExtractor):
+    _EXTRA_QUERY = {}
     _PAGE_SIZE = 60
 
     def _correct_path(self, url, item_id):
@@ -199,7 +200,7 @@ class MotherlessPaginatedIE(InfoExtractor):
         def get_page(idx):
             page = idx + 1
             current_page = webpage if not idx else self._download_webpage(
-                real_url, item_id, note=f'Downloading page {page}', query={'page': page})
+                real_url, item_id, note=f'Downloading page {page}', query={'page': page, **self._EXTRA_QUERY})
             yield from self._extract_entries(current_page, real_url)
 
         return self.playlist_result(
@@ -213,7 +214,7 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
         'url': 'http://motherless.com/gv/movie_scenes',
         'info_dict': {
             'id': 'movie_scenes',
-            'title': 'Movie Scenes',
+            'title': 'Movie Scenes - Videos - Hot and sexy scenes from "regular" movies... Beautiful actresses fully',
         },
         'playlist_mincount': 540,
     }, {
@@ -244,7 +245,7 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
             'id': '338999F',
             'title': 'Random',
         },
-        'playlist_mincount': 190,
+        'playlist_mincount': 171,
     }, {
         'url': 'https://motherless.com/GVABD6213',
         'info_dict': {
