@@ -379,7 +379,8 @@ class ARDBetaMediathekIE(InfoExtractor):
             query['userId'] = user_id
 
         page_data = self._download_json(
-            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query=query, headers=headers)
+            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}',
+            display_id, query=query, headers=headers)
 
         # For user convenience we use the old contentId instead of the longer crid
         # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
