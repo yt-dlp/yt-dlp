@@ -8,6 +8,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
+    jwt_decode_hs256,
     make_archive_id,
     parse_duration,
     parse_iso8601,
@@ -17,7 +18,6 @@ from ..utils import (
     update_url_query,
     url_or_none,
     xpath_text,
-    jwt_decode_hs256,
 )
 from ..utils.traversal import traverse_obj
 
@@ -374,7 +374,7 @@ class ARDBetaMediathekIE(InfoExtractor):
                     'embedded': 'false',
                     'mcV6': 'true',
                     'userId': user_id
-                }, headers= {
+                }, headers={
                     'x-authorization': f'Bearer {id_token}'
                 })
         else:
@@ -383,7 +383,6 @@ class ARDBetaMediathekIE(InfoExtractor):
                     'embedded': 'false',
                     'mcV6': 'true'
                 })
-
 
         # For user convenience we use the old contentId instead of the longer crid
         # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
