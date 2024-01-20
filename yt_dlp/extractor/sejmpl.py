@@ -13,11 +13,11 @@ from ..utils.traversal import traverse_obj
 
 
 def is_dst(date):
-    year = date.year
-    # last sunday of march and october, respectively. might break on switch days.
-    dst_start = datetime.datetime(year, 3, 31, 2) - datetime.timedelta(days=(datetime.datetime(year, 3, 31).weekday() + 1) % 7)
-    dst_end = datetime.datetime(year, 10, 31, 3) - datetime.timedelta(days=(datetime.datetime(year, 10, 31).weekday() + 1) % 7)
-    return dst_start <= date <= dst_end
+    last_march = datetime.datetime(date.year, 3, 31)
+    last_october = datetime.datetime(date.year, 10, 31)
+    last_sunday_march = last_march - datetime.timedelta(days=last_march.isoweekday() % 7)
+    last_sunday_october = last_october - datetime.timedelta(days=last_october.isoweekday() % 7)
+    return last_sunday_march.replace(hour=2) <= date <= last_sunday_october.replace(hour=3)
 
 
 def rfc3339_to_atende(date):
