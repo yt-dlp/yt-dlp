@@ -20,6 +20,7 @@ from ..utils import (
     get_element_by_id,
     get_first,
     int_or_none,
+    join_nonempty,
     js_to_json,
     merge_dicts,
     parse_count,
@@ -902,7 +903,7 @@ class FacebookAdsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'video by Kandao',
             'uploader': 'Kandao',
-            'uploader_id': 774114102743284,
+            'uploader_id': '774114102743284',
             'uploader_url': r're:^https?://.*',
             'timestamp': 1702548330,
             'thumbnail': r're:^https?://.*',
@@ -915,7 +916,7 @@ class FacebookAdsIE(InfoExtractor):
             'id': '893637265423481',
             'title': 'Jusqu\u2019\u00e0 -25% sur une s\u00e9lection de vins p\u00e9tillants italiens ',
             'uploader': 'Eataly Paris Marais',
-            'uploader_id': 2086668958314152,
+            'uploader_id': '2086668958314152',
             'uploader_url': r're:^https?://.*',
             'timestamp': 1703571529,
             'upload_date': '20231226',
@@ -924,71 +925,77 @@ class FacebookAdsIE(InfoExtractor):
         'playlist_count': 3,
     }]
 
-    def _extract_from_url(self, url, video_id):
-        webpage = self._download_webpage(url, video_id)
+    _FORMATS_MAP = {
+        'watermarked_video_sd_url': ('sd-wmk', 'SD, watermarked'),
+        'video_sd_url': ('sd', None),
+        'watermarked_video_hd_url': ('hd-wmk', 'HD, watermarked'),
+        'video_hd_url': ('hd', None),
+    }
 
-        def extract_metadata(webpage):
-            def extract_format(video_dict):
-                formats = []
-                for i, url in enumerate(
-                    [url_or_none(video_dict.get('watermarked_video_sd_url')), url_or_none(video_dict.get('video_sd_url')),
-                     url_or_none(video_dict.get('watermarked_video_hd_url')), url_or_none(video_dict.get('video_hd_url'))]
-                ):
-                    if url:
-                        formats.append({
-                            'format_id': ['sd-wmk', 'sd', 'hd-wmk', 'hd'][i],
-                            'format_note': ['SD, watermarked', None, 'HD, watermarked', None][i],
-                            'url': url,
-                            'ext': 'mp4',
-                            'preference': i,
-                        })
-                return formats
-
-            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(r's.handle\(({.*})\);requireLazy\(', webpage)]
-            ad_data = traverse_obj(post_data, (..., 'require', ..., ..., ..., 'props', 'deeplinkAdCard', 'snapshot'), {dict})
-            info_dict = {}
-            if ad_data and ad_data[0]:
-                data = ad_data[0]
-                title = f"{data['display_format']} by {data['page_name']}" if not data['title'] or data['title'] == '{{product.name}}' else data['title']
-                description = None if data['link_description'] == '{{product.description}}' else data['link_description']
-                info_dict = {
-                    'description': description,
-                    'uploader': data['page_name'],
-                    'uploader_id': data['page_id'],
-                    'uploader_url': data['page_profile_uri'],
-                    'timestamp': data['creation_time'],
-                    'like_count': data['page_like_count'],
-                }
-                entries = []
-                for group in [data['videos'], data['cards']]:
-                    for entry in group:
-                        if entry.get('watermarked_video_sd_url') or entry.get('video_sd_url') or entry.get('watermarked_video_hd_url') or entry.get('video_hd_url'):
-                            entries.append({
-                                'id': f'{video_id}_%s' % str(len(entries) + 1),
-                                'title': entry.get('title') or title,
-                                'description': entry.get('link_description') or description,
-                                'thumbnail': entry.get('video_preview_image_url'),
-                                'formats': extract_format(entry),
-                            })
-                if len(entries) == 1:
-                    info_dict.update(entries[0])
-                    info_dict['id'] = video_id
-                elif len(entries) > 1:
-                    info_dict.update({
-                        'title': entries[0]['title'],
-                        'entries': entries,
-                        '_type': 'playlist',
-                    })
-            return info_dict
-
-        info_dict = {
-            'id': video_id,
-            'title': 'Ad Library',
-        }
-        info_dict.update(extract_metadata(webpage))
-
-        return info_dict
+    def _extract_formats(self, video_dict):
+        formats = []
+        self.to_screen(video_dict)
+        for format_key, format_url in traverse_obj(video_dict, (
+            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1])
+        )):
+            formats.append({
+                'format_id': self._FORMATS_MAP[format_key][0],
+                'format_note': self._FORMATS_MAP[format_key][1],
+                'url': format_url,
+                'ext': 'mp4',
+                'quality': qualities(tuple(self._FORMATS_MAP))(format_key),
+            })
+        return formats
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        return self._extract_from_url(f'https://www.facebook.com/ads/library/?id={video_id}', video_id)
+        webpage = self._download_webpage(url, video_id)
+
+        post_data = [self._parse_json(j, video_id, fatal=False)
+                     for j in re.findall(r's\.handle\(({.*})\);requireLazy\(', webpage)]
+        data = traverse_obj(post_data, (
+            ..., 'require', ..., ..., ..., 'props', 'deeplinkAdCard', 'snapshot', {dict}), get_all=False)
+        if not data:
+            raise ExtractorError('Unable to extract ad data')
+
+        title = data.get('title')
+        if not title or title == '{{product.name}}':
+            title = join_nonempty('display_format', 'page_name', delim=' by ', from_dict=data)
+
+        info_dict = traverse_obj(data, {
+            'description': ('link_description', {str}, {lambda x: x if x != '{{product.description}}' else None}),
+            'uploader': ('page_name', {str}),
+            'uploader_id': ('page_id', {str_or_none}),
+            'uploader_url': ('page_profile_uri', {url_or_none}),
+            'timestamp': ('creation_time', {int_or_none}),
+            'like_count': ('page_like_count', {int_or_none}),
+        })
+
+        entries = []
+        for idx, entry in enumerate(traverse_obj(
+            data, (('videos', 'cards'), lambda _, v: [v[f] for f in self._FORMATS_MAP])), 1
+        ):
+            formats = self._extract_formats(entry)
+            if not formats:
+                continue
+            entries.append({
+                'id': f'{video_id}_{idx}',
+                'title': entry.get('title') or title,
+                'description': entry.get('link_description') or info_dict.get('description'),
+                'thumbnail': url_or_none(entry.get('video_preview_image_url')),
+                'formats': formats,
+            })
+
+        if len(entries) == 1:
+            info_dict.update(entries[0])
+
+        elif len(entries) > 1:
+            info_dict.update({
+                'title': entries[0]['title'],
+                'entries': entries,
+                '_type': 'playlist',
+            })
+
+        info_dict['id'] = video_id
+
+        return info_dict
