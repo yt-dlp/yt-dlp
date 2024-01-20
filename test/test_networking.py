@@ -13,6 +13,7 @@ import http.client
 import http.cookiejar
 import http.server
 import io
+import logging
 import pathlib
 import random
 import ssl
@@ -820,6 +821,7 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             assert not isinstance(exc_info.value, TransportError)
 
 
+@pytest.mark.parametrize('handler', ['Requests'], indirect=True)
 class TestRequestsRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('raised,expected', [
         (lambda: requests.exceptions.ConnectTimeout(), TransportError),
@@ -836,7 +838,6 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         (lambda: requests.exceptions.RequestException(), RequestError)
         #  (lambda: requests.exceptions.TooManyRedirects(), HTTPError) - Needs a response object
     ])
-    @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
     def test_request_error_mapping(self, handler, monkeypatch, raised, expected):
         with handler() as rh:
             def mock_get_instance(*args, **kwargs):
@@ -870,7 +871,6 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
             '3 bytes read, 5 more expected'
         ),
     ])
-    @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
     def test_response_error_mapping(self, handler, monkeypatch, raised, expected, match):
         from requests.models import Response as RequestsResponse
         from urllib3.response import HTTPResponse as Urllib3Response
@@ -889,7 +889,6 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
         assert exc_info.type is expected
 
-    @pytest.mark.parametrize('handler', ['Requests'], indirect=True)
     def test_close(self, handler, monkeypatch):
         rh = handler()
         session = rh._get_instance(cookiejar=rh.cookiejar)
@@ -906,6 +905,16 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
         rh.close()
 
         assert called is True
+
+    def test_remove_logging_handler(self, handler):
+        # Ensure logging handler, containing YoutubeDL instance, is removed when we close the request handler
+        # https://github.com/yt-dlp/yt-dlp/issues/8922
+        logging_handlers = logging.getLogger('urllib3').handlers
+        before_count = len(logging_handlers)
+        rh = handler()
+        assert len(logging_handlers) == before_count + 1
+        rh.close()
+        assert len(logging_handlers) == before_count
 
 
 def run_validation(handler, error, req, **handler_kwargs):
