@@ -1,14 +1,13 @@
 import re
 
 from .common import InfoExtractor
-from ..utils.traversal import traverse_obj
-from ..utils import (
-    urlhandle_detect_ext,
-    url_or_none,
-    int_or_none,
-    unified_timestamp,
-)
 from ..networking import HEADRequest
+from ..utils import (
+    int_or_none,
+    url_or_none,
+    urlhandle_detect_ext
+)
+from ..utils.traversal import traverse_obj
 
 
 class Mx3BaseIE(InfoExtractor):
@@ -17,30 +16,17 @@ class Mx3BaseIE(InfoExtractor):
     def _real_extract(self, url):
         track_id = self._match_id(url)
         webpage = self._download_webpage(url, track_id)
-        json = self._download_json(f'https://{self._MX3_DOMAIN}/t/{track_id}.json', track_id)
-
-        artists = []
-        if json.get('artist'):
-            artists.append(json['artist'])
-        performer = json.get('performer_name')
-        if performer and performer not in artists:
-            artists.append(performer)
-
-        genre = self._html_search_regex(r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>',
-                                        webpage, 'genre', fatal=False, flags=re.DOTALL)
+        data = self._download_json(
+            f'https://{self._MX3_DOMAIN}/t/{track_id}.json', track_id, fatal=False)
 
         formats = []
 
-        def add_format(fmt, fatal):
-            if fatal:
-                urlh = self._request_webpage(HEADRequest(fmt['url']), track_id, note='Fetching default media headers')
-            else:
-                urlh = self._request_webpage(HEADRequest(fmt['url']), track_id, fatal=False, expected_status=404,
-                                             note=f'Trying media headers for optional format {fmt["format_id"]}')
+        def add_format(fmt):
+            urlh = self._request_webpage(HEADRequest(fmt['url']), track_id, fatal=False, expected_status=404,
+                                         note=f'Checking for format {fmt["format_id"]}')
             if urlh and urlh.status == 200:
                 fmt['ext'] = urlhandle_detect_ext(urlh)
                 fmt['filesize'] = int_or_none(urlh.headers.get('Content-Length'))
-                fmt['timestamp'] = unified_timestamp(urlh.headers.get('Last-Modified'))
                 formats.append(fmt)
 
         track_url = f'https://{self._MX3_DOMAIN}/tracks/{track_id}'
@@ -48,25 +34,34 @@ class Mx3BaseIE(InfoExtractor):
             'url': f'{track_url}/player_asset',
             'format_id': 'default',
             'quality': 1,
-        }, fatal=True)
+        })
         # the formats below don't always exist
         add_format({
             'url': f'{track_url}/player_asset?quality=hd',
             'format_id': 'hd',
             'quality': 10,
-        }, fatal=False)
+        })
         add_format({
             'url': f'{track_url}/download',
             'format_id': 'download',
             'quality': 11,
-        }, fatal=False)
+        })
+
+        artists = []
+        if data:
+            if data.get('artist'):
+                artists.append(data['artist'])
+            performer = data.get('performer_name')
+            if performer and performer not in artists:
+                artists.append(performer)
 
         return {
             'id': track_id,
             'formats': formats,
             'artist': ', '.join(artists),
-            'genre': genre,
-            **traverse_obj(json, {
+            'genre': self._html_search_regex(r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>',
+                                             webpage, 'genre', fatal=False, flags=re.DOTALL),
+            **traverse_obj(data, {
                 'title': ('title', {str}),
                 'composer': ('composer_name', {str}),
                 'thumbnail': (('picture_url_xlarge', 'picture_url'), {url_or_none}),
@@ -89,7 +84,6 @@ class Mx3IE(Mx3BaseIE):
             'genre': 'Rock',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_xlarge/1-s-envoler-1.jpg?1630272813',
             'title': 'S\'envoler',
-            'timestamp': 1630272831,
         }
     }, {
         'url': 'https://mx3.ch/t/1LIY',
@@ -103,7 +97,6 @@ class Mx3IE(Mx3BaseIE):
             'genre': 'Electro',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_xlarge/frame_0000.png?1686963670',
             'title': 'The Broots-Larytta remix "Begging For Help"',
-            'timestamp': 1686963636,
         }
     }, {
         'url': 'https://mx3.ch/t/1C6E',
@@ -117,7 +110,6 @@ class Mx3IE(Mx3BaseIE):
             'genre': 'Punk',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/1551/square_xlarge/pandora-s-box-cover-with-title.png?1627054733',
             'title': 'Wide Awake',
-            'timestamp': 1627054732,
         }
     }]
 
@@ -136,7 +128,6 @@ class Mx3NeoIE(Mx3BaseIE):
             'genre': 'Composition, Orchestra',
             'title': 'Troisième œil. Für Kammerorchester (2023)',
             'thumbnail': 'https://neo.mx3.ch/pictures/neo/file/0000/0241/square_xlarge/kammerorchester-basel-group-photo-2_c_-lukasz-rajchert.jpg?1560341252',
-            'timestamp': 1705055012,
         }
     }]
 
@@ -155,6 +146,5 @@ class Mx3VolksmusikIE(Mx3BaseIE):
             'genre': 'Instrumental, Graubünden',
             'title': 'Chämilouf',
             'thumbnail': 'https://volksmusik.mx3.ch/pictures/vxm/file/0000/3815/square_xlarge/grischart1.jpg?1450530120',
-            'timestamp': 1450532809,
         }
     }]
