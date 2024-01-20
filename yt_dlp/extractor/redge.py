@@ -11,6 +11,7 @@ from ..utils import (
 )
 from ..utils.traversal import traverse_obj
 
+
 class RedCDNLivxIE(InfoExtractor):
     _VALID_URL = r'https?://[^.]+\.(?:dcs\.redcdn|atmcdn)\.pl/(?:live(?:dash|hls|ss)|nvr)/o2/(?P<tenant>[^/?#]+)/(?P<id>[^?#]+)\.livx'
     IE_NAME = 'redcdnlivx'
