@@ -24,8 +24,9 @@ class Mx3BaseIE(InfoExtractor):
         formats = []
 
         def add_format(fmt):
-            urlh = self._request_webpage(HEADRequest(fmt['url']), track_id, fatal=False, expected_status=404,
-                                         note=f'Checking for format {fmt["format_id"]}')
+            urlh = self._request_webpage(
+                HEADRequest(fmt['url']), track_id, fatal=False, expected_status=404,
+                note=f'Checking for format {fmt["format_id"]}')
             if urlh and urlh.status == 200:
                 fmt['ext'] = urlhandle_detect_ext(urlh)
                 fmt['filesize'] = int_or_none(urlh.headers.get('Content-Length'))
@@ -37,7 +38,6 @@ class Mx3BaseIE(InfoExtractor):
             'format_id': 'default',
             'quality': 1,
         })
-        # the formats below don't always exist
         add_format({
             'url': f'{track_url}/player_asset?quality=hd',
             'format_id': 'hd',
@@ -46,6 +46,11 @@ class Mx3BaseIE(InfoExtractor):
         add_format({
             'url': f'{track_url}/download',
             'format_id': 'download',
+            'quality': 11,
+        })
+        add_format({
+            'url': f'{track_url}/player_asset?quality=source',
+            'format_id': 'source',
             'quality': 11,
         })
 
@@ -62,7 +67,7 @@ class Mx3BaseIE(InfoExtractor):
             'genre': self._html_search_regex(
                 r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>', webpage, 'genre', fatal=False),
             'release_year': int_or_none(get_info_field('Year of creation')),
-            'description ': get_info_field('Description'),
+            'description': get_info_field('Description'),
             'tags': try_call(lambda: get_info_field('Tag').split(', '), list),
             **traverse_obj(data, {
                 'title': ('title', {str}),
@@ -79,27 +84,25 @@ class Mx3IE(Mx3BaseIE):
     _VALID_URL = r'https?://(?:www\.)?mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://mx3.ch/t/1Cru',
-        'md5': '82510bf4c21f17da41bff7e1ffd84e78',
+        'md5': '7ba09e9826b4447d4e1ce9d69e0e295f',
         'info_dict': {
             'id': '1Cru',
-            # This one is audio-only. It's a mp3, but we have to make a HEAD request to find out.
-            'ext': 'mp3',
+            'ext': 'wav',
             'artist': 'Godina',
             'album_artist': 'Tortue Tortue',
             'composer': 'Olivier Godinat',
             'genre': 'Rock',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_xlarge/1-s-envoler-1.jpg?1630272813',
-            'title': 'S\'envoler',
+            'title': "S'envoler",
             'release_year': 2021,
             'tags': [],
         }
     }, {
         'url': 'https://mx3.ch/t/1LIY',
-        'md5': '4117489dff8c763ecfbb0b95a67d6c8e',
+        'md5': '48293cb908342547827f963a5a2e9118',
         'info_dict': {
             'id': '1LIY',
-            # This is a music video. 'file' says: ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]
-            'ext': 'mp4',
+            'ext': 'mov',
             'artist': 'Tania Kimfumu',
             'album_artist': 'The Broots',
             'composer': 'Emmanuel Diserens',
@@ -108,14 +111,13 @@ class Mx3IE(Mx3BaseIE):
             'title': 'The Broots-Larytta remix "Begging For Help"',
             'release_year': 2023,
             'tags': ['the broots', 'cassata records', 'larytta'],
-            'description ': '"Begging for Help" Larytta Remix Official Video\nRealized By Kali Donkilie in 2023',
+            'description': '"Begging for Help" Larytta Remix Official Video\nRealized By Kali Donkilie in 2023',
         }
     }, {
         'url': 'https://mx3.ch/t/1C6E',
         'md5': '1afcd578493ddb8e5008e94bb6d97e25',
         'info_dict': {
             'id': '1C6E',
-            # This one has a download button, yielding a WAV.
             'ext': 'wav',
             'artist': 'Alien Bubblegum',
             'album_artist': 'Alien Bubblegum',
@@ -134,10 +136,10 @@ class Mx3NeoIE(Mx3BaseIE):
     _VALID_URL = r'https?://(?:www\.)?neo.mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://neo.mx3.ch/t/1hpd',
-        'md5': 'ff0b2b91ce0b8931c0a358715758dc78',
+        'md5': '6d9986bbae5cac3296ec8813bf965eb2',
         'info_dict': {
             'id': '1hpd',
-            'ext': 'mp3',
+            'ext': 'wav',
             'artist': 'Baptiste Lopez',
             'album_artist': 'Kammerorchester Basel',
             'composer': 'Jannik Giger',
@@ -146,7 +148,6 @@ class Mx3NeoIE(Mx3BaseIE):
             'thumbnail': 'https://neo.mx3.ch/pictures/neo/file/0000/0241/square_xlarge/kammerorchester-basel-group-photo-2_c_-lukasz-rajchert.jpg?1560341252',
             'release_year': 2023,
             'tags': [],
-            'description': None,  # Not filled under ""there are elngthy is a lengthy description, but we fail to extract it currently
         }
     }]
 
