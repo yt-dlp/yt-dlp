@@ -65,6 +65,7 @@ class PrankCastIE(InfoExtractor):
             'tags': try_call(lambda: json_info['broadcast_tags'].split(','))
         }
 
+
 class PrankCastPostIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?prankcast\.com/[^/?#]+/posts/(?P<id>\d+)-(?P<display_id>[^/?#]+)'
     _TESTS = [{
@@ -81,7 +82,7 @@ class PrankCastPostIE(InfoExtractor):
             'cast': ['Devonanustart'],
             'description': '',
             'categories': ['prank call'],
-            'tags': [''],
+            'tags': None,
             'upload_date': '20240104'
         }
     }, {
@@ -98,7 +99,7 @@ class PrankCastPostIE(InfoExtractor):
             'cast': ['despicabledogs'],
             'description': 'https://imgur.com/a/vtxLvKU',
             'categories': [],
-            'tags': [''],
+            'tags': None,
             'upload_date': '20240104'
         }
     }]
@@ -128,6 +129,6 @@ class PrankCastPostIE(InfoExtractor):
             'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
             'description': post.get('post_body'),
             'categories': list(filter(None, [content.get('category')])),
-            'tags': try_call(lambda: post['post_tags'].split(',')),
+            'tags': try_call(lambda: list(filter('', post['post_tags'].split(',')))),
             'subtitles': {'live_chat': [{'url': live_chat_url, 'ext': 'json'}]} if broadcast_id else None
         }
