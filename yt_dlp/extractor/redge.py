@@ -7,10 +7,9 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     parse_qs,
-    traverse_obj,
     update_url_query,
 )
-
+from ..utils.traversal import traverse_obj
 
 class RedCDNLivxIE(InfoExtractor):
     _VALID_URL = r'https?://[^.]+\.(?:dcs\.redcdn|atmcdn)\.pl/(?:live(?:dash|hls|ss)|nvr)/o2/(?P<tenant>[^/?#]+)/(?P<id>[^?#]+)\.livx'

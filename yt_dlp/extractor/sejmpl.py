@@ -1,14 +1,15 @@
+import datetime
+
 from .common import InfoExtractor
 from .redge import RedCDNLivxIE
 from ..utils import (
     clean_html,
+    join_nonempty,
     js_to_json,
     strip_or_none,
-    traverse_obj,
     update_url_query,
 )
-
-import datetime
+from ..utils.traversal import traverse_obj
 
 
 def is_dst(date):
@@ -139,7 +140,7 @@ class SejmIE(InfoExtractor):
             video_id)
         params = data['params']
 
-        title = data['title'].strip()
+        title = strip_or_none(data.get('title'))
 
         if data.get('status') == 'VIDEO_ENDED':
             live_status = 'was_live'
@@ -186,7 +187,7 @@ class SejmIE(InfoExtractor):
                     '_type': 'url_transparent',
                     'ie_key': RedCDNLivxIE.ie_key(),
                     'id': stream_id,
-                    'title': f'{title} - {stream_id}',
+                    'title': join_nonempty(title, stream_id, delim=' - '),
                 })
 
         cameras = self._search_json(
