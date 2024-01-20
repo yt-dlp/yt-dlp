@@ -57,7 +57,7 @@ class FacebookIE(InfoExtractor):
                         )|
                     facebook:
                 )
-                (?P<id>[0-9]+)
+                (?P<id>pfbid[A-Za-z0-9]+|\d+)
                 '''
     _EMBED_REGEX = [
         r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
@@ -247,6 +247,24 @@ class FacebookIE(InfoExtractor):
             'thumbnail': r're:^https?://.*',
             'duration': 148.435,
         },
+    }, {
+        'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
+        'info_dict': {
+            'id': '6968553779868435',
+            'ext': 'mp4',
+            'description': 'md5:2f2fcf93e97ac00244fe64521bbdb0cb',
+            'uploader': 'ATTN:',
+            'upload_date': '20231207',
+            'title': 'ATTN:',
+            'duration': 132.675,
+            'uploader_id': '100064451419378',
+            'view_count': int,
+            'thumbnail': r're:^https?://.*',
+            'timestamp': 1701975646,
+        },
+    }, {
+        'url': 'https://www.facebook.com/story.php?story_fbid=pfbid0Fnzhm8UuzjBYpPMNFzaSpFE9UmLdU4fJN8qTANi1Dmtj5q7DNrL5NERXfsAzDEV7l&id=100073071055552',
+        'only_matching': True,
     }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,

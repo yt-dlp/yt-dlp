@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from test.helper import FakeYDL, report_warning
-from yt_dlp.update import Updater, UpdateInfo
+from yt_dlp.update import UpdateInfo, Updater
 
 
 # XXX: Keep in sync with yt_dlp.update.UPDATE_SOURCES

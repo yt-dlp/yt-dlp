@@ -19,15 +19,35 @@ from ..utils import (
     long_to_bytes,
     pkcs1pad,
     strip_or_none,
+    str_or_none,
     try_get,
     unified_strdate,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj
 
 
-class ADNIE(InfoExtractor):
+class ADNBaseIE(InfoExtractor):
     IE_DESC = 'Animation Digital Network'
-    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.fr/video/[^/]+/(?P<id>\d+)'
+    _NETRC_MACHINE = 'animationdigitalnetwork'
+    _BASE = 'animationdigitalnetwork.fr'
+    _API_BASE_URL = f'https://gw.api.{_BASE}/'
+    _PLAYER_BASE_URL = f'{_API_BASE_URL}player/'
+    _HEADERS = {}
+    _LOGIN_ERR_MESSAGE = 'Unable to log in'
+    _RSA_KEY = (0x9B42B08905199A5CCE2026274399CA560ECB209EE9878A708B1C0812E1BB8CB5D1FB7441861147C1A1F2F3A0476DD63A9CAC20D3E983613346850AA6CB38F16DC7D720FD7D86FC6E5B3D5BBC72E14CD0BF9E869F2CEA2CCAD648F1DCE38F1FF916CEFB2D339B64AA0264372344BC775E265E8A852F88144AB0BD9AA06C1A4ABB, 65537)
+    _POS_ALIGN_MAP = {
+        'start': 1,
+        'end': 3,
+    }
+    _LINE_ALIGN_MAP = {
+        'middle': 8,
+        'end': 4,
+    }
+
+
+class ADNIE(ADNBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
         'md5': '1c9ef066ceb302c86f80c2b371615261',
@@ -44,28 +64,34 @@ class ADNIE(InfoExtractor):
             'season_number': 1,
             'episode': 'À ce soir !',
             'episode_number': 1,
+            'thumbnail': str,
+            'season': 'Season 1',
         },
-        'skip': 'Only available in region (FR, ...)',
+        'skip': 'Only available in French and German speaking Europe',
     }, {
         'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
         'only_matching': True,
+    }, {
+        'url': 'https://animationdigitalnetwork.de/video/the-eminence-in-shadow/23550-folge-1',
+        'md5': '5c5651bf5791fa6fcd7906012b9d94e8',
+        'info_dict': {
+            'id': '23550',
+            'ext': 'mp4',
+            'episode_number': 1,
+            'duration': 1417,
+            'release_date': '20231004',
+            'series': 'The Eminence in Shadow',
+            'season_number': 2,
+            'episode': str,
+            'title': str,
+            'thumbnail': str,
+            'season': 'Season 2',
+            'comment_count': int,
+            'average_rating': float,
+            'description': str,
+        },
+        # 'skip': 'Only available in French and German speaking Europe',
     }]
-
-    _NETRC_MACHINE = 'animationdigitalnetwork'
-    _BASE = 'animationdigitalnetwork.fr'
-    _API_BASE_URL = 'https://gw.api.' + _BASE + '/'
-    _PLAYER_BASE_URL = _API_BASE_URL + 'player/'
-    _HEADERS = {}
-    _LOGIN_ERR_MESSAGE = 'Unable to log in'
-    _RSA_KEY = (0x9B42B08905199A5CCE2026274399CA560ECB209EE9878A708B1C0812E1BB8CB5D1FB7441861147C1A1F2F3A0476DD63A9CAC20D3E983613346850AA6CB38F16DC7D720FD7D86FC6E5B3D5BBC72E14CD0BF9E869F2CEA2CCAD648F1DCE38F1FF916CEFB2D339B64AA0264372344BC775E265E8A852F88144AB0BD9AA06C1A4ABB, 65537)
-    _POS_ALIGN_MAP = {
-        'start': 1,
-        'end': 3,
-    }
-    _LINE_ALIGN_MAP = {
-        'middle': 8,
-        'end': 4,
-    }
 
     def _get_subtitles(self, sub_url, video_id):
         if not sub_url:
@@ -116,6 +142,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
             if sub_lang == 'vostf':
                 sub_lang = 'fr'
+            elif sub_lang == 'vostde':
+                sub_lang = 'de'
             subtitles.setdefault(sub_lang, []).extend([{
                 'ext': 'json',
                 'data': json.dumps(sub),
@@ -147,7 +175,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             self.report_warning(message or self._LOGIN_ERR_MESSAGE)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        lang, video_id = self._match_valid_url(url).group('lang', 'id')
         video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
         player = self._download_json(
             video_base_url + 'configuration', video_id,
@@ -162,7 +190,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
         token = self._download_json(
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
             video_id, 'Downloading access token', headers={
-                'x-player-refresh-token': user['refreshToken']
+                'X-Player-Refresh-Token': user['refreshToken'],
             }, data=b'')['token']
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
@@ -184,7 +212,9 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             try:
                 links_data = self._download_json(
                     links_url, video_id, 'Downloading links JSON metadata', headers={
-                        'X-Player-Token': authorization
+                        'X-Player-Token': authorization,
+                        'X-Target-Distribution': lang,
+                        **self._HEADERS
                     }, query={
                         'freeWithAds': 'true',
                         'adaptive': 'false',
@@ -232,6 +262,9 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 if format_id == 'vf':
                     for f in m3u8_formats:
                         f['language'] = 'fr'
+                elif format_id == 'vde':
+                    for f in m3u8_formats:
+                        f['language'] = 'de'
                 formats.extend(m3u8_formats)
 
         video = (self._download_json(
@@ -255,3 +288,40 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             'average_rating': float_or_none(video.get('rating') or metas.get('rating')),
             'comment_count': int_or_none(video.get('commentsCount')),
         }
+
+
+class ADNSeasonIE(ADNBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.(?P<lang>fr|de)/video/(?P<id>[^/?#]+)/?(?:$|[#?])'
+    _TESTS = [{
+        'url': 'https://animationdigitalnetwork.fr/video/tokyo-mew-mew-new',
+        'playlist_count': 12,
+        'info_dict': {
+            'id': '911',
+            'title': 'Tokyo Mew Mew New',
+        },
+        # 'skip': 'Only available in French end German speaking Europe',
+    }]
+
+    def _real_extract(self, url):
+        lang, video_show_slug = self._match_valid_url(url).group('lang', 'id')
+        show = self._download_json(
+            f'{self._API_BASE_URL}show/{video_show_slug}/', video_show_slug,
+            'Downloading show JSON metadata', headers=self._HEADERS)['show']
+        show_id = str(show['id'])
+        episodes = self._download_json(
+            f'{self._API_BASE_URL}video/show/{show_id}', video_show_slug,
+            'Downloading episode list', headers={
+                'X-Target-Distribution': lang,
+                **self._HEADERS
+            }, query={
+                'order': 'asc',
+                'limit': '-1',
+            })
+
+        def entries():
+            for episode_id in traverse_obj(episodes, ('videos', ..., 'id', {str_or_none})):
+                yield self.url_result(
+                    f'https://animationdigitalnetwork.{lang}/video/{video_show_slug}/{episode_id}',
+                    ADNIE, episode_id)
+
+        return self.playlist_result(entries(), show_id, show.get('title'))

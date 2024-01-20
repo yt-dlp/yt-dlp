@@ -36,8 +36,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        # CPython 3.11 is in quick-test
-        python-version: ['3.8', '3.9', '3.10', '3.12', pypy-3.8, pypy-3.10]
+        # CPython 3.8 is in quick-test
+        python-version: ['3.9', '3.10', '3.11', '3.12', pypy-3.8, pypy-3.10]
         include:
         # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
