@@ -1,3 +1,5 @@
+import functools
+
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
@@ -9,11 +11,9 @@ from ..utils import (
     update_url_query,
 )
 
-from functools import partial
-
 
 class RedCDNLivxIE(InfoExtractor):
-    _VALID_URL = r'https?://[^.]+\.(?:dcs\.redcdn|atmcdn)\.pl/(?:live(?:dash|hls|ss)|nvr)/o2/(?P<tenant>[^/]+)/(?P<id>[^?#]+)\.livx'
+    _VALID_URL = r'https?://[^.]+\.(?:dcs\.redcdn|atmcdn)\.pl/(?:live(?:dash|hls|ss)|nvr)/o2/(?P<tenant>[^/?#]+)/(?P<id>[^?#]+)\.livx'
     IE_NAME = 'redcdnlivx'
 
     _TESTS = [{
@@ -118,7 +118,7 @@ class RedCDNLivxIE(InfoExtractor):
 
         time_scale = traverse_obj(ism_doc, ('@TimeScale', {int_or_none})) or 10000000
         duration = traverse_obj(
-            ism_doc, ('@Duration', {partial(float_or_none, scale=time_scale)})) or None
+            ism_doc, ('@Duration', {functools.partial(float_or_none, scale=time_scale)})) or None
 
         live_status = None
         if traverse_obj(ism_doc, '@IsLive') == 'TRUE':
