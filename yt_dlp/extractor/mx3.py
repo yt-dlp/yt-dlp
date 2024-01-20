@@ -3,9 +3,11 @@ import re
 from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
+    get_element_by_class,
     int_or_none,
+    try_call,
     url_or_none,
-    urlhandle_detect_ext
+    urlhandle_detect_ext,
 )
 from ..utils.traversal import traverse_obj
 
@@ -47,22 +49,25 @@ class Mx3BaseIE(InfoExtractor):
             'quality': 11,
         })
 
-        artists = []
-        if data:
-            if data.get('artist'):
-                artists.append(data['artist'])
-            performer = data.get('performer_name')
-            if performer and performer not in artists:
-                artists.append(performer)
+        more_info = get_element_by_class('single-more-info', webpage)
+
+        def get_info_field(name):
+            return self._html_search_regex(
+                rf'<dt[^>]*>\s*{name}\s*</dt>\s*<dd[^>]*>(.*?)</dd>',
+                more_info, name, default=None, flags=re.DOTALL)
 
         return {
             'id': track_id,
             'formats': formats,
-            'artist': ', '.join(artists),
-            'genre': self._html_search_regex(r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>',
-                                             webpage, 'genre', fatal=False, flags=re.DOTALL),
+            'genre': self._html_search_regex(
+                r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>', webpage, 'genre', fatal=False),
+            'release_year': int_or_none(get_info_field('Year of creation')),
+            'description ': get_info_field('Description'),
+            'tags': try_call(lambda: get_info_field('Tag').split(', '), list),
             **traverse_obj(data, {
                 'title': ('title', {str}),
+                'artist': (('performer_name', 'artist'), {str}),
+                'album_artist': ('artist', {str}),
                 'composer': ('composer_name', {str}),
                 'thumbnail': (('picture_url_xlarge', 'picture_url'), {url_or_none}),
             }, get_all=False),
@@ -79,11 +84,14 @@ class Mx3IE(Mx3BaseIE):
             'id': '1Cru',
             # This one is audio-only. It's a mp3, but we have to make a HEAD request to find out.
             'ext': 'mp3',
-            'artist': 'Tortue Tortue, Godina',
+            'artist': 'Godina',
+            'album_artist': 'Tortue Tortue',
             'composer': 'Olivier Godinat',
             'genre': 'Rock',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/4643/square_xlarge/1-s-envoler-1.jpg?1630272813',
             'title': 'S\'envoler',
+            'release_year': 2021,
+            'tags': [],
         }
     }, {
         'url': 'https://mx3.ch/t/1LIY',
@@ -92,11 +100,15 @@ class Mx3IE(Mx3BaseIE):
             'id': '1LIY',
             # This is a music video. 'file' says: ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]
             'ext': 'mp4',
-            'artist': 'The Broots, Tania Kimfumu',
+            'artist': 'Tania Kimfumu',
+            'album_artist': 'The Broots',
             'composer': 'Emmanuel Diserens',
             'genre': 'Electro',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0110/0003/video_xlarge/frame_0000.png?1686963670',
             'title': 'The Broots-Larytta remix "Begging For Help"',
+            'release_year': 2023,
+            'tags': ['the broots', 'cassata records', 'larytta'],
+            'description ': '"Begging for Help" Larytta Remix Official Video\nRealized By Kali Donkilie in 2023',
         }
     }, {
         'url': 'https://mx3.ch/t/1C6E',
@@ -106,10 +118,13 @@ class Mx3IE(Mx3BaseIE):
             # This one has a download button, yielding a WAV.
             'ext': 'wav',
             'artist': 'Alien Bubblegum',
+            'album_artist': 'Alien Bubblegum',
             'composer': 'Alien Bubblegum',
             'genre': 'Punk',
             'thumbnail': 'https://mx3.ch/pictures/mx3/file/0101/1551/square_xlarge/pandora-s-box-cover-with-title.png?1627054733',
             'title': 'Wide Awake',
+            'release_year': 2021,
+            'tags': ['alien bubblegum', 'bubblegum', 'alien', 'pop punk', 'poppunk'],
         }
     }]
 
@@ -123,11 +138,15 @@ class Mx3NeoIE(Mx3BaseIE):
         'info_dict': {
             'id': '1hpd',
             'ext': 'mp3',
-            'artist': 'Kammerorchester Basel, Baptiste Lopez',
+            'artist': 'Baptiste Lopez',
+            'album_artist': 'Kammerorchester Basel',
             'composer': 'Jannik Giger',
             'genre': 'Composition, Orchestra',
             'title': 'Troisième œil. Für Kammerorchester (2023)',
             'thumbnail': 'https://neo.mx3.ch/pictures/neo/file/0000/0241/square_xlarge/kammerorchester-basel-group-photo-2_c_-lukasz-rajchert.jpg?1560341252',
+            'release_year': 2023,
+            'tags': [],
+            'description': None,  # Not filled under ""there are elngthy is a lengthy description, but we fail to extract it currently
         }
     }]
 
@@ -142,9 +161,12 @@ class Mx3VolksmusikIE(Mx3BaseIE):
             'id': 'Zx',
             'ext': 'mp3',
             'artist': 'Ländlerkapelle GrischArt',
+            'album_artist': 'Ländlerkapelle GrischArt',
             'composer': 'Urs Glauser',
             'genre': 'Instrumental, Graubünden',
             'title': 'Chämilouf',
             'thumbnail': 'https://volksmusik.mx3.ch/pictures/vxm/file/0000/3815/square_xlarge/grischart1.jpg?1450530120',
+            'release_year': 2012,
+            'tags': [],
         }
     }]
