@@ -361,17 +361,17 @@ class ARDBetaMediathekIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        token = self._download_json('https://sso.ardmediathek.de/sso/token', display_id)
-
-        id_token = traverse_obj(token, 'idToken')
-
         query = {
             'embedded': 'false',
             'mcV6': 'true'
         }
         headers = {}
 
-        if id_token:
+        token = self._download_json('https://sso.ardmediathek.de/sso/token', display_id, fatal=False)
+        id_token = traverse_obj(token, 'idToken')
+        if not id_token:
+            self.report_warning('Unable to find id token')
+        else:
             jwt_token_decoded = jwt_decode_hs256(id_token)
             user_id = traverse_obj(jwt_token_decoded, 'user_id', 'sub')
 
