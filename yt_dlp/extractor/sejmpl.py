@@ -8,20 +8,20 @@ from ..utils import (
     update_url_query,
 )
 
-from datetime import datetime, timedelta
+import datetime
 
 
 def is_dst(date):
     year = date.year
     # last sunday of march and october, respectively. might break on switch days.
-    dst_start = datetime(year, 3, 31, 2) - timedelta(days=(datetime(year, 3, 31).weekday() + 1) % 7)
-    dst_end = datetime(year, 10, 31, 3) - timedelta(days=(datetime(year, 10, 31).weekday() + 1) % 7)
+    dst_start = datetime.datetime(year, 3, 31, 2) - datetime.timedelta(days=(datetime.datetime(year, 3, 31).weekday() + 1) % 7)
+    dst_end = datetime.datetime(year, 10, 31, 3) - datetime.timedelta(days=(datetime.datetime(year, 10, 31).weekday() + 1) % 7)
     return dst_start <= date <= dst_end
 
 
 def rfc3339_to_atende(date):
-    date = datetime.fromisoformat(date)
-    date = date + timedelta(hours=1 if is_dst(date) else 0)
+    date = datetime.datetime.fromisoformat(date)
+    date = date + datetime.timedelta(hours=1 if is_dst(date) else 0)
     return int((date.timestamp() - 978307200) * 1000)
 
 
@@ -155,17 +155,16 @@ class SejmIE(InfoExtractor):
         # end the stream at that time, while the session actually keeps going.
         if live_status == 'was_live':
             stop_time = rfc3339_to_atende(params['stop'])
+            duration = (stop_time - start_time) // 1000
         else:
-            stop_time = None
-
-        duration = (stop_time - start_time) // 1000 if stop_time else None
+            stop_time, duration = None, None
 
         entries = []
 
         def add_entry(file, legacy_file=False):
             if not file:
                 return
-            file = f'https:{file}' if file.startswith('//') else file
+            file = self._proto_relative_url(file)
             if not legacy_file:
                 file = update_url_query(file, {'startTime': start_time})
                 if stop_time is not None:
@@ -193,7 +192,7 @@ class SejmIE(InfoExtractor):
         cameras = self._search_json(
             r'var\s+cameras\s*=', frame, 'camera list', video_id,
             contains_pattern=r'\[(?s:.+)\]', transform_source=js_to_json,
-            fatal=not self.get_param('ignore_no_formats_error')) or []
+            fatal=False) or []
         for camera_file in traverse_obj(cameras, (..., 'file', {dict})):
             if camera_file.get('flv'):
                 add_entry(camera_file['flv'])
