@@ -365,24 +365,21 @@ class ARDBetaMediathekIE(InfoExtractor):
 
         id_token = traverse_obj(token, 'idToken')
 
+        query = {
+            'embedded': 'false',
+            'mcV6': 'true'
+        }
+        headers = {}
+
         if id_token:
             jwt_token_decoded = jwt_decode_hs256(id_token)
             user_id = traverse_obj(jwt_token_decoded, 'user_id', 'sub')
 
-            page_data = self._download_json(
-                f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
-                    'embedded': 'false',
-                    'mcV6': 'true',
-                    'userId': user_id
-                }, headers={
-                    'x-authorization': f'Bearer {id_token}'
-                })
-        else:
-            page_data = self._download_json(
-                f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
-                    'embedded': 'false',
-                    'mcV6': 'true'
-                })
+            headers['x-authorization'] = f'Bearer {id_token}'
+            query['userId'] = user_id
+
+        page_data = self._download_json(
+            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query=query)
 
         # For user convenience we use the old contentId instead of the longer crid
         # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
