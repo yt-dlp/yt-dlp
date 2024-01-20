@@ -934,7 +934,6 @@ class FacebookAdsIE(InfoExtractor):
 
     def _extract_formats(self, video_dict):
         formats = []
-        self.to_screen(video_dict)
         for format_key, format_url in traverse_obj(video_dict, (
             {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1])
         )):
