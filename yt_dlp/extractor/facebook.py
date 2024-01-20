@@ -972,17 +972,14 @@ class FacebookAdsIE(InfoExtractor):
 
         entries = []
         for idx, entry in enumerate(traverse_obj(
-            data, (('videos', 'cards'), lambda _, v: [v[f] for f in self._FORMATS_MAP])), 1
+            data, (('videos', 'cards'), lambda _, v: any([url_or_none(v[f]) for f in self._FORMATS_MAP]))), 1
         ):
-            formats = self._extract_formats(entry)
-            if not formats:
-                continue
             entries.append({
                 'id': f'{video_id}_{idx}',
                 'title': entry.get('title') or title,
                 'description': entry.get('link_description') or info_dict.get('description'),
                 'thumbnail': url_or_none(entry.get('video_preview_image_url')),
-                'formats': formats,
+                'formats': self._extract_formats(entry),
             })
 
         if len(entries) == 1:
