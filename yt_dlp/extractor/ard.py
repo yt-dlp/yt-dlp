@@ -382,7 +382,7 @@ class ARDBetaMediathekIE(InfoExtractor):
 
             age_rating = traverse_obj(id_token, ({jwt_decode_hs256}, 'age_rating'), get_all=False)
             if age_rating != 18:
-                self.report_warning(f'Authenticated verified age is not 18, but "{age_rating}", '
+                self.report_warning(f'Authenticated age_rating is not 18, but "{age_rating}", '
                                     'video might still be blocked')
 
         page_data = self._download_json(
