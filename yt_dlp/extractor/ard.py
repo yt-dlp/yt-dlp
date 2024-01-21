@@ -368,10 +368,10 @@ class ARDBetaMediathekIE(InfoExtractor):
         }
         headers = {}
 
-        ams_cookie = self._get_cookies("https://sso.ardmediathek.de/sso/token").get("ams")
-        if ams_cookie:
-            token = self._download_json('https://sso.ardmediathek.de/sso/token', display_id,
-                                        fatal=False, note='Getting token for age verification')
+        if self._get_cookies(self._TOKEN_URL).get('ams'):
+            token = self._download_json(
+                self._TOKEN_URL, display_id, 'Fetching token for age verification',
+                'Unable to fetch age verification token', fatal=False)
             id_token = traverse_obj(token, ('idToken', {str}))
             user_id = traverse_obj(id_token, ({jwt_decode_hs256}, ('user_id', 'sub'), {str}), get_all=False)
             if not id_token or not user_id:
