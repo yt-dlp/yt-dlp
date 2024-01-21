@@ -239,6 +239,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         (?P<id>[a-zA-Z0-9]+)
         /?(?:[?#]|$)'''
     _GEO_COUNTRIES = ['DE']
+    _TOKEN_URL = 'https://sso.ardmediathek.de/sso/token'
 
     _TESTS = [{
         'url': 'https://www.ardmediathek.de/video/filme-im-mdr/liebe-auf-vier-pfoten/mdr-fernsehen/Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC80MjIwOTEtNDAyNTM0',
