@@ -3,6 +3,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     clean_html,
     extract_attributes,
     get_element_by_id,
@@ -10,7 +11,6 @@ from ..utils import (
     parse_count,
     parse_duration,
     unified_timestamp,
-    OnDemandPagedList,
     traverse_obj,
 )
 
