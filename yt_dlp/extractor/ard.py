@@ -361,11 +361,7 @@ class ARDBetaMediathekIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-
-        query = {
-            'embedded': 'false',
-            'mcV6': 'true'
-        }
+        query = {'embedded': 'false', 'mcV6': 'true'}
         headers = {}
 
         if self._get_cookies(self._TOKEN_URL).get('ams'):
@@ -380,7 +376,6 @@ class ARDBetaMediathekIE(InfoExtractor):
             else:
                 headers['x-authorization'] = f'Bearer {id_token}'
                 query['userId'] = user_id
-
                 if decoded_token.get('age_rating') != 18:
                     self.report_warning('Account is not verified as 18+; video may be unavailable')
 
