@@ -263,14 +263,14 @@ class NewgroundsUserIE(InfoExtractor):
     def _fetch_page(self, channel_id, url, page):
         page += 1
         posts_info = self._download_json(
-            f'{url}/page/{page}', channel_id,
+            f'{url}?page={page}', channel_id,
             note=f'Downloading page {page}', headers={
                 'Accept': 'application/json, text/javascript, */*; q = 0.01',
                 'X-Requested-With': 'XMLHttpRequest',
             })
-        sequence = posts_info.get('sequence', [])
-        for year in sequence:
-            posts = try_get(posts_info, lambda x: x['years'][str(year)]['items'])
+        items = posts_info.get('items', [])
+        for year in items:
+            posts = items.get(str(year))
             for post in posts:
                 path, media_id = self._search_regex(
                     r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
