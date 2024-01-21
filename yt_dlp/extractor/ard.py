@@ -367,16 +367,20 @@ class ARDBetaMediathekIE(InfoExtractor):
         }
         headers = {}
 
-        token = self._download_json('https://sso.ardmediathek.de/sso/token', display_id, fatal=False)
-        id_token = traverse_obj(token, 'idToken')
-        if not id_token:
-            self.report_warning('Unable to find id token')
-        else:
-            jwt_token_decoded = jwt_decode_hs256(id_token)
-            user_id = traverse_obj(jwt_token_decoded, 'user_id', 'sub')
+        ams_cookie = self._get_cookies("https://sso.ardmediathek.de/sso/token").get("ams")
+        if ams_cookie:
+            token = self._download_json('https://sso.ardmediathek.de/sso/token', display_id,
+                                        fatal=False, note='Getting token for age verification')
+            id_token = traverse_obj(token, 'idToken')
+            if not id_token:
+                self.report_warning('Unable to find id token, continuing without authentication')
 
-            headers['x-authorization'] = f'Bearer {id_token}'
-            query['userId'] = user_id
+            else:
+                jwt_token_decoded = jwt_decode_hs256(id_token)
+                user_id = traverse_obj(jwt_token_decoded, 'user_id', 'sub')
+
+                headers['x-authorization'] = f'Bearer {id_token}'
+                query['userId'] = user_id
 
         page_data = self._download_json(
             f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}',
@@ -399,7 +403,9 @@ class ARDBetaMediathekIE(InfoExtractor):
         media_data = traverse_obj(player_data, ('mediaCollection', 'embedded', {dict}))
 
         if player_data.get('blockedByFsk'):
-            self.raise_no_formats('This video is only available after 22:00', expected=True)
+            self.raise_no_formats(
+                'This video is only available after 22:00, '
+                'try passing cookies to enable age verification ', expected=True)
 
         formats = []
         subtitles = {}
