@@ -373,17 +373,16 @@ class ARDBetaMediathekIE(InfoExtractor):
                 self._TOKEN_URL, display_id, 'Fetching token for age verification',
                 'Unable to fetch age verification token', fatal=False)
             id_token = traverse_obj(token, ('idToken', {str}))
-            user_id = traverse_obj(id_token, ({jwt_decode_hs256}, ('user_id', 'sub'), {str}), get_all=False)
-            if not id_token or not user_id:
+            decoded_token = traverse_obj(id_token, ({jwt_decode_hs256}, {dict}))
+            user_id = traverse_obj(decoded_token, (('user_id', 'sub'), {str}), get_all=False)
+            if not decoded_token or not user_id:
                 self.report_warning('Unable to extract token, continuing without authentication')
             else:
                 headers['x-authorization'] = f'Bearer {id_token}'
                 query['userId'] = user_id
 
-            age_rating = traverse_obj(id_token, ({jwt_decode_hs256}, 'age_rating'), get_all=False)
-            if age_rating != 18:
-                self.report_warning(f'Authenticated age_rating is not 18, but "{age_rating}", '
-                                    'video might still be blocked')
+                if decoded_token.get('age_rating') != 18:
+                    self.report_warning('Account is not verified as 18+; video may be unavailable')
 
         page_data = self._download_json(
             f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}',
@@ -406,9 +405,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         media_data = traverse_obj(player_data, ('mediaCollection', 'embedded', {dict}))
 
         if player_data.get('blockedByFsk'):
-            self.raise_login_required(
-                'This video is only available after 22:00, '
-                'try passing cookies a verified account session to enable age verification ')
+            self.raise_login_required('This video is only available for age verified users or after 22:00')
 
         formats = []
         subtitles = {}
