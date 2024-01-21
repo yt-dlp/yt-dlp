@@ -13,59 +13,57 @@ from ..utils.traversal import traverse_obj
 
 
 class Mx3BaseIE(InfoExtractor):
-    _MX3_DOMAIN = None
+    _VALID_URL_TMPL = r'https?://(?:www\.)?%s/t/(?P<id>\w+)'
+    _FORMATS = [{
+        'url': 'player_asset',
+        'format_id': 'default',
+        'quality': 1,
+    }, {
+        'url': 'player_asset?quality=hd',
+        'format_id': 'hd',
+        'quality': 10,
+    }, {
+        'url': 'download',
+        'format_id': 'download',
+        'quality': 11,
+    }, {
+        'url': 'player_asset?quality=source',
+        'format_id': 'source',
+        'quality': 11,
+    }]
+
+    def _extract_formats(self, track_id):
+        formats = []
+        for fmt in self._FORMATS:
+            format_url = f'https://{self._DOMAIN}/tracks/{track_id}/{fmt["url"]}'
+            urlh = self._request_webpage(
+                HEADRequest(format_url), track_id, fatal=False, expected_status=404,
+                note=f'Checking for format {fmt["format_id"]}')
+            if urlh and urlh.status == 200:
+                formats.append({
+                    **fmt,
+                    'url': format_url,
+                    'ext': urlhandle_detect_ext(urlh),
+                    'filesize': int_or_none(urlh.headers.get('Content-Length')),
+                })
+        return formats
 
     def _real_extract(self, url):
         track_id = self._match_id(url)
         webpage = self._download_webpage(url, track_id)
-        data = self._download_json(
-            f'https://{self._MX3_DOMAIN}/t/{track_id}.json', track_id, fatal=False)
-
-        formats = []
-
-        def add_format(fmt):
-            urlh = self._request_webpage(
-                HEADRequest(fmt['url']), track_id, fatal=False, expected_status=404,
-                note=f'Checking for format {fmt["format_id"]}')
-            if urlh and urlh.status == 200:
-                fmt['ext'] = urlhandle_detect_ext(urlh)
-                fmt['filesize'] = int_or_none(urlh.headers.get('Content-Length'))
-                formats.append(fmt)
-
-        track_url = f'https://{self._MX3_DOMAIN}/tracks/{track_id}'
-        add_format({
-            'url': f'{track_url}/player_asset',
-            'format_id': 'default',
-            'quality': 1,
-        })
-        add_format({
-            'url': f'{track_url}/player_asset?quality=hd',
-            'format_id': 'hd',
-            'quality': 10,
-        })
-        add_format({
-            'url': f'{track_url}/download',
-            'format_id': 'download',
-            'quality': 11,
-        })
-        add_format({
-            'url': f'{track_url}/player_asset?quality=source',
-            'format_id': 'source',
-            'quality': 11,
-        })
-
         more_info = get_element_by_class('single-more-info', webpage)
+        data = self._download_json(f'https://{self._DOMAIN}/t/{track_id}.json', track_id, fatal=False)
 
         def get_info_field(name):
             return self._html_search_regex(
-                rf'<dt[^>]*>\s*{name}\s*</dt>\s*<dd[^>]*>(.*?)</dd>',
+                rf'<dt[^>]*>\s*{name}\s*</dt>\s*<dd[^>]*>(.+?)</dd>',
                 more_info, name, default=None, flags=re.DOTALL)
 
         return {
             'id': track_id,
-            'formats': formats,
+            'formats': self._extract_formats(track_id),
             'genre': self._html_search_regex(
-                r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>', webpage, 'genre', fatal=False),
+                r'<div\b[^>]+class="single-band-genre"[^>]*>([^<]+)</div>', webpage, 'genre', default=None),
             'release_year': int_or_none(get_info_field('Year of creation')),
             'description': get_info_field('Description'),
             'tags': try_call(lambda: get_info_field('Tag').split(', '), list),
@@ -80,8 +78,8 @@ class Mx3BaseIE(InfoExtractor):
 
 
 class Mx3IE(Mx3BaseIE):
-    _MX3_DOMAIN = 'mx3.ch'
-    _VALID_URL = r'https?://(?:www\.)?mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
+    _DOMAIN = 'mx3.ch'
+    _VALID_URL = _Mx3BaseIE._VALID_URL_TMPL % re.escape(_DOMAIN)
     _TESTS = [{
         'url': 'https://mx3.ch/t/1Cru',
         'md5': '7ba09e9826b4447d4e1ce9d69e0e295f',
@@ -132,8 +130,8 @@ class Mx3IE(Mx3BaseIE):
 
 
 class Mx3NeoIE(Mx3BaseIE):
-    _MX3_DOMAIN = 'neo.mx3.ch'
-    _VALID_URL = r'https?://(?:www\.)?neo.mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
+    _DOMAIN = 'neo.mx3.ch'
+    _VALID_URL = _Mx3BaseIE._VALID_URL_TMPL % re.escape(_DOMAIN)
     _TESTS = [{
         'url': 'https://neo.mx3.ch/t/1hpd',
         'md5': '6d9986bbae5cac3296ec8813bf965eb2',
@@ -153,8 +151,8 @@ class Mx3NeoIE(Mx3BaseIE):
 
 
 class Mx3VolksmusikIE(Mx3BaseIE):
-    _MX3_DOMAIN = 'volksmusik.mx3.ch'
-    _VALID_URL = r'https?://(?:www\.)?volksmusik.mx3\.ch/t/(?P<id>[0-9A-Za-z]+)'
+    _DOMAIN = 'volksmusik.mx3.ch'
+    _VALID_URL = _Mx3BaseIE._VALID_URL_TMPL % re.escape(_DOMAIN)
     _TESTS = [{
         'url': 'https://volksmusik.mx3.ch/t/Zx',
         'md5': 'dd967a7b0c1ef898f3e072cf9c2eae3c',
