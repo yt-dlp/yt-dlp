@@ -408,7 +408,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         if player_data.get('blockedByFsk'):
             self.raise_no_formats(
                 'This video is only available after 22:00, '
-                'try passing cookies to enable age verification ', expected=True)
+                'try passing cookies a verified account session to enable age verification ', expected=True)
 
         formats = []
         subtitles = {}
