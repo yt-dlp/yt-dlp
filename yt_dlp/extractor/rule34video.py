@@ -18,10 +18,10 @@ from ..utils.traversal import traverse_obj
 
 
 class Rule34VideoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rule34video\.com/videos/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?rule34video\.com/videos?/(?P<id>\d+)'
     _TESTS = [
         {
-            'url': 'https://rule34video.com/videos/3065157/shot-it-mmd-hmv/',
+            'url': 'https://rule34video.com/video/3065157/shot-it-mmd-hmv/',
             'md5': 'ffccac2c23799dabbd192621ae4d04f3',
             'info_dict': {
                 'id': '3065157',
@@ -43,7 +43,7 @@ class Rule34VideoIE(InfoExtractor):
             }
         },
         {
-            'url': 'https://rule34video.com/videos/3065296/lara-in-trouble-ep-7-wildeerstudio/',
+            'url': 'https://rule34video.com/video/3065296/lara-in-trouble-ep-7-wildeerstudio/',
             'md5': '6bb5169f9f6b38cd70882bf2e64f6b86',
             'info_dict': {
                 'id': '3065296',
