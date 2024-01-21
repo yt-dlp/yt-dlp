@@ -371,14 +371,11 @@ class ARDBetaMediathekIE(InfoExtractor):
         if ams_cookie:
             token = self._download_json('https://sso.ardmediathek.de/sso/token', display_id,
                                         fatal=False, note='Getting token for age verification')
-            id_token = traverse_obj(token, 'idToken')
-            if not id_token:
-                self.report_warning('Unable to find id token, continuing without authentication')
-
+            id_token = traverse_obj(token, ('idToken', {str}))
+            user_id = traverse_obj(id_token, ({jwt_decode_hs256}, ('user_id', 'sub'), {str}), get_all=False)
+            if not id_token or not user_id:
+                self.report_warning('Unable to extract token, continuing without authentication')
             else:
-                jwt_token_decoded = jwt_decode_hs256(id_token)
-                user_id = traverse_obj(jwt_token_decoded, 'user_id', 'sub')
-
                 headers['x-authorization'] = f'Bearer {id_token}'
                 query['userId'] = user_id
 
