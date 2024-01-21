@@ -17,19 +17,19 @@ class Mx3BaseIE(InfoExtractor):
     _FORMATS = [{
         'url': 'player_asset',
         'format_id': 'default',
-        'quality': 1,
+        'quality': 0,
     }, {
         'url': 'player_asset?quality=hd',
         'format_id': 'hd',
-        'quality': 10,
+        'quality': 1,
     }, {
         'url': 'download',
         'format_id': 'download',
-        'quality': 11,
+        'quality': 2,
     }, {
         'url': 'player_asset?quality=source',
         'format_id': 'source',
-        'quality': 11,
+        'quality': 2,
     }]
 
     def _extract_formats(self, track_id):
