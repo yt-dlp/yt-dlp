@@ -43,7 +43,7 @@ class Rule34VideoIE(InfoExtractor):
             }
         },
         {
-            'url': 'https://rule34video.com/video/3065296/lara-in-trouble-ep-7-wildeerstudio/',
+            'url': 'https://rule34video.com/videos/3065296/lara-in-trouble-ep-7-wildeerstudio/',
             'md5': '6bb5169f9f6b38cd70882bf2e64f6b86',
             'info_dict': {
                 'id': '3065296',
