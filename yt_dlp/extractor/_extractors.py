@@ -1111,6 +1111,7 @@ from .motherless import (
     MotherlessIE,
     MotherlessGroupIE,
     MotherlessGalleryIE,
+    MotherlessUploaderIE,
 )
 from .motorsport import MotorsportIE
 from .moviepilot import MoviepilotIE
