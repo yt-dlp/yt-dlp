@@ -380,6 +380,11 @@ class ARDBetaMediathekIE(InfoExtractor):
                 headers['x-authorization'] = f'Bearer {id_token}'
                 query['userId'] = user_id
 
+            age_rating = traverse_obj(id_token, ({jwt_decode_hs256}, 'age_rating', {str}), get_all=False)
+            if age_rating != "18":
+                self.report_warning(f'Authenticated verified age is not 18, but "{age_rating}", '
+                                    'video might still be blocked')
+
         page_data = self._download_json(
             f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}',
             display_id, query=query, headers=headers)
