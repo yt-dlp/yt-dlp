@@ -371,7 +371,7 @@ class ARDBetaMediathekIE(InfoExtractor):
             id_token = traverse_obj(token, ('idToken', {str}))
             decoded_token = traverse_obj(id_token, ({jwt_decode_hs256}, {dict}))
             user_id = traverse_obj(decoded_token, (('user_id', 'sub'), {str}), get_all=False)
-            if not decoded_token or not user_id:
+            if not user_id:
                 self.report_warning('Unable to extract token, continuing without authentication')
             else:
                 headers['x-authorization'] = f'Bearer {id_token}'
