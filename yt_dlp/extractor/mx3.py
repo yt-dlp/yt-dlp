@@ -56,7 +56,7 @@ class Mx3BaseIE(InfoExtractor):
 
         def get_info_field(name):
             return self._html_search_regex(
-                rf'<dt[^>]*>\s*{name}\s*</dt>\s*<dd[^>]*>(.+?)</dd>',
+                rf'<dt[^>]*>\s*{name}\s*</dt>\s*<dd[^>]*>(.*?)</dd>',
                 more_info, name, default=None, flags=re.DOTALL)
 
         return {
