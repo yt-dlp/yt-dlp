@@ -11,6 +11,7 @@ from ..utils import (
     parse_duration,
     unified_timestamp,
     OnDemandPagedList,
+    traverse_obj,
 )
 
 
@@ -267,14 +268,11 @@ class NewgroundsUserIE(InfoExtractor):
                 'Accept': 'application/json, text/javascript, */*; q = 0.01',
                 'X-Requested-With': 'XMLHttpRequest',
             })
-        items = posts_info.get('items', [])
-        for year in items:
-            posts = items.get(str(year))
-            for post in posts:
-                path, media_id = self._search_regex(
+        for post in traverse_obj(posts_info, ('items', ..., ..., {str})):
+            path, media_id = self._search_regex(
                     r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
                     post, 'url', group=(1, 2))
-                yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
+            yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
