@@ -398,33 +398,51 @@ class SVTPageIE(SVTBaseIE):
     }, {
         'url': 'https://www.svt.se/nyheter/lokalt/skane/forsvarsmakten-om-trafikkaoset-pa-e22-kunde-inte-varit-dar-snabbare',
         'info_dict': {
-            'id': 'forsvarsmakten-om-trafikkaoset-pa-e22-kunde-inte-varit-dar-snabbare',
+            'id': 'jXvk42E',
             'title': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
+            'ext': 'mp4',
+            "duration": 80,
+            'age_limit': 0,
+            'timestamp': 1704370009,
+            'episode': 'Försvarsmakten om trafikkaoset på E22: Kunde inte varit där snabbare',
+            'series': 'Lokala Nyheter Skåne',
+            'upload_date': '20240104'
         },
-        'playlist_count': 1,
+        'params': {
+            'skip_download': True,
+        }
     }, {
         'url': 'https://www.svt.se/nyheter/svtforum/2023-tungt-ar-for-svensk-media',
         'info_dict': {
             'title': '2023 tungt år för svensk media',
-            'id': '2023-tungt-ar-for-svensk-media',
+            'id': 'ewqAZv4',
+            'ext': 'mp4',
+            "duration": 3074,
+            'age_limit': 0,
+            'series': '',
+            'timestamp': 1702980479,
+            'upload_date': '20231219',
+            'episode': 'Mediestudier'
         },
-        'playlist_count': 1,
+        'params': {
+            'skip_download': True,
+        }
     }, {
         'url': 'https://www.svt.se/sport/ishockey/bakom-masken-lehners-kamp-mot-mental-ohalsa',
         'info_dict': {
             'id': '25298267',
             'title': 'Bakom masken – Lehners kamp mot mental ohälsa',
         },
-        'only_matching': True,
         'playlist_count': 4,
+        'skip': 'Video is gone'
     }, {
         'url': 'https://www.svt.se/nyheter/utrikes/svenska-andrea-ar-en-mil-fran-branderna-i-kalifornien',
         'info_dict': {
             'id': '24243746',
             'title': 'Svenska Andrea redo att fly sitt hem i Kalifornien',
         },
-        'only_matching': True,
         'playlist_count': 2,
+        'skip': 'Video is gone'
     }, {
         # only programTitle
         'url': 'http://www.svt.se/sport/ishockey/jagr-tacklar-giroux-under-intervjun',
@@ -435,13 +453,13 @@ class SVTPageIE(SVTBaseIE):
             'duration': 27,
             'age_limit': 0,
         },
-        'only_matching': True,
+        'skip': 'Video is gone'
     }, {
         'url': 'https://www.svt.se/nyheter/lokalt/vast/svt-testar-tar-nagon-upp-skrapet-1',
-        'only_matching': True,
+        'skip': 'Video is gone'
     }, {
         'url': 'https://www.svt.se/vader/manadskronikor/maj2018',
-        'only_matching': True,
+        'skip': 'Video is gone'
     }]
 
     @classmethod
