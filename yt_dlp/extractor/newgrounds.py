@@ -270,8 +270,8 @@ class NewgroundsUserIE(InfoExtractor):
             })
         for post in traverse_obj(posts_info, ('items', ..., ..., {str})):
             path, media_id = self._search_regex(
-                    r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
-                    post, 'url', group=(1, 2))
+                r'<a[^>]+\bhref=["\'][^"\']+((?:portal/view|audio/listen)/(\d+))[^>]+>',
+                post, 'url', group=(1, 2))
             yield self.url_result(f'https://www.newgrounds.com/{path}', NewgroundsIE.ie_key(), media_id)
 
     def _real_extract(self, url):
