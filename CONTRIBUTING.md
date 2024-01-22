@@ -221,9 +221,9 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Run `python devscripts/run_tests.py YourExtractor`. This *may fail* at first, but you can continually re-run it until you're done. Upon failure, it will output the missing fields and/or correct values which you can copy. If you decide to add more than one test, the tests will then be named `YourExtractor`, `YourExtractor_1`, `YourExtractor_2`, etc. Note that tests with an `only_matching` key in the test's dict are not included in the count. You can also run all the tests in one go with `YourExtractor_all`
 1. Make sure you have at least one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L119-L440). Add tests and code for as many as you want.
-1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
+1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [ruff](https://docs.astral.sh/ruff/tutorial/#getting-started):
 
-        $ flake8 yt_dlp/extractor/yourextractor.py
+        $ ruff check yt_dlp/extractor/yourextractor.py
 
 1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.8 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:

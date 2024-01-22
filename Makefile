@@ -64,7 +64,7 @@ uninstall:
 	rm -f $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
 
 codetest:
-	flake8 .
+	ruff check .
 
 test:
 	$(PYTHON) -m pytest

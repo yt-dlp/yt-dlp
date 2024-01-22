@@ -62,8 +62,7 @@ build = [
     "wheel",
 ]
 dev = [
-    "flake8",
-    "isort",
+    "ruff==0.2.1",
     "pytest",
 ]
 pyinstaller = ["pyinstaller>=6.3"]
@@ -118,3 +117,28 @@ artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
 [tool.hatch.version]
 path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
+
+[tool.ruff]
+required-version = "0.2.1"
+line-length = 120
+
+[tool.ruff.lint]
+ignore = [
+    "E402", # module level import not at top of file
+    "E501", # line too long
+    "E731", # do not assign a lambda expression, use a def
+    "E741", # ambiguous variable name
+]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    # "I", # import order
+]
+
+[tool.ruff.lint.per-file-ignores]
+"devscripts/lazy_load_template.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["test"]
+relative-imports-order = "closest-to-furthest"
