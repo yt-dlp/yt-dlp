@@ -923,6 +923,12 @@ class FacebookAdsIE(InfoExtractor):
             'like_count': int,
         },
         'playlist_count': 3,
+    }, {
+        'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.facebook.com/ads/library/?id=901230958115569',
+        'only_matching': True,
     }]
 
     _FORMATS_MAP = {
