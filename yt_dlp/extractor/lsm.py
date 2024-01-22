@@ -226,7 +226,7 @@ class LSMLTVEmbedIE(InfoExtractor):
 
 
 class LSMReplayIE(InfoExtractor):
-    _VALID_URL = r'https?://replay\.lsm\.lv/.*/(?:ieraksts|statja)/[^/?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://replay\.lsm\.lv/[^/?#]+/(?:ieraksts|statja)/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://replay.lsm.lv/lv/ieraksts/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
         'md5': '64f72a360ca530d5ed89c77646c9eee5',
