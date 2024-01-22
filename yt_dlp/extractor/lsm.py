@@ -4,10 +4,12 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    determine_ext,
     int_or_none,
     js_to_json,
     parse_iso8601,
     parse_qs,
+    str_or_none,
     url_or_none,
     urljoin,
 )
@@ -15,7 +17,13 @@ from ..utils.traversal import traverse_obj
 
 
 class LSMLREmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:latvijasradio|lr1|lr2|klasika|lr4|naba|radioteatris)\.lsm|pieci)\.lv/[^/]+/(?:pleijeris|embed)'
+    _VALID_URL = r'''(?x)
+        https?://(?:
+            (?:latvijasradio|lr1|lr2|klasika|lr4|naba|radioteatris)\.lsm|
+            pieci
+        )\.lv/[^/?#]+/(?:
+            pleijeris|embed
+        )/?\?(?:[^#]+&)?(?:show|id)=(?P<id>\d+)'''
     _TESTS = [{
         'url': 'https://latvijasradio.lsm.lv/lv/embed/?theme=black&size=16x9&showCaptions=0&id=183522',
         'md5': '719b33875cd1429846eeeaeec6df2830',
@@ -29,7 +37,7 @@ class LSMLREmbedIE(InfoExtractor):
     }, {
         'url': 'https://radioteatris.lsm.lv/lv/embed/?id=&show=1270&theme=white&size=16x9',
         'info_dict': {
-            'id': 1270,
+            'id': '1270',
         },
         'playlist_count': 3,
         'playlist': [{
@@ -55,7 +63,7 @@ class LSMLREmbedIE(InfoExtractor):
     }, {
         'url': 'https://lr1.lsm.lv/lv/embed/?id=166557&show=0&theme=white&size=16x9',
         'info_dict': {
-            'id': 166557,
+            'id': '166557',
         },
         'playlist_count': 2,
         'playlist': [{
@@ -105,40 +113,38 @@ class LSMLREmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         query = parse_qs(url)
-        video_id = traverse_obj(query, ('show', 0, {int_or_none}))
-
-        if not video_id:
-            video_id = traverse_obj(query, ('id', 0, {int_or_none}))
-
+        video_id = traverse_obj(query, (
+            ('show', 'id'), 0, {int_or_none}, {lambda x: x or None}, {str_or_none}), get_all=False)
         webpage = self._download_webpage(url, video_id)
 
-        player_data, media_data = self._html_search_regex(
+        player_data, media_data = self._search_regex(
             r'LR\.audio\.Player\s*\([^{]*(?P<player>\{.*?\}),(?P<media>\{.*\})\);',
             webpage, 'player json', group=('player', 'media'))
 
-        player_json = self._parse_json(player_data, video_id, js_to_json)
-        media_json = self._parse_json(media_data, video_id, js_to_json)
+        player_json = self._parse_json(
+            player_data, video_id, transform_source=js_to_json, fatal=False) or {}
+        media_json = self._parse_json(media_data, video_id, transform_source=js_to_json)
 
         entries = []
-        for item in traverse_obj(media_json, (('audio', 'video'), ...)):
+        for item in traverse_obj(media_json, (('audio', 'video'), lambda _, v: v['id'])):
             formats = []
             for source_url in traverse_obj(item, ('sources', ..., 'file', {url_or_none})):
-                if source_url.endswith('.m3u8'):
-                    formats.extend(self._extract_m3u8_formats(source_url, video_id))
+                if determine_ext(source_url) == 'm3u8':
+                    formats.extend(self._extract_m3u8_formats(source_url, video_id, fatal=False))
                 else:
                     formats.append({'url': source_url})
 
-            id = item.get('id')
+            id_ = item['id']
             title = item.get('title')
-            if id and id.startswith('v') and not title:
+            if id_.startswith('v') and not title:
                 title = traverse_obj(
-                    media_json, ('audio', lambda _, v: v['id'][1:] == id[1:], 'title',
+                    media_json, ('audio', lambda _, v: v['id'][1:] == id_[1:], 'title',
                                  {lambda x: x and f'{x} - Video Version'}), get_all=False)
 
             entries.append({
                 'formats': formats,
                 'thumbnail': urljoin(url, player_json.get('poster')),
-                'id': id,
+                'id': id_,
                 'title': title,
                 'duration': traverse_obj(item, ('duration', {int_or_none})),
             })
@@ -150,7 +156,7 @@ class LSMLREmbedIE(InfoExtractor):
 
 
 class LSMLTVEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://ltv\.lsm\.lv/embed.*[?&]c=(?P<id>[^&]+)'
+    _VALID_URL = r'https?://ltv\.lsm\.lv/embed\?(?:[^#]+&)?c=(?P<id>[^#&]+)'
     _TESTS = [{
         'url': 'https://ltv.lsm.lv/embed?c=eyJpdiI6IjQzbHVUeHAyaDJiamFjcjdSUUFKdnc9PSIsInZhbHVlIjoiMHl3SnJNRmd2TmFIdnZwOGtGUUpzODFzUEZ4SVVsN2xoRjliSW9vckUyMWZIWG8vbWVzaFFkY0lhNmRjbjRpaCIsIm1hYyI6ImMzNjdhMzFhNTFhZmY1ZmE0NWI5YmFjZGI1YmJiNGEyNjgzNDM4MjUzMWEwM2FmMDMyZDMwYWM1MDFjZmM5MGIiLCJ0YWciOiIifQ==',
         'md5': '64f72a360ca530d5ed89c77646c9eee5',
@@ -198,22 +204,21 @@ class LSMLTVEmbedIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = urllib.parse.unquote(self._match_id(url))
         webpage = self._download_webpage(url, video_id)
-
-        json = self._search_json(r'window\.ltvEmbedPayload\s*=', webpage, 'embed json', video_id)
-
-        embed_type = traverse_obj(json, ('source', 'name'))
+        data = self._search_json(
+            r'window\.ltvEmbedPayload\s*=', webpage, 'embed json', video_id)
+        embed_type = traverse_obj(data, ('source', 'name', {str}))
 
         if embed_type == 'telia':
             ie_key = 'CloudyCDN'
-            url = traverse_obj(json, ('source', 'embed_url', {url_or_none}))
+            embed_url = traverse_obj(data, ('source', 'embed_url', {url_or_none}))
         elif embed_type == 'youtube':
             ie_key = 'Youtube'
-            url = traverse_obj(json, ('source', 'id'))
+            embed_url = traverse_obj(data, ('source', 'id', {str}))
         else:
-            raise ExtractorError('Unsupported embed type')
+            raise ExtractorError(f'Unsupported embed type {embed_type!r}')
 
         return self.url_result(
-            url, ie_key, video_id, **traverse_obj(json, {
+            embed_url, ie_key, video_id, **traverse_obj(data, {
                 'title': ('parentInfo', 'title'),
                 'duration': ('parentInfo', 'duration', {int_or_none}),
                 'thumbnail': ('source', 'poster', {url_or_none}),
@@ -221,7 +226,7 @@ class LSMLTVEmbedIE(InfoExtractor):
 
 
 class LSMReplayIE(InfoExtractor):
-    _VALID_URL = r'https?://replay\.lsm\.lv/.*/(?:ieraksts|statja)/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://replay\.lsm\.lv/.*/(?:ieraksts|statja)/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://replay.lsm.lv/lv/ieraksts/ltv/311130/4-studija-zolitudes-tragedija-un-incupes-stacija',
         'md5': '64f72a360ca530d5ed89c77646c9eee5',
@@ -253,19 +258,20 @@ class LSMReplayIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def fix_nuxt_data(self, webpage):
+    def _fix_nuxt_data(self, webpage):
         return re.sub(r'Object\.create\(null(?:,(\{.+\}))?\)', lambda m: m.group(1) or 'null', webpage)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        json = self._search_nuxt_data(self.fix_nuxt_data(webpage), video_id, context_name='__REPLAY__')
+        data = self._search_nuxt_data(
+            self._fix_nuxt_data(webpage), video_id, context_name='__REPLAY__')
 
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            **traverse_obj(json, {
+            **traverse_obj(data, {
                 'url': ('playback', 'service', 'url', {url_or_none}),
                 'title': ('mediaItem', 'title'),
                 'description': ('mediaItem', ('lead', 'body')),
