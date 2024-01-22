@@ -30,7 +30,7 @@ clean-test:
 	*.mp4 *.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
-	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
+	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS
 clean-pyproject:
 	-mv -f pyproject.toml.old pyproject.toml
 clean-cache:
@@ -153,8 +153,5 @@ yt-dlp.tar.gz: all
 		setup.cfg yt-dlp yt_dlp pyproject.toml \
 		devscripts test
 
-AUTHORS: .mailmap
+AUTHORS:
 	git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS
-
-.mailmap:
-	git shortlog -s -e -n HEAD | awk '!(out[$$NF]++) { $$1="";sub(/^[ \t]+/,""); print}' > .mailmap
