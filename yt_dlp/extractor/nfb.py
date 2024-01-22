@@ -2,31 +2,17 @@ from .common import InfoExtractor
 from ..utils import int_or_none
 
 
-class NFBIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nfb\.ca/film/(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        'url': 'https://www.nfb.ca/film/trafficopter/',
-        'info_dict': {
-            'id': 'trafficopter',
-            'ext': 'mp4',
-            'title': 'Trafficopter',
-            'description': 'md5:060228455eb85cf88785c41656776bc0',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'uploader': 'Barrie Howells',
-            'release_year': 1972,
-        },
-    }]
-
+class NFBBaseIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage('https://www.nfb.ca/film/%s/' % video_id, video_id)
+        webpage = self._download_webpage(f'https://{self.domain}/film/%s/' % video_id, video_id)
 
         iframe = self._html_search_regex(
             r'<[^>]+\bid=["\']player-iframe["\'][^>]*src=["\']([^"\']+)',
             webpage, 'iframe', default=None, fatal=True)
         if iframe.startswith('/'):
-            iframe = f'https://www.nfb.ca{iframe}'
+            iframe = f'https://{self.domain}{iframe}'
 
         player = self._download_webpage(iframe, video_id)
 
@@ -56,3 +42,35 @@ class NFBIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
+
+class NFBIE(NFBBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?nfb\.ca/film/(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://www.nfb.ca/film/trafficopter/',
+        'info_dict': {
+            'id': 'trafficopter',
+            'ext': 'mp4',
+            'title': 'Trafficopter',
+            'description': 'md5:060228455eb85cf88785c41656776bc0',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Barrie Howells',
+            'release_year': 1972,
+        },
+    }]
+    domain = 'www.nfb.ca'
+
+class ONFIE(NFBBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?onf\.ca/film/(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://www.onf.ca/film/mal-du-siecle/',
+        'info_dict': {
+            'id': 'mal-du-siecle',
+            'ext': 'mp4',
+            'title': 'Le mal du siècle',
+            'description': 'md5:1abf774d77569ebe603419f2d344102b',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Catherine Lepage',
+            'release_year': 2019
+        },
+    }]
+    domain = 'www.onf.ca'

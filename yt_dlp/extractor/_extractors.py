@@ -1216,7 +1216,10 @@ from .nexx import (
     NexxIE,
     NexxEmbedIE,
 )
-from .nfb import NFBIE
+from .nfb import (
+    NFBIE,
+    ONFIE,
+)
 from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
     NFLIE,
@@ -1344,7 +1347,6 @@ from .onet import (
     OnetMVPIE,
     OnetPlIE,
 )
-from .onf import ONFIE
 from .onionstudios import OnionStudiosIE
 from .opencast import (
     OpencastIE,
