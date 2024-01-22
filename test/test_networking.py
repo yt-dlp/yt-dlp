@@ -180,6 +180,12 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Location', '/a/b/./../../headers')
             self.send_header('Content-Length', '0')
             self.end_headers()
+        elif self.path == '/redirect_dotsegments_absolute':
+            self.send_response(301)
+            # redirect to /headers but with dot segments before - absolute url
+            self.send_header('Location', f'http://127.0.0.1:{http_server_port(self.server)}/a/b/./../../headers')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         elif self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
@@ -345,16 +351,17 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             res.close()
 
     @pytest.mark.parametrize('handler', ['Urllib', 'Requests'], indirect=True)
-    def test_remove_dot_segments(self, handler):
-        with handler() as rh:
+    @pytest.mark.parametrize('path', [
+        '/a/b/./../../headers',
+        '/redirect_dotsegments',
+        # https://github.com/yt-dlp/yt-dlp/issues/9020
+        '/redirect_dotsegments_absolute',
+    ])
+    def test_remove_dot_segments(self, handler, path):
+        with handler(verbose=True) as rh:
             # This isn't a comprehensive test,
-            # but it should be enough to check whether the handler is removing dot segments
-            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/a/b/./../../headers'))
-            assert res.status == 200
-            assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
-            res.close()
-
-            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/redirect_dotsegments'))
+            # but it should be enough to check whether the handler is removing dot segments in required scenarios
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}{path}'))
             assert res.status == 200
             assert res.url == f'http://127.0.0.1:{self.http_port}/headers'
             res.close()
