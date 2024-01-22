@@ -43,6 +43,7 @@ class NFBBaseIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
+
 class NFBIE(NFBBaseIE):
     _VALID_URL = r'https?://(?:www\.)?nfb\.ca/film/(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -58,6 +59,7 @@ class NFBIE(NFBBaseIE):
         },
     }]
     domain = 'www.nfb.ca'
+
 
 class ONFIE(NFBBaseIE):
     _VALID_URL = r'https?://(?:www\.)?onf\.ca/film/(?P<id>[^/?#&]+)'
