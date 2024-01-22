@@ -893,7 +893,7 @@ class FacebookReelIE(InfoExtractor):
 
 
 class FacebookAdsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/\?id=(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/?\?(?:[^#]+&)?id=(?P<id>\d+)'
     IE_NAME = 'facebook:ads'
 
     _TESTS = [{
