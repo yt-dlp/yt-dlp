@@ -112,7 +112,6 @@ class FloatplaneIE(InfoExtractor):
         'url': 'https://www.floatplane.com/post/65B5PNoBtf',
         'info_dict': {
             'id': '65B5PNoBtf',
-            'ext': None,
             'description': 'I recorded the inbuilt demo mode for your 90\'s enjoyment, thanks for being Floaties!',
             'display_id': '65B5PNoBtf',
             'like_count': int,
@@ -124,15 +123,13 @@ class FloatplaneIE(InfoExtractor):
             'channel_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home/thedrumthing',
             'comment_count': int,
             'title': 'The $50 electronic drum kit.',
-            'duration': None,
             'channel_id': '64424fe73cd58cbcf8d8e131',
             'thumbnail': 'https://pbs.floatplane.com/blogPost_thumbnails/65B5PNoBtf/725555379422705_1701247052743.jpeg',
             'dislike_count': int,
             'channel': 'The Drum Thing',
             'release_date': '20231129',
         },
-        'uploader_url': 'https://www.floatplane.com/channel/TheTrashNetwork/home',
-        "playlist_count": 2,
+        'playlist_count': 2,
         'playlist': [{
             'info_dict': {
                 'id': 'ISPJjexylS',
@@ -158,7 +155,6 @@ class FloatplaneIE(InfoExtractor):
                 'release_timestamp': 1701249480,
                 'title': 'Roland TD-7 Demo.m4a',
                 'channel_id': '64424fe73cd58cbcf8d8e131',
-                'thumbnail': None,
                 'availability': 'subscriber_only',
                 'uploader': 'The Trash Network',
                 'duration': 114,
@@ -192,10 +188,10 @@ class FloatplaneIE(InfoExtractor):
 
         common_info = {
             **traverse_obj(post_data, {
-                'uploader': ('creator', 'title'),
-                'uploader_id': ('creator', 'id'),
-                'channel': ('channel', 'title'),
-                'channel_id': ('channel', 'id'),
+                'uploader': ('creator', 'title', {str}),
+                'uploader_id': ('creator', 'id', {str}),
+                'channel': ('channel', 'title', {str}),
+                'channel_id': ('channel', 'id', {str}),
                 'release_timestamp': ('releaseDate', {parse_iso8601}),
             }),
             'uploader_url': uploader_url,
