@@ -11,6 +11,7 @@ from ..utils import (
     join_nonempty,
     parse_codecs,
     parse_iso8601,
+    url_or_none,
     urljoin,
 )
 from ..utils.traversal import traverse_obj
@@ -224,11 +225,11 @@ class FloatplaneIE(InfoExtractor):
             formats = []
             for quality in traverse_obj(stream, ('resource', 'data', 'qualityLevels', ...)):
                 url = urljoin(stream['cdn'], format_path(traverse_obj(
-                    stream, ('resource', 'data', 'qualityLevelParams', quality['name']))))
+                    stream, ('resource', 'data', 'qualityLevelParams', quality['name'], {dict}))))
                 formats.append({
                     **traverse_obj(quality, {
-                        'format_id': 'name',
-                        'format_note': 'label',
+                        'format_id': ('name', {str}),
+                        'format_note': ('label', {str}),
                         'width': ('width', {int}),
                         'height': ('height', {int}),
                     }),
@@ -241,9 +242,9 @@ class FloatplaneIE(InfoExtractor):
                 **common_info,
                 'id': media_id,
                 **traverse_obj(metadata, {
-                    'title': 'title',
+                    'title': ('title', {str}),
                     'duration': ('duration', {int_or_none}),
-                    'thumbnail': ('thumbnail', 'path'),
+                    'thumbnail': ('thumbnail', 'path', {url_or_none}),
                 }),
                 'formats': formats,
             })
@@ -253,12 +254,12 @@ class FloatplaneIE(InfoExtractor):
             'id': post_id,
             'display_id': post_id,
             **traverse_obj(post_data, {
-                'title': 'title',
+                'title': ('title', {str}),
                 'description': ('text', {clean_html}),
                 'like_count': ('likes', {int_or_none}),
                 'dislike_count': ('dislikes', {int_or_none}),
                 'comment_count': ('comments', {int_or_none}),
-                'thumbnail': ('thumbnail', 'path'),
+                'thumbnail': ('thumbnail', 'path', {url_or_none}),
             }),
         }
 
