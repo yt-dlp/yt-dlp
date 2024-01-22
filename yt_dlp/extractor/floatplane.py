@@ -184,9 +184,11 @@ class FloatplaneIE(InfoExtractor):
 
         uploader_url = format_field(
             post_data, [('creator', 'urlname')], 'https://www.floatplane.com/channel/%s/home') or None
-        channel_url = urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname')))
 
         common_info = {
+            'uploader_url': uploader_url,
+            'channel_url': urljoin(f'{uploader_url}/', traverse_obj(post_data, ('channel', 'urlname'))),
+            'availability': self._availability(needs_subscription=True),
             **traverse_obj(post_data, {
                 'uploader': ('creator', 'title', {str}),
                 'uploader_id': ('creator', 'id', {str}),
@@ -194,9 +196,6 @@ class FloatplaneIE(InfoExtractor):
                 'channel_id': ('channel', 'id', {str}),
                 'release_timestamp': ('releaseDate', {parse_iso8601}),
             }),
-            'uploader_url': uploader_url,
-            'channel_url': channel_url,
-            'availability': self._availability(needs_subscription=True),
         }
 
         items = []
