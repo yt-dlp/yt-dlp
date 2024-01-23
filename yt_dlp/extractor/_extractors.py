@@ -138,6 +138,10 @@ from .ard import (
     ARDMediathekCollectionIE,
     ARDIE,
 )
+from .art19 import (
+    Art19IE,
+    Art19ShowIE,
+)
 from .arte import (
     ArteTVIE,
     ArteTVEmbedIE,
