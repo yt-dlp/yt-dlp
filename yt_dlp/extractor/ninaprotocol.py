@@ -88,31 +88,31 @@ class NinaprotocolIE(InfoExtractor):
             }
         ],
     }, {
-            'url': 'https://www.ninaprotocol.com/releases/f-g-s-american-shield',
-            'id': 'f-g-s-american-shield',
-            'md5': 'f8934f550f6f4db527a50fa47275dc4e',
-            'info_dict': {
-                'id': 'f-g-s-american-shield_1',
-                'ext': 'mp3',
-                'title': 'F.G.S. - American Shield',
-                'track': 'F.G.S. - American Shield',
-                'type': 'audio',
-                'duration': 201,
-                'track_number': int
-            }
-        }, {
-            'url': 'https://www.ninaprotocol.com/releases/9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z',
-            'id': '9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z',
-            'md5': 'fa5d72b8cbb031a01c3ff0262e388967',
-            'info_dict': {
-                'id': '9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z_1',
-                'ext': 'mp3',
-                'title': 'Pluck',
-                'track': 'Pluck',
-                'type': 'audio',
-                'track_number': int
-            }
-        }]
+        'url': 'https://www.ninaprotocol.com/releases/f-g-s-american-shield',
+        'id': 'f-g-s-american-shield',
+        'md5': 'f8934f550f6f4db527a50fa47275dc4e',
+        'info_dict': {
+            'id': 'f-g-s-american-shield_1',
+            'ext': 'mp3',
+            'title': 'F.G.S. - American Shield',
+            'track': 'F.G.S. - American Shield',
+            'type': 'audio',
+            'duration': 201,
+            'track_number': int
+        }
+    }, {
+        'url': 'https://www.ninaprotocol.com/releases/9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z',
+        'id': '9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z',
+        'md5': 'fa5d72b8cbb031a01c3ff0262e388967',
+        'info_dict': {
+            'id': '9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z_1',
+            'ext': 'mp3',
+            'title': 'Pluck',
+            'track': 'Pluck',
+            'type': 'audio',
+            'track_number': int
+        }
+    }]
 
     def _get_balanced_brackets_substring(self, text, index=0):
         subtext = text[index:]
@@ -153,8 +153,7 @@ class NinaprotocolIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        release_name = (self._html_search_meta('og:title', webpage) or
-                        self._html_extract_title(webpage))
+        release_name = (self._html_search_meta('og:title', webpage) or self._html_extract_title(webpage))
 
         release = self._get_json_with_api(video_id)
 
