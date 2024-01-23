@@ -129,7 +129,7 @@ class NinaprotocolIE(InfoExtractor):
             raise ValueError("Unbalanced brackets: Opening bracket without a corresponding closing bracket.")
 
     def _search_all_releases(self, webpage, release_name):
-        scripts = ''.join(re.findall(r'<\s*script\s*>(.*?)<\s*/\s*script\s*>', webpage))
+        scripts = ''.join(re.findall(r'(?i)<\s*script\s*>(.*?)<\s*/\s*script\s*>', webpage))
         scripts = scripts.encode('utf-8').decode('unicode_escape')
 
         for m in re.finditer(r'"release":([\[{])', scripts):
