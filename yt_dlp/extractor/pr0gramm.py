@@ -18,7 +18,6 @@ from ..utils.traversal import traverse_obj
 class Pr0grammIE(InfoExtractor):
     _VALID_URL = r'https?://pr0gramm\.com\/(?:[^/?#]+/)+(?P<id>[\d]+)(?:[/?#:]|$)'
     _TESTS = [{
-        # Tags require account
         'url': 'https://pr0gramm.com/new/video/5466437',
         'info_dict': {
             'id': '5466437',
@@ -36,7 +35,6 @@ class Pr0grammIE(InfoExtractor):
             '_old_archive_ids': ['pr0grammstatic 5466437'],
         },
     }, {
-        # Tags require account
         'url': 'https://pr0gramm.com/new/3052805:comment28391322',
         'info_dict': {
             'id': '3052805',
@@ -151,14 +149,12 @@ class Pr0grammIE(InfoExtractor):
         if not source or not source.endswith('mp4'):
             self.raise_no_formats('Could not extract a video', expected=bool(source), video_id=video_id)
 
-        tags = None
-        if self._is_logged_in:
-            metadata = self._call_api('info', video_id, {'itemId': video_id}, note='Downloading tags')
-            tags = traverse_obj(metadata, ('tags', ..., 'tag', {str}))
-            # Sorted by "confidence", higher confidence = earlier in list
-            confidences = traverse_obj(metadata, ('tags', ..., 'confidence', ({int}, {float})))
-            if confidences:
-                tags = [tag for _, tag in sorted(zip(confidences, tags), reverse=True)]
+        metadata = self._call_api('info', video_id, {'itemId': video_id}, note='Downloading tags')
+        tags = traverse_obj(metadata, ('tags', ..., 'tag', {str}))
+        # Sorted by "confidence", higher confidence = earlier in list
+        confidences = traverse_obj(metadata, ('tags', ..., 'confidence', ({int}, {float})))
+        if confidences:
+            tags = [tag for _, tag in sorted(zip(confidences, tags), reverse=True)]
 
         formats = traverse_obj(video_info, ('variants', ..., {
             'format_id': ('name', {str}),
