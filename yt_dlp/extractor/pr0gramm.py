@@ -72,6 +72,23 @@ class Pr0grammIE(InfoExtractor):
             '_old_archive_ids': ['pr0grammstatic 5848332'],
         },
     }, {
+        'url': 'https://pr0gramm.com/top/5895149',
+        'info_dict': {
+            'id': '5895149',
+            'ext': 'mp4',
+            'title': 'pr0gramm-5895149 by algoholigSeeManThrower',
+            'tags': 'count:19',
+            'uploader': 'algoholigSeeManThrower',
+            'uploader_id': 457556,
+            'upload_timestamp': 1697580902,
+            'upload_date': '20231018',
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 0,
+            'thumbnail': 'https://thumb.pr0gramm.com/2023/10/18/db47bb3db5e1a1b3.jpg',
+            '_old_archive_ids': ['pr0grammstatic 5895149'],
+        },
+    }, {
         'url': 'https://pr0gramm.com/static/5466437',
         'only_matching': True,
     }, {
@@ -92,15 +109,15 @@ class Pr0grammIE(InfoExtractor):
     def _maximum_flags(self):
         # We need to guess the flags for the content otherwise the api will raise an error
         # We can guess the maximum allowed flags for the account from the cookies
-        # Bitflags are (msbf): nsfp, nsfl, nsfw, sfw
-        flags = 0b0001
+        # Bitflags are (msbf): pol, nsfp, nsfl, nsfw, sfw
+        flags = 0b10001
         if self._is_logged_in:
-            flags |= 0b1000
+            flags |= 0b01000
             cookies = self._get_cookies(self.BASE_URL)
             if 'me' not in cookies:
                 self._download_webpage(self.BASE_URL, None, 'Refreshing verification information')
             if traverse_obj(cookies, ('me', {lambda x: x.value}, {unquote}, {json.loads}, 'verified')):
-                flags |= 0b0110
+                flags |= 0b00110
 
         return flags
 
