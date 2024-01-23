@@ -104,12 +104,20 @@ class LinkedInIE(LinkedInBaseIE):
         like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
         creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
 
-        sources = self._parse_json(extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))['data-sources'], video_id)
+        video_json = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
+        sources = self._parse_json(video_json['data-sources'], video_id)
         formats = [{
             'url': source['src'],
             'ext': mimetype2ext(source.get('type')),
             'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
         } for source in sources]
+        subtitles = {}
+        sub_url = video_json.get('data-captions-url')
+        if sub_url is not None:
+            subtitles['en'] = [{
+                'ext': 'vtt',
+                'url': sub_url
+            }]
 
         return {
             'id': video_id,
@@ -119,6 +127,7 @@ class LinkedInIE(LinkedInBaseIE):
             'creator': creator,
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': description,
+            'subtitles': subtitles,
         }
 
 
