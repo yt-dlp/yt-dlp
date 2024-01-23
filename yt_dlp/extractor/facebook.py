@@ -44,6 +44,7 @@ class FacebookIE(InfoExtractor):
                         (?:[^#]*?\#!/)?
                         (?:
                             (?:
+                                permalink\.php|
                                 video/video\.php|
                                 photo\.php|
                                 video\.php|
@@ -53,6 +54,7 @@ class FacebookIE(InfoExtractor):
                             )\?(?:.*?)(?:v|video_id|story_fbid)=|
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
+                            events/(?:[^/]+/)?|
                             groups/[^/]+/(?:permalink|posts)/|
                             watchparty/
                         )|
@@ -87,7 +89,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1692346159,
             'thumbnail': r're:^https?://.*',
             'uploader_id': '100063551323670',
-            'duration': 3132.184,
+            'duration': 3133.583,
             'view_count': int,
             'concurrent_view_count': 0,
         },
@@ -118,6 +120,7 @@ class FacebookIE(InfoExtractor):
             'uploader_id': 'pfbid028wxorhX2ErLFJ578N6P3crHD3PHmXTCqCvfBpsnbSLmbokwSY75p5hWBjHGkG4zxl',
             'duration': 131.03,
             'concurrent_view_count': int,
+            'view_count': int,
         },
     }, {
         'note': 'Video with DASH manifest',
@@ -170,7 +173,6 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
-        'md5': 'ca63897a90c9452efee5f8c40d080e25',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
@@ -192,7 +194,7 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1417995061575415',
             'ext': 'mp4',
-            'title': 'Довгоочікуване відео | By Yaroslav - Facebook',
+            'title': 'Довгоочікуване відео | By Yaroslav',
             'description': 'Довгоочікуване відео',
             'timestamp': 1486648217,
             'upload_date': '20170209',
@@ -249,6 +251,7 @@ class FacebookIE(InfoExtractor):
             'duration': 148.435,
         },
     }, {
+        # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
         'info_dict': {
             'id': '6968553779868435',
@@ -262,6 +265,22 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
             'thumbnail': r're:^https?://.*',
             'timestamp': 1701975646,
+        },
+    }, {
+        # data.node.comet_sections.content.story.attachments[].styles.attachment.media
+        'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid0fqQuVEQyXRa9Dp4RcaTR14KHU3uULHV1EK7eckNXSH63JMuoALsAvVCJ97zAGitil&id=100068861234290',
+        'info_dict': {
+            'id': '270103405756416',
+            'ext': 'mp4',
+            'title': 'Lela Evans',
+            'description': 'Today Makkovik\'s own Pilot Mandy Smith made her inaugural landing on the airstrip in her hometown. What a proud moment as we all cheered and...',
+            'thumbnail': r're:^https?://.*',
+            'uploader': 'Lela Evans',
+            'uploader_id': 'pfbid0shZJipuigyy5mqrUJn9ub5LJFWNHvan5prtyi3LrDuuuJ4NwrURgnQHYR9fywBepl',
+            'upload_date': '20231228',
+            'timestamp': 1703804085,
+            'duration': 394.347,
+            'view_count': int,
         },
     }, {
         'url': 'https://www.facebook.com/story.php?story_fbid=pfbid0Fnzhm8UuzjBYpPMNFzaSpFE9UmLdU4fJN8qTANi1Dmtj5q7DNrL5NERXfsAzDEV7l&id=100073071055552',
@@ -308,7 +327,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20180523',
             'uploader': 'ESL One Dota 2',
             'uploader_id': '100066514874195',
-            'duration': 4524.212,
+            'duration': 4524.001,
             'view_count': int,
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
@@ -327,7 +346,7 @@ class FacebookIE(InfoExtractor):
             'concurrent_view_count': int,
             'uploader_id': 'pfbid0cibUN6tV7DYgdbJdsUFN46wc4jKpVSPAvJQhFofGqBGmVn3V3JtAs2tfUwziw2hUl',
             'timestamp': 1549275572,
-            'duration': 3.413,
+            'duration': 3.283,
             'uploader': 'Josef Novak',
             'description': '',
             'upload_date': '20190204',
@@ -381,6 +400,18 @@ class FacebookIE(InfoExtractor):
         },
         'playlist_count': 1,
         'skip': 'Requires logging in',
+    }, {
+        # data.event.cover_media_renderer.cover_video
+        'url': 'https://m.facebook.com/events/1509582499515440',
+        'info_dict': {
+            'id': '637246984455045',
+            'ext': 'mp4',
+            'title': 'ANALISI IN CAMPO OSCURO " Coaguli nel sangue dei vaccinati"',
+            'description': 'Other event by Comitato Liberi Pensatori on Tuesday, October 18 2022',
+            'thumbnail': r're:^https?://.*',
+            'uploader': 'Comitato Liberi Pensatori',
+            'uploader_id': '100065709540881',
+        },
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
@@ -455,38 +486,10 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
-
-            automatic_captions, subtitles = {}, {}
-            subs_data = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
-                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')))
-            is_video_broadcast = get_first(subs_data, 'is_video_broadcast', expected_type=bool)
-            captions = get_first(subs_data, 'video_available_captions_locales', 'captions_url')
-            if url_or_none(captions):  # if subs_data only had a 'captions_url'
-                locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
-                subtitles[locale] = [{'url': captions}]
-            # or else subs_data had 'video_available_captions_locales', a list of dicts
-            for caption in traverse_obj(captions, (
-                {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
-            ):
-                lang = caption.get('localized_language') or ''
-                subs = {
-                    'url': caption['captions_url'],
-                    'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
-                }
-                if caption.get('localized_creation_method') or is_video_broadcast:
-                    automatic_captions.setdefault(caption['locale'], []).append(subs)
-                else:
-                    subtitles.setdefault(caption['locale'], []).append(subs)
-
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
-            uploader_data = (
-                get_first(media, ('owner', {dict}))
-                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
-                or get_first(post, ('node', 'actors', ..., {dict})) or {})
-
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
                 r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
@@ -495,11 +498,15 @@ class FacebookIE(InfoExtractor):
             description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
                 webpage, 'description', default=None)
+            uploader_data = (
+                get_first(media, ('owner', {dict}))
+                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
+                or get_first(post, ('node', 'actors', ..., {dict}))
+                or get_first(post, ('event', 'event_creator', {dict})) or {})
             uploader = uploader_data.get('name') or (
                 clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
                 or self._search_regex(
                     (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
-
             timestamp = int_or_none(self._search_regex(
                 r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
                 'timestamp', default=None))
@@ -515,14 +522,12 @@ class FacebookIE(InfoExtractor):
                 'uploader': uploader,
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
-                'thumbnail': thumbnail,
+                'thumbnails': [{'url': thumbnail}],
                 'view_count': parse_count(self._search_regex(
                     (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
-                'automatic_captions': automatic_captions,
-                'subtitles': subtitles,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -564,7 +569,11 @@ class FacebookIE(InfoExtractor):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
             for f in info['formats']:
+                # Downloads with browser's User-Agent are rate limited. Working around
+                # with non-browser User-Agent.
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
+                # Formats larger than ~500MB will return error 403 unless chunk size is regulated
+                f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -616,6 +625,32 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
+
+                    automatic_captions, subtitles = {}, {}
+                    is_video_broadcast = get_first([video], 'is_video_broadcast', expected_type=bool)
+                    captions = (traverse_obj(video,
+                                ('video_available_captions_locales', lambda _, v: 'captions_url' in v))
+                                or video.get('captions_url'))
+                    if url_or_none(captions):  # if video only had a 'captions_url'
+                        locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+                        auto_gen = (traverse_obj(video,
+                                    ('video_available_captions_locales', ..., 'localized_creation_method'), get_all=False)
+                                    or is_video_broadcast)
+                        (automatic_captions if auto_gen else subtitles)[locale] = [{'url': captions}]
+                    # or else video had 'video_available_captions_locales', a list of dicts
+                    for caption in traverse_obj(captions, (
+                        {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
+                    ):
+                        lang = caption.get('localized_language', '')
+                        subs = {
+                            'url': caption['captions_url'],
+                            'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
+                        }
+                        if caption.get('localized_creation_method') or is_video_broadcast:
+                            automatic_captions.setdefault(caption['locale'], []).append(subs)
+                        else:
+                            subtitles.setdefault(caption['locale'], []).append(subs)
+
                     info = {
                         'id': v_id,
                         'formats': formats,
@@ -625,6 +660,8 @@ class FacebookIE(InfoExtractor):
                         'timestamp': traverse_obj(video, 'publish_time', 'creation_time', expected_type=int_or_none),
                         'duration': (float_or_none(video.get('playable_duration_in_ms'), 1000)
                                      or float_or_none(video.get('length_in_second'))),
+                        'automatic_captions': automatic_captions,
+                        'subtitles': subtitles,
                     }
                     process_formats(info)
                     description = try_get(video, lambda x: x['savable_description']['text'])
@@ -659,7 +696,8 @@ class FacebookIE(InfoExtractor):
                 for edge in edges:
                     parse_attachment(edge, key='node')
 
-                video = data.get('video') or {}
+                video = (traverse_obj(data, ('event', 'cover_media_renderer', 'cover_video', {dict}))  # event cover video
+                         or data.get('video') or {})
                 if video:
                     attachments = try_get(video, [
                         lambda x: x['story']['attachments'],
@@ -678,6 +716,13 @@ class FacebookIE(InfoExtractor):
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
+                # preserve preferred_thumbnail in video info
+                if video_info.get('thumbnail'):
+                    if not [x for x in webpage_info['thumbnails'] if video_info['thumbnail'].split('?')[0] in x['url']]:
+                        webpage_info['thumbnails'].append({
+                            'url': video_info['thumbnail'],
+                            'preference': 1
+                        })
                 return merge_dicts(webpage_info, video_info)
 
         if not video_data:
