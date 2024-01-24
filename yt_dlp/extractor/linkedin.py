@@ -13,6 +13,7 @@ from ..utils import (
     strip_or_none,
     mimetype2ext,
     try_get,
+    url_or_none,
     urlencode_postdata,
     urljoin,
 )
@@ -104,17 +105,17 @@ class LinkedInIE(LinkedInBaseIE):
         like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
         creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
 
-        video_json = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
-        sources = self._parse_json(video_json['data-sources'], video_id)
+        video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
+        sources = self._parse_json(video_attrs['data-sources'], video_id)
         formats = [{
             'url': source['src'],
             'ext': mimetype2ext(source.get('type')),
             'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
         } for source in sources]
-        subtitles = {}
-        sub_url = video_json.get('data-captions-url')
-        if sub_url:
-            subtitles.setdefault('en', []).append({'url': sub_url, 'ext': 'vtt'})
+        subtitles = {'en': [{
+            'url': video_attrs['data-captions-url'],
+            'ext': 'vtt',
+        }]} if url_or_none(video_attrs.get('data-captions-url')) else {}
 
         return {
             'id': video_id,
