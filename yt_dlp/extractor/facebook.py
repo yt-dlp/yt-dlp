@@ -44,7 +44,6 @@ class FacebookIE(InfoExtractor):
                         (?:[^#]*?\#!/)?
                         (?:
                             (?:
-                                permalink\.php|
                                 video/video\.php|
                                 photo\.php|
                                 video\.php|
@@ -89,7 +88,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1692346159,
             'thumbnail': r're:^https?://.*',
             'uploader_id': '100063551323670',
-            'duration': 3133.583,
+            'duration': 3132.184,
             'view_count': int,
             'concurrent_view_count': 0,
         },
@@ -120,7 +119,6 @@ class FacebookIE(InfoExtractor):
             'uploader_id': 'pfbid028wxorhX2ErLFJ578N6P3crHD3PHmXTCqCvfBpsnbSLmbokwSY75p5hWBjHGkG4zxl',
             'duration': 131.03,
             'concurrent_view_count': int,
-            'view_count': int,
         },
     }, {
         'note': 'Video with DASH manifest',
@@ -173,6 +171,7 @@ class FacebookIE(InfoExtractor):
         # have 1080P, but only up to 720p in swf params
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/cnn/videos/10155529876156509/',
+        'md5': 'ca63897a90c9452efee5f8c40d080e25',
         'info_dict': {
             'id': '10155529876156509',
             'ext': 'mp4',
@@ -194,7 +193,7 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1417995061575415',
             'ext': 'mp4',
-            'title': 'Довгоочікуване відео | By Yaroslav',
+            'title': 'Довгоочікуване відео | By Yaroslav - Facebook',
             'description': 'Довгоочікуване відео',
             'timestamp': 1486648217,
             'upload_date': '20170209',
@@ -251,7 +250,6 @@ class FacebookIE(InfoExtractor):
             'duration': 148.435,
         },
     }, {
-        # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
         'info_dict': {
             'id': '6968553779868435',
@@ -265,22 +263,6 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
             'thumbnail': r're:^https?://.*',
             'timestamp': 1701975646,
-        },
-    }, {
-        # data.node.comet_sections.content.story.attachments[].styles.attachment.media
-        'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid0fqQuVEQyXRa9Dp4RcaTR14KHU3uULHV1EK7eckNXSH63JMuoALsAvVCJ97zAGitil&id=100068861234290',
-        'info_dict': {
-            'id': '270103405756416',
-            'ext': 'mp4',
-            'title': 'Lela Evans',
-            'description': 'Today Makkovik\'s own Pilot Mandy Smith made her inaugural landing on the airstrip in her hometown. What a proud moment as we all cheered and...',
-            'thumbnail': r're:^https?://.*',
-            'uploader': 'Lela Evans',
-            'uploader_id': 'pfbid0shZJipuigyy5mqrUJn9ub5LJFWNHvan5prtyi3LrDuuuJ4NwrURgnQHYR9fywBepl',
-            'upload_date': '20231228',
-            'timestamp': 1703804085,
-            'duration': 394.347,
-            'view_count': int,
         },
     }, {
         'url': 'https://www.facebook.com/story.php?story_fbid=pfbid0Fnzhm8UuzjBYpPMNFzaSpFE9UmLdU4fJN8qTANi1Dmtj5q7DNrL5NERXfsAzDEV7l&id=100073071055552',
@@ -327,7 +309,7 @@ class FacebookIE(InfoExtractor):
             'upload_date': '20180523',
             'uploader': 'ESL One Dota 2',
             'uploader_id': '100066514874195',
-            'duration': 4524.001,
+            'duration': 4524.212,
             'view_count': int,
             'thumbnail': r're:^https?://.*',
             'concurrent_view_count': int,
@@ -346,7 +328,7 @@ class FacebookIE(InfoExtractor):
             'concurrent_view_count': int,
             'uploader_id': 'pfbid0cibUN6tV7DYgdbJdsUFN46wc4jKpVSPAvJQhFofGqBGmVn3V3JtAs2tfUwziw2hUl',
             'timestamp': 1549275572,
-            'duration': 3.283,
+            'duration': 3.413,
             'uploader': 'Josef Novak',
             'description': '',
             'upload_date': '20190204',
@@ -522,7 +504,7 @@ class FacebookIE(InfoExtractor):
                 'uploader': uploader,
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
-                'thumbnails': [{'url': thumbnail}],
+                'thumbnail': thumbnail,
                 'view_count': parse_count(self._search_regex(
                     (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
                     webpage, 'view count', default=None)),
@@ -569,11 +551,7 @@ class FacebookIE(InfoExtractor):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
             for f in info['formats']:
-                # Downloads with browser's User-Agent are rate limited. Working around
-                # with non-browser User-Agent.
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-                # Formats larger than ~500MB will return error 403 unless chunk size is regulated
-                f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -716,13 +694,6 @@ class FacebookIE(InfoExtractor):
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
-                # preserve preferred_thumbnail in video info
-                if video_info.get('thumbnail'):
-                    if not [x for x in webpage_info['thumbnails'] if video_info['thumbnail'].split('?')[0] in x['url']]:
-                        webpage_info['thumbnails'].append({
-                            'url': video_info['thumbnail'],
-                            'preference': 1
-                        })
                 return merge_dicts(webpage_info, video_info)
 
         if not video_data:
