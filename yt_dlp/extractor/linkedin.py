@@ -91,8 +91,8 @@ class LinkedInIE(LinkedInBaseIE):
             'id': 'C4E05AQG7hCp7zIeciw',
             'display_id': 'mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
             'ext': 'mp4',
-            'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing',
-            'description': 'md5:be125430bab1c574f16aeb186a4d5b19',
+            'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing #nowhiring #sendinblue…',
+            'description': 'md5:2998a31f6f479376dd62831f53a80f71',
             'creator': 'Mishal K.'
         },
     }, {
@@ -102,6 +102,7 @@ class LinkedInIE(LinkedInBaseIE):
             'display_id': 'the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
             'ext': 'mp4',
             'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
+            'description': 'md5:95f9d4eeb6337882fb47eefe13d7a40c',
             'thumbnail': 'https://media.licdn.com/dms/image/D5610AQFKo9M0zqY2_g/ads-video-thumbnail_720_1280/0/1704988806715?e=2147483647&v=beta&t=0vg-ksOY2KrL_QFlNacCv5Tmuk0tum9FJ_4dlJ56Gyw',
             'subtitles': 'mincount:1'
         },
@@ -111,8 +112,8 @@ class LinkedInIE(LinkedInBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_extract_title(webpage)
-        description = clean_html(get_element_by_class('share-update-card__update-text', webpage))
+        title = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
+        description = self._og_search_description(webpage, default=None)
         like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
         creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
 
