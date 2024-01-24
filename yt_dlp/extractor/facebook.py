@@ -564,7 +564,11 @@ class FacebookIE(InfoExtractor):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
             for f in info['formats']:
+                # Downloads with browser's User-Agent are rate limited. Working around
+                # with non-browser User-Agent.
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
+                # Formats larger than ~500MB will return error 403 unless chunk size is regulated
+                f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
