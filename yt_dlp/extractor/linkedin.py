@@ -113,11 +113,8 @@ class LinkedInIE(LinkedInBaseIE):
         } for source in sources]
         subtitles = {}
         sub_url = video_json.get('data-captions-url')
-        if sub_url is not None:
-            subtitles['en'] = [{
-                'ext': 'vtt',
-                'url': sub_url
-            }]
+        if sub_url:
+            subtitles.setdefault('en', []).append({'url': sub_url, 'ext': 'vtt'})
 
         return {
             'id': video_id,
