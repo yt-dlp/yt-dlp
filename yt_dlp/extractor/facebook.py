@@ -515,7 +515,7 @@ class FacebookIE(InfoExtractor):
                 'uploader': uploader,
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
-                'thumbnail': thumbnail,
+                'thumbnails': [{'url': thumbnail}],
                 'view_count': parse_count(self._search_regex(
                     (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
                     webpage, 'view count', default=None)),
@@ -678,6 +678,13 @@ class FacebookIE(InfoExtractor):
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
+                # preserve preferred_thumbnail in video info
+                if video_info.get('thumbnail'):
+                    if not [x for x in webpage_info['thumbnails'] if video_info['thumbnail'].split('?')[0] in x['url']]:
+                        webpage_info['thumbnails'].append({
+                            'url': video_info['thumbnail'],
+                            'preference': 1
+                        })
                 return merge_dicts(webpage_info, video_info)
 
         if not video_data:
