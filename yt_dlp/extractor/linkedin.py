@@ -94,6 +94,15 @@ class LinkedInIE(LinkedInBaseIE):
             'description': 'md5:be125430bab1c574f16aeb186a4d5b19',
             'creator': 'Mishal K.'
         },
+    }, {
+        'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
+        'info_dict': {
+            'id': '2',
+            'ext': 'mp4',
+            'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
+            'thumbnail': 'https://media.licdn.com/dms/image/D5610AQFKo9M0zqY2_g/ads-video-thumbnail_720_1280/0/1704988806715?e=2147483647&v=beta&t=0vg-ksOY2KrL_QFlNacCv5Tmuk0tum9FJ_4dlJ56Gyw',
+            'subtitles': 'mincount:1'
+        },
     }]
 
     def _real_extract(self, url):
