@@ -441,6 +441,8 @@ class FacebookIE(InfoExtractor):
                 raise ExtractorError('Login account is suspended.', expected=True)
             if 'send a code to confirm the mobile number you give us' in webpage:
                 raise ExtractorError('Mobile number checkpoint for logged in user.', expected=True)
+            if 'your account has been locked' in webpage:
+                raise ExtractorError('Account is locked.', expected=True)
 
             userinfo = get_first(sjs_data, (
                 'require', ..., ..., ..., '__bbox', 'define',
