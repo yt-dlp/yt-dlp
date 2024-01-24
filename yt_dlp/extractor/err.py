@@ -46,6 +46,9 @@ from ..utils import (
 #   and/or 'und', e.g.
 #
 #       --extractor-args 'err:unknown=en;original=et;und=de'
+#
+#   FIXME:  Check episode names
+#           https://arhiiv.err.ee/video/opime-ujuma
 
 
 def json_find_node(obj, criteria):
