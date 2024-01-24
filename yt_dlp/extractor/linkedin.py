@@ -6,7 +6,6 @@ from ..utils import (
     extract_attributes,
     ExtractorError,
     float_or_none,
-    get_element_by_class,
     int_or_none,
     srt_subtitles_timecode,
     mimetype2ext,
@@ -94,6 +93,7 @@ class LinkedInIE(LinkedInBaseIE):
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
             'uploader': 'Mishal K.',
             'thumbnail': 'https://media.licdn.com/dms/image/C4E05AQG7hCp7zIeciw/feedshare-thumbnail_720_1280/0/1633381554858?e=2147483647&v=beta&t=teGgAD-Z8A2K4UrwAtEgHz9xGMrRLmUK6cE3vm3csK0',
+            'like_count': int
         },
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
@@ -105,6 +105,7 @@ class LinkedInIE(LinkedInBaseIE):
             'description': 'md5:95f9d4eeb6337882fb47eefe13d7a40c',
             'uploader': 'MathWorks',
             'thumbnail': 'https://media.licdn.com/dms/image/D5610AQFKo9M0zqY2_g/ads-video-thumbnail_720_1280/0/1704988806715?e=2147483647&v=beta&t=0vg-ksOY2KrL_QFlNacCv5Tmuk0tum9FJ_4dlJ56Gyw',
+            'like_count': int,
             'subtitles': 'mincount:1'
         },
     }]
@@ -118,7 +119,7 @@ class LinkedInIE(LinkedInBaseIE):
         json_ld_list = list(self._yield_json_ld(webpage, video_id))
         uploader = traverse_obj(
             json_ld_list, (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author'), get_all=False).get('name')
-        like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
+        like_count = int_or_none(self._search_regex(r'<a href=[^>]+\sdata-num-reactions="(\d+)"', webpage, 'reactions', default=None))
 
         video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
         print('video_attrs:', video_attrs)
