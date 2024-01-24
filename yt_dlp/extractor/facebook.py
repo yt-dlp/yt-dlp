@@ -437,7 +437,7 @@ class FacebookIE(InfoExtractor):
         sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
             r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
         if (self.get_param('username') and self.get_param('password')) or self.get_param('cookiefile'):
-            if 'We\'ve suspended your account' in webpage:
+            if any(content in webpage for content in ['180 days left to appeal', 'suspended your account']):
                 raise ExtractorError('Login account is suspended.', expected=True)
             if 'send a code to confirm the mobile number you give us' in webpage:
                 raise ExtractorError('Mobile number checkpoint for logged in user.', expected=True)
