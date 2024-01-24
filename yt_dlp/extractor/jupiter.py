@@ -21,9 +21,9 @@ class JupiterIE(InfoExtractor):
             'season_number': 1,
             'episode': 'Loteriipilet hooldekodusse',
             'episode_number': 6,
-            'series_id': 1609108187,
+            'series_id': '1609108187',
             'release_year': 2023,
-            'episode_id': 1609145945,
+            'episode_id': '1609145945',
         },
     }]
 
