@@ -49,7 +49,7 @@ class ERRJupiterIE(InfoExtractor):
             'release_year': 2023,
         },
     }, {
-        'note': 'Jupiter+: Podcast: ',
+        'note': 'Jupiter+: Podcast: lesnye-istorii-aisty',
         'url': 'https://jupiterpluss.err.ee/1608990335/lesnye-istorii-aisty',
         'md5': '8b46d7e4510b254a14b7a52211b5bf96',
         'info_dict': {
