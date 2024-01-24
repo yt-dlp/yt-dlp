@@ -3,15 +3,14 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     extract_attributes,
     ExtractorError,
     float_or_none,
     get_element_by_class,
     int_or_none,
     srt_subtitles_timecode,
-    strip_or_none,
     mimetype2ext,
+    traverse_obj,
     try_get,
     url_or_none,
     urlencode_postdata,
@@ -93,7 +92,8 @@ class LinkedInIE(LinkedInBaseIE):
             'ext': 'mp4',
             'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing #nowhiring #sendinblue…',
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
-            'creator': 'Mishal K.'
+            'uploader': 'Mishal K.',
+            'thumbnail': 'https://media.licdn.com/dms/image/C4E05AQG7hCp7zIeciw/feedshare-thumbnail_720_1280/0/1633381554858?e=2147483647&v=beta&t=teGgAD-Z8A2K4UrwAtEgHz9xGMrRLmUK6cE3vm3csK0',
         },
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
@@ -103,6 +103,7 @@ class LinkedInIE(LinkedInBaseIE):
             'ext': 'mp4',
             'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
             'description': 'md5:95f9d4eeb6337882fb47eefe13d7a40c',
+            'uploader': 'MathWorks',
             'thumbnail': 'https://media.licdn.com/dms/image/D5610AQFKo9M0zqY2_g/ads-video-thumbnail_720_1280/0/1704988806715?e=2147483647&v=beta&t=0vg-ksOY2KrL_QFlNacCv5Tmuk0tum9FJ_4dlJ56Gyw',
             'subtitles': 'mincount:1'
         },
@@ -114,8 +115,10 @@ class LinkedInIE(LinkedInBaseIE):
 
         title = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
         description = self._og_search_description(webpage, default=None)
+        json_ld_list = list(self._yield_json_ld(webpage, video_id))
+        uploader = traverse_obj(
+            json_ld_list, (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author'), get_all=False).get('name')
         like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
-        creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
 
         video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
         print('video_attrs:', video_attrs)
@@ -137,7 +140,7 @@ class LinkedInIE(LinkedInBaseIE):
             'formats': formats,
             'title': title,
             'like_count': like_count,
-            'creator': creator,
+            'uploader': uploader,
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': description,
             'subtitles': subtitles,
