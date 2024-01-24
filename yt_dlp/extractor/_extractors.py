@@ -557,6 +557,7 @@ from .eroprofile import (
     EroProfileIE,
     EroProfileAlbumIE,
 )
+from .err import ERRJupiterIE
 from .ertgr import (
     ERTFlixCodenameIE,
     ERTFlixIE,
@@ -872,7 +873,6 @@ from .jtbc import (
     JTBCIE,
     JTBCProgramIE,
 )
-from .jupiter import JupiterIE
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
