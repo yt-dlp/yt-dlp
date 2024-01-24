@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class JupiterIE(InfoExtractor):
-    _VALID_URL = r'https://jupiter\.err\.ee/(?P<id>\d+)/'
+    _VALID_URL = r'https?://jupiter(?:pluss)?\.err\.ee/(?P<id>\d+)'
     _TESTS = [{
         'note': 'S01E06: Impulss',
         'url': 'https://jupiter.err.ee/1609145945/impulss',
