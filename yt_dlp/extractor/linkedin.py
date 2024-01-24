@@ -84,11 +84,12 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
 
 
 class LinkedInIE(LinkedInBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/.+?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
         'info_dict': {
-            'id': '6850898786781339649',
+            'id': 'C4E05AQG7hCp7zIeciw',
+            'display_id': 'mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
             'ext': 'mp4',
             'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing',
             'description': 'md5:be125430bab1c574f16aeb186a4d5b19',
@@ -97,7 +98,8 @@ class LinkedInIE(LinkedInBaseIE):
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
         'info_dict': {
-            'id': '2',
+            'id': 'D5610AQFKo9M0zqY2_g',
+            'display_id': 'the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
             'ext': 'mp4',
             'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
             'thumbnail': 'https://media.licdn.com/dms/image/D5610AQFKo9M0zqY2_g/ads-video-thumbnail_720_1280/0/1704988806715?e=2147483647&v=beta&t=0vg-ksOY2KrL_QFlNacCv5Tmuk0tum9FJ_4dlJ56Gyw',
@@ -115,7 +117,9 @@ class LinkedInIE(LinkedInBaseIE):
         creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
 
         video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
+        print('video_attrs:', video_attrs)
         sources = self._parse_json(video_attrs['data-sources'], video_id)
+        id = str(video_attrs.get('data-digitalmedia-asset-urn') or video_id).replace('urn:li:digitalmediaAsset:', '')
         formats = [{
             'url': source['src'],
             'ext': mimetype2ext(source.get('type')),
@@ -127,7 +131,8 @@ class LinkedInIE(LinkedInBaseIE):
         }]} if url_or_none(video_attrs.get('data-captions-url')) else {}
 
         return {
-            'id': video_id,
+            'id': id,
+            'display_id': video_id,
             'formats': formats,
             'title': title,
             'like_count': like_count,
