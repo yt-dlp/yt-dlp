@@ -1,5 +1,3 @@
-import math
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -36,7 +34,7 @@ class ZenPornIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'md5:47aebdf87644ec91e8b1a844bc832451',
             'description': '',
-            'thumbnail': 'https://tn.manysex.com/contents/videos_screenshots/2297000/2297875/480x270/1.jpg',
+            'thumbnail': 'https://mstn.nv7s.com/contents/videos_screenshots/2297000/2297875/480x270/1.jpg',
             'post_date': '20230921',
             'uploader': 'Lois Clarke',
             'age_limit': 18
@@ -73,12 +71,11 @@ class ZenPornIE(InfoExtractor):
 
     def _gen_info_url(self, ext_domain, extr_id, lifetime=86400):
         """ This function is a reverse engineering from the website javascript """
-        dyn_a = int_or_none(1e6 * math.floor(int_or_none(extr_id) / 1e6))
-        dyn_b = int_or_none(1e3 * math.floor(int_or_none(extr_id) / 1e3))
-        if dyn_a is None or dyn_b is None:
-            raise ExtractorError('Unable to generate the ``gen_info_url``.')
-
-        return f'https://{ext_domain}/api/json/video/{lifetime}/{dyn_a}/{dyn_b}/{extr_id}.json'
+        extr_id = int_or_none(extr_id)
+        if extr_id is None:
+            raise ExtractorError('Unable to generate the `gen_info_url`')
+        result = '/'.join(str(extr_id // i * i) for i in (1_000_000, 1_000, 1))
+        return f'https://{ext_domain}/api/json/video/{lifetime}/{result}.json'
 
     def _decode_video_url(self, ext_domain, encoded_url):
         """ This function is a reverse engineering from the website javascript """
