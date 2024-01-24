@@ -3,7 +3,7 @@ from ..utils import clean_html, int_or_none, str_or_none, url_or_none
 from ..utils.traversal import traverse_obj
 
 
-class JupiterIE(InfoExtractor):
+class ERRJupiterIE(InfoExtractor):
     _VALID_URL = r'https?://jupiter(?:pluss)?\.err\.ee/(?P<id>\d+)'
     _TESTS = [{
         'note': 'S01E06: Impulss',
