@@ -48,6 +48,31 @@ class ERRJupiterIE(InfoExtractor):
             'modified_timestamp': 1701967200,
             'release_year': 2023,
         },
+    }, {
+        'note': 'Jupiter+: Podcast: ',
+        'url': 'https://jupiterpluss.err.ee/1608990335/lesnye-istorii-aisty',
+        'md5': '8b46d7e4510b254a14b7a52211b5bf96',
+        'info_dict': {
+            'id': '1608990335',
+            'ext': 'm4a',
+            'title': 'Лесные истории | Аисты',
+            'alt_title': '',
+            'description': 'md5:065e721623e271e7a63e6540d409ca6b',
+            'release_date': '20230609',
+            'upload_date': '20230527',
+            'modified_date': '20230608',
+            'release_timestamp': 1686308700,
+            'timestamp': 1685145600,
+            'modified_timestamp': 1686252600,
+            'release_year': 2023,
+            'episode': 'Episode 0',
+            'episode_id': '1608990335',
+            'episode_number': 0,
+            'season': 'Season 0',
+            'season_number': 0,
+            'series': 'Лесные истории | Аисты',
+            'series_id': '1037497',
+        },
     }]
 
     def _real_extract(self, url):
