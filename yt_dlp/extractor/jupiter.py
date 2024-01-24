@@ -33,11 +33,25 @@ class JupiterIE(InfoExtractor):
             'https://services.err.ee/api/v2/vodContent/getContentPageData', video_id,
             query={'contentId': video_id})['data']['mainContent']
 
-        formats, subtitles = [], {}
-        for url in traverse_obj(data, ('medias', ..., 'src', 'hls')):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
+        media_data = traverse_obj(data, ('medias', ..., {dict}), get_all=False)
+        if traverse_obj(media_data, ('restrictions', 'drm', {bool})):
+            self.raise_no_formats('This video is DRM protected', expected=True)
+
+        for url in set(traverse_obj(media_data, ('src', ('hls', 'hls2', 'hlsNew'), {url_or_none}))):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                url, video_id, 'mp4', m3u8_id='hls', fatal=False)
             formats.extend(fmts)
-            subtitles = self._merge_subtitles(subtitles, subs)
+            self._merge_subtitles(subs, target=subtitles)
+        for url in set(traverse_obj(media_data, ('src', ('dash', 'dashNew'), {url_or_none}))):
+            fmts, subs = self._extract_mpd_formats_and_subtitles(
+                url, video_id, mpd_id='dash', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+        if url := traverse_obj(media_data, ('src', 'file', {url_or_none})):
+            formats.append({
+                'url': url,
+                'format_id': 'http',
+            })
 
         return {
             'id': video_id,
