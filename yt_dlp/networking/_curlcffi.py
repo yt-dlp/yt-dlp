@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import math
 import urllib.parse
@@ -37,8 +39,8 @@ from curl_cffi.const import CurlECode, CurlOpt
 class CurlCFFIResponseReader(io.IOBase):
     def __init__(self, response: curl_cffi.requests.Response):
         self._response = response
+        self._iterator = response.iter_content()
         self._buffer = b''
-        self._eof = False
         self.bytes_read = 0
 
     def readable(self):
@@ -47,33 +49,32 @@ class CurlCFFIResponseReader(io.IOBase):
     def read(self, size=None):
         exception_raised = True
         try:
-            while not self._eof and (size is None or len(self._buffer) < size):
-                chunk = next(self._response.iter_content(), None)
+            while self._iterator and (size is None or len(self._buffer) < size):
+                chunk = next(self._iterator, None)
                 if chunk is None:
-                    self._eof = True
+                    self._iterator = None
                     break
                 self._buffer += chunk
-                self.bytes_read += len(self._buffer)
+                self.bytes_read += len(chunk)
 
             if size is None:
-                data = self._buffer
-                self._buffer = b''
-            else:
-                data = self._buffer[:size]
-                self._buffer = self._buffer[size:]
+                size = len(self._buffer)
+            data = self._buffer[:size]
+            self._buffer = self._buffer[size:]
 
             # "free" the curl instance if the response is fully read.
             # curl_cffi doesn't do this automatically and only allows one open response per thread
-            if self._eof and len(self._buffer) == 0:
+            if not self._iterator and not self._buffer:
                 self.close()
             exception_raised = False
             return data
         finally:
-            if exception_raised and not self.closed:
+            if exception_raised:
                 self.close()
 
     def close(self):
-        self._response.close()
+        if not self.closed:
+            self._response.close()
         super().close()
 
 

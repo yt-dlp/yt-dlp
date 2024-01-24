@@ -10,7 +10,7 @@ from ..compat.types import NoneType
 from ..utils import classproperty
 
 
-@dataclass(order=True)
+@dataclass(order=True, frozen=True)
 class ImpersonateTarget:
     """
     A target for browser impersonation.
@@ -39,20 +39,12 @@ class ImpersonateTarget:
         )
 
     def __str__(self):
-        filtered_parts = [
-            str(part) if part is not None else ''
-            for part in (self.client, self.version, self.os, self.os_vers)
-        ]
-        return ':'.join(filtered_parts).rstrip(':')
+        return ':'.join(part or '' for part in (
+            self.client, self.version, self.os, self.os_vers)).rstrip(':')
 
     @classmethod
     def from_str(cls, target: str):
-        return ImpersonateTarget(*[
-            None if (v or '').strip() == '' else v for v in target.split(':')
-        ])
-
-    def __hash__(self):
-        return hash((self.client, self.version, self.os, self.os_vers))
+        return cls(*(v.strip() or None for v in target.split(':')))
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):
@@ -129,7 +121,7 @@ class ImpersonateRequestHandler(RequestHandler, ABC):
                 return supported_target
 
     @classproperty
-    def supported_targets(self) -> tuple[ImpersonateTarget]:
+    def supported_targets(self) -> tuple[ImpersonateTarget, ...]:
         return tuple(self._SUPPORTED_IMPERSONATE_TARGET_MAP.keys())
 
     def is_supported_target(self, target: ImpersonateTarget):
