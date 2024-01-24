@@ -13,7 +13,25 @@ from ..utils.traversal import traverse_obj
 class ERRJupiterIE(InfoExtractor):
     _VALID_URL = r'https?://jupiter(?:pluss)?\.err\.ee/(?P<id>\d+)'
     _TESTS = [{
-        'note': 'S01E06: Impulss',
+        'note': 'Jupiter: Movie: siin-me-oleme',
+        'url': 'https://jupiter.err.ee/1211107/siin-me-oleme',
+        'md5': '9b45d1682a98853acaa1e1b0c791f425',
+        'info_dict': {
+            'id': '1211107',
+            'ext': 'mp4',
+            'title': 'Siin me oleme!',
+            'alt_title': '',
+            'description': 'md5:1825b795f5f7584241aeb59e5bbb4f70',
+            'release_date': '20231226',
+            'upload_date': '20201217',
+            'modified_date': '20201217',
+            'release_timestamp': 1703577600,
+            'timestamp': 1608210000,
+            'modified_timestamp': 1608220800,
+            'release_year': 1978,
+        },
+    }, {
+        'note': 'Jupiter: Series: Impulss',
         'url': 'https://jupiter.err.ee/1609145945/impulss',
         'md5': 'a378486df07ed1ba74e46cc861886243',
         'info_dict': {
