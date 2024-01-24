@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import clean_html, int_or_none, str_or_none, url_or_none
+from ..utils import clean_html, int_or_none, str_or_none, url_or_none, ExtractorError, try_call
 from ..utils.traversal import traverse_obj
 
 
@@ -102,9 +102,11 @@ class ERRJupiterIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
+        data = try_call(lambda : self._download_json(
             'https://services.err.ee/api/v2/vodContent/getContentPageData', video_id,
-            query={'contentId': video_id})['data']['mainContent']
+            query={'contentId': video_id})['data']['mainContent'])
+        if not data:
+            raise ExtractorError('Failed to get video data', expected=True)
 
         media_data = traverse_obj(data, ('medias', ..., {dict}), get_all=False)
         if traverse_obj(media_data, ('restrictions', 'drm', {bool})):
