@@ -30,6 +30,24 @@ class ERRJupiterIE(InfoExtractor):
             'release_year': 2023,
             'episode_id': '1609145945',
         },
+    }, {
+        'note': 'Jupiter+: Clip: bolee-zelenyj-tallinn',
+        'url': 'https://jupiterpluss.err.ee/1609180445/bolee-zelenyj-tallinn',
+        'md5': '1b812270c4daf6ce51c06bfeaf33ed95',
+        'info_dict': {
+            'id': '1609180445',
+            'ext': 'mp4',
+            'title': 'Более зеленый Таллинн',
+            'alt_title': '',
+            'description': 'md5:fd34d9bf939c28c4a725b19a7f0d6320',
+            'release_date': '20231224',
+            'upload_date': '20231130',
+            'modified_date': '20231207',
+            'release_timestamp': 1703423400,
+            'timestamp': 1701338400,
+            'modified_timestamp': 1701967200,
+            'release_year': 2023,
+        },
     }]
 
     def _real_extract(self, url):
