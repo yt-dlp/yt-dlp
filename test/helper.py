@@ -10,7 +10,7 @@ import types
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_os_name
-from yt_dlp.utils import preferredencoding, write_string
+from yt_dlp.utils import preferredencoding, try_call, write_string, find_available_port
 
 if 'pytest' in sys.modules:
     import pytest
@@ -223,6 +223,10 @@ def sanitize_got_info_dict(got_dict):
     if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
 
+    # release_year may be generated from release_date
+    if try_call(lambda: test_info_dict['release_year'] == int(test_info_dict['release_date'][:4])):
+        test_info_dict.pop('release_year')
+
     # Check url for flat entries
     if got_dict.get('_type', 'video') != 'video' and got_dict.get('url'):
         test_info_dict['url'] = got_dict['url']
@@ -325,3 +329,8 @@ def http_server_port(httpd):
     else:
         sock = httpd.socket
     return sock.getsockname()[1]
+
+
+def verify_address_availability(address):
+    if find_available_port(address) is None:
+        pytest.skip(f'Unable to bind to source address {address} (address may not exist)')

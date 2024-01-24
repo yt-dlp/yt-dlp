@@ -16,9 +16,11 @@ from ..utils import (
     determine_ext,
     error_to_compat_str,
     float_or_none,
+    format_field,
     get_element_by_id,
     get_first,
     int_or_none,
+    join_nonempty,
     js_to_json,
     merge_dicts,
     parse_count,
@@ -51,12 +53,12 @@ class FacebookIE(InfoExtractor):
                             )\?(?:.*?)(?:v|video_id|story_fbid)=|
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
-                            groups/[^/]+/permalink/|
+                            groups/[^/]+/(?:permalink|posts)/|
                             watchparty/
                         )|
                     facebook:
                 )
-                (?P<id>[0-9]+)
+                (?P<id>pfbid[A-Za-z0-9]+|\d+)
                 '''
     _EMBED_REGEX = [
         r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
@@ -231,6 +233,39 @@ class FacebookIE(InfoExtractor):
             'uploader_id': '100013949973717',
         },
         'skip': 'Requires logging in',
+    }, {
+        # data.node.comet_sections.content.story.attachments[].throwbackStyles.attachment_target_renderer.attachment.target.attachments[].styles.attachment.media
+        'url': 'https://www.facebook.com/groups/1645456212344334/posts/3737828833107051/',
+        'info_dict': {
+            'id': '1569199726448814',
+            'ext': 'mp4',
+            'title': 'Pence MUST GO!',
+            'description': 'Vickie Gentry shared a memory.',
+            'timestamp': 1511548260,
+            'upload_date': '20171124',
+            'uploader': 'Vickie Gentry',
+            'uploader_id': 'pfbid0FuZhHCeWDAxWxEbr3yKPFaRstXvRxgsp9uCPG6GjD4J2AitB35NUAuJ4Q75KcjiDl',
+            'thumbnail': r're:^https?://.*',
+            'duration': 148.435,
+        },
+    }, {
+        'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
+        'info_dict': {
+            'id': '6968553779868435',
+            'ext': 'mp4',
+            'description': 'md5:2f2fcf93e97ac00244fe64521bbdb0cb',
+            'uploader': 'ATTN:',
+            'upload_date': '20231207',
+            'title': 'ATTN:',
+            'duration': 132.675,
+            'uploader_id': '100064451419378',
+            'view_count': int,
+            'thumbnail': r're:^https?://.*',
+            'timestamp': 1701975646,
+        },
+    }, {
+        'url': 'https://www.facebook.com/story.php?story_fbid=pfbid0Fnzhm8UuzjBYpPMNFzaSpFE9UmLdU4fJN8qTANi1Dmtj5q7DNrL5NERXfsAzDEV7l&id=100073071055552',
+        'only_matching': True,
     }, {
         'url': 'https://www.facebook.com/video.php?v=10204634152394104',
         'only_matching': True,
@@ -420,6 +455,29 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+
+            automatic_captions, subtitles = {}, {}
+            subs_data = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')))
+            is_video_broadcast = get_first(subs_data, 'is_video_broadcast', expected_type=bool)
+            captions = get_first(subs_data, 'video_available_captions_locales', 'captions_url')
+            if url_or_none(captions):  # if subs_data only had a 'captions_url'
+                locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+                subtitles[locale] = [{'url': captions}]
+            # or else subs_data had 'video_available_captions_locales', a list of dicts
+            for caption in traverse_obj(captions, (
+                {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
+            ):
+                lang = caption.get('localized_language') or ''
+                subs = {
+                    'url': caption['captions_url'],
+                    'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
+                }
+                if caption.get('localized_creation_method') or is_video_broadcast:
+                    automatic_captions.setdefault(caption['locale'], []).append(subs)
+                else:
+                    subtitles.setdefault(caption['locale'], []).append(subs)
+
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
@@ -463,6 +521,8 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
+                'automatic_captions': automatic_captions,
+                'subtitles': subtitles,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -586,9 +646,11 @@ class FacebookIE(InfoExtractor):
                 nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
                 attachments = traverse_obj(nodes, (
                     ..., 'comet_sections', 'content', 'story', (None, 'attached_story'), 'attachments',
-                    ..., ('styles', 'style_type_renderer'), 'attachment'), expected_type=dict) or []
+                    ..., ('styles', 'style_type_renderer', ('throwbackStyles', 'attachment_target_renderer')),
+                    'attachment', {dict}))
                 for attachment in attachments:
-                    ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
+                    ns = traverse_obj(attachment, ('all_subattachments', 'nodes', ..., {dict}),
+                                      ('target', 'attachments', ..., 'styles', 'attachment', {dict}))
                     for n in ns:
                         parse_attachment(n)
                     parse_attachment(attachment)
@@ -611,7 +673,7 @@ class FacebookIE(InfoExtractor):
                 if len(entries) > 1:
                     return self.playlist_result(entries, video_id)
 
-                video_info = entries[0]
+                video_info = entries[0] if entries else {'id': video_id}
                 webpage_info = extract_metadata(webpage)
                 # honor precise duration in video info
                 if video_info.get('duration'):
@@ -846,3 +908,114 @@ class FacebookReelIE(InfoExtractor):
         video_id = self._match_id(url)
         return self.url_result(
             f'https://m.facebook.com/watch/?v={video_id}&_rdr', FacebookIE, video_id)
+
+
+class FacebookAdsIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/?\?(?:[^#]+&)?id=(?P<id>\d+)'
+    IE_NAME = 'facebook:ads'
+
+    _TESTS = [{
+        'url': 'https://www.facebook.com/ads/library/?id=899206155126718',
+        'info_dict': {
+            'id': '899206155126718',
+            'ext': 'mp4',
+            'title': 'video by Kandao',
+            'uploader': 'Kandao',
+            'uploader_id': '774114102743284',
+            'uploader_url': r're:^https?://.*',
+            'timestamp': 1702548330,
+            'thumbnail': r're:^https?://.*',
+            'upload_date': '20231214',
+            'like_count': int,
+        }
+    }, {
+        'url': 'https://www.facebook.com/ads/library/?id=893637265423481',
+        'info_dict': {
+            'id': '893637265423481',
+            'title': 'Jusqu\u2019\u00e0 -25% sur une s\u00e9lection de vins p\u00e9tillants italiens ',
+            'uploader': 'Eataly Paris Marais',
+            'uploader_id': '2086668958314152',
+            'uploader_url': r're:^https?://.*',
+            'timestamp': 1703571529,
+            'upload_date': '20231226',
+            'like_count': int,
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://es-la.facebook.com/ads/library/?id=901230958115569',
+        'only_matching': True,
+    }, {
+        'url': 'https://m.facebook.com/ads/library/?id=901230958115569',
+        'only_matching': True,
+    }]
+
+    _FORMATS_MAP = {
+        'watermarked_video_sd_url': ('sd-wmk', 'SD, watermarked'),
+        'video_sd_url': ('sd', None),
+        'watermarked_video_hd_url': ('hd-wmk', 'HD, watermarked'),
+        'video_hd_url': ('hd', None),
+    }
+
+    def _extract_formats(self, video_dict):
+        formats = []
+        for format_key, format_url in traverse_obj(video_dict, (
+            {dict.items}, lambda _, v: v[0] in self._FORMATS_MAP and url_or_none(v[1])
+        )):
+            formats.append({
+                'format_id': self._FORMATS_MAP[format_key][0],
+                'format_note': self._FORMATS_MAP[format_key][1],
+                'url': format_url,
+                'ext': 'mp4',
+                'quality': qualities(tuple(self._FORMATS_MAP))(format_key),
+            })
+        return formats
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        post_data = [self._parse_json(j, video_id, fatal=False)
+                     for j in re.findall(r's\.handle\(({.*})\);requireLazy\(', webpage)]
+        data = traverse_obj(post_data, (
+            ..., 'require', ..., ..., ..., 'props', 'deeplinkAdCard', 'snapshot', {dict}), get_all=False)
+        if not data:
+            raise ExtractorError('Unable to extract ad data')
+
+        title = data.get('title')
+        if not title or title == '{{product.name}}':
+            title = join_nonempty('display_format', 'page_name', delim=' by ', from_dict=data)
+
+        info_dict = traverse_obj(data, {
+            'description': ('link_description', {str}, {lambda x: x if x != '{{product.description}}' else None}),
+            'uploader': ('page_name', {str}),
+            'uploader_id': ('page_id', {str_or_none}),
+            'uploader_url': ('page_profile_uri', {url_or_none}),
+            'timestamp': ('creation_time', {int_or_none}),
+            'like_count': ('page_like_count', {int_or_none}),
+        })
+
+        entries = []
+        for idx, entry in enumerate(traverse_obj(
+            data, (('videos', 'cards'), lambda _, v: any([url_or_none(v[f]) for f in self._FORMATS_MAP]))), 1
+        ):
+            entries.append({
+                'id': f'{video_id}_{idx}',
+                'title': entry.get('title') or title,
+                'description': entry.get('link_description') or info_dict.get('description'),
+                'thumbnail': url_or_none(entry.get('video_preview_image_url')),
+                'formats': self._extract_formats(entry),
+            })
+
+        if len(entries) == 1:
+            info_dict.update(entries[0])
+
+        elif len(entries) > 1:
+            info_dict.update({
+                'title': entries[0]['title'],
+                'entries': entries,
+                '_type': 'playlist',
+            })
+
+        info_dict['id'] = video_id
+
+        return info_dict

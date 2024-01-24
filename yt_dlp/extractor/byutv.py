@@ -8,9 +8,9 @@ from ..utils import (
 
 
 class BYUtvIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?byutv\.org/(?:watch|player)/(?!event/)(?P<id>[0-9a-f-]+)(?:/(?P<display_id>[^/?#&]+))?'
     _TESTS = [{
-        # ooyalaVOD
         'url': 'http://www.byutv.org/watch/6587b9a3-89d2-42a6-a7f7-fd2f81840a7d/studio-c-season-5-episode-5',
         'info_dict': {
             'id': 'ZvanRocTpW-G5_yZFeltTAMv6jxOU9KH',
@@ -24,7 +24,6 @@ class BYUtvIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'add_ie': ['Ooyala'],
     }, {
         # dvr
         'url': 'https://www.byutv.org/player/8f1dab9b-b243-47c8-b525-3e2d021a3451/byu-softball-pacific-vs-byu-41219---game-2',
@@ -62,19 +61,6 @@ class BYUtvIE(InfoExtractor):
                 'x-byutv-context': 'web$US',
                 'x-byutv-platformkey': 'xsaaw9c7y5',
             })
-
-        ep = video.get('ooyalaVOD')
-        if ep:
-            return {
-                '_type': 'url_transparent',
-                'ie_key': 'Ooyala',
-                'url': 'ooyala:%s' % ep['providerId'],
-                'id': video_id,
-                'display_id': display_id,
-                'title': ep.get('title'),
-                'description': ep.get('description'),
-                'thumbnail': ep.get('imageThumbnail'),
-            }
 
         info = {}
         formats = []

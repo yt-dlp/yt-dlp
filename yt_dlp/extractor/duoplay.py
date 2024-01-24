@@ -54,21 +54,6 @@ class DuoplayIE(InfoExtractor):
             'release_year': 2010,
         },
     }, {
-        'note': 'Movie',
-        'url': 'https://duoplay.ee/4325/naljamangud',
-        'md5': '2b0bcac4159a08b1844c2bfde06b1199',
-        'info_dict': {
-            'id': '4325',
-            'ext': 'mp4',
-            'title': 'Näljamängud',
-            'thumbnail': r're:https://.+\.jpg(?:\?c=\d+)?$',
-            'description': 'md5:fb35f5eb2ff46cdb82e4d5fbe7b49a13',
-            'cast': ['Jennifer Lawrence', 'Josh Hutcherson', 'Liam Hemsworth'],
-            'upload_date': '20231109',
-            'timestamp': 1699552800,
-            'release_year': 2012,
-        },
-    }, {
         'note': 'Movie without expiry',
         'url': 'https://duoplay.ee/5501/pilvede-all.-neljas-ode',
         'md5': '7abf63d773a49ef7c39f2c127842b8fd',
