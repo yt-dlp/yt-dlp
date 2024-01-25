@@ -515,7 +515,7 @@ class FacebookIE(InfoExtractor):
                 'uploader': uploader,
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
-                'thumbnails': [{'url': thumbnail}],
+                'thumbnails': [{'url': thumbnail}] if url_or_none(thumbnail) else None,
                 'view_count': parse_count(self._search_regex(
                     (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)',),
                     webpage, 'view count', default=None)),
@@ -680,8 +680,8 @@ class FacebookIE(InfoExtractor):
                     webpage_info['duration'] = video_info['duration']
                 # preserve preferred_thumbnail in video info
                 if video_info.get('thumbnail'):
-                    if not [x for x in webpage_info['thumbnails'] if video_info['thumbnail'].split('?')[0] in x['url']]:
-                        webpage_info['thumbnails'].append({
+                    if not webpage_info.get('thumbnails') or not [x for x in webpage_info['thumbnails'] if video_info['thumbnail'].split('?')[0] in x['url']]:
+                        webpage_info.setdefault('thumbnails', []).append({
                             'url': video_info['thumbnail'],
                             'preference': 1
                         })
