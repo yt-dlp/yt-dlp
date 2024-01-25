@@ -160,7 +160,7 @@ class ERRJupiterIE(InfoExtractor):
 
         media_data = traverse_obj(data, ('medias', ..., {dict}), get_all=False)
         if traverse_obj(media_data, ('restrictions', 'drm', {bool})):
-            self.raise_no_formats('This video is DRM protected', expected=True)
+            self.report_drm(video_id)
 
         formats, subtitles = [], {}
         for url in set(traverse_obj(media_data, ('src', ('hls', 'hls2', 'hlsNew'), {url_or_none}))):
