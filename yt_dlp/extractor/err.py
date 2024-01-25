@@ -152,11 +152,9 @@ class ERRJupiterIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = try_call(lambda: self._download_json(
+        data = self._download_json(
             'https://services.err.ee/api/v2/vodContent/getContentPageData', video_id,
-            query={'contentId': video_id})['data']['mainContent'])
-        if not data:
-            raise ExtractorError('Failed to get video data', expected=True)
+            query={'contentId': video_id})['data']['mainContent']
 
         media_data = traverse_obj(data, ('medias', ..., {dict}), get_all=False)
         if traverse_obj(media_data, ('restrictions', 'drm', {bool})):
