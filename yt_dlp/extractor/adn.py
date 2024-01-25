@@ -176,6 +176,11 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
+        username, password = self._get_login_info()
+        # ADN requires login for German site (at least for now)
+        if lang == 'de' and (not username or not password):
+            self.raise_login_required(method='password')
+
         video_base_url = self._PLAYER_BASE_URL + 'video/%s/' % video_id
         player = self._download_json(
             video_base_url + 'configuration', video_id,
@@ -183,9 +188,17 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             headers=self._HEADERS)['player']
         options = player['options']
 
+        subscription_msg = 'This video requires a subscription'
+        # Ad supported videos are not yet available in German
+        if lang == 'de' and 'ads' in options:
+            raise ExtractorError(subscription_msg, expected=True)
+
         user = options['user']
         if not user.get('hasAccess'):
-            self.raise_login_required()
+            if username and password:
+                raise ExtractorError(subscription_msg, expected=True)
+
+            self.raise_login_required(method='password')
 
         token = self._download_json(
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
