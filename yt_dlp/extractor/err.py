@@ -1,10 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     clean_html,
     int_or_none,
     str_or_none,
-    try_call,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
