@@ -717,7 +717,7 @@ class YoutubeDL:
                 raise YoutubeDLError(
                     f'Impersonate target "{self.params.get("impersonate")}" is not available. '
                     f'Use --list-impersonate-targets to see available targets. '
-                    f'You may be missing dependencies required to support this target - check the manual for what dependencies you may need to install.')
+                    f'You may be missing dependencies required to support this target.')
 
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
@@ -4136,7 +4136,7 @@ class YoutubeDL:
                         f'Impersonate target "{req.extensions["impersonate"]}" is not available.'
                         f' See --list-impersonate-targets for available targets.'
                         f' This request requires browser impersonation, however you may be missing dependencies'
-                        f' required to support this target. Check the manual for what dependencies you may need to install.')
+                        f' required to support this target.')
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
