@@ -67,7 +67,7 @@ class NYTimesBaseIE(InfoExtractor):
 
 
 class NYTimesArticleIE(NYTimesBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?nytimes\.com/\d{4}/\d{2}/\d{2}/[^/]+/(?:\w+/)?(?P<id>[^.]+)(?:\.html)?'
+    _VALID_URL = r'https?://(?:www\.)?nytimes\.com/\d{4}/\d{2}/\d{2}/(?!books|podcasts)[^/]+/(?:\w+/)?(?P<id>[^.]+)(?:\.html)?'
     _TESTS = [{
         'url': 'http://www.nytimes.com/2015/04/14/business/owner-of-gravity-payments-a-credit-card-processor-is-setting-a-new-minimum-wage-70000-a-year.html?_r=0',
         'md5': '3eb5ddb1d6f86254fe4f233826778737',
