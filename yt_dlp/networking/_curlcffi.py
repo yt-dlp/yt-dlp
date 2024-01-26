@@ -75,6 +75,7 @@ class CurlCFFIResponseReader(io.IOBase):
     def close(self):
         if not self.closed:
             self._response.close()
+            self._buffer = b''
         super().close()
 
 
