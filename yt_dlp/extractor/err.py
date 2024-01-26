@@ -47,9 +47,14 @@ from ..utils import (
 #
 #       --extractor-args 'err:unknown=en;original=et;und=de'
 #
-#   FIXME:  Check episode names
-#           https://arhiiv.err.ee/video/opime-ujuma
-
+#   FIXME:  Check playlists
+#           https://klassikaraadio.err.ee/arhiiv/fanta
+#           https://klassikaraadio.err.ee/arhiiv/album
+#           https://vikerraadio.err.ee/arhiiv/kauamangiv
+#           https://r2.err.ee/arhiiv/olukorrastriigis
+#           https://r4.err.ee/arhiiv/razbor_poletov
+#   FIXME   No description found
+#           https://r4.err.ee/1609221212/razbor-poljotov
 
 def json_find_node(obj, criteria):
     """Searches recursively depth first for a node that satisfies all
@@ -121,7 +126,7 @@ def padding_width(count):
 
 
 def sanitize_title(title):
-    """Replaces [/.?!:|] with '-', strips dots and spaces, suppresses '*', all
+    """Replaces [/.?!|] with '-', strips dots and spaces, suppresses '*', all
     sorts of quotes and fancy characters. """
     if not title:
         return None
@@ -129,7 +134,7 @@ def sanitize_title(title):
     title = re.sub(r'[,;]+', ' ', title)
     title = re.sub(r'\s+', ' ', title)
     title = title.replace(u'\u2014', '-')\
-                 .strip().strip('.?!')
+            .strip().strip('.?!:').strip()
     title = re.sub(r'[?!]+', '.', title)
     return ' - '.join(map(lambda s: s.strip(), re.split(r'[/|]+', title)))
 
@@ -614,8 +619,8 @@ class ERRTVIE(ERRBaseIE):
             'upload_date': '20201210',
             'timestamp': 1607605201,
             'content_type': 'episode',
-            'release_timestamp': 1660624200,
-            'release_date': '20220816',
+            'release_timestamp': 1707367200,
+            'release_date': '20240208',
             'license': 'https://info.err.ee/982667/kasutustingimused-ja-kommenteerimine',
             'geoblocked': False,
             'drm': False,
@@ -780,13 +785,13 @@ class ERRTVIE(ERRBaseIE):
             info['description'] = clean_html(obj['lead'])
             if json_has_value(obj, 'body'):
                 info['description'] = info['description'] + '\n\n' + clean_html(obj['body'])
-            if json_has_value(obj, 'originalTitle') or json_has_value(obj, 'country') or json_has_value(obj, 'year'):
+            if json_has_value(obj, 'originalTitle') or json_has_value(obj, 'country') or (json_has_value(obj, 'year') and int(obj['year']) > 0):
                 info['description'] = info['description'] + '\n'
             if json_has_value(obj, 'originalTitle'):
                 info['description'] = info['description'] + '\n' + clean_html(obj['originalTitle'])
             if json_has_value(obj, 'country'):
                 info['description'] = info['description'] + '\n' + clean_html(obj['country'])
-            if json_has_value(obj, 'year'):
+            if json_has_value(obj, 'year') and int(obj['year']) > 0:
                 info['description'] = info['description'] + '\n' + clean_html(obj['year'])
 
         if extract_thumbnails:
@@ -1066,7 +1071,7 @@ class ERRJupiterIE(ERRTVIE):
             'series': 'Retrodisko',
             'thumbnail':
             'https://s.err.ee/photo/crop/2020/06/17/789134h64bct8.jpg',
-            'description': 'md5:1ab9e28debff8d61062b5f64a68a5cf1',
+            'description': 'md5:7fd0a8e066072097a88d6adbc18de35a',
             'upload_date': '20200618',
             'timestamp': 1592474400,
             'drm': False,
@@ -1238,7 +1243,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Linnu- ja loomakool',
             'thumbnail':
             'https://s.err.ee/photo/crop/2013/11/14/88329hb0f6t8.jpg',
-            'description': 'md5:0d313f7f2439d70271c50b77cccb88df',
+            'description': 'md5:8b23b696c7cb4b07de566701a87a7851',
             'upload_date': '20150601',
             'timestamp': 1433149200,
             'content_type': 'episode',
@@ -1270,7 +1275,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Miraaž',
             'thumbnail':
             'https://s.err.ee/photo/crop/2021/06/11/1037268h5e4et8.jpg',
-            'description': 'md5:c231a018f0398b7d20d211b2a3770789',
+            'description': 'md5:24da2208102bfb8cbdee56317ba0ee5e',
             'upload_date': '20210609',
             'timestamp': 1623243600,
             'content_type': 'episode',
@@ -1303,7 +1308,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Kuuldemäng',
             'thumbnail':
             'https://s.err.ee/photo/crop/2014/06/28/439219h8c05t8.jpg',
-            'description': 'md5:74387160bea9b8f032103f1515f42eda',
+            'description': 'md5:f7e2b072889ef84beb06f792d2eeb1d9',
             'upload_date': '20210615',
             'timestamp': 1623744000,
             'content_type': 'episode',
@@ -1333,7 +1338,7 @@ class ERRRadioIE(ERRTVIE):
             'series': 'Разбор полетов',
             'thumbnail':
             'https://s.err.ee/photo/crop/2020/05/17/779446h5ecct8.jpg',
-            'description': 'md5:0c5b368877854f1b5212b4cac2b62a84',
+            'description': 'md5:3946e1c4793aa1a2fc867591a097d730',
             'upload_date': '20210531',
             'timestamp': 1622460600,
             'episode_id': '20210531',
@@ -1377,7 +1382,7 @@ class ERRArhiivIE(ERRTVIE):
             'ext': 'mp4',
             'title': 'Eesti aja lood. Okupatsioonid - 68 - Muusad sõja varjus',
             'thumbnail':
-            'https://arhiiv-images.err.ee/public/thumbnails/2009-002267-0068_0001_D10_EESTI-AJA-LOOD-OKUPATSIOONID.jpg',
+            'https://arhiiv-images.err.ee/thumbnails/2009-002267-0068_0001_D10_EESTI-AJA-LOOD-OKUPATSIOONID.jpg',
             'description': 'md5:36772936a0982571ce23aa0dad1f6231',
             'upload_date': '20091025',
             'timestamp': 1256428800,
@@ -1408,7 +1413,7 @@ class ERRArhiivIE(ERRTVIE):
             'ext': 'mp4',
             'title': 'Tallinn. Mai-juuni 1976',
             'thumbnail':
-            'https://arhiiv-images.err.ee/public/thumbnails/2023/4829h4786_thumb.jpg',
+            'https://arhiiv-images.err.ee/thumbnails/2023/4829h4786_thumb.jpg',
             'upload_date': '19760917',
             'timestamp': 211766400,
             'episode': 'Tallinn. Mai-juuni 1976',
@@ -1433,7 +1438,7 @@ class ERRArhiivIE(ERRTVIE):
             'ext': 'm4a',
             'title': 'Linnulaul - 34. Rukkirääk',
             'thumbnail':
-            'https://arhiiv-images.err.ee/public/thumbnails/2022/557h4afd_thumb.jpg',
+            'https://arhiiv-images.err.ee/thumbnails/2022/557h4afd_thumb.jpg',
             'description': 'md5:d41739b0c8e250a3435216afc98c8741',
             'channel': '2002 EESTI RAADIO',
             'timestamp': 1022716800,
@@ -1542,17 +1547,17 @@ class ERRArhiivIE(ERRTVIE):
 
     def _api_get_series(self, url_dict, playlist_id, limit=100, page=1, sort='old'):
         # List data can be fetched by api/v1/series/video/series_id
-        # Posted form controls the returned list's size, slice, sort order.
+        # Posted form controls:
         #   limit = 24|100|500
         #   page = 1|2|3 etc.
         #   sort = new|old|abc
-        #   all = false|
+        #   all = false|true
         headers = self._get_request_headers(self._ERR_API_GET_SERIES % url_dict,
                                             ['Referer', 'Origin', 'x-srh', 'Cookie'])
         data = self._download_json(
             self._ERR_API_GET_SERIES % url_dict, playlist_id,
             headers=headers,
-            data=json.dumps({'limit': limit, 'page': page, 'sort': sort, 'all': 'true'}).encode())
+            data=urlencode_postdata({'limit': limit, 'page': page, 'sort': sort, 'all': 'false'}))
         if json_has_value(data, 'activeList'):
             data = json_get_value(data, 'activeList')
         else:
@@ -1662,15 +1667,15 @@ class ERRArhiivIE(ERRTVIE):
             if not episode:
                 self.report_warning('Episode name reduced to \'none\'')
             else:
-                info['episode'] = episode
+                info['episode'] = sanitize_title(episode)
 
             if 'episode' in info:
                 info['title'] = info['series'] + ' - ' + info['episode']
 
         info['title'] = sanitize_title(info['title'])
 
-        if json_has_value(page, 'info.photoUrl'):
-            info['thumbnail'] = json_get_value(page, 'info.photoUrl')
+        if json_has_value(page, 'info.videoPhotoUrl'):
+            info['thumbnail'] = json_get_value(page, 'info.videoPhotoUrl')
 
         if json_has_value(page, 'metadata.data'):
             def traverse_metadata(data):
