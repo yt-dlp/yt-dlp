@@ -8,7 +8,6 @@ from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
     compat_str,
-    compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
@@ -191,6 +190,20 @@ class TwitchBaseIE(InfoExtractor):
             'url': thumbnail,
         }] if thumbnail else None
 
+    def _extract_twitch_m3u8_formats(self, video_id, token, signature):
+        """Subclasses must define _M3U8_PATH"""
+        return self._extract_m3u8_formats(
+            f'{self._USHER_BASE}/{self._M3U8_PATH}/{video_id}.m3u8', video_id, 'mp4', query={
+                'allow_source': 'true',
+                'allow_audio_only': 'true',
+                'allow_spectre': 'true',
+                'p': random.randint(1000000, 10000000),
+                'player': 'twitchweb',
+                'playlist_include_framerate': 'true',
+                'sig': signature,
+                'token': token,
+            })
+
 
 class TwitchVodIE(TwitchBaseIE):
     IE_NAME = 'twitch:vod'
@@ -203,6 +216,7 @@ class TwitchVodIE(TwitchBaseIE):
                         )
                         (?P<id>\d+)
                     '''
+    _M3U8_PATH = 'vod'
 
     _TESTS = [{
         'url': 'http://www.twitch.tv/riotgames/v/6528877?t=5m10s',
@@ -532,20 +546,8 @@ class TwitchVodIE(TwitchBaseIE):
         info = self._extract_info_gql(video, vod_id)
         access_token = self._download_access_token(vod_id, 'video', 'id')
 
-        formats = self._extract_m3u8_formats(
-            '%s/vod/%s.m3u8?%s' % (
-                self._USHER_BASE, vod_id,
-                compat_urllib_parse_urlencode({
-                    'allow_source': 'true',
-                    'allow_audio_only': 'true',
-                    'allow_spectre': 'true',
-                    'player': 'twitchweb',
-                    'playlist_include_framerate': 'true',
-                    'nauth': access_token['value'],
-                    'nauthsig': access_token['signature'],
-                })),
-            vod_id, 'mp4', entry_protocol='m3u8_native')
-
+        formats = self._extract_twitch_m3u8_formats(
+            vod_id, access_token['value'], access_token['signature'])
         formats.extend(self._extract_storyboard(vod_id, video.get('storyboard'), info.get('duration')))
 
         self._prefer_source(formats)
@@ -924,6 +926,7 @@ class TwitchStreamIE(TwitchBaseIE):
                         )
                         (?P<id>[^/#?]+)
                     '''
+    _M3U8_PATH = 'api/channel/hls'
 
     _TESTS = [{
         'url': 'http://www.twitch.tv/shroomztv',
@@ -1026,23 +1029,10 @@ class TwitchStreamIE(TwitchBaseIE):
 
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
-        token = access_token['value']
 
         stream_id = stream.get('id') or channel_name
-        query = {
-            'allow_source': 'true',
-            'allow_audio_only': 'true',
-            'allow_spectre': 'true',
-            'p': random.randint(1000000, 10000000),
-            'player': 'twitchweb',
-            'playlist_include_framerate': 'true',
-            'segment_preference': '4',
-            'sig': access_token['signature'].encode('utf-8'),
-            'token': token.encode('utf-8'),
-        }
-        formats = self._extract_m3u8_formats(
-            '%s/api/channel/hls/%s.m3u8' % (self._USHER_BASE, channel_name),
-            stream_id, 'mp4', query=query)
+        formats = self._extract_twitch_m3u8_formats(
+            channel_name, access_token['value'], access_token['signature'])
         self._prefer_source(formats)
 
         view_count = stream.get('viewers')

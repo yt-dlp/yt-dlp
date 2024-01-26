@@ -8,6 +8,7 @@ import warnings
 
 from ..dependencies import brotli, requests, urllib3
 from ..utils import bug_reports_message, int_or_none, variadic
+from ..utils.networking import normalize_url
 
 if requests is None:
     raise ImportError('requests module is not installed')
@@ -198,6 +199,10 @@ class RequestsSession(requests.sessions.Session):
             response.status_code = 308
 
         prepared_request.method = new_method
+
+        # Requests fails to resolve dot segments on absolute redirect locations
+        # See: https://github.com/yt-dlp/yt-dlp/issues/9020
+        prepared_request.url = normalize_url(prepared_request.url)
 
     def rebuild_auth(self, prepared_request, response):
         # HACK: undo status code change from rebuild_method, if applicable.
