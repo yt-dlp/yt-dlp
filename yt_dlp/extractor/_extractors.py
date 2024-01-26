@@ -1334,9 +1334,9 @@ from .ntvde import NTVDeIE
 from .ntvru import NTVRuIE
 from .nubilesporn import NubilesPornIE
 from .nytimes import (
-    NYTimesIE,
     NYTimesArticleIE,
-    NYTimesCookingIE,
+    NYTimesCookingGuidesIE,
+    NYTimesCookingReceipesIE,
 )
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
