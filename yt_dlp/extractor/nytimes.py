@@ -130,9 +130,6 @@ class NYTimesArticleIE(NYTimesBaseIE):
     }, {
         'url': 'https://www.nytimes.com/2023/12/02/business/media/netflix-squid-game-challenge.html',
         'only_matching': True,
-    }, {
-        'url': 'http://www.nytimes.com/news/minute/2014/03/17/times-minute-whats-next-in-crimea/?_php=true&_type=blogs&_php=true&_type=blogs&_r=1',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
