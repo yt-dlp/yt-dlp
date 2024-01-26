@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Any, Optional
 
 from .common import RequestHandler, register_preference
@@ -44,7 +44,7 @@ class ImpersonateTarget:
 
     @classmethod
     def from_str(cls, target: str):
-        return cls(*(v.strip() or None for v in target.split(':')))
+        return cls(*[v.strip() or None for v in target.split(':')][:len(fields(cls))])
 
 
 class ImpersonateRequestHandler(RequestHandler, ABC):

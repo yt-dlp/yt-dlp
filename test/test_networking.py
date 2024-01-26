@@ -1895,6 +1895,7 @@ class TestImpersonateTarget:
         ('firefox:120', ImpersonateTarget('firefox', '120', None, None)),
         ('firefox:120:linux', ImpersonateTarget('firefox', '120', 'linux', None)),
         ('firefox:120:linux:5', ImpersonateTarget('firefox', '120', 'linux', '5')),
+        ('firefox:120:linux:5:::', ImpersonateTarget('firefox', '120', 'linux', '5')),
         ('firefox::linux', ImpersonateTarget('firefox', None, 'linux', None)),
         ('firefox:::5', ImpersonateTarget('firefox', None, None, '5')),
         ('firefox:::', ImpersonateTarget('firefox', None, None, None)),
@@ -1904,6 +1905,7 @@ class TestImpersonateTarget:
         (':', ImpersonateTarget(None, None, None, None)),
         (':::', ImpersonateTarget(None, None, None, None)),
         ('', ImpersonateTarget(None, None, None, None)),
+        ('firefox:::::::::::::::', ImpersonateTarget('firefox', None, None, None)),
     ])
     def test_target_from_str(self, target_str, expected):
         assert ImpersonateTarget.from_str(target_str) == expected
