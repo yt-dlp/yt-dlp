@@ -8,14 +8,11 @@ import time
 from urllib.parse import urlparse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_HTTPError,
-)
-from ..dependencies import websockets
+from ..networking import Request
+from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    WebSocketsWrapper,
     bug_reports_message,
     clean_html,
     float_or_none,
@@ -396,7 +393,7 @@ class NiconicoIE(InfoExtractor):
             webpage, handle = self._download_webpage_handle(
                 'https://www.nicovideo.jp/watch/' + video_id, video_id)
             if video_id.startswith('so'):
-                video_id = self._match_id(handle.geturl())
+                video_id = self._match_id(handle.url)
 
             api_data = self._parse_json(self._html_search_regex(
                 'data-api-data="([^"]+)"', webpage,
@@ -407,9 +404,9 @@ class NiconicoIE(InfoExtractor):
                     'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, round(time.time() * 1000)), video_id,
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except ExtractorError:
-                if not isinstance(e.cause, compat_HTTPError):
+                if not isinstance(e.cause, HTTPError):
                     raise
-                webpage = e.cause.read().decode('utf-8', 'replace')
+                webpage = e.cause.response.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
                     r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
                     webpage, 'error reason', default=None)
@@ -742,7 +739,7 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
         try:
             mylist = self._call_api(list_id, 'list', {'pageSize': 1})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.status == 401:
                 self.raise_login_required('You have to be logged in to get your history')
             raise
         return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))
@@ -936,8 +933,6 @@ class NiconicoLiveIE(InfoExtractor):
     _KNOWN_LATENCY = ('high', 'low')
 
     def _real_extract(self, url):
-        if not websockets:
-            raise ExtractorError('websockets library is not available. Please install it.', expected=True)
         video_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
 
@@ -951,18 +946,14 @@ class NiconicoLiveIE(InfoExtractor):
             'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
         })
 
-        hostname = remove_start(urlparse(urlh.geturl()).hostname, 'sp.')
-        cookies = try_get(urlh.geturl(), self._downloader._calc_cookies)
+        hostname = remove_start(urlparse(urlh.url).hostname, 'sp.')
         latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
         if latency not in self._KNOWN_LATENCY:
             latency = 'high'
 
-        ws = WebSocketsWrapper(ws_url, {
-            'Cookies': str_or_none(cookies) or '',
-            'Origin': f'https://{hostname}',
-            'Accept': '*/*',
-            'User-Agent': self.get_param('http_headers')['User-Agent'],
-        })
+        ws = self._request_webpage(
+            Request(ws_url, headers={'Origin': f'https://{hostname}'}),
+            video_id=video_id, note='Connecting to WebSocket server')
 
         self.write_debug('[debug] Sending HLS server request')
         ws.send(json.dumps({
@@ -1036,7 +1027,6 @@ class NiconicoLiveIE(InfoExtractor):
                 'protocol': 'niconico_live',
                 'ws': ws,
                 'video_id': video_id,
-                'cookies': cookies,
                 'live_latency': latency,
                 'origin': hostname,
             })

@@ -19,9 +19,9 @@ class GoogleDriveIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                         https?://
                             (?:
-                                (?:docs|drive)\.google\.com/
+                                (?:docs|drive|drive\.usercontent)\.google\.com/
                                 (?:
-                                    (?:uc|open)\?.*?id=|
+                                    (?:uc|open|download)\?.*?id=|
                                     file/d/
                                 )|
                                 video\.google\.com/get_player\?.*?docid=
@@ -52,6 +52,9 @@ class GoogleDriveIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://drive.google.com/uc?id=0B2fjwgkl1A_CX083Tkowdmt6d28',
+        'only_matching': True,
+    }, {
+        'url': 'https://drive.usercontent.google.com/download?id=0ByeS4oOUV-49Zzh4R1J6R09zazQ',
         'only_matching': True,
     }]
     _FORMATS_EXT = {
@@ -205,9 +208,10 @@ class GoogleDriveIE(InfoExtractor):
                 formats.append(f)
 
         source_url = update_url_query(
-            'https://drive.google.com/uc', {
+            'https://drive.usercontent.google.com/download', {
                 'id': video_id,
                 'export': 'download',
+                'confirm': 't',
             })
 
         def request_source_file(source_url, kind, data=None):
@@ -228,7 +232,7 @@ class GoogleDriveIE(InfoExtractor):
                     # Using original URLs may result in redirect loop due to
                     # google.com's cookies mistakenly used for googleusercontent.com
                     # redirect URLs (see #23919).
-                    'url': urlh.geturl(),
+                    'url': urlh.url,
                     'ext': determine_ext(title, 'mp4').lower(),
                     'format_id': 'source',
                     'quality': 1,

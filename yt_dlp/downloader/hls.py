@@ -75,7 +75,7 @@ class HlsFD(FragmentFD):
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
-        man_url = urlh.geturl()
+        man_url = urlh.url
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
@@ -369,7 +369,10 @@ class HlsFD(FragmentFD):
 
                 return output.getvalue().encode()
 
-            self.download_and_append_fragments(
-                ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
+            if len(fragments) == 1:
+                self.download_and_append_fragments(ctx, fragments, info_dict)
+            else:
+                self.download_and_append_fragments(
+                    ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
         else:
             return self.download_and_append_fragments(ctx, fragments, info_dict)

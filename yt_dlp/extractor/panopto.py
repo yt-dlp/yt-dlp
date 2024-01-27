@@ -1,7 +1,7 @@
 import calendar
 import json
 import functools
-from datetime import datetime
+from datetime import datetime, timezone
 from random import random
 
 from .common import InfoExtractor
@@ -243,7 +243,7 @@ class PanoptoIE(PanoptoBaseIE):
         invocation_id = delivery_info.get('InvocationId')
         stream_id = traverse_obj(delivery_info, ('Delivery', 'Streams', ..., 'PublicID'), get_all=False, expected_type=str)
         if invocation_id and stream_id and duration:
-            timestamp_str = f'/Date({calendar.timegm(datetime.utcnow().timetuple())}000)/'
+            timestamp_str = f'/Date({calendar.timegm(datetime.now(timezone.utc).timetuple())}000)/'
             data = {
                 'streamRequests': [
                     {
@@ -536,7 +536,7 @@ class PanoptoListIE(PanoptoBaseIE):
         }
 
         response = self._call_api(
-            base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page+1}',
+            base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page + 1}',
             data={'queryParameters': params}, fatal=False)
 
         for result in get_first(response, 'Results', default=[]):

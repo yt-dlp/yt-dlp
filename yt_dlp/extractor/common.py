@@ -17,16 +17,26 @@ import subprocess
 import sys
 import time
 import types
-import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
 from ..compat import functools  # isort: split
-from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
+from ..compat import (
+    compat_etree_fromstring,
+    compat_expanduser,
+    compat_os_name,
+    urllib_req_to_req,
+)
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..downloader.hls import HlsFD
+from ..networking import HEADRequest, Request
+from ..networking.exceptions import (
+    HTTPError,
+    IncompleteRead,
+    network_exceptions,
+)
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -35,7 +45,6 @@ from ..utils import (
     FormatSorter,
     GeoRestrictedError,
     GeoUtils,
-    HEADRequest,
     LenientJSONDecoder,
     Popen,
     RegexNotFoundError,
@@ -61,7 +70,6 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     netrc_from_content,
-    network_exceptions,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -71,7 +79,6 @@ from ..utils import (
     parse_resolution,
     sanitize_filename,
     sanitize_url,
-    sanitized_Request,
     smuggle_url,
     str_or_none,
     str_to_int,
@@ -83,8 +90,6 @@ from ..utils import (
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
-    update_Request,
-    update_url_query,
     url_basename,
     url_or_none,
     urlhandle_detect_ext,
@@ -281,6 +286,9 @@ class InfoExtractor:
                     If it is not clear whether to use timestamp or this, use the former
     release_date:   The date (YYYYMMDD) when the video was released in UTC.
                     If not explicitly set, calculated from release_timestamp
+    release_year:   Year (YYYY) as integer when the video or album was released.
+                    To be used if no exact release date is known.
+                    If not explicitly set, calculated from release_date.
     modified_timestamp: UNIX timestamp of the moment the video was last modified.
     modified_date:   The date (YYYYMMDD) when the video was last modified in UTC.
                     If not explicitly set, calculated from modified_timestamp
@@ -374,6 +382,7 @@ class InfoExtractor:
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
+    media_type:     The type of media as classified by the site, e.g. "episode", "clip", "trailer"
     _old_archive_ids: A list of old archive ids needed for backward compatibility
     _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
@@ -422,7 +431,6 @@ class InfoExtractor:
                     and compilations).
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
-    release_year:   Year (YYYY) when the album was released.
     composer:       Composer of the piece
 
     The following fields should only be set for clips that should be cut from the original video:
@@ -724,11 +732,11 @@ class InfoExtractor:
         except UnsupportedError:
             raise
         except ExtractorError as e:
-            e.video_id = e.video_id or self.get_temp_id(url),
+            e.video_id = e.video_id or self.get_temp_id(url)
             e.ie = e.ie or self.IE_NAME,
             e.traceback = e.traceback or sys.exc_info()[2]
             raise
-        except http.client.IncompleteRead as e:
+        except IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
             raise ExtractorError('An extractor error has occurred.', cause=e, video_id=self.get_temp_id(url))
@@ -787,20 +795,25 @@ class InfoExtractor:
 
     @staticmethod
     def __can_accept_status_code(err, expected_status):
-        assert isinstance(err, urllib.error.HTTPError)
+        assert isinstance(err, HTTPError)
         if expected_status is None:
             return False
         elif callable(expected_status):
-            return expected_status(err.code) is True
+            return expected_status(err.status) is True
         else:
-            return err.code in variadic(expected_status)
+            return err.status in variadic(expected_status)
 
     def _create_request(self, url_or_request, data=None, headers=None, query=None):
         if isinstance(url_or_request, urllib.request.Request):
-            return update_Request(url_or_request, data=data, headers=headers, query=query)
-        if query:
-            url_or_request = update_url_query(url_or_request, query)
-        return sanitized_Request(url_or_request, data, headers or {})
+            self._downloader.deprecation_warning(
+                'Passing a urllib.request.Request to _create_request() is deprecated. '
+                'Use yt_dlp.networking.common.Request instead.')
+            url_or_request = urllib_req_to_req(url_or_request)
+        elif not isinstance(url_or_request, Request):
+            url_or_request = Request(url_or_request)
+
+        url_or_request.update(data=data, headers=headers, query=query)
+        return url_or_request
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers=None, query=None, expected_status=None):
         """
@@ -836,14 +849,9 @@ class InfoExtractor:
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))
         except network_exceptions as err:
-            if isinstance(err, urllib.error.HTTPError):
+            if isinstance(err, HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
-                    # Retain reference to error to prevent file object from
-                    # being closed before it can be read. Works around the
-                    # effects of <https://bugs.python.org/issue15002>
-                    # introduced in Python 3.4.1.
-                    err.fp._error = err
-                    return err.fp
+                    return err.response
 
             if errnote is False:
                 return False
@@ -975,11 +983,11 @@ class InfoExtractor:
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
         if self.get_param('dump_intermediate_pages', False):
-            self.to_screen('Dumping request to ' + urlh.geturl())
+            self.to_screen('Dumping request to ' + urlh.url)
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages'):
-            filename = self._request_dump_filename(urlh.geturl(), video_id)
+            filename = self._request_dump_filename(urlh.url, video_id)
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -1037,7 +1045,7 @@ class InfoExtractor:
                              fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
-                filename = self._request_dump_filename(url_or_request.full_url, video_id)
+                filename = self._request_dump_filename(url_or_request.url, video_id)
                 self.to_screen(f'Loading request from {filename}')
                 try:
                     with open(filename, 'rb') as dumpf:
@@ -1111,7 +1119,7 @@ class InfoExtractor:
         while True:
             try:
                 return self.__download_webpage(url_or_request, video_id, note, errnote, None, fatal, *args, **kwargs)
-            except http.client.IncompleteRead as e:
+            except IncompleteRead as e:
                 try_count += 1
                 if try_count >= tries:
                     raise e
@@ -1682,7 +1690,7 @@ class InfoExtractor:
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
         """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
         rectx = re.escape(context_name)
-        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){return\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
+        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){.*?\breturn\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
         js, arg_keys, arg_vals = self._search_regex(
             (rf'<script>\s*window\.{rectx}={FUNCTION_RE}\s*\)\s*;?\s*</script>', rf'{rectx}\(.*?{FUNCTION_RE}'),
             webpage, context_name, group=('js', 'arg_keys', 'arg_vals'),
@@ -1808,7 +1816,7 @@ class InfoExtractor:
             return []
 
         manifest, urlh = res
-        manifest_url = urlh.geturl()
+        manifest_url = urlh.url
 
         return self._parse_f4m_formats(
             manifest, manifest_url, video_id, preference=preference, quality=quality, f4m_id=f4m_id,
@@ -1967,7 +1975,7 @@ class InfoExtractor:
             return [], {}
 
         m3u8_doc, urlh = res
-        m3u8_url = urlh.geturl()
+        m3u8_url = urlh.url
 
         return self._parse_m3u8_formats_and_subtitles(
             m3u8_doc, m3u8_url, ext=ext, entry_protocol=entry_protocol,
@@ -2220,7 +2228,9 @@ class InfoExtractor:
             mpd_url, video_id,
             note='Downloading MPD VOD manifest' if note is None else note,
             errnote='Failed to download VOD manifest' if errnote is None else errnote,
-            fatal=False, data=data, headers=headers, query=query) or {}
+            fatal=False, data=data, headers=headers, query=query)
+        if not isinstance(mpd_doc, xml.etree.ElementTree.Element):
+            return None
         return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
 
     @staticmethod
@@ -2243,18 +2253,10 @@ class InfoExtractor:
         if res is False:
             assert not fatal
             return [], {}
-
         smil, urlh = res
-        smil_url = urlh.geturl()
 
-        namespace = self._parse_smil_namespace(smil)
-
-        fmts = self._parse_smil_formats(
-            smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
-        subs = self._parse_smil_subtitles(
-            smil, namespace=namespace)
-
-        return fmts, subs
+        return self._parse_smil_formats_and_subtitles(smil, urlh.url, video_id, f4m_params=f4m_params,
+                                                      namespace=self._parse_smil_namespace(smil))
 
     def _extract_smil_formats(self, *args, **kwargs):
         fmts, subs = self._extract_smil_formats_and_subtitles(*args, **kwargs)
@@ -2268,7 +2270,7 @@ class InfoExtractor:
             return {}
 
         smil, urlh = res
-        smil_url = urlh.geturl()
+        smil_url = urlh.url
 
         return self._parse_smil(smil, smil_url, video_id, f4m_params=f4m_params)
 
@@ -2280,9 +2282,8 @@ class InfoExtractor:
     def _parse_smil(self, smil, smil_url, video_id, f4m_params=None):
         namespace = self._parse_smil_namespace(smil)
 
-        formats = self._parse_smil_formats(
+        formats, subtitles = self._parse_smil_formats_and_subtitles(
             smil, smil_url, video_id, namespace=namespace, f4m_params=f4m_params)
-        subtitles = self._parse_smil_subtitles(smil, namespace=namespace)
 
         video_id = os.path.splitext(url_basename(smil_url))[0]
         title = None
@@ -2321,7 +2322,14 @@ class InfoExtractor:
         return self._search_regex(
             r'(?i)^{([^}]+)?}smil$', smil.tag, 'namespace', default=None)
 
-    def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
+    def _parse_smil_formats(self, *args, **kwargs):
+        fmts, subs = self._parse_smil_formats_and_subtitles(*args, **kwargs)
+        if subs:
+            self._report_ignoring_subs('SMIL')
+        return fmts
+
+    def _parse_smil_formats_and_subtitles(
+            self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         base = smil_url
         for meta in smil.findall(self._xpath_ns('./head/meta', namespace)):
             b = meta.get('base') or meta.get('httpBase')
@@ -2329,14 +2337,16 @@ class InfoExtractor:
                 base = b
                 break
 
-        formats = []
+        formats, subtitles = [], {}
         rtmp_count = 0
         http_count = 0
         m3u8_count = 0
         imgs_count = 0
 
         srcs = set()
-        media = smil.findall(self._xpath_ns('.//video', namespace)) + smil.findall(self._xpath_ns('.//audio', namespace))
+        media = itertools.chain.from_iterable(
+            smil.findall(self._xpath_ns(arg, namespace))
+            for arg in ['.//video', './/audio', './/media'])
         for medium in media:
             src = medium.get('src')
             if not src or src in srcs:
@@ -2377,8 +2387,9 @@ class InfoExtractor:
             src_url = src_url.strip()
 
             if proto == 'm3u8' or src_ext == 'm3u8':
-                m3u8_formats = self._extract_m3u8_formats(
+                m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     src_url, video_id, ext or 'mp4', m3u8_id='hls', fatal=False)
+                self._merge_subtitles(m3u8_subs, target=subtitles)
                 if len(m3u8_formats) == 1:
                     m3u8_count += 1
                     m3u8_formats[0].update({
@@ -2399,11 +2410,15 @@ class InfoExtractor:
                 f4m_url += urllib.parse.urlencode(f4m_params)
                 formats.extend(self._extract_f4m_formats(f4m_url, video_id, f4m_id='hds', fatal=False))
             elif src_ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    src_url, video_id, mpd_id='dash', fatal=False))
+                mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(
+                    src_url, video_id, mpd_id='dash', fatal=False)
+                formats.extend(mpd_formats)
+                self._merge_subtitles(mpd_subs, target=subtitles)
             elif re.search(r'\.ism/[Mm]anifest', src_url):
-                formats.extend(self._extract_ism_formats(
-                    src_url, video_id, ism_id='mss', fatal=False))
+                ism_formats, ism_subs = self._extract_ism_formats_and_subtitles(
+                    src_url, video_id, ism_id='mss', fatal=False)
+                formats.extend(ism_formats)
+                self._merge_subtitles(ism_subs, target=subtitles)
             elif src_url.startswith('http') and self._is_valid_url(src, video_id):
                 http_count += 1
                 formats.append({
@@ -2434,7 +2449,10 @@ class InfoExtractor:
                 'format_note': 'SMIL storyboards',
             })
 
-        return formats
+        smil_subs = self._parse_smil_subtitles(smil, namespace=namespace)
+        self._merge_subtitles(smil_subs, target=subtitles)
+
+        return formats, subtitles
 
     def _parse_smil_subtitles(self, smil, namespace=None, subtitles_lang='en'):
         urls = []
@@ -2460,7 +2478,7 @@ class InfoExtractor:
             return []
 
         xspf, urlh = res
-        xspf_url = urlh.geturl()
+        xspf_url = urlh.url
 
         return self._parse_xspf(
             xspf, playlist_id, xspf_url=xspf_url,
@@ -2531,7 +2549,7 @@ class InfoExtractor:
             return [], {}
 
         # We could have been redirected to a new url when we retrieved our mpd file.
-        mpd_url = urlh.geturl()
+        mpd_url = urlh.url
         mpd_base_url = base_url(mpd_url)
 
         return self._parse_mpd_formats_and_subtitles(
@@ -2902,7 +2920,7 @@ class InfoExtractor:
         if ism_doc is None:
             return [], {}
 
-        return self._parse_ism_formats_and_subtitles(ism_doc, urlh.geturl(), ism_id)
+        return self._parse_ism_formats_and_subtitles(ism_doc, urlh.url, ism_id)
 
     def _parse_ism_formats_and_subtitles(self, ism_doc, ism_url, ism_id=None):
         """

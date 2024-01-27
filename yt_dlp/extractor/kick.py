@@ -1,7 +1,6 @@
 from .common import InfoExtractor
-
+from ..networking import HEADRequest
 from ..utils import (
-    HEADRequest,
     UserNotLive,
     float_or_none,
     merge_dicts,

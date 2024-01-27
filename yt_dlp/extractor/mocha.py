@@ -3,7 +3,7 @@ from ..utils import int_or_none, traverse_obj
 
 
 class MochaVideoIE(InfoExtractor):
-    _VALID_URL = r'https?://video.mocha.com.vn/(?P<video_slug>[\w-]+)'
+    _VALID_URL = r'https?://video\.mocha\.com\.vn/(?P<video_slug>[\w-]+)'
     _TESTS = [{
         'url': 'http://video.mocha.com.vn/chuyen-meo-gia-su-tu-thong-diep-cuoc-song-v18694039',
         'info_dict': {
