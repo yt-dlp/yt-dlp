@@ -3703,7 +3703,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 pr_video_id = traverse_obj(pr, ('videoDetails', 'videoId'))
                 if pr_video_id and pr_video_id != video_id:
                     self.report_warning(
-                        f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
+                        f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")')
+                    last_error = ValueError("Could not extract any player response (perhaps your IP is being blocked by Youtube?)")
                 else:
                     # Save client name for introspection later
                     name = short_client_name(client)
