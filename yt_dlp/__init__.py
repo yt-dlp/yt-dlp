@@ -831,6 +831,7 @@ def parse_options(argv=None):
         'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
         'progress_with_newline': opts.progress_with_newline,
         'progress_template': opts.progress_template,
+        'progress_update_delta': int(opts.progress_update_delta * 1_000_000_000),
         'playliststart': opts.playliststart,
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
