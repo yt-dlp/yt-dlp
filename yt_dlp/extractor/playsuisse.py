@@ -156,7 +156,7 @@ class PlaySuisseIE(InfoExtractor):
         query = {'tx': settings['transId'], 'p': self._LOGIN_PATH}
 
         status = traverse_obj(self._download_json(
-            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/SelfAsserted', None, 'Logging in'
+            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/SelfAsserted', None, 'Logging in',
             query=query, headers={'X-CSRF-TOKEN': csrf_token}, data=urlencode_postdata({
                 'request_type': 'RESPONSE',
                 'signInName': username,
