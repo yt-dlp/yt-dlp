@@ -1905,7 +1905,7 @@ class TestImpersonateTarget:
         (':', ImpersonateTarget(None, None, None, None)),
         (':::', ImpersonateTarget(None, None, None, None)),
         ('', ImpersonateTarget(None, None, None, None)),
-        ('firefox:::::::::::::::', ImpersonateTarget('firefox', None, None, None)),
+        ('firefox:::::::::::::::invalid:', ImpersonateTarget('firefox', None, None, None)),
     ])
     def test_target_from_str(self, target_str, expected):
         assert ImpersonateTarget.from_str(target_str) == expected
