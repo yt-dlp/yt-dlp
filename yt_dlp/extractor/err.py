@@ -47,12 +47,6 @@ from ..utils import (
 #
 #       --extractor-args 'err:unknown=en;original=et;und=de'
 #
-#   FIXME:  Check playlists
-#           https://klassikaraadio.err.ee/arhiiv/fanta
-#           https://klassikaraadio.err.ee/arhiiv/album
-#           https://vikerraadio.err.ee/arhiiv/kauamangiv
-#           https://r2.err.ee/arhiiv/olukorrastriigis
-#           https://r4.err.ee/arhiiv/razbor_poletov
 #   FIXME   No description found
 #           https://r4.err.ee/1609221212/razbor-poljotov
 
@@ -1019,6 +1013,11 @@ class ERRTVIE(ERRBaseIE):
                 r'.*?window.rootContentId\s+=\s+(?P<root_content_id>\d+;).*?</script>',
                 webpage, flags=re.DOTALL)
             if not mobj:
+                mobj = re.search(
+                    r'"rootContentId"\s*:\s*(?P<root_content_id>\d+)\s*,',
+                    webpage, flags=re.DOTALL)
+            if not mobj:
+                self.to_screen('[debug] playlist_id: ' + playlist_id)
                 raise ExtractorError('Unable to find playlist\'s numerical id \'rootContentId\'')
             root_content_id = mobj.group('root_content_id')
             url_dict['root_content_id'] = root_content_id
@@ -1239,7 +1238,7 @@ class ERRRadioIE(ERRTVIE):
     _ERR_CHANNELS = r'vikerraadio|klassikaraadio|r2|r4'
     _ERR_LOGIN_SUPPORTED = False
     _NETRC_MACHINE = None
-    _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://(?P<channel>%(channels)s).err.ee)/(?:(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]+))?)|(?P<playlist_id>[^/#?]*))(?P<leftover>[/?#].+)?\Z' % {
+    _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://(?P<channel>%(channels)s).err.ee)/(?:(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]+))?)|(arhiiv/?(?P<playlist_id>[^/#?]*)))(?P<leftover>[/?#].+)?\Z' % {
         'channels': _ERR_CHANNELS
     }
     _TESTS = [{
