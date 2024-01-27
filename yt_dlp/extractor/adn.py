@@ -187,6 +187,11 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             'Downloading player config JSON metadata',
             headers=self._HEADERS)['player']
         options = player['options']
+        video = options['video']
+        startDate = video.get('startDate')
+        currentDate = video.get('currentDate')
+        if startDate and currentDate and startDate > currentDate:
+            raise ExtractorError(f'This video is not available yet. Release date: {startDate}', expected=True)
 
         subscription_msg = 'This video requires a subscription'
         # Ad supported videos are not yet available in German
