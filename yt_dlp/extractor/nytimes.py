@@ -235,7 +235,8 @@ class NYTimesArticleIE(NYTimesBaseIE):
         }
 
 
-class NYTimesCookingReceipesIE(InfoExtractor):
+class NYTimesCookingIE(InfoExtractor):
+    IE_NAME = 'NYTimesCookingRecipes'
     _VALID_URL = r'https?://cooking\.nytimes\.com/recipes/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://cooking.nytimes.com/recipes/1017817-cranberry-curd-tart',
@@ -354,96 +355,19 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
         'playlist_count': 8,
     }]
 
-    _TOKEN = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNIzKBOFB77aT/jN/FQ+/QVKWq5V1ka1AYmCR9hstz1pGNPH5ajOU9gAqta0T89iPnhjwla+3oec/Z3kGjxbpv6miQXufHFq3u2RC6HyU458cLat5kVPSOQCe3VVB5NRpOlRuwKHqn0txfxnwSSj8mqzstR997d3gKB//RO9zE16y3PoWlDQXkASngNJEWvL19iob/xwAkfEWCjyRILWFY0JYX3AvLMSbq7wsqOCE5srJpo7rRU32zsByhsp1D5W9OYqqwDmflsgCEQy2vqTsJjrJohuNg+urMXNNZ7Y3naMoqttsGDrWVxtPBafKMI8pM2ReNZBbGQsQXRzQNo7+QIDAQAB"
+    _TOKEN = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNIzKBOFB77aT/jN/FQ+/QVKWq5V1ka1AYmCR9hstz1pGNPH5ajOU9gAqta0T89iPnhjwla+3oec/Z3kGjxbpv6miQXufHFq3u2RC6HyU458cLat5kVPSOQCe3VVB5NRpOlRuwKHqn0txfxnwSSj8mqzstR997d3gKB//RO9zE16y3PoWlDQXkASngNJEWvL19iob/xwAkfEWCjyRILWFY0JYX3AvLMSbq7wsqOCE5srJpo7rRU32zsByhsp1D5W9OYqqwDmflsgCEQy2vqTsJjrJohuNg+urMXNNZ7Y3naMoqttsGDrWVxtPBafKMI8pM2ReNZBbGQsQXRzQNo7+QIDAQAB'
     _DNS_UUID = '36dd619a-56dc-595b-9e09-37f4152c7b5d'  # uuid -v5 ns:DNS scoop.nyt.net
     _GRAPHQL_QUERY = '''query VideoQuery($id: String!) {
   video(id: $id) {
     ... on Video {
-      advertisingProperties {
-        sensitivity
-        sponsored
-      }
       bylines {
         renderedRepresentation
       }
-      contentSeries
-      cues {
-        name
-        type
-        timeIn
-        timeOut
-      }
       duration
-      embedded
-      headline {
-        default
-      }
-      is360
-      isLive
-      liveUrls
-      playlist {
-        headline {
-          default
-        }
-        promotionalHeadline
-        url
-        sourceId
-        section {
-          displayName
-        }
-        videos(first: 20) {
-          edges @filterEmpty {
-            node {
-              advertisingProperties {
-                sensitivity
-                sponsored
-              }
-              id
-              sourceId
-              duration
-              section {
-                id
-                name
-              }
-              headline {
-                default
-              }
-              renditions {
-                url
-                type
-              }
-              url
-              promotionalMedia {
-                ... on Image {
-                  crops(
-                    cropNames: [SMALL_SQUARE, MEDIUM_SQUARE, SIXTEEN_BY_NINE]
-                  ) {
-                    renditions {
-                      name
-                      width
-                      height
-                      url
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
       promotionalHeadline
       promotionalMedia {
         ... on Image {
-          crops(
-            cropNames: [
-              SMALL_SQUARE
-              MEDIUM_SQUARE
-              SIXTEEN_BY_NINE
-              THREE_BY_TWO
-              TWO_BY_THREE
-              FLEXIBLE
-            ]
-          ) {
+          crops {
             name
             renditions {
               name
@@ -454,14 +378,6 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
           }
         }
       }
-      promotionalSummary
-      related {
-        ... on Article {
-          promotionalHeadline
-          url
-          sourceId
-        }
-      }
       renditions {
         type
         width
@@ -469,22 +385,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
         url
         bitrate
       }
-      section {
-        name
-      }
-      shortUrl
-      sourceId
-      subsection {
-        name
-      }
       summary
-      timesTags {
-        __typename
-        displayName
-        isAdvertisingBrandSensitive
-        vernacular
-      }
-      url
     }
   }
 }'''
@@ -509,6 +410,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
                 if not url_or_none(image_url):
                     continue
                 thumbnails.append({
+                    'name': image.get('name'),
                     'url': image_url,
                     'width': int_or_none(image.get('width')),
                     'height': int_or_none(image.get('height')),
@@ -526,28 +428,28 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             })
         return entries
 
-    def _json_from_graphql(self, id):
+    def _json_from_graphql(self, media_id):
         # reference: `id-to-uri.js`
         namespace = uuid.UUID(self._DNS_UUID)
         video_uuid = uuid.uuid5(namespace, 'video')
-        media_uuid = uuid.uuid5(video_uuid, id)
+        media_uuid = uuid.uuid5(video_uuid, media_id)
 
         payload = {
-            "query": self._GRAPHQL_QUERY,
-            "variables": {"id": f"nyt://video/{media_uuid}"}
+            'query': self._GRAPHQL_QUERY,
+            'variables': {'id': f'nyt://video/{media_uuid}'}
         }
 
         headers = {
-            "Content-Type": "application/json",
-            "Nyt-App-Type": "vhs",
-            "Nyt-App-Version": "v3.52.21",
-            "Nyt-Token": self._TOKEN,
-            "Origin": "https://cooking.nytimes.com",
-            "Referer": "https://www.google.com/",
+            'Content-Type': 'application/json',
+            'Nyt-App-Type': 'vhs',
+            'Nyt-App-Version': 'v3.52.21',
+            'Nyt-Token': self._TOKEN,
+            'Origin': 'https://cooking.nytimes.com',
+            'Referer': 'https://www.google.com/',
         }
 
         return self._download_json(
-            self._GRAPHQL_API, id, note="Downloading json from GRAPHQL API",
+            self._GRAPHQL_API, id, note='Downloading json from GRAPHQL API',
             data=json.dumps(payload, separators=(',', ':')).encode(), headers=headers, fatal=False)
 
     def _real_extract(self, url):
@@ -561,7 +463,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
         title = self._html_search_meta(['og:title', 'twitter:title'], webpage)
         description = self._html_search_meta(['og:description', 'twitter:description'], webpage)
         creator = self._search_regex(
-            r'<span itemprop="author">(.+)</span></p>', webpage, 'author', default=None)
+            r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None)
 
         if media_items:
             media_items.append(lead_video_id)
