@@ -881,8 +881,15 @@ class ERRTVIE(ERRBaseIE):
                         playlist_data=None):
         """url_dict should contain root_content_id"""
         info = {}
+        reverse_list = True
         if not playlist_data:
             playlist_data = self._api_get_parent_content(url_dict, video_id)
+
+        if 'newestFirst' in playlist_data:
+            reverse_list = False if not playlist_data['newestFirst'] else True
+        elif 'contentOrder' in playlist_data:
+            reverse_list = True if playlist_data['contentOrder'] == 'desc' else False
+
         entries = []
         channel = url_dict.get('channel', None)
         for item in self._get_playlist_items(url_dict, video_id, playlist_data):
@@ -891,6 +898,12 @@ class ERRTVIE(ERRBaseIE):
                                         extract_thumbnails=extract_thumbnails)
             self._ERR_URL_SET.add(entry['webpage_url'])
             entries.append(entry)
+        if reverse_list:
+            entries = list(reversed(entries))
+        # All this reversing is somewhat sloppy and heuristic, but I coudn't
+        # quite get my head around how it is supposed to work. However, at this
+        # point it should be almost guaranteed that playlist is sorted from
+        # oldest to newest.
         info['entries'] = entries
         if include_root:
             if not root_data:
