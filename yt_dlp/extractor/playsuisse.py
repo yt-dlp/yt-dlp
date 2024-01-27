@@ -1,7 +1,14 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj, urlencode_postdata, parse_qs, ExtractorError, update_url_query
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+    parse_qs,
+    traverse_obj,
+    update_url_query,
+    urlencode_postdata,
+)
 
 
 class PlaySuisseIE(InfoExtractor):
@@ -135,6 +142,8 @@ class PlaySuisseIE(InfoExtractor):
             id
             url
         }'''
+    _LOGIN_BASE_URL = 'https://login.srgssr.ch/srgssrlogin.onmicrosoft.com'
+    _LOGIN_PATH = 'B2C_1A__SignInV2'
     _ID_TOKEN = None
 
     def _perform_login(self, username, password):
@@ -143,21 +152,31 @@ class PlaySuisseIE(InfoExtractor):
             query={'x': 'x', 'locale': 'de', 'redirectUrl': 'https://www.playsuisse.ch/'})
         settings = self._search_json(r'var\s+SETTINGS\s*=', login_page, 'settings', None)
 
-        webpage, urlh = self._download_webpage_handle(
-            'https://login.srgssr.ch/srgssrlogin.onmicrosoft.com/B2C_1A__SignInV2/SelfAsserted',
-            None, note='Logging in', headers={'X-CSRF-TOKEN': settings['csrf']},
-            data=urlencode_postdata({'request_type': 'RESPONSE', 'signInName': username, 'password': password}),
-            query={'tx': settings['transId'], 'p': 'B2C_1A__SignInV2'})
+        csrf_token = settings['csrf']
+        query = {'tx': settings['transId'], 'p': self._LOGIN_PATH}
 
-        webpage, urlh = self._download_webpage_handle(
-            'https://login.srgssr.ch/srgssrlogin.onmicrosoft.com/B2C_1A__SignInV2/api/CombinedSigninAndSignup/confirmed',
-            None, note='Downloading ID token',
-            query={'rememberMe': 'false', 'csrf_token': settings['csrf'], 'tx': settings['transId'], 'p': 'B2C_1A__SignInV2', 'diags': ''})
+        status = traverse_obj(self._download_json(
+            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/SelfAsserted', None, 'Logging in'
+            query=query, headers={'X-CSRF-TOKEN': csrf_token}, data=urlencode_postdata({
+                'request_type': 'RESPONSE',
+                'signInName': username,
+                'password': password
+            }), expected_status=400), ('status', {int_or_none}))
+        if status == 400:
+            raise ExtractorError('Invalid username or password', expected=True)
 
-        query = parse_qs(urlh.url)
-        if 'id_token' not in query:
-            raise ExtractorError("Login failed")
-        self._ID_TOKEN = query['id_token'][0]
+        urlh = self._request_webpage(
+            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/api/CombinedSigninAndSignup/confirmed',
+            None, 'Downloading ID token', query={
+                'rememberMe': 'false',
+                'csrf_token': csrf_token,
+                **query,
+                'diags': '',
+            })
+
+        self._ID_TOKEN = traverse_obj(parse_qs(urlh.url), ('id_token', 0))
+        if not self._ID_TOKEN:
+            raise ExtractorError('Login failed')
 
     def _get_media_data(self, media_id):
         # NOTE In the web app, the "locale" header is used to switch between languages,
@@ -175,7 +194,7 @@ class PlaySuisseIE(InfoExtractor):
 
     def _real_extract(self, url):
         if not self._ID_TOKEN:
-            self.raise_login_required()
+            self.raise_login_required(method='password')
 
         media_id = self._match_id(url)
         media_data = self._get_media_data(media_id)
