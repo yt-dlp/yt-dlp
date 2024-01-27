@@ -64,7 +64,7 @@ class FileDownloader:
     min_filesize:       Skip files smaller than this size
     max_filesize:       Skip files larger than this size
     xattr_set_filesize: Set ytdl.filesize user xattribute with expected size.
-    progress_update_delta: The minimum time between progress line updates, in nanoseconds, or None
+    progress_update_delta: The minimum time between progress line updates, in seconds
     external_downloader_args:  A dictionary of downloader keys (in lower case)
                         and a list of additional command-line arguments for the
                         executable. Use 'default' as the name for arguments to be
@@ -92,7 +92,7 @@ class FileDownloader:
         self.add_progress_hook(self.report_progress)
         if self.params.get('progress_update_delta'):
             self._progress_update_lock = threading.Lock()
-            self._progress_update_time = time.monotonic_ns()
+            self._progress_update_time = time.monotonic()
 
     def _set_ydl(self, ydl):
         self.ydl = ydl
@@ -373,7 +373,7 @@ class FileDownloader:
 
         if update_delta := self.params.get('progress_update_delta'):
             with self._progress_update_lock:
-                if time.monotonic_ns() < self._progress_update_time:
+                if time.monotonic() < self._progress_update_time:
                     return
                 self._progress_update_time += update_delta
 
