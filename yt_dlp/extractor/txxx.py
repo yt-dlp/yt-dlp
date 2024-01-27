@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    url_or_none,
     js_to_json,
     merge_dicts,
     parse_duration,
@@ -389,7 +390,7 @@ class TxxxIE(InfoExtractor):
             'like_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'likes'))),
             'dislike_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'dislikes'))),
             'age_limit': 18,
-            'thumbnail': traverse_obj(video_info, ('video', 'thumbsrc')),
+            'thumbnail': traverse_obj(video_info, ('video', 'thumbsrc', {url_or_none})),
             'formats': get_formats(host, video_file),
         }
 
