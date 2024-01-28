@@ -674,8 +674,8 @@ class FacebookIE(InfoExtractor):
                 for edge in edges:
                     parse_attachment(edge, key='node')
 
-                video = (traverse_obj(data, ('event', 'cover_media_renderer', 'cover_video', {dict}))  # event cover video
-                         or data.get('video') or {})
+                video = traverse_obj(data, (
+                    'event', 'cover_media_renderer', 'cover_video'), 'video', expected_type=dict) or {}
                 if video:
                     attachments = try_get(video, [
                         lambda x: x['story']['attachments'],
