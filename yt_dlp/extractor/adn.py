@@ -3,6 +3,7 @@ import binascii
 import json
 import os
 import random
+import time
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
@@ -17,6 +18,7 @@ from ..utils import (
     int_or_none,
     intlist_to_bytes,
     long_to_bytes,
+    parse_iso8601,
     pkcs1pad,
     strip_or_none,
     str_or_none,
@@ -182,15 +184,13 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             'Downloading player config JSON metadata',
             headers=self._HEADERS)['player']
         options = player['options']
-        video = options['video']
-        startDate = video.get('startDate')
-        currentDate = video.get('currentDate')
-        if startDate and currentDate and startDate > currentDate:
-            raise ExtractorError(f'This video is not available yet. Release date: {startDate}', expected=True)
 
         user = options['user']
         if not user.get('hasAccess'):
-            self.raise_login_required('This video requires a subscription', method='password')
+            start_date = traverse_obj(options, ('video', 'startDate', {str}))
+            if (parse_iso8601(start_date) or 0) > time.time():
+                raise ExtractorError(f'This video is not available yet. Release date: {start_date}', expected=True)
+            self.raise_login_required(msg='This video requires a subscription', method='password')
 
         token = self._download_json(
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
