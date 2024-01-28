@@ -12,7 +12,7 @@ from ..utils import (
 
 class ViewLiftBaseIE(InfoExtractor):
     _API_BASE = 'https://prod-api.viewlift.com/'
-    _DOMAINS_REGEX = r'(?:(?:main\.)?snagfilms|snagxtreme|funnyforfree|kiddovid|winnersview|(?:monumental|lax)sportsnetwork|vayafilm|failarmy|ftfnext|lnppass\.legapallacanestro|moviespree|app\.myoutdoortv|neoufitness|pflmma|theidentitytb)\.com|(?:hoichoi|app\.horseandcountry|kronon|marquee|supercrosslive)\.tv'
+    _DOMAINS_REGEX = r'(?:(?:main\.)?snagfilms|snagxtreme|funnyforfree|kiddovid|winnersview|(?:monumental|lax)sportsnetwork|vayafilm|failarmy|ftfnext|lnppass\.legapallacanestro|moviespree|app\.myoutdoortv|neoufitness|pflmma|theidentitytb|chorki)\.com|(?:hoichoi|app\.horseandcountry|kronon|marquee|supercrosslive)\.tv'
     _SITE_MAP = {
         'ftfnext': 'lax',
         'funnyforfree': 'snagfilms',
@@ -27,6 +27,7 @@ class ViewLiftBaseIE(InfoExtractor):
         'snagxtreme': 'snagfilms',
         'theidentitytb': 'tampabay',
         'vayafilm': 'snagfilms',
+        'chorki': 'prothomalo',
     }
     _TOKENS = {}
 
@@ -296,6 +297,33 @@ class ViewLiftIE(ViewLiftBaseIE):
     }, {  # Premium movie
         'url': 'https://www.hoichoi.tv/movies/detective-2020',
         'only_matching': True
+    }, {  # Chorki Premium series
+        'url': 'https://www.chorki.com/bn/series/sinpaat',
+        'playlist_mincount': 7,
+        'info_dict': {
+            'id': 'bn/series/sinpaat',
+        },
+    }, {  # Chorki free movie
+        'url': 'https://www.chorki.com/bn/videos/bangla-movie-bikkhov',
+        'info_dict': {
+            'id': '564e755b-f5c7-4515-aee6-8959bee18c93',
+            'title': 'Bikkhov',
+            'ext': 'mp4',
+            'upload_date': '20230824',
+            'timestamp': 1692860553,
+            'categories': ['Action Movies', 'Salman Special'],
+            'tags': 'count:14',
+            'thumbnail': 'https://snagfilms-a.akamaihd.net/dd078ff5-b16e-45e4-9723-501b56b9df0a/images/2023/08/24/1692860450729_1920x1080_16x9Images.jpg',
+            'display_id': 'bn/videos/bangla-movie-bikkhov',
+            'description': 'md5:71492b086450625f4374a3eb824f27dc',
+            'duration': 8002,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {  # Chorki Premium movie
+        'url': 'https://www.chorki.com/bn/videos/something-like-an-autobiography',
+        'only_matching': True,
     }]
 
     @classmethod
