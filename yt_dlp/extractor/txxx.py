@@ -5,12 +5,12 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    url_or_none,
     js_to_json,
     merge_dicts,
     parse_duration,
     traverse_obj,
     try_call,
+    url_or_none,
     urljoin,
     variadic,
 )
