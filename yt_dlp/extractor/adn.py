@@ -190,7 +190,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             start_date = traverse_obj(options, ('video', 'startDate', {str}))
             if (parse_iso8601(start_date) or 0) > time.time():
                 raise ExtractorError(f'This video is not available yet. Release date: {start_date}', expected=True)
-            self.raise_login_required(msg='This video requires a subscription', method='password')
+            self.raise_login_required('This video requires a subscription', method='password')
 
         token = self._download_json(
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
