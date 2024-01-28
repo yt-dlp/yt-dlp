@@ -680,11 +680,7 @@ class FacebookIE(InfoExtractor):
                     webpage_info['duration'] = video_info['duration']
                 # preserve preferred_thumbnail in video info
                 if video_info.get('thumbnail'):
-                    if not [x for x in webpage_info['thumbnails'] if video_info['thumbnail'].split('?')[0] in x['url']]:
-                        webpage_info['thumbnails'].append({
-                            'url': video_info['thumbnail'],
-                            'preference': 1
-                        })
+                    webpage_info['thumbnail'] = video_info['thumbnail']
                 return merge_dicts(webpage_info, video_info)
 
         if not video_data:
