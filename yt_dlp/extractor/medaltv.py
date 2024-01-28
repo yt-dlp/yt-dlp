@@ -81,6 +81,9 @@ class MedalTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        if '?mobilebypass=true' not in url:
+            url += ('&' if '?' in url else '?') + 'mobilebypass=true'
+
         webpage = self._download_webpage(url, video_id)
 
         hydration_data = self._search_json(
