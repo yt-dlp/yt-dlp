@@ -682,6 +682,9 @@ class FacebookIE(InfoExtractor):
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
+                # preserve preferred_thumbnail in video info
+                if video_info.get('thumbnail'):
+                    webpage_info['thumbnail'] = video_info['thumbnail']
                 return merge_dicts(webpage_info, video_info)
 
         if not video_data:
