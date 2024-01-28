@@ -605,7 +605,7 @@ class FacebookIE(InfoExtractor):
                     extract_dash_manifest(video, formats)
 
                     automatic_captions, subtitles = {}, {}
-                    is_video_broadcast = get_first([video], 'is_video_broadcast', expected_type=bool)
+                    is_video_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))
                     captions = (traverse_obj(video,
                                 ('video_available_captions_locales', lambda _, v: 'captions_url' in v))
                                 or video.get('captions_url'))
