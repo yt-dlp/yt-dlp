@@ -190,7 +190,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
         user = options['user']
         if not user.get('hasAccess'):
-            self.raise_login_required(msg='This video requires a subscription', method='password')
+            self.raise_login_required('This video requires a subscription', method='password')
 
         token = self._download_json(
             user.get('refreshTokenUrl') or (self._PLAYER_BASE_URL + 'refresh/token'),
@@ -273,7 +273,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 formats.extend(m3u8_formats)
 
         if not formats:
-            self.raise_login_required(msg='This video requires a subscription', method='password')
+            self.raise_login_required('This video requires a subscription', method='password')
 
         video = (self._download_json(
             self._API_BASE_URL + 'video/%s' % video_id, video_id,
