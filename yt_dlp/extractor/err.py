@@ -50,6 +50,7 @@ from ..utils import (
 #   FIXME   No description found
 #           https://r4.err.ee/1609221212/razbor-poljotov
 
+
 def json_find_node(obj, criteria):
     """Searches recursively depth first for a node that satisfies all
     criteria and returns it. None if nothing is found."""
@@ -128,7 +129,7 @@ def sanitize_title(title):
     title = re.sub(r'[,;]+', ' ', title)
     title = re.sub(r'\s+', ' ', title)
     title = title.replace(u'\u2014', '-')\
-            .strip().strip('.?!:').strip()
+        .strip().strip('.?!:').strip()
     title = re.sub(r'[?!]+', '.', title)
     return ' - '.join(map(lambda s: s.strip(), re.split(r'[/|]+', title)))
 
