@@ -1,3 +1,5 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import ExtractorError, base_url, int_or_none, url_basename
 from ..utils.traversal import traverse_obj
@@ -67,6 +69,9 @@ class Vbox7IE(InfoExtractor):
         src_url = data.get('src')
         if src_url in (None, '', 'blank'):
             raise ExtractorError('Video is unavailable', expected=True)
+
+        if re.match(r'https?://media07\.vbox7\.com/vn/vn_\d+\.mp4', src_url):
+            self.raise_geo_restricted()
 
         fmt_base = base_url(src_url) + url_basename(src_url).rsplit('.', 1)[0].rsplit('_', 1)[0]
 
