@@ -605,29 +605,27 @@ class FacebookIE(InfoExtractor):
                     extract_dash_manifest(video, formats)
 
                     automatic_captions, subtitles = {}, {}
-                    is_video_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))
-                    captions = (traverse_obj(video,
-                                ('video_available_captions_locales', lambda _, v: 'captions_url' in v))
-                                or video.get('captions_url'))
-                    if url_or_none(captions):  # if video only had a 'captions_url'
-                        locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
-                        auto_gen = (traverse_obj(video,
-                                    ('video_available_captions_locales', ..., 'localized_creation_method'), get_all=False)
-                                    or is_video_broadcast)
-                        (automatic_captions if auto_gen else subtitles)[locale] = [{'url': captions}]
-                    # or else video had 'video_available_captions_locales', a list of dicts
-                    for caption in traverse_obj(captions, (
-                        {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
-                    ):
+                    is_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))
+                    for caption in traverse_obj(video, (
+                        'video_available_captions_locales',
+                        {lambda x: sorted(x, key=lambda c: c['locale'])},
+                        lambda _, v: url_or_none(v['captions_url'])
+                    )):
                         lang = caption.get('localized_language', '')
                         subs = {
                             'url': caption['captions_url'],
                             'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
                         }
-                        if caption.get('localized_creation_method') or is_video_broadcast:
+                        if caption.get('localized_creation_method') or is_broadcast:
                             automatic_captions.setdefault(caption['locale'], []).append(subs)
                         else:
                             subtitles.setdefault(caption['locale'], []).append(subs)
+                    else:
+                        if not automatic_captions and not subtitles:
+                            if captions_url := traverse_obj(video, ('captions_url', {url_or_none})):
+                                locale = self._html_search_meta(
+                                    ['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+                                (automatic_captions if is_broadcast else subtitles)[locale] = [{'url': captions_url}]
 
                     info = {
                         'id': v_id,
