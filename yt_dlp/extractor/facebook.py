@@ -54,6 +54,7 @@ class FacebookIE(InfoExtractor):
                             )\?(?:.*?)(?:v|video_id|story_fbid)=|
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
+                            events/(?:[^/]+/)?|
                             groups/[^/]+/(?:permalink|posts)/|
                             watchparty/
                         )|
@@ -399,6 +400,18 @@ class FacebookIE(InfoExtractor):
         },
         'playlist_count': 1,
         'skip': 'Requires logging in',
+    }, {
+        # data.event.cover_media_renderer.cover_video
+        'url': 'https://m.facebook.com/events/1509582499515440',
+        'info_dict': {
+            'id': '637246984455045',
+            'ext': 'mp4',
+            'title': 'ANALISI IN CAMPO OSCURO " Coaguli nel sangue dei vaccinati"',
+            'description': 'Other event by Comitato Liberi Pensatori on Tuesday, October 18 2022',
+            'thumbnail': r're:^https?://.*',
+            'uploader': 'Comitato Liberi Pensatori',
+            'uploader_id': '100065709540881',
+        },
     }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
@@ -473,38 +486,10 @@ class FacebookIE(InfoExtractor):
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
-
-            automatic_captions, subtitles = {}, {}
-            subs_data = traverse_obj(post, (..., 'video', ..., 'attachments', ..., lambda k, v: (
-                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')))
-            is_video_broadcast = get_first(subs_data, 'is_video_broadcast', expected_type=bool)
-            captions = get_first(subs_data, 'video_available_captions_locales', 'captions_url')
-            if url_or_none(captions):  # if subs_data only had a 'captions_url'
-                locale = self._html_search_meta(['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
-                subtitles[locale] = [{'url': captions}]
-            # or else subs_data had 'video_available_captions_locales', a list of dicts
-            for caption in traverse_obj(captions, (
-                {lambda x: sorted(x, key=lambda c: c['locale'])}, lambda _, v: v['captions_url'])
-            ):
-                lang = caption.get('localized_language') or ''
-                subs = {
-                    'url': caption['captions_url'],
-                    'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
-                }
-                if caption.get('localized_creation_method') or is_video_broadcast:
-                    automatic_captions.setdefault(caption['locale'], []).append(subs)
-                else:
-                    subtitles.setdefault(caption['locale'], []).append(subs)
-
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
                 k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
-            uploader_data = (
-                get_first(media, ('owner', {dict}))
-                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
-                or get_first(post, ('node', 'actors', ..., {dict})) or {})
-
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
                 r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
@@ -513,11 +498,15 @@ class FacebookIE(InfoExtractor):
             description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
                 webpage, 'description', default=None)
+            uploader_data = (
+                get_first(media, ('owner', {dict}))
+                or get_first(post, (..., 'video', lambda k, v: k == 'owner' and v['name']))
+                or get_first(post, ('node', 'actors', ..., {dict}))
+                or get_first(post, ('event', 'event_creator', {dict})) or {})
             uploader = uploader_data.get('name') or (
                 clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
                 or self._search_regex(
                     (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
-
             timestamp = int_or_none(self._search_regex(
                 r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
                 'timestamp', default=None))
@@ -539,8 +528,6 @@ class FacebookIE(InfoExtractor):
                     webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
-                'automatic_captions': automatic_captions,
-                'subtitles': subtitles,
             }
 
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
@@ -638,6 +625,29 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
+
+                    automatic_captions, subtitles = {}, {}
+                    is_broadcast = traverse_obj(video, ('is_video_broadcast', {bool}))
+                    for caption in traverse_obj(video, (
+                        'video_available_captions_locales',
+                        {lambda x: sorted(x, key=lambda c: c['locale'])},
+                        lambda _, v: url_or_none(v['captions_url'])
+                    )):
+                        lang = caption.get('localized_language') or 'und'
+                        subs = {
+                            'url': caption['captions_url'],
+                            'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
+                        }
+                        if caption.get('localized_creation_method') or is_broadcast:
+                            automatic_captions.setdefault(caption['locale'], []).append(subs)
+                        else:
+                            subtitles.setdefault(caption['locale'], []).append(subs)
+                    captions_url = traverse_obj(video, ('captions_url', {url_or_none}))
+                    if captions_url and not automatic_captions and not subtitles:
+                        locale = self._html_search_meta(
+                            ['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+                        (automatic_captions if is_broadcast else subtitles)[locale] = [{'url': captions_url}]
+
                     info = {
                         'id': v_id,
                         'formats': formats,
@@ -647,6 +657,8 @@ class FacebookIE(InfoExtractor):
                         'timestamp': traverse_obj(video, 'publish_time', 'creation_time', expected_type=int_or_none),
                         'duration': (float_or_none(video.get('playable_duration_in_ms'), 1000)
                                      or float_or_none(video.get('length_in_second'))),
+                        'automatic_captions': automatic_captions,
+                        'subtitles': subtitles,
                     }
                     process_formats(info)
                     description = try_get(video, lambda x: x['savable_description']['text'])
@@ -681,7 +693,8 @@ class FacebookIE(InfoExtractor):
                 for edge in edges:
                     parse_attachment(edge, key='node')
 
-                video = data.get('video') or {}
+                video = traverse_obj(data, (
+                    'event', 'cover_media_renderer', 'cover_video'), 'video', expected_type=dict) or {}
                 if video:
                     attachments = try_get(video, [
                         lambda x: x['story']['attachments'],
