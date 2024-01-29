@@ -11,7 +11,7 @@ class Art19IE(InfoExtractor):
         rf'https?://(?:www\.)?art19\.com/shows/[^/#?]+/episodes/(?P<id>{_UUID_REGEX})',
         rf'https?://rss\.art19\.com/episodes/(?P<id>{_UUID_REGEX})\.mp3',
     ]
-    _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL[0]})']
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL[0]})']
 
     _TESTS = [{
         'url': 'https://rss.art19.com/episodes/5ba1413c-48b8-472b-9cc3-cfd952340bdb.mp3',
@@ -178,7 +178,7 @@ class Art19ShowIE(InfoExtractor):
         rf'{_VALID_URL_BASE}(?:$|[#?])',
         r'https?://rss\.art19\.com/(?P<id>[\w-]+)/?(?:$|[#?])',
     ]
-    _EMBED_REGEX = [rf'(?x)<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL_BASE}[^\'"])']
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL_BASE}[^\'"])']
 
     _TESTS = [{
         'url': 'https://www.art19.com/shows/5898c087-a14f-48dc-b6fc-a2280a1ff6e0/',
