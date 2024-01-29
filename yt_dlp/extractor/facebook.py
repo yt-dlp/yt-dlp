@@ -611,7 +611,7 @@ class FacebookIE(InfoExtractor):
                         {lambda x: sorted(x, key=lambda c: c['locale'])},
                         lambda _, v: url_or_none(v['captions_url'])
                     )):
-                        lang = caption.get('localized_language', '')
+                        lang = caption.get('localized_language') or 'und'
                         subs = {
                             'url': caption['captions_url'],
                             'name': format_field(caption, 'localized_country', f'{lang} (%s)', default=lang),
