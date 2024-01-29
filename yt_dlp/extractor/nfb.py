@@ -201,6 +201,20 @@ class NFBIE(NFBBaseIE):
             'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'note': 'NFB film /embed/player/ page',
+        'url': 'https://www.nfb.ca/film/afterlife/embed/player/',
+        'info_dict': {
+            'id': 'afterlife',
+            'ext': 'mp4',
+            'title': 'Afterlife',
+            'description': 'md5:84951394f594f1fb1e62d9c43242fdf5',
+            'release_year': 1978,
+            'duration': 420.0,
+            'uploader': 'Ishu Patel',
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
