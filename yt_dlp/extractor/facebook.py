@@ -44,6 +44,7 @@ class FacebookIE(InfoExtractor):
                         (?:[^#]*?\#!/)?
                         (?:
                             (?:
+                                permalink\.php|
                                 video/video\.php|
                                 photo\.php|
                                 video\.php|
@@ -249,6 +250,7 @@ class FacebookIE(InfoExtractor):
             'duration': 148.435,
         },
     }, {
+        # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
         'info_dict': {
             'id': '6968553779868435',
@@ -262,6 +264,22 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
             'thumbnail': r're:^https?://.*',
             'timestamp': 1701975646,
+        },
+    }, {
+        # data.node.comet_sections.content.story.attachments[].styles.attachment.media
+        'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid0fqQuVEQyXRa9Dp4RcaTR14KHU3uULHV1EK7eckNXSH63JMuoALsAvVCJ97zAGitil&id=100068861234290',
+        'info_dict': {
+            'id': '270103405756416',
+            'ext': 'mp4',
+            'title': 'Lela Evans',
+            'description': 'Today Makkovik\'s own Pilot Mandy Smith made her inaugural landing on the airstrip in her hometown. What a proud moment as we all cheered and...',
+            'thumbnail': r're:^https?://.*',
+            'uploader': 'Lela Evans',
+            'uploader_id': 'pfbid0shZJipuigyy5mqrUJn9ub5LJFWNHvan5prtyi3LrDuuuJ4NwrURgnQHYR9fywBepl',
+            'upload_date': '20231228',
+            'timestamp': 1703804085,
+            'duration': 394.347,
+            'view_count': int,
         },
     }, {
         'url': 'https://www.facebook.com/story.php?story_fbid=pfbid0Fnzhm8UuzjBYpPMNFzaSpFE9UmLdU4fJN8qTANi1Dmtj5q7DNrL5NERXfsAzDEV7l&id=100073071055552',
@@ -564,7 +582,11 @@ class FacebookIE(InfoExtractor):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
             for f in info['formats']:
+                # Downloads with browser's User-Agent are rate limited. Working around
+                # with non-browser User-Agent.
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
+                # Formats larger than ~500MB will return error 403 unless chunk size is regulated
+                f.setdefault('downloader_options', {})['http_chunk_size'] = 250 << 20
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -678,6 +700,9 @@ class FacebookIE(InfoExtractor):
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
+                # preserve preferred_thumbnail in video info
+                if video_info.get('thumbnail'):
+                    webpage_info['thumbnail'] = video_info['thumbnail']
                 return merge_dicts(webpage_info, video_info)
 
         if not video_data:
