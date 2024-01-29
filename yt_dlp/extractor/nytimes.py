@@ -6,9 +6,9 @@ from ..utils import (
     clean_html,
     determine_ext,
     extract_attributes,
-    float_or_none,
     get_elements_html_by_class,
     int_or_none,
+    merge_dicts,
     mimetype2ext,
     parse_iso8601,
     remove_end,
@@ -66,6 +66,36 @@ class NYTimesBaseIE(InfoExtractor):
         return formats, subtitles
 
 
+class NYTimesIE(NYTimesBaseIE):
+    _WORKING = False
+    _VALID_URL = r'https?://(?:(?:www\.)?nytimes\.com/video/(?:[^/]+/)+?|graphics8\.nytimes\.com/bcvideo/\d+(?:\.\d+)?/iframe/embed\.html\?videoId=)(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//graphics8\.nytimes\.com/bcvideo/[^/]+/iframe/embed\.html.+?)\1>']
+    _TESTS = [{
+        'url': 'http://www.nytimes.com/video/opinion/100000002847155/verbatim-what-is-a-photocopier.html?playlistId=100000001150263',
+        'md5': 'd665342765db043f7e225cff19df0f2d',
+        'info_dict': {
+            'id': '100000002847155',
+            'ext': 'mov',
+            'title': 'Verbatim: What Is a Photocopier?',
+            'description': 'md5:93603dada88ddbda9395632fdc5da260',
+            'timestamp': 1398631707,
+            'upload_date': '20140427',
+            'uploader': 'Brett Weiner',
+            'duration': 419,
+        }
+    }, {
+        'url': 'http://www.nytimes.com/video/travel/100000003550828/36-hours-in-dubai.html',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        return {
+            'id': video_id
+        }
+
+
 class NYTimesArticleIE(NYTimesBaseIE):
     _VALID_URL = r'https?://(?:www\.)?nytimes\.com/\d{4}/\d{2}/\d{2}/(?!books|podcasts)[^/]+/(?:\w+/)?(?P<id>[^.]+)(?:\.html)?'
     _TESTS = [{
@@ -75,13 +105,13 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'id': '100000003628438',
             'ext': 'mp4',
             'title': 'One Company’s New Minimum Wage: $70,000 a Year',
-            'description': 'The owner of Gravity Payments, a credit card processor in Seattle, said he heard stories of how tough it was to make ends meet even on salaries that exceeded the federal minimum wage.',
+            'description': 'md5:89ba9ab67ca767bb92bf823d1f138433',
             'timestamp': 1429047468,
             'upload_date': '20150414',
             'uploader': 'Matthew Williams',
             'creator': 'Patricia Cohen',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-            'duration': 119,
+            'duration': 119000,
         }
     }, {
         # article with audio and no video
@@ -111,7 +141,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'uploader': 'By The New York Times',
             'creator': 'Katie Rogers',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-            'duration': 97,
+            'duration': 97631,
         },
         'params': {
             # inconsistant md5
@@ -123,7 +153,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
         'info_dict': {
             'id': 'air-traffic-controllers-safety',
             'title': 'Drunk and Asleep on the Job: Air Traffic Controllers Pushed to the Brink',
-            'description': 'A nationwide shortage of controllers has resulted in an exhausted and demoralized work force that is increasingly prone to making dangerous mistakes.',
+            'description': 'md5:549e5a5e935bf7d048be53ba3d2c863d',
         },
         'playlist_count': 3,
 
@@ -132,84 +162,33 @@ class NYTimesArticleIE(NYTimesBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        page_id = self._match_id(url)
-        webpage = self._download_webpage(url, page_id).replace(':undefined', ':null')
-        article_json = traverse_obj(self._search_json(
-            r'window.__preloadedData\s=', webpage, 'media details', page_id), ('initialData', 'data', 'article'))
-        blocks_json = traverse_obj(
-            article_json, ('sprinkledBody', 'content', ..., ('ledeMedia', None), lambda _, v: v['__typename'] in ('Video', 'Audio')))
+    def _extract_content_from_block(self, block):
+        details = traverse_obj(block, {
+            'id': ('sourceId', {str}),
+            'uploader': ('bylines', ..., 'renderedRepresentation', {str}),
+            'duration': (('duration', 'length', ...), {int_or_none}),
+            'upload_date': ('firstPublished', {unified_strdate}),
+            'timestamp': ('firstPublished', {parse_iso8601}),
+            'series': ('podcastSeries', {str})}, get_all=False)
 
-        art_title = remove_end(self._html_extract_title(webpage), ' - The New York Times')
-        art_description = traverse_obj(
-            article_json, ('sprinkledBody', 'content', ..., 'summary', 'content', ..., 'text'),
-            get_all=False) or self._html_search_meta(['og:description', 'twitter:description'], webpage)
-        creator = ', '.join(
-            traverse_obj(article_json, ('bylines', ..., 'creators', ..., 'displayName'), get_all=True))
+        media = traverse_obj(block, ('renditions', ...))
+        formats, subtitles = self._extract_media_from_json(details.get('id'), media)
 
-        # more than 1 video in the article, treat it as a playlist
-        if len(blocks_json) > 1:
-            entries = []
-            for block_json in blocks_json:
-                video_id = traverse_obj(block_json, ('sourceId'), get_all=False)
-                media_title = traverse_obj(block_json, ('promotionalHeadline'), get_all=False) or art_title
-                media_description = traverse_obj(block_json, ('summary'), get_all=False)
-                uploader = traverse_obj(block_json, ('bylines', ..., 'renderedRepresentation'), get_all=False)
-                duration = float_or_none(traverse_obj(block_json, ('duration'), get_all=False))
-                publication_date = traverse_obj(block_json, ('firstPublished'))
-                timestamp = parse_iso8601(publication_date) if publication_date else None
-
-                media_content = traverse_obj(block_json, ('renditions', ...))
-                formats, subtitles = self._extract_media_from_json(video_id, media_content)
-
-                thumbnails = []
-                for image in traverse_obj(block_json, ('promotionalMedia', 'crops', ..., 'renditions', ...), get_all=True):
-                    image_url = image.get('url')
-                    if not image_url:
-                        continue
-                    thumbnails.append({
-                        'url': image_url,
-                        'width': int_or_none(image.get('width')),
-                        'height': int_or_none(image.get('height')),
-                    })
-
-                entries.append({
-                    'id': video_id,
-                    'title': media_title,
-                    'description': media_description,
-                    'timestamp': timestamp,
-                    'upload_date': unified_strdate(publication_date),
-                    'uploader': uploader,
-                    'creator': creator,
-                    'duration': int_or_none(duration, 1000),
-                    'formats': formats,
-                    'subtitles': subtitles,
-                    'thumbnails': thumbnails})
-
-            return self.playlist_result(entries, page_id, art_title, art_description)
-
-        block_json = blocks_json.pop()
-        media_id = traverse_obj(block_json, ('sourceId'), get_all=False)
-        publication_date = traverse_obj(
-            block_json, ('firstPublished')) or traverse_obj(article_json, ('firstPublished'))
-        timestamp = parse_iso8601(publication_date) if publication_date else None
-        duration = int_or_none(traverse_obj(
-            block_json, ('duration'), get_all=False), 1000) or traverse_obj(block_json, ('length'), get_all=False)
-        series = traverse_obj(block_json, ('podcastSeries'), get_all=False)
-        uploader = traverse_obj(block_json, ('bylines', ..., 'renderedRepresentation'), get_all=False)
-
-        media_content = traverse_obj(block_json, ('renditions', ...))
-        formats, subtitles = self._extract_media_from_json(media_id, media_content)
-
-        # audio articles won't have formats
-        url = traverse_obj(block_json, ('fileUrl'), get_all=False)
+        # audio articles will have an url and no formats
+        url = traverse_obj(block, ('fileUrl'), get_all=False)
         if not formats and url:
             formats.append({'url': url, 'ext': determine_ext(url)})
 
+        return merge_dicts(
+            details,
+            {
+                'formats': formats,
+                'subtitles': subtitles
+            })
+
+    def _extract_thumbnails(self, thumbs):
         thumbnails = []
-        for image in traverse_obj(
-            block_json, ('promotionalMedia', 'crops', ..., 'renditions', ...), get_all=True) or traverse_obj(
-                article_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...)):
+        for image in thumbs:
             image_url = image.get('url')
             if not image_url:
                 continue
@@ -218,20 +197,60 @@ class NYTimesArticleIE(NYTimesBaseIE):
                 'width': int_or_none(image.get('width')),
                 'height': int_or_none(image.get('height')),
             })
+        return thumbnails
 
-        return {
-            'id': media_id,
+    def _real_extract(self, url):
+        page_id = self._match_id(url)
+        webpage = self._download_webpage(url, page_id)
+        article_json = self._search_json(
+            r'window\.__preloadedData\s*=', webpage, 'media details', page_id,
+            transform_source=lambda x: x.replace('undefined', 'null'))['initialData']['data']['article']
+        blocks_json = traverse_obj(
+            article_json, ('sprinkledBody', 'content', ..., ('ledeMedia', None), lambda _, v: v['__typename'] in ('Video', 'Audio')))
+
+        art_title = remove_end(self._html_extract_title(webpage), ' - The New York Times')
+        art_description = traverse_obj(
+            article_json, ('sprinkledBody', 'content', ..., 'summary', 'content', ..., 'text'),
+            get_all=False) or self._html_search_meta(['og:description', 'twitter:description'], webpage)
+        art_upload_date = traverse_obj(article_json, ('firstPublished'))
+        creator = ', '.join(
+            traverse_obj(article_json, ('bylines', ..., 'creators', ..., 'displayName'), get_all=True))
+
+        # more than 1 video in the article, treat it as a playlist
+        if len(blocks_json) > 1:
+            entries = []
+            for block_json in blocks_json:
+                content = self._extract_content_from_block(block_json)
+                thumbnails = self._extract_thumbnails(traverse_obj(
+                    block_json, ('promotionalMedia', 'crops', ..., 'renditions', ...)))
+                info = merge_dicts(content, {
+                    'title': art_title,
+                    'description': art_description,
+                    'creator': creator,
+                    'thumbnails': thumbnails,
+                })
+
+                entries.append(info)
+
+            return self.playlist_result(entries, page_id, art_title, art_description)
+
+        block_json = blocks_json.pop()
+        content = self._extract_content_from_block(block_json)
+        thumbnails = self._extract_thumbnails(traverse_obj(
+            block_json, ('promotionalMedia', 'crops', ..., 'renditions', ...)) or traverse_obj(
+                article_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...)))
+
+        info = merge_dicts(content, {
             'title': art_title,
             'description': art_description,
-            'timestamp': timestamp,
-            'upload_date': unified_strdate(publication_date),
-            'uploader': uploader,
             'creator': creator,
-            'duration': duration,
-            'formats': formats,
-            'subtitles': subtitles,
+            'upload_date': unified_strdate(art_upload_date),
+            'timestamp': parse_iso8601(art_upload_date),
             'thumbnails': thumbnails,
-            'series': series
+        })
+
+        return {
+            **info
         }
 
 
