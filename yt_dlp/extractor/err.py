@@ -1018,7 +1018,6 @@ class ERRTVIE(ERRBaseIE):
                     r'"rootContentId"\s*:\s*(?P<root_content_id>\d+)\s*,',
                     webpage, flags=re.DOTALL)
             if not mobj:
-                self.to_screen('[debug] playlist_id: ' + playlist_id)
                 raise ExtractorError('Unable to find playlist\'s numerical id \'rootContentId\'')
             root_content_id = mobj.group('root_content_id')
             url_dict['root_content_id'] = root_content_id
