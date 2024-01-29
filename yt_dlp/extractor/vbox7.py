@@ -35,7 +35,7 @@ class Vbox7IE(InfoExtractor):
         },
     }, {
         'url': 'http://vbox7.com/play:249bb972c2',
-        'md5': '99f65c0c9ef9b682b97313e052734c3f',
+        'md5': 'da1dd2eb245200cb86e6d09d43232116',
         'info_dict': {
             'id': '249bb972c2',
             'ext': 'mp4',
