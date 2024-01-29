@@ -19,7 +19,7 @@ class NFBBaseIE(InfoExtractor):
             r'const\s+episodesData\s*=', webpage, 'episode data', video_id,
             contains_pattern=r'\[\s*{(?s:.+)}\s*\]', fatal=fatal) or []
 
-    def _extract_ep_info(self, data, video_id):
+    def _extract_ep_info(self, data, video_id, slug=None):
         info = traverse_obj(data, (lambda _, v: video_id in v['embed_url'], {
             'description': ('description', {str}),
             'thumbnail': ('thumbnail_url', {url_or_none}),
@@ -36,7 +36,7 @@ class NFBBaseIE(InfoExtractor):
             'id': video_id,
             'title': join_nonempty('series', 'episode', from_dict=info, delim=' - '),
             'episode_number': int_or_none(self._search_regex(
-                r'-e(?:pisode)?-?(\d+)(?:-|$)', video_id, 'episode number', default=None)),
+                r'[/-]e(?:pisode)?-?(\d+)(?:[/-]|$)', slug or video_id, 'episode number', default=None)),
         }
 
 
@@ -221,8 +221,8 @@ class NFBIE(NFBBaseIE):
         site, type_, slug = self._match_valid_url(url).group('site', 'type', 'id')
         # Need to construct the URL since we match /embed/player/ URLs as well
         webpage, urlh = self._download_webpage_handle(f'https://www.{site}.ca/{type_}/{slug}/', slug)
-        # type_ can change from film to serie(s) after redirect
-        type_ = self._match_valid_url(urlh.url).group('type')
+        # type_ can change from film to serie(s) after redirect; new slug may have episode number
+        type_, slug = self._match_valid_url(urlh.url).group('type', 'id')
 
         embed_url = urljoin(f'https://www.{site}.ca', self._html_search_regex(
             r'<[^>]+\bid=["\']player-iframe["\'][^>]*\bsrc=["\']([^"\']+)', webpage, 'embed url'))
@@ -249,7 +249,7 @@ class NFBIE(NFBBaseIE):
             'release_year': int_or_none(self._html_search_regex(
                 r'<[^>]+\bitemprop=["\']datePublished["\'][^>]*>([^<]+)',
                 webpage, 'release_year', default=None)),
-        } if type_ == 'film' else self._extract_ep_info(self._extract_ep_data(webpage, video_id), video_id)
+        } if type_ == 'film' else self._extract_ep_info(self._extract_ep_data(webpage, video_id, slug), video_id)
 
         return merge_dicts({
             'formats': formats,
