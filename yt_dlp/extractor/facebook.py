@@ -622,9 +622,9 @@ class FacebookIE(InfoExtractor):
                             subtitles.setdefault(caption['locale'], []).append(subs)
                     captions_url = traverse_obj(video, ('captions_url', {url_or_none}))
                     if captions_url and not automatic_captions and not subtitles:
-                            locale = self._html_search_meta(
-                                ['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
-                            (automatic_captions if is_broadcast else subtitles)[locale] = [{'url': captions_url}]
+                        locale = self._html_search_meta(
+                            ['og:locale', 'twitter:locale'], webpage, 'locale', default='en_US')
+                        (automatic_captions if is_broadcast else subtitles)[locale] = [{'url': captions_url}]
 
                     info = {
                         'id': v_id,
