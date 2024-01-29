@@ -1218,7 +1218,7 @@ from .nexx import (
 )
 from .nfb import (
     NFBIE,
-    ONFIE,
+    NFBSeriesIE,
 )
 from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
