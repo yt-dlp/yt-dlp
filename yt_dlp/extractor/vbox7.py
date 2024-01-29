@@ -64,6 +64,9 @@ class Vbox7IE(InfoExtractor):
             'https://www.vbox7.com/aj/player/item/options', video_id,
             query={'vid': video_id})['options']
 
+        if data.get('src') in (None, '', 'blank'):
+            raise ExtractorError('Video is unavailable', expected=True)
+
         fmt_base = base_url(data['src']) + url_basename(data['src']).rsplit('.', 1)[0].rsplit('_', 1)[0]
 
         formats = self._extract_m3u8_formats(
