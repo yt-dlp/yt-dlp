@@ -5,6 +5,7 @@ from ..utils import (
     merge_dicts,
     parse_count,
     url_or_none,
+    urljoin,
 )
 from ..utils.traversal import traverse_obj
 
@@ -204,25 +205,15 @@ class NFBIE(NFBBaseIE):
 
     def _real_extract(self, url):
         site, type_, slug = self._match_valid_url(url).group('site', 'type', 'id')
+        # Need to construct the URL since we match /embed/player/ URLs as well
         webpage, urlh = self._download_webpage_handle(f'https://www.{site}.ca/{type_}/{slug}/', slug)
-        json_ld = self._yield_json_ld(webpage, slug)
-
-        # /film/ URLs have unique slugs used in the embed url
-        video_id = slug if type_ == 'film' else traverse_obj(
-            json_ld, (lambda _, v: 'VideoObject' in v['@type'], 'embedUrl', {self._match_id}),
-            get_all=False) or self._match_id(self._og_search_property('url', webpage, 'video id'))
-
-        # type_ may have changed from film to serie(s) after redirect
+        # type_ can change from film to serie(s) after redirect
         type_ = self._match_valid_url(urlh.url).group('type')
 
-        player = self._download_webpage(
-            f'https://www.{site}.ca/film/{video_id}/embed/player/', video_id,
-            'Downloading player page', query={
-                'player_mode': '',
-                'embed_mode': '0',
-                'auto_focus': '1',
-                'context_type': type_ if type_ == 'film' else 'episode',
-            })
+        embed_url = urljoin(f'https://www.{site}.ca', self._html_search_regex(
+            r'<[^>]+\bid=["\']player-iframe["\'][^>]*\bsrc=["\']([^"\']+)', webpage, 'embed url'))
+        video_id = self._match_id(embed_url)  # embed url has unique slug
+        player = self._download_webpage(embed_url, video_id)
         if 'MESSAGE_GEOBLOCKED' in player:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
 
@@ -249,7 +240,7 @@ class NFBIE(NFBBaseIE):
         return merge_dicts({
             'formats': formats,
             'subtitles': subtitles,
-        }, info, self._json_ld(json_ld, video_id))
+        }, info, self._search_json_ld(webpage, video_id, default={}))
 
 
 class NFBSeriesIE(NFBBaseIE):
