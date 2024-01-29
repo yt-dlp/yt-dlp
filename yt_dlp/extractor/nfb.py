@@ -213,7 +213,7 @@ class NFBIE(NFBBaseIE):
         embed_url = urljoin(f'https://www.{site}.ca', self._html_search_regex(
             r'<[^>]+\bid=["\']player-iframe["\'][^>]*\bsrc=["\']([^"\']+)', webpage, 'embed url'))
         video_id = self._match_id(embed_url)  # embed url has unique slug
-        player = self._download_webpage(embed_url, video_id)
+        player = self._download_webpage(embed_url, video_id, 'Downloading player page')
         if 'MESSAGE_GEOBLOCKED' in player:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
 
