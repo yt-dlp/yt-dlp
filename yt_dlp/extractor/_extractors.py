@@ -1386,6 +1386,7 @@ from .ora import OraTVIE
 from .orf import (
     ORFTVthekIE,
     ORFFM4StoryIE,
+    ORFONIE,
     ORFRadioIE,
     ORFPodcastIE,
     ORFIPTVIE,

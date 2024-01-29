@@ -10,6 +10,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     join_nonempty,
+    js_to_json,
     make_archive_id,
     mimetype2ext,
     orderedSet,
@@ -565,3 +566,52 @@ class ORFFM4StoryIE(InfoExtractor):
             })
 
         return self.playlist_result(entries)
+
+
+class ORFONIE(InfoExtractor):
+    _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d{8})/(?P<slug>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://on.orf.at/video/14210000/school-of-champions-48',
+        'info_dict': {
+            'id': '14210000',
+            'ext': 'mp4',
+            'duration': 2651.08,
+            'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0167/98/thumb_16697671_segments_highlight_teaser.jpeg',
+            'title': 'School of Champions (4/8)',
+            'description': 'md5:d09ad279fc2e8502611e7648484b6afd',
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id, display_id = self._match_valid_url(url).group('id', 'slug')
+        webpage = self._download_webpage(url, display_id)
+        info = self._parse_json(
+            self._search_regex(
+                r'(?s)<script[^>]+id=[\'"]__NUXT_DATA__[\'"][^>]*>([^<]+)</script>', webpage, 'NUXT DATA',
+            ), display_id, transform_source=js_to_json
+        )
+
+        json_ld_data = self._search_json_ld(webpage, display_id)
+        # Not an elegant regex but whatever
+        m3u8_urls = traverse_obj(info, lambda _, v: re.match(r'https?://(?:[\w.-]+/)+playlist.m3u8', v))
+
+        formats, subtitles = [], {}
+        for url in m3u8_urls:
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(url, display_id)
+            formats.extend(fmt)
+            self._merge_subtitles(subs, target=subtitles)
+
+        return {
+            'id': video_id,
+            'title': (json_ld_data.get('title')
+                      or self._html_search_meta(['og:title', 'twitter:title'], webpage)),
+            'description': (json_ld_data.get('description')
+                            or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(json_ld_data, {
+                'duration': ('duration', {float_or_none}),
+                'timestamp': ('timestamp', int_or_none),
+                'thumbnails': 'thumbnails'
+            })
+        }
