@@ -1,3 +1,4 @@
+import base64
 import functools
 import re
 
@@ -12,6 +13,7 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     make_archive_id,
+    merge_dicts,
     mimetype2ext,
     orderedSet,
     remove_end,
@@ -579,8 +581,35 @@ class ORFONIE(InfoExtractor):
             'thumbnail': 'https://api-tvthek.orf.at/assets/segments/0167/98/thumb_16697671_segments_highlight_teaser.jpeg',
             'title': 'School of Champions (4/8)',
             'description': 'md5:d09ad279fc2e8502611e7648484b6afd',
+            'media_type': 'episode',
         }
     }]
+
+    def _call_api(self, video_id, display_id):
+        encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
+        api_json = self._download_json(
+            f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
+
+        formats, subtitles = [], {}
+
+        for manifest_type in api_json.get('sources') or [{}]:
+            if manifest_type == 'hls':
+                for hls_info in traverse_obj(api_json, ('sources', manifest_type, ...)):
+                    fmt, subs = self._extract_m3u8_formats_and_subtitles(hls_info.get('src'), display_id)
+                    formats.extend(fmt)
+                    self._merge_subtitles(subs, target=subtitles)
+
+        return {
+            'id': video_id or api_json.get('id'),
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(api_json, {
+                'duration': ('duration_second', float_or_none),
+                'title': (('title'), ('headline')),
+                'description': (('description'), ('teaser_text')),
+                'media_type': 'video_type'
+            })
+        }
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'slug')
@@ -592,26 +621,31 @@ class ORFONIE(InfoExtractor):
         )
 
         json_ld_data = self._search_json_ld(webpage, display_id)
-        # Not an elegant regex but whatever
-        m3u8_urls = traverse_obj(info, lambda _, v: re.match(r'https?://(?:[\w.-]+/)+playlist.m3u8', v))
 
-        formats, subtitles = [], {}
-        for url in m3u8_urls:
-            fmt, subs = self._extract_m3u8_formats_and_subtitles(url, display_id)
-            formats.extend(fmt)
-            self._merge_subtitles(subs, target=subtitles)
+        api_data = self._call_api(video_id, display_id)
 
-        return {
+        if api_data == {}:
+            # may not accurate
+            m3u8_urls = traverse_obj(info, lambda _, v: re.match(r'https?://(?:[\w.-]+/)+playlist.m3u8', v))
+
+            formats, subtitles = [], {}
+            for url in m3u8_urls:
+                fmt, subs = self._extract_m3u8_formats_and_subtitles(url, display_id)
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
+
+            api_data['formats'] = formats
+            api_data['subtitles'] = subtitles
+
+        return merge_dicts(api_data, {
             'id': video_id,
             'title': (json_ld_data.get('title')
                       or self._html_search_meta(['og:title', 'twitter:title'], webpage)),
             'description': (json_ld_data.get('description')
                             or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
-            'formats': formats,
-            'subtitles': subtitles,
             **traverse_obj(json_ld_data, {
                 'duration': ('duration', {float_or_none}),
                 'timestamp': ('timestamp', int_or_none),
                 'thumbnails': 'thumbnails'
             })
-        }
+        })
