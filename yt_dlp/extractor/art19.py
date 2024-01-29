@@ -121,7 +121,12 @@ class Art19IE(InfoExtractor):
             f'https://rss.art19.com/episodes/{episode_id}.json', episode_id, fatal=False,
             note='Downloading RSS metadata')
 
-        formats = []
+        formats = [{
+            'format_id': 'direct',
+            'url': f'https://rss.art19.com/episodes/{episode_id}.mp3',
+            'vcodec': 'none',
+            'acodec': 'mp3',
+        }]
         for fmt_id, fmt_data in traverse_obj(rss_metadata, ('content', 'media', {dict.items}, ...)):
             if fmt_id == 'waveform_bin':
                 continue
@@ -135,12 +140,6 @@ class Art19IE(InfoExtractor):
                 'acodec': fmt_id,
                 'quality': -2 if fmt_id == 'ogg' else -1,
             })
-        formats.append({
-            'format_id': 'direct',
-            'url': f'https://rss.art19.com/episodes/{episode_id}.mp3',
-            'vcodec': 'none',
-            'acodec': 'mp3',
-        })
 
         return {
             'id': episode_id,
