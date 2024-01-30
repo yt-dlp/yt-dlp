@@ -618,7 +618,7 @@ class ORFONIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'slug')
         webpage = self._download_webpage(url, display_id)
-        info = self._parse_json(
+        nuxt_data_json = self._parse_json(
             self._search_regex(
                 r'(?s)<script[^>]+id=[\'"]__NUXT_DATA__[\'"][^>]*>([^<]+)</script>', webpage, 'NUXT DATA',
             ), display_id, transform_source=js_to_json
@@ -630,7 +630,7 @@ class ORFONIE(InfoExtractor):
 
         if api_data == {}:
             # may not accurate
-            m3u8_urls = traverse_obj(info, lambda _, v: re.match(r'https?://(?:[\w.-]+/)+playlist.m3u8', v))
+            m3u8_urls = traverse_obj(nuxt_data_json, lambda _, v: re.match(r'https?://(?:[\w.-]+/)+playlist.m3u8', v))
 
             formats, subtitles = [], {}
             for url in m3u8_urls:
