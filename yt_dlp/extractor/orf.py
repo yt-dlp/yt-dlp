@@ -591,7 +591,6 @@ class ORFONIE(InfoExtractor):
             f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
 
         formats, subtitles = [], {}
-
         for manifest_type in api_json.get('sources') or [{}]:
             for manifest_info in traverse_obj(api_json, ('sources', manifest_type, ...)):
                 fmt, subs = [], {}
@@ -599,8 +598,11 @@ class ORFONIE(InfoExtractor):
                     fmt, subs = self._extract_m3u8_formats_and_subtitles(manifest_info.get('src'), display_id)
                 elif manifest_type == 'dash':
                     fmt, subs = self._extract_mpd_formats_and_subtitles(manifest_info.get('src'), display_id, fatal=False)
+                else:
+                    continue
                 formats.extend(fmt)
                 self._merge_subtitles(subs, target=subtitles)
+
         return {
             'id': video_id or api_json.get('id'),
             'formats': formats,
