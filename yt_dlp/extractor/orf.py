@@ -593,12 +593,14 @@ class ORFONIE(InfoExtractor):
         formats, subtitles = [], {}
 
         for manifest_type in api_json.get('sources') or [{}]:
-            if manifest_type == 'hls':
-                for hls_info in traverse_obj(api_json, ('sources', manifest_type, ...)):
-                    fmt, subs = self._extract_m3u8_formats_and_subtitles(hls_info.get('src'), display_id)
-                    formats.extend(fmt)
-                    self._merge_subtitles(subs, target=subtitles)
-
+            for manifest_info in traverse_obj(api_json, ('sources', manifest_type, ...)):
+                fmt, subs = [], {}
+                if manifest_type == 'hls':
+                    fmt, subs = self._extract_m3u8_formats_and_subtitles(manifest_info.get('src'), display_id)
+                elif manifest_type == 'dash':
+                    fmt, subs = self._extract_mpd_formats_and_subtitles(manifest_info.get('src'), display_id, fatal=False)
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
         return {
             'id': video_id or api_json.get('id'),
             'formats': formats,
