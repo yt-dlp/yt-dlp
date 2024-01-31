@@ -23,7 +23,8 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import functools, compat_os_name
+from .compat import functools  # isort: split
+from .compat import compat_os_name
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
