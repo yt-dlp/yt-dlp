@@ -592,7 +592,7 @@ class ORFONIE(InfoExtractor):
             f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
 
         formats, subtitles = [], {}
-        for manifest_type in api_json.get('sources') or [{}]:
+        for manifest_type in traverse_obj(api_json, ('sources', {dict.keys}, ...)):
             for manifest_info in traverse_obj(api_json, ('sources', manifest_type, ...)):
                 fmt, subs = [], {}
                 if manifest_type == 'hls':
@@ -605,7 +605,7 @@ class ORFONIE(InfoExtractor):
                 self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': video_id or api_json.get('id'),
+            'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(api_json, {
