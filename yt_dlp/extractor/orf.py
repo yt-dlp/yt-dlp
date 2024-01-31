@@ -608,10 +608,10 @@ class ORFONIE(InfoExtractor):
             'subtitles': subtitles,
             **traverse_obj(api_json, {
                 'duration': ('duration_second', float_or_none),
-                'title': (('title'), ('headline')),
-                'description': (('description'), ('teaser_text')),
-                'media_type': 'video_type'
-            })
+                'title': (('title', 'headline'), {str}),
+                'description': (('description', 'teaser_text'), {str}),
+                'media_type': ('video_type', {str}),
+            }, get_all=False)
         }
 
     def _real_extract(self, url):
