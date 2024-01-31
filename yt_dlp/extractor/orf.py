@@ -11,7 +11,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     join_nonempty,
-    js_to_json,
     make_archive_id,
     merge_dicts,
     mimetype2ext,
@@ -620,28 +619,9 @@ class ORFONIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'slug')
         webpage = self._download_webpage(url, display_id)
-        nuxt_data_json = self._parse_json(
-            self._search_regex(
-                r'(?s)<script[^>]+id=[\'"]__NUXT_DATA__[\'"][^>]*>([^<]+)</script>', webpage, 'NUXT DATA',
-            ), display_id, transform_source=js_to_json
-        )
-
         json_ld_data = self._search_json_ld(webpage, display_id)
 
         api_data = self._call_api(video_id, display_id)
-
-        if api_data == {}:
-            # may not accurate
-            m3u8_urls = traverse_obj(nuxt_data_json, lambda _, v: re.match(r'https?://(?:[\w.-]+/)+playlist.m3u8', v))
-
-            formats, subtitles = [], {}
-            for url in m3u8_urls:
-                fmt, subs = self._extract_m3u8_formats_and_subtitles(url, display_id)
-                formats.extend(fmt)
-                self._merge_subtitles(subs, target=subtitles)
-
-            api_data['formats'] = formats
-            api_data['subtitles'] = subtitles
 
         return merge_dicts(api_data, {
             'id': video_id,
