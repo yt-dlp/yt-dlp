@@ -1253,6 +1253,7 @@ from .niconico import (
     NicovideoTagURLIE,
     NiconicoLiveIE,
 )
+from .ninaprotocol import NinaprotocolIE
 from .ninecninemedia import (
     NineCNineMediaIE,
     CPTwentyFourIE,
@@ -2469,5 +2470,3 @@ from .zingmp3 import (
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
-
-from .ninaprotocol import NinaprotocolIE

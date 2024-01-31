@@ -1,196 +1,224 @@
 from .common import InfoExtractor
-import json
-import re
-from yt_dlp import traverse_obj
-from ..utils import ExtractorError
+from ..utils import int_or_none, mimetype2ext, parse_iso8601, url_or_none
+from ..utils.traversal import traverse_obj
 
 
 class NinaprotocolIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ninaprotocol\.com/releases/(?P<id>(.*)+)'
+    _VALID_URL = r'https?://(?:www\.)?ninaprotocol\.com/releases/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://www.ninaprotocol.com/releases/3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ',
-        'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ',
         'info_dict': {
             'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ',
             'title': 'The Spatulas - March Chant',
             'tags': ['punk', 'postpresentmedium', 'cambridge'],
-            'thumbnail': str,
-            'description': str,
-            'type': 'audio'
+            'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
+            'channel': 'ppm',
+            'description': 'md5:bb9f9d39d8f786449cd5d0ff7c5772db',
+            'album': 'The Spatulas - March Chant',
+            'thumbnail': 'https://www.arweave.net/VyZA6CBeUuqP174khvSrD44Eosi3MLVyWN42uaQKg50',
+            'timestamp': 1701417610,
+            'uploader': 'ppmrecs',
+            'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
+            'display_id': 'the-spatulas-march-chant',
+            'upload_date': '20231201',
+            'album_artist': 'Post Present Medium ',
         },
-        'playlist': [
-            {
-                'info_dict': {
-                    'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_1',
-                    'title': 'March Chant In April',
-                    'track': 'March Chant In April',
-                    'ext': 'mp3',
-                    'duration': 152,
-                    'track_number': 1,
-                    'type': 'audio'
-                }
-            },
-            {
-                'info_dict': {
-                    'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_2',
-                    'title': 'Rescue Mission',
-                    'track': 'Rescue Mission',
-                    'ext': 'mp3',
-                    'duration': 212,
-                    'track_number': 2,
-                    'type': 'audio',
-                }
-            },
-            {
-                'info_dict': {
-                    'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_3',
-                    'title': 'Slinger Style',
-                    'track': 'Slinger Style',
-                    'ext': 'mp3',
-                    'duration': 179,
-                    'track_number': 3,
-                    'type': 'audio',
-                }
-            },
-
-            {
-                'info_dict': {
-                    'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_4',
-                    'title': 'Psychic Signal',
-                    'track': 'Psychic Signal',
-                    'ext': 'mp3',
-                    'duration': 220,
-                    'track_number': 4,
-                    'type': 'audio',
-                }
-            },
-            {
-                'info_dict': {
-                    'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_5',
-                    'title': 'Curvy Color',
-                    'track': 'Curvy Color',
-                    'ext': 'mp3',
-                    'duration': 148,
-                    'track_number': 5,
-                    'type': 'audio',
-                }
-            },
-            {
-                'info_dict': {
-                    'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_6',
-                    'title': 'Caveman Star',
-                    'track': 'Caveman Star',
-                    'ext': 'mp3',
-                    'duration': 121,
-                    'track_number': 6,
-                    'type': 'audio',
-                },
+        'playlist': [{
+            'info_dict': {
+                'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_1',
+                'title': 'March Chant In April',
+                'track': 'March Chant In April',
+                'ext': 'mp3',
+                'duration': 152,
+                'track_number': 1,
+                'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
+                'uploader': 'ppmrecs',
+                'thumbnail': 'https://www.arweave.net/VyZA6CBeUuqP174khvSrD44Eosi3MLVyWN42uaQKg50',
+                'timestamp': 1701417610,
+                'channel': 'ppm',
+                'album': 'The Spatulas - March Chant',
+                'tags': ['punk', 'postpresentmedium', 'cambridge'],
+                'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
+                'upload_date': '20231201',
+                'album_artist': 'Post Present Medium ',
             }
-        ],
+        }, {
+            'info_dict': {
+                'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_2',
+                'title': 'Rescue Mission',
+                'track': 'Rescue Mission',
+                'ext': 'mp3',
+                'duration': 212,
+                'track_number': 2,
+                'album_artist': 'Post Present Medium ',
+                'uploader': 'ppmrecs',
+                'tags': ['punk', 'postpresentmedium', 'cambridge'],
+                'thumbnail': 'https://www.arweave.net/VyZA6CBeUuqP174khvSrD44Eosi3MLVyWN42uaQKg50',
+                'channel': 'ppm',
+                'upload_date': '20231201',
+                'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
+                'timestamp': 1701417610,
+                'album': 'The Spatulas - March Chant',
+                'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
+            }
+        }, {
+            'info_dict': {
+                'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_3',
+                'title': 'Slinger Style',
+                'track': 'Slinger Style',
+                'ext': 'mp3',
+                'duration': 179,
+                'track_number': 3,
+                'timestamp': 1701417610,
+                'upload_date': '20231201',
+                'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
+                'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
+                'thumbnail': 'https://www.arweave.net/VyZA6CBeUuqP174khvSrD44Eosi3MLVyWN42uaQKg50',
+                'album_artist': 'Post Present Medium ',
+                'album': 'The Spatulas - March Chant',
+                'tags': ['punk', 'postpresentmedium', 'cambridge'],
+                'uploader': 'ppmrecs',
+                'channel': 'ppm',
+            }
+        }, {
+            'info_dict': {
+                'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_4',
+                'title': 'Psychic Signal',
+                'track': 'Psychic Signal',
+                'ext': 'mp3',
+                'duration': 220,
+                'track_number': 4,
+                'tags': ['punk', 'postpresentmedium', 'cambridge'],
+                'upload_date': '20231201',
+                'album': 'The Spatulas - March Chant',
+                'thumbnail': 'https://www.arweave.net/VyZA6CBeUuqP174khvSrD44Eosi3MLVyWN42uaQKg50',
+                'timestamp': 1701417610,
+                'album_artist': 'Post Present Medium ',
+                'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
+                'channel': 'ppm',
+                'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
+                'uploader': 'ppmrecs',
+            }
+        }, {
+            'info_dict': {
+                'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_5',
+                'title': 'Curvy Color',
+                'track': 'Curvy Color',
+                'ext': 'mp3',
+                'duration': 148,
+                'track_number': 5,
+                'timestamp': 1701417610,
+                'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
+                'thumbnail': 'https://www.arweave.net/VyZA6CBeUuqP174khvSrD44Eosi3MLVyWN42uaQKg50',
+                'album': 'The Spatulas - March Chant',
+                'album_artist': 'Post Present Medium ',
+                'channel': 'ppm',
+                'tags': ['punk', 'postpresentmedium', 'cambridge'],
+                'uploader': 'ppmrecs',
+                'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
+                'upload_date': '20231201',
+            }
+        }, {
+            'info_dict': {
+                'id': '3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ_6',
+                'title': 'Caveman Star',
+                'track': 'Caveman Star',
+                'ext': 'mp3',
+                'duration': 121,
+                'track_number': 6,
+                'channel_id': '4ceG4zsb7VVxBTGPtZMqDZWGHo3VUg2xRvzC2b17ymWP',
+                'thumbnail': 'https://www.arweave.net/VyZA6CBeUuqP174khvSrD44Eosi3MLVyWN42uaQKg50',
+                'tags': ['punk', 'postpresentmedium', 'cambridge'],
+                'album_artist': 'Post Present Medium ',
+                'uploader': 'ppmrecs',
+                'timestamp': 1701417610,
+                'uploader_id': '2bGjgdKUddJoj2shYGqfNcUfoSoABP21RJoiwGMZDq3A',
+                'album': 'The Spatulas - March Chant',
+                'channel': 'ppm',
+                'upload_date': '20231201',
+            },
+        }],
     }, {
         'url': 'https://www.ninaprotocol.com/releases/f-g-s-american-shield',
-        'id': 'f-g-s-american-shield',
-        'md5': 'f8934f550f6f4db527a50fa47275dc4e',
         'info_dict': {
-            'id': 'f-g-s-american-shield_1',
-            'ext': 'mp3',
+            'id': '76PZnJwaMgViQHYfA4NYJXds7CmW6vHQKAtQUxGene6J',
+            'description': 'md5:63f08d5db558b4b36e1896f317062721',
             'title': 'F.G.S. - American Shield',
-            'track': 'F.G.S. - American Shield',
-            'type': 'audio',
-            'duration': 201,
-            'track_number': int
-        }
+            'uploader_id': 'Ej3rozs11wYqFk1Gs6oggGCkGLz8GzBhmJfnUxf6gPci',
+            'channel_id': '6JuksCZPXuP16wJ1BUfwuukJzh42C7guhLrFPPkVJfyE',
+            'channel': 'tinkscough',
+            'tags': [],
+            'album_artist': 'F.G.S.',
+            'album': 'F.G.S. - American Shield',
+            'thumbnail': 'https://www.arweave.net/YJpgImkXLT9SbpFb576KuZ5pm6bdvs452LMs3Rx6lm8',
+            'display_id': 'f-g-s-american-shield',
+            'uploader': 'flannerysilva',
+            'timestamp': 1702395858,
+            'upload_date': '20231212',
+        },
+        'playlist_count': 1,
     }, {
-        'url': 'https://www.ninaprotocol.com/releases/9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z',
-        'id': '9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z',
-        'md5': 'fa5d72b8cbb031a01c3ff0262e388967',
+        'url': 'https://www.ninaprotocol.com/releases/time-to-figure-things-out',
         'info_dict': {
-            'id': '9Uw8FYtc9mbahX7YEWD27NNXxyYUJ9gwZrEoWrMzSw9z_1',
-            'ext': 'mp3',
-            'title': 'Pluck',
-            'track': 'Pluck',
-            'type': 'audio',
-            'track_number': int
-        }
+            'id': '6Zi1nC5hj6b13NkpxVYwRhFy6mYA7oLBbe9DMrgGDcYh',
+            'display_id': 'time-to-figure-things-out',
+            'description': 'md5:960202ed01c3134bb8958f1008527e35',
+            'timestamp': 1706283607,
+            'title': 'DJ STEPDAD - time to figure things out',
+            'album_artist': 'DJ STEPDAD',
+            'uploader': 'tddvsss',
+            'upload_date': '20240126',
+            'album': 'time to figure things out',
+            'uploader_id': 'AXQNRgTyYsySyAMFDwxzumuGjfmoXshorCesjpquwCBi',
+            'thumbnail': 'https://www.arweave.net/O4i8bcKVqJVZvNeHHFp6r8knpFGh9ZwEgbeYacr4nss',
+            'tags': [],
+        },
+        'playlist_count': 4,
     }]
-
-    def _get_balanced_brackets_substring(self, text, index=0):
-        subtext = text[index:]
-        index_of_brackets = [m.start() for m in re.finditer(r'[\[\]{}()]', subtext)]
-        stack = [index_of_brackets[0]]
-        for i in range(1, len(index_of_brackets)):
-            if subtext[index_of_brackets[i]] in r'({[':
-                stack.append(index_of_brackets[i])
-            else:
-                stack.pop()
-                if len(stack) == 0:
-                    return subtext[:index_of_brackets[i] + 1]
-        if stack:
-            raise ValueError("Unbalanced brackets: Opening bracket without a corresponding closing bracket.")
-
-    def _search_all_releases(self, webpage, release_name):
-        scripts = ''.join(re.findall(r'(?i)<\s*script\s*>(.*?)<\s*/\s*script\s*>', webpage))
-        scripts = scripts.encode('utf-8').decode('unicode_escape')
-
-        for m in re.finditer(r'"release":([\[{])', scripts):
-            s_json = self._get_balanced_brackets_substring(scripts, m.start(1))
-            try:
-                release = json.loads(s_json)
-            except json.JSONDecodeError:
-                return None
-
-            if traverse_obj(release, ('metadata', 'name')) in release_name:
-                return release
-
-        return None
-
-    def _get_json_with_api(self, video_id):
-        api_url = 'https://api.ninaprotocol.com/v1/releases/' + video_id
-        json_string = self._download_webpage(api_url, video_id)
-        json_video_data = self._parse_json(json_string, video_id)
-        return json_video_data.get('release', None)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        release_name = (self._html_search_meta('og:title', webpage) or self._html_extract_title(webpage))
+        release = self._download_json(
+            f'https://api.ninaprotocol.com/v1/releases/{video_id}', video_id)['release']
 
-        release = self._get_json_with_api(video_id)
+        video_id = release.get('publicKey') or video_id
 
-        if release is None:
-            # getting song data from internal workings of a Next.js
-            release = self._search_all_releases(webpage, release_name)
-
-        if release is None:
-            raise ExtractorError('No song metadata found.')
-
-        files = traverse_obj(release, ('metadata', 'properties', 'files'))
-        ext = traverse_obj(release, ('metadata', 'animation_url')).split('?ext=')[-1]
+        common_info = traverse_obj(release, {
+            'album': ('metadata', 'properties', 'title', {str}),
+            'album_artist': ((('hub', 'data'), 'publisherAccount'), 'displayName', {str}),
+            'timestamp': ('datetime', {parse_iso8601}),
+            'thumbnail': ('metadata', 'image', {url_or_none}),
+            'uploader': ('publisherAccount', 'handle', {str}),
+            'uploader_id': ('publisherAccount', 'publicKey', {str}),
+            'channel': ('hub', 'handle', {str}),
+            'channel_id': ('hub', 'publicKey', {str}),
+        }, get_all=False)
+        common_info['tags'] = traverse_obj(release, ('metadata', 'properties', 'tags', ..., {str}))
 
         entries = []
-        for n, track in enumerate(files):
-            entry = {}
-            entry['id'] = video_id + '_' + str(n + 1)
-            entry['title'] = track['track_title']
-            entry['url'] = track['uri']
-            entry['ext'] = ext
-            entry['track_number'] = track.get('track')
-            entry['track'] = track.get('track_title')
-            entry['type'] = traverse_obj(release, ('metadata', 'properties', 'category'))
-            if 'artist' in track:
-                entry['artist'] = track.get('artist')
-            if 'duration' in track:
-                entry['duration'] = track.get('duration')
-            entries.append(entry)
+        for i, track in enumerate(traverse_obj(release, (
+                'metadata', 'properties', 'files', lambda _, v: url_or_none(v['uri']), {dict}))):
+            entries.append({
+                'id': f'{video_id}_{i + 1}',
+                'url': track['uri'],
+                **traverse_obj(track, {
+                    'title': ('track_title', {str}),
+                    'track': ('track_title', {str}),
+                    'ext': ('type', {mimetype2ext}),
+                    'track_number': ('track', {int_or_none}),
+                    'duration': ('duration', {int_or_none}),
+                }),
+                **common_info,
+            })
 
         return {
-            'id': video_id,
-            'title': traverse_obj(release, ('metadata', 'name')),
-            'description': traverse_obj(release, ('metadata', 'description')),
-            'thumbnail': traverse_obj(release, ('metadata', 'image')),
-            'tags': traverse_obj(release, ('metadata', 'properties', 'tags')),
             '_type': 'playlist',
-            'ext': ext,
-            'type': traverse_obj(release, ('metadata', 'properties', 'category')),
+            'id': video_id,
             'entries': entries,
+            **traverse_obj(release, {
+                'display_id': ('slug', {str}),
+                'title': ('metadata', 'name', {str}),
+                'description': ('metadata', 'description', {str}),
+            }),
+            **common_info,
         }
