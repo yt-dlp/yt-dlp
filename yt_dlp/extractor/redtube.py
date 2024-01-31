@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class RedTubeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:\w+\.)?redtube\.com/|embed\.redtube\.com/\?.*?\bid=)(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:(?:\w+\.)?redtube\.com(?:\.br)?/|embed\.redtube\.com/\?.*?\bid=)(?P<id>[0-9]+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//embed\.redtube\.com/\?.*?\bid=\d+)']
     _TESTS = [{
         'url': 'https://www.redtube.com/38864951',
@@ -34,6 +34,9 @@ class RedTubeIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://it.redtube.com/66418',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.redtube.com.br/103224331',
         'only_matching': True,
     }]
 
