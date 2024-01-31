@@ -1,5 +1,8 @@
+import json
+
 from .common import InfoExtractor
-from ..utils import parse_iso8601, traverse_obj, try_call, str_or_none, float_or_none, json
+from ..utils import float_or_none, parse_iso8601, str_or_none, try_call
+from ..utils.traversal import traverse_obj
 
 
 class PrankCastIE(InfoExtractor):
