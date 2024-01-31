@@ -605,7 +605,7 @@ class ORFONIE(InfoExtractor):
                 self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': video_id or api_json.get('id'),
+            'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(api_json, {
