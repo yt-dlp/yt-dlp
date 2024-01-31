@@ -585,8 +585,6 @@ class ORFONIE(InfoExtractor):
     }]
 
     def _extract_video(self, video_id, display_id):
-        # NOTE: the prefix `3dSlfek03nsLKdj4Jsd` is only based on my observation on several
-        # api call. This string may change in future
         encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
         api_json = self._download_json(
             f'https://api-tvthek.orf.at/api/v4.3/public/episode/encrypted/{encrypted_id}', display_id)
