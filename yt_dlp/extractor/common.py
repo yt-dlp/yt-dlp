@@ -1339,7 +1339,10 @@ class InfoExtractor:
         else:
             return None, None
         if not info:
-            raise netrc.NetrcParseError(f'No authenticators for {netrc_machine}')
+            self.to_screen(f'No authenticators for {netrc_machine}')
+            return None, None
+
+        self.write_debug(f'Using netrc for {netrc_machine} authentication')
         return info[0], info[2]
 
     def _get_login_info(self, username_option='username', password_option='password', netrc_machine=None):
