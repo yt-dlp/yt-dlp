@@ -39,7 +39,6 @@ class ZetlandDKArticleIE(InfoExtractor):
             formats.append({
                 'url': audio_url,
                 'vcodec': 'none',
-                'ext': determine_ext(audio_url)
             })
 
         return merge_dicts({
