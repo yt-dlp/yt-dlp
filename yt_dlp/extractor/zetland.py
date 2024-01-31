@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import determine_ext, merge_dicts, unified_timestamp, url_or_none
+from ..utils import merge_dicts, unified_timestamp, url_or_none
 from ..utils.traversal import traverse_obj
 
 
