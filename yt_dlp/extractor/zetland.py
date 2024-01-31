@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class ZetlandDKArticleIE(InfoExtractor):
-    _VALID_URL = r'https://www.zetland.dk/\w+/(?P<id>[\w-]+)'
+    _VALID_URL = r'https://www.zetland.dk/\w+/(?P<id>(?P<story_id>\w{8})-(?P<uploader_id>\w{8})-(?:\w{5}))'
     _TESTS = [{
         'url': 'https://www.zetland.dk/historie/sO9aq2MY-a81VP3BY-66e69?utm_source=instagram&utm_medium=linkibio&utm_campaign=artikel',
         'info_dict': {
@@ -28,7 +28,7 @@ class ZetlandDKArticleIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        display_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
         webpage = self._download_webpage(url, display_id)
 
         next_js_data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
@@ -45,6 +45,7 @@ class ZetlandDKArticleIE(InfoExtractor):
         return merge_dicts({
             'id': display_id,
             'formats': formats,
+            'uploader_id': uploader_id
         }, traverse_obj(story_data, {
             'title': ('story_content', 'content', 'title') or 'title',
             'uploader': ('sharer', 'name'),
