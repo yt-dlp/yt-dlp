@@ -584,7 +584,7 @@ class ORFONIE(InfoExtractor):
         }
     }]
 
-    def _call_api(self, video_id, display_id):
+    def _extract_video(self, video_id, display_id):
         # NOTE: the prefix `3dSlfek03nsLKdj4Jsd` is only based on my observation on several
         # api call. This string may change in future
         encrypted_id = base64.b64encode(f'3dSlfek03nsLKdj4Jsd{video_id}'.encode()).decode()
@@ -628,5 +628,5 @@ class ORFONIE(InfoExtractor):
             'description': (json_ld_data.get('description')
                             or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
             **json_ld_data,
-            **self._call_api(video_id, display_id)
+            **self._extract_video(video_id, display_id)
         }
