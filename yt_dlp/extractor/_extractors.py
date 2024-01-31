@@ -1518,7 +1518,7 @@ from .puhutv import (
     PuhuTVSerieIE,
 )
 from .pr0gramm import Pr0grammIE
-from .prankcast import PrankCastIE
+from .prankcast import PrankCastIE, PrankCastPostIE
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
