@@ -231,8 +231,17 @@ class NFBIE(NFBBaseIE):
         if 'MESSAGE_GEOBLOCKED' in player:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
 
-        source = self._html_search_regex(r'source:\s*\'([^\']+)', player, 'source')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            self._html_search_regex(r'source:\s*\'([^\']+)', player, 'm3u8 url'),
+            video_id, 'mp4', m3u8_id='hls')
+        
+        if dv_source := self._html_search_regex(r'dvSource:\s*\'([^\']+)', player, 'dv', default=None):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                dv_source, video_id, 'mp4', m3u8_id='dv', preference=-2, fatal=False)
+            for fmt in fmts:
+                fmt['format_note'] = 'described video'
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         info = {
             'id': video_id,
