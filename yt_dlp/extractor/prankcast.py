@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import parse_iso8601, traverse_obj, try_call
+from ..utils import parse_iso8601, traverse_obj, try_call, str_or_none, float_or_none, json
 
 
 class PrankCastIE(InfoExtractor):
@@ -77,12 +77,11 @@ class PrankCastPostIE(InfoExtractor):
             'display_id': 'happy-national-rachel-day-',
             'timestamp': 1704333938,
             'uploader': 'Devonanustart',
-            'channel_id': 4,
+            'channel_id': '4',
             'duration': 13175,
             'cast': ['Devonanustart'],
             'description': '',
             'categories': ['prank call'],
-            'tags': None,
             'upload_date': '20240104'
         }
     }, {
@@ -94,12 +93,11 @@ class PrankCastPostIE(InfoExtractor):
             'display_id': 'jake-the-work-crow-',
             'timestamp': 1704346592,
             'uploader': 'despicabledogs',
-            'channel_id': 957,
+            'channel_id': '957',
             'duration': 263.287,
             'cast': ['despicabledogs'],
             'description': 'https://imgur.com/a/vtxLvKU',
             'categories': [],
-            'tags': None,
             'upload_date': '20240104'
         }
     }]
@@ -112,10 +110,7 @@ class PrankCastPostIE(InfoExtractor):
         content = self._parse_json(post['post_contents_json'], video_id)[0]
 
         uploader = post.get('user_name')
-        guests_json = self._parse_json(content.get('guests_json') or '{}', video_id)
-
-        broadcast_id = post.get('content_id')
-        live_chat_url = f'https://prankcast.com/api/private/chat/select-broadcast?id={broadcast_id}&cache='
+        guests_json = traverse_obj(content, ('guests_json', {json.loads}, {dict})) or {}
 
         return {
             'id': video_id,
@@ -124,11 +119,16 @@ class PrankCastPostIE(InfoExtractor):
             'url': content.get('url'),
             'timestamp': parse_iso8601(content.get('start_date') or content.get('crdate'), ' '),
             'uploader': uploader,
-            'channel_id': post.get('user_id'),
-            'duration': content.get('duration') or 0,
+            'channel_id': str_or_none(post.get('user_id')),
+            'duration': float_or_none(content.get('duration')),
             'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
             'description': post.get('post_body'),
             'categories': list(filter(None, [content.get('category')])),
             'tags': try_call(lambda: list(filter('', post['post_tags'].split(',')))),
-            'subtitles': {'live_chat': [{'url': live_chat_url, 'ext': 'json'}]} if broadcast_id else None
+            'subtitles': {
+                'live_chat': [{
+                    'url': f'https://prankcast.com/api/private/chat/select-broadcast?id={post["content_id"]}&cache=',
+                    'ext': 'json',
+                }],
+            } if post.get('content_id') else None
         }
