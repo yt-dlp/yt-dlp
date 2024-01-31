@@ -54,16 +54,15 @@ class ZetlandDKArticleIE(InfoExtractor):
             'release_timestamp': ('published_at', {unified_timestamp}),
             'modified_timestamp': ('revised_at', {unified_timestamp}),
         }, get_all=False), traverse_obj(next_js_data, ('metaInfo', {
-            'title': ('meta', 'title') or ('ld', 'headline') or ('og', 'og:title') or ('og', 'twitter:title'),
-            'description': (('meta', 'description') or ('ld', 'description')
-                            or ('og', 'og:description') or ('og', 'twitter:description')),
-            'uploader': ('meta', 'author') or ('ld', 'author', 'name'),
-            'uploader_url': ('ld', 'author', 'url'),
-            'thumbnail': ('ld', 'image') or ('og', 'og:image') or ('og', 'twitter:image'),
+            'title': ((('meta', 'title'), ('ld', 'headline'), ('og', 'og:title'), ('og', 'twitter:title')), {str}),
+            'description': ((('meta', 'description'), ('ld', 'description'), ('og', 'og:description'), ('og', 'twitter:description')), {str}),
+            'uploader': ((('meta', 'author'), ('ld', 'author', 'name')), {str}),
+            'uploader_url': ('ld', 'author', 'url', {url_or_none}),
+            'thumbnail': ((('ld', 'image'), ('og', 'og:image'), ('og', 'twitter:image')), {url_or_none}),
             'modified_timestamp': ('ld', 'dateModified', {unified_timestamp}),
             'release_timestamp': ('ld', 'datePublished', {unified_timestamp}),
             'timestamp': ('ld', 'dateCreated', {unified_timestamp}),
-        })), {
+        }), get_all=False), {
             'title': self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
             'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
