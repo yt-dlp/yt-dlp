@@ -196,10 +196,10 @@ class NinaprotocolIE(InfoExtractor):
         common_info['tags'] = traverse_obj(release, ('metadata', 'properties', 'tags', ..., {str}))
 
         entries = []
-        for i, track in enumerate(traverse_obj(release, (
-                'metadata', 'properties', 'files', lambda _, v: url_or_none(v['uri']), {dict}))):
+        for track_num, track in enumerate(traverse_obj(release, (
+                'metadata', 'properties', 'files', lambda _, v: url_or_none(v['uri']))), 1):
             entries.append({
-                'id': f'{video_id}_{i + 1}',
+                'id': f'{video_id}_{track_num}',
                 'url': track['uri'],
                 **traverse_obj(track, {
                     'title': ('track_title', {str}),
