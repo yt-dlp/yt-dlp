@@ -105,7 +105,7 @@ class CybraryIE(CybraryBaseIE):
             'chapter': module.get('title'),
             'chapter_id': str_or_none(module.get('id')),
             'title': activity.get('title'),
-            'url': smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'http_headers': {'Referer': 'https://api.cybrary.it'}})
+            'url': smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'referer': 'https://api.cybrary.it'})
         }
 
 

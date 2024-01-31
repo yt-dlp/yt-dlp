@@ -19,3 +19,8 @@ def handler(request):
         pytest.skip(f'{RH_KEY} request handler is not available')
 
     return functools.partial(handler, logger=FakeLogger)
+
+
+def validate_and_send(rh, req):
+    rh.validate(req)
+    return rh.send(req)

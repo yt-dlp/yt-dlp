@@ -8,7 +8,8 @@ from ..utils import (
     float_or_none,
     int_or_none,
     str_or_none,
-    traverse_obj
+    traverse_obj,
+    update_url_query,
 )
 
 
@@ -16,7 +17,7 @@ class MedalTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?medal\.tv/games/[^/?#&]+/clips/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://medal.tv/games/valorant/clips/jTBFnLKdLy15K',
-        'md5': '6930f8972914b6b9fdc2bb3918098ba0',
+        'md5': '03e4911fdcf7fce563090705c2e79267',
         'info_dict': {
             'id': 'jTBFnLKdLy15K',
             'ext': 'mp4',
@@ -33,8 +34,8 @@ class MedalTVIE(InfoExtractor):
             'duration': 13,
         }
     }, {
-        'url': 'https://medal.tv/games/cod%20cold%20war/clips/2mA60jWAGQCBH',
-        'md5': '3d19d426fe0b2d91c26e412684e66a06',
+        'url': 'https://medal.tv/games/cod-cold-war/clips/2mA60jWAGQCBH',
+        'md5': 'fc7a3e4552ae8993c1c4006db46be447',
         'info_dict': {
             'id': '2mA60jWAGQCBH',
             'ext': 'mp4',
@@ -52,7 +53,7 @@ class MedalTVIE(InfoExtractor):
             'duration': 23,
         }
     }, {
-        'url': 'https://medal.tv/games/cod%20cold%20war/clips/2um24TWdty0NA',
+        'url': 'https://medal.tv/games/cod-cold-war/clips/2um24TWdty0NA',
         'md5': 'b6dc76b78195fff0b4f8bf4a33ec2148',
         'info_dict': {
             'id': '2um24TWdty0NA',
@@ -81,7 +82,7 @@ class MedalTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(update_url_query(url, {'mobilebypass': 'true'}), video_id)
 
         hydration_data = self._search_json(
             r'<script[^>]*>[^<]*\bhydrationData\s*=', webpage,

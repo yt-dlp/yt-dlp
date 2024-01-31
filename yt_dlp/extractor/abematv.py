@@ -92,6 +92,8 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
 
 
 class AbemaTVBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'abematv'
+
     _USERTOKEN = None
     _DEVICE_ID = None
     _MEDIATOKEN = None
@@ -136,11 +138,15 @@ class AbemaTVBaseIE(InfoExtractor):
         if self._USERTOKEN:
             return self._USERTOKEN
 
+        add_opener(self._downloader, AbemaLicenseHandler(self))
+
         username, _ = self._get_login_info()
-        AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
+        auth_cache = username and self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.19')
+        AbemaTVBaseIE._USERTOKEN = auth_cache and auth_cache.get('usertoken')
         if AbemaTVBaseIE._USERTOKEN:
             # try authentication with locally stored token
             try:
+                AbemaTVBaseIE._DEVICE_ID = auth_cache.get('device_id')
                 self._get_media_token(True)
                 return
             except ExtractorError as e:
@@ -159,7 +165,6 @@ class AbemaTVBaseIE(InfoExtractor):
             })
         AbemaTVBaseIE._USERTOKEN = user_data['token']
 
-        add_opener(self._downloader, AbemaLicenseHandler(self))
         return self._USERTOKEN
 
     def _get_media_token(self, invalidate=False, to_show=True):
@@ -180,6 +185,37 @@ class AbemaTVBaseIE(InfoExtractor):
             })['token']
 
         return self._MEDIATOKEN
+
+    def _perform_login(self, username, password):
+        self._get_device_token()
+        if self.cache.load(self._NETRC_MACHINE, username, min_ver='2024.01.19') and self._get_media_token():
+            self.write_debug('Skipping logging in')
+            return
+
+        if '@' in username:  # don't strictly check if it's email address or not
+            ep, method = 'user/email', 'email'
+        else:
+            ep, method = 'oneTimePassword', 'userId'
+
+        login_response = self._download_json(
+            f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
+            data=json.dumps({
+                method: username,
+                'password': password
+            }).encode('utf-8'), headers={
+                'Authorization': f'bearer {self._get_device_token()}',
+                'Origin': 'https://abema.tv',
+                'Referer': 'https://abema.tv/',
+                'Content-Type': 'application/json',
+            })
+
+        AbemaTVBaseIE._USERTOKEN = login_response['token']
+        self._get_media_token(True)
+        auth_cache = {
+            'device_id': AbemaTVBaseIE._DEVICE_ID,
+            'usertoken': AbemaTVBaseIE._USERTOKEN,
+        }
+        self.cache.store(self._NETRC_MACHINE, username, auth_cache)
 
     def _call_api(self, endpoint, video_id, query=None, note='Downloading JSON metadata'):
         return self._download_json(
@@ -204,14 +240,14 @@ class AbemaTVBaseIE(InfoExtractor):
 
 class AbemaTVIE(AbemaTVBaseIE):
     _VALID_URL = r'https?://abema\.tv/(?P<type>now-on-air|video/episode|channels/.+?/slots)/(?P<id>[^?/]+)'
-    _NETRC_MACHINE = 'abematv'
     _TESTS = [{
         'url': 'https://abema.tv/video/episode/194-25_s2_p1',
         'info_dict': {
             'id': '194-25_s2_p1',
             'title': '第1話 「チーズケーキ」　「モーニング再び」',
             'series': '異世界食堂２',
-            'series_number': 2,
+            'season': 'シーズン2',
+            'season_number': 2,
             'episode': '第1話 「チーズケーキ」　「モーニング再び」',
             'episode_number': 1,
         },
@@ -251,33 +287,6 @@ class AbemaTVIE(AbemaTVBaseIE):
         'skip': 'Not supported until yt-dlp implements native live downloader OR AbemaTV can start a local HTTP server',
     }]
     _TIMETABLE = None
-
-    def _perform_login(self, username, password):
-        self._get_device_token()
-        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
-            self.write_debug('Skipping logging in')
-            return
-
-        if '@' in username:  # don't strictly check if it's email address or not
-            ep, method = 'user/email', 'email'
-        else:
-            ep, method = 'oneTimePassword', 'userId'
-
-        login_response = self._download_json(
-            f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
-            data=json.dumps({
-                method: username,
-                'password': password
-            }).encode('utf-8'), headers={
-                'Authorization': f'bearer {self._get_device_token()}',
-                'Origin': 'https://abema.tv',
-                'Referer': 'https://abema.tv/',
-                'Content-Type': 'application/json',
-            })
-
-        AbemaTVBaseIE._USERTOKEN = login_response['token']
-        self._get_media_token(True)
-        self.cache.store(self._NETRC_MACHINE, username, AbemaTVBaseIE._USERTOKEN)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
@@ -347,12 +356,12 @@ class AbemaTVIE(AbemaTVBaseIE):
                     )?
                 ''', r'\1', og_desc)
 
-        # canonical URL may contain series and episode number
+        # canonical URL may contain season and episode number
         mobj = re.search(r's(\d+)_p(\d+)$', canonical_url)
         if mobj:
             seri = int_or_none(mobj.group(1), default=float('inf'))
             epis = int_or_none(mobj.group(2), default=float('inf'))
-            info['series_number'] = seri if seri < 100 else None
+            info['season_number'] = seri if seri < 100 else None
             # some anime like Detective Conan (though not available in AbemaTV)
             # has more than 1000 episodes (1026 as of 2021/11/15)
             info['episode_number'] = epis if epis < 2000 else None
@@ -381,7 +390,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 self.report_warning('This is a premium-only stream')
             info.update(traverse_obj(api_response, {
                 'series': ('series', 'title'),
-                'season': ('season', 'title'),
+                'season': ('season', 'name'),
                 'season_number': ('season', 'sequence'),
                 'episode_number': ('episode', 'number'),
             }))

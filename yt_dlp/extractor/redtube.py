@@ -7,6 +7,7 @@ from ..utils import (
     str_to_int,
     unified_strdate,
     url_or_none,
+    urljoin,
 )
 
 
@@ -39,7 +40,7 @@ class RedTubeIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'http://www.redtube.com/%s' % video_id, video_id)
+            f'https://www.redtube.com/{video_id}', video_id)
 
         ERRORS = (
             (('video-deleted-info', '>This video has been removed'), 'has been removed'),
@@ -79,7 +80,7 @@ class RedTubeIE(InfoExtractor):
                 'media definitions', default='{}'),
             video_id, fatal=False)
         for media in medias if isinstance(medias, list) else []:
-            format_url = url_or_none(media.get('videoUrl'))
+            format_url = urljoin('https://www.redtube.com', media.get('videoUrl'))
             if not format_url:
                 continue
             format_id = media.get('format')

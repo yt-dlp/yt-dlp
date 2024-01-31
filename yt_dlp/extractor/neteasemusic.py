@@ -142,6 +142,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'subtitles': {'lyrics': [{'ext': 'lrc'}]},
             "duration": 256,
             'thumbnail': r're:^http.*\.jpg',
+            'album': '偶像练习生 表演曲目合集',
+            'average_rating': int,
+            'album_artist': '偶像练习生',
         },
     }, {
         'note': 'No lyrics.',
@@ -155,6 +158,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'timestamp': 1202745600,
             'duration': 263,
             'thumbnail': r're:^http.*\.jpg',
+            'album': 'Piano Solos Vol. 2',
+            'album_artist': 'Dustin O\'Halloran',
+            'average_rating': int,
         },
     }, {
         'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
@@ -171,6 +177,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'duration': 268,
             'alt_title': '伴唱:现代人乐队 合唱:总政歌舞团',
             'thumbnail': r're:^http.*\.jpg',
+            'average_rating': int,
+            'album': '红色摇滚',
+            'album_artist': '侯牧人',
         },
     }, {
         'url': 'http://music.163.com/#/song?id=32102397',
@@ -186,6 +195,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'subtitles': {'lyrics': [{'ext': 'lrc'}]},
             'duration': 199,
             'thumbnail': r're:^http.*\.jpg',
+            'album': 'Bad Blood',
+            'average_rating': int,
+            'album_artist': 'Taylor Swift',
         },
         'skip': 'Blocked outside Mainland China',
     }, {
@@ -203,6 +215,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'duration': 229,
             'alt_title': '说出愿望吧(Genie)',
             'thumbnail': r're:^http.*\.jpg',
+            'average_rating': int,
+            'album': 'Oh!',
+            'album_artist': '少女时代',
         },
         'skip': 'Blocked outside Mainland China',
     }]
@@ -253,12 +268,15 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'formats': formats,
             'alt_title': '/'.join(traverse_obj(info, (('transNames', 'alias'), ...))) or None,
             'creator': ' / '.join(traverse_obj(info, ('artists', ..., 'name'))) or None,
+            'album_artist': ' / '.join(traverse_obj(info, ('album', 'artists', ..., 'name'))) or None,
             **lyric_data,
             **traverse_obj(info, {
                 'title': ('name', {str}),
                 'timestamp': ('album', 'publishTime', {self.kilo_or_none}),
                 'thumbnail': ('album', 'picUrl', {url_or_none}),
                 'duration': ('duration', {self.kilo_or_none}),
+                'album': ('album', 'name', {str}),
+                'average_rating': ('score', {int_or_none}),
             }),
         }
 
