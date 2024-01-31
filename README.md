@@ -167,7 +167,8 @@ For ease of use, a few more compat options are available:
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect,-playlist-match-filter,-manifest-filesize-approx`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
-* `--compat-options 2022`: Same as `--compat-options playlist-match-filter,no-external-downloader-progress,prefer-legacy-http-handler,manifest-filesize-approx`. Use this to enable all future compat options
+* `--compat-options 2022`: Same as `--compat-options 2023,playlist-match-filter,no-external-downloader-progress`
+* `--compat-options 2023`: Same as `--compat-options prefer-legacy-http-handler,manifest-filesize-approx`. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -1887,6 +1888,9 @@ The following extractors use this feature:
 
 #### nflplusreplay
 * `type`: Type(s) of game replays to extract. Valid types are: `full_game`, `full_game_spanish`, `condensed_game` and `all_22`. You can use `all` to extract all available replay types, which is the default
+
+#### jiosaavn
+* `bitrate`: Audio bitrates to request. One or more of `16`, `32`, `64`, `128`, `320`. Default is `128,320`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
