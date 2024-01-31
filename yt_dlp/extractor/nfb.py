@@ -234,7 +234,7 @@ class NFBIE(NFBBaseIE):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             self._html_search_regex(r'source:\s*\'([^\']+)', player, 'm3u8 url'),
             video_id, 'mp4', m3u8_id='hls')
-        
+
         if dv_source := self._html_search_regex(r'dvSource:\s*\'([^\']+)', player, 'dv', default=None):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 dv_source, video_id, 'mp4', m3u8_id='dv', preference=-2, fatal=False)
