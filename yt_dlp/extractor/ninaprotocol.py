@@ -208,6 +208,7 @@ class NinaprotocolIE(InfoExtractor):
                     'track_number': ('track', {int_or_none}),
                     'duration': ('duration', {int_or_none}),
                 }),
+                'vcodec': 'none',
                 **common_info,
             })
 
