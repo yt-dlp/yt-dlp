@@ -1379,6 +1379,9 @@ class DateRange:
     def __repr__(self):
         return f'{__name__}.{type(self).__name__}({self.start.isoformat()!r}, {self.end.isoformat()!r})'
 
+    def __str__(self):
+        return f'{self.start} to {self.end}'
+
     def __eq__(self, other):
         return (isinstance(other, DateRange)
                 and self.start == other.start and self.end == other.end)
