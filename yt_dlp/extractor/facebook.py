@@ -395,7 +395,7 @@ class FacebookIE(InfoExtractor):
         try:
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
-            if self._html_search_regex(r'(Your Request Couldn.+? be Processed)', login_results, 'request error', default=None) is not None:
+            if self._html_search_regex(r'(Your Request Couldn\'t be Processed)', login_results, 'request error', default=None) is not None:
                 raise ExtractorError('Failed to perform login request.')
 
             if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
@@ -436,7 +436,13 @@ class FacebookIE(InfoExtractor):
 
         sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
             r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
-        if (self.get_param('username') and self.get_param('password')) or self.get_param('cookiefile'):
+
+        cookies = self._get_cookies(url)
+        if all(k in cookies for k in ["c_user", "xs"]):
+            if get_first(sjs_data, (
+                    'require', ..., ..., ..., '__bbox', 'define',
+                    lambda _, v: 'CurrentUserInitialData' in v, ..., 'ACCOUNT_ID'), default="0") == "0":
+                raise ExtractorError('Failed to login with provided data.', expected=True)
             if any(content in webpage for content in ['180 days left to appeal', 'suspended your account']):
                 raise ExtractorError('Login account is suspended.', expected=True)
             if 'send a code to confirm the mobile number you give us' in webpage:
@@ -444,23 +450,11 @@ class FacebookIE(InfoExtractor):
             if 'your account has been locked' in webpage:
                 raise ExtractorError('Account is locked.', expected=True)
 
-            userinfo = get_first(sjs_data, (
-                'require', ..., ..., ..., '__bbox', 'define',
-                lambda _, v: 'CurrentUserInitialData' in v, lambda _, v: 'ACCOUNT_ID' in v))
-            try:
-                user_id = int(userinfo['ACCOUNT_ID'])
-            except (TypeError, ValueError):
-                user_id = 0
-            if user_id == 0:
-                raise ExtractorError('Failed to login with provided data.', expected=True)
-
         if props := get_first(sjs_data, (
-            'require', ..., ..., ..., '__bbox', 'require',
-            ..., ..., ..., 'rootView', 'props'), expected_type=dict, default={}
-        ):
-
-            if props.get('title') in ('This content isn\'t available at the moment', 'This content isn\'t available right now'):
-                raise ExtractorError('Content removed or not accessible. Facebook said: "%s"' % props.get('body', ''), expected=True)
+                'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView', 'props',
+                lambda _, v: v['title'].startswith('This content isn\'t available'))):
+            raise ExtractorError(
+                f'Content unavailable. Facebook said: {props.get("body") or props["title"]}', expected=True)
 
         def extract_metadata(webpage):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
@@ -587,7 +581,7 @@ class FacebookIE(InfoExtractor):
         def extract_relay_prefetched_data(_filter):
             return traverse_obj(extract_relay_data(_filter), (
                 'require', (None, (..., ..., ..., '__bbox', 'require')),
-                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v if isinstance(key, str)),
+                lambda _, v: any(key.startswith('RelayPrefetchedStreamCache') for key in v),
                 ..., ..., '__bbox', 'result', 'data', {dict}), get_all=False) or {}
 
         if not video_data:
