@@ -24,7 +24,8 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import functools
+from .compat import functools  # isort: split
+from .compat import compat_os_name
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
@@ -32,6 +33,7 @@ from .dependencies import (
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
+    DownloadError,
     Popen,
     error_to_str,
     expand_path,
@@ -318,6 +320,12 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             counts['unencrypted'] = unencrypted_cookies
             logger.debug(f'cookie version breakdown: {counts}')
             return jar
+        except PermissionError as error:
+            if compat_os_name == 'nt' and error.errno == 13:
+                message = 'Could not copy Chrome cookie database. See  https://github.com/yt-dlp/yt-dlp/issues/7271  for more info'
+                logger.error(message)
+                raise DownloadError(message)  # force exit
+            raise
         finally:
             if cursor is not None:
                 cursor.connection.close()
