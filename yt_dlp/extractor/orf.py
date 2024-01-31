@@ -621,17 +621,12 @@ class ORFONIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         json_ld_data = self._search_json_ld(webpage, display_id)
 
-        api_data = self._call_api(video_id, display_id)
-
-        return merge_dicts(api_data, {
+        return {
             'id': video_id,
             'title': (json_ld_data.get('title')
                       or self._html_search_meta(['og:title', 'twitter:title'], webpage)),
             'description': (json_ld_data.get('description')
                             or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
-            **traverse_obj(json_ld_data, {
-                'duration': ('duration', {float_or_none}),
-                'timestamp': ('timestamp', int_or_none),
-                'thumbnails': 'thumbnails'
-            })
-        })
+            **json_ld_data,
+            **self._call_api(video_id, display_id)
+        }
