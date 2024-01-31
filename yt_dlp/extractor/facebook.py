@@ -445,7 +445,7 @@ class FacebookIE(InfoExtractor):
         try:
             login_results = self._download_webpage(request, None,
                                                    note='Logging in', errnote='unable to fetch login page')
-            if self._html_search_regex(r'(Your Request Couldn\'t be Processed)', login_results, 'request error', default=None) is not None:
+            if "Your Request Couldn" in login_results:
                 raise ExtractorError('Failed to perform login request.')
 
             if re.search(r'<form(.*)name="login"(.*)</form>', login_results) is not None:
