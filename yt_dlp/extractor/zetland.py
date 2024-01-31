@@ -35,7 +35,7 @@ class ZetlandDKArticleIE(InfoExtractor):
         story_data = traverse_obj(next_js_data, ('initialState', 'consume', 'story', 'story'))
 
         formats = []
-        for audio_url in traverse_obj(story_data, ('story_content', 'meta', 'audioFiles', ...)):
+        for audio_url in traverse_obj(story_data, ('story_content', 'meta', 'audioFiles', ..., {url_or_none})):
             formats.append({
                 'url': audio_url,
                 'vcodec': 'none',
