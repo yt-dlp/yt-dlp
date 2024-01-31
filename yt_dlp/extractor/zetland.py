@@ -70,4 +70,4 @@ class ZetlandDKArticleIE(InfoExtractor):
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
             'uploader': self._html_search_meta(['author'], webpage),
             'release_timestamp': unified_timestamp(self._html_search_meta(['article:published_time'], webpage)),
-        }, self._search_json_ld(webpage, display_id))
+        }, self._search_json_ld(webpage, display_id, fatal=False))
