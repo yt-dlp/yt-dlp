@@ -186,10 +186,12 @@ class RadikoIE(RadikoBaseIE):
         return {
             'id': video_id,
             'title': try_call(lambda: prog.find('title').text),
+            'artist': try_call(lambda: prog.find('pfm').text),
             'description': clean_html(try_call(lambda: prog.find('info').text)),
             'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
             'timestamp': vid_int,
+            'duration': (unified_timestamp(radio_end, False) - unified_timestamp(radio_begin, False)),
             'is_live': True,
             'formats': self._extract_formats(
                 video_id=video_id, station=station, is_onair=False,
@@ -234,6 +236,7 @@ class RadikoRadioIE(RadikoBaseIE):
         title = prog.find('title').text
         description = clean_html(prog.find('info').text)
         station_name = station_program.find('.//name').text
+        performer = prog.find('pfm').text
 
         formats = self._extract_formats(
             video_id=station, station=station, is_onair=True,
@@ -243,6 +246,7 @@ class RadikoRadioIE(RadikoBaseIE):
         return {
             'id': station,
             'title': title,
+            'artist': performer,
             'description': description,
             'uploader': station_name,
             'uploader_id': station,
