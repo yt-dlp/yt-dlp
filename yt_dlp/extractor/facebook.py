@@ -501,7 +501,7 @@ class FacebookIE(InfoExtractor):
                 raise ExtractorError('Account is locked.', expected=True)
 
         if props := get_first(sjs_data, (
-                'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView', 'props',
+                'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView',
                 lambda _, v: v['title'].startswith('This content isn\'t available'))):
             raise ExtractorError(
                 f'Content unavailable. Facebook said: {props.get("body") or props["title"]}', expected=True)
