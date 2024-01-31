@@ -3,7 +3,7 @@ from ..utils import int_or_none, mimetype2ext, parse_iso8601, url_or_none
 from ..utils.traversal import traverse_obj
 
 
-class NinaprotocolIE(InfoExtractor):
+class NinaProtocolIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ninaprotocol\.com/releases/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://www.ninaprotocol.com/releases/3SvsMM3y4oTPZ5DXFJnLkCAqkxz34hjzFxqms1vu9XBJ',
