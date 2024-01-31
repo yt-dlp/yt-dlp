@@ -12,7 +12,6 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     make_archive_id,
-    merge_dicts,
     mimetype2ext,
     orderedSet,
     remove_end,
@@ -581,6 +580,8 @@ class ORFONIE(InfoExtractor):
             'title': 'School of Champions (4/8)',
             'description': 'md5:d09ad279fc2e8502611e7648484b6afd',
             'media_type': 'episode',
+            'timestamp': 1706472362,
+            'upload_date': '20240128',
         }
     }]
 
@@ -599,7 +600,7 @@ class ORFONIE(InfoExtractor):
                     fmts, subs = self._extract_mpd_formats_and_subtitles(manifest_url, display_id, fatal=False)
                 else:
                     continue
-                formats.extend(fmt)
+                formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
 
         return {
