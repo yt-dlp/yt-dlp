@@ -488,17 +488,17 @@ class FacebookIE(InfoExtractor):
             r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
 
         cookies = self._get_cookies(url)
-        if all(k in cookies for k in ["c_user", "xs"]):
+        if cookies.get('c_user') and cookies.get('xs'):  # user passed logged-in cookies or attempted to login:
             if get_first(sjs_data, (
                     'require', ..., ..., ..., '__bbox', 'define',
-                    lambda _, v: 'CurrentUserInitialData' in v, ..., 'ACCOUNT_ID'), default="0") == "0":
+                    lambda _, v: 'CurrentUserInitialData' in v, ..., 'ACCOUNT_ID'), default='0') == '0':
                 raise ExtractorError('Failed to login with provided data.', expected=True)
             if any(content in webpage for content in ['180 days left to appeal', 'suspended your account']):
-                raise ExtractorError('Login account is suspended.', expected=True)
+                raise ExtractorError('Your account is suspended', expected=True)
             if 'send a code to confirm the mobile number you give us' in webpage:
-                raise ExtractorError('Mobile number checkpoint for logged in user.', expected=True)
+                raise ExtractorError('Facebook is requiring mobile number confirmation', expected=True)
             if 'your account has been locked' in webpage:
-                raise ExtractorError('Account is locked.', expected=True)
+                raise ExtractorError('Your account has been locked', expected=True)
 
         if props := get_first(sjs_data, (
                 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., 'rootView',
