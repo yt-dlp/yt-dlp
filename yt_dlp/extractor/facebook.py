@@ -481,13 +481,14 @@ class FacebookIE(InfoExtractor):
             return
 
     def _extract_from_url(self, url, video_id):
+        cookies = self._get_cookies(url)  # Saving before making first request, as they might get discarded
+
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
         sjs_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
             r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
 
-        cookies = self._get_cookies(url)
         if cookies.get('c_user') and cookies.get('xs'):  # user passed logged-in cookies or attempted to login:
             if get_first(sjs_data, (
                     'require', ..., ..., ..., '__bbox', 'define',
