@@ -595,9 +595,11 @@ class ORFONIE(InfoExtractor):
             for manifest_url in traverse_obj(api_json, ('sources', manifest_type, ..., 'src', {url_or_none})):
                 fmts, subs = [], {}
                 if manifest_type == 'hls':
-                    fmts, subs = self._extract_m3u8_formats_and_subtitles(manifest_url, display_id, fatal=False)
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                        manifest_url, display_id, fatal=False, m3u8_id='hls')
                 elif manifest_type == 'dash':
-                    fmts, subs = self._extract_mpd_formats_and_subtitles(manifest_url, display_id, fatal=False)
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(
+                        manifest_url, display_id, fatal=False, mpd_id='dash')
                 else:
                     continue
                 formats.extend(fmts)
