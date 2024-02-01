@@ -623,10 +623,9 @@ class ORFONIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': (json_ld_data.get('title')
-                      or self._html_search_meta(['og:title', 'twitter:title'], webpage)),
-            'description': (json_ld_data.get('description')
-                            or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
+            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None),
+            'description': self._html_search_meta(
+                ['description', 'og:description', 'twitter:description'], webpage, default=None),
             **json_ld_data,
-            **self._extract_video(video_id, display_id)
+            **self._extract_video(video_id, display_id),
         }
