@@ -1,7 +1,7 @@
 import base64
 import random
-import urllib.parse
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -12,6 +12,7 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RadikoBaseIE(InfoExtractor):
