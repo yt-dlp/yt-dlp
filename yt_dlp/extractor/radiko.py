@@ -34,8 +34,6 @@ class RadikoBaseIE(InfoExtractor):
     _HOSTS_FOR_LIVE = (
         'https://c-radiko.smartstream.ne.jp',
     )
-    # performer separtor character (include Japanese charset)
-    _PERFORMER_SPLIT_RE = "[/／、　,，]"
 
     def _negotiate_token(self):
         _, auth1_handle = self._download_webpage_handle(
@@ -163,7 +161,10 @@ class RadikoBaseIE(InfoExtractor):
         return formats
 
     def _extract_performers(self, prog):
-        return [x.strip() for x in try_call(lambda: re.split(self._PERFORMER_SPLIT_RE, prog.find('pfm').text))]
+        performers = traverse_obj(prog, (
+            'pfm/text()', ..., {lambda x: re.split(r'[/／、　,，]', x)}, ..., {str.strip}))
+        # TODO: change 'artist' fields to 'artists' and return traversal list instead of str
+        return ', '.join(performers) or None
 
 
 class RadikoIE(RadikoBaseIE):
@@ -192,7 +193,7 @@ class RadikoIE(RadikoBaseIE):
         return {
             'id': video_id,
             'title': try_call(lambda: prog.find('title').text),
-            'artists': self._extract_performers(prog),
+            'artist': self._extract_performers(prog),
             'description': clean_html(try_call(lambda: prog.find('info').text)),
             'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
@@ -242,7 +243,6 @@ class RadikoRadioIE(RadikoBaseIE):
         title = prog.find('title').text
         description = clean_html(prog.find('info').text)
         station_name = station_program.find('.//name').text
-        performers = self._extract_performers(prog)
 
         formats = self._extract_formats(
             video_id=station, station=station, is_onair=True,
@@ -252,7 +252,7 @@ class RadikoRadioIE(RadikoBaseIE):
         return {
             'id': station,
             'title': title,
-            'artists': performers,
+            'artist': self._extract_performers(prog),
             'description': description,
             'uploader': station_name,
             'uploader_id': station,
