@@ -23,20 +23,11 @@ from ..utils import (
 class NYTimesBaseIE(InfoExtractor):
     _GRAPHQL_API = 'https://samizdat-graphql.nytimes.com/graphql/v2'
 
-    @staticmethod
-    def _get_file_size(file_size):
-        if isinstance(file_size, int):
-            return file_size
-        elif isinstance(file_size, dict):
-            return int(file_size.get('value', 0))
-        else:
-            return None
-
     def _extract_media_from_json(self, video_id, content_media_json):
         urls = []
         formats = []
         subtitles = {}
-        for video in content_media_json:
+        for video in traverse_obj(content_media_json, ('renditions', ...)):
             video_url = video.get('url')
             format_id = video.get('type')
             if not video_url or format_id == 'thumbs' or video_url in urls:
@@ -58,7 +49,8 @@ class NYTimesBaseIE(InfoExtractor):
                     'vcodec': video.get('videoencoding') or video.get('video_codec'),
                     'width': int_or_none(video.get('width')),
                     'height': int_or_none(video.get('height')),
-                    'filesize': self._get_file_size(video.get('file_size') or video.get('fileSize')),
+                    'filesize': traverse_obj(video, (
+                        ('file_size', 'fileSize'), (None, ('value')), {int_or_none}), get_all=False),
                     'tbr': int_or_none(video.get('bitrate'), 1000) or None,
                     'ext': ext,
                 })
@@ -90,6 +82,7 @@ class NYTimesIE(NYTimesBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        # FIXME
 
         return {
             'id': video_id
@@ -97,7 +90,7 @@ class NYTimesIE(NYTimesBaseIE):
 
 
 class NYTimesArticleIE(NYTimesBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?nytimes\.com/\d{4}/\d{2}/\d{2}/(?!books|podcasts)[^/]+/(?:\w+/)?(?P<id>[^.]+)(?:\.html)?'
+    _VALID_URL = r'https?://(?:www\.)?nytimes\.com/\d{4}/\d{2}/\d{2}/(?!books|podcasts)[^/?#]+/(?:\w+/)?(?P<id>[^./?#]+)(?:\.html)?'
     _TESTS = [{
         'url': 'http://www.nytimes.com/2015/04/14/business/owner-of-gravity-payments-a-credit-card-processor-is-setting-a-new-minimum-wage-70000-a-year.html?_r=0',
         'md5': '3eb5ddb1d6f86254fe4f233826778737',
@@ -167,37 +160,29 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'id': ('sourceId', {str}),
             'uploader': ('bylines', ..., 'renderedRepresentation', {str}),
             'duration': (('duration', 'length', ...), {int_or_none}),
-            'upload_date': ('firstPublished', {unified_strdate}),
             'timestamp': ('firstPublished', {parse_iso8601}),
-            'series': ('podcastSeries', {str})}, get_all=False)
+            'series': ('podcastSeries', {str}),
+        }, get_all=False)
 
-        media = traverse_obj(block, ('renditions', ...))
-        formats, subtitles = self._extract_media_from_json(details.get('id'), media)
+        formats, subtitles = self._extract_media_from_json(details.get('id'), block)
 
         # audio articles will have an url and no formats
-        url = traverse_obj(block, ('fileUrl'), get_all=False)
+        url = traverse_obj(block, ('fileUrl', {url_or_none}))
         if not formats and url:
             formats.append({'url': url, 'ext': determine_ext(url)})
 
-        return merge_dicts(
-            details,
-            {
-                'formats': formats,
-                'subtitles': subtitles
-            })
+        return {
+            **details,
+            'formats': formats,
+            'subtitles': subtitles
+        }
 
     def _extract_thumbnails(self, thumbs):
-        thumbnails = []
-        for image in thumbs:
-            image_url = image.get('url')
-            if not image_url:
-                continue
-            thumbnails.append({
-                'url': image_url,
-                'width': int_or_none(image.get('width')),
-                'height': int_or_none(image.get('height')),
-            })
-        return thumbnails
+        return traverse_obj(thumbs, (lambda _, v: url_or_none(v['url']), {
+            'url': 'url',
+            'width': ('width', {int_or_none}),
+            'height': ('height', {int_or_none}),
+        }))
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
@@ -205,8 +190,10 @@ class NYTimesArticleIE(NYTimesBaseIE):
         article_json = self._search_json(
             r'window\.__preloadedData\s*=', webpage, 'media details', page_id,
             transform_source=lambda x: x.replace('undefined', 'null'))['initialData']['data']['article']
-        blocks_json = traverse_obj(
-            article_json, ('sprinkledBody', 'content', ..., ('ledeMedia', None), lambda _, v: v['__typename'] in ('Video', 'Audio')))
+
+        blocks = traverse_obj(article_json, (
+            'sprinkledBody', 'content', ..., ('ledeMedia', None),
+            lambda _, v: v['__typename'] in ('Video', 'Audio')))
 
         art_title = remove_end(self._html_extract_title(webpage), ' - The New York Times')
         art_description = traverse_obj(
@@ -214,44 +201,31 @@ class NYTimesArticleIE(NYTimesBaseIE):
             get_all=False) or self._html_search_meta(['og:description', 'twitter:description'], webpage)
         art_upload_date = traverse_obj(article_json, ('firstPublished'))
         creator = ', '.join(
-            traverse_obj(article_json, ('bylines', ..., 'creators', ..., 'displayName'), get_all=True))
+            traverse_obj(article_json, ('bylines', ..., 'creators', ..., 'displayName')))
 
         # more than 1 video in the article, treat it as a playlist
-        if len(blocks_json) > 1:
+        if len(blocks) > 1:
             entries = []
-            for block_json in blocks_json:
-                content = self._extract_content_from_block(block_json)
-                thumbnails = self._extract_thumbnails(traverse_obj(
-                    block_json, ('promotionalMedia', 'crops', ..., 'renditions', ...)))
-                info = merge_dicts(content, {
+            for block in blocks:
+                entries.append(merge_dicts(self._extract_content_from_block(block), {
                     'title': art_title,
                     'description': art_description,
-                    'creator': creator,
-                    'thumbnails': thumbnails,
-                })
-
-                entries.append(info)
-
+                    'creator': creator,  # TODO: change to 'creators' (list)
+                    'thumbnails': self._extract_thumbnails(traverse_obj(
+                        block, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
+                }))
             return self.playlist_result(entries, page_id, art_title, art_description)
 
-        block_json = blocks_json.pop()
-        content = self._extract_content_from_block(block_json)
-        thumbnails = self._extract_thumbnails(traverse_obj(
-            block_json, ('promotionalMedia', 'crops', ..., 'renditions', ...)) or traverse_obj(
-                article_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...)))
-
-        info = merge_dicts(content, {
+        return merge_dicts(self._extract_content_from_block(blocks[0]), {
             'title': art_title,
             'description': art_description,
-            'creator': creator,
+            'creator': creator,  # TODO: change to 'creators'
             'upload_date': unified_strdate(art_upload_date),
             'timestamp': parse_iso8601(art_upload_date),
-            'thumbnails': thumbnails,
+            'thumbnails': self._extract_thumbnails(traverse_obj(
+                blocks[0], ('promotionalMedia', 'crops', ..., 'renditions', ...)) or traverse_obj(
+                article_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...))),
         })
-
-        return {
-            **info
-        }
 
 
 class NYTimesCookingIE(InfoExtractor):
@@ -420,8 +394,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
                 [remove_start(creator, 'By ') for creator in traverse_obj(
                     json_obj, ('bylines', ..., 'renderedRepresentation'))])
             duration = int_or_none(json_obj.get('duration'))
-            media_content = json_obj.get('renditions')
-            formats, subtitles = self._extract_media_from_json(media_id, media_content)
+            formats, subtitles = self._extract_media_from_json(media_id, json_obj)
 
             thumbnails = []
             for image in traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...)):
@@ -491,8 +464,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
         json_obj = traverse_obj(self._json_from_graphql(lead_video_id) or {}, ('data', 'video'))
         duration = int_or_none(json_obj.get('duration'))
 
-        media_content = json_obj.get('renditions')
-        formats, subtitles = self._extract_media_from_json(lead_video_id, media_content)
+        formats, subtitles = self._extract_media_from_json(lead_video_id, json_obj)
 
         thumbnails = []
         for image in traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...)):
