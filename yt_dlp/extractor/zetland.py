@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class ZetlandDKArticleIE(InfoExtractor):
-    _VALID_URL = r'https://www.zetland.dk/\w+/(?P<id>(?P<story_id>\w{8})-(?P<uploader_id>\w{8})-(?:\w{5}))'
+    _VALID_URL = r'https://www\.zetland\.dk/\w+/(?P<id>(?P<story_id>\w{8})-(?P<uploader_id>\w{8})-(?:\w{5}))'
     _TESTS = [{
         'url': 'https://www.zetland.dk/historie/sO9aq2MY-a81VP3BY-66e69?utm_source=instagram&utm_medium=linkibio&utm_campaign=artikel',
         'info_dict': {
