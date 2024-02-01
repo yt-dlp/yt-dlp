@@ -7,6 +7,7 @@ import math
 import re
 import time
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..dependencies import Cryptodome
@@ -1466,6 +1467,8 @@ class BiliBiliSearchIE(SearchInfoExtractor):
     _SEARCH_KEY = 'bilisearch'
 
     def _search_results(self, query):
+        if not self._get_cookies('https://bilibili.com').get('buvid3'):
+            self._set_cookie('bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
         for page_num in itertools.count(1):
             videos = self._download_json(
                 'https://api.bilibili.com/x/web-interface/search/type', query,
