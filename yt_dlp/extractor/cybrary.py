@@ -110,7 +110,7 @@ class CybraryIE(CybraryBaseIE):
 
 
 class CybraryCourseIE(CybraryBaseIE):
-    _VALID_URL = r'https://app\.cybrary\.it/browse/course/(?P<id>[\w-]+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://app\.cybrary\.it/browse/course/(?P<id>[\w-]+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://app.cybrary.it/browse/course/az-500-microsoft-azure-security-technologies',
         'info_dict': {
