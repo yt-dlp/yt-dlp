@@ -610,7 +610,7 @@ class ORFONIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             **traverse_obj(api_json, {
-                'duration': ('duration_second', float_or_none),
+                'duration': ('duration_second', {float_or_none}),
                 'title': (('title', 'headline'), {str}),
                 'description': (('description', 'teaser_text'), {str}),
                 'media_type': ('video_type', {str}),
