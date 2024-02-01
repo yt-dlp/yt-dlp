@@ -19,7 +19,7 @@ class ZetlandDKArticleIE(InfoExtractor):
             'uploader_url': 'https://www.zetland.dk/skribent/a81VP3BY',
             'uploader': 'Helle Fuusager',
             'release_date': '20240116',
-            'thumbnail': 'https://zetland.imgix.net/2aafe500-b14e-11ee-bf83-65d5e1283a57/Zetland_Image_1.jpg?fit=crop&crop=focalpoint&auto=format,compress&cs=srgb&fp-x=0.49421296296296297&fp-y=0.48518518518518516&w=1200&h=630',
+            'thumbnail': r're:https://zetland\.imgix\.net/2aafe500-b14e-11ee-bf83-65d5e1283a57/Zetland_Image_1\.jpg',
             'description': 'md5:9619d426772c133f5abb26db27f26a01',
             'timestamp': 1705377592,
             'series_id': '62d54630-e87b-4ab1-a255-8de58dbe1b14',
