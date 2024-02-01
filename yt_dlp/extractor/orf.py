@@ -619,13 +619,12 @@ class ORFONIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'slug')
         webpage = self._download_webpage(url, display_id)
-        json_ld_data = self._search_json_ld(webpage, display_id, fatal=False)
 
         return {
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None),
             'description': self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'], webpage, default=None),
-            **json_ld_data,
+            **self._search_json_ld(webpage, display_id, fatal=False),
             **self._extract_video(video_id, display_id),
         }
