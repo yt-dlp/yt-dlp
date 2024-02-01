@@ -163,7 +163,8 @@ class RadikoBaseIE(InfoExtractor):
         return formats
 
     def _extract_performers(self, prog):
-        return [ x.strip() for x in try_call(lambda: re.split(self._PERFORMER_SPLIT_RE, prog.find('pfm').text)) ]
+        return [x.strip() for x in try_call(lambda: re.split(self._PERFORMER_SPLIT_RE, prog.find('pfm').text))]
+
 
 class RadikoIE(RadikoBaseIE):
     _VALID_URL = r'https?://(?:www\.)?radiko\.jp/#!/ts/(?P<station>[A-Z0-9-]+)/(?P<id>\d+)'
