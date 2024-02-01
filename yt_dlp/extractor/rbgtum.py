@@ -5,7 +5,7 @@ from ..utils import parse_qs, remove_start, traverse_obj, ExtractorError
 
 
 class RbgTumIE(InfoExtractor):
-    _VALID_URL = r'https://(?:live\.rbg\.tum\.de|tum\.live)/w/(?P<id>[^?#]+)'
+    _VALID_URL = r'https?://(?:live\.rbg\.tum\.de|tum\.live)/w/(?P<id>[^?#]+)'
     _TESTS = [{
         # Combined view
         'url': 'https://live.rbg.tum.de/w/cpp/22128',
@@ -60,7 +60,7 @@ class RbgTumIE(InfoExtractor):
 
 
 class RbgTumCourseIE(InfoExtractor):
-    _VALID_URL = r'https://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>(?P<year>\d+)/(?P<term>\w+)/(?P<slug>[^/?#]+))'
+    _VALID_URL = r'https?://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>(?P<year>\d+)/(?P<term>\w+)/(?P<slug>[^/?#]+))'
     _TESTS = [{
         'url': 'https://live.rbg.tum.de/old/course/2022/S/fpv',
         'info_dict': {
@@ -105,7 +105,7 @@ class RbgTumCourseIE(InfoExtractor):
 
 
 class RbgTumNewCourseIE(InfoExtractor):
-    _VALID_URL = r'https://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/\?'
+    _VALID_URL = r'https?://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/\?'
     _TESTS = [{
         'url': 'https://live.rbg.tum.de/?year=2022&term=S&slug=fpv&view=3',
         'info_dict': {
