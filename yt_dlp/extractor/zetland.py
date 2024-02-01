@@ -49,7 +49,7 @@ class ZetlandDKArticleIE(InfoExtractor):
             'title': ((('story_content', 'content', 'title'), 'title'), {str}),
             'uploader': ('sharer', 'name'),
             'uploader_id': ('sharer', 'sharer_id'),
-            'description': ('story_content', 'content', 'sosialDescription'),
+            'description': ('story_content', 'content', 'socialDescription'),
             'series_id': ('story_content', 'meta', 'seriesId'),
             'release_timestamp': ('published_at', {unified_timestamp}),
             'modified_timestamp': ('revised_at', {unified_timestamp}),
