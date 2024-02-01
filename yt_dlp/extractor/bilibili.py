@@ -47,7 +47,7 @@ class BilibiliBaseIE(InfoExtractor):
     _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
     _WBI_KEY_CACHE = {}
     _WBI_KEY_CACHE_TIMEOUT = 30
-    # expire time is not known, 30s is good for one session though
+    # exact expire time is not known, though 30s is good for one session
 
     def extract_formats(self, play_info):
         format_names = {
@@ -389,7 +389,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-            'subtitles': 'count:1'
+            'subtitles': 'count:2'
         },
         'params': {'listsubtitles': True},
     }, {
@@ -1137,7 +1137,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 'pn': page_idx + 1,
                 'ps': 30,
                 'tid': 0,
-                'web_location': 1550101
+                'web_location': 1550101,
             }
 
             try:
@@ -2029,8 +2029,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             self._search_json(r'window\.__INITIAL_(?:DATA|STATE)__\s*=', webpage, 'preload state', video_id, default={})
             or self._search_nuxt_data(webpage, video_id, '__initialState', fatal=False, traverse=None))
         video_data = traverse_obj(
-            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'),
-            expected_type=dict) or {}
+            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict) or {}
 
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
@@ -2186,8 +2185,8 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
-        series_info = self._call_api(f'/web/v2/ogv/play/season_info?season_id={series_id}&platform=web', series_id).get(
-            'season') or {}
+        series_info = self._call_api(
+            f'/web/v2/ogv/play/season_info?season_id={series_id}&platform=web', series_id).get('season') or {}
         return self.playlist_result(
             self._entries(series_id), series_id, series_info.get('title'), series_info.get('description'),
             categories=traverse_obj(series_info, ('styles', ..., 'title'), expected_type=str_or_none),
