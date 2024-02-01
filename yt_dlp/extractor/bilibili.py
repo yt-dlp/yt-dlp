@@ -1488,14 +1488,14 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                 'view_count': int,
                 'like_count': int,
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-                '_old_archive_ids': ["bilibili 988222410_part1"],
+                '_old_archive_ids': ['bilibili 988222410_part1'],
             },
         }],
     }]
 
     def _search_results(self, query):
-        if not self._get_cookies('https://bilibili.com').get('buvid3'):
-            self._set_cookie('bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
+        if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
+            self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
         for page_num in itertools.count(1):
             videos = self._download_json(
                 'https://api.bilibili.com/x/web-interface/search/type', query,
