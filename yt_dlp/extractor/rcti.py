@@ -28,7 +28,7 @@ class RCTIPlusBaseIE(InfoExtractor):
 
 
 class RCTIPlusIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://www\.rctiplus\.com/(?:programs/\d+?/.*?/)?(?P<type>episode|clip|extra|live-event|missed-event)/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/1259/kiko-untuk-lola/episode/22124/untuk-lola',
         'md5': '56ed45affad45fa18d5592a1bc199997',
@@ -218,7 +218,7 @@ class RCTIPlusIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusSeriesIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:/(?P<type>episodes|extras|clips))?'
+    _VALID_URL = r'https?://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:/(?P<type>episodes|extras|clips))?'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/programs/829/putri-untuk-pangeran',
         'playlist_mincount': 1019,
@@ -336,7 +336,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusTVIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
+    _VALID_URL = r'https?://www\.rctiplus\.com/((tv/(?P<tvname>\w+))|(?P<eventname>live-event|missed-event))'
     _TESTS = [{
         'url': 'https://www.rctiplus.com/tv/rcti',
         'info_dict': {

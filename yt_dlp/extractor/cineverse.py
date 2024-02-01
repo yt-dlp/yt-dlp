@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class CineverseBaseIE(InfoExtractor):
-    _VALID_URL_BASE = r'https://www\.(?P<host>%s)' % '|'.join(map(re.escape, (
+    _VALID_URL_BASE = r'https?://www\.(?P<host>%s)' % '|'.join(map(re.escape, (
         'cineverse.com',
         'asiancrush.com',
         'dovechannel.com',
