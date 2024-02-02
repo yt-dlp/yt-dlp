@@ -269,7 +269,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
         if not jwt_response.get('jwt'):
             return
-        headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
+        headers = {'Authorization': 'jwt %s' % jwt_response['jwt'], 'Accept': 'application/json'}
         original_response = self._download_json(
             f'https://api.vimeo.com/videos/{video_id}', video_id,
             headers=headers, fatal=False, expected_status=(403, 404)) or {}
