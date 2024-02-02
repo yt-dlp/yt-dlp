@@ -1153,6 +1153,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 return
+            raise
         for video in videos:
             link = video.get('link')
             if not link:
