@@ -47,7 +47,17 @@ class BilibiliBaseIE(InfoExtractor):
     _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
     _WBI_KEY_CACHE = {}
     _WBI_KEY_CACHE_TIMEOUT = 30
-    # exact expire time is not known, though 30s is good for one session
+    # exact expire timeout is not clear, though 30s is good for one session
+
+    def check_missing_formats(self, play_info, formats):
+        parsed_qualites = set(traverse_obj(formats, (..., 'quality')))
+        missing_formats = [
+            traverse_obj(missing, 'new_description', 'display_desc', 'quality')
+            for missing in traverse_obj(play_info, (
+                'support_formats', lambda _, v: v['quality'] not in parsed_qualites))]
+        if missing_formats:
+            self.to_screen(f'Format(s) {", ".join(map(str, missing_formats))} are missing; '
+                           f'you have to login or become premium member to download them. {self._login_hint()}')
 
     def extract_formats(self, play_info):
         format_names = {
@@ -87,10 +97,8 @@ class BilibiliBaseIE(InfoExtractor):
             'format': format_names.get(video.get('id')),
         } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 
-        missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
-        if formats and missing_formats:
-            self.to_screen(f'Format(s) {", ".join(format_names[i] for i in missing_formats)} are missing; '
-                           f'you have to login or become premium member to download them. {self._login_hint()}')
+        if formats:
+            self.check_missing_formats(play_info, formats)
 
         fragments = traverse_obj(play_info, ('durl', lambda _, v: url_or_none(v['url']), {
             'url': ('url', {url_or_none}),
@@ -108,8 +116,9 @@ class BilibiliBaseIE(InfoExtractor):
                 **traverse_obj(play_info, {
                     'quality': ('quality', {int_or_none}),
                     'format_id': ('quality', {str_or_none}),
-                    'duration': ('timelength', {lambda x: float_or_none(x, scale=1000)}),
+                    'format': ('quality', {lambda x: format_names.get(x)}),
                     'resolution': ('quality', {lambda x: format_names.get(x)}),
+                    'duration': ('timelength', {lambda x: float_or_none(x, scale=1000)}),
                 }),
             })
         return formats
@@ -305,17 +314,17 @@ class BiliBiliIE(BilibiliBaseIE):
             'timestamp': 1488353834,
             'like_count': int,
             'view_count': int,
+            '_old_archive_ids': ['bilibili 8903802_part1'],
         },
     }, {
         'note': 'old av URL version',
         'url': 'http://www.bilibili.com/video/av1074402/',
         'info_dict': {
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg)$',
+            'id': 'BV11x411K7CN',
             'ext': 'mp4',
+            'title': '【金坷垃】金泡沫',
             'uploader': '菊子桑',
             'uploader_id': '156160',
-            'id': 'BV11x411K7CN',
-            'title': '【金坷垃】金泡沫',
             'duration': 308.36,
             'upload_date': '20140420',
             'timestamp': 1397983878,
@@ -324,6 +333,8 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'tags': list,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg)$',
+            '_old_archive_ids': ['bilibili 1074402_part1'],
         },
         'params': {'skip_download': True},
     }, {
@@ -350,6 +361,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'view_count': int,
                 'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
                 'duration': 90.314,
+                '_old_archive_ids': ['bilibili 498159642_part1'],
             }
         }]
     }, {
@@ -370,6 +382,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
             'duration': 90.314,
+            '_old_archive_ids': ['bilibili 498159642_part1'],
         }
     }, {
         'note': 'video has subtitles',
@@ -389,7 +402,8 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-            'subtitles': 'count:2'
+            'subtitles': 'count:2',  # login required for CC subtitle
+            '_old_archive_ids': ['bilibili 898179753_part1'],
         },
         'params': {'listsubtitles': True},
     }, {
@@ -409,6 +423,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'view_count': int,
             'like_count': int,
+            '_old_archive_ids': ['bilibili 8903802_part1'],
         },
         'params': {
             'skip_download': True,
@@ -432,6 +447,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            '_old_archive_ids': ['bilibili 463665680_part1'],
         },
         'params': {'skip_download': True},
     }, {
@@ -450,8 +466,8 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            '_old_archive_ids': ['bilibili 893839363_part1'],
         },
-        'params': {'skip_download': True},
     }, {
         'note': 'newer festival video',
         'url': 'https://www.bilibili.com/festival/2023honkaiimpact3gala?bvid=BV1ay4y1d77f',
@@ -468,28 +484,35 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            '_old_archive_ids': ['bilibili 778246196_part1'],
         },
-        'params': {'skip_download': True},
     }, {
-        'note': 'legacy flv video',
+        'note': 'legacy flv/mp4 video',
         'url': 'https://www.bilibili.com/video/BV1ms411Q7vw/?p=4',
         'info_dict': {
             'id': 'BV1ms411Q7vw_p4',
-            'ext': 'mp4' or 'flv',
-            'duration': 6838.493,
-            'view_count': int,
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-            'timestamp': 1458222815,
-            'tags': list,
-            'description': '云南方言快乐生产线出品',
-            'comment_count': int,
-            'uploader_id': '3916081',
+            'ext': 'mp4',
             'title': '[搞笑]【动画】云南方言快乐生产线出品 p04 新烧包谷之漫游桃花岛',
-            'like_count': int,
-            'uploader': '一笑颠天',
+            'timestamp': 1458222815,
             'upload_date': '20160317',
+            'description': '云南方言快乐生产线出品',
+            'duration': 6839.289,
+            'uploader': '一笑颠天',
+            'uploader_id': '3916081',
+            'view_count': int,
+            'comment_count': int,
+            'like_count': int,
+            'tags': list,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            '_old_archive_ids': ['bilibili 4120229_part4'],
         },
-        'params': {'skip_download': True}
+        'params': {'extractor_args': {'bilibili': {'_prefer_multi_flv': ['32']}}},
+        'playlist_count': 19,
+        'playlist': [{
+            'id': 'BV1ms411Q7vw_p4_0',
+            'title': '[搞笑]【动画】云南方言快乐生产线出品 p04 新烧包谷之漫游桃花岛',
+            'duration': 399.102,
+        }],
     }, {
         'note': 'legacy mp4-only video',
         'url': 'https://www.bilibili.com/video/BV1nx411u79K',
@@ -500,13 +523,15 @@ class BiliBiliIE(BilibiliBaseIE):
             'timestamp': 1508893551,
             'upload_date': '20171025',
             'description': '@ZERO-G伯远\n声乐练习 《No Air》with Vigo Van',
-            'uploader': '伯远',
             'duration': 80.384,
+            'uploader': '伯远',
             'uploader_id': '10584494',
             'comment_count': int,
             'view_count': int,
             'like_count': int,
+            'tags': list,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            '_old_archive_ids': ['bilibili 15700301_part1'],
         },
     }, {
         'note': 'interactive/split-path video',
@@ -525,6 +550,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            '_old_archive_ids': ['bilibili 292734508_part1'],
         },
         'playlist_count': 33,
         'playlist': [{
@@ -543,6 +569,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 'view_count': int,
                 'like_count': int,
                 'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                '_old_archive_ids': ['bilibili 292734508_part1'],
             },
         }],
     }, {
@@ -698,21 +725,35 @@ class BiliBiliIE(BilibiliBaseIE):
                     formats.extend(traverse_obj(
                         self.extract_formats(self._get_play_url(video_id, cid, headers=headers, qn=qn)),
                         (lambda _, v: not has_qn(v.get('format_id')))))
+                self.check_missing_formats(play_info, formats)
                 if traverse_obj(formats, lambda _, v: v['fragments']):
-                    # choose best quality for multi_video
-                    formats = [max(formats, key=lambda v: v.get('quality', 0))]
+                    if not self._configuration_arg('_prefer_multi_flv'):
+                        dropping = ', '.join(traverse_obj(formats, (
+                            lambda _, v: v['fragments'], {lambda x: f'{x["format"]} ({x["format_id"]})'})))
+                        formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
+                        if dropping:
+                            self.to_screen(f'Dropping incompatible flv format(s) {dropping} when mp4 exists')
+                    else:
+                        formats = traverse_obj(
+                            formats, lambda _, v: v['quality'] == int(self._configuration_arg('_prefer_multi_flv')[0])
+                        ) or traverse_obj(formats, lambda _, v: v['fragments'])
 
-            if formats[0].get('fragments'):  # transform legacy multi_video flv format
+            if formats[0].get('fragments'):  # transform multi_video format
+                format = max(traverse_obj(formats, lambda _, v: v['fragments']), key=lambda x: x['quality'])
                 return {
                     **metainfo,
                     '_type': 'multi_video',
                     'entries': [{
-                        **metainfo,
-                        **v,
-                        'id': f'{metainfo["id"]}_{i}',
-                        'subtitles': self.extract_subtitles(video_id, cid) if i == 0 else None,
-                        '__post_extractor': self.extract_comments(aid) if i == 0 else None,
-                    } for i, v in enumerate(formats[0]['fragments'])],
+                        'id': f'{metainfo["id"]}_{idx}',
+                        'title': metainfo['title'],
+                        'http_headers': metainfo['http_headers'],
+                        'formats': [{
+                            **fragment,
+                            'format_id': format.get('format_id'),
+                        }],
+                        'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
+                        '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
+                    } for idx, fragment in enumerate(format['fragments'])],
                     'duration': float_or_none(play_info.get('timelength'), scale=1000),
                 }
             else:
