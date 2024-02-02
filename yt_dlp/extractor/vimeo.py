@@ -751,6 +751,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         video = self._download_json(
             api_url, video_id, headers={
                 'Authorization': 'jwt ' + token,
+                'Accept': 'application/json',
             }, query={
                 'fields': 'config_url,created_time,description,license,metadata.connections.comments.total,metadata.connections.likes.total,release_time,stats.plays',
             })
