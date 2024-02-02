@@ -7,6 +7,7 @@ import math
 import re
 import time
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..dependencies import Cryptodome
@@ -1464,8 +1465,37 @@ class BiliBiliSearchIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili video search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'bilisearch'
+    _TESTS = [{
+        'url': 'bilisearch3:靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': '靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+            'title': '靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'BV1n44y1Q7sc',
+                'ext': 'mp4',
+                'title': '“出道一年，我怎么还在等你单推的女人睡觉后开播啊？”【一分钟了解靡烟miya】',
+                'timestamp': 1669889987,
+                'upload_date': '20221201',
+                'description': 'md5:43343c0973defff527b5a4b403b4abf9',
+                'tags': list,
+                'uploader': '靡烟miya',
+                'duration': 123.156,
+                'uploader_id': '1958703906',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                '_old_archive_ids': ['bilibili 988222410_part1'],
+            },
+        }],
+    }]
 
     def _search_results(self, query):
+        if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
+            self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
         for page_num in itertools.count(1):
             videos = self._download_json(
                 'https://api.bilibili.com/x/web-interface/search/type', query,
