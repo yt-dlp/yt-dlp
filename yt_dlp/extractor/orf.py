@@ -569,6 +569,7 @@ class ORFFM4StoryIE(InfoExtractor):
 
 
 class ORFONIE(InfoExtractor):
+    IE_NAME = 'orf:on'
     _VALID_URL = r'https?://on\.orf\.at/video/(?P<id>\d{8})/(?P<slug>[\w-]+)'
     _TESTS = [{
         'url': 'https://on.orf.at/video/14210000/school-of-champions-48',
@@ -613,7 +614,7 @@ class ORFONIE(InfoExtractor):
                 'title': (('title', 'headline'), {str}),
                 'description': (('description', 'teaser_text'), {str}),
                 'media_type': ('video_type', {str}),
-            }, get_all=False)
+            }, get_all=False),
         }
 
     def _real_extract(self, url):
