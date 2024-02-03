@@ -23,6 +23,13 @@ from ..utils import (
 class NYTimesBaseIE(InfoExtractor):
     _GRAPHQL_API = 'https://samizdat-graphql.nytimes.com/graphql/v2'
 
+    def _extract_thumbnails(self, thumbs):
+        return traverse_obj(thumbs, (lambda _, v: url_or_none(v['url']), {
+            'url': 'url',
+            'width': ('width', {int_or_none}),
+            'height': ('height', {int_or_none}),
+        }))
+
     def _extract_media_from_json(self, video_id, content_media_json):
         urls = []
         formats = []
@@ -177,13 +184,6 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'subtitles': subtitles
         }
 
-    def _extract_thumbnails(self, thumbs):
-        return traverse_obj(thumbs, (lambda _, v: url_or_none(v['url']), {
-            'url': 'url',
-            'width': ('width', {int_or_none}),
-            'height': ('height', {int_or_none}),
-        }))
-
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
@@ -277,40 +277,22 @@ class NYTimesCookingIE(InfoExtractor):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
 
-        json_obj = traverse_obj(
-            self._search_nextjs_data(webpage, page_id), ('props', 'pageProps'), default={})
-
-        info = traverse_obj(json_obj, {
-            'id': ('recipe', 'id', {str_or_none}),
-            'title': ('recipe', 'title'),
-            'description': ('recipe', 'topnote', {clean_html}),
-            'timestamp': ('recipe', 'publishedAt'),
-            'creator': ('recipe', 'contentAttribution', 'cardByline'),
-            'upload_date': ('meta', 'jsonLD', 'video', 'uploadDate', {unified_strdate}),
-            'formats': ('recipe', 'videoSrc', {url_or_none}),
-        })
+        next_data = self._search_nextjs_data(webpage, page_id)['props']['pageProps']
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            info.get('formats'), info.get('id'), 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
-
-        thumbnails = []
-        for image in traverse_obj(json_obj, ('recipe', 'image', 'crops', 'recipe', ...)):
-            if not url_or_none(image):
-                continue
-            thumbnails.append({
-                'url': image,
-            })
+            next_data['recipe']['videoSrc'], page_id, 'mp4', m3u8_id='hls')
 
         return {
-            'id': info.get('id'),
-            'title': info.get('title'),
-            'description': info.get('description'),
-            'timestamp': info.get('timestamp'),
-            'upload_date': info.get(' upload_date'),
-            'creator': info.get('creator'),
+            **traverse_obj(next_data, {
+                'id': ('recipe', 'id', {str_or_none}),
+                'title': ('recipe', 'title'),
+                'description': ('recipe', 'topnote', {clean_html}),
+                'timestamp': ('recipe', 'publishedAt'),
+                'creator': ('recipe', 'contentAttribution', 'cardByline')}),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnails': thumbnails,
+            'thumbnails': [{'url': url} for url in traverse_obj(next_data, (
+                'recipe', 'image', 'crops', 'recipe', lambda _, v: url_or_none(v)))]
         }
 
 
@@ -349,7 +331,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
     }]
 
     _TOKEN = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNIzKBOFB77aT/jN/FQ+/QVKWq5V1ka1AYmCR9hstz1pGNPH5ajOU9gAqta0T89iPnhjwla+3oec/Z3kGjxbpv6miQXufHFq3u2RC6HyU458cLat5kVPSOQCe3VVB5NRpOlRuwKHqn0txfxnwSSj8mqzstR997d3gKB//RO9zE16y3PoWlDQXkASngNJEWvL19iob/xwAkfEWCjyRILWFY0JYX3AvLMSbq7wsqOCE5srJpo7rRU32zsByhsp1D5W9OYqqwDmflsgCEQy2vqTsJjrJohuNg+urMXNNZ7Y3naMoqttsGDrWVxtPBafKMI8pM2ReNZBbGQsQXRzQNo7+QIDAQAB'
-    _DNS_UUID = '36dd619a-56dc-595b-9e09-37f4152c7b5d'  # uuid -v5 ns:DNS scoop.nyt.net
+    _DNS_NAMESPACE = uuid.UUID('36dd619a-56dc-595b-9e09-37f4152c7b5d')
     _GRAPHQL_QUERY = '''query VideoQuery($id: String!) {
   video(id: $id) {
     ... on Video {
@@ -384,7 +366,6 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
 }'''
 
     def _build_playlist(self, media_items):
-        entries = []
         for media_id in media_items:
             json_obj = traverse_obj(self._json_from_graphql(media_id) or {}, ('data', 'video'))
 
@@ -396,53 +377,33 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             duration = int_or_none(json_obj.get('duration'))
             formats, subtitles = self._extract_media_from_json(media_id, json_obj)
 
-            thumbnails = []
-            for image in traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...)):
-                image_url = image.get('url')
-                if not url_or_none(image_url):
-                    continue
-                thumbnails.append({
-                    'name': image.get('name'),
-                    'url': image_url,
-                    'width': int_or_none(image.get('width')),
-                    'height': int_or_none(image.get('height')),
-                })
-
-            entries.append({
+            yield {
                 'id': media_id,
                 'title': title,
                 'description': description,
                 'duration': duration,
-                'creator': creators,
+                'creator': creators,  # TODO: change to 'creators'
                 'formats': formats,
                 'subtitles': subtitles,
-                'thumbnails': thumbnails,
-            })
-        return entries
+                'thumbnails': self._extract_thumbnails(
+                    traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
+            }
 
     def _json_from_graphql(self, media_id):
         # reference: `id-to-uri.js`
-        namespace = uuid.UUID(self._DNS_UUID)
-        video_uuid = uuid.uuid5(namespace, 'video')
+        video_uuid = uuid.uuid5(self._DNS_NAMESPACE, 'video')
         media_uuid = uuid.uuid5(video_uuid, media_id)
 
-        payload = {
-            'query': self._GRAPHQL_QUERY,
-            'variables': {'id': f'nyt://video/{media_uuid}'}
-        }
-
-        headers = {
-            'Content-Type': 'application/json',
-            'Nyt-App-Type': 'vhs',
-            'Nyt-App-Version': 'v3.52.21',
-            'Nyt-Token': self._TOKEN,
-            'Origin': 'https://cooking.nytimes.com',
-            'Referer': 'https://www.google.com/',
-        }
-
         return self._download_json(
-            self._GRAPHQL_API, id, note='Downloading json from GRAPHQL API',
-            data=json.dumps(payload, separators=(',', ':')).encode(), headers=headers, fatal=False)
+            self._GRAPHQL_API, media_id, note='Downloading json from GRAPHQL API', data=json.dumps({
+                'query': self._GRAPHQL_QUERY, 'variables': {'id': f'nyt://video/{media_uuid}'}},
+                separators=(',', ':')).encode(), headers={
+                    'Content-Type': 'application/json',
+                    'Nyt-App-Type': 'vhs',
+                    'Nyt-App-Version': 'v3.52.21',
+                    'Nyt-Token': self._TOKEN,
+                    'Origin': 'https://cooking.nytimes.com',
+                    'Referer': 'https://www.google.com/'}, fatal=False) or {}
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
@@ -462,28 +423,17 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             return self.playlist_result(self._build_playlist(media_items), page_id, title, description)
 
         json_obj = traverse_obj(self._json_from_graphql(lead_video_id) or {}, ('data', 'video'))
-        duration = int_or_none(json_obj.get('duration'))
 
         formats, subtitles = self._extract_media_from_json(lead_video_id, json_obj)
-
-        thumbnails = []
-        for image in traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...)):
-            image_url = image.get('url')
-            if not url_or_none(image_url):
-                continue
-            thumbnails.append({
-                'url': image_url,
-                'width': int_or_none(image.get('width')),
-                'height': int_or_none(image.get('height')),
-            })
 
         return {
             'id': lead_video_id,
             'title': title,
             'description': description,
-            'duration': duration,
-            'creator': creator,
+            'duration': int_or_none(json_obj.get('duration')),
+            'creator': creator,  # TODO: change to 'creators'
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnails': thumbnails,
+            'thumbnails': self._extract_thumbnails(
+                traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
         }
