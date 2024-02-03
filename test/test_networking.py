@@ -904,7 +904,7 @@ class TestRequestsRequestHandler(TestRequestHandlerBase):
 
         rh.close()
 
-        assert called is True
+        assert called
 
     def test_remove_logging_handler(self, handler):
         # Ensure logging handler, containing YoutubeDL instance, is removed when we close the request handler
