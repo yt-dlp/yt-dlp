@@ -6,7 +6,6 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     traverse_obj,
-    try_get,
 )
 
 
@@ -51,9 +50,7 @@ class NuumBaseIE(InfoExtractor):
 
     def _extract_container(self, container):
         stream = traverse_obj(container, ('media_container_streams', 0))
-        media = try_get(stream, lambda x: x['stream_media'][0])
-        if not media:
-            raise ExtractorError('Cannot extract media data')
+        media = traverse_obj(stream, ('stream_media', 0))
         media_meta = media.get('media_meta')
         media_url, is_live = self._get_media_url(media_meta)
         video_id = media.get('media_id') or container.get('media_container_id')
@@ -83,8 +80,7 @@ class NuumLiveIE(NuumBaseIE):
     }]
 
     def _get_container(self, url):
-        channel_name = self._match_id(url)
-        broadcast = self._get_broadcast(channel_name)
+        broadcast = self._get_broadcast(self._match_id(url))
         if not traverse_obj(broadcast, ('channel', 'channel_is_live')):
             raise ExtractorError('The channel is not currently live', expected=True)
         return broadcast.get('media_container')
@@ -104,13 +100,14 @@ class NuumTabsIE(NuumBaseIE):
         'only_matching': True,
     }]
 
-    def _get_containers(self, channel_id, channel_name, tab_type):
+    def _get_containers(self, channel_name, tab_type):
         MAX_LIMIT = 50
         CONTAINER_TYPES = {
             'clips': ['SHORT_VIDEO', 'REVIEW_VIDEO'],
             'videos': ['LONG_VIDEO'],
             'streams': ['SINGLE'],
         }
+        channel_id = traverse_obj(self._get_broadcast(channel_name), ('channel', 'channel_id'))
         qs_types = ''.join([f'&media_container_type={type}' for type in CONTAINER_TYPES[tab_type]])
         query = {
             'limit': MAX_LIMIT,
@@ -131,10 +128,10 @@ class NuumTabsIE(NuumBaseIE):
 
     def _real_extract(self, url):
         channel_name, tab_type = self._match_valid_url(url).group('id', 'type')
-        channel_id = traverse_obj(self._get_broadcast(channel_name), ('channel', 'channel_id'))
-        containers = self._get_containers(channel_id, channel_name, tab_type)
-        entries = [self._extract_container(container) for container in containers]
-        return self.playlist_result(entries, channel_name, tab_type)
+        containers = self._get_containers(channel_name, tab_type)
+        return self.playlist_result(
+            [self._extract_container(container) for container in containers],
+            channel_name, tab_type)
 
 
 class NuumMediaIE(NuumBaseIE):
