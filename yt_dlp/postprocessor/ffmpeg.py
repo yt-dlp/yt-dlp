@@ -671,11 +671,10 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         return files_to_delete, info
 
     def embed_lyrics(self, audio_file, sub_dict):
-        if len(sub_dict) > 1:
-            self.report_warning('More than one subtitle file found. Your media player will likely be unable to display all of them.')
-
         if not all(sub['ext'] == 'lrc' for sub in sub_dict.values()):
             raise PostProcessingError('LRC subtitles required. Use "--convert-subs lrc" to convert')
+        if len(sub_dict) > 1:
+            self.report_warning('More than one subtitle file found. Your media player will likely be unable to display all of them.')
 
         lyrics_list = [sub['data'] for sub in sub_dict.values()]
         if audio_file.endswith('.mp3'):

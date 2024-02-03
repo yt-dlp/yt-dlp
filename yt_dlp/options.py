@@ -1582,8 +1582,10 @@ def create_parser():
     postproc.add_option(
         '--embed-subs',
         action='store_true', dest='embedsubtitles', default=False,
-        help='Embed subtitles in downloaded media. This option is available for video (mp4, webm, mkv) and audio (m4a, mp3, ogg, flac). '
-        'When embedding subtitles in audio files, use --convert-subtitles lrc')
+        help=(
+            'Embed subtitles in downloaded media. '
+            'Available for video (mp4, webm, mkv) and audio (m4a, mp3, ogg, flac). '
+            'Use --convert-subtitles lrc when embedding subtitles in audio files'))
     postproc.add_option(
         '--no-embed-subs',
         action='store_false', dest='embedsubtitles',
