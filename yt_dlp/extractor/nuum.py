@@ -92,7 +92,7 @@ class NuumLiveIE(NuumBaseIE):
 
 class NuumTabsIE(NuumBaseIE):
     IE_NAME = 'nuum:tabs'
-    _VALID_URL = r"https?://nuum\.ru/channel/(?P<id>[^/#?]+)/(?P<type>streams|videos|clips)"
+    _VALID_URL = r'https?://nuum\.ru/channel/(?P<id>[^/#?]+)/(?P<type>streams|videos|clips)'
     _TESTS = [{
         'url': 'https://nuum.ru/channel/mts_live/clips',
         'only_matching': True,
