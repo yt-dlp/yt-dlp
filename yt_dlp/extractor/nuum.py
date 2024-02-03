@@ -10,14 +10,14 @@ from ..utils import (
 
 class NuumBaseIE(InfoExtractor):
 
-    def _fetch(self, path, video_id, description, query={}):
+    def _call_api(self, path, video_id, description, query={}):
         response = self._download_json(
             f'https://nuum.ru/api/v2/{path}', video_id, query=query,
             note=f'Downloading {description} metadata',
             errnote=f'Unable to download {description} metadata')
         error = response.get('error')
         if error:
-            raise ExtractorError(f'{self.IE_NAME} returned error: {error}', expected=True)
+            raise ExtractorError(f'API returned error: {error!r}')
         return response.get('result')
 
     def _extract_thumbnails(self, thumbnails_dict):
@@ -29,7 +29,7 @@ class NuumBaseIE(InfoExtractor):
 
     def _get_container(self, url):
         container_id = self._match_id(url)
-        return self._fetch(
+        return self._call_api(
             f'media-containers/{container_id}', container_id, 'media container')
 
     def _get_media_url(self, media_meta):
@@ -71,7 +71,7 @@ class NuumLiveIE(NuumBaseIE):
 
     def _get_container(self, url):
         channel_name = self._match_id(url)
-        broadcast = self._fetch(
+        broadcast = self._call_api(
             'broadcasts/public', video_id=channel_name, description='channel',
             query={
                 'with_extra': 'true',
@@ -87,19 +87,13 @@ class NuumLiveIE(NuumBaseIE):
         return media_meta['media_url'], True
 
 
-class NuumStreamIE(NuumBaseIE):
-    IE_NAME = 'nuum:stream'
-    _VALID_URL = r'https?://nuum\.ru/streams/(?P<id>[\d]+)'
+class NuumMediaIE(NuumBaseIE):
+    IE_NAME = 'nuum:media'
+    _VALID_URL = r'https?://nuum\.ru/(streams|videos|clips)/(?P<id>[\d]+)'
     _TESTS = [{
         'url': 'https://nuum.ru/streams/1592713-7-days-to-die',
         'only_matching': True,
-    }]
-
-
-class NuumVideoIE(NuumBaseIE):
-    IE_NAME = 'nuum:video'
-    _VALID_URL = r'https?://nuum\.ru/videos/(?P<id>[\d]+)'
-    _TESTS = [{
+    }, {
         'url': 'https://nuum.ru/videos/1567547-toxi-hurtz',
         'md5': 'f1d9118a30403e32b702a204eb03aca3',
         'info_dict': {
@@ -112,13 +106,7 @@ class NuumVideoIE(NuumBaseIE):
             'thumbnail': r're:^https?://.+\.jpg',
             'view_count': int,
         },
-    }]
-
-
-class NuumClipIE(NuumBaseIE):
-    IE_NAME = 'nuum:clip'
-    _VALID_URL = r'https?://nuum\.ru/clips/(?P<id>[\d]+)'
-    _TESTS = [{
+    }, {
         'url': 'https://nuum.ru/clips/1552564-pro-misu',
         'md5': 'b248ae1565b1e55433188f11beeb0ca1',
         'info_dict': {

@@ -1319,9 +1319,7 @@ from .nytimes import (
 )
 from .nuum import (
     NuumLiveIE,
-    NuumStreamIE,
-    NuumVideoIE,
-    NuumClipIE,
+    NuumMediaIE,
 )
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
