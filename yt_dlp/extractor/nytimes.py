@@ -15,7 +15,6 @@ from ..utils import (
     remove_start,
     str_or_none,
     traverse_obj,
-    unified_strdate,
     url_or_none,
 )
 
@@ -34,7 +33,7 @@ class NYTimesBaseIE(InfoExtractor):
         urls = []
         formats = []
         subtitles = {}
-        for video in traverse_obj(content_media_json, ('renditions', ...)):
+        for video in traverse_obj(content_media_json, ('renditions', ..., {dict})):
             video_url = video.get('url')
             format_id = video.get('type')
             if not video_url or format_id == 'thumbs' or video_url in urls:
@@ -176,7 +175,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
         # audio articles will have an url and no formats
         url = traverse_obj(block, ('fileUrl', {url_or_none}))
         if not formats and url:
-            formats.append({'url': url, 'ext': determine_ext(url)})
+            formats.append({'url': url})
 
         return {
             **details,
@@ -187,44 +186,40 @@ class NYTimesArticleIE(NYTimesBaseIE):
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
-        article_json = self._search_json(
+        art_json = self._search_json(
             r'window\.__preloadedData\s*=', webpage, 'media details', page_id,
             transform_source=lambda x: x.replace('undefined', 'null'))['initialData']['data']['article']
 
-        blocks = traverse_obj(article_json, (
+        common_info = {
+            'title': remove_end(self._html_extract_title(webpage), ' - The New York Times'),
+            'description': traverse_obj(art_json, (
+                'sprinkledBody', 'content', ..., 'summary', 'content', ..., 'text', {str}),
+                get_all=False) or self._html_search_meta(['og:description', 'twitter:description'], webpage),
+            'timestamp': traverse_obj(art_json, ('firstPublished', {parse_iso8601})),
+            'creator': ', '.join(
+                traverse_obj(art_json, ('bylines', ..., 'creators', ..., 'displayName')))  # TODO: change to 'creators' (list)
+        }
+
+        blocks = traverse_obj(art_json, (
             'sprinkledBody', 'content', ..., ('ledeMedia', None),
             lambda _, v: v['__typename'] in ('Video', 'Audio')))
-
-        art_title = remove_end(self._html_extract_title(webpage), ' - The New York Times')
-        art_description = traverse_obj(
-            article_json, ('sprinkledBody', 'content', ..., 'summary', 'content', ..., 'text'),
-            get_all=False) or self._html_search_meta(['og:description', 'twitter:description'], webpage)
-        art_upload_date = traverse_obj(article_json, ('firstPublished'))
-        creator = ', '.join(
-            traverse_obj(article_json, ('bylines', ..., 'creators', ..., 'displayName')))
 
         # more than 1 video in the article, treat it as a playlist
         if len(blocks) > 1:
             entries = []
             for block in blocks:
-                entries.append(merge_dicts(self._extract_content_from_block(block), {
-                    'title': art_title,
-                    'description': art_description,
-                    'creator': creator,  # TODO: change to 'creators' (list)
-                    'thumbnails': self._extract_thumbnails(traverse_obj(
-                        block, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
-                }))
-            return self.playlist_result(entries, page_id, art_title, art_description)
+                entries.append(merge_dicts(
+                    self._extract_content_from_block(block), common_info, {
+                        'thumbnails': self._extract_thumbnails(traverse_obj(
+                            block, ('promotionalMedia', 'crops', ..., 'renditions', ...)))}))
 
-        return merge_dicts(self._extract_content_from_block(blocks[0]), {
-            'title': art_title,
-            'description': art_description,
-            'creator': creator,  # TODO: change to 'creators'
-            'upload_date': unified_strdate(art_upload_date),
-            'timestamp': parse_iso8601(art_upload_date),
+            return self.playlist_result(entries, page_id, common_info.get('title'),
+                                        common_info.get('description'))
+
+        return merge_dicts(self._extract_content_from_block(blocks[0]), common_info, {
             'thumbnails': self._extract_thumbnails(traverse_obj(
                 blocks[0], ('promotionalMedia', 'crops', ..., 'renditions', ...)) or traverse_obj(
-                article_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...))),
+                art_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...))),
         })
 
 
