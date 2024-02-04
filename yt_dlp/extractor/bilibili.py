@@ -45,9 +45,8 @@ from ..utils import (
 
 class BilibiliBaseIE(InfoExtractor):
     _FORMAT_ID_RE = re.compile(r'-(\d+)\.m4s\?')
-    _WBI_KEY_CACHE = {}
-    _WBI_KEY_CACHE_TIMEOUT = 30
-    # exact expire timeout is not clear, though 30s is good for one session
+    _WBI_KEY_CACHE_TIMEOUT = 30  # exact expire timeout is unclear, use 30s for one session
+    _wbi_key_cache = {}
 
     def check_missing_formats(self, play_info, formats):
         parsed_qualites = set(traverse_obj(formats, (..., 'quality')))
@@ -122,12 +121,6 @@ class BilibiliBaseIE(InfoExtractor):
                 }),
             })
         return formats
-
-    def _download_playinfo(self, video_id, cid):
-        return self._download_json(
-            'https://api.bilibili.com/x/player/playurl', video_id,
-            query={'bvid': video_id, 'cid': cid, 'fnval': 4048},
-            note=f'Downloading video formats for cid {cid}')['data']
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -206,15 +199,15 @@ class BilibiliBaseIE(InfoExtractor):
             yield self.url_result(entry['share_url'], BiliBiliBangumiIE, str_or_none(entry.get('id')))
 
     def _get_wbi_key(self, video_id):
-        if self._WBI_KEY_CACHE.get('ts', 0) > time.time() - 30:
-            return self._WBI_KEY_CACHE['key']
+        if time.time() < self._wbi_key_cache.get('ts', 0) + self._WBI_KEY_CACHE_TIMEOUT:
+            return self._wbi_key_cache['key']
 
         session_data = self._download_json(
             'https://api.bilibili.com/x/web-interface/nav', video_id, note='Downloading wbi sign')
 
         lookup = ''.join(traverse_obj(session_data, (
             'data', 'wbi_img', ('img_url', 'sub_url'),
-            {lambda x: x.split('/')[-1].split('.')[0]})))
+            {lambda x: x.rpartition('/')[2].partition('.')[0]})))
 
         mixin_key_enc_tab = [
             46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
@@ -223,9 +216,11 @@ class BilibiliBaseIE(InfoExtractor):
             36, 20, 34, 44, 52
         ]
 
-        self._WBI_KEY_CACHE['key'] = ''.join(lookup[i] for i in mixin_key_enc_tab)[:32]
-        self._WBI_KEY_CACHE['ts'] = time.time()
-        return self._WBI_KEY_CACHE['key']
+        self._wbi_key_cache.update({
+            'key': ''.join(lookup[i] for i in mixin_key_enc_tab)[:32],
+            'ts': time.time(),
+        })
+        return self._wbi_key_cache['key']
 
     def _sign_wbi(self, params, video_id):
         params['wts'] = round(time.time())
@@ -242,8 +237,8 @@ class BilibiliBaseIE(InfoExtractor):
         if qn:
             params['qn'] = qn
         return self._download_json(
-            'https://api.bilibili.com/x/player/wbi/playurl', bvid, headers=headers,
-            query=self._sign_wbi(params, bvid),
+            'https://api.bilibili.com/x/player/wbi/playurl', bvid,
+            query=self._sign_wbi(params, bvid), headers=headers,
             note=f'Downloading video formats for cid {cid} {qn or ""}')['data']
 
     def _get_divisions(self, video_id, graph_version, edges, edge_id, cid_edges=None):
@@ -282,7 +277,7 @@ class BilibiliBaseIE(InfoExtractor):
             ('data', 'interaction', 'graph_version', {int_or_none}))
         cid_edges = self._get_divisions(video_id, graph_version, {1: {'cid': cid}}, 1)
         for cid, edges in cid_edges.items():
-            play_info = self._download_playinfo(video_id, cid)
+            play_info = self._get_play_url(video_id, cid, metainfo.get('http_headers', {}))
             yield {
                 **metainfo,
                 'id': f'{video_id}_{cid}',
@@ -720,14 +715,15 @@ class BiliBiliIE(BilibiliBaseIE):
             formats = self.extract_formats(play_info)
 
             if not traverse_obj(play_info, ('dash')):  # for legacy-only formats
-                has_qn = lambda x: str_or_none(x) in traverse_obj(formats, (..., 'format_id'))
+                has_qn = lambda x: x in traverse_obj(formats, (..., 'quality'))
                 for qn in traverse_obj(play_info, ('accept_quality', lambda _, v: not has_qn(v), {int})):
                     formats.extend(traverse_obj(
                         self.extract_formats(self._get_play_url(video_id, cid, headers=headers, qn=qn)),
-                        (lambda _, v: not has_qn(v.get('format_id')))))
+                        (lambda _, v: not has_qn(v.get('quality')))))
                 self.check_missing_formats(play_info, formats)
                 if traverse_obj(formats, lambda _, v: v['fragments']):
                     if not self._configuration_arg('_prefer_multi_flv'):
+                        # `_prefer_multi_flv` is mainly for writing test case since user can hardly need this
                         dropping = ', '.join(traverse_obj(formats, (
                             lambda _, v: v['fragments'], {lambda x: f'{x["format"]} ({x["format_id"]})'})))
                         formats = traverse_obj(formats, lambda _, v: not v.get('fragments'))
@@ -736,10 +732,9 @@ class BiliBiliIE(BilibiliBaseIE):
                     else:
                         formats = traverse_obj(
                             formats, lambda _, v: v['quality'] == int(self._configuration_arg('_prefer_multi_flv')[0])
-                        ) or traverse_obj(formats, lambda _, v: v['fragments'])
+                        ) or [max(traverse_obj(formats, lambda _, v: v['fragments']), key=lambda x: x['quality'])]
 
             if formats[0].get('fragments'):  # transform multi_video format
-                format = max(traverse_obj(formats, lambda _, v: v['fragments']), key=lambda x: x['quality'])
                 return {
                     **metainfo,
                     '_type': 'multi_video',
@@ -749,11 +744,11 @@ class BiliBiliIE(BilibiliBaseIE):
                         'http_headers': metainfo['http_headers'],
                         'formats': [{
                             **fragment,
-                            'format_id': format.get('format_id'),
+                            'format_id': formats[0].get('format_id'),
                         }],
                         'subtitles': self.extract_subtitles(video_id, cid) if idx == 0 else None,
                         '__post_extractor': self.extract_comments(aid) if idx == 0 else None,
-                    } for idx, fragment in enumerate(format['fragments'])],
+                    } for idx, fragment in enumerate(formats[0]['fragments'])],
                     'duration': float_or_none(play_info.get('timelength'), scale=1000),
                 }
             else:
