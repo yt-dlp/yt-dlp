@@ -109,10 +109,10 @@ class EpornerIE(InfoExtractor):
                         'height': height,
                         'fps': fps,
                     })
-                    if av1:
+                    if has_av1:
                         formats.append({
-                            'url': re.sub('(.*)(.mp4)', '\\1-av1\\2', src),
-                            'format_id': join_nonempty('AV1', format_id),
+                            'url': src.replace('.mp4', '-av1.mp4'),
+                            'format_id': join_nonempty('av1', format_id),
                             'height': height,
                             'fps': fps,
                             'vcodec': 'av1',
