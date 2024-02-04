@@ -27,7 +27,7 @@ class NYTimesBaseIE(InfoExtractor):
             'url': 'url',
             'width': ('width', {int_or_none}),
             'height': ('height', {int_or_none}),
-        }))
+        })) or None
 
     def _extract_media_from_json(self, video_id, content_media_json):
         urls = []
@@ -153,6 +153,9 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'id': 'air-traffic-controllers-safety',
             'title': 'Drunk and Asleep on the Job: Air Traffic Controllers Pushed to the Brink',
             'description': 'md5:549e5a5e935bf7d048be53ba3d2c863d',
+            'upload_date': '20231202',
+            'creator': 'Emily Steel, Sydney Ember',
+            'timestamp': 1701511264,
         },
         'playlist_count': 3,
 
@@ -175,11 +178,13 @@ class NYTimesArticleIE(NYTimesBaseIE):
         # audio articles will have an url and no formats
         url = traverse_obj(block, ('fileUrl', {url_or_none}))
         if not formats and url:
-            formats.append({'url': url})
+            formats.append({'url': url, 'vcodec': 'none'})
 
         return {
             **details,
             'formats': formats,
+            'thumbnails': self._extract_thumbnails(traverse_obj(
+                block, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
             'subtitles': subtitles
         }
 
@@ -197,30 +202,26 @@ class NYTimesArticleIE(NYTimesBaseIE):
                 get_all=False) or self._html_search_meta(['og:description', 'twitter:description'], webpage),
             'timestamp': traverse_obj(art_json, ('firstPublished', {parse_iso8601})),
             'creator': ', '.join(
-                traverse_obj(art_json, ('bylines', ..., 'creators', ..., 'displayName')))  # TODO: change to 'creators' (list)
+                traverse_obj(art_json, ('bylines', ..., 'creators', ..., 'displayName'))),  # TODO: change to 'creators' (list)
+            'thumbnails': self._extract_thumbnails(traverse_obj(
+                art_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...))),
         }
 
         blocks = traverse_obj(art_json, (
             'sprinkledBody', 'content', ..., ('ledeMedia', None),
             lambda _, v: v['__typename'] in ('Video', 'Audio')))
 
-        # more than 1 video in the article, treat it as a playlist
-        if len(blocks) > 1:
-            entries = []
-            for block in blocks:
-                entries.append(merge_dicts(
-                    self._extract_content_from_block(block), common_info, {
-                        'thumbnails': self._extract_thumbnails(traverse_obj(
-                            block, ('promotionalMedia', 'crops', ..., 'renditions', ...)))}))
+        entries = []
+        for block in blocks:
+            entries.append(merge_dicts(self._extract_content_from_block(block), common_info))
 
-            return self.playlist_result(entries, page_id, common_info.get('title'),
-                                        common_info.get('description'))
+        if len(entries) > 1:
+            return self.playlist_result(entries, page_id, **common_info)
 
-        return merge_dicts(self._extract_content_from_block(blocks[0]), common_info, {
-            'thumbnails': self._extract_thumbnails(traverse_obj(
-                blocks[0], ('promotionalMedia', 'crops', ..., 'renditions', ...)) or traverse_obj(
-                art_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...))),
-        })
+        return {
+            'id': page_id,
+            **entries[0],
+        }
 
 
 class NYTimesCookingIE(InfoExtractor):
@@ -287,7 +288,7 @@ class NYTimesCookingIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': url} for url in traverse_obj(next_data, (
-                'recipe', 'image', 'crops', 'recipe', lambda _, v: url_or_none(v)))]
+                'recipe', 'image', 'crops', 'recipe', ..., {url_or_none}))]
         }
 
 
@@ -391,14 +392,15 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
 
         return self._download_json(
             self._GRAPHQL_API, media_id, note='Downloading json from GRAPHQL API', data=json.dumps({
-                'query': self._GRAPHQL_QUERY, 'variables': {'id': f'nyt://video/{media_uuid}'}},
-                separators=(',', ':')).encode(), headers={
-                    'Content-Type': 'application/json',
-                    'Nyt-App-Type': 'vhs',
-                    'Nyt-App-Version': 'v3.52.21',
-                    'Nyt-Token': self._TOKEN,
-                    'Origin': 'https://cooking.nytimes.com',
-                    'Referer': 'https://www.google.com/'}, fatal=False) or {}
+                'query': self._GRAPHQL_QUERY,
+                'variables': {'id': f'nyt://video/{media_uuid}'},
+            }, separators=(',', ':')).encode(), headers={
+                'Content-Type': 'application/json',
+                'Nyt-App-Type': 'vhs',
+                'Nyt-App-Version': 'v3.52.21',
+                'Nyt-Token': self._TOKEN,
+                'Origin': 'https://cooking.nytimes.com',
+            }, fatal=False) or {}
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
@@ -410,8 +412,6 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             get_elements_html_by_class('video-item', webpage), (..., {extract_attributes}, 'data-video-id'))
         title = self._html_search_meta(['og:title', 'twitter:title'], webpage)
         description = self._html_search_meta(['og:description', 'twitter:description'], webpage)
-        creator = self._search_regex(
-            r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None)
 
         if media_items:
             media_items.append(lead_video_id)
@@ -426,7 +426,8 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             'title': title,
             'description': description,
             'duration': int_or_none(json_obj.get('duration')),
-            'creator': creator,  # TODO: change to 'creators'
+            'creator': self._search_regex(
+                r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),  # TODO: change to 'creators'
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': self._extract_thumbnails(
