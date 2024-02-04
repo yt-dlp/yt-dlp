@@ -40,10 +40,4 @@ Fixes #
 - [ ] Core bug fix/improvement
 - [ ] New feature (It is strongly [recommended to open an issue first](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#adding-new-feature-or-making-overarching-changes))
 
-
-<!-- Do NOT edit/remove anything below this! -->
-</details><details><summary>Copilot Summary</summary>  
-
-copilot:all
-
 </details>

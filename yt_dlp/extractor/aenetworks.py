@@ -93,7 +93,7 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             resource = self._get_mvpd_resource(
                 requestor_id, theplatform_metadata['title'],
                 theplatform_metadata.get('AETN$PPL_pplProgramId') or theplatform_metadata.get('AETN$PPL_pplProgramId_OLD'),
-                theplatform_metadata['ratings'][0]['rating'])
+                traverse_obj(theplatform_metadata, ('ratings', 0, 'rating')))
             auth = self._extract_mvpd_auth(
                 url, video_id, requestor_id, resource)
         info.update(self._extract_aen_smil(media_url, video_id, auth))
@@ -121,11 +121,21 @@ class AENetworksIE(AENetworksBaseIE):
         'info_dict': {
             'id': '22253814',
             'ext': 'mp4',
-            'title': 'Winter is Coming',
-            'description': 'md5:641f424b7a19d8e24f26dea22cf59d74',
+            'title': 'Winter Is Coming',
+            'description': 'md5:a40e370925074260b1c8a633c632c63a',
             'timestamp': 1338306241,
             'upload_date': '20120529',
             'uploader': 'AENE-NEW',
+            'duration': 2592.0,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'chapters': 'count:5',
+            'tags': 'count:14',
+            'categories': ['Mountain Men'],
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'season': 'Season 1',
+            'season_number': 1,
+            'series': 'Mountain Men',
         },
         'params': {
             # m3u8 download
@@ -143,6 +153,15 @@ class AENetworksIE(AENetworksBaseIE):
             'timestamp': 1452634428,
             'upload_date': '20160112',
             'uploader': 'AENE-NEW',
+            'duration': 1277.695,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'chapters': 'count:4',
+            'tags': 'count:23',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'season': 'Season 9',
+            'season_number': 9,
+            'series': 'Duck Dynasty',
         },
         'params': {
             # m3u8 download
@@ -338,6 +357,7 @@ class BiographyIE(AENetworksBaseIE):
             'skip_download': True,
         },
         'add_ie': ['ThePlatform'],
+        'skip': '404 Not Found',
     }]
 
     def _real_extract(self, url):

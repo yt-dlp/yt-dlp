@@ -428,7 +428,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.adminforge\.de',
         r'(?:www\.)?watch\.whatevertinfoil\.de',
         r'(?:www\.)?piped\.qdi\.fi',
-        r'(?:www\.)?piped\.video',
+        r'(?:(?:www|cf)\.)?piped\.video',
         r'(?:www\.)?piped\.aeong\.one',
         r'(?:www\.)?piped\.moomoo\.me',
         r'(?:www\.)?piped\.chauvet\.pro',
@@ -902,7 +902,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today', '8 yr ago'
         """
 
-        # XXX: this could be moved to a general function in utils.py
+        # XXX: this could be moved to a general function in utils/_utils.py
         # The relative time text strings are roughly the same as what
         # Javascript's Intl.RelativeTimeFormat function generates.
         # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat
@@ -941,7 +941,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='web'):
-        for retry in self.RetryManager():
+        raise_for_incomplete = bool(self._configuration_arg('raise_incomplete_data', ie_key=YoutubeIE))
+        # Incomplete Data should be a warning by default when retries are exhausted, while other errors should be fatal.
+        icd_retries = iter(self.RetryManager(fatal=raise_for_incomplete))
+        icd_rm = next(icd_retries)
+        main_retries = iter(self.RetryManager())
+        main_rm = next(main_retries)
+        # Manual retry loop for multiple RetryManagers
+        # The proper RetryManager MUST be advanced after an error
+        # and its result MUST be checked if the manager is non fatal
+        while True:
             try:
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
@@ -953,7 +962,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if not isinstance(e.cause, network_exceptions):
                     return self._error_or_warning(e, fatal=fatal)
                 elif not isinstance(e.cause, HTTPError):
-                    retry.error = e
+                    main_rm.error = e
+                    next(main_retries)
                     continue
 
                 first_bytes = e.cause.response.read(512)
@@ -965,27 +975,32 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     if yt_error:
                         self._report_alerts([('ERROR', yt_error)], fatal=False)
                 # Downloading page may result in intermittent 5xx HTTP error
-                # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                # Sometimes a 404 is also received. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                 # We also want to catch all other network exceptions since errors in later pages can be troublesome
                 # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
                 if e.cause.status not in (403, 429):
-                    retry.error = e
+                    main_rm.error = e
+                    next(main_retries)
                     continue
                 return self._error_or_warning(e, fatal=fatal)
 
             try:
                 self._extract_and_report_alerts(response, only_once=True)
             except ExtractorError as e:
-                # YouTube servers may return errors we want to retry on in a 200 OK response
+                # YouTube's servers may return errors we want to retry on in a 200 OK response
                 # See: https://github.com/yt-dlp/yt-dlp/issues/839
                 if 'unknown error' in e.msg.lower():
-                    retry.error = e
+                    main_rm.error = e
+                    next(main_retries)
                     continue
                 return self._error_or_warning(e, fatal=fatal)
             # Youtube sometimes sends incomplete data
             # See: https://github.com/ytdl-org/youtube-dl/issues/28194
             if not traverse_obj(response, *variadic(check_get_keys)):
-                retry.error = ExtractorError('Incomplete data received', expected=True)
+                icd_rm.error = ExtractorError('Incomplete data received', expected=True)
+                should_retry = next(icd_retries, None)
+                if not should_retry:
+                    return None
                 continue
 
             return response
@@ -2057,7 +2072,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'track': 'Voyeur Girl',
                 'album': 'it\'s too much love to know my dear',
                 'release_date': '20190313',
-                'release_year': 2019,
                 'alt_title': 'Voyeur Girl',
                 'view_count': int,
                 'playable_in_embed': True,
@@ -3280,16 +3294,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                           chapter_time, chapter_title, duration)
             for contents in content_list)), [])
 
-    def _extract_heatmap_from_player_overlay(self, data):
-        content_list = traverse_obj(data, (
-            'playerOverlays', 'playerOverlayRenderer', 'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer', 'playerBar',
-            'multiMarkersPlayerBarRenderer', 'markersMap', ..., 'value', 'heatmap', 'heatmapRenderer', 'heatMarkers', {list}))
-        return next(filter(None, (
-            traverse_obj(contents, (..., 'heatMarkerRenderer', {
-                'start_time': ('timeRangeStartMillis', {functools.partial(float_or_none, scale=1000)}),
-                'end_time': {lambda x: (x['timeRangeStartMillis'] + x['markerDurationMillis']) / 1000},
-                'value': ('heatMarkerIntensityScoreNormalized', {float_or_none}),
-            })) for contents in content_list)), None)
+    def _extract_heatmap(self, data):
+        return traverse_obj(data, (
+            'frameworkUpdates', 'entityBatchUpdate', 'mutations',
+            lambda _, v: v['payload']['macroMarkersListEntity']['markersList']['markerType'] == 'MARKER_TYPE_HEATMAP',
+            'payload', 'macroMarkersListEntity', 'markersList', 'markers', ..., {
+                'start_time': ('startMillis', {functools.partial(float_or_none, scale=1000)}),
+                'end_time': {lambda x: (int(x['startMillis']) + int(x['durationMillis'])) / 1000},
+                'value': ('intensityScoreNormalized', {float_or_none}),
+            })) or None
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
@@ -4423,7 +4436,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_chapters_from_description(video_description, duration)
                 or None)
 
-            info['heatmap'] = self._extract_heatmap_from_player_overlay(initial_data)
+            info['heatmap'] = self._extract_heatmap(initial_data)
 
         contents = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
@@ -4467,14 +4480,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if mobj:
                                 info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
                                 break
-            sbr_tooltip = try_get(
-                vpir, lambda x: x['sentimentBar']['sentimentBarRenderer']['tooltip'])
-            if sbr_tooltip:
-                like_count, dislike_count = sbr_tooltip.split(' / ')
-                info.update({
-                    'like_count': str_to_int(like_count),
-                    'dislike_count': str_to_int(dislike_count),
-                })
+
+            info['like_count'] = traverse_obj(vpir, (
+                'videoActions', 'menuRenderer', 'topLevelButtons', ...,
+                'segmentedLikeDislikeButtonViewModel', 'likeButtonViewModel', 'likeButtonViewModel',
+                'toggleButtonViewModel', 'toggleButtonViewModel', 'defaultButtonViewModel',
+                'buttonViewModel', 'accessibilityText', {parse_count}), get_all=False)
+
             vcr = traverse_obj(vpir, ('viewCount', 'videoViewCountRenderer'))
             if vcr:
                 vc = self._get_count(vcr, 'viewCount')
@@ -4545,6 +4557,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             upload_date = strftime_or_none(
                 self._parse_time_text(self._get_text(vpir, 'dateText'))) or upload_date
         info['upload_date'] = upload_date
+
+        if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
+            # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=datetime.timezone.utc)
+            if upload_datetime >= datetime_from_str('today-2days'):
+                for fmt in info['formats']:
+                    if fmt.get('protocol') == 'm3u8_native':
+                        fmt['__needs_testing'] = True
 
         for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
             v = info.get(s_k)
@@ -5277,6 +5297,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # See: https://github.com/yt-dlp/yt-dlp/issues/116
             if not traverse_obj(data, 'contents', 'currentVideoEndpoint', 'onResponseReceivedActions'):
                 retry.error = ExtractorError('Incomplete yt initial data received')
+                data = None
                 continue
 
         return webpage, data
@@ -6448,6 +6469,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     def _has_tab(self, tabs, tab_id):
         return any(self._extract_tab_id_and_name(tab)[0] == tab_id for tab in tabs)
 
+    def _empty_playlist(self, item_id, data):
+        return self.playlist_result([], item_id, **self._extract_metadata_from_tabs(item_id, data))
+
     @YoutubeTabBaseInfoExtractor.passthrough_smuggled_data
     def _real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
@@ -6513,6 +6537,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             selected_tab_id, selected_tab_name = self._extract_tab_id_and_name(selected_tab, url)  # NB: Name may be translated
             self.write_debug(f'Selected tab: {selected_tab_id!r} ({selected_tab_name}), Requested tab: {original_tab_id!r}')
 
+            # /about is no longer a tab
+            if original_tab_id == 'about':
+                return self._empty_playlist(item_id, data)
+
             if not original_tab_id and selected_tab_name:
                 self.to_screen('Downloading all uploads of the channel. '
                                'To download only the videos in a specific tab, pass the tab\'s URL')
@@ -6525,7 +6553,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 if not extra_tabs and selected_tab_id != 'videos':
                     # Channel does not have streams, shorts or videos tabs
                     if item_id[:2] != 'UC':
-                        raise ExtractorError('This channel has no uploads', expected=True)
+                        return self._empty_playlist(item_id, data)
 
                     # Topic channels don't have /videos. Use the equivalent playlist instead
                     pl_id = f'UU{item_id[2:]}'
@@ -6533,7 +6561,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     try:
                         data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True, webpage_fatal=True)
                     except ExtractorError:
-                        raise ExtractorError('This channel has no uploads', expected=True)
+                        return self._empty_playlist(item_id, data)
                     else:
                         item_id, url = pl_id, pl_url
                         self.to_screen(
@@ -6665,7 +6693,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/@milan5503',
             'availability': 'public',
         },
-        'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden'],
+        'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden', 'Retrying', 'Giving up'],
     }, {
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
         'playlist_mincount': 455,

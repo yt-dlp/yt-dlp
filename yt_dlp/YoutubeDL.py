@@ -40,7 +40,6 @@ from .networking.exceptions import (
     NoSupportingHandlers,
     RequestError,
     SSLError,
-    _CompatHTTPError,
     network_exceptions,
 )
 from .plugins import directories as plugin_directories
@@ -60,7 +59,13 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, current_git_head, detect_variant
+from .update import (
+    REPOSITORY,
+    _get_system_deprecation,
+    _make_label,
+    current_git_head,
+    detect_variant,
+)
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -158,7 +163,7 @@ from .utils.networking import (
     clean_proxies,
     std_headers,
 )
-from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
+from .version import CHANNEL, ORIGIN, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -239,9 +244,9 @@ class YoutubeDL:
                        'selected' (check selected formats),
                        or None (check only if requested by extractor)
     paths:             Dictionary of output paths. The allowed keys are 'home'
-                       'temp' and the keys of OUTTMPL_TYPES (in utils.py)
+                       'temp' and the keys of OUTTMPL_TYPES (in utils/_utils.py)
     outtmpl:           Dictionary of templates for output names. Allowed keys
-                       are 'default' and the keys of OUTTMPL_TYPES (in utils.py).
+                       are 'default' and the keys of OUTTMPL_TYPES (in utils/_utils.py).
                        For compatibility with youtube-dl, a single string can also be used
     outtmpl_na_placeholder: Placeholder for unavailable meta fields.
     restrictfilenames: Do not allow "&" and spaces in file names
@@ -422,7 +427,7 @@ class YoutubeDL:
                          asked whether to download the video.
                        - Raise utils.DownloadCancelled(msg) to abort remaining
                          downloads when a video is rejected.
-                       match_filter_func in utils.py is one example for this.
+                       match_filter_func in utils/_utils.py is one example for this.
     color:             A Dictionary with output stream names as keys
                        and their respective color policy as values.
                        Can also just be a single color policy,
@@ -625,13 +630,16 @@ class YoutubeDL:
                     'Overwriting params from "color" with "no_color"')
             self.params['color'] = 'no_color'
 
-        term_allow_color = os.environ.get('TERM', '').lower() != 'dumb'
+        term_allow_color = os.getenv('TERM', '').lower() != 'dumb'
+        no_color = bool(os.getenv('NO_COLOR'))
 
         def process_color_policy(stream):
             stream_name = {sys.stdout: 'stdout', sys.stderr: 'stderr'}[stream]
             policy = traverse_obj(self.params, ('color', (stream_name, None), {str}), get_all=False)
             if policy in ('auto', None):
-                return term_allow_color and supports_terminal_sequences(stream)
+                if term_allow_color and supports_terminal_sequences(stream):
+                    return 'no_color' if no_color else True
+                return False
             assert policy in ('always', 'never', 'no_color'), policy
             return {'always': True, 'never': False}.get(policy, policy)
 
@@ -640,17 +648,9 @@ class YoutubeDL:
             for name, stream in self._out_files.items_ if name != 'console'
         })
 
-        # The code is left like this to be reused for future deprecations
-        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
-        current_version = sys.version_info[:2]
-        if current_version < MIN_RECOMMENDED:
-            msg = ('Support for Python version %d.%d has been deprecated. '
-                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details.'
-                   '\n                    You will no longer receive updates on this version')
-            if current_version < MIN_SUPPORTED:
-                msg = 'Python version %d.%d is no longer supported'
-            self.deprecated_feature(
-                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
+        system_deprecation = _get_system_deprecation()
+        if system_deprecation:
+            self.deprecated_feature(system_deprecation.replace('\n', '\n                    '))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
@@ -1184,6 +1184,7 @@ class YoutubeDL:
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
+            '*': float.__mul__,
         }
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int, slice or "{field, ...}"
@@ -1205,6 +1206,15 @@ class YoutubeDL:
                 (?:\|(?P<default>.*?))?
             )$''')
 
+        def _from_user_input(field):
+            if field == ':':
+                return ...
+            elif ':' in field:
+                return slice(*map(int_or_none, field.split(':')))
+            elif int_or_none(field) is not None:
+                return int(field)
+            return field
+
         def _traverse_infodict(fields):
             fields = [f for x in re.split(r'\.({.+?})\.?', fields)
                       for f in ([x] if x.startswith('{') else x.split('.'))]
@@ -1214,11 +1224,12 @@ class YoutubeDL:
 
             for i, f in enumerate(fields):
                 if not f.startswith('{'):
+                    fields[i] = _from_user_input(f)
                     continue
                 assert f.endswith('}'), f'No closing brace for {f} in {fields}'
-                fields[i] = {k: k.split('.') for k in f[1:-1].split(',')}
+                fields[i] = {k: list(map(_from_user_input, k.split('.'))) for k in f[1:-1].split(',')}
 
-            return traverse_obj(info_dict, fields, is_user_input=True, traverse_string=True)
+            return traverse_obj(info_dict, fields, traverse_string=True)
 
         def get_value(mdict):
             # Object traversal
@@ -2346,7 +2357,7 @@ class YoutubeDL:
                 return
 
             for f in formats:
-                if f.get('has_drm'):
+                if f.get('has_drm') or f.get('__needs_testing'):
                     yield from self._check_formats([f])
                 else:
                     yield f
@@ -2440,7 +2451,7 @@ class YoutubeDL:
                                 # for extractors with incomplete formats (audio only (soundcloud)
                                 # or video only (imgur)) best/worst will fallback to
                                 # best/worst {video,audio}-only format
-                                matches = formats
+                                matches = list(filter(lambda f: f.get('vcodec') != 'none' or f.get('acodec') != 'none', formats))
                             elif seperate_fallback and not ctx['has_merged_format']:
                                 # for compatibility with youtube-dl when there is no pre-merged format
                                 matches = list(filter(seperate_fallback, formats))
@@ -2459,9 +2470,16 @@ class YoutubeDL:
                 return selector_function(ctx_copy)
             return final_selector
 
-        stream = io.BytesIO(format_spec.encode())
+        # HACK: Python 3.12 changed the underlying parser, rendering '7_a' invalid
+        #       Prefix numbers with random letters to avoid it being classified as a number
+        #       See: https://github.com/yt-dlp/yt-dlp/pulls/8797
+        # TODO: Implement parser not reliant on tokenize.tokenize
+        prefix = ''.join(random.choices(string.ascii_letters, k=32))
+        stream = io.BytesIO(re.sub(r'\d[_\d]*', rf'{prefix}\g<0>', format_spec).encode())
         try:
-            tokens = list(_remove_unused_ops(tokenize.tokenize(stream.readline)))
+            tokens = list(_remove_unused_ops(
+                token._replace(string=token.string.replace(prefix, ''))
+                for token in tokenize.tokenize(stream.readline)))
         except tokenize.TokenError:
             raise syntax_error('Missing closing/opening brackets or parenthesis', (0, len(format_spec)))
 
@@ -2591,8 +2609,11 @@ class YoutubeDL:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
                 # see http://bugs.python.org/issue1646728)
                 with contextlib.suppress(ValueError, OverflowError, OSError):
-                    upload_date = datetime.datetime.utcfromtimestamp(info_dict[ts_key])
+                    upload_date = datetime.datetime.fromtimestamp(info_dict[ts_key], datetime.timezone.utc)
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
+
+        if not info_dict.get('release_year'):
+            info_dict['release_year'] = traverse_obj(info_dict, ('release_date', {lambda x: int(x[:4])}))
 
         live_keys = ('is_live', 'was_live')
         live_status = info_dict.get('live_status')
@@ -2772,7 +2793,8 @@ class YoutubeDL:
                 format['dynamic_range'] = 'SDR'
             if format.get('aspect_ratio') is None:
                 format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
-            if (not format.get('manifest_url')  # For fragmented formats, "tbr" is often max bitrate and not average
+            # For fragmented formats, "tbr" is often max bitrate and not average
+            if (('manifest-filesize-approx' in self.params['compat_opts'] or not format.get('manifest_url'))
                     and info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
@@ -3552,14 +3574,14 @@ class YoutubeDL:
             'version': __version__,
             'current_git_head': current_git_head(),
             'release_git_head': RELEASE_GIT_HEAD,
-            'repository': REPOSITORY,
+            'repository': ORIGIN,
         })
 
         if remove_private_keys:
             reject = lambda k, v: v is None or k.startswith('__') or k in {
                 'requested_downloads', 'requested_formats', 'requested_subtitles', 'requested_entries',
                 'entries', 'filepath', '_filename', 'filename', 'infojson_filename', 'original_url',
-                'playlist_autonumber', '_format_sort_fields',
+                'playlist_autonumber',
             }
         else:
             reject = lambda k, v: False
@@ -3935,8 +3957,8 @@ class YoutubeDL:
             source += '*'
         klass = type(self)
         write_debug(join_nonempty(
-            f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
-            f'{CHANNEL}@{__version__}',
+            f'{REPOSITORY.rpartition("/")[2]} version',
+            _make_label(ORIGIN, CHANNEL.partition('@')[2] or __version__, __version__),
             f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
@@ -3977,7 +3999,7 @@ class YoutubeDL:
         })) or 'none'))
 
         write_debug(f'Proxy map: {self.proxies}')
-        # write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
+        write_debug(f'Request Handlers: {", ".join(rh.RH_NAME for rh in self._request_director.handlers.values())}')
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
@@ -4060,12 +4082,25 @@ class YoutubeDL:
             return self._request_director.send(req)
         except NoSupportingHandlers as e:
             for ue in e.unsupported_errors:
+                # FIXME: This depends on the order of errors.
                 if not (ue.handler and ue.msg):
                     continue
                 if ue.handler.RH_KEY == 'Urllib' and 'unsupported url scheme: "file"' in ue.msg.lower():
                     raise RequestError(
                         'file:// URLs are disabled by default in yt-dlp for security reasons. '
                         'Use --enable-file-urls to enable at your own risk.', cause=ue) from ue
+                if 'unsupported proxy type: "https"' in ue.msg.lower():
+                    raise RequestError(
+                        'To use an HTTPS proxy for this request, one of the following dependencies needs to be installed: requests')
+
+                elif (
+                    re.match(r'unsupported url scheme: "wss?"', ue.msg.lower())
+                    and 'websockets' not in self._request_director.handlers
+                ):
+                    raise RequestError(
+                        'This request requires WebSocket support. '
+                        'Ensure one of the following dependencies are installed: websockets',
+                        cause=ue) from ue
             raise
         except SSLError as e:
             if 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED' in str(e):
@@ -4075,8 +4110,6 @@ class YoutubeDL:
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
                     'Try using --legacy-server-connect', cause=e) from e
             raise
-        except HTTPError as e:  # TODO: Remove in a future release
-            raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)
@@ -4108,6 +4141,8 @@ class YoutubeDL:
                 }),
             ))
         director.preferences.update(preferences or [])
+        if 'prefer-legacy-http-handler' in self.params['compat_opts']:
+            director.preferences.add(lambda rh, _: 500 if rh.RH_KEY == 'Urllib' else 0)
         return director
 
     def encode(self, s):
@@ -4230,7 +4265,7 @@ class YoutubeDL:
         return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
-        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
+        ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename); or None if error '''
         write_all = self.params.get('write_all_thumbnails', False)
         thumbnails, ret = [], []
         if write_all or self.params.get('writethumbnail', False):
@@ -4245,6 +4280,9 @@ class YoutubeDL:
         if thumbnails and not thumb_filename_base:
             self.write_debug(f'Skipping writing {label} thumbnail')
             return ret
+
+        if thumbnails and not self._ensure_dir_exists(filename):
+            return None
 
         for idx, t in list(enumerate(thumbnails))[::-1]:
             thumb_ext = (f'{t["id"]}.' if multiple else '') + determine_ext(t['url'], 'jpg')

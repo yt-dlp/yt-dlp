@@ -1,6 +1,7 @@
 import base64
 import json
 import re
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
@@ -52,6 +53,8 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'chapters': 'count:1',
                 'tags': 'count:4',
                 'thumbnail': r're:https?://.+\.jpg',
+                'categories': ['Series/The Tonight Show Starring Jimmy Fallon'],
+                'media_type': 'Full Episode',
             },
             'params': {
                 'skip_download': 'm3u8',
@@ -130,6 +133,8 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'tags': 'count:10',
                 'age_limit': 0,
                 'thumbnail': r're:https?://.+\.jpg',
+                'categories': ['Series/Quantum Leap 2022'],
+                'media_type': 'Highlight',
             },
             'params': {
                 'skip_download': 'm3u8',
@@ -284,7 +289,7 @@ class NBCSportsIE(InfoExtractor):
 
     _TESTS = [{
         # iframe src
-        'url': 'http://www.nbcsports.com//college-basketball/ncaab/tom-izzo-michigan-st-has-so-much-respect-duke',
+        'url': 'https://www.nbcsports.com/watch/nfl/profootballtalk/pft-pm/unpacking-addisons-reckless-driving-citation',
         'info_dict': {
             'id': 'PHJSaFWbrTY9',
             'ext': 'mp4',
@@ -379,7 +384,7 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _TESTS = [
         {
             'url': 'http://www.nbcnews.com/watch/nbcnews-com/how-twitter-reacted-to-the-snowden-interview-269389891880',
-            'md5': 'cf4bc9e6ce0130f00f545d80ecedd4bf',
+            'md5': 'fb3dcd2d7b1dd9804305fa2fc95ab610',  # md5 tends to fluctuate
             'info_dict': {
                 'id': '269389891880',
                 'ext': 'mp4',
@@ -387,6 +392,8 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'description': 'md5:65a0bd5d76fe114f3c2727aa3a81fe64',
                 'timestamp': 1401363060,
                 'upload_date': '20140529',
+                'duration': 46.0,
+                'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/140529/p_tweet_snow_140529.jpg',
             },
         },
         {
@@ -402,7 +409,7 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         },
         {
             'url': 'http://www.nbcnews.com/nightly-news/video/nightly-news-with-brian-williams-full-broadcast-february-4-394064451844',
-            'md5': '8eb831eca25bfa7d25ddd83e85946548',
+            'md5': '40d0e48c68896359c80372306ece0fc3',
             'info_dict': {
                 'id': '394064451844',
                 'ext': 'mp4',
@@ -410,11 +417,13 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'description': 'md5:1c10c1eccbe84a26e5debb4381e2d3c5',
                 'timestamp': 1423104900,
                 'upload_date': '20150205',
+                'duration': 1236.0,
+                'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/__NEW/nn_netcast_150204.jpg',
             },
         },
         {
             'url': 'http://www.nbcnews.com/business/autos/volkswagen-11-million-vehicles-could-have-suspect-software-emissions-scandal-n431456',
-            'md5': '4a8c4cec9e1ded51060bdda36ff0a5c0',
+            'md5': 'ffb59bcf0733dc3c7f0ace907f5e3939',
             'info_dict': {
                 'id': 'n431456',
                 'ext': 'mp4',
@@ -422,11 +431,13 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'description': 'md5:d22d1281a24f22ea0880741bb4dd6301',
                 'upload_date': '20150922',
                 'timestamp': 1442917800,
+                'duration': 37.0,
+                'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/__NEW/x_lon_vwhorn_150922.jpg',
             },
         },
         {
             'url': 'http://www.today.com/video/see-the-aurora-borealis-from-space-in-stunning-new-nasa-video-669831235788',
-            'md5': '118d7ca3f0bea6534f119c68ef539f71',
+            'md5': '693d1fa21d23afcc9b04c66b227ed9ff',
             'info_dict': {
                 'id': '669831235788',
                 'ext': 'mp4',
@@ -434,6 +445,8 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'description': 'md5:74752b7358afb99939c5f8bb2d1d04b1',
                 'upload_date': '20160420',
                 'timestamp': 1461152093,
+                'duration': 69.0,
+                'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/201604/2016-04-20T11-35-09-133Z--1280x720.jpg',
             },
         },
         {
@@ -447,6 +460,7 @@ class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'timestamp': 1406937606,
                 'upload_date': '20140802',
+                'duration': 940.0,
             },
         },
         {
@@ -535,6 +549,7 @@ class NBCOlympicsIE(InfoExtractor):
             'upload_date': '20160815',
             'uploader': 'NBCU-SPORTS',
         },
+        'skip': '404 Not Found',
     }
 
     def _real_extract(self, url):
@@ -578,6 +593,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
             'params': {
                 'skip_download': 'm3u8',
             },
+            'skip': 'Livestream',
         }, {
             'note': 'Plain m3u8 source URL',
             'url': 'https://stream.nbcolympics.com/gymnastics-event-finals-mens-floor-pommel-horse-womens-vault-bars',
@@ -589,6 +605,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
             'params': {
                 'skip_download': 'm3u8',
             },
+            'skip': 'Livestream',
         },
     ]
 
@@ -791,8 +808,10 @@ class NBCStationsIE(InfoExtractor):
             smil = self._download_xml(
                 f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
                 note='Downloading SMIL data', query=query, fatal=is_live)
-        subtitles = self._parse_smil_subtitles(smil, default_ns) if smil else {}
-        for video in smil.findall(self._xpath_ns('.//video', default_ns)) if smil else []:
+            if not isinstance(smil, xml.etree.ElementTree.Element):
+                smil = None
+        subtitles = self._parse_smil_subtitles(smil, default_ns) if smil is not None else {}
+        for video in smil.findall(self._xpath_ns('.//video', default_ns)) if smil is not None else []:
             info['duration'] = float_or_none(remove_end(video.get('dur'), 'ms'), 1000)
             video_src_url = video.get('src')
             ext = mimetype2ext(video.get('type'), default=determine_ext(video_src_url))

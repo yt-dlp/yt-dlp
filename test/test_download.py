@@ -31,6 +31,7 @@ from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
     UnavailableVideoError,
+    YoutubeDLError,
     format_bytes,
     join_nonempty,
 )
@@ -100,6 +101,8 @@ def generator(test_case, tname):
             print_skipping('IE marked as not _WORKING')
 
         for tc in test_cases:
+            if tc.get('expected_exception'):
+                continue
             info_dict = tc.get('info_dict', {})
             params = tc.get('params', {})
             if not info_dict.get('id'):
@@ -139,6 +142,17 @@ def generator(test_case, tname):
 
         res_dict = None
 
+        def match_exception(err):
+            expected_exception = test_case.get('expected_exception')
+            if not expected_exception:
+                return False
+            if err.__class__.__name__ == expected_exception:
+                return True
+            for exc in err.exc_info:
+                if exc.__class__.__name__ == expected_exception:
+                    return True
+            return False
+
         def try_rm_tcs_files(tcs=None):
             if tcs is None:
                 tcs = test_cases
@@ -161,6 +175,8 @@ def generator(test_case, tname):
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
                     if not isinstance(err.exc_info[1], (TransportError, UnavailableVideoError)) or (isinstance(err.exc_info[1], HTTPError) and err.exc_info[1].status == 503):
+                        if match_exception(err):
+                            return
                         err.msg = f'{getattr(err, "msg", err)} ({tname})'
                         raise
 
@@ -171,6 +187,10 @@ def generator(test_case, tname):
                     print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
 
                     try_num += 1
+                except YoutubeDLError as err:
+                    if match_exception(err):
+                        return
+                    raise
                 else:
                     break
 

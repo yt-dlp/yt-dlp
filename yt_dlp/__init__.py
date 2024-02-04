@@ -1,8 +1,8 @@
-try:
-    import contextvars  # noqa: F401
-except Exception:
-    raise Exception(
-        f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp')  # noqa: F541
+import sys
+
+if sys.version_info < (3, 8):
+    raise ImportError(
+        f'You are using an unsupported version of Python. Only Python versions 3.8 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'Public Domain'
 
@@ -12,7 +12,6 @@ import itertools
 import optparse
 import os
 import re
-import sys
 import traceback
 
 from .compat import compat_shlex_quote
@@ -74,14 +73,16 @@ def _exit(status=0, *args):
 
 
 def get_urls(urls, batchfile, verbose):
-    # Batch file verification
+    """
+    @param verbose      -1: quiet, 0: normal, 1: verbose
+    """
     batch_urls = []
     if batchfile is not None:
         try:
             batch_urls = read_batch_urls(
-                read_stdin('URLs') if batchfile == '-'
+                read_stdin(None if verbose == -1 else 'URLs') if batchfile == '-'
                 else open(expand_path(batchfile), encoding='utf-8', errors='ignore'))
-            if verbose:
+            if verbose == 1:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
         except OSError:
             _exit(f'ERROR: batch file {batchfile} could not be read')
@@ -722,7 +723,7 @@ ParsedOptions = collections.namedtuple('ParsedOptions', ('parser', 'options', 'u
 def parse_options(argv=None):
     """@returns ParsedOptions(parser, opts, urls, ydl_opts)"""
     parser, opts, urls = parseOpts(argv)
-    urls = get_urls(urls, opts.batchfile, opts.verbose)
+    urls = get_urls(urls, opts.batchfile, -1 if opts.quiet and not opts.verbose else opts.verbose)
 
     set_compat_opts(opts)
     try:

@@ -22,8 +22,11 @@ class AmazonMiniTVBaseIE(InfoExtractor):
 
         resp = self._download_json(
             f'https://www.amazon.in/minitv/api/web/{"graphql" if data else "prs"}',
-            asin, note=note, headers={'Content-Type': 'application/json'},
-            data=json.dumps(data).encode() if data else None,
+            asin, note=note, headers={
+                'Content-Type': 'application/json',
+                'currentpageurl': '/',
+                'currentplatform': 'dWeb'
+            }, data=json.dumps(data).encode() if data else None,
             query=None if data else {
                 'deviceType': 'A1WMMUXPCUJL4N',
                 'contentId': asin,
@@ -46,7 +49,7 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             'ext': 'mp4',
             'title': 'May I Kiss You?',
             'language': 'Hindi',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
             'description': 'md5:a549bfc747973e04feb707833474e59d',
             'release_timestamp': 1644710400,
             'release_date': '20220213',
@@ -68,7 +71,7 @@ class AmazonMiniTVIE(AmazonMiniTVBaseIE):
             'ext': 'mp4',
             'title': 'Jahaan',
             'language': 'Hindi',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'description': 'md5:05eb765a77bf703f322f120ec6867339',
             'release_timestamp': 1647475200,
             'release_date': '20220317',

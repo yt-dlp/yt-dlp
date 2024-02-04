@@ -239,10 +239,10 @@ class RCSEmbedsIE(RCSBaseIE):
         }
     }, {
         'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
-        'match_only': True
+        'only_matching': True
     }, {
         'url': 'https://video.gazzetta.it/video-embed/49612410-00ca-11eb-bcd8-30d4253e0140',
-        'match_only': True
+        'only_matching': True
     }]
     _WEBPAGE_TESTS = [{
         'url': 'https://www.iodonna.it/video-iodonna/personaggi-video/monica-bellucci-piu-del-lavoro-oggi-per-me-sono-importanti-lamicizia-e-la-famiglia/',
@@ -325,7 +325,7 @@ class RCSIE(RCSBaseIE):
         }
     }, {
         'url': 'https://video.corriere.it/video-360/metro-copenaghen-tutta-italiana/a248a7f0-e2db-11e9-9830-af2de6b1f945',
-        'match_only': True
+        'only_matching': True
     }]
 
 
