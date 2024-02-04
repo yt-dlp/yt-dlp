@@ -48,7 +48,10 @@ class NYTimesBaseIE(InfoExtractor):
                 formats.extend(m3u8_fmts)
                 subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif ext == 'mpd':
-                self.report_warning('Skipping DASH formats', video_id)
+                dash_fmts, dash_subs = self._extract_mpd_formats_and_subtitles(
+                    video_url, video_id, fatal=False, mpd_id='dash')
+                formats.extend(dash_fmts)
+                self._merge_subtitles(dash_subs, target=subtitles)
             else:
                 formats.append({
                     'url': video_url,
