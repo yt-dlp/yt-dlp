@@ -410,9 +410,9 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             return self.playlist_result(self._entries(media_ids), page_id, title, description)
 
         return {
+            **next(self._entries([lead_video_id])),
             'title': title,
             'description': description,
             'creator': self._search_regex(  # TODO: change to 'creators'
                 r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),
-            **next(self._entries([lead_video_id])),
         }
