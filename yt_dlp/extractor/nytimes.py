@@ -139,7 +139,7 @@ class NYTimesIE(NYTimesBaseIE):
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//graphics8\.nytimes\.com/bcvideo/[^/]+/iframe/embed\.html.+?)\1>']
     _TESTS = [{
         'url': 'http://www.nytimes.com/video/opinion/100000002847155/verbatim-what-is-a-photocopier.html?playlistId=100000001150263',
-        'md5': 'd665342765db043f7e225cff19df0f2d',
+        'md5': 'a553aa344014e3723d33893d89d4defc',
         'info_dict': {
             'id': '100000002847155',
             'ext': 'mp4',
@@ -150,7 +150,7 @@ class NYTimesIE(NYTimesBaseIE):
             'creator': 'Brett Weiner',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.+\.jpg',
             'duration': 419,
-        }
+        },
     }, {
         'url': 'http://www.nytimes.com/video/travel/100000003550828/36-hours-in-dubai.html',
         'only_matching': True,
