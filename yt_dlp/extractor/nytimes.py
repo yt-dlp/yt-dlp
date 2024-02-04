@@ -27,7 +27,7 @@ class NYTimesBaseIE(InfoExtractor):
             'url': 'url',
             'width': ('width', {int_or_none}),
             'height': ('height', {int_or_none}),
-        })) or None
+        }), default=None)
 
     def _extract_media_from_json(self, video_id, content_media_json):
         urls = []
