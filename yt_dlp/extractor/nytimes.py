@@ -3,6 +3,7 @@ import uuid
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     extract_attributes,
@@ -29,7 +30,7 @@ class NYTimesBaseIE(InfoExtractor):
             'height': ('height', {int_or_none}),
         }), default=None)
 
-    def _extract_media_from_json(self, video_id, content_media_json):
+    def _extract_formats_and_subtitles(self, video_id, content_media_json):
         urls = []
         formats = []
         subtitles = {}
@@ -46,8 +47,6 @@ class NYTimesBaseIE(InfoExtractor):
                     m3u8_id=format_id or 'hls', fatal=False)
                 formats.extend(m3u8_fmts)
                 subtitles = self._merge_subtitles(subtitles, m3u8_subs)
-            elif ext == 'mpd':
-                continue
             else:
                 formats.append({
                     'url': video_url,
@@ -143,8 +142,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'duration': 97631,
         },
         'params': {
-            # inconsistant md5
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
     }, {
         # multiple videos in the same article
@@ -173,7 +171,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'series': ('podcastSeries', {str}),
         }, get_all=False)
 
-        formats, subtitles = self._extract_media_from_json(details.get('id'), block)
+        formats, subtitles = self._extract_formats_and_subtitles(details.get('id'), block)
 
         # audio articles will have an url and no formats
         url = traverse_obj(block, ('fileUrl', {url_or_none}))
@@ -182,9 +180,9 @@ class NYTimesArticleIE(NYTimesBaseIE):
 
         return {
             **details,
-            'formats': formats,
             'thumbnails': self._extract_thumbnails(traverse_obj(
                 block, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
+            'formats': formats,
             'subtitles': subtitles
         }
 
@@ -210,6 +208,8 @@ class NYTimesArticleIE(NYTimesBaseIE):
         blocks = traverse_obj(art_json, (
             'sprinkledBody', 'content', ..., ('ledeMedia', None),
             lambda _, v: v['__typename'] in ('Video', 'Audio')))
+        if not blocks:
+            raise ExtractorError('Unable to extract any media blocks from webpage')
 
         entries = []
         for block in blocks:
@@ -361,37 +361,31 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
   }
 }'''
 
-    def _build_playlist(self, media_items):
-        for media_id in media_items:
-            json_obj = traverse_obj(self._json_from_graphql(media_id) or {}, ('data', 'video'))
+    def _build_playlist(self, media_ids):
+        for media_id in media_ids:
+            json_obj = self._call_api(media_id)
 
-            title = json_obj.get('promotionalHeadline') or media_id
-            description = json_obj.get('summary')
-            creators = ', '.join(
-                [remove_start(creator, 'By ') for creator in traverse_obj(
-                    json_obj, ('bylines', ..., 'renderedRepresentation'))])
-            duration = int_or_none(json_obj.get('duration'))
-            formats, subtitles = self._extract_media_from_json(media_id, json_obj)
-
+            formats, subtitles = self._extract_formats_and_subtitles(media_id, json_obj)
             yield {
                 'id': media_id,
-                'title': title,
-                'description': description,
-                'duration': duration,
-                'creator': creators,  # TODO: change to 'creators'
+                'title': json_obj.get('promotionalHeadline'),
+                'description': json_obj.get('summary'),
+                'duration': int_or_none(json_obj.get('duration')),
+                'creator': ', '.join(traverse_obj(json_obj, (  # TODO: change to 'creators'
+                    'bylines', ..., 'renderedRepresentation', {lambda x: remove_start(x, 'By ')}))),
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': self._extract_thumbnails(
                     traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
             }
 
-    def _json_from_graphql(self, media_id):
+    def _call_api(self, media_id):
         # reference: `id-to-uri.js`
         video_uuid = uuid.uuid5(self._DNS_NAMESPACE, 'video')
         media_uuid = uuid.uuid5(video_uuid, media_id)
 
-        return self._download_json(
-            self._GRAPHQL_API, media_id, note='Downloading json from GRAPHQL API', data=json.dumps({
+        return traverse_obj(self._download_json(
+            self._GRAPHQL_API, media_id, 'Downloading JSON from GraphQL API', data=json.dumps({
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'id': f'nyt://video/{media_uuid}'},
             }, separators=(',', ':')).encode(), headers={
@@ -400,34 +394,34 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
                 'Nyt-App-Version': 'v3.52.21',
                 'Nyt-Token': self._TOKEN,
                 'Origin': 'https://cooking.nytimes.com',
-            }, fatal=False) or {}
+            }, fatal=False), ('data', 'video', {dict})) or {}
 
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
 
-        lead_video_id = self._search_regex(
-            r'data-video-player-id="(\d+)"></div>', webpage, 'lead video', default=None)
-        media_items = traverse_obj(
-            get_elements_html_by_class('video-item', webpage), (..., {extract_attributes}, 'data-video-id'))
         title = self._html_search_meta(['og:title', 'twitter:title'], webpage)
         description = self._html_search_meta(['og:description', 'twitter:description'], webpage)
+        lead_video_id = self._search_regex(
+            r'data-video-player-id="(\d+)"></div>', webpage, 'lead video', fatal=True)
+        media_ids = traverse_obj(
+            get_elements_html_by_class('video-item', webpage), (..., {extract_attributes}, 'data-video-id'))
 
-        if media_items:
-            media_items.append(lead_video_id)
-            return self.playlist_result(self._build_playlist(media_items), page_id, title, description)
+        if media_ids:
+            media_ids.append(lead_video_id)
+            return self.playlist_result(self._build_playlist(media_ids), page_id, title, description)
 
-        json_obj = traverse_obj(self._json_from_graphql(lead_video_id) or {}, ('data', 'video'))
+        json_obj = self._call_api(lead_video_id)
 
-        formats, subtitles = self._extract_media_from_json(lead_video_id, json_obj)
+        formats, subtitles = self._extract_formats_and_subtitles(lead_video_id, json_obj)
 
         return {
             'id': lead_video_id,
             'title': title,
             'description': description,
             'duration': int_or_none(json_obj.get('duration')),
-            'creator': self._search_regex(
-                r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),  # TODO: change to 'creators'
+            'creator': self._search_regex(  # TODO: change to 'creators'
+                r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': self._extract_thumbnails(
