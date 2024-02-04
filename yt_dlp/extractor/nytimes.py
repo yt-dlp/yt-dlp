@@ -10,6 +10,7 @@ from ..utils import (
     float_or_none,
     get_elements_html_by_class,
     int_or_none,
+    make_archive_id,
     merge_dicts,
     mimetype2ext,
     parse_iso8601,
@@ -379,6 +380,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             'duration': 9.51,
             'creator': 'Alison Roman',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
+            '_old_archive_ids': ['nytimescooking 100000005835845'],
         }
     }, {
         'url': 'https://cooking.nytimes.com/guides/20-how-to-frost-a-cake',
@@ -413,4 +415,5 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             'description': description,
             'creator': self._search_regex(  # TODO: change to 'creators'
                 r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),
+            '_old_archive_ids': [make_archive_id(NYTimesCookingIE, lead_video_id)],
         }
