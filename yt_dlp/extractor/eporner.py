@@ -1,4 +1,3 @@
-import re
 from .common import InfoExtractor
 from ..utils import (
     encode_base_n,
