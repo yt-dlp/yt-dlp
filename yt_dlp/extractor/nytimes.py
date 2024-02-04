@@ -308,7 +308,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             'ext': 'mp4',
             'title': 'How to Make Mac and Cheese',
             'description': 'md5:b8f2f33ec1fb7523b21367147c9594f1',
-            'duration': 9510,
+            'duration': 9,
             'creator': 'Alison Roman',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
         }
@@ -368,7 +368,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
                 'id': media_id,
                 'title': data.get('promotionalHeadline'),
                 'description': data.get('summary'),
-                'duration': int_or_none(data.get('duration')),
+                'duration': int_or_none(data.get('duration'), scale=1000),
                 'creator': ', '.join(traverse_obj(data, (  # TODO: change to 'creators'
                     'bylines', ..., 'renderedRepresentation', {lambda x: remove_start(x, 'By ')}))),
                 'formats': formats,
