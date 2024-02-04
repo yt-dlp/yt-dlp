@@ -99,11 +99,12 @@ class GoPlayIE(InfoExtractor):
             })
 
         if 'manifestUrls' in api:
-            formats, subs = self._extract_m3u8_formats_and_subtitles(
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 api['manifestUrls']['hls'], video_id, ext='mp4', m3u8_id='HLS')
 
         else:
-            assert 'ssai' in api, 'expecting Google SSAI stream'
+            if 'ssai' not in api:
+                raise ExtractorError('expecting Google SSAI stream')
 
             ssai_content_source_id = api['ssai']['contentSourceID']
             ssai_video_id = api['ssai']['videoID']
@@ -116,14 +117,14 @@ class GoPlayIE(InfoExtractor):
             periods = self._extract_mpd_periods(dai['stream_manifest'], video_id)
 
             # skip pre-roll and mid-roll ads
-            periods = [period for period in periods
-                       if '-ad-' not in period['id']]
+            periods = [p for p in periods if '-ad-' not in p['id']]
 
             formats, subtitles = self._merge_mpd_periods(periods)
 
         info_dict.update({
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
         })
         return info_dict
 
