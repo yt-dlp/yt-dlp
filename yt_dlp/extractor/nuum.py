@@ -164,7 +164,7 @@ class NuumTabIE(NuumBaseIE):
             'id': 'dankon__streams',
             'title': 'Dankon_',
         },
-        'playlist_mincount': 5,
+        'playlist_mincount': 1,
     }]
 
     _PAGE_SIZE = 50
