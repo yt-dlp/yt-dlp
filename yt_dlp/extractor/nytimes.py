@@ -135,7 +135,6 @@ class NYTimesBaseIE(InfoExtractor):
 
 
 class NYTimesIE(NYTimesBaseIE):
-    _WORKING = False
     _VALID_URL = r'https?://(?:(?:www\.)?nytimes\.com/video/(?:[^/]+/)+?|graphics8\.nytimes\.com/bcvideo/\d+(?:\.\d+)?/iframe/embed\.html\?videoId=)(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//graphics8\.nytimes\.com/bcvideo/[^/]+/iframe/embed\.html.+?)\1>']
     _TESTS = [{
@@ -148,7 +147,8 @@ class NYTimesIE(NYTimesBaseIE):
             'description': 'md5:93603dada88ddbda9395632fdc5da260',
             'timestamp': 1398631707,  # FIXME
             'upload_date': '20140427',  # FIXME
-            'uploader': 'Brett Weiner',  # FIXME
+            'creator': 'Brett Weiner',
+            'thumbnail': r're:https?://\w+\.nyt.com/images/.+\.jpg',
             'duration': 419,
         }
     }, {
