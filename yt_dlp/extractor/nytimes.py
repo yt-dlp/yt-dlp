@@ -338,23 +338,23 @@ class NYTimesCookingIE(InfoExtractor):
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
-        next_data = self._search_nextjs_data(webpage, page_id)['props']['pageProps']
+        recipe_data = self._search_nextjs_data(webpage, page_id)['props']['pageProps']['recipe']
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            next_data['recipe']['videoSrc'], page_id, 'mp4', m3u8_id='hls')
+            recipe_data['videoSrc'], page_id, 'mp4', m3u8_id='hls')
 
         return {
-            **traverse_obj(next_data, {
-                'id': ('recipe', 'id', {str_or_none}),
-                'title': ('recipe', 'title', {str}),
-                'description': ('recipe', 'topnote', {clean_html}),
-                'timestamp': ('recipe', 'publishedAt', {int_or_none}),
-                'creator': ('recipe', 'contentAttribution', 'cardByline', {str}),
+            **traverse_obj(recipe_data, {
+                'id': ('id', {str_or_none}),
+                'title': ('title', {str}),
+                'description': ('topnote', {clean_html}),
+                'timestamp': ('publishedAt', {int_or_none}),
+                'creator': ('contentAttribution', 'cardByline', {str}),
             }),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': thumb_url} for thumb_url in traverse_obj(
-                next_data, ('recipe', 'image', 'crops', 'recipe', ..., {url_or_none}))],
+                recipe_data, ('image', 'crops', 'recipe', ..., {url_or_none}))],
         }
 
 
