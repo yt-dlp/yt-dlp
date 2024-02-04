@@ -7,6 +7,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     extract_attributes,
+    float_or_none,
     get_elements_html_by_class,
     int_or_none,
     merge_dicts,
@@ -109,7 +110,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'uploader': 'Matthew Williams',
             'creator': 'Patricia Cohen',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-            'duration': 119000,
+            'duration': 119.0,
         }
     }, {
         # article with audio and no video
@@ -139,7 +140,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'uploader': 'By The New York Times',
             'creator': 'Katie Rogers',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-            'duration': 97631,
+            'duration': 97.631,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -165,7 +166,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
         details = traverse_obj(block, {
             'id': ('sourceId', {str}),
             'uploader': ('bylines', ..., 'renderedRepresentation', {str}),
-            'duration': (('duration', 'length', ...), {int_or_none}),
+            'duration': (None, (('duration', {lambda x: float_or_none(x, scale=1000)}), ('length', {int_or_none}))),
             'timestamp': ('firstPublished', {parse_iso8601}),
             'series': ('podcastSeries', {str}),
         }, get_all=False)
@@ -308,7 +309,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
             'ext': 'mp4',
             'title': 'How to Make Mac and Cheese',
             'description': 'md5:b8f2f33ec1fb7523b21367147c9594f1',
-            'duration': 9,
+            'duration': 9.51,
             'creator': 'Alison Roman',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
         }
@@ -368,7 +369,7 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
                 'id': media_id,
                 'title': data.get('promotionalHeadline'),
                 'description': data.get('summary'),
-                'duration': int_or_none(data.get('duration'), scale=1000),
+                'duration': float_or_none(data.get('duration'), scale=1000),
                 'creator': ', '.join(traverse_obj(data, (  # TODO: change to 'creators'
                     'bylines', ..., 'renderedRepresentation', {lambda x: remove_start(x, 'By ')}))),
                 'formats': formats,
