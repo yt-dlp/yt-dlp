@@ -138,6 +138,10 @@ from .ard import (
     ARDMediathekCollectionIE,
     ARDIE,
 )
+from .art19 import (
+    Art19IE,
+    Art19ShowIE,
+)
 from .arte import (
     ArteTVIE,
     ArteTVEmbedIE,
@@ -1243,7 +1247,10 @@ from .nexx import (
     NexxIE,
     NexxEmbedIE,
 )
-from .nfb import NFBIE
+from .nfb import (
+    NFBIE,
+    NFBSeriesIE,
+)
 from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
     NFLIE,
@@ -1280,6 +1287,7 @@ from .niconico import (
     NicovideoTagURLIE,
     NiconicoLiveIE,
 )
+from .ninaprotocol import NinaProtocolIE
 from .ninecninemedia import (
     NineCNineMediaIE,
     CPTwentyFourIE,
@@ -1386,6 +1394,7 @@ from .ora import OraTVIE
 from .orf import (
     ORFTVthekIE,
     ORFFM4StoryIE,
+    ORFONIE,
     ORFRadioIE,
     ORFPodcastIE,
     ORFIPTVIE,
@@ -1510,7 +1519,7 @@ from .puhutv import (
     PuhuTVSerieIE,
 )
 from .pr0gramm import Pr0grammIE
-from .prankcast import PrankCastIE
+from .prankcast import PrankCastIE, PrankCastPostIE
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
@@ -2488,6 +2497,7 @@ from .zee5 import (
     Zee5SeriesIE,
 )
 from .zeenews import ZeeNewsIE
+from .zetland import ZetlandDKArticleIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,
