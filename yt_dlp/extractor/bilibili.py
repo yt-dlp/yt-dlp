@@ -1306,6 +1306,26 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
         },
         'playlist_mincount': 513,
     }, {
+        'url': 'https://www.bilibili.com/list/1958703906?sid=547718&oid=687146339&bvid=BV1DU4y1r7tz',
+        'info_dict': {
+            'id': 'BV1DU4y1r7tz',
+            'ext': 'mp4',
+            'title': '【直播回放】8.20晚9:30 3d发布喵 2022年8月20日21点场',
+            'upload_date': '20220820',
+            'description': '',
+            'timestamp': 1661016330,
+            'uploader_id': '1958703906',
+            'uploader': '靡烟miya',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'duration': 9552.903,
+            'tags': list,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            '_old_archive_ids': ['bilibili 687146339_part1'],
+        },
+        'params': {'noplaylist': True},
+    }, {
         'url': 'https://www.bilibili.com/medialist/play/1958703906?business=space_series&business_id=547718&desc=1',
         'info_dict': {
             'id': '5_547718',
@@ -1356,6 +1376,11 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
+
+        bvid = traverse_obj(parse_qs(url), ('bvid', 0))
+        if not self._yes_playlist(list_id, bvid):
+            return self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE)
+
         webpage = self._download_webpage(url, list_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', list_id)
         if traverse_obj(initial_state, ('error', 'code', {int_or_none})) != 200:
