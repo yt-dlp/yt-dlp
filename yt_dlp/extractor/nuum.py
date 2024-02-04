@@ -1,12 +1,16 @@
-import urllib.parse
+import functools
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
+    UserNotLive,
     int_or_none,
     parse_iso8601,
-    traverse_obj,
+    str_or_none,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class NuumBaseIE(InfoExtractor):
@@ -16,17 +20,11 @@ class NuumBaseIE(InfoExtractor):
             f'https://nuum.ru/api/v2/{path}', video_id, query=query,
             note=f'Downloading {description} metadata',
             errnote=f'Unable to download {description} metadata')
-        error = response.get('error')
-        if error:
+        if error := response.get('error'):
             raise ExtractorError(f'API returned error: {error!r}')
         return response.get('result')
 
-    def _get_container(self, url):
-        container_id = self._match_id(url)
-        return self._call_api(
-            f'media-containers/{container_id}', container_id, 'media container')
-
-    def _get_broadcast(self, channel_name):
+    def _get_channel_info(self, channel_name):
         return self._call_api(
             'broadcasts/public', video_id=channel_name, description='channel',
             query={
@@ -35,108 +33,36 @@ class NuumBaseIE(InfoExtractor):
                 'with_deleted': 'true',
             })
 
-    def _extract_thumbnails(self, thumbnails_dict):
-        return [{
-            'url': url,
-            'preference': index,
-        } for index, url in enumerate(
-            traverse_obj(thumbnails_dict, (('small', 'medium', 'large'),))) if url]
-
-    def _get_media_url(self, media_meta):
-        media_archive_url = media_meta.get('media_archive_url')
-        if media_archive_url:
-            return media_archive_url, False
-        return media_meta['media_url'], True
-
-    def _extract_container(self, container):
+    def _parse_video_data(self, container):
         stream = traverse_obj(container, ('media_container_streams', 0))
         media = traverse_obj(stream, ('stream_media', 0))
-        media_meta = media.get('media_meta')
-        media_url, is_live = self._get_media_url(media_meta)
-        video_id = media.get('media_id') or container.get('media_container_id')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(media_url, video_id, 'mp4')
-        return {
-            'id': str(video_id),
-            'title': container.get('media_container_name'),
-            'description': container.get('media_container_description'),
-            'thumbnails': self._extract_thumbnails(media_meta.get('media_preview_images' if is_live else 'media_preview_archive_images')),
-            'timestamp': parse_iso8601(container.get('created_at')),
-            'view_count': int_or_none(stream.get('stream_current_viewers' if is_live else 'stream_total_viewers')),
-            'is_live': is_live,
-            'formats': formats,
-            'subtitles': subtitles,
+        media_url = traverse_obj(media, (
+            'media_meta', ('media_archive_url', 'media_url'), {url_or_none}), get_all=False)
+
+        return media_url, {
+            'id': str(container['media_container_id']),
+            'is_live': media.get('media_status') == 'RUNNING',
+            **traverse_obj(container, {
+                'title': ('media_container_name', {str}),
+                'description': ('media_container_description', {str}),
+                'timestamp': ('created_at', {parse_iso8601}),
+                'channel': ('media_container_channel', 'channel_name', {str}),
+                'channel_id': ('media_container_channel', 'channel_id', {str_or_none}),
+            }),
+            **traverse_obj(stream, {
+                'view_count': ('stream_total_viewers', {int_or_none}),
+                'concurrent_view_count': ('stream_current_viewers', {int_or_none}),
+            }),
+            **traverse_obj(media, {
+                'duration': ('media_duration', {int_or_none}),
+                'thumbnail': ('media_meta', ('media_preview_archive_url', 'media_preview_url'), {url_or_none}),
+            }, get_all=False),
         }
-
-    def _real_extract(self, url):
-        return self._extract_container(self._get_container(url))
-
-
-class NuumLiveIE(NuumBaseIE):
-    IE_NAME = 'nuum:live'
-    _VALID_URL = r'https?://nuum\.ru/channel/(?P<id>[^/#?]+)$'
-    _TESTS = [{
-        'url': 'https://nuum.ru/channel/mts_live',
-        'only_matching': True,
-    }]
-
-    def _get_container(self, url):
-        broadcast = self._get_broadcast(self._match_id(url))
-        if not traverse_obj(broadcast, ('channel', 'channel_is_live')):
-            raise ExtractorError('The channel is not currently live', expected=True)
-        return broadcast.get('media_container')
-
-
-class NuumTabsIE(NuumBaseIE):
-    IE_NAME = 'nuum:tabs'
-    _VALID_URL = r'https?://nuum\.ru/channel/(?P<id>[^/#?]+)/(?P<type>streams|videos|clips)'
-    _TESTS = [{
-        'url': 'https://nuum.ru/channel/mts_live/clips',
-        'only_matching': True,
-    }, {
-        'url': 'https://nuum.ru/channel/mts_live/videos',
-        'only_matching': True,
-    }, {
-        'url': 'https://nuum.ru/channel/mts_live/streams',
-        'only_matching': True,
-    }]
-
-    def _get_containers(self, channel_name, tab_type):
-        MAX_LIMIT = 50
-        CONTAINER_TYPES = {
-            'clips': ['SHORT_VIDEO', 'REVIEW_VIDEO'],
-            'videos': ['LONG_VIDEO'],
-            'streams': ['SINGLE'],
-        }
-        channel_id = traverse_obj(self._get_broadcast(channel_name), ('channel', 'channel_id'))
-        qs_types = ''.join([f'&media_container_type={type}' for type in CONTAINER_TYPES[tab_type]])
-        query = {
-            'limit': MAX_LIMIT,
-            'offset': 0,
-            'channel_id': channel_id,
-            'media_container_status': 'STOPPED'
-        }
-        media_containers = []
-        while True:
-            qs_main = urllib.parse.urlencode(query)
-            res = self._call_api(
-                f'media-containers?{qs_main}{qs_types}', video_id=channel_name, description=tab_type)
-            query['offset'] += MAX_LIMIT
-            media_containers.extend(res)
-            if len(res) == 0 or len(res) < MAX_LIMIT:
-                break
-        return media_containers
-
-    def _real_extract(self, url):
-        channel_name, tab_type = self._match_valid_url(url).group('id', 'type')
-        containers = self._get_containers(channel_name, tab_type)
-        return self.playlist_result(
-            [self._extract_container(container) for container in containers],
-            channel_name, tab_type)
 
 
 class NuumMediaIE(NuumBaseIE):
     IE_NAME = 'nuum:media'
-    _VALID_URL = r'https?://nuum\.ru/(streams|videos|clips)/(?P<id>[\d]+)'
+    _VALID_URL = r'https?://nuum\.ru/(?:streams|videos|clips)/(?P<id>[\d]+)'
     _TESTS = [{
         'url': 'https://nuum.ru/streams/1592713-7-days-to-die',
         'only_matching': True,
@@ -144,7 +70,7 @@ class NuumMediaIE(NuumBaseIE):
         'url': 'https://nuum.ru/videos/1567547-toxi-hurtz',
         'md5': 'f1d9118a30403e32b702a204eb03aca3',
         'info_dict': {
-            'id': '1546357',
+            'id': '1567547',
             'ext': 'mp4',
             'title': 'Toxi$ - Hurtz',
             'description': '',
@@ -152,17 +78,123 @@ class NuumMediaIE(NuumBaseIE):
             'upload_date': '20231215',
             'thumbnail': r're:^https?://.+\.jpg',
             'view_count': int,
+            'concurrent_view_count': int,
+            'channel_id': '6911',
+            'channel': 'toxis',
+            'duration': 116,
         },
     }, {
         'url': 'https://nuum.ru/clips/1552564-pro-misu',
         'md5': 'b248ae1565b1e55433188f11beeb0ca1',
         'info_dict': {
-            'id': '1531374',
+            'id': '1552564',
             'ext': 'mp4',
             'title': 'Про Мису 🙃',
             'timestamp': 1701971828,
             'upload_date': '20231207',
             'thumbnail': r're:^https?://.+\.jpg',
             'view_count': int,
+            'concurrent_view_count': int,
+            'channel_id': '3320',
+            'channel': 'Misalelik',
+            'duration': 41,
         },
     }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        video_data = self._call_api(f'media-containers/{video_id}', video_id, 'media')
+
+        m3u8_url, info = self._parse_video_data(video_data)
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            m3u8_url, video_id, 'mp4', live=info['is_live'])
+        info.update({
+            'formats': formats,
+            'subtitles': subtitles,
+        })
+        return info
+
+
+class NuumLiveIE(NuumBaseIE):
+    IE_NAME = 'nuum:live'
+    _VALID_URL = r'https?://nuum\.ru/channel/(?P<id>[^/#?]+)/?(?:$|[#?])'
+    _TESTS = [{
+        'url': 'https://nuum.ru/channel/mts_live',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        channel = self._match_id(url)
+        channel_info = self._get_channel_info(channel)
+        if traverse_obj(channel_info, ('channel', 'channel_is_live')) is False:
+            raise UserNotLive(video_id=channel)
+
+        m3u8_url, metadata = self._parse_video_data(channel_info['media_container'])
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, channel, 'mp4', live=True)
+        return {
+            'formats': formats,
+            'subtitles': subtitles,
+            'webpage_url': f'https://nuum.ru/streams/{metadata["id"]}',
+            'extractor_key': NuumMediaIE.ie_key(),
+            'extractor': NuumMediaIE.IE_NAME,
+            **metadata,
+        }
+
+
+class NuumTabIE(NuumBaseIE):
+    IE_NAME = 'nuum:tab'
+    _VALID_URL = r'https?://nuum\.ru/channel/(?P<id>[^/#?]+)/(?P<type>streams|videos|clips)'
+    _TESTS = [{
+        'url': 'https://nuum.ru/channel/dankon_/clips',
+        'info_dict': {
+            'id': 'dankon__clips',
+            'title': 'Dankon_',
+        },
+        'playlist_mincount': 29,
+    }, {
+        'url': 'https://nuum.ru/channel/dankon_/videos',
+        'info_dict': {
+            'id': 'dankon__videos',
+            'title': 'Dankon_',
+        },
+        'playlist_mincount': 2,
+    }, {
+        'url': 'https://nuum.ru/channel/dankon_/streams',
+        'info_dict': {
+            'id': 'dankon__streams',
+            'title': 'Dankon_',
+        },
+        'playlist_mincount': 5,
+    }]
+
+    _PAGE_SIZE = 50
+
+    def _fetch_page(self, channel_id, tab_type, tab_id, page):
+        CONTAINER_TYPES = {
+            'clips': ['SHORT_VIDEO', 'REVIEW_VIDEO'],
+            'videos': ['LONG_VIDEO'],
+            'streams': ['SINGLE'],
+        }
+
+        media_containers = self._call_api(
+            'media-containers', video_id=tab_id, description=f'{tab_type} tab page {page + 1}',
+            query={
+                'limit': self._PAGE_SIZE,
+                'offset': page * self._PAGE_SIZE,
+                'channel_id': channel_id,
+                'media_container_status': 'STOPPED',
+                'media_container_type': CONTAINER_TYPES[tab_type],
+            })
+        for container in traverse_obj(media_containers, (..., {dict})):
+            _, metadata = self._parse_video_data(container)
+            yield self.url_result(f'https://nuum.ru/videos/{metadata["id"]}', NuumMediaIE, **metadata)
+
+    def _real_extract(self, url):
+        channel_name, tab_type = self._match_valid_url(url).group('id', 'type')
+        tab_id = f'{channel_name}_{tab_type}'
+        channel_data = self._get_channel_info(channel_name)['channel']
+
+        return self.playlist_result(OnDemandPagedList(functools.partial(
+            self._fetch_page, channel_data['channel_id'], tab_type, tab_id), self._PAGE_SIZE),
+            playlist_id=tab_id, playlist_title=channel_data.get('channel_name'))

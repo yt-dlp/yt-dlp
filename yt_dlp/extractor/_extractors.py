@@ -1319,7 +1319,7 @@ from .nytimes import (
 )
 from .nuum import (
     NuumLiveIE,
-    NuumTabsIE,
+    NuumTabIE,
     NuumMediaIE,
 )
 from .nuvid import NuvidIE
