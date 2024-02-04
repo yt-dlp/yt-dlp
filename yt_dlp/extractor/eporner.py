@@ -1,14 +1,14 @@
 from .common import InfoExtractor
 from ..utils import (
-    encode_base_n,
     ExtractorError,
+    encode_base_n,
+    get_elements_by_class,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     parse_duration,
     str_to_int,
     url_or_none,
-    get_elements_by_class,
-    join_nonempty,
 )
 
 
