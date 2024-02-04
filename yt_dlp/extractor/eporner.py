@@ -83,7 +83,7 @@ class EpornerIE(InfoExtractor):
         sources = video['sources']
 
         formats = []
-        av1 = True if len(get_elements_by_class("download-av1", webpage)) > 0 else False
+        has_av1 = bool(get_elements_by_class('download-av1', webpage))
         for kind, formats_dict in sources.items():
             if not isinstance(formats_dict, dict):
                 continue
