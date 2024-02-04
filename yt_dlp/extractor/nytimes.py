@@ -21,8 +21,6 @@ from ..utils import (
 
 
 class NYTimesBaseIE(InfoExtractor):
-    _GRAPHQL_API = 'https://samizdat-graphql.nytimes.com/graphql/v2'
-
     def _extract_thumbnails(self, thumbs):
         return traverse_obj(thumbs, (lambda _, v: url_or_none(v['url']), {
             'url': 'url',
@@ -46,12 +44,9 @@ class NYTimesBaseIE(InfoExtractor):
                     video_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id=format_id or 'hls', fatal=False)
                 formats.extend(m3u8_fmts)
-                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
+                self._merge_subtitles(m3u8_subs, target=subtitles)
             elif ext == 'mpd':
-                dash_fmts, dash_subs = self._extract_mpd_formats_and_subtitles(
-                    video_url, video_id, fatal=False, mpd_id='dash')
-                formats.extend(dash_fmts)
-                self._merge_subtitles(dash_subs, target=subtitles)
+                continue  # all mpd urls give 404 errors
             else:
                 formats.append({
                     'url': video_url,
@@ -161,7 +156,6 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'timestamp': 1701511264,
         },
         'playlist_count': 3,
-
     }, {
         'url': 'https://www.nytimes.com/2023/12/02/business/media/netflix-squid-game-challenge.html',
         'only_matching': True,
@@ -177,7 +171,6 @@ class NYTimesArticleIE(NYTimesBaseIE):
         }, get_all=False)
 
         formats, subtitles = self._extract_formats_and_subtitles(details.get('id'), block)
-
         # audio articles will have an url and no formats
         url = traverse_obj(block, ('fileUrl', {url_or_none}))
         if not formats and url:
@@ -198,6 +191,12 @@ class NYTimesArticleIE(NYTimesBaseIE):
             r'window\.__preloadedData\s*=', webpage, 'media details', page_id,
             transform_source=lambda x: x.replace('undefined', 'null'))['initialData']['data']['article']
 
+        blocks = traverse_obj(art_json, (
+            'sprinkledBody', 'content', ..., ('ledeMedia', None),
+            lambda _, v: v['__typename'] in ('Video', 'Audio')))
+        if not blocks:
+            raise ExtractorError('Unable to extract any media blocks from webpage')
+
         common_info = {
             'title': remove_end(self._html_extract_title(webpage), ' - The New York Times'),
             'description': traverse_obj(art_json, (
@@ -209,12 +208,6 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'thumbnails': self._extract_thumbnails(traverse_obj(
                 art_json, ('promotionalMedia', 'assetCrops', ..., 'renditions', ...))),
         }
-
-        blocks = traverse_obj(art_json, (
-            'sprinkledBody', 'content', ..., ('ledeMedia', None),
-            lambda _, v: v['__typename'] in ('Video', 'Audio')))
-        if not blocks:
-            raise ExtractorError('Unable to extract any media blocks from webpage')
 
         entries = []
         for block in blocks:
@@ -244,7 +237,6 @@ class NYTimesCookingIE(InfoExtractor):
             'upload_date': '20151118',
             'creator': 'David Tanis',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-
         },
     }, {
         'url': 'https://cooking.nytimes.com/recipes/1024781-neapolitan-checkerboard-cookies',
@@ -277,7 +269,6 @@ class NYTimesCookingIE(InfoExtractor):
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
-
         next_data = self._search_nextjs_data(webpage, page_id)['props']['pageProps']
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -286,14 +277,15 @@ class NYTimesCookingIE(InfoExtractor):
         return {
             **traverse_obj(next_data, {
                 'id': ('recipe', 'id', {str_or_none}),
-                'title': ('recipe', 'title'),
+                'title': ('recipe', 'title', {str}),
                 'description': ('recipe', 'topnote', {clean_html}),
-                'timestamp': ('recipe', 'publishedAt'),
-                'creator': ('recipe', 'contentAttribution', 'cardByline')}),
+                'timestamp': ('recipe', 'publishedAt', {int_or_none}),
+                'creator': ('recipe', 'contentAttribution', 'cardByline', {str}),
+            }),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnails': [{'url': url} for url in traverse_obj(next_data, (
-                'recipe', 'image', 'crops', 'recipe', ..., {url_or_none}))]
+            'thumbnails': [{'url': thumb_url} for thumb_url in traverse_obj(
+                next_data, ('recipe', 'image', 'crops', 'recipe', ..., {url_or_none}))],
         }
 
 
@@ -331,8 +323,10 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
         'playlist_count': 8,
     }]
 
-    _TOKEN = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNIzKBOFB77aT/jN/FQ+/QVKWq5V1ka1AYmCR9hstz1pGNPH5ajOU9gAqta0T89iPnhjwla+3oec/Z3kGjxbpv6miQXufHFq3u2RC6HyU458cLat5kVPSOQCe3VVB5NRpOlRuwKHqn0txfxnwSSj8mqzstR997d3gKB//RO9zE16y3PoWlDQXkASngNJEWvL19iob/xwAkfEWCjyRILWFY0JYX3AvLMSbq7wsqOCE5srJpo7rRU32zsByhsp1D5W9OYqqwDmflsgCEQy2vqTsJjrJohuNg+urMXNNZ7Y3naMoqttsGDrWVxtPBafKMI8pM2ReNZBbGQsQXRzQNo7+QIDAQAB'
     _DNS_NAMESPACE = uuid.UUID('36dd619a-56dc-595b-9e09-37f4152c7b5d')
+    _TOKEN = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNIzKBOFB77aT/jN/FQ+/QVKWq5V1ka1AYmCR9hstz1pGNPH5ajOU9gAqta0T89iPnhjwla+3oec/Z3kGjxbpv6miQXufHFq3u2RC6HyU458cLat5kVPSOQCe3VVB5NRpOlRuwKHqn0txfxnwSSj8mqzstR997d3gKB//RO9zE16y3PoWlDQXkASngNJEWvL19iob/xwAkfEWCjyRILWFY0JYX3AvLMSbq7wsqOCE5srJpo7rRU32zsByhsp1D5W9OYqqwDmflsgCEQy2vqTsJjrJohuNg+urMXNNZ7Y3naMoqttsGDrWVxtPBafKMI8pM2ReNZBbGQsQXRzQNo7+QIDAQAB'
+
+    _GRAPHQL_API = 'https://samizdat-graphql.nytimes.com/graphql/v2'
     _GRAPHQL_QUERY = '''query VideoQuery($id: String!) {
   video(id: $id) {
     ... on Video {
@@ -366,22 +360,21 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
   }
 }'''
 
-    def _build_playlist(self, media_ids):
+    def _entries(self, media_ids):
         for media_id in media_ids:
-            json_obj = self._call_api(media_id)
-
-            formats, subtitles = self._extract_formats_and_subtitles(media_id, json_obj)
+            data = self._call_api(media_id)
+            formats, subtitles = self._extract_formats_and_subtitles(media_id, data)
             yield {
                 'id': media_id,
-                'title': json_obj.get('promotionalHeadline'),
-                'description': json_obj.get('summary'),
-                'duration': int_or_none(json_obj.get('duration')),
-                'creator': ', '.join(traverse_obj(json_obj, (  # TODO: change to 'creators'
+                'title': data.get('promotionalHeadline'),
+                'description': data.get('summary'),
+                'duration': int_or_none(data.get('duration')),
+                'creator': ', '.join(traverse_obj(data, (  # TODO: change to 'creators'
                     'bylines', ..., 'renderedRepresentation', {lambda x: remove_start(x, 'By ')}))),
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': self._extract_thumbnails(
-                    traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
+                    traverse_obj(data, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
             }
 
     def _call_api(self, media_id):
@@ -404,31 +397,22 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
-
         title = self._html_search_meta(['og:title', 'twitter:title'], webpage)
         description = self._html_search_meta(['og:description', 'twitter:description'], webpage)
+
         lead_video_id = self._search_regex(
-            r'data-video-player-id="(\d+)"></div>', webpage, 'lead video', fatal=True)
+            r'data-video-player-id="(\d+)"></div>', webpage, 'lead video')
         media_ids = traverse_obj(
             get_elements_html_by_class('video-item', webpage), (..., {extract_attributes}, 'data-video-id'))
 
         if media_ids:
             media_ids.append(lead_video_id)
-            return self.playlist_result(self._build_playlist(media_ids), page_id, title, description)
-
-        json_obj = self._call_api(lead_video_id)
-
-        formats, subtitles = self._extract_formats_and_subtitles(lead_video_id, json_obj)
+            return self.playlist_result(self._entries(media_ids), page_id, title, description)
 
         return {
-            'id': lead_video_id,
             'title': title,
             'description': description,
-            'duration': int_or_none(json_obj.get('duration')),
             'creator': self._search_regex(  # TODO: change to 'creators'
                 r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnails': self._extract_thumbnails(
-                traverse_obj(json_obj, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
+            **next(self._entries([lead_video_id])),
         }
