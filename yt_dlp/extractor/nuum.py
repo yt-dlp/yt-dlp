@@ -14,7 +14,6 @@ from ..utils.traversal import traverse_obj
 
 
 class NuumBaseIE(InfoExtractor):
-
     def _call_api(self, path, video_id, description, query={}):
         response = self._download_json(
             f'https://nuum.ru/api/v2/{path}', video_id, query=query,
@@ -22,7 +21,7 @@ class NuumBaseIE(InfoExtractor):
             errnote=f'Unable to download {description} metadata')
         if error := response.get('error'):
             raise ExtractorError(f'API returned error: {error!r}')
-        return response.get('result')
+        return response['result']
 
     def _get_channel_info(self, channel_name):
         return self._call_api(
@@ -34,8 +33,8 @@ class NuumBaseIE(InfoExtractor):
             })
 
     def _parse_video_data(self, container):
-        stream = traverse_obj(container, ('media_container_streams', 0))
-        media = traverse_obj(stream, ('stream_media', 0))
+        stream = traverse_obj(container, ('media_container_streams', 0, {dict})) or {}
+        media = traverse_obj(stream, ('stream_media', 0, {dict})) or {}
         media_url = traverse_obj(media, (
             'media_meta', ('media_archive_url', 'media_url'), {url_or_none}), get_all=False)
 
