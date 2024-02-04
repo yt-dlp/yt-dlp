@@ -5,6 +5,7 @@ from ..utils import (
     ExtractorError,
     OnDemandPagedList,
     UserNotLive,
+    filter_dict,
     int_or_none,
     parse_iso8601,
     str_or_none,
@@ -32,15 +33,25 @@ class NuumBaseIE(InfoExtractor):
                 'with_deleted': 'true',
             })
 
-    def _parse_video_data(self, container):
+    def _parse_video_data(self, container, extract_formats=True):
         stream = traverse_obj(container, ('media_container_streams', 0, {dict})) or {}
         media = traverse_obj(stream, ('stream_media', 0, {dict})) or {}
         media_url = traverse_obj(media, (
             'media_meta', ('media_archive_url', 'media_url'), {url_or_none}), get_all=False)
 
-        return media_url, {
-            'id': str(container['media_container_id']),
-            'is_live': media.get('media_status') == 'RUNNING',
+        video_id = str(container['media_container_id'])
+        is_live = media.get('media_status') == 'RUNNING'
+
+        formats, subtitles = None, None
+        if extract_formats:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                media_url, video_id, 'mp4', live=is_live)
+
+        return filter_dict({
+            'id': video_id,
+            'is_live': is_live,
+            'formats': formats,
+            'subtitles': subtitles,
             **traverse_obj(container, {
                 'title': ('media_container_name', {str}),
                 'description': ('media_container_description', {str}),
@@ -56,7 +67,7 @@ class NuumBaseIE(InfoExtractor):
                 'duration': ('media_duration', {int_or_none}),
                 'thumbnail': ('media_meta', ('media_preview_archive_url', 'media_preview_url'), {url_or_none}),
             }, get_all=False),
-        }
+        })
 
 
 class NuumMediaIE(NuumBaseIE):
@@ -104,15 +115,7 @@ class NuumMediaIE(NuumBaseIE):
         video_id = self._match_id(url)
         video_data = self._call_api(f'media-containers/{video_id}', video_id, 'media')
 
-        m3u8_url, info = self._parse_video_data(video_data)
-
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            m3u8_url, video_id, 'mp4', live=info['is_live'])
-        info.update({
-            'formats': formats,
-            'subtitles': subtitles,
-        })
-        return info
+        return self._parse_video_data(video_data)
 
 
 class NuumLiveIE(NuumBaseIE):
@@ -129,15 +132,12 @@ class NuumLiveIE(NuumBaseIE):
         if traverse_obj(channel_info, ('channel', 'channel_is_live')) is False:
             raise UserNotLive(video_id=channel)
 
-        m3u8_url, metadata = self._parse_video_data(channel_info['media_container'])
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, channel, 'mp4', live=True)
+        info = self._parse_video_data(channel_info['media_container'])
         return {
-            'formats': formats,
-            'subtitles': subtitles,
-            'webpage_url': f'https://nuum.ru/streams/{metadata["id"]}',
+            'webpage_url': f'https://nuum.ru/streams/{info["id"]}',
             'extractor_key': NuumMediaIE.ie_key(),
             'extractor': NuumMediaIE.IE_NAME,
-            **metadata,
+            **info,
         }
 
 
@@ -186,7 +186,7 @@ class NuumTabIE(NuumBaseIE):
                 'media_container_type': CONTAINER_TYPES[tab_type],
             })
         for container in traverse_obj(media_containers, (..., {dict})):
-            _, metadata = self._parse_video_data(container)
+            metadata = self._parse_video_data(container, extract_formats=False)
             yield self.url_result(f'https://nuum.ru/videos/{metadata["id"]}', NuumMediaIE, **metadata)
 
     def _real_extract(self, url):
