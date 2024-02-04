@@ -22,6 +22,59 @@ from ..utils import (
 
 
 class NYTimesBaseIE(InfoExtractor):
+    _DNS_NAMESPACE = uuid.UUID('36dd619a-56dc-595b-9e09-37f4152c7b5d')
+    _TOKEN = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNIzKBOFB77aT/jN/FQ+/QVKWq5V1ka1AYmCR9hstz1pGNPH5ajOU9gAqta0T89iPnhjwla+3oec/Z3kGjxbpv6miQXufHFq3u2RC6HyU458cLat5kVPSOQCe3VVB5NRpOlRuwKHqn0txfxnwSSj8mqzstR997d3gKB//RO9zE16y3PoWlDQXkASngNJEWvL19iob/xwAkfEWCjyRILWFY0JYX3AvLMSbq7wsqOCE5srJpo7rRU32zsByhsp1D5W9OYqqwDmflsgCEQy2vqTsJjrJohuNg+urMXNNZ7Y3naMoqttsGDrWVxtPBafKMI8pM2ReNZBbGQsQXRzQNo7+QIDAQAB'
+    _GRAPHQL_API = 'https://samizdat-graphql.nytimes.com/graphql/v2'
+    _GRAPHQL_QUERY = '''query VideoQuery($id: String!) {
+  video(id: $id) {
+    ... on Video {
+      bylines {
+        renderedRepresentation
+      }
+      duration
+      promotionalHeadline
+      promotionalMedia {
+        ... on Image {
+          crops {
+            name
+            renditions {
+              name
+              width
+              height
+              url
+            }
+          }
+        }
+      }
+      renditions {
+        type
+        width
+        height
+        url
+        bitrate
+      }
+      summary
+    }
+  }
+}'''
+
+    def _call_api(self, media_id):
+        # reference: `id-to-uri.js`
+        video_uuid = uuid.uuid5(self._DNS_NAMESPACE, 'video')
+        media_uuid = uuid.uuid5(video_uuid, media_id)
+
+        return traverse_obj(self._download_json(
+            self._GRAPHQL_API, media_id, 'Downloading JSON from GraphQL API', data=json.dumps({
+                'query': self._GRAPHQL_QUERY,
+                'variables': {'id': f'nyt://video/{media_uuid}'},
+            }, separators=(',', ':')).encode(), headers={
+                'Content-Type': 'application/json',
+                'Nyt-App-Type': 'vhs',
+                'Nyt-App-Version': 'v3.52.21',
+                'Nyt-Token': self._TOKEN,
+                'Origin': 'https://nytimes.com',
+            }, fatal=False), ('data', 'video', {dict})) or {}
+
     def _extract_thumbnails(self, thumbs):
         return traverse_obj(thumbs, (lambda _, v: url_or_none(v['url']), {
             'url': 'url',
@@ -63,6 +116,23 @@ class NYTimesBaseIE(InfoExtractor):
 
         return formats, subtitles
 
+    def _extract_video(self, media_id):
+        data = self._call_api(media_id)
+        formats, subtitles = self._extract_formats_and_subtitles(media_id, data)
+
+        return {
+            'id': media_id,
+            'title': data.get('promotionalHeadline'),
+            'description': data.get('summary'),
+            'duration': float_or_none(data.get('duration'), scale=1000),
+            'creator': ', '.join(traverse_obj(data, (  # TODO: change to 'creators'
+                'bylines', ..., 'renderedRepresentation', {lambda x: remove_start(x, 'By ')}))),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnails': self._extract_thumbnails(
+                traverse_obj(data, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
+        }
+
 
 class NYTimesIE(NYTimesBaseIE):
     _WORKING = False
@@ -73,12 +143,12 @@ class NYTimesIE(NYTimesBaseIE):
         'md5': 'd665342765db043f7e225cff19df0f2d',
         'info_dict': {
             'id': '100000002847155',
-            'ext': 'mov',
+            'ext': 'mp4',
             'title': 'Verbatim: What Is a Photocopier?',
             'description': 'md5:93603dada88ddbda9395632fdc5da260',
-            'timestamp': 1398631707,
-            'upload_date': '20140427',
-            'uploader': 'Brett Weiner',
+            'timestamp': 1398631707,  # FIXME
+            'upload_date': '20140427',  # FIXME
+            'uploader': 'Brett Weiner',  # FIXME
             'duration': 419,
         }
     }, {
@@ -88,11 +158,8 @@ class NYTimesIE(NYTimesBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        # FIXME
 
-        return {
-            'id': video_id
-        }
+        return self._extract_video(video_id)
 
 
 class NYTimesArticleIE(NYTimesBaseIE):
@@ -324,77 +391,6 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
         'playlist_count': 8,
     }]
 
-    _DNS_NAMESPACE = uuid.UUID('36dd619a-56dc-595b-9e09-37f4152c7b5d')
-    _TOKEN = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuNIzKBOFB77aT/jN/FQ+/QVKWq5V1ka1AYmCR9hstz1pGNPH5ajOU9gAqta0T89iPnhjwla+3oec/Z3kGjxbpv6miQXufHFq3u2RC6HyU458cLat5kVPSOQCe3VVB5NRpOlRuwKHqn0txfxnwSSj8mqzstR997d3gKB//RO9zE16y3PoWlDQXkASngNJEWvL19iob/xwAkfEWCjyRILWFY0JYX3AvLMSbq7wsqOCE5srJpo7rRU32zsByhsp1D5W9OYqqwDmflsgCEQy2vqTsJjrJohuNg+urMXNNZ7Y3naMoqttsGDrWVxtPBafKMI8pM2ReNZBbGQsQXRzQNo7+QIDAQAB'
-
-    _GRAPHQL_API = 'https://samizdat-graphql.nytimes.com/graphql/v2'
-    _GRAPHQL_QUERY = '''query VideoQuery($id: String!) {
-  video(id: $id) {
-    ... on Video {
-      bylines {
-        renderedRepresentation
-      }
-      duration
-      promotionalHeadline
-      promotionalMedia {
-        ... on Image {
-          crops {
-            name
-            renditions {
-              name
-              width
-              height
-              url
-            }
-          }
-        }
-      }
-      renditions {
-        type
-        width
-        height
-        url
-        bitrate
-      }
-      summary
-    }
-  }
-}'''
-
-    def _entries(self, media_ids):
-        for media_id in media_ids:
-            data = self._call_api(media_id)
-            formats, subtitles = self._extract_formats_and_subtitles(media_id, data)
-            yield {
-                'id': media_id,
-                'title': data.get('promotionalHeadline'),
-                'description': data.get('summary'),
-                'duration': float_or_none(data.get('duration'), scale=1000),
-                'creator': ', '.join(traverse_obj(data, (  # TODO: change to 'creators'
-                    'bylines', ..., 'renderedRepresentation', {lambda x: remove_start(x, 'By ')}))),
-                'formats': formats,
-                'subtitles': subtitles,
-                'thumbnails': self._extract_thumbnails(
-                    traverse_obj(data, ('promotionalMedia', 'crops', ..., 'renditions', ...))),
-            }
-
-    def _call_api(self, media_id):
-        # reference: `id-to-uri.js`
-        video_uuid = uuid.uuid5(self._DNS_NAMESPACE, 'video')
-        media_uuid = uuid.uuid5(video_uuid, media_id)
-
-        return traverse_obj(self._download_json(
-            self._GRAPHQL_API, media_id, 'Downloading JSON from GraphQL API', data=json.dumps({
-                'query': self._GRAPHQL_QUERY,
-                'variables': {'id': f'nyt://video/{media_uuid}'},
-            }, separators=(',', ':')).encode(), headers={
-                'Content-Type': 'application/json',
-                'Nyt-App-Type': 'vhs',
-                'Nyt-App-Version': 'v3.52.21',
-                'Nyt-Token': self._TOKEN,
-                'Origin': 'https://cooking.nytimes.com',
-            }, fatal=False), ('data', 'video', {dict})) or {}
-
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
@@ -408,10 +404,11 @@ class NYTimesCookingGuidesIE(NYTimesBaseIE):
 
         if media_ids:
             media_ids.append(lead_video_id)
-            return self.playlist_result(self._entries(media_ids), page_id, title, description)
+            return self.playlist_result(
+                [self._extract_video(media_id) for media_id in media_ids], page_id, title, description)
 
         return {
-            **next(self._entries([lead_video_id])),
+            **self._extract_video(lead_video_id),
             'title': title,
             'description': description,
             'creator': self._search_regex(  # TODO: change to 'creators'
