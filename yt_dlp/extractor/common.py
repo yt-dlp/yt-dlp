@@ -247,11 +247,9 @@ class InfoExtractor:
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader
-                    MPD formats can have the additional fields:
+                    MPD formats can have the additional field:
                     * is_dash_periods  True if the format is the result of merging
                                  multiple DASH periods.
-                    * dash_period_id  The period ID from the DASH manifest.
-                    * dash_period_idx  The number of the period in the DASH manifest.
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -2567,11 +2565,6 @@ class InfoExtractor:
         fmts, subs = self._parse_mpd_formats_and_subtitles(*args, **kwargs)
         if subs:
             self._report_ignoring_subs('DASH')
-        if any(f.get('is_dash_periods') for f in fmts):
-            self.report_warning(bug_reports_message(
-                'Ignoring multiple periods found in the DASH manifest; '
-                'if part of the video is missing,'
-            ), only_once=True)
         return fmts
 
     def _parse_mpd_formats_and_subtitles(self, *args, **kwargs):
@@ -2583,46 +2576,27 @@ class InfoExtractor:
         Combine all formats and subtitles from an MPD manifest into a single list,
         by concatenate streams with similar formats.
         """
-        formats, subtitles = [], {}
-
-        # merge periods by concatenating fragments
-        # require almost all parameters to be the same
-        shared_keys = [k for k in periods[0]['formats'][0].keys()
-                       if k not in ('format_id', 'fragments', 'manifest_stream_number',
-                                    'dash_period_id', 'dash_period_idx')]
-
         # create merged formats
-        stream_numbers = collections.defaultdict(int)
-        groups = {}
-        formats = []
+        formats = {}
+        subtitles = {}
         for period in periods:
             for f in period['formats']:
-                format_key = tuple(f[k] for k in shared_keys)
-                if 'fragments' not in f or format_key not in groups:
-                    # unmergeable format, or first period of this format
-                    mf = {}
-                    mf.update(f)
-                    mf['manifest_stream_number'] = stream_numbers[mf['url']]
-                    formats.append(mf)
-                    # keep track of mergeable formats
-                    if 'fragments' in f:
-                        mf['is_dash_periods'] = True
-                        mf['fragments'] = f['fragments'].copy()
-                        groups[format_key] = mf
-                else:
+                # ignore period-specific parameters when grouping periods into formats
+                format_key = tuple(v for k, v in f.items() if k not in (
+                    ('format_id', 'fragments', 'manifest_stream_number')))
+                assert 'is_dash_periods' not in f, 'format already processed'
+                f['is_dash_periods'] = True
+                if format_key not in formats:
+                    # first period of this format
+                    formats[format_key] = f
+                elif 'fragments' in f:
                     # follow-up period of a mergeable format
-                    groups[format_key]['fragments'] += f['fragments']
+                    formats[format_key].setdefault('fragments', []).extend(f['fragments'])
 
-        for period in periods:
-            subtitles.update(period['subtitles'])
+            for sub_lang, sub_info in period['subtitles'].items():
+                subtitles.setdefault(sub_lang, []).extend(sub_info)
 
-        if len(subtitles) > 0 and len(periods) > 1:
-            self.report_warning(bug_reports_message(
-                'Ignoring multiple periods found in the DASH manifest; '
-                'if part of the subtitles are missing,'
-            ), only_once=True)
-
-        return formats, subtitles
+        return list(formats.values()), subtitles
 
     def _parse_mpd_periods(self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
         """
@@ -2704,12 +2678,11 @@ class InfoExtractor:
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
         stream_numbers = collections.defaultdict(int)
-        period_entries = []
         for period_idx, period in enumerate(mpd_doc.findall(_add_ns('Period'))):
             period_entry = {
                 'id': period.get('id', f'period-{period_idx}'),
                 'formats': [],
-                'subtitles': {}
+                'subtitles': collections.defaultdict(list),
             }
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
@@ -2959,16 +2932,12 @@ class InfoExtractor:
                         f['url'] = base_url
                     if content_type in ('video', 'audio', 'image/jpeg'):
                         f['manifest_stream_number'] = stream_numbers[f['url']]
-                        f['dash_period_id'] = period_entry['id']
-                        f['dash_period_idx'] = period_idx
                         stream_numbers[f['url']] += 1
                         period_entry['formats'].append(f)
                     elif content_type == 'text':
-                        period_entry['subtitles'].setdefault(lang or 'und', []).append(f)
+                        period_entry['subtitles'][lang or 'und'].append(f)
             if period_entry['formats'] or period_entry['subtitles']:
-                period_entries.append(period_entry)
-
-        return period_entries
+                yield period_entry
 
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)
