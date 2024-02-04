@@ -8,7 +8,7 @@ from ..utils import (
     str_to_int,
     url_or_none,
     get_elements_by_class,
-    join_nonempty
+    join_nonempty,
 )
 
 
