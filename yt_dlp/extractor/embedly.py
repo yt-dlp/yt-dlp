@@ -106,4 +106,4 @@ class EmbedlyIE(InfoExtractor):
             return self.url_result(src, YoutubeTabIE)
         return self.url_result(smuggle_url(
             urllib.parse.unquote(traverse_obj(qs, ('src', 0), ('url', 0))),
-            {'http_headers': {'Referer': url}}))
+            {'referer': url}))
