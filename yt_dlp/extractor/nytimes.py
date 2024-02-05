@@ -178,7 +178,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'creator': 'Patricia Cohen',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
             'duration': 119.0,
-        }
+        },
     }, {
         # article with audio and no video
         'url': 'https://www.nytimes.com/2023/09/29/health/mosquitoes-genetic-engineering.html',
@@ -193,7 +193,7 @@ class NYTimesArticleIE(NYTimesBaseIE):
             'creator': 'Stephanie Nolen, Natalija Gormalova',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
             'duration': 1322,
-        }
+        },
     }, {
         'url': 'https://www.nytimes.com/2023/11/29/business/dealbook/kamala-harris-biden-voters.html',
         'md5': '3eb5ddb1d6f86254fe4f233826778737',
@@ -313,7 +313,7 @@ class NYTimesCookingIE(NYTimesBaseIE):
             'duration': 9.51,
             'creator': 'Alison Roman',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-        }
+        },
     }, {
         'url': 'https://cooking.nytimes.com/guides/20-how-to-frost-a-cake',
         'md5': '64415805fe0b8640fce6b0b9def5989a',
@@ -390,7 +390,7 @@ class NYTimesCookingRecipeIE(InfoExtractor):
             'title': 'Overnight Oats',
             'creator': 'Genevieve Ko',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-        }
+        },
     }]
 
     def _real_extract(self, url):
