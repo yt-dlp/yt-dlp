@@ -83,7 +83,7 @@ class BoostyIE(InfoExtractor):
             'view_count': int,
             'thumbnail': r're:^https://i.ytimg.com/',
             # youtube fields
-            'age_limit': int,
+            'age_limit': 0,
             'availability': 'public',
             'categories': list,
             'channel_follower_count': int,
