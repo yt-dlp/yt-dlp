@@ -1337,7 +1337,7 @@ from .nytimes import (
     NYTimesIE,
     NYTimesArticleIE,
     NYTimesCookingIE,
-    NYTimesCookingGuidesIE,
+    NYTimesCookingRecipeIE,
 )
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
