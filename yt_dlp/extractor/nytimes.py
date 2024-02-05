@@ -10,7 +10,6 @@ from ..utils import (
     float_or_none,
     get_elements_html_by_class,
     int_or_none,
-    make_archive_id,
     merge_dicts,
     mimetype2ext,
     parse_iso8601,
@@ -291,8 +290,67 @@ class NYTimesArticleIE(NYTimesBaseIE):
         }
 
 
-class NYTimesCookingIE(InfoExtractor):
-    IE_NAME = 'NYTimesCookingRecipes'
+class NYTimesCookingIE(NYTimesBaseIE):
+    IE_NAME = 'NYTimesCookingGuide'
+    _VALID_URL = r'https?://cooking\.nytimes\.com/guides/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://cooking.nytimes.com/guides/13-how-to-cook-a-turkey',
+        'info_dict': {
+            'id': '13-how-to-cook-a-turkey',
+            'title': 'How to Cook a Turkey',
+            'description': 'md5:726cfd3f9b161bdf5c279879e8050ca0',
+        },
+        'playlist_count': 2,
+    }, {
+        # single video example
+        'url': 'https://cooking.nytimes.com/guides/50-how-to-make-mac-and-cheese',
+        'md5': '64415805fe0b8640fce6b0b9def5989a',
+        'info_dict': {
+            'id': '100000005835845',
+            'ext': 'mp4',
+            'title': 'How to Make Mac and Cheese',
+            'description': 'md5:b8f2f33ec1fb7523b21367147c9594f1',
+            'duration': 9.51,
+            'creator': 'Alison Roman',
+            'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
+        }
+    }, {
+        'url': 'https://cooking.nytimes.com/guides/20-how-to-frost-a-cake',
+        'md5': '64415805fe0b8640fce6b0b9def5989a',
+        'info_dict': {
+            'id': '20-how-to-frost-a-cake',
+            'title': 'How to Frost a Cake',
+            'description': 'md5:a31fe3b98a8ce7b98aae097730c269cd',
+        },
+        'playlist_count': 8,
+    }]
+
+    def _real_extract(self, url):
+        page_id = self._match_id(url)
+        webpage = self._download_webpage(url, page_id)
+        title = self._html_search_meta(['og:title', 'twitter:title'], webpage)
+        description = self._html_search_meta(['og:description', 'twitter:description'], webpage)
+
+        lead_video_id = self._search_regex(
+            r'data-video-player-id="(\d+)"></div>', webpage, 'lead video')
+        media_ids = traverse_obj(
+            get_elements_html_by_class('video-item', webpage), (..., {extract_attributes}, 'data-video-id'))
+
+        if media_ids:
+            media_ids.append(lead_video_id)
+            return self.playlist_result(
+                [self._extract_video(media_id) for media_id in media_ids], page_id, title, description)
+
+        return {
+            **self._extract_video(lead_video_id),
+            'title': title,
+            'description': description,
+            'creator': self._search_regex(  # TODO: change to 'creators'
+                r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),
+        }
+
+
+class NYTimesCookingRecipeIE(InfoExtractor):
     _VALID_URL = r'https?://cooking\.nytimes\.com/recipes/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://cooking.nytimes.com/recipes/1017817-cranberry-curd-tart',
@@ -355,65 +413,4 @@ class NYTimesCookingIE(InfoExtractor):
             'subtitles': subtitles,
             'thumbnails': [{'url': thumb_url} for thumb_url in traverse_obj(
                 recipe_data, ('image', 'crops', 'recipe', ..., {url_or_none}))],
-        }
-
-
-class NYTimesCookingGuidesIE(NYTimesBaseIE):
-    _VALID_URL = r'https?://cooking\.nytimes\.com/guides/(?P<id>[\w-]+)'
-    _TESTS = [{
-        'url': 'https://cooking.nytimes.com/guides/13-how-to-cook-a-turkey',
-        'info_dict': {
-            'id': '13-how-to-cook-a-turkey',
-            'title': 'How to Cook a Turkey',
-            'description': 'md5:726cfd3f9b161bdf5c279879e8050ca0',
-        },
-        'playlist_count': 2,
-    }, {
-        # single video example
-        'url': 'https://cooking.nytimes.com/guides/50-how-to-make-mac-and-cheese',
-        'md5': '64415805fe0b8640fce6b0b9def5989a',
-        'info_dict': {
-            'id': '100000005835845',
-            'ext': 'mp4',
-            'title': 'How to Make Mac and Cheese',
-            'description': 'md5:b8f2f33ec1fb7523b21367147c9594f1',
-            'duration': 9.51,
-            'creator': 'Alison Roman',
-            'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
-            '_old_archive_ids': ['nytimescooking 100000005835845'],
-        }
-    }, {
-        'url': 'https://cooking.nytimes.com/guides/20-how-to-frost-a-cake',
-        'md5': '64415805fe0b8640fce6b0b9def5989a',
-        'info_dict': {
-            'id': '20-how-to-frost-a-cake',
-            'title': 'How to Frost a Cake',
-            'description': 'md5:a31fe3b98a8ce7b98aae097730c269cd',
-        },
-        'playlist_count': 8,
-    }]
-
-    def _real_extract(self, url):
-        page_id = self._match_id(url)
-        webpage = self._download_webpage(url, page_id)
-        title = self._html_search_meta(['og:title', 'twitter:title'], webpage)
-        description = self._html_search_meta(['og:description', 'twitter:description'], webpage)
-
-        lead_video_id = self._search_regex(
-            r'data-video-player-id="(\d+)"></div>', webpage, 'lead video')
-        media_ids = traverse_obj(
-            get_elements_html_by_class('video-item', webpage), (..., {extract_attributes}, 'data-video-id'))
-
-        if media_ids:
-            media_ids.append(lead_video_id)
-            return self.playlist_result(
-                [self._extract_video(media_id) for media_id in media_ids], page_id, title, description)
-
-        return {
-            **self._extract_video(lead_video_id),
-            'title': title,
-            'description': description,
-            'creator': self._search_regex(  # TODO: change to 'creators'
-                r'<span itemprop="author">([^<]+)</span></p>', webpage, 'author', default=None),
-            '_old_archive_ids': [make_archive_id(NYTimesCookingIE, lead_video_id)],
         }
