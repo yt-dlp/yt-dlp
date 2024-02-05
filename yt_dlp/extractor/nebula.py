@@ -408,6 +408,9 @@ class NebulaPodcastIE(NebulaBaseIE):
             slug, note='Retrieving podcast episode')
 
         episode_url = data['episode_url']
+        if not episode_url and data.get('premium'):
+            self.raise_login_required()
+
         if Art19IE.suitable(episode_url):
             return self.url_result(episode_url, Art19IE)
         return traverse_obj(data, {
