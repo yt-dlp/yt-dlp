@@ -17,10 +17,11 @@ class KhanAcademyBaseIE(InfoExtractor):
     def _parse_video(self, video):
         return {
             '_type': 'url_transparent',
-            'url': video["youtubeId"],
+            'url': video['youtubeId'],
+            'id': video['youtubeId'],
             'ie_key': 'Youtube',
             **traverse_obj(video, {
-                'id': ('id', {str_or_none}),
+                'display_id': ('id', {str_or_none}),
                 'title': ('translatedTitle', {str}),
                 'thumbnail': ('thumbnailUrls', ..., 'url', {url_or_none}),
                 'duration': ('duration', {int_or_none}),
