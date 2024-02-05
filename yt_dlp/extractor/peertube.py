@@ -17,7 +17,6 @@ from ..utils import (
 
 
 class PeerTubeIE(InfoExtractor):
-
     _INSTANCES_RE = r'''(?:
                             # Taken from https://instances.joinpeertube.org/instances
                             0ch\.tv|
