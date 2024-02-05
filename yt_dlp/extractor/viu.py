@@ -151,7 +151,7 @@ class ViuPlaylistIE(ViuBaseIE):
 class ViuOTTIE(InfoExtractor):
     IE_NAME = 'viu:ott'
     _NETRC_MACHINE = 'viu'
-    _VALID_URL = r'https?://(?:www\.)?viu\.com/ott/(?P<country_code>[a-z]{2})/(?P<lang_code>[a-z]{2}-[a-z]{2})/vod/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?viu\.com/ott/(?P<country_code>[a-z]{2})/(?P<lang_code>[a-z]{2}(?:-[a-z]{2})?)/vod/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.viu.com/ott/sg/en-us/vod/3421/The%20Prime%20Minister%20and%20I',
         'info_dict': {
