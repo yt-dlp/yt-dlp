@@ -66,6 +66,10 @@ def parse_enclosed(data: str, index: int, end: str, ws_re: re.Pattern):
 
     while data[index] != end:
         index = yield True, index
+
+        if match := ws_re.match(data, index):
+            index = match.end()
+
         if data[index] == ',':
             index += 1
 
