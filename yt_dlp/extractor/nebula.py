@@ -366,6 +366,17 @@ class NebulaChannelIE(NebulaBaseIE):
                 lesson.get('share_url') or f'https://nebula.tv/{metadata["class_slug"]}/{metadata["slug"]}',
                 {'id': lesson['id']}), NebulaClassIE, url_transparent=True, **metadata)
 
+    def _generate_podcast_entries(self, collection_id, collection_slug):
+        next_url = f'https://content.api.nebula.app/podcast_channels/{collection_id}/podcast_episodes/?ordering=-published_at&premium=true'
+        for page_num in itertools.count(1):
+            episodes = self._call_api(next_url, collection_slug, note=f'Retrieving podcast page {page_num}')
+
+            for episode in traverse_obj(episodes, ('results', lambda _, v: url_or_none(v['share_url']))):
+                yield self.url_result(episode['share_url'], NebulaPodcastIE)
+            next_url = episodes.get('next')
+            if not next_url:
+                break
+
     def _real_extract(self, url):
         collection_slug = self._match_id(url)
         channel = self._call_api(
@@ -374,6 +385,8 @@ class NebulaChannelIE(NebulaBaseIE):
 
         if channel.get('type') == 'class':
             entries = self._generate_class_entries(channel)
+        elif channel.get('type') == 'podcast_channel':
+            entries = self._generate_podcast_entries(channel['id'], collection_slug)
         else:
             entries = self._generate_playlist_entries(channel['id'], collection_slug)
 
