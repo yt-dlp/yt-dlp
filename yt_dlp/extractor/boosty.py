@@ -154,7 +154,7 @@ class BoostyIE(InfoExtractor):
             if not url and not formats:
                 continue
             entry = {
-                'id': item.get('id', post_id),
+                'id': item_id,
                 'title': item.get('title', post_title),
                 'duration': item.get('duration'),
                 'view_count': item.get('viewsCounter'),
