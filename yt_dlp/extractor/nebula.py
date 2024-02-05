@@ -344,6 +344,14 @@ class NebulaChannelIE(NebulaBaseIE):
             'description': 'md5:6690248223eed044a9f11cd5a24f9742',
         },
         'playlist_count': 23,
+    }, {
+        'url': 'https://nebula.tv/trussissuespodcast',
+        'info_dict': {
+            'id': 'trussissuespodcast',
+            'title': 'The TLDR News Podcast',
+            'description': 'md5:a08c4483bc0b705881d3e0199e721385',
+        },
+        'playlist_mincount': 80,
     }]
 
     def _generate_playlist_entries(self, collection_id, collection_slug):
@@ -400,6 +408,47 @@ class NebulaChannelIE(NebulaBaseIE):
 class NebulaPodcastIE(NebulaBaseIE):
     IE_NAME = 'nebula:podcast'
     _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+/[-\w]+)/?(?:$|[?#])'
+    _TESTS = [{
+        'url': 'https://nebula.tv/extremitiespodcast/pyramiden-the-high-arctic-soviet-ghost-town',
+        'info_dict': {
+            'ext': 'mp3',
+            'id': '018f65f0-0033-4021-8f87-2d132beb19aa',
+            'description': 'md5:05d2b23ab780c955e2511a2b9127acff',
+            'series_id': '335e8159-d663-491a-888f-1732285706ac',
+            'modified_timestamp': 1599091504,
+            'episode_id': '018f65f0-0033-4021-8f87-2d132beb19aa',
+            'series': 'Extremities',
+            'modified_date': '20200903',
+            'upload_date': '20200902',
+            'title': 'Pyramiden: The High-Arctic Soviet Ghost Town',
+            'release_timestamp': 1571237958,
+            'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com.*\.jpeg$',
+            'duration': 1546.05714,
+            'timestamp': 1599085608,
+            'release_date': '20191016',
+        },
+    }, {
+        'url': 'https://nebula.tv/thelayover/the-layover-episode-1',
+        'info_dict': {
+            'ext': 'mp3',
+            'id': '9d74a762-00bb-45a8-9e8d-9ed47c04a1d0',
+            'episode_number': 1,
+            'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com.*\.jpeg$',
+            'release_date': '20230304',
+            'modified_date': '20230403',
+            'series': 'The Layover',
+            'episode_id': '9d74a762-00bb-45a8-9e8d-9ed47c04a1d0',
+            'modified_timestamp': 1680554566,
+            'duration': 3130.46401,
+            'release_timestamp': 1677943800,
+            'title': 'The Layover — Episode 1',
+            'series_id': '874303a5-4900-4626-a4b6-2aacac34466a',
+            'upload_date': '20230303',
+            'episode': 'Episode 1',
+            'timestamp': 1677883672,
+            'description': 'md5:002cca89258e3bc7c268d5b8c24ba482',
+        },
+    }]
 
     def _real_extract(self, url):
         slug = self._match_id(url)
