@@ -1,6 +1,7 @@
 import itertools
 import json
 
+from .art19 import Art19IE
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
@@ -381,3 +382,29 @@ class NebulaChannelIE(NebulaBaseIE):
             playlist_id=collection_slug,
             playlist_title=channel.get('title'),
             playlist_description=channel.get('description'))
+
+
+class NebulaPodcastIE(NebulaBaseIE):
+    IE_NAME = 'nebula:podcast'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+/[-\w]+)/?(?:$|[?#])'
+
+    def _real_extract(self, url):
+        slug = self._match_id(url)
+        data = self._call_api(
+            f'https://content.api.nebula.app/content/{slug}/?include=lessons',
+            slug, note='Retrieving podcast episode')
+
+        episode_url = data['episode_url']
+        if Art19IE.suitable(episode_url):
+            return self.url_result(episode_url, Art19IE)
+        return traverse_obj(data, {
+            'id': ('id', {str}),
+            'url': ('episode_url', {url_or_none}),
+            'title': ('title', {str}),
+            'description': ('description', {str}),
+            'timestamp': ('published_at', {parse_iso8601}),
+            'duration': ('duration', {int_or_none}),
+            'channel_id': ('channel_id', {str}),
+            'chnanel': ('channel_title', {str}),
+            'thumbnail': ('assets', 'regular', {url_or_none}),
+        })
