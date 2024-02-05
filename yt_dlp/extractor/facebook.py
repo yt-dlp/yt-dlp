@@ -493,8 +493,8 @@ class FacebookIE(InfoExtractor):
 
         if login_data:
             logged_in = get_first(sjs_data, (
-                    'require', ..., ..., ..., '__bbox', 'define',
-                    lambda _, v: 'CurrentUserInitialData' in v, ..., 'ACCOUNT_ID'), default='0') != '0'
+                'require', ..., ..., ..., '__bbox', 'define',
+                lambda _, v: 'CurrentUserInitialData' in v, ..., 'ACCOUNT_ID'), default='0') != '0'
             if logged_in:
                 if any(content in webpage for content in ['180 days left to appeal', 'suspended your account']):
                     raise ExtractorError('Your account is suspended', expected=True)
