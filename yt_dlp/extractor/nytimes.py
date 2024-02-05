@@ -32,6 +32,7 @@ class NYTimesBaseIE(InfoExtractor):
         renderedRepresentation
       }
       duration
+      firstPublished
       promotionalHeadline
       promotionalMedia {
         ... on Image {
@@ -124,6 +125,7 @@ class NYTimesBaseIE(InfoExtractor):
             'id': media_id,
             'title': data.get('promotionalHeadline'),
             'description': data.get('summary'),
+            'timestamp': parse_iso8601(data.get('firstPublished')),
             'duration': float_or_none(data.get('duration'), scale=1000),
             'creator': ', '.join(traverse_obj(data, (  # TODO: change to 'creators'
                 'bylines', ..., 'renderedRepresentation', {lambda x: remove_start(x, 'By ')}))),
@@ -145,8 +147,8 @@ class NYTimesIE(NYTimesBaseIE):
             'ext': 'mp4',
             'title': 'Verbatim: What Is a Photocopier?',
             'description': 'md5:93603dada88ddbda9395632fdc5da260',
-            'timestamp': 1398631707,  # FIXME
-            'upload_date': '20140427',  # FIXME
+            'timestamp': 1398646132,
+            'upload_date': '20140428',
             'creator': 'Brett Weiner',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.+\.jpg',
             'duration': 419,
@@ -310,6 +312,8 @@ class NYTimesCookingIE(NYTimesBaseIE):
             'ext': 'mp4',
             'title': 'How to Make Mac and Cheese',
             'description': 'md5:b8f2f33ec1fb7523b21367147c9594f1',
+            'timestamp': 1522950315,
+            'upload_date': '20180405',
             'duration': 9.51,
             'creator': 'Alison Roman',
             'thumbnail': r're:https?://\w+\.nyt.com/images/.*\.jpg',
