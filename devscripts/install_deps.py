@@ -39,7 +39,7 @@ def main():
 
     for exclude in args.exclude or []:
         for dep in deps:
-            simplified_dep = re.match(r'\w+', dep)[0]
+            simplified_dep = re.match(r'[\w-]+', dep)[0]
             if dep in targets and (exclude.lower() == simplified_dep.lower() or exclude == dep):
                 targets.remove(dep)
 
