@@ -35,6 +35,7 @@ class PeerTubeIE(InfoExtractor):
                             astrotube-ufe\.obspm\.fr|
                             astrotube\.obspm\.fr|
                             audio\.freediverse\.com|
+                            azxtube\.youssefc\.tn|
                             bark\.video|
                             battlepenguin\.video|
                             bava\.tv|
@@ -100,6 +101,7 @@ class PeerTubeIE(InfoExtractor):
                             garr\.tv|
                             greatview\.video|
                             grypstube\.uni-greifswald\.de|
+                            habratube\.site|
                             hitchtube\.fr|
                             ilbjach\.ru|
                             indymotion\.fr|
@@ -117,6 +119,7 @@ class PeerTubeIE(InfoExtractor):
                             kiwi\.froggirl\.club|
                             kodcast\.com|
                             kolektiva\.media|
+                            kpop\.22x22\.ru|
                             kumi\.tube|
                             la2\.peertube\.support|
                             la3\.peertube\.support|
@@ -151,6 +154,7 @@ class PeerTubeIE(InfoExtractor):
                             megatube\.lilomoino\.fr|
                             melsungen\.peertube-host\.de|
                             merci-la-police\.fr|
+                            mindlyvideos\.com|
                             mirror\.peertube\.metalbanana\.net|
                             mirrored\.rocks|
                             mix\.video|
@@ -556,6 +560,7 @@ class PeerTubeIE(InfoExtractor):
                             tube\.azkware\.net|
                             tube\.bartrip\.me\.uk|
                             tube\.belowtoxic\.media|
+                            tube\.bingle\.plus|
                             tube\.bit-friends\.de|
                             tube\.bstly\.de|
                             tube\.calculate\.social|
@@ -722,6 +727,7 @@ class PeerTubeIE(InfoExtractor):
                             tv\.farewellutopia\.com|
                             tv\.filmfreedom\.net|
                             tv\.gravitons\.org|
+                            tv\.io\.seg\.br|
                             tv\.lumbung\.space|
                             tv\.pirateradio\.social|
                             tv\.pirati\.cz|
@@ -812,6 +818,7 @@ class PeerTubeIE(InfoExtractor):
                             video\.extremelycorporate\.ca|
                             video\.fabiomanganiello\.com|
                             video\.fdlibre\.eu|
+                            video\.fedi\.bzh|
                             video\.fhtagn\.org|
                             video\.firehawk-systems\.com|
                             video\.fox-romka\.ru|
@@ -860,6 +867,7 @@ class PeerTubeIE(InfoExtractor):
                             video\.lundi\.am|
                             video\.lw1\.at|
                             video\.lycee-experimental\.org|
+                            video\.maechler\.cloud|
                             video\.marcorennmaus\.de|
                             video\.mass-trespass\.uk|
                             video\.matomocamp\.org|
@@ -955,6 +963,7 @@ class PeerTubeIE(InfoExtractor):
                             videos\.coletivos\.org|
                             videos\.collate\.social|
                             videos\.danksquad\.org|
+                            videos\.digitaldragons\.eu|
                             videos\.domainepublic\.net|
                             videos\.dromeadhere\.fr|
                             videos\.explain-it\.org|
@@ -1043,6 +1052,7 @@ class PeerTubeIE(InfoExtractor):
                             watch\.tubelab\.video|
                             web-fellow\.de|
                             webtv\.vandoeuvre\.net|
+                            wetubevid\.online|
                             widemus\.de|
                             wikileaks\.video|
                             wiwi\.video|
