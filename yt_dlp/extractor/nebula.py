@@ -237,8 +237,8 @@ class NebulaIE(NebulaBaseIE):
 
 
 class NebulaClassIE(NebulaBaseIE):
-    IE_NAME = 'nebula:class'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>[-\w]+)/(?P<ep>\d+)'
+    IE_NAME = 'nebula:class/podcast'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+)/(?P<ep>[-\w]+)/?(?:$|[?#])'
     _TESTS = [{
         'url': 'https://nebula.tv/copyright-for-fun-and-profit/14',
         'info_dict': {
@@ -254,6 +254,46 @@ class NebulaClassIE(NebulaBaseIE):
             'title': 'Photos, Sculpture, and Video',
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://nebula.tv/extremitiespodcast/pyramiden-the-high-arctic-soviet-ghost-town',
+        'info_dict': {
+            'ext': 'mp3',
+            'id': '018f65f0-0033-4021-8f87-2d132beb19aa',
+            'description': 'md5:05d2b23ab780c955e2511a2b9127acff',
+            'series_id': '335e8159-d663-491a-888f-1732285706ac',
+            'modified_timestamp': 1599091504,
+            'episode_id': '018f65f0-0033-4021-8f87-2d132beb19aa',
+            'series': 'Extremities',
+            'modified_date': '20200903',
+            'upload_date': '20200902',
+            'title': 'Pyramiden: The High-Arctic Soviet Ghost Town',
+            'release_timestamp': 1571237958,
+            'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com.*\.jpeg$',
+            'duration': 1546.05714,
+            'timestamp': 1599085608,
+            'release_date': '20191016',
+        },
+    }, {
+        'url': 'https://nebula.tv/thelayover/the-layover-episode-1',
+        'info_dict': {
+            'ext': 'mp3',
+            'id': '9d74a762-00bb-45a8-9e8d-9ed47c04a1d0',
+            'episode_number': 1,
+            'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com.*\.jpeg$',
+            'release_date': '20230304',
+            'modified_date': '20230403',
+            'series': 'The Layover',
+            'episode_id': '9d74a762-00bb-45a8-9e8d-9ed47c04a1d0',
+            'modified_timestamp': 1680554566,
+            'duration': 3130.46401,
+            'release_timestamp': 1677943800,
+            'title': 'The Layover — Episode 1',
+            'series_id': '874303a5-4900-4626-a4b6-2aacac34466a',
+            'upload_date': '20230303',
+            'episode': 'Episode 1',
+            'timestamp': 1677883672,
+            'description': 'md5:002cca89258e3bc7c268d5b8c24ba482',
+        },
     }]
 
     def _real_extract(self, url):
@@ -269,11 +309,33 @@ class NebulaClassIE(NebulaBaseIE):
 
         metadata = self._call_api(
             f'https://content.api.nebula.app/content/{slug}/{episode}/?include=lessons',
-            slug, note='Fetching video metadata')
-        return {
-            **self._extract_video_metadata(metadata),
-            **self._extract_formats(metadata['id'], slug),
-        }
+            slug, note='Fetching class/podcast metadata')
+        content_type = metadata.get('type')
+        if content_type == 'lesson':
+            return {
+                **self._extract_video_metadata(metadata),
+                **self._extract_formats(metadata['id'], slug),
+            }
+        elif content_type == 'podcast_episode':
+            episode_url = metadata['episode_url']
+            if not episode_url and metadata.get('premium'):
+                self.raise_login_required()
+
+            if Art19IE.suitable(episode_url):
+                return self.url_result(episode_url, Art19IE)
+            return traverse_obj(metadata, {
+                'id': ('id', {str}),
+                'url': ('episode_url', {url_or_none}),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('published_at', {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+                'channel_id': ('channel_id', {str}),
+                'chnanel': ('channel_title', {str}),
+                'thumbnail': ('assets', 'regular', {url_or_none}),
+            })
+
+        raise ExtractorError(f'Unexpected content type {content_type!r}')
 
 
 class NebulaSubscriptionsIE(NebulaBaseIE):
@@ -380,7 +442,7 @@ class NebulaChannelIE(NebulaBaseIE):
             episodes = self._call_api(next_url, collection_slug, note=f'Retrieving podcast page {page_num}')
 
             for episode in traverse_obj(episodes, ('results', lambda _, v: url_or_none(v['share_url']))):
-                yield self.url_result(episode['share_url'], NebulaPodcastIE)
+                yield self.url_result(episode['share_url'], NebulaClassIE)
             next_url = episodes.get('next')
             if not next_url:
                 break
@@ -403,73 +465,3 @@ class NebulaChannelIE(NebulaBaseIE):
             playlist_id=collection_slug,
             playlist_title=channel.get('title'),
             playlist_description=channel.get('description'))
-
-
-class NebulaPodcastIE(NebulaBaseIE):
-    IE_NAME = 'nebula:podcast'
-    _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|library|videos/)(?P<id>[-\w]+/[-\w]+)/?(?:$|[?#])'
-    _TESTS = [{
-        'url': 'https://nebula.tv/extremitiespodcast/pyramiden-the-high-arctic-soviet-ghost-town',
-        'info_dict': {
-            'ext': 'mp3',
-            'id': '018f65f0-0033-4021-8f87-2d132beb19aa',
-            'description': 'md5:05d2b23ab780c955e2511a2b9127acff',
-            'series_id': '335e8159-d663-491a-888f-1732285706ac',
-            'modified_timestamp': 1599091504,
-            'episode_id': '018f65f0-0033-4021-8f87-2d132beb19aa',
-            'series': 'Extremities',
-            'modified_date': '20200903',
-            'upload_date': '20200902',
-            'title': 'Pyramiden: The High-Arctic Soviet Ghost Town',
-            'release_timestamp': 1571237958,
-            'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com.*\.jpeg$',
-            'duration': 1546.05714,
-            'timestamp': 1599085608,
-            'release_date': '20191016',
-        },
-    }, {
-        'url': 'https://nebula.tv/thelayover/the-layover-episode-1',
-        'info_dict': {
-            'ext': 'mp3',
-            'id': '9d74a762-00bb-45a8-9e8d-9ed47c04a1d0',
-            'episode_number': 1,
-            'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com.*\.jpeg$',
-            'release_date': '20230304',
-            'modified_date': '20230403',
-            'series': 'The Layover',
-            'episode_id': '9d74a762-00bb-45a8-9e8d-9ed47c04a1d0',
-            'modified_timestamp': 1680554566,
-            'duration': 3130.46401,
-            'release_timestamp': 1677943800,
-            'title': 'The Layover — Episode 1',
-            'series_id': '874303a5-4900-4626-a4b6-2aacac34466a',
-            'upload_date': '20230303',
-            'episode': 'Episode 1',
-            'timestamp': 1677883672,
-            'description': 'md5:002cca89258e3bc7c268d5b8c24ba482',
-        },
-    }]
-
-    def _real_extract(self, url):
-        slug = self._match_id(url)
-        data = self._call_api(
-            f'https://content.api.nebula.app/content/{slug}/?include=lessons',
-            slug, note='Retrieving podcast episode')
-
-        episode_url = data['episode_url']
-        if not episode_url and data.get('premium'):
-            self.raise_login_required()
-
-        if Art19IE.suitable(episode_url):
-            return self.url_result(episode_url, Art19IE)
-        return traverse_obj(data, {
-            'id': ('id', {str}),
-            'url': ('episode_url', {url_or_none}),
-            'title': ('title', {str}),
-            'description': ('description', {str}),
-            'timestamp': ('published_at', {parse_iso8601}),
-            'duration': ('duration', {int_or_none}),
-            'channel_id': ('channel_id', {str}),
-            'chnanel': ('channel_title', {str}),
-            'thumbnail': ('assets', 'regular', {url_or_none}),
-        })

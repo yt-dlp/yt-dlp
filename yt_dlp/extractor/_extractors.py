@@ -1212,7 +1212,6 @@ from .nebula import (
     NebulaClassIE,
     NebulaSubscriptionsIE,
     NebulaChannelIE,
-    NebulaPodcastIE,
 )
 from .nekohacker import NekoHackerIE
 from .nerdcubed import NerdCubedFeedIE
