@@ -1038,8 +1038,8 @@ class PeerTubeIE(InfoExtractor):
                             watch\.libertaria\.space|
                             watch\.nuked\.social|
                             watch\.ocaml\.org|
-                            watch\.snoot\.tube||
-                            watch\.thelema\.social||
+                            watch\.snoot\.tube|
+                            watch\.thelema\.social|
                             watch\.tubelab\.video|
                             web-fellow\.de|
                             webtv\.vandoeuvre\.net|
