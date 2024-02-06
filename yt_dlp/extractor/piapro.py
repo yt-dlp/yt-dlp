@@ -12,7 +12,7 @@ from ..utils import (
 
 class PiaproIE(InfoExtractor):
     _NETRC_MACHINE = 'piapro'
-    _VALID_URL = r'https?://piapro\.jp/(?:t|content)/(?P<id>\w+)/?'
+    _VALID_URL = r'https?://piapro\.jp/(?:t|content)/(?P<id>[\w-]+)/?'
     _TESTS = [{
         'url': 'https://piapro.jp/t/NXYR',
         'md5': 'f7c0f760913fb1d44a1c45a4af793909',
@@ -48,6 +48,9 @@ class PiaproIE(InfoExtractor):
         }
     }, {
         'url': 'https://piapro.jp/content/hcw0z3a169wtemz6',
+        'only_matching': True
+    }, {
+        'url': 'https://piapro.jp/t/-SO-',
         'only_matching': True
     }]
 

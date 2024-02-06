@@ -40,7 +40,6 @@ from .networking.exceptions import (
     NoSupportingHandlers,
     RequestError,
     SSLError,
-    _CompatHTTPError,
     network_exceptions,
 )
 from .plugins import directories as plugin_directories
@@ -60,7 +59,13 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import REPOSITORY, _get_system_deprecation, _make_label, current_git_head, detect_variant
+from .update import (
+    REPOSITORY,
+    _get_system_deprecation,
+    _make_label,
+    current_git_head,
+    detect_variant,
+)
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -2446,7 +2451,7 @@ class YoutubeDL:
                                 # for extractors with incomplete formats (audio only (soundcloud)
                                 # or video only (imgur)) best/worst will fallback to
                                 # best/worst {video,audio}-only format
-                                matches = formats
+                                matches = list(filter(lambda f: f.get('vcodec') != 'none' or f.get('acodec') != 'none', formats))
                             elif seperate_fallback and not ctx['has_merged_format']:
                                 # for compatibility with youtube-dl when there is no pre-merged format
                                 matches = list(filter(seperate_fallback, formats))
@@ -4104,8 +4109,6 @@ class YoutubeDL:
                     'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. '
                     'Try using --legacy-server-connect', cause=e) from e
             raise
-        except HTTPError as e:  # TODO: Remove in a future release
-            raise _CompatHTTPError(e) from e
 
     def build_request_director(self, handlers, preferences=None):
         logger = _YDLLogger(self)

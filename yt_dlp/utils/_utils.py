@@ -558,7 +558,7 @@ class LenientJSONDecoder(json.JSONDecoder):
                     s = self._close_object(e)
                     if s is not None:
                         continue
-                raise type(e)(f'{e.msg} in {s[e.pos-10:e.pos+10]!r}', s, e.pos)
+                raise type(e)(f'{e.msg} in {s[e.pos - 10:e.pos + 10]!r}', s, e.pos)
         assert False, 'Too many attempts to decode JSON'
 
 
@@ -1885,6 +1885,7 @@ def setproctitle(title):
     buf = ctypes.create_string_buffer(len(title_bytes))
     buf.value = title_bytes
     try:
+        # PR_SET_NAME = 15      Ref: /usr/include/linux/prctl.h
         libc.prctl(15, buf, 0, 0, 0)
     except AttributeError:
         return  # Strange libc, just skip this
@@ -2259,6 +2260,9 @@ class PagedList:
         if not entries:
             raise self.IndexError()
         return entries[0]
+
+    def __bool__(self):
+        return bool(self.getslice(0, 1))
 
 
 class OnDemandPagedList(PagedList):
@@ -5070,7 +5074,7 @@ def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
         return s
-    return f'{s[:left-3]}...{s[-right:] if right else ""}'
+    return f'{s[:left - 3]}...{s[-right:] if right else ""}'
 
 
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):
