@@ -1595,7 +1595,10 @@ from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
 from .rheinmaintv import RheinMainTVIE
 from .ridehome import RideHomeIE
-from .rinsefm import RinseFMIE
+from .rinsefm import (
+    RinseFMIE,
+    RinseFMArtistPlaylistIE,
+)
 from .rmcdecouverte import RMCDecouverteIE
 from .rockstargames import RockstarGamesIE
 from .rokfin import (
