@@ -896,6 +896,7 @@ from .kakao import KakaoIE
 from .kaltura import KalturaIE
 from .kanal2 import Kanal2IE
 from .kankanews import KankaNewsIE
+from .kanopy import KanopyIE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .kelbyone import KelbyOneIE
