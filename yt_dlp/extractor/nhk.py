@@ -539,14 +539,16 @@ class NhkRadiruIE(InfoExtractor):
         },
     }]
 
+    _api_config = None
+
     def _extract_extended_description(self, episode_id, aa_vinfo2, aa_vinfo3):
         service, area = aa_vinfo2.split(",")
 
-        config = self._download_xml('https://www.nhk.or.jp/radio/config/config_web.xml', episode_id,
-                                    'Downloading API information', fatal=False)
-        if not config:
-            return
-        full_meta = self._download_json(f'https:{config.find(".//url_program_detail").text}'.format(
+        if not self._api_config:
+            self._api_config = self._download_xml('https://www.nhk.or.jp/radio/config/config_web.xml',
+                                                  episode_id, 'Downloading API information', fatal=False)
+
+        full_meta = self._download_json(f'https:{self._api_config.find(".//url_program_detail").text}'.format(
                                         service=service, area=area, dateid=aa_vinfo3),
                                         episode_id, note='Downloading extended metadata', fatal=False)
         if not full_meta:
