@@ -30,9 +30,9 @@ class KanopyIE(InfoExtractor):
                 "ignore_no_formats_error": True,
                 "skip_download": True,
             },
-	    "expected_warnings": ["This video is DRM protected"],
+            "expected_warnings": ["This video is DRM protected"],
             "expected_exception": "DownloadError",
-        }
+        },
     ]
     _LOGIN_REQUIRED = True
     _ACCESS_TOKEN = None
@@ -103,7 +103,9 @@ class KanopyIE(InfoExtractor):
         )
 
         manifests = streams["manifests"]
-        drm_free = bool(list(filter(lambda x: 'drm' in x and x['drm'] == 'none', manifests)))
+        drm_free = bool(
+            list(filter(lambda x: "drm" in x and x["drm"] == "none", manifests))
+        )
 
         self.write_debug(f"Params: {self._downloader.params}")
         if not drm_free:
