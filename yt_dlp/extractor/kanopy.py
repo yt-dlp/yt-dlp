@@ -17,6 +17,21 @@ class KanopyIE(InfoExtractor):
                 "title": "The Blue Kite",
                 "description": "md5:6163af52ae92627ae7c58906991d3792",
             },
+        },
+        {
+            "url": "https://www.kanopy.com/en/pleasantvalley/watch/video/14020947",
+            "info_dict": {
+                "id": "14020947",
+                "ext": "mpd",
+                "title": "The Whale",
+                "description": "TBD",
+            },
+            "params": {
+                "ignore_no_formats_error": True,
+                "skip_download": True,
+            },
+	    "expected_warnings": ["This video is DRM protected"],
+            "expected_exception": "DownloadError",
         }
     ]
     _LOGIN_REQUIRED = True
@@ -38,7 +53,7 @@ class KanopyIE(InfoExtractor):
             access_json = self._download_json(
                 self._API_BASE_URL + "login",
                 None,
-                "Logging in",
+                "Logging in to site using credentials",
                 "Unable to log in",
                 fatal=False,
                 headers=self.headers,
@@ -86,6 +101,13 @@ class KanopyIE(InfoExtractor):
                 }
             ).encode(),
         )
+
+        manifests = streams["manifests"]
+        drm_free = bool(list(filter(lambda x: 'drm' in x and x['drm'] == 'none', manifests)))
+
+        self.write_debug(f"Params: {self._downloader.params}")
+        if not drm_free:
+            self.report_drm(video_id)
 
         return {
             "id": video_id,
