@@ -1352,6 +1352,12 @@ from .nytimes import (
     NYTimesIE,
     NYTimesArticleIE,
     NYTimesCookingIE,
+    NYTimesCookingRecipeIE,
+)
+from .nuum import (
+    NuumLiveIE,
+    NuumTabIE,
+    NuumMediaIE,
 )
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
@@ -2313,11 +2319,6 @@ from .walla import WallaIE
 from .washingtonpost import (
     WashingtonPostIE,
     WashingtonPostArticleIE,
-)
-from .wasdtv import (
-    WASDTVStreamIE,
-    WASDTVRecordIE,
-    WASDTVClipIE,
 )
 from .wat import WatIE
 from .wdr import (
