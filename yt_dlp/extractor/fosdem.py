@@ -3,7 +3,7 @@ import re
 
 
 class FosdemIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:archive\.)?fosdem\.org/(?P<year>[0-9]{4})/schedule/(?P<url_type>track|event)/(?P<id>[\w\.-_]+)/'
+    _VALID_URL = r'https?://(?:www\.)?(?:archive\.)?fosdem\.org/(?P<year>\d{4})/schedule/(?P<type>track|event)/(?P<id>[\w.-]+)'
     _TESTS = [
         {
             'url': 'https://archive.fosdem.org/2022/schedule/event/firmware_updates_for_opnsense_and_pfsense/',
