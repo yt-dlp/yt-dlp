@@ -434,7 +434,6 @@
  - **FoodNetwork**
  - **FootyRoom**
  - **Formula1**
- - **Fosdem**
  - **FOX**
  - **FOX9**
  - **FOX9News**
