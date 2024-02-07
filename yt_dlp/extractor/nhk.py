@@ -539,9 +539,24 @@ class NhkRadiruIE(InfoExtractor):
         },
     }]
 
+    def _extract_extended_description(self, episode_id, aa_vinfo2, aa_vinfo3):
+        service, area = aa_vinfo2.split(",")
+
+        config = self._download_xml('https://www.nhk.or.jp/radio/config/config_web.xml', episode_id,
+                                    'Downloading API information')
+        full_meta = self._download_json(f'https:{config.find(".//url_program_detail").text}'.format(
+                                        service=service, area=area, dateid=aa_vinfo3),
+                                        episode_id, note='Downloading extended metadata')
+
+        extended_description = join_nonempty("subtitle", "content", "act", "music", delim="\n\n",
+                                             from_dict=traverse_obj(full_meta, ('list', service, 0)))
+        return extended_description
+
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
         episode = traverse_obj(headline, ('file_list', 0, {dict}))
+        extended_description = self._extract_extended_description(episode_id, episode.get("aa_vinfo2"),
+                                                                  episode.get("aa_vinfo3"))
 
         return {
             **series_meta,
@@ -551,9 +566,9 @@ class NhkRadiruIE(InfoExtractor):
             'was_live': True,
             'series': series_meta.get('title'),
             'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
+            'description': extended_description,
             **traverse_obj(episode, {
                 'title': 'file_title',
-                'description': 'file_title_sub',
                 'timestamp': ('open_time', {unified_timestamp}),
                 'release_timestamp': ('aa_vinfo4', {lambda x: x.split('_')[0]}, {unified_timestamp}),
             }),
