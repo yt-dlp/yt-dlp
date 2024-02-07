@@ -55,14 +55,12 @@ class FosdemIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        groups = self._match_valid_url(url).groupdict()
+        video_id, url_type, year = self._match_valid_url(url).group('id', 'type', 'year')
         webpage = self._download_webpage(url, video_id)
-        year = groups.get('year')
         title_rgx = r'<div id=\"pagetitles\">\n\s+<h1>(.+?)</h1>'
         title = self._html_search_regex(title_rgx, webpage, 'title') \
             or self._og_search_title(webpage)
-        if groups.get('url_type') == 'event':
+        if url_type == 'event':
             evnt_blurb_rgx = r'<div class=\"event-blurb\">\n*(?P<blurb>(<div class=\"event-abstract\">(<p>(.+?)</p>\n*)+</div>)+\n*(<div class=\"event-description\">(<p>(.+?)</p>\n*)*</div>))+\n*</div>'
             evnt_blurb = self._html_search_regex(evnt_blurb_rgx,
                                                  webpage,
@@ -89,7 +87,7 @@ class FosdemIE(InfoExtractor):
                 'cast': cast,
                 'webpage_url': url,
             }
-        elif groups.get('url_type') == 'track':
+        elif url_type == 'track':
             events_rgx = r'<td><a href=\"(?P<event>/[0-9]+/schedule/event/[a-z0-9]+/)'
             events_slugs = re.findall(events_rgx, webpage) or []
 
@@ -103,5 +101,4 @@ class FosdemIE(InfoExtractor):
                                         playlist_title=title,
                                         playlist_description=None)
         else:
-            url_type = groups.get('url_type')
             print(f'The {url_type} is not supported')
