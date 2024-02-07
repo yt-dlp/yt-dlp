@@ -247,8 +247,7 @@ class InfoExtractor:
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
                                  * ffmpeg_args     Extra arguments for ffmpeg downloader
-                    MPD formats can have the additional field:
-                    * is_dash_periods  True if the format is the result of merging
+                    * is_dash_periods  Whether the format is a result of merging
                                  multiple DASH periods.
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
@@ -2576,21 +2575,16 @@ class InfoExtractor:
         Combine all formats and subtitles from an MPD manifest into a single list,
         by concatenate streams with similar formats.
         """
-        # create merged formats
-        formats = {}
-        subtitles = {}
+        formats, subtitles = {}, {}
         for period in periods:
             for f in period['formats']:
-                # ignore period-specific parameters when grouping periods into formats
-                format_key = tuple(v for k, v in f.items() if k not in (
-                    ('format_id', 'fragments', 'manifest_stream_number')))
                 assert 'is_dash_periods' not in f, 'format already processed'
                 f['is_dash_periods'] = True
+                format_key = tuple(v for k, v in f.items() if k not in (
+                    ('format_id', 'fragments', 'manifest_stream_number')))
                 if format_key not in formats:
-                    # first period of this format
                     formats[format_key] = f
                 elif 'fragments' in f:
-                    # follow-up period of a mergeable format
                     formats[format_key].setdefault('fragments', []).extend(f['fragments'])
 
             for sub_lang, sub_info in period['subtitles'].items():
