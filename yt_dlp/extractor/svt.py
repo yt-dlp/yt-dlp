@@ -387,7 +387,7 @@ class SVTSeriesIE(SVTPlayBaseIE):
 
 
 class SVTPageIE(SVTBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?svt\.se/(?P<path>(?:[^/]+/)*(?P<id>[^/?&#]+))'
+    _VALID_URL = r'https?://(?:www\.)?svt\.se/(?:[^/?#]+/)*(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://www.svt.se/nyheter/lokalt/skane/viktor-18-forlorade-armar-och-ben-i-sepsis-vill-ateruppta-karaten-och-bli-svetsare',
         'info_dict': {
@@ -456,10 +456,10 @@ class SVTPageIE(SVTBaseIE):
         'skip': 'Video is gone'
     }, {
         'url': 'https://www.svt.se/nyheter/lokalt/vast/svt-testar-tar-nagon-upp-skrapet-1',
-        'skip': 'Video is gone'
+        'only_matching': True,
     }, {
         'url': 'https://www.svt.se/vader/manadskronikor/maj2018',
-        'skip': 'Video is gone'
+        'only_matching': True,
     }]
 
     @classmethod
@@ -467,29 +467,23 @@ class SVTPageIE(SVTBaseIE):
         return False if SVTIE.suitable(url) or SVTPlayIE.suitable(url) else super(SVTPageIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        path, display_id = self._match_valid_url(url).groups()
+        display_id = self._match_id(url)
 
         webpage = self._download_webpage(url, display_id)
         title = self._og_search_title(webpage)
-        entries = []
 
-        urqlJson = self._search_json(r'window\.svt\.nyh\.urqlState[^{]+', webpage, 'video_id', display_id, default=None)
+        urql_state = self._search_json(
+            r'window\.svt\.nyh\.urqlState\s*=', webpage, 'json data', display_id)
 
-        data = self._parse_json(traverse_obj(urqlJson, (..., 'data'), default=None, get_all=False), display_id)
-        video_ids = []
-        video_ids.append(traverse_obj(data, ('page', 'topMedia', 'svtId'), default=''))
-        video_ids.extend(traverse_obj(data, ('page', 'body', ..., 'video', 'svtId'), get_all=True, default=[]))
+        data = traverse_obj(urql_state, (..., 'data', {str}, {json.loads}), get_all=False) or {}
 
-        for video_id in video_ids:
-            if not video_id or len(video_id) == 0:
-                continue
+        def entries():
+            for video_id in set(traverse_obj(data, (
+                'page', (('topMedia', 'svtId'), ('body', ..., 'video', 'svtId')), {str}
+            ))):
+                info = self._extract_video(
+                    self._download_json(f'https://api.svt.se/video/{video_id}', video_id), video_id)
+                info['title'] = title
+                yield info
 
-            video_info = self._download_json('https://api.svt.se/video/' + video_id, video_id)
-
-            info_dict = self._extract_video(video_info, video_id)
-            info_dict.update({
-                'title': title
-            })
-            entries.append(info_dict)
-
-        return self.playlist_result(entries, display_id, title)
+        return self.playlist_result(entries(), display_id, title)
