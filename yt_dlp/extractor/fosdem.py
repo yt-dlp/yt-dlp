@@ -15,7 +15,7 @@ class FosdemIE(InfoExtractor):
                 'release_date': '2022',
                 'cast': ['Norbert Kamiński'],
                 'uploader': 'FOSDEM',
-                'description': 'This presentation will describe the results of the proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS for OPNsense and pfSense. It will explain the challenges connected with the implementation of firmware update systems for BSD-based firewall and routing software. It will show basic concepts connected to the fwupd and LVFS. The security of the whole system is not determined only by the software it runs, but also by the firmware. Firmware is a piece of software inseparable from the hardware. It is responsible for proper hardware initialization as well as its security features. That means that the safety of the machine strongly depends on the mitigations of vulnerabilities provided by firmware (like microcode updates, bug/exploit fixes). For these particular reasons, the firmware should be kept up-to-date.\nRouters are highly popular attack vectors, therefore they must be appropriately secured. pfSense and OPNsense are well known secure firewall and routing software, but they do not have any firmware update methods. Therefore to secure hardware initialization of the routers, in this presentation we will present proof of concept work that takes into consideration integration of firmware update framework - fwupd/LVFS.\nNowadays, this is one of the most popular firmware update software. fwupd is a daemon that manages firmware updates of each of your hardware components that have some kind of firmware. What is more fwupd is open source, which makes it more trustworthy than proprietary applications delivered by hardware vendors designed for (only) their devices.',
+                'description': 'md5:06a533c1dd130b9b9aa75a8c50c2625f',
             }
         },
         {
@@ -28,7 +28,7 @@ class FosdemIE(InfoExtractor):
                 'release_date': '2023',
                 'uploader': 'FOSDEM',
                 'cast': ['Martin Děcký'],
-                'description': 'The idea of the microkernel OS architecture is more that 50 years old and the term itself is just a few years younger. Over the years, it has been implemented in countless variants and modifications, it has served as a basis for intriguing OS experiments, it has gained strong position in the mission-critical and safety-critical areas and while it is still not the dominant architecture in the general-purpose desktop OS domain, it has had major influence on the "mainstream" operating systems as well.\nThis talk, however, is not about the history. Instead, we describe where are the microkernel-based operating systems today, who works on them and why, who uses them in production and why, where they aim for the future. The purpose of this talk is also to present the basic practical experiences with the existing microkernel-based operating systems — not to compare them, but to provide the potential users and contributors with an initial sorted list of operating systems they should look into in more detail depending on their needs.'
+                'description': 'md5:dd38c1219fe9cc4aa18b2ef51f70f24c'
             }
         },
         {
@@ -41,7 +41,7 @@ class FosdemIE(InfoExtractor):
                 'release_date': '2023',
                 'cast': ['Anastassios Nanos', 'Charalampos Mainas'],
                 'uploader': 'FOSDEM',
-                'description': 'Unikernels promise fast boot times, small memory footprint and stronger security but lack in terms of manageability. Moreover, unikernels provide a non-generic environment for applications, with limited or no support for widely used libraries and OS features. This issue is even more apparent in the case of hardware acceleration. Acceleration libraries are often dynamically linked and have numerous dependencies, which directly contradict the statically linked notion of unikernels. Hardware acceleration functionality is almost non-existent in unikernel frameworks, mainly due to the absence of suitable virtualization solutions for such devices. ​ In this talk, we present an update on the vAccel framework we have built that can expose hardware acceleration semantics to workloads running on isolated sandboxes. We go through the components that comprise the framework and elaborate on the challenges in building such a software stack: we first present an overview of vAccel and how it works; then we focus on the porting effort of vAccel in various unikernel frameworks. Finally, we present a hardware acceleration abstraction that expose semantic acceleration functionality to workloads running as unikernels. ​ We will present a short demo of some popular algorithms running on top of Unikraft and vAccel show-casing the merits and trade-offs of this approach.'
+                'description': 'md5:0e4d502d9aadd42d844407b49fab276c'
             }
         },
         {
