@@ -543,20 +543,25 @@ class NhkRadiruIE(InfoExtractor):
         service, area = aa_vinfo2.split(",")
 
         config = self._download_xml('https://www.nhk.or.jp/radio/config/config_web.xml', episode_id,
-                                    'Downloading API information')
+                                    'Downloading API information', fatal=False)
+        if not config:
+            return
         full_meta = self._download_json(f'https:{config.find(".//url_program_detail").text}'.format(
                                         service=service, area=area, dateid=aa_vinfo3),
-                                        episode_id, note='Downloading extended metadata')
-
-        extended_description = join_nonempty("subtitle", "content", "act", "music", delim="\n\n",
-                                             from_dict=traverse_obj(full_meta, ('list', service, 0)))
-        return extended_description
+                                        episode_id, note='Downloading extended metadata', fatal=False)
+        if not full_meta:
+            return
+        return join_nonempty("subtitle", "content", "act", "music", delim="\n\n",
+                             from_dict=traverse_obj(full_meta, ('list', service, 0)))
 
     def _extract_episode_info(self, headline, programme_id, series_meta):
         episode_id = f'{programme_id}_{headline["headline_id"]}'
         episode = traverse_obj(headline, ('file_list', 0, {dict}))
-        extended_description = self._extract_extended_description(episode_id, episode.get("aa_vinfo2"),
-                                                                  episode.get("aa_vinfo3"))
+        description = self._extract_extended_description(episode_id, episode.get("aa_vinfo2"),
+                                                         episode.get("aa_vinfo3"))
+        if not description:
+            self.report_warning("Couldn't get extended description, falling back to summary")
+            description = episode.get("file_title_sub")
 
         return {
             **series_meta,
@@ -566,7 +571,7 @@ class NhkRadiruIE(InfoExtractor):
             'was_live': True,
             'series': series_meta.get('title'),
             'thumbnail': url_or_none(headline.get('headline_image')) or series_meta.get('thumbnail'),
-            'description': extended_description,
+            'description': description,
             **traverse_obj(episode, {
                 'title': 'file_title',
                 'timestamp': ('open_time', {unified_timestamp}),
