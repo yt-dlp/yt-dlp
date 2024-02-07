@@ -134,7 +134,7 @@ class DubokuIE(InfoExtractor):
         if player_data.get('encrypt') == 1:
             data_url = urllib.parse.unquote(data_url)
         if player_data.get('encrypt') == 2:
-            data_url = urllib.parse.unquote(base64.b64decode(data_url))
+            data_url = urllib.parse.unquote(base64.b64decode(data_url).decode('ascii'))
 
         # if it is an embedded iframe, maybe it's an external source
         headers = {'Referer': webpage_url}
