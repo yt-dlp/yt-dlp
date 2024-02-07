@@ -1,15 +1,11 @@
 from .common import InfoExtractor
+from .art19 import Art19IE
 
 from ..utils import (
-    clean_html,
-    determine_ext,
+    ExtractorError,
     extract_attributes,
-    float_or_none,
-    get_element_by_class,
-    get_element_html_by_class,
-    int_or_none,
-    mimetype2ext,
-    traverse_obj
+    get_elements_html_by_class,
+    traverse_obj,
 )
 
 
@@ -22,8 +18,16 @@ class RideHomeIE(InfoExtractor):
             'id': '540e5493-9fe6-4c14-a488-dc508d8794b2',
             'ext': 'mp3',
             'title': 'Thu. 12/28 – Will 2024 Be The Year Apple Gets Serious About Gaming On Macs?',
-            'description': 'md5:a5fa37bfebfc5bd7aaea01b19d59ab3b',
+            'description': 'md5:9dba86ae9b5047a8150eceddeeb629c2',
             'series': 'Techmeme Ride Home',
+            'series_id': '3c30e8f4-ab48-415b-9421-1ae06cd4058b',
+            'upload_date': '20231228',
+            'timestamp': 1703780995,
+            'modified_date': '20231230',
+            'episode_id': '540e5493-9fe6-4c14-a488-dc508d8794b2',
+            'modified_timestamp': 1703912404,
+            'release_date': '20231228',
+            'release_timestamp': 1703782800,
             'duration': 1000.1502,
             'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$'
         }
@@ -34,62 +38,37 @@ class RideHomeIE(InfoExtractor):
             'id': '6beed803-b1ef-4536-9fef-c23cf6b4dcac',
             'ext': 'mp3',
             'title': '(Portfolio Profile) Sensel - With @IlyaRosenberg',
-            'description': 'md5:4724c828b0eea666aad8bdcbdfe8fed3',
+            'description': 'md5:e1e4a970bce04290e0ba6f030b0125db',
             'series': 'Techmeme Ride Home',
+            'series_id': '3c30e8f4-ab48-415b-9421-1ae06cd4058b',
+            'upload_date': '20220108',
+            'timestamp': 1641656064,
+            'modified_date': '20230418',
+            'episode_id': '6beed803-b1ef-4536-9fef-c23cf6b4dcac',
+            'modified_timestamp': 1681843318,
+            'release_date': '20220108',
+            'release_timestamp': 1641672000,
             'duration': 2789.38122,
             'thumbnail': r're:^https?://content\.production\.cdn\.art19\.com/images/.*\.jpeg$'
         }
     }]
 
-    _HEADERS = {
-        'Accept': 'application/json',
-        'Origin': 'https://www.art19.com',
-        'Referer': 'https://www.art19.com/'
-    }
+    def _entries(self, containers):
+        for container in containers:
+            yield self.url_result(container, Art19IE)
 
     def _real_extract(self, url):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
 
-        episode_id = self._html_search_regex(
-            r'https://www.art19.com/shows/techmeme-ridehome/episodes/(.+?)/embed', extract_attributes(
-                get_element_html_by_class('iframeContainer', webpage) or '').get('data-src'), 'Episode id')
+        containers = traverse_obj(
+            get_elements_html_by_class(
+                'iframeContainer', webpage), (..., {extract_attributes}, 'data-src'))
+        if not containers:
+            raise ExtractorError('Unable to extract any media containers from webpage')
 
-        description = clean_html(get_element_by_class('lead', webpage) or '') or self._og_search_description(webpage)
+        # couldn't find an example with multiple containers. This is just a safeguard.
+        if len(containers) > 1:
+            return self.playlist_result(self._entries(containers), article_id)
 
-        media_json = self._download_json(
-            f'https://rss.art19.com/external/episodes/{episode_id}', article_id,
-            note=f'Download information for episode with id {episode_id}', headers=self._HEADERS)
-
-        media = traverse_obj(media_json, {
-            'title': ('content', 'episode_title'),
-            'duration': ('content', 'duration', {float_or_none}),
-            'media': ('content', 'media', ...),
-            'thumbs': ('content', 'artwork', 'episode'),
-            'series': ('content', 'series_title'),
-        })
-
-        formats = []
-        for track in media.get('media'):
-            ext = mimetype2ext(track.get('content_type')) or determine_ext(track.get('url'))
-            formats.append({
-                'url': track.get('url'),
-                'ext': ext
-            })
-        thumbnails = []
-        for thumb in media.get('thumbs'):
-            thumbnails.append({
-                'url': thumb.get('url'),
-                'width': int_or_none(thumb.get('width')),
-                'height': int_or_none(thumb.get('height')),
-            })
-
-        return {
-            'id': episode_id,
-            'title': self._og_search_title(webpage) or media.get('title'),
-            'description': description,
-            'series': media.get('series'),
-            'duration': media.get('duration'),
-            'formats': formats,
-            'thumbnails': thumbnails
-        }
+        return self.url_result(containers[0], Art19IE)
