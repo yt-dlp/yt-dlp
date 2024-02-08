@@ -2587,6 +2587,12 @@ class InfoExtractor:
                 elif 'fragments' in f:
                     formats[format_key].setdefault('fragments', []).extend(f['fragments'])
 
+            if len(period['subtitles']) > 0 and len(subtitles) > 0:
+                self.report_warning(bug_reports_message(
+                    'Found subtitles in multiple periods in the DASH manifest; '
+                    'if part of the subtitles are missing,'
+                ), only_once=True)
+
             for sub_lang, sub_info in period['subtitles'].items():
                 subtitles.setdefault(sub_lang, []).extend(sub_info)
 
