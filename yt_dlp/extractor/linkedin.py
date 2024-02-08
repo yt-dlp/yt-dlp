@@ -86,8 +86,7 @@ class LinkedInIE(LinkedInBaseIE):
     _TESTS = [{
         'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
         'info_dict': {
-            'id': 'C4E05AQG7hCp7zIeciw',
-            'display_id': '6850898786781339649',
+            'id': '6850898786781339649',
             'ext': 'mp4',
             'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing #nowhiring #sendinblue…',
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
@@ -98,8 +97,7 @@ class LinkedInIE(LinkedInBaseIE):
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
         'info_dict': {
-            'id': 'D5610AQFKo9M0zqY2_g',
-            'display_id': '7151241570371948544',
+            'id': '7151241570371948544',
             'ext': 'mp4',
             'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
             'description': 'md5:95f9d4eeb6337882fb47eefe13d7a40c',
@@ -116,7 +114,6 @@ class LinkedInIE(LinkedInBaseIE):
 
         video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
         sources = self._parse_json(video_attrs['data-sources'], video_id)
-        id = str(video_attrs.get('data-digitalmedia-asset-urn') or video_id).replace('urn:li:digitalmediaAsset:', '')
         formats = [{
             'url': source['src'],
             'ext': mimetype2ext(source.get('type')),
@@ -128,8 +125,7 @@ class LinkedInIE(LinkedInBaseIE):
         }]} if url_or_none(video_attrs.get('data-captions-url')) else {}
 
         return {
-            'id': id,
-            'display_id': video_id,
+            'id': video_id,
             'formats': formats,
             'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
             'like_count': int_or_none(self._search_regex(r'\bdata-num-reactions="(\d+)"', webpage, 'reactions', default=None)),
