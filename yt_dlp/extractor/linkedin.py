@@ -82,29 +82,29 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
 
 
 class LinkedInIE(LinkedInBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/[^/?#]+-(?P<id>\d+)-\w{4}/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
         'info_dict': {
             'id': 'C4E05AQG7hCp7zIeciw',
-            'display_id': 'mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
+            'display_id': '6850898786781339649',
             'ext': 'mp4',
             'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing #nowhiring #sendinblue…',
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
             'uploader': 'Mishal K.',
-            'thumbnail': 're:^https?://media\.licdn\.com/dms/image/.*$',
+            'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
             'like_count': int
         },
     }, {
         'url': 'https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
         'info_dict': {
             'id': 'D5610AQFKo9M0zqY2_g',
-            'display_id': 'the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7',
+            'display_id': '7151241570371948544',
             'ext': 'mp4',
             'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
             'description': 'md5:95f9d4eeb6337882fb47eefe13d7a40c',
             'uploader': 'MathWorks',
-            'thumbnail': 're:^https?://media\.licdn\.com/dms/image/.*$',
+            'thumbnail': 're:^https?://media.licdn.com/dms/image/.*$',
             'like_count': int,
             'subtitles': 'mincount:1'
         },
