@@ -112,10 +112,9 @@ class BoostyIE(InfoExtractor):
     def _real_extract(self, url):
         user, post_id = self._match_valid_url(url).group('user', 'post_id')
         post = self._download_json(
-            f'https://api.boosty.to/v1/blog/{user}/post/{post_id}',
-            post_id,
-            note='Downloading post data',
-            errnote='Unable to download post data')
+            f'https://api.boosty.to/v1/blog/{user}/post/{post_id}', post_id,
+            note='Downloading post data', errnote='Unable to download post data')
+
         post_title = self._extract_title(post, post_id, url)
         entries = self._extract_entries(post, post_id, post_title)
         if not entries:
