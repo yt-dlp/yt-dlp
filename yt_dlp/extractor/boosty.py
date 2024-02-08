@@ -115,105 +115,67 @@ class BoostyIE(InfoExtractor):
             f'https://api.boosty.to/v1/blog/{user}/post/{post_id}', post_id,
             note='Downloading post data', errnote='Unable to download post data')
 
-        post_title = self._extract_title(post, post_id, url)
-        entries = self._extract_entries(post, post_id, post_title)
-        if not entries:
-            raise ExtractorError(
-                'no video found', video_id=post_id, expected=True)
-        result = {
-            'id': post_id,
+        post_title = post.get('title')
+        if not post_title:
+            self.report_warning('Unable to extract post title. Falling back to parsing html page')
+            webpage = self._download_webpage(url, video_id=post_id)
+            post_title = (self._og_search_title(webpage, fatal=False)
+                          or self._html_extract_title(webpage, fatal=True))
+
+        common_metadata = {
             'title': post_title,
-            'channel': traverse_obj(post, ('user', 'name')),
-            'timestamp': dict_get(post, ('publishTime', 'createdAt')),
-            'modified_timestamp': post.get('updatedAt'),
-            'tags': [tag['title'] for tag in post.get('tags', [])],
-            'like_count': traverse_obj(post, ('count', 'likes')),
+            **traverse_obj(post, {
+                'channel': ('user', 'name', {str}),
+                'channel_id': ('user', 'id', {str_or_none}),
+                'timestamp': ('createdAt', {int_or_none}),
+                'release_date': ('publishTime', {int_or_none}),
+                'modified_timestamp': ('updatedAt', {int_or_none}),
+                'tags': ('tags', ..., 'title', {str}),
+                'like_count': ('count', 'likes', {int_or_none}),
+            }),
         }
-        if len(entries) == 1:
-            result.update(entries[0])
-        else:
-            result['_type'] = 'playlist'
-            result['entries'] = entries
-        return result
-
-    def _extract_title(self, post, post_id, url):
-        title = post.get('title')
-        if title:
-            return title
-        # falling back to parsing html page as a last resort
-        webpage = self._download_webpage(url, video_id=post_id)
-        return (
-            self._og_search_title(webpage, fatal=False)
-            or self._html_extract_title(webpage, fatal=True))
-
-    def _extract_entries(self, post, post_id, post_title):
         entries = []
-        for item in post['data']:
-            url = None
-            formats = None
-            item_id = item.get('id', post_id)
+        for item in traverse_obj(post, ('data', ..., {dict})):
             item_type = item.get('type')
-            if item_type == 'video':
-                url = item.get('url')
+            if item_type == 'video' and url_or_none(item.get('url')):
+                entries.append(self.url_result(item['url'], YoutubeIE))
             elif item_type == 'ok_video':
-                formats = self._extract_formats(
-                    item.get('playerUrls', []), item_id)
-            if not url and not formats:
-                continue
-            entry = {
-                'id': item_id,
-                'title': item.get('title', post_title),
-                'duration': item.get('duration'),
-                'view_count': item.get('viewsCounter'),
-                'thumbnail': dict_get(item, ('preview', 'defaultPreview')),
-            }
-            if url:
-                entry['_type'] = 'url_transparent'
-                entry['url'] = url
-            elif formats:
-                entry['formats'] = formats
-            entries.append(entry)
-        return entries
+                video_id = item.get('id') or post_id
+                entries.append({
+                    'id': video_id,
+                    'formats': self._extract_formats(item.get('playerUrls'), video_id),
+                    **common_metadata,
+                    **traverse_obj(item, {
+                        'title': ('title', {str}),
+                        'duration': ('duration', {int_or_none}),
+                        'view_count': ('viewCounter', {int_or_none}),
+                        'thumbnail': (('previewUrl', 'defaultPreview'), {url_or_none}),
+                    }, get_all=False)})
 
-    def _extract_formats(self, player_urls, post_id):
+        if not entries:
+            raise ExtractorError('No videos found', expected=True)
+        if len(entries) == 1:
+            return entries[0]
+        return self.playlist_result(entries, post_id, post_title, **common_metadata)
+
+    def _extract_formats(self, player_urls, video_id):
         formats = []
-        for player_url in player_urls:
-            url = player_url.get('url')
-            if not url:
-                continue
-            _type = player_url.get('type')
-            if 'hls' in _type:
-                # 'hls', 'hls_live'
-                formats.extend(self._extract_m3u8_formats(
-                    url, video_id=post_id, fatal=False))
-            elif 'dash' in _type:
-                # 'dash', 'dash_live'
-                formats.extend(self._extract_mpd_formats(
-                    url, video_id=post_id, fatal=False))
-            else:
-                # one of: 'tiny', 'low', etc.; see _get_quality for full list
+        mp4_types = ('tiny', 'lowest', 'low', 'medium', 'high', 'full_hd', 'quad_hd', 'ultra_hd')
+        quality = qualities(mp4_types)
+        for player_url in traverse_obj(player_urls, lambda _, v: url_or_none(v['url'])):
+            url = player_url['url']
+            format_type = player_url.get('type')
+            if format_type in ('hls', 'hls_live', 'live_ondemand_hls', 'live_playback_hls'):
+                formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id='hls', fatal=False))
+            elif format_type in ('dash', 'dash_live', 'live_playback_dash'):
+                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id='dash', fatal=False))
+            elif format_type in mp4_types:
                 formats.append({
                     'url': url,
                     'ext': 'mp4',
-                    'format_id': _type,
+                    'format_id': format_type,
+                    'quality': quality(format_type),
                 })
-        for format in formats:
-            # .../type/<d>/... or ...&type=<d>&...
-            format_type = self._search_regex(
-                r'\btype[/=](\d)([^\d]|$)', format['url'],
-                'format type', default=None,
-            )
-            if format_type:
-                format['quality'] = self._get_quality(format_type)
+            else:
+                self.report_warning(f'Unknown format type: {format_type!r}')
         return formats
-
-    _get_quality = staticmethod(qualities((
-        '4',  # tiny = 144p
-        '0',  # lowest = 240p
-        '1',  # low = 360p
-        '2',  # medium = 480p
-        '3',  # high = 720p
-        '5',  # full_hd = 1080p
-        '6',  # quad_hd = 1440p
-        '7',  # ultra_hd = 2160p
-    )))
