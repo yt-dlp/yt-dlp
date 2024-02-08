@@ -2930,8 +2930,7 @@ class InfoExtractor:
                         period_entry['formats'].append(f)
                     elif content_type == 'text':
                         period_entry['subtitles'][lang or 'und'].append(f)
-            if period_entry['formats'] or period_entry['subtitles']:
-                yield period_entry
+            yield period_entry
 
     def _extract_ism_formats(self, *args, **kwargs):
         fmts, subs = self._extract_ism_formats_and_subtitles(*args, **kwargs)
