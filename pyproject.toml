@@ -1,6 +1,6 @@
 [build-system]
-build-backend = "setuptools.build_meta"
-requires = ["setuptools>=61", "wheel"]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "yt-dlp"
@@ -56,8 +56,8 @@ pyinstaller = ["pyinstaller>=6.3"]
 py2exe = ["py2exe>=0.12"]
 build = [
     "build",
+    "hatchling",
     "pip",
-    "setuptools>=61",
     "wheel",
 ]
 dev = [
@@ -78,10 +78,38 @@ yt-dlp = "yt_dlp:main"
 [project.entry-points.pyinstaller40]
 hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
 
-[tool.setuptools.packages.find]
-include = ["yt_dlp*"]
-exclude = ["youtube_dl*", "youtube_dlc*", "test*", "ytdlp_plugins*", "devscripts*", "bundle*"]
-namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+[tool.hatch.build.targets.sdist]
+include = [
+  "/yt_dlp",
+  "/devscripts",
+  "/test",
+  "/.gitignore",  # included by default, needed for auto-excludes
+  "/Changelog.md",
+  "/LICENSE",  # included as license
+  "/pyproject.toml",  # included by default
+  "/README.md",  # included as readme
+  "/setup.cfg",
+  "/supportedsites.md",
+]
+artifacts = [
+  "/yt_dlp/extractor/lazy_extractors.py",
+  "/completions",
+  "/AUTHORS",  # included by default
+  "/README.txt",
+  "/yt-dlp.1",
+]
 
-[tool.setuptools.dynamic]
-version = {attr = "yt_dlp.version._pkg_version"}
+[tool.hatch.build.targets.wheel]
+packages = ["yt_dlp"]
+artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"completions/bash/yt-dlp" = "share/bash-completion/completions/yt-dlp"
+"completions/zsh/_yt-dlp" = "share/zsh/site-functions/_yt-dlp"
+"completions/fish/yt-dlp.fish" = "share/fish/vendor_completions.d/yt-dlp.fish"
+"README.txt" = "share/doc/yt_dlp/README.txt"
+"yt-dlp.1" = "share/man/man1/yt-dlp.1"
+
+[tool.hatch.version]
+path = "yt_dlp/version.py"
+pattern = "_pkg_version = '(?P<version>[^']+)'"
