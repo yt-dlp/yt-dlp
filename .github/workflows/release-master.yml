@@ -1,0 +1,27 @@
+name: Release (master)
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "yt_dlp/**.py"
+      - "!yt_dlp/version.py"
+      - "setup.py"
+      - "pyinst.py"
+concurrency:
+  group: release-master
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: vars.BUILD_MASTER != ''
+    uses: ./.github/workflows/release.yml
+    with:
+      prerelease: true
+      source: master
+    permissions:
+      contents: write
+      packages: write
+      id-token: write  # mandatory for trusted publishing
+    secrets: inherit

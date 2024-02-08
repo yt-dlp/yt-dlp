@@ -11,6 +11,7 @@ from ..utils import (
 
 
 class MSNIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:(?:www|preview)\.)?msn\.com/(?:[^/]+/)+(?P<display_id>[^/]+)/[a-z]{2}-(?P<id>[\da-zA-Z]+)'
     _TESTS = [{
         'url': 'https://www.msn.com/en-in/money/video/7-ways-to-get-rid-of-chest-congestion/vi-BBPxU6d',

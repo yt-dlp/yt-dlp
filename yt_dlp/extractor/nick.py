@@ -188,26 +188,6 @@ class NickDeIE(MTVServicesInfoExtractor):
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
 
-class NickNightIE(NickDeIE):  # XXX: Do not subclass from concrete IE
-    IE_NAME = 'nicknight'
-    _VALID_URL = r'https?://(?:www\.)(?P<host>nicknight\.(?:de|at|tv))/(?:playlist|shows)/(?:[^/]+/)*(?P<id>[^/?#&]+)'
-    _TESTS = [{
-        'url': 'http://www.nicknight.at/shows/977-awkward/videos/85987-nimmer-beste-freunde',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.nicknight.at/shows/977-awkward',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.nicknight.at/shows/1900-faking-it',
-        'only_matching': True,
-    }]
-
-    def _extract_mrss_url(self, webpage, *args):
-        return self._search_regex(
-            r'mrss\s*:\s*(["\'])(?P<url>http.+?)\1', webpage,
-            'mrss url', group='url')
-
-
 class NickRuIE(MTVServicesInfoExtractor):
     IE_NAME = 'nickelodeonru'
     _VALID_URL = r'https?://(?:www\.)nickelodeon\.(?:ru|fr|es|pt|ro|hu|com\.tr)/[^/]+/(?:[^/]+/)*(?P<id>[^/?#&]+)'

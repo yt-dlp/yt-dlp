@@ -10,6 +10,7 @@ from ..utils import (
     ExtractorError,
     decode_base_n,
     encode_base_n,
+    filter_dict,
     float_or_none,
     format_field,
     get_element_by_attribute,
@@ -703,28 +704,31 @@ class InstagramStoryIE(InstagramBaseIE):
         user_info = self._search_json(r'"user":', story_info, 'user info', story_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
-        user_id = user_info.get('id')
 
+        user_id = traverse_obj(user_info, 'pk', 'id', expected_type=str)
         story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
+        if not story_info_url:  # user id is only mandatory for non-highlights
+            raise ExtractorError('Unable to extract user id')
+
         videos = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
             story_id, errnote=False, fatal=False, headers=self._API_HEADERS), 'reels')
         if not videos:
             self.raise_login_required('You need to log in to access this content')
 
-        full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (str(user_id), 'user', 'full_name'))
+        full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (user_id, 'user', 'full_name'))
         story_title = traverse_obj(videos, (f'highlight:{story_id}', 'title'))
         if not story_title:
             story_title = f'Story by {username}'
 
-        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
+        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items'))
         info_data = []
         for highlight in highlights:
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
                 info_data.append({
-                    **highlight_data,
                     'uploader': full_name,
                     'uploader_id': user_id,
+                    **filter_dict(highlight_data),
                 })
         return self.playlist_result(info_data, playlist_id=story_id, playlist_title=story_title)

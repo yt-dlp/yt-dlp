@@ -84,6 +84,13 @@ class TV5MondePlusIE(InfoExtractor):
     }]
     _GEO_BYPASS = False
 
+    @staticmethod
+    def _extract_subtitles(data_captions):
+        subtitles = {}
+        for f in traverse_obj(data_captions, ('files', lambda _, v: url_or_none(v['file']))):
+            subtitles.setdefault(f.get('label') or 'fra', []).append({'url': f['file']})
+        return subtitles
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
@@ -176,6 +183,8 @@ class TV5MondePlusIE(InfoExtractor):
             'duration': duration,
             'upload_date': upload_date,
             'formats': formats,
+            'subtitles': self._extract_subtitles(self._parse_json(
+                traverse_obj(vpl_data, ('data-captions', {str}), default='{}'), display_id, fatal=False)),
             'series': series,
             'episode': episode,
         }

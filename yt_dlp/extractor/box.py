@@ -1,16 +1,17 @@
 import json
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     parse_iso8601,
-    # try_get,
     update_url_query,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class BoxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[^.]+\.)?app\.box\.com/s/(?P<shared_name>[^/]+)/file/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^.]+\.)?app\.box\.com/s/(?P<shared_name>[^/?#]+)/file/(?P<id>\d+)'
     _TEST = {
         'url': 'https://mlssoccer.app.box.com/s/0evd2o3e08l60lr4ygukepvnkord1o1x/file/510727257538',
         'md5': '1f81b2fd3960f38a40a3b8823e5fcd43',
@@ -18,11 +19,12 @@ class BoxIE(InfoExtractor):
             'id': '510727257538',
             'ext': 'mp4',
             'title': 'Garber   St. Louis will be 28th MLS team  +scarving.mp4',
-            'uploader': 'MLS Video',
+            'uploader': '',
             'timestamp': 1566320259,
             'upload_date': '20190820',
             'uploader_id': '235196876',
-        }
+        },
+        'params': {'skip_download': 'dash fragment too small'},
     }
 
     def _real_extract(self, url):
@@ -58,26 +60,15 @@ class BoxIE(InfoExtractor):
 
         formats = []
 
-        # for entry in (try_get(f, lambda x: x['representations']['entries'], list) or []):
-        #     entry_url_template = try_get(
-        #         entry, lambda x: x['content']['url_template'])
-        #     if not entry_url_template:
-        #         continue
-        #     representation = entry.get('representation')
-        #     if representation == 'dash':
-        #         TODO: append query to every fragment URL
-        #         formats.extend(self._extract_mpd_formats(
-        #             entry_url_template.replace('{+asset_path}', 'manifest.mpd'),
-        #             file_id, query=query))
-
-        authenticated_download_url = f.get('authenticated_download_url')
-        if authenticated_download_url and f.get('is_download_available'):
-            formats.append({
-                'ext': f.get('extension') or determine_ext(title),
-                'filesize': f.get('size'),
-                'format_id': 'download',
-                'url': update_url_query(authenticated_download_url, query),
-            })
+        for url_tmpl in traverse_obj(f, (
+            'representations', 'entries', lambda _, v: v['representation'] == 'dash',
+            'content', 'url_template', {url_or_none}
+        )):
+            manifest_url = update_url_query(url_tmpl.replace('{+asset_path}', 'manifest.mpd'), query)
+            fmts = self._extract_mpd_formats(manifest_url, file_id)
+            for fmt in fmts:
+                fmt['extra_param_to_segment_url'] = urllib.parse.urlparse(manifest_url).query
+            formats.extend(fmts)
 
         creator = f.get('created_by') or {}
 
