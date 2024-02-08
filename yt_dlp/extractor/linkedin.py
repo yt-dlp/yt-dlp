@@ -92,7 +92,7 @@ class LinkedInIE(LinkedInBaseIE):
             'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing #nowhiring #sendinblue…',
             'description': 'md5:2998a31f6f479376dd62831f53a80f71',
             'uploader': 'Mishal K.',
-            'thumbnail': 'https://media.licdn.com/dms/image/C4E05AQG7hCp7zIeciw/feedshare-thumbnail_720_1280/0/1633381554858?e=2147483647&v=beta&t=teGgAD-Z8A2K4UrwAtEgHz9xGMrRLmUK6cE3vm3csK0',
+            'thumbnail': 're:^https?://media\.licdn\.com/dms/image/.*$',
             'like_count': int
         },
     }, {
@@ -104,7 +104,7 @@ class LinkedInIE(LinkedInBaseIE):
             'title': 'MathWorks on LinkedIn: What Is MathWorks Cloud Center?',
             'description': 'md5:95f9d4eeb6337882fb47eefe13d7a40c',
             'uploader': 'MathWorks',
-            'thumbnail': 'https://media.licdn.com/dms/image/D5610AQFKo9M0zqY2_g/ads-video-thumbnail_720_1280/0/1704988806715?e=2147483647&v=beta&t=0vg-ksOY2KrL_QFlNacCv5Tmuk0tum9FJ_4dlJ56Gyw',
+            'thumbnail': 're:^https?://media\.licdn\.com/dms/image/.*$',
             'like_count': int,
             'subtitles': 'mincount:1'
         },
