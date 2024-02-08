@@ -1,25 +1,16 @@
 all: lazy-extractors yt-dlp doc pypi-files
-clean: clean-test clean-dist clean-pyproject
+clean: clean-test clean-dist
 clean-all: clean clean-cache
 completions: completion-bash completion-fish completion-zsh
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
 ot: offlinetest
 tar: yt-dlp.tar.gz
 
-PREFIX ?= /usr/local
-BINDIR ?= $(PREFIX)/bin
-MANDIR ?= $(PREFIX)/man
-SHAREDIR ?= $(PREFIX)/share
-PYTHON ?= /usr/bin/env python3
-
-# Keep this list in sync with MANIFEST.in
+# Keep this list in sync with pyproject.toml includes/artifacts
 # intended use: when building a source distribution,
 # make pypi-files && python3 -m build -sn .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
 	        completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
-	-mv -f pyproject.toml.old pyproject.toml
-	cp -f pyproject.toml pyproject.toml.old
-	$(PYTHON) devscripts/include_data_files.py pyproject.toml
 
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
@@ -31,8 +22,6 @@ clean-test:
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS
-clean-pyproject:
-	-mv -f pyproject.toml.old pyproject.toml
 clean-cache:
 	find . \( \
 		-type d -name .pytest_cache -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
@@ -42,6 +31,12 @@ completion-bash: completions/bash/yt-dlp
 completion-fish: completions/fish/yt-dlp.fish
 completion-zsh: completions/zsh/_yt-dlp
 lazy-extractors: yt_dlp/extractor/lazy_extractors.py
+
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+MANDIR ?= $(PREFIX)/man
+SHAREDIR ?= $(PREFIX)/share
+PYTHON ?= /usr/bin/env python3
 
 # set SYSCONFDIR to /etc if PREFIX=/usr or PREFIX=/usr/local
 SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then echo /etc; else echo $(PREFIX)/etc; fi)
@@ -149,9 +144,8 @@ yt-dlp.tar.gz: all
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
 		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
-		Makefile MANIFEST.in yt-dlp.1 README.txt completions \
-		setup.cfg yt-dlp yt_dlp pyproject.toml \
-		devscripts test
+		Makefile yt-dlp.1 README.txt completions .gitignore \
+		setup.cfg yt-dlp yt_dlp pyproject.toml devscripts test
 
 AUTHORS:
 	git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS
