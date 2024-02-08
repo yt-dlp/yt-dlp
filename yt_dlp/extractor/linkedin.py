@@ -114,15 +114,7 @@ class LinkedInIE(LinkedInBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
-        description = self._og_search_description(webpage, default=None)
-        json_ld_list = list(self._yield_json_ld(webpage, video_id))
-        uploader = traverse_obj(
-            json_ld_list, (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author'), get_all=False).get('name')
-        like_count = int_or_none(self._search_regex(r'<a href=[^>]+\sdata-num-reactions="(\d+)"', webpage, 'reactions', default=None))
-
         video_attrs = extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))
-        print('video_attrs:', video_attrs)
         sources = self._parse_json(video_attrs['data-sources'], video_id)
         id = str(video_attrs.get('data-digitalmedia-asset-urn') or video_id).replace('urn:li:digitalmediaAsset:', '')
         formats = [{
@@ -139,11 +131,12 @@ class LinkedInIE(LinkedInBaseIE):
             'id': id,
             'display_id': video_id,
             'formats': formats,
-            'title': title,
-            'like_count': like_count,
-            'uploader': uploader,
+            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
+            'like_count': int_or_none(self._search_regex(r'\bdata-num-reactions="(\d+)"', webpage, 'reactions', default=None)),
+            'uploader': traverse_obj(
+                list(self._yield_json_ld(webpage, video_id)), (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author'), get_all=False).get('name'),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'description': description,
+            'description': self._og_search_description(webpage, default=None),
             'subtitles': subtitles,
         }
 
