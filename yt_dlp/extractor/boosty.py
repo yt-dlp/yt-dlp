@@ -28,7 +28,7 @@ class BoostyIE(InfoExtractor):
             'ext': 'mp4',
             'duration': 105,
             'view_count': int,
-            'thumbnail': r're:^https://i.mycdn.me/videoPreview\?',
+            'thumbnail': r're:^https://i\.mycdn\.me/videoPreview\?',
         },
     }, {
         # multiple ok_video
@@ -52,7 +52,7 @@ class BoostyIE(InfoExtractor):
                 'ext': 'mp4',
                 'duration': 31204,
                 'view_count': int,
-                'thumbnail': r're:^https://i.mycdn.me/videoPreview\?',
+                'thumbnail': r're:^https://i\.mycdn\.me/videoPreview\?',
             },
         }, {
             'info_dict': {
@@ -61,7 +61,7 @@ class BoostyIE(InfoExtractor):
                 'ext': 'mp4',
                 'duration': 25704,
                 'view_count': int,
-                'thumbnail': r're:^https://i.mycdn.me/videoPreview\?',
+                'thumbnail': r're:^https://i\.mycdn\.me/videoPreview\?',
             },
         }, {
             'info_dict': {
@@ -70,7 +70,7 @@ class BoostyIE(InfoExtractor):
                 'ext': 'mp4',
                 'duration': 31867,
                 'view_count': int,
-                'thumbnail': r're:^https://i.mycdn.me/videoPreview\?',
+                'thumbnail': r're:^https://i\.mycdn\.me/videoPreview\?',
             },
         }],
     }, {
@@ -89,7 +89,7 @@ class BoostyIE(InfoExtractor):
             'ext': 'mp4',
             'duration': 816,
             'view_count': int,
-            'thumbnail': r're:^https://i.ytimg.com/',
+            'thumbnail': r're:^https://i\.ytimg\.com/',
             # youtube fields
             'age_limit': 0,
             'availability': 'public',
@@ -97,7 +97,7 @@ class BoostyIE(InfoExtractor):
             'channel_follower_count': int,
             'channel_id': 'UCCzVNbWZfYpBfyofCCUD_0w',
             'channel_is_verified': bool,
-            'channel_url': r're:^https://www.youtube.com/',
+            'channel_url': r're:^https://www\.youtube\.com/',
             'comment_count': int,
             'description': str,
             'heatmap': 'count:100',
@@ -105,7 +105,7 @@ class BoostyIE(InfoExtractor):
             'playable_in_embed': bool,
             'uploader': str,
             'uploader_id': str,
-            'uploader_url': r're:^https://www.youtube.com/',
+            'uploader_url': r're:^https://www\.youtube\.com/',
         },
     }]
 
