@@ -1,4 +1,3 @@
-import datetime
 import itertools
 import random
 import re
@@ -11,7 +10,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
-    parse_iso8601,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -495,7 +493,6 @@ class TVPVODBaseIE(InfoExtractor):
         raise ExtractorError(f'Woronicza said: {document.get("code")} (HTTP {urlh.status})')
 
     def _parse_video(self, video, with_url=True):
-        type_ = video.get('type_')
         info_dict = traverse_obj(video, {
             'id': ('id', {str_or_none}),
             'title': 'title',
@@ -506,14 +503,6 @@ class TVPVODBaseIE(InfoExtractor):
             'thumbnails': ('images', ..., ..., {'url': ('url', {url_or_none})}),
         })
         info_dict['description'] = clean_html(dict_get(video, ('lead', 'description')))
-        if type_ in ('PROGRAMME', 'LIVE'):
-            now = datetime.datetime.now().astimezone(datetime.timezone.utc).timestamp()
-            if parse_iso8601(video.get('since')) > now:
-                info_dict['live_status'] = 'is_upcoming'
-            elif video.get('till') is None or parse_iso8601(video.get('till')) >= now:
-                info_dict['live_status'] = 'is_live'
-            else:
-                info_dict['live_status'] = 'was_live'
         if with_url:
             info_dict.update({
                 '_type': 'url',
@@ -525,7 +514,7 @@ class TVPVODBaseIE(InfoExtractor):
 
 class TVPVODVideoIE(TVPVODBaseIE):
     IE_NAME = 'tvp:vod'
-    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/(?:[a-z\d-]+,\d+/)*(?:(?P<date>\d{4}-\d{2}-\d{2})/)?[a-z\d-]+(?<!-odcinki)(?:,S\d+E\d+)?,(?P<id>\d+)'
+    _VALID_URL = r'https?://vod\.tvp\.pl/(?P<category>[a-z\d-]+,\d+)/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)/?(?:[?#]|$)'
 
     _TESTS = [{
         'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
@@ -576,23 +565,16 @@ class TVPVODVideoIE(TVPVODBaseIE):
         'info_dict': {
             'id': '399731',
             'ext': 'mp4',
-            'title': r're:TVP WORLD \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'title': r're:TVP WORLD(?: \d{4}-\d{2}-\d{2} \d{2}:\d{2})?',
             'live_status': 'is_live',
             'thumbnail': 're:https?://.+',
         },
     }]
 
     def _real_extract(self, url):
-        category, date, video_id = self._match_valid_url(url).group('category', 'date', 'id')
+        category, video_id = self._match_valid_url(url).group('category', 'id')
 
-        entity = 'vods'
-        if category == 'live,1':
-            # programs broadcasted on tv can be linked to by their EPG item.
-            # it's not really playable.
-            if date:
-                raise ExtractorError('EPG items cannot be downloaded. Find it on VOD.', expected=True)
-            else:
-                entity = 'lives'
+        entity = 'lives' if category == 'live,1' else 'vods'
 
         info_dict = self._parse_video(self._call_api(f'{entity}/{video_id}', video_id), with_url=False)
 
@@ -610,6 +592,8 @@ class TVPVODVideoIE(TVPVODBaseIE):
                 'url': sub['url'],
                 'ext': 'ttml',
             })
+
+        info_dict['is_live'] = category == 'live,1'
 
         return info_dict
 
