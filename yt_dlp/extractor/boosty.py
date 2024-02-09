@@ -137,6 +137,29 @@ class BoostyIE(InfoExtractor):
         },
     }]
 
+    _MP4_TYPES = ('tiny', 'lowest', 'low', 'medium', 'high', 'full_hd', 'quad_hd', 'ultra_hd')
+
+    def _extract_formats(self, player_urls, video_id):
+        formats = []
+        quality = qualities(self._MP4_TYPES)
+        for player_url in traverse_obj(player_urls, lambda _, v: url_or_none(v['url'])):
+            url = player_url['url']
+            format_type = player_url.get('type')
+            if format_type in ('hls', 'hls_live', 'live_ondemand_hls', 'live_playback_hls'):
+                formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id='hls', fatal=False))
+            elif format_type in ('dash', 'dash_live', 'live_playback_dash'):
+                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id='dash', fatal=False))
+            elif format_type in self._MP4_TYPES:
+                formats.append({
+                    'url': url,
+                    'ext': 'mp4',
+                    'format_id': format_type,
+                    'quality': quality(format_type),
+                })
+            else:
+                self.report_warning(f'Unknown format type: {format_type!r}')
+        return formats
+
     def _real_extract(self, url):
         user, post_id = self._match_valid_url(url).group('user', 'post_id')
         post = self._download_json(
@@ -147,8 +170,7 @@ class BoostyIE(InfoExtractor):
         if not post_title:
             self.report_warning('Unable to extract post title. Falling back to parsing html page')
             webpage = self._download_webpage(url, video_id=post_id)
-            post_title = (self._og_search_title(webpage, fatal=False)
-                          or self._html_extract_title(webpage, fatal=True))
+            post_title = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
 
         common_metadata = {
             'title': post_title,
@@ -185,25 +207,3 @@ class BoostyIE(InfoExtractor):
         if len(entries) == 1:
             return entries[0]
         return self.playlist_result(entries, post_id, post_title, **common_metadata)
-
-    def _extract_formats(self, player_urls, video_id):
-        formats = []
-        mp4_types = ('tiny', 'lowest', 'low', 'medium', 'high', 'full_hd', 'quad_hd', 'ultra_hd')
-        quality = qualities(mp4_types)
-        for player_url in traverse_obj(player_urls, lambda _, v: url_or_none(v['url'])):
-            url = player_url['url']
-            format_type = player_url.get('type')
-            if format_type in ('hls', 'hls_live', 'live_ondemand_hls', 'live_playback_hls'):
-                formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id='hls', fatal=False))
-            elif format_type in ('dash', 'dash_live', 'live_playback_dash'):
-                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id='dash', fatal=False))
-            elif format_type in mp4_types:
-                formats.append({
-                    'url': url,
-                    'ext': 'mp4',
-                    'format_id': format_type,
-                    'quality': quality(format_type),
-                })
-            else:
-                self.report_warning(f'Unknown format type: {format_type!r}')
-        return formats
