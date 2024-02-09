@@ -3,8 +3,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    extract_attributes,
     ExtractorError,
+    extract_attributes,
     float_or_none,
     int_or_none,
     srt_subtitles_timecode,
@@ -128,9 +128,11 @@ class LinkedInIE(LinkedInBaseIE):
             'id': video_id,
             'formats': formats,
             'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
-            'like_count': int_or_none(self._search_regex(r'\bdata-num-reactions="(\d+)"', webpage, 'reactions', default=None)),
+            'like_count': int_or_none(self._search_regex(
+                r'\bdata-num-reactions="(\d+)"', webpage, 'reactions', default=None)),
             'uploader': traverse_obj(
-                list(self._yield_json_ld(webpage, video_id)), (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author'), get_all=False).get('name'),
+                self._yield_json_ld(webpage, video_id),
+                (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author', 'name', {str}), get_all=False)
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': self._og_search_description(webpage, default=None),
             'subtitles': subtitles,
