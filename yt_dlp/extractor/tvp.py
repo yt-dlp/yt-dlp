@@ -565,7 +565,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
         'info_dict': {
             'id': '399731',
             'ext': 'mp4',
-            'title': r're:TVP WORLD(?: \d{4}-\d{2}-\d{2} \d{2}:\d{2})?',
+            'title': r're:TVP WORLD \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             'live_status': 'is_live',
             'thumbnail': 're:https?://.+',
         },
