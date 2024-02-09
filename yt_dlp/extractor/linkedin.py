@@ -132,7 +132,7 @@ class LinkedInIE(LinkedInBaseIE):
                 r'\bdata-num-reactions="(\d+)"', webpage, 'reactions', default=None)),
             'uploader': traverse_obj(
                 self._yield_json_ld(webpage, video_id),
-                (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author', 'name', {str}), get_all=False)
+                (lambda _, v: v['@type'] == 'SocialMediaPosting', 'author', 'name', {str}), get_all=False),
             'thumbnail': self._og_search_thumbnail(webpage),
             'description': self._og_search_description(webpage, default=None),
             'subtitles': subtitles,
