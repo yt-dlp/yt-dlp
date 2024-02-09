@@ -574,8 +574,8 @@ class TVPVODVideoIE(TVPVODBaseIE):
     def _real_extract(self, url):
         category, video_id = self._match_valid_url(url).group('category', 'id')
 
-        entity = 'lives' if category == 'live,1' else 'vods'
-
+        is_live = category == 'live,1'
+        entity = 'lives' if is_live else 'vods'
         info_dict = self._parse_video(self._call_api(f'{entity}/{video_id}', video_id), with_url=False)
 
         playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
@@ -593,7 +593,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
                 'ext': 'ttml',
             })
 
-        info_dict['is_live'] = category == 'live,1'
+        info_dict['is_live'] = is_live
 
         return info_dict
 
