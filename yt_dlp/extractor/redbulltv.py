@@ -339,7 +339,7 @@ class RedBullEventIE(RedBullBaseIE):
 
 
 class RedBullShowIE(RedBullBaseIE):
-    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/shows\/(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/shows\/(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
         # one season
         'url': 'https://www.redbull.com/int-en/shows/in-the-dust',
