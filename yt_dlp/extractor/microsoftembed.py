@@ -196,7 +196,10 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
     def _entries(self, url_base, video_id):
         skip = 0
         while True:
-            playlist_info = self._download_json(f'{url_base}&$skip={skip}', video_id, f'Downloading entries {skip}')
+            playlist_info = self._download_json(url_base, video_id, f'Downloading entries {skip}', query={
+                'locale': 'en-us',
+                '$skip': skip,
+            })
             items = traverse_obj(playlist_info, (
                 'results', ..., 'url', {lambda x: self.url_result(f'https://learn.microsoft.com/en-us{x}')}))
             yield from items
@@ -239,7 +242,7 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
                     }),
                 }
         else:
-            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/{video_type}/{series}/{"sessions" if video_type == "events" else "episodes"}?locale=en-us'
+            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/{video_type}/{series}/{"sessions" if video_type == "events" else "episodes"}'
             return self.playlist_result(self._entries(url_base, video_id), video_id, **metainfo)
 
 
