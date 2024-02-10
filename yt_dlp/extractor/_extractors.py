@@ -1074,11 +1074,11 @@ from .metacritic import MetacriticIE
 from .mgtv import MGTVIE
 from .miaopai import MiaoPaiIE
 from .microsoftstream import MicrosoftStreamIE
-from .microsoftvirtualacademy import (
-    MicrosoftVirtualAcademyIE,
-    MicrosoftVirtualAcademyCourseIE,
+from .microsoftembed import (
+    MicrosoftEmbedIE,
+    MicrosoftMediusIE,
+    MicrosoftLearnIE,
 )
-from .microsoftembed import MicrosoftEmbedIE
 from .mildom import (
     MildomIE,
     MildomVodIE,
