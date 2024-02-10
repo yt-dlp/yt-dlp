@@ -127,7 +127,7 @@ class RedBullTVRrnContentIE(InfoExtractor):
 
 
 class RedBullIE(RedBullBaseIE):
-    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/(?P<type>videos|films|episodes|live|recap-videos|trailer-videos)\/(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/(?P<type>videos|films|episodes|live|recap-videos|trailer-videos)\/(?P<slug>[a-z0-9-_]+)'
     _TESTS = [{
         'url': 'https://www.redbull.com/int-en/videos/metal-on-streif-dominik-paris-in-kitzbuhel',
         'info_dict': {
@@ -279,7 +279,7 @@ class RedBullIE(RedBullBaseIE):
 
 
 class RedBullEventIE(RedBullBaseIE):
-    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/events\/(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/events\/(?P<slug>[a-z0-9-_]+)'
     _TESTS = [{
         # one replay
         'url': 'https://www.redbull.com/int-en/events/mondo-classic',
@@ -339,7 +339,7 @@ class RedBullEventIE(RedBullBaseIE):
 
 
 class RedBullShowIE(RedBullBaseIE):
-    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/shows\/(?P<id>[a-z0-9-_]+)'
+    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/shows\/(?P<slug>[a-z0-9-_]+)'
     _TESTS = [{
         # one season
         'url': 'https://www.redbull.com/int-en/shows/in-the-dust',
