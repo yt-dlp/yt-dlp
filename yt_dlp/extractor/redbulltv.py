@@ -58,6 +58,27 @@ class RedBullBaseIE(InfoExtractor):
                 'videoId': rrn_id,
             })
 
+    def _extract_video_resource(self, rrn_id, is_live=False):
+        video_resource = self._get_video_resource(rrn_id)
+
+        playability_errors = traverse_obj(video_resource, ('playabilityErrors'))
+        if 'GEO_BLOCKED' in playability_errors:
+            raise ExtractorError('Geo-restricted', expected=True)
+        if playability_errors:
+            raise ExtractorError('Playability error', expected=True)
+
+        video_id = traverse_obj(video_resource, ('assetId', {str})) or rrn_id.split(':')[3]
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            video_resource['videoUrl'], video_id, 'mp4')
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'is_live': is_live,
+            'aspect_ratio': traverse_obj(video_resource, ('aspectRatio', {float_or_none})),
+        }
+
 
 class RedBullTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?redbull(?:\.tv|\.com(?:/[^/]+)?(?:/tv)?)(?:/events/[^/]+)?/(?:videos?|live|(?:film|episode)s)/(?P<id>AP-\w+)'
@@ -251,22 +272,9 @@ class RedBullIE(RedBullBaseIE):
             video_object = video_object['associatedMedia']
 
         rrn_id = video_object['embedUrl'].replace('https://www.redbull.com/embed/', '')
-        video_resource = self._get_video_resource(rrn_id)
-
-        playability_errors = traverse_obj(video_resource, ('playabilityErrors'))
-        if 'GEO_BLOCKED' in playability_errors:
-            raise ExtractorError('Geo-restricted', expected=True)
-        if playability_errors:
-            raise ExtractorError('Playability error', expected=True)
-
-        video_id = traverse_obj(video_resource, ('assetId', {str}))
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            video_resource['videoUrl'], video_id, 'mp4')
 
         return {
-            'id': video_id,
-            'formats': formats,
-            'subtitles': subtitles,
+            **self._extract_video_resource(rrn_id),
             **traverse_obj(video_object, {
                 'title': ('name', {str}),
                 'description': ('description', {str}),
@@ -274,7 +282,24 @@ class RedBullIE(RedBullBaseIE):
                 'timestamp': ('uploadDate', {parse_iso8601}),
                 'thumbnail': ('thumbnailUrl', {url_or_none}),
             }),
-            'aspect_ratio': traverse_obj(video_resource, ('aspectRatio', {float_or_none})),
+        }
+
+
+class RedBullChannelIE(RedBullBaseIE):
+    _VALID_URL = r'https?:\/\/(?:www\.)?redbull\.com\/(?P<region>[a-z]{2,3})-(?P<lang>[a-z]{2})\/channels\/(?P<slug>[a-z0-9-_]+)'
+    _TESTS = [{
+        'url': 'https://www.redbull.com/int-en/channels/best-of-red-bull-stream',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        region, lang, slug = self._match_valid_url(url).groups()
+        # structured_data is not available for channels
+        video_hero = self._call_api(
+            self._SCHEMAS['video_hero'], 'video-channels', slug, region, lang)
+        return {
+            **self._extract_video_resource(video_hero['id'], is_live=True),
+            'title': traverse_obj(video_hero, ('title', {str})),
         }
 
 

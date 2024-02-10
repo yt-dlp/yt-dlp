@@ -1620,6 +1620,7 @@ from .redbulltv import (
     RedBullEmbedIE,
     RedBullTVRrnContentIE,
     RedBullIE,
+    RedBullChannelIE,
     RedBullEventIE,
     RedBullShowIE,
 )
