@@ -217,33 +217,33 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
             'description': self._og_search_description(webpage),
         }
 
-        if slug:
-            if video_type == 'events':
-                return self.url_result(
-                    self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'), url_transparent=True, **metainfo, **{
-                        'timestamp': parse_iso8601(self._search_regex(
-                            r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
-                    })
-            else:
-                entry_id = self._search_regex(r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId')
-                video_info = self._download_json(
-                    f'https://learn.microsoft.com/api/video/public/v1/entries/{entry_id}', video_id)
-                return {
-                    'id': entry_id,
-                    'formats': self._extract_ism(video_info['publicVideo']['adaptiveVideoUrl'], video_id),
-                    'subtitles': self._sub_to_dict(traverse_obj(video_info, ('publicVideo', 'captions', ..., {
-                        'tag': ('language', {str}),
-                        'url': ('url', {url_or_none}),
-                    }))),
-                    **metainfo,
-                    **traverse_obj(video_info, {
-                        'timestamp': ('createTime', {parse_iso8601}),
-                        'thumbnails': ('publicVideo', 'thumbnailOtherSizes', ..., {lambda x: {'url': x}}),
-                    }),
-                }
-        else:
+        if not slug:
             url_base = f'https://learn.microsoft.com/api/contentbrowser/search/{video_type}/{series}/{"sessions" if video_type == "events" else "episodes"}'
             return self.playlist_result(self._entries(url_base, video_id), video_id, **metainfo)
+
+        if video_type == 'events':
+            return self.url_result(
+                self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'), url_transparent=True, **metainfo, **{
+                    'timestamp': parse_iso8601(self._search_regex(
+                        r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
+                })
+
+        entry_id = self._search_regex(r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId')
+        video_info = self._download_json(
+            f'https://learn.microsoft.com/api/video/public/v1/entries/{entry_id}', video_id)
+        return {
+            'id': entry_id,
+            'formats': self._extract_ism(video_info['publicVideo']['adaptiveVideoUrl'], video_id),
+            'subtitles': self._sub_to_dict(traverse_obj(video_info, ('publicVideo', 'captions', ..., {
+                'tag': ('language', {str}),
+                'url': ('url', {url_or_none}),
+            }))),
+            **metainfo,
+            **traverse_obj(video_info, {
+                'timestamp': ('createTime', {parse_iso8601}),
+                'thumbnails': ('publicVideo', 'thumbnailOtherSizes', ..., {lambda x: {'url': x}}),
+            }),
+        }
 
 
 class MicrosoftBuildIE(MicrosoftMediusBaseIE):
