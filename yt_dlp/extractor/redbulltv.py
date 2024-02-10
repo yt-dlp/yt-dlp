@@ -133,12 +133,12 @@ class RedBullIE(RedBullBaseIE):
         'info_dict': {
             'id': 'AAMU3BN1Z0J04IFZVPJ1',
             'ext': 'mp4',
-            # 'title': 'Metal on Streif: Dominik Paris in Kitzbühel',
-            # 'description': 'md5:b140b299dca20f5d7b3ca561fe5a5d24',
-            # 'upload_date': '20240209',
-            # 'timestamp': 1707472608,
-            # 'duration': 1977.0,
-            # 'thumbnail': r're:^https?://',
+            'title': 'Metal on Streif: Dominik Paris in Kitzbühel',
+            'description': 'md5:b140b299dca20f5d7b3ca561fe5a5d24',
+            'upload_date': '20240209',
+            'timestamp': 1707472608,
+            'duration': 1977.0,
+            'thumbnail': r're:^https?://',
         },
         'params': {
             'skip_download': True,
@@ -184,20 +184,20 @@ class RedBullIE(RedBullBaseIE):
         },
     }, {
         'url': 'https://www.redbull.com/int-en/live/mondo-classic-2024',
-        'md5': 'ca8ed1669b71907c68b00cce216cb506',
-        'info_dict': {
-            'id': 'AA3YMCCKHF7JGGUY8HY7',
-            'ext': 'mp4',
-            'title': 'Livestream',
-            'description': 'md5:deff294a59c0e692acfa51e2d02d4b5c',
-            'upload_date': '20240125',
-            'timestamp': 1706191087,
-            'thumbnail': r're:^https?://',
-        },
+        'only_matching': True,
     }, {
         # as a part of a playlist
         'url': 'https://www.redbull.com/int-en/live/laax-open-2024-freeski-slopestyle',
-        'only_matching': True,
+        'md5': 'cc5e51240689add2f39560ea7c4a4e91',
+        'info_dict': {
+            'id': 'AA2FV4NQNYSNBJXIEXPT',
+            'ext': 'mp4',
+            'title': 'Freeski Slopestyle',
+            'description': 'md5:86f51cb9624d359438e8988449b4621e',
+            'upload_date': '20231222',
+            'timestamp': 1703251679,
+            'thumbnail': r're:^https?://',
+        },
     }, {
         'url': 'https://www.redbull.com/int-en/live/laax-open-2024-snowboard-slopestyle?playlistId=rrn:content:live-videos:c4c1b1c8-445a-4bcb-9fb8-d8c510ed69bc:en-INT',
         'only_matching': True,
