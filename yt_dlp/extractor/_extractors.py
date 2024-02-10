@@ -1474,6 +1474,7 @@ from .platzi import (
     PlatziIE,
     PlatziCourseIE,
 )
+from .playeur import PlayeurIE
 from .playplustv import PlayPlusTVIE
 from .playstuff import PlayStuffIE
 from .playsuisse import PlaySuisseIE
@@ -2189,7 +2190,6 @@ from .ustudio import (
     UstudioIE,
     UstudioEmbedIE,
 )
-from .utreon import UtreonIE
 from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veo import VeoIE
