@@ -1620,6 +1620,8 @@ from .redbulltv import (
     RedBullEmbedIE,
     RedBullTVRrnContentIE,
     RedBullIE,
+    RedBullEventIE,
+    RedBullShowIE,
 )
 from .reddit import RedditIE
 from .redge import RedCDNLivxIE
