@@ -1078,6 +1078,7 @@ from .microsoftembed import (
     MicrosoftEmbedIE,
     MicrosoftMediusIE,
     MicrosoftLearnIE,
+    MicrosoftBuildIE,
 )
 from .mildom import (
     MildomIE,

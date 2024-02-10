@@ -149,10 +149,7 @@ class MicrosoftMediusIE(MicrosoftMediusBaseIE):
 
 
 class MicrosoftLearnIE(MicrosoftMediusBaseIE):
-    _VALID_URL = [
-        r'https://learn\.microsoft\.com/[\w\-]+/(events|shows)/[\w\-]+/(?P<id>[^?#/]+)',
-        r'https://build\.microsoft\.com/[\w\-]+/sessions/(?P<id>[0-9a-f\-]+)',
-    ]
+    _VALID_URL = r'https?://learn\.microsoft\.com/(?:[\w\-]+/)?(?P<type>events|shows)/(?P<series>[\w\-]+)(?:/(?P<id>[^?#/]+))?'
 
     _TESTS = [{
         'url': 'https://learn.microsoft.com/en-us/events/build-2022/ts01-rapidly-code-test-ship-from-secure-cloud-developer-environments',
@@ -166,6 +163,14 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
             'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
         },
     }, {
+        'url': 'https://learn.microsoft.com/en-us/events/build-2022',
+        'info_dict': {
+            'id': 'build-2022',
+            'title': 'Microsoft Build 2022 - Events',
+            'description': 'md5:c16b43848027df837b22c6fbac7648d3',
+        },
+        'playlist_count': 201,
+    }, {
         'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners/what-is-the-difference-between-a-terminal-and-a-shell-2-of-20-bash-for-beginners/',
         'info_dict': {
             'id': 'd44e1a03-a0e5-45c2-9496-5c9fa08dc94c',
@@ -174,24 +179,34 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
             'description': 'md5:7bbbfb593d21c2cf2babc3715ade6b88',
             'timestamp': 1676339547,
             'upload_date': '20230214',
+            'thumbnail': r're:https://learn\.microsoft\.com/video/media/.*\.png',
             'subtitles': 'count:14',
         },
         'params': {'listsubtitles': True},
     }, {
-        'url': 'https://build.microsoft.com/en-US/sessions/49e81029-20f0-485b-b641-73b7f9622656?source=sessions',
+        'url': 'https://learn.microsoft.com/en-us/shows/bash-for-beginners',
         'info_dict': {
-            'id': '81215af5-c813-4dcd-aede-94f4e1a7daa3',
-            'ext': 'ismv',
-            'title': 'Microsoft Build: Highlights from 2023',
-            'description': 'md5:24fb8410b48256bb42dfca37eb936583',
-            'timestamp': 1684857600,
-            'upload_date': '20230523',
-            'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
+            'id': 'bash-for-beginners',
+            'title': 'Bash for Beginners',
+            'description': 'md5:16a91c07222117d1e00912f0dbc02c2c',
         },
+        'playlist_count': 20,
     }]
 
+    def _entries(self, url_base, video_id):
+        skip = 0
+        while True:
+            playlist_info = self._download_json(f'{url_base}&$skip={skip}', video_id, f'Downloading entries {skip}')
+            items = traverse_obj(playlist_info, (
+                'results', ..., 'url', {lambda x: self.url_result(f'https://learn.microsoft.com/en-us{x}')}))
+            yield from items
+            skip += len(items)
+            if skip >= playlist_info['count'] or not items:
+                break
+
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_type, series, slug = self._match_valid_url(url).groups()
+        video_id = slug or series
         webpage = self._download_webpage(url, video_id)
 
         metainfo = {
@@ -199,34 +214,74 @@ class MicrosoftLearnIE(MicrosoftMediusBaseIE):
             'description': self._og_search_description(webpage),
         }
 
-        video_url = self._search_regex(
-            r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl', default=None)
-        if video_url:
-            return self.url_result(video_url, url_transparent=True, **metainfo, **{
-                'timestamp': parse_iso8601(self._search_regex(
-                    r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
-            })
+        if slug:
+            if video_type == 'events':
+                return self.url_result(
+                    self._search_regex(r'<meta\s+name="externalVideoUrl"\s+content="([^"]+)"', webpage, 'videoUrl'), url_transparent=True, **metainfo, **{
+                        'timestamp': parse_iso8601(self._search_regex(
+                            r'<meta\s+name="startDate"\s+content="([^"]+)"', webpage, 'date', default=None)),
+                    })
+            else:
+                entry_id = self._search_regex(r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId')
+                video_info = self._download_json(
+                    f'https://learn.microsoft.com/api/video/public/v1/entries/{entry_id}', video_id)
+                return {
+                    'id': entry_id,
+                    'formats': self._extract_ism(video_info['publicVideo']['adaptiveVideoUrl'], video_id),
+                    'subtitles': self._sub_to_dict(traverse_obj(video_info, ('publicVideo', 'captions', ..., {
+                        'tag': ('language', {str}),
+                        'url': ('url', {url_or_none}),
+                    }))),
+                    **metainfo,
+                    **traverse_obj(video_info, {
+                        'timestamp': ('createTime', {parse_iso8601}),
+                        'thumbnails': ('publicVideo', 'thumbnailOtherSizes', ..., {lambda x: {'url': x}}),
+                    }),
+                }
+        else:
+            url_base = f'https://learn.microsoft.com/api/contentbrowser/search/{video_type}/{series}/{"sessions" if video_type == "events" else "episodes"}?locale=en-us'
+            return self.playlist_result(self._entries(url_base, video_id), video_id, **metainfo)
 
-        entry_id = self._search_regex(
-            r'<meta name="entryId" content="([^"]+)"', webpage, 'entryId', default=None)
-        if entry_id:
-            video_info = self._download_json(
-                f'https://learn.microsoft.com/api/video/public/v1/entries/{entry_id}', video_id)
 
-            return {
-                'id': entry_id,
-                'formats': self._extract_ism(video_info['publicVideo']['adaptiveVideoUrl'], video_id),
-                'subtitles': self._sub_to_dict(traverse_obj(video_info, ('publicVideo', 'captions', ..., {
-                    'tag': ('language', {str}),
-                    'url': ('url', {url_or_none}),
-                }))),
-                'timestamp': traverse_obj(video_info, ('createTime', {parse_iso8601})),
-                **metainfo,
-            }
+class MicrosoftBuildIE(MicrosoftMediusBaseIE):
+    _VALID_URL = [
+        r'https?://build\.microsoft\.com/[\w\-]+/sessions/(?P<id>[0-9a-f\-]+)',
+        r'https?://build\.microsoft\.com/[\w\-]+/(?P<id>sessions)/?(?:[?#]|$)',
+    ]
 
-        if self._og_search_url(webpage) == 'https://build.microsoft.com':
-            video_info = self._download_json(
-                f'https://api.build.microsoft.com/api/session/en-US-{video_id}', video_id)
-            return self.url_result(video_info['onDemand'], url_transparent=True, **metainfo, **{
-                'timestamp': traverse_obj(video_info, ('startDateTime', {parse_iso8601})),
-            })
+    _TESTS = [{
+        'url': 'https://build.microsoft.com/en-US/sessions/49e81029-20f0-485b-b641-73b7f9622656?source=sessions',
+        'info_dict': {
+            'id': '81215af5-c813-4dcd-aede-94f4e1a7daa3',
+            'ext': 'ismv',
+            'title': 'Microsoft Build opening',
+            'description': 'md5:756ab1fb60bdc6923d627803694e9cc5',
+            'timestamp': 1684857600,
+            'upload_date': '20230523',
+            'thumbnail': r're:https://mediusimg\.event\.microsoft\.com/video-\d+/thumbnail\.jpg.*',
+        },
+    }, {
+        'url': 'https://build.microsoft.com/en-US/sessions',
+        'info_dict': {
+            'id': 'sessions',
+        },
+        'playlist_mincount': 418,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        entries = [
+            self.url_result(video_info['onDemand'], url_transparent=True, **traverse_obj(video_info, {
+                'id': ('sessionId', {str}),
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'timestamp': ('startDateTime', {parse_iso8601}),
+            }))
+            for video_info in self._download_json(
+                'https://api.build.microsoft.com/api/session/all/en-US', video_id, 'Downloading video info')
+        ]
+        if video_id == 'sessions':
+            return self.playlist_result(entries, video_id)
+        else:
+            return traverse_obj(entries, (lambda _, v: v['id'] == video_id), get_all=False)
