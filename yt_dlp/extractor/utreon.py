@@ -9,7 +9,8 @@ from ..utils import (
 )
 
 
-class PlayeurIE(InfoExtractor):
+class UtreonIE(InfoExtractor):
+    IE_NAME = 'playeur'
     _VALID_URL = r'https?://(?:www\.)?(?:utreon|playeur)\.com/v/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://utreon.com/v/z_I7ikQbuDw',
