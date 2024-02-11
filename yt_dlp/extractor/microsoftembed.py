@@ -74,10 +74,11 @@ class MicrosoftEmbedIE(InfoExtractor):
 
 
 class MicrosoftMediusBaseIE(InfoExtractor):
-    def _sub_to_dict(self, subtitile_list):
+    @staticmethod
+    def _sub_to_dict(self, subtitle_list):
         subtitles = {}
-        for sub in subtitile_list:
-            subtitles.setdefault(sub['tag'], []).append({k: v for k, v in sub.items() if k != 'tag'})
+        for sub in subtitle_list:
+            subtitles.setdefault(sub.pop('tag', None) or 'unknown', []).append(sub)
         return subtitles
 
     def _extract_ism(self, ism_url, video_id):
