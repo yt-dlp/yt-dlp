@@ -324,7 +324,7 @@ If you do not have the necessary dependencies for a task you are attempting, yt-
 To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used. You can run the following commands:
 
 ```
-python3 -m pip install -U pyinstaller -r requirements.txt
+python3 devscripts/install_deps.py --include pyinstaller
 python3 devscripts/make_lazy_extractors.py
 python3 -m bundle.pyinstaller
 ```
@@ -351,13 +351,14 @@ While we provide the option to build with [py2exe](https://www.py2exe.org), it i
 If you wish to build it anyway, install Python (if it is not already installed) and you can run the following commands:
 
 ```
-py -m pip install -U py2exe -r requirements.txt
+py devscripts/install_deps.py --include py2exe
 py devscripts/make_lazy_extractors.py
 py -m bundle.py2exe
 ```
 
 ### Related scripts
 
+* **`devscripts/install_deps.py`** - Install dependencies for yt-dlp.
 * **`devscripts/update-version.py`** - Update the version number based on current date.
 * **`devscripts/set-variant.py`** - Set the build variant of the executable.
 * **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.

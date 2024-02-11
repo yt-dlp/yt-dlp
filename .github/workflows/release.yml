@@ -253,8 +253,7 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install pandoc man
-          python -m pip install -U pip setuptools wheel twine
-          python -m pip install -U -r requirements.txt
+          python devscripts/install_deps.py -o --include build
 
       - name: Prepare
         env:

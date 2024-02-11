@@ -121,16 +121,14 @@ jobs:
       - name: Install Requirements
         run: |
           sudo apt -y install zip pandoc man sed
-          reqs=$(mktemp)
-          cat > "$reqs" << EOF
+          cat > ./requirements.txt << EOF
           python=3.10.*
-          pyinstaller
-          cffi
           brotli-python
-          secretstorage
           EOF
-          sed -E '/^(brotli|secretstorage).*/d' requirements.txt >> "$reqs"
-          mamba create -n build --file "$reqs"
+          python devscripts/install_deps.py --print \
+            --exclude brotli --exclude brotlicffi \
+            --include secretstorage --include pyinstaller >> ./requirements.txt
+          mamba create -n build --file ./requirements.txt
 
       - name: Prepare
         run: |
@@ -203,12 +201,13 @@ jobs:
             apt update
             apt -y install zlib1g-dev python3.8 python3.8-dev python3.8-distutils python3-pip
             python3.8 -m pip install -U pip setuptools wheel
-            # Cannot access requirements.txt from the repo directory at this stage
+            # Cannot access any files from the repo directory at this stage
             python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi secretstorage
 
           run: |
             cd repo
-            python3.8 -m pip install -U Pyinstaller secretstorage -r requirements.txt  # Cached version may be out of date
+            python3.8 devscripts/install_deps.py -o --include build
+            python3.8 devscripts/install_deps.py --include pyinstaller --include secretstorage  # Cached version may be out of date
             python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 -m bundle.pyinstaller
@@ -240,9 +239,10 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip setuptools wheel
+          python3 devscripts/install_deps.py --user -o --include build
+          python3 devscripts/install_deps.py --print --include pyinstaller > requirements.txt
           # We need to ignore wheels otherwise we break universal2 builds
-          python3 -m pip install -U --user --no-binary :all: Pyinstaller -r requirements.txt
+          python3 -m pip install -U --user --no-binary :all: -r requirements.txt
 
       - name: Prepare
         run: |
@@ -293,8 +293,8 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          python3 -m pip install -U --user pip setuptools wheel
-          python3 -m pip install -U --user Pyinstaller -r requirements.txt
+          python3 devscripts/install_deps.py --user -o --include build
+          python3 devscripts/install_deps.py --user --include pyinstaller
 
       - name: Prepare
         run: |
@@ -333,8 +333,9 @@ jobs:
           python-version: "3.8"
       - name: Install Requirements
         run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-          python -m pip install -U pip setuptools wheel py2exe
-          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
+          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py --include py2exe
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare
         run: |
@@ -382,8 +383,9 @@ jobs:
           architecture: "x86"
       - name: Install Requirements
         run: |
-          python -m pip install -U pip setuptools wheel
-          pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
+          python devscripts/install_deps.py -o --include build
+          python devscripts/install_deps.py
+          python -m pip install -U "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.8.0-py3-none-any.whl"
 
       - name: Prepare
         run: |

@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: 3.9
     - name: Install test requirements
-      run: pip install pytest -r requirements.txt
+      run: python3 ./devscripts/install_deps.py --include dev
     - name: Run tests
       continue-on-error: true
       run: python3 ./devscripts/run_tests.py download
@@ -42,7 +42,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install test requirements
-      run: pip install pytest -r requirements.txt
+      run: python3 ./devscripts/install_deps.py --include dev
     - name: Run tests
       continue-on-error: true
       run: python3 ./devscripts/run_tests.py download

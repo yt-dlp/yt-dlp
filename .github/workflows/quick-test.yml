@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: '3.8'
     - name: Install test requirements
-      run: pip install pytest -r requirements.txt
+      run: python3 ./devscripts/install_deps.py --include dev
     - name: Run tests
       run: |
         python3 -m yt_dlp -v || true
@@ -28,8 +28,8 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
     - name: Install flake8
-      run: pip install flake8
+      run: python3 ./devscripts/install_deps.py -o --include dev
     - name: Make lazy extractors
-      run: python devscripts/make_lazy_extractors.py
+      run: python3 ./devscripts/make_lazy_extractors.py
     - name: Run flake8
       run: flake8 .
