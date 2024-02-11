@@ -8,6 +8,8 @@ on:
       - "!yt_dlp/version.py"
       - "bundle/*.py"
       - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/build.yml"
 concurrency:
   group: release-master
 permissions:
