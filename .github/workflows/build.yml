@@ -162,13 +162,15 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-${{ github.job }}
           path: |
             yt-dlp
             yt-dlp.tar.gz
             yt-dlp_linux
             yt-dlp_linux.zip
+          compression-level: 0
 
   linux_arm:
     needs: process
@@ -223,10 +225,12 @@ jobs:
             fi
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-linux_${{ matrix.architecture }}
           path: | # run-on-arch-action designates armv7l as armv7
             repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+          compression-level: 0
 
   macos:
     needs: process
@@ -265,11 +269,13 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-${{ github.job }}
           path: |
             dist/yt-dlp_macos
             dist/yt-dlp_macos.zip
+          compression-level: 0
 
   macos_legacy:
     needs: process
@@ -316,10 +322,12 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-${{ github.job }}
           path: |
             dist/yt-dlp_macos_legacy
+          compression-level: 0
 
   windows:
     needs: process
@@ -363,12 +371,14 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-${{ github.job }}
           path: |
             dist/yt-dlp.exe
             dist/yt-dlp_min.exe
             dist/yt-dlp_win.zip
+          compression-level: 0
 
   windows32:
     needs: process
@@ -409,10 +419,12 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-${{ github.job }}
           path: |
             dist/yt-dlp_x86.exe
+          compression-level: 0
 
   meta_files:
     if: inputs.meta_files && always() && !cancelled()
@@ -426,7 +438,11 @@ jobs:
       - windows32
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifact
+          pattern: build-*
+          merge-multiple: true
 
       - name: Make SHA2-SUMS files
         run: |
@@ -461,8 +477,10 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
+          name: build-${{ github.job }}
           path: |
-            SHA*SUMS*
             _update_spec
+            SHA*SUMS*
+          compression-level: 0
