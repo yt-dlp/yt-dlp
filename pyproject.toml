@@ -1,8 +1,120 @@
 [build-system]
-build-backend = 'setuptools.build_meta'
-# https://github.com/yt-dlp/yt-dlp/issues/5941
-# https://github.com/pypa/distutils/issues/17
-requires = ['setuptools > 50']
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yt-dlp"
+maintainers = [
+    {name = "pukkandan", email = "pukkandan.ytdlp@gmail.com"},
+    {name = "Grub4K", email = "contact@grub4k.xyz"},
+    {name = "bashonly", email = "bashonly@protonmail.com"},
+]
+description = "A youtube-dl fork with additional features and patches"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = [
+    "youtube-dl",
+    "video-downloader",
+    "youtube-downloader",
+    "sponsorblock",
+    "youtube-dlc",
+    "yt-dlp",
+]
+license = {file = "LICENSE"}
+classifiers = [
+    "Topic :: Multimedia :: Video",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: The Unlicense (Unlicense)",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version"]
+dependencies = [
+    "brotli; implementation_name=='cpython'",
+    "brotlicffi; implementation_name!='cpython'",
+    "certifi",
+    "mutagen",
+    "pycryptodomex",
+    "requests>=2.31.0,<3",
+    "urllib3>=1.26.17,<3",
+    "websockets>=12.0",
+]
+
+[project.optional-dependencies]
+secretstorage = [
+    "cffi",
+    "secretstorage",
+]
+build = [
+    "build",
+    "hatchling",
+    "pip",
+    "wheel",
+]
+dev = [
+    "flake8",
+    "isort",
+    "pytest",
+]
+pyinstaller = ["pyinstaller>=6.3"]
+py2exe = ["py2exe>=0.12"]
+
+[project.urls]
+Documentation = "https://github.com/yt-dlp/yt-dlp#readme"
+Repository = "https://github.com/yt-dlp/yt-dlp"
+Tracker = "https://github.com/yt-dlp/yt-dlp/issues"
+Funding = "https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators"
+
+[project.scripts]
+yt-dlp = "yt_dlp:main"
 
 [project.entry-points.pyinstaller40]
 hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/yt_dlp",
+    "/devscripts",
+    "/test",
+    "/.gitignore",  # included by default, needed for auto-excludes
+    "/Changelog.md",
+    "/LICENSE",  # included as license
+    "/pyproject.toml",  # included by default
+    "/README.md",  # included as readme
+    "/setup.cfg",
+    "/supportedsites.md",
+]
+exclude = ["/yt_dlp/__pyinstaller"]
+artifacts = [
+    "/yt_dlp/extractor/lazy_extractors.py",
+    "/completions",
+    "/AUTHORS",  # included by default
+    "/README.txt",
+    "/yt-dlp.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["yt_dlp"]
+exclude = ["/yt_dlp/__pyinstaller"]
+artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"completions/bash/yt-dlp" = "share/bash-completion/completions/yt-dlp"
+"completions/zsh/_yt-dlp" = "share/zsh/site-functions/_yt-dlp"
+"completions/fish/yt-dlp.fish" = "share/fish/vendor_completions.d/yt-dlp.fish"
+"README.txt" = "share/doc/yt_dlp/README.txt"
+"yt-dlp.1" = "share/man/man1/yt-dlp.1"
+
+[tool.hatch.version]
+path = "yt_dlp/version.py"
+pattern = "_pkg_version = '(?P<version>[^']+)'"

@@ -6,11 +6,11 @@ doc: README.md CONTRIBUTING.md issuetemplates supportedsites
 ot: offlinetest
 tar: yt-dlp.tar.gz
 
-# Keep this list in sync with MANIFEST.in
+# Keep this list in sync with pyproject.toml includes/artifacts
 # intended use: when building a source distribution,
-# make pypi-files && python setup.py sdist
+# make pypi-files && python3 -m build -sn .
 pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
-	        completions yt-dlp.1 requirements.txt setup.cfg devscripts/* test/*
+	        completions yt-dlp.1 pyproject.toml setup.cfg devscripts/* test/*
 
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
@@ -144,9 +144,8 @@ yt-dlp.tar.gz: all
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
 		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
-		Makefile MANIFEST.in yt-dlp.1 README.txt completions \
-		setup.py setup.cfg yt-dlp yt_dlp requirements.txt \
-		devscripts test
+		Makefile yt-dlp.1 README.txt completions .gitignore \
+		setup.cfg yt-dlp yt_dlp pyproject.toml devscripts test
 
 AUTHORS:
 	git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS

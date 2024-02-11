@@ -6,8 +6,8 @@ on:
     paths:
       - "yt_dlp/**.py"
       - "!yt_dlp/version.py"
-      - "setup.py"
       - "bundle/*.py"
+      - "pyproject.toml"
 concurrency:
   group: release-master
 permissions:

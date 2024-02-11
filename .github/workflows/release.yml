@@ -266,14 +266,19 @@ jobs:
         run: |
           python devscripts/update-version.py -c "${{ env.channel }}" -r "${{ env.target_repo }}" -s "${{ env.suffix }}" "${{ env.version }}"
           python devscripts/make_lazy_extractors.py
-          sed -i -E "s/(name=')[^']+(',  # package name)/\1${{ env.pypi_project }}\2/" setup.py
+          sed -i -E '0,/(name = ")[^"]+(")/s//\1${{ env.pypi_project }}\2/' pyproject.toml
 
       - name: Build
         run: |
           rm -rf dist/*
           make pypi-files
+          printf '%s\n\n' \
+            'Official repository: <https://github.com/yt-dlp/yt-dlp>' \
+            '**PS**: Some links in this document will not work since this is a copy of the README.md from Github' > ./README.md.new
+          cat ./README.md >> ./README.md.new && mv -f ./README.md.new ./README.md
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
-          python setup.py sdist bdist_wheel
+          make clean-cache
+          python -m build --no-isolation .
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
