@@ -21,7 +21,7 @@ clean-test:
 	*.mp4 *.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
-	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
+	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS
 clean-cache:
 	find . \( \
 		-type d -name .pytest_cache -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
@@ -73,24 +73,24 @@ test:
 offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
-# XXX: This is hard to maintain
-CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat yt_dlp/compat/urllib yt_dlp/utils yt_dlp/dependencies yt_dlp/networking
-yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
+CODE_FOLDERS := $(shell find yt_dlp -type d -not -name '__*' -exec sh -c 'test -e "$$1"/__init__.py' sh {} \; -print)
+CODE_FILES := $(shell for f in $(CODE_FOLDERS); do echo "$$f" | awk '{gsub(/\/[^\/]+/,"/*"); print $$1"/*.py"}'; done | sort -u)
+yt-dlp: $(CODE_FILES)
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
 	  cp -pPR $$d/*.py zip/$$d/ ;\
 	done
-	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py
+	cd zip ; touch -t 200001010101 $(CODE_FILES)
 	mv zip/yt_dlp/__main__.py zip/
-	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py __main__.py
+	cd zip ; zip -q ../yt-dlp $(CODE_FILES) __main__.py
 	rm -rf zip
 	echo '#!$(PYTHON)' > yt-dlp
 	cat yt-dlp.zip >> yt-dlp
 	rm yt-dlp.zip
 	chmod a+x yt-dlp
 
-README.md: yt_dlp/*.py yt_dlp/*/*.py devscripts/make_readme.py
+README.md: $(CODE_FILES) devscripts/make_readme.py
 	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
 
 CONTRIBUTING.md: README.md devscripts/make_contributing.py
@@ -115,15 +115,15 @@ yt-dlp.1: README.md devscripts/prepare_manpage.py
 	pandoc -s -f $(MARKDOWN) -t man yt-dlp.1.temp.md -o yt-dlp.1
 	rm -f yt-dlp.1.temp.md
 
-completions/bash/yt-dlp: yt_dlp/*.py yt_dlp/*/*.py devscripts/bash-completion.in
+completions/bash/yt-dlp: $(CODE_FILES) devscripts/bash-completion.in
 	mkdir -p completions/bash
 	$(PYTHON) devscripts/bash-completion.py
 
-completions/zsh/_yt-dlp: yt_dlp/*.py yt_dlp/*/*.py devscripts/zsh-completion.in
+completions/zsh/_yt-dlp: $(CODE_FILES) devscripts/zsh-completion.in
 	mkdir -p completions/zsh
 	$(PYTHON) devscripts/zsh-completion.py
 
-completions/fish/yt-dlp.fish: yt_dlp/*.py yt_dlp/*/*.py devscripts/fish-completion.in
+completions/fish/yt-dlp.fish: $(CODE_FILES) devscripts/fish-completion.in
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
 
@@ -148,8 +148,5 @@ yt-dlp.tar.gz: all
 		setup.py setup.cfg yt-dlp yt_dlp requirements.txt \
 		devscripts test
 
-AUTHORS: .mailmap
-	git shortlog -s -n | cut -f2 | sort > AUTHORS
-
-.mailmap:
-	git shortlog -s -e -n | awk '!(out[$$NF]++) { $$1="";sub(/^[ \t]+/,""); print}' > .mailmap
+AUTHORS:
+	git shortlog -s -n HEAD | cut -f2 | sort > AUTHORS
