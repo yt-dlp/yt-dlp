@@ -18,7 +18,7 @@ jobs:
       - name: Check for new commits
         id: check_for_new_commits
         run: |
-          relevant_files=("yt_dlp/*.py" ':!yt_dlp/version.py' "setup.py" "pyinst.py")
+          relevant_files=("yt_dlp/*.py" ':!yt_dlp/version.py' "setup.py" "bundle/*.py")
           echo "commit=$(git log --format=%H -1 --since="24 hours ago" -- "${relevant_files[@]}")" | tee "$GITHUB_OUTPUT"
 
   release:

@@ -3,3 +3,6 @@ build-backend = 'setuptools.build_meta'
 # https://github.com/yt-dlp/yt-dlp/issues/5941
 # https://github.com/pypa/distutils/issues/17
 requires = ['setuptools > 50']
+
+[project.entry-points.pyinstaller40]
+hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"

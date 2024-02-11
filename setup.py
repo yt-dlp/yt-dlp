@@ -7,7 +7,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import subprocess
-import warnings
 
 try:
     from setuptools import Command, find_packages, setup
@@ -37,46 +36,6 @@ def packages():
     return [
         'yt_dlp', 'yt_dlp.extractor', 'yt_dlp.downloader', 'yt_dlp.postprocessor', 'yt_dlp.compat',
     ]
-
-
-def py2exe_params():
-    warnings.warn(
-        'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
-        'It is recommended to run "pyinst.py" to build using pyinstaller instead')
-
-    return {
-        'console': [{
-            'script': './yt_dlp/__main__.py',
-            'dest_base': 'yt-dlp',
-            'icon_resources': [(1, 'devscripts/logo.ico')],
-        }],
-        'version_info': {
-            'version': VERSION,
-            'description': DESCRIPTION,
-            'comments': LONG_DESCRIPTION.split('\n')[0],
-            'product_name': 'yt-dlp',
-            'product_version': VERSION,
-        },
-        'options': {
-            'bundle_files': 0,
-            'compressed': 1,
-            'optimize': 2,
-            'dist_dir': './dist',
-            'excludes': [
-                # py2exe cannot import Crypto
-                'Crypto',
-                'Cryptodome',
-                # py2exe appears to confuse this with our socks library.
-                # We don't use pysocks and urllib3.contrib.socks would fail to import if tried.
-                'urllib3.contrib.socks'
-            ],
-            'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
-            # Modules that are only imported dynamically must be added here
-            'includes': ['yt_dlp.compat._legacy', 'yt_dlp.compat._deprecated',
-                         'yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated'],
-        },
-        'zipfile': None,
-    }
 
 
 def build_params():
@@ -127,20 +86,7 @@ class build_lazy_extractors(Command):
 
 
 def main():
-    if sys.argv[1:2] == ['py2exe']:
-        params = py2exe_params()
-        try:
-            from py2exe import freeze
-        except ImportError:
-            import py2exe  # noqa: F401
-            warnings.warn('You are using an outdated version of py2exe. Support for this version will be removed in the future')
-            params['console'][0].update(params.pop('version_info'))
-            params['options'] = {'py2exe': params.pop('options')}
-        else:
-            return freeze(**params)
-    else:
-        params = build_params()
-
+    params = build_params()
     setup(
         name='yt-dlp',  # package name (do not change/remove comment)
         version=VERSION,

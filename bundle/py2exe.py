@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+
+# Allow execution from anywhere
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import warnings
+
+from py2exe import freeze
+
+from devscripts.utils import read_version
+
+VERSION = read_version()
+
+
+def main():
+    warnings.warn(
+        'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
+        'It is recommended to run "pyinst.py" to build using pyinstaller instead')
+
+    return freeze(
+        console=[{
+            'script': './yt_dlp/__main__.py',
+            'dest_base': 'yt-dlp',
+            'icon_resources': [(1, 'devscripts/logo.ico')],
+        }],
+        version_info={
+            'version': VERSION,
+            'description': 'A youtube-dl fork with additional features and patches',
+            'comments': 'Official repository: <https://github.com/yt-dlp/yt-dlp>',
+            'product_name': 'yt-dlp',
+            'product_version': VERSION,
+        },
+        options={
+            'bundle_files': 0,
+            'compressed': 1,
+            'optimize': 2,
+            'dist_dir': './dist',
+            'excludes': [
+                # py2exe cannot import Crypto
+                'Crypto',
+                'Cryptodome',
+                # py2exe appears to confuse this with our socks library.
+                # We don't use pysocks and urllib3.contrib.socks would fail to import if tried.
+                'urllib3.contrib.socks'
+            ],
+            'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
+            # Modules that are only imported dynamically must be added here
+            'includes': ['yt_dlp.compat._legacy', 'yt_dlp.compat._deprecated',
+                         'yt_dlp.utils._legacy', 'yt_dlp.utils._deprecated'],
+        },
+        zipfile=None,
+    )
+
+
+if __name__ == '__main__':
+    main()

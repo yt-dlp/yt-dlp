@@ -7,7 +7,7 @@ on:
       - "yt_dlp/**.py"
       - "!yt_dlp/version.py"
       - "setup.py"
-      - "pyinst.py"
+      - "bundle/*.py"
 concurrency:
   group: release-master
 permissions:

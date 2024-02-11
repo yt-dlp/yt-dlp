@@ -144,9 +144,9 @@ jobs:
         run: |
           unset LD_LIBRARY_PATH  # Harmful; set by setup-python
           conda activate build
-          python pyinst.py --onedir
+          python -m bundle.pyinstaller --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
-          python pyinst.py
+          python -m bundle.pyinstaller
           mv ./dist/yt-dlp_linux ./yt-dlp_linux
           mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
 
@@ -211,7 +211,7 @@ jobs:
             python3.8 -m pip install -U Pyinstaller secretstorage -r requirements.txt  # Cached version may be out of date
             python3.8 devscripts/update-version.py -c "${{ inputs.channel }}" -r "${{ needs.process.outputs.origin }}" "${{ inputs.version }}"
             python3.8 devscripts/make_lazy_extractors.py
-            python3.8 pyinst.py
+            python3.8 -m bundle.pyinstaller
 
             if ${{ vars.UPDATE_TO_VERIFICATION && 'true' || 'false' }}; then
               arch="${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}"
@@ -250,9 +250,9 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python3 pyinst.py --target-architecture universal2 --onedir
+          python3 -m bundle.pyinstaller --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
-          python3 pyinst.py --target-architecture universal2
+          python3 -m bundle.pyinstaller --target-architecture universal2
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
@@ -302,7 +302,7 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python3 pyinst.py
+          python3 -m bundle.pyinstaller
           mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
 
       - name: Verify --update-to
@@ -342,10 +342,10 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python setup.py py2exe
+          python -m bundle.py2exe
           Move-Item ./dist/yt-dlp.exe ./dist/yt-dlp_min.exe
-          python pyinst.py
-          python pyinst.py --onedir
+          python -m bundle.pyinstaller
+          python -m bundle.pyinstaller --onedir
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
 
       - name: Verify --update-to
@@ -391,7 +391,7 @@ jobs:
           python devscripts/make_lazy_extractors.py
       - name: Build
         run: |
-          python pyinst.py
+          python -m bundle.pyinstaller
 
       - name: Verify --update-to
         if: vars.UPDATE_TO_VERIFICATION
