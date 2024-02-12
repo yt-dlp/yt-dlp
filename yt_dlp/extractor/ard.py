@@ -8,6 +8,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     join_nonempty,
+    jwt_decode_hs256,
     make_archive_id,
     parse_duration,
     parse_iso8601,
@@ -238,6 +239,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         (?P<id>[a-zA-Z0-9]+)
         /?(?:[?#]|$)'''
     _GEO_COUNTRIES = ['DE']
+    _TOKEN_URL = 'https://sso.ardmediathek.de/sso/token'
 
     _TESTS = [{
         'url': 'https://www.ardmediathek.de/video/filme-im-mdr/liebe-auf-vier-pfoten/mdr-fernsehen/Y3JpZDovL21kci5kZS9zZW5kdW5nLzI4MjA0MC80MjIwOTEtNDAyNTM0',
@@ -359,12 +361,27 @@ class ARDBetaMediathekIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
+        query = {'embedded': 'false', 'mcV6': 'true'}
+        headers = {}
+
+        if self._get_cookies(self._TOKEN_URL).get('ams'):
+            token = self._download_json(
+                self._TOKEN_URL, display_id, 'Fetching token for age verification',
+                'Unable to fetch age verification token', fatal=False)
+            id_token = traverse_obj(token, ('idToken', {str}))
+            decoded_token = traverse_obj(id_token, ({jwt_decode_hs256}, {dict}))
+            user_id = traverse_obj(decoded_token, (('user_id', 'sub'), {str}), get_all=False)
+            if not user_id:
+                self.report_warning('Unable to extract token, continuing without authentication')
+            else:
+                headers['x-authorization'] = f'Bearer {id_token}'
+                query['userId'] = user_id
+                if decoded_token.get('age_rating') != 18:
+                    self.report_warning('Account is not verified as 18+; video may be unavailable')
 
         page_data = self._download_json(
-            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}', display_id, query={
-                'embedded': 'false',
-                'mcV6': 'true',
-            })
+            f'https://api.ardmediathek.de/page-gateway/pages/ard/item/{display_id}',
+            display_id, query=query, headers=headers)
 
         # For user convenience we use the old contentId instead of the longer crid
         # Ref: https://github.com/yt-dlp/yt-dlp/issues/8731#issuecomment-1874398283
@@ -383,7 +400,7 @@ class ARDBetaMediathekIE(InfoExtractor):
         media_data = traverse_obj(player_data, ('mediaCollection', 'embedded', {dict}))
 
         if player_data.get('blockedByFsk'):
-            self.raise_no_formats('This video is only available after 22:00', expected=True)
+            self.raise_login_required('This video is only available for age verified users or after 22:00')
 
         formats = []
         subtitles = {}

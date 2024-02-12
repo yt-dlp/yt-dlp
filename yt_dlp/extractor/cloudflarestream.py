@@ -46,15 +46,18 @@ class CloudflareStreamIE(InfoExtractor):
                 video_id.split('.')[1] + '==='), video_id)['sub']
         manifest_base_url = base_url + 'manifest/video.'
 
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             manifest_base_url + 'm3u8', video_id, 'mp4',
             'm3u8_native', m3u8_id='hls', fatal=False)
-        formats.extend(self._extract_mpd_formats(
-            manifest_base_url + 'mpd', video_id, mpd_id='dash', fatal=False))
+        fmts, subs = self._extract_mpd_formats_and_subtitles(
+            manifest_base_url + 'mpd', video_id, mpd_id='dash', fatal=False)
+        formats.extend(fmts)
+        self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': video_id,
             'title': video_id,
             'thumbnail': base_url + 'thumbnails/thumbnail.jpg',
             'formats': formats,
+            'subtitles': subtitles,
         }

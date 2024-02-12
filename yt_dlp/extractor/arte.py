@@ -70,7 +70,24 @@ class ArteTVIE(ArteTVBaseIE):
             'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
             'upload_date': '20230930',
             'ext': 'mp4',
-        }
+        },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/085374-003-A/im-hohen-norden-geboren/',
+        'info_dict': {
+            'id': '085374-003-A',
+            'ext': 'mp4',
+            'description': 'md5:ab79ec7cc472a93164415b4e4916abf9',
+            'timestamp': 1702872000,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/TnyHBfPxv3v2GEY3suXGZP/940x530',
+            'duration': 2594,
+            'title': 'Die kurze Zeit der Jugend',
+            'alt_title': 'Im hohen Norden geboren',
+            'upload_date': '20231218',
+            'subtitles': {
+                'fr': 'mincount:1',
+                'fr-acc': 'mincount:1',
+            },
+        },
     }]
 
     _GEO_BYPASS = True
@@ -120,6 +137,16 @@ class ArteTVIE(ArteTVBaseIE):
             'SE', 'SI', 'SK', 'SM', 'VA', 'WF', 'YT',
         ),
     }
+
+    @staticmethod
+    def _fix_accessible_subs_locale(subs):
+        updated_subs = {}
+        for lang, sub_formats in subs.items():
+            for format in sub_formats:
+                if format.get('url', '').endswith('-MAL.m3u8'):
+                    lang += '-acc'
+                updated_subs.setdefault(lang, []).append(format)
+        return updated_subs
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -174,6 +201,7 @@ class ArteTVIE(ArteTVBaseIE):
                     secondary_formats.extend(fmts)
                 else:
                     formats.extend(fmts)
+                subs = self._fix_accessible_subs_locale(subs)
                 self._merge_subtitles(subs, target=subtitles)
 
             elif stream['protocol'] in ('HTTPS', 'RTMP'):
