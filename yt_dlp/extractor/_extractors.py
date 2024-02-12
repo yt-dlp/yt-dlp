@@ -603,7 +603,6 @@ from .fc2 import (
 )
 from .fczenit import FczenitIE
 from .fifa import FifaIE
-from .filmmodu import FilmmoduIE
 from .filmon import (
     FilmOnIE,
     FilmOnChannelIE,
