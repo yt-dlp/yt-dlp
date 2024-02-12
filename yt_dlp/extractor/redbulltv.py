@@ -58,7 +58,7 @@ class RedBullBaseIE(InfoExtractor):
                 'videoId': rrn_id,
             })
 
-    def _extract_video_resource(self, rrn_id, is_live=False):
+    def _extract_video_resource(self, rrn_id):
         video_resource = self._get_video_resource(rrn_id)
 
         playability_errors = traverse_obj(video_resource, ('playabilityErrors'))
@@ -75,7 +75,6 @@ class RedBullBaseIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': is_live,
             'aspect_ratio': traverse_obj(video_resource, ('aspectRatio', {float_or_none})),
         }
 
@@ -298,8 +297,9 @@ class RedBullChannelIE(RedBullBaseIE):
         video_hero = self._call_api(
             self._SCHEMAS['video_hero'], 'video-channels', slug, region, lang)
         return {
-            **self._extract_video_resource(video_hero['id'], is_live=True),
+            **self._extract_video_resource(video_hero['id']),
             'title': traverse_obj(video_hero, ('title', {str})),
+            'is_live': True,
         }
 
 
