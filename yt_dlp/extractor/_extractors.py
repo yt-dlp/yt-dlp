@@ -257,6 +257,7 @@ from .blogger import BloggerIE
 from .bloomberg import BloombergIE
 from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
+from .boosty import BoostyIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
@@ -1247,7 +1248,10 @@ from .nexx import (
     NexxIE,
     NexxEmbedIE,
 )
-from .nfb import NFBIE
+from .nfb import (
+    NFBIE,
+    NFBSeriesIE,
+)
 from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
     NFLIE,
@@ -1284,6 +1288,7 @@ from .niconico import (
     NicovideoTagURLIE,
     NiconicoLiveIE,
 )
+from .ninaprotocol import NinaProtocolIE
 from .ninecninemedia import (
     NineCNineMediaIE,
     CPTwentyFourIE,
@@ -1348,6 +1353,12 @@ from .nytimes import (
     NYTimesIE,
     NYTimesArticleIE,
     NYTimesCookingIE,
+    NYTimesCookingRecipeIE,
+)
+from .nuum import (
+    NuumLiveIE,
+    NuumTabIE,
+    NuumMediaIE,
 )
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
@@ -1390,6 +1401,7 @@ from .ora import OraTVIE
 from .orf import (
     ORFTVthekIE,
     ORFFM4StoryIE,
+    ORFONIE,
     ORFRadioIE,
     ORFPodcastIE,
     ORFIPTVIE,
@@ -1514,7 +1526,7 @@ from .puhutv import (
     PuhuTVSerieIE,
 )
 from .pr0gramm import Pr0grammIE
-from .prankcast import PrankCastIE
+from .prankcast import PrankCastIE, PrankCastPostIE
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
@@ -2309,11 +2321,6 @@ from .washingtonpost import (
     WashingtonPostIE,
     WashingtonPostArticleIE,
 )
-from .wasdtv import (
-    WASDTVStreamIE,
-    WASDTVRecordIE,
-    WASDTVClipIE,
-)
 from .wat import WatIE
 from .wdr import (
     WDRIE,
@@ -2492,6 +2499,7 @@ from .zee5 import (
     Zee5SeriesIE,
 )
 from .zeenews import ZeeNewsIE
+from .zetland import ZetlandDKArticleIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,
