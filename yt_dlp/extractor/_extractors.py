@@ -320,7 +320,6 @@ from .cbs import (
     CBSIE,
     ParamountPressExpressIE,
 )
-from .cbsinteractive import CBSInteractiveIE
 from .cbsnews import (
     CBSNewsEmbedIE,
     CBSNewsIE,
