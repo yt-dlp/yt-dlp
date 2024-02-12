@@ -25,7 +25,7 @@ from socketserver import (
     ThreadingTCPServer,
 )
 
-from test.helper import http_server_port
+from test.helper import http_server_port, verify_address_availability
 from yt_dlp.networking import Request
 from yt_dlp.networking.exceptions import ProxyError, TransportError
 from yt_dlp.socks import (
@@ -326,6 +326,7 @@ class TestSocks4Proxy:
     def test_ipv4_client_source_address(self, handler, ctx):
         with ctx.socks_server(Socks4ProxyHandler) as server_address:
             source_address = f'127.0.0.{random.randint(5, 255)}'
+            verify_address_availability(source_address)
             with handler(proxies={'all': f'socks4://{server_address}'},
                          source_address=source_address) as rh:
                 response = ctx.socks_info_request(rh)
@@ -441,6 +442,7 @@ class TestSocks5Proxy:
     def test_ipv4_client_source_address(self, handler, ctx):
         with ctx.socks_server(Socks5ProxyHandler) as server_address:
             source_address = f'127.0.0.{random.randint(5, 255)}'
+            verify_address_availability(source_address)
             with handler(proxies={'all': f'socks5://{server_address}'}, source_address=source_address) as rh:
                 response = ctx.socks_info_request(rh)
                 assert response['client_address'][0] == source_address

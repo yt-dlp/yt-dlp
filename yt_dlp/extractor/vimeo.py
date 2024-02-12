@@ -269,7 +269,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
         if not jwt_response.get('jwt'):
             return
-        headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
+        headers = {'Authorization': 'jwt %s' % jwt_response['jwt'], 'Accept': 'application/json'}
         original_response = self._download_json(
             f'https://api.vimeo.com/videos/{video_id}', video_id,
             headers=headers, fatal=False, expected_status=(403, 404)) or {}
@@ -750,6 +750,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         video = self._download_json(
             api_url, video_id, headers={
                 'Authorization': 'jwt ' + token,
+                'Accept': 'application/json',
             }, query={
                 'fields': 'config_url,created_time,description,license,metadata.connections.comments.total,metadata.connections.likes.total,release_time,stats.plays',
             })
@@ -784,7 +785,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         jwt = viewer['jwt']
         album = self._download_json(
             'https://api.vimeo.com/albums/' + album_id,
-            album_id, headers={'Authorization': 'jwt ' + jwt},
+            album_id, headers={'Authorization': 'jwt ' + jwt, 'Accept': 'application/json'},
             query={'fields': 'description,name,privacy'})
         if try_get(album, lambda x: x['privacy']['view']) == 'password':
             password = self.get_param('videopassword')
@@ -1146,10 +1147,12 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
                 'https://api.vimeo.com/albums/%s/videos' % album_id,
                 album_id, 'Downloading page %d' % api_page, query=query, headers={
                     'Authorization': 'jwt ' + authorization,
+                    'Accept': 'application/json',
                 })['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 400:
                 return
+            raise
         for video in videos:
             link = video.get('link')
             if not link:
@@ -1170,7 +1173,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
         jwt = viewer['jwt']
         album = self._download_json(
             'https://api.vimeo.com/albums/' + album_id,
-            album_id, headers={'Authorization': 'jwt ' + jwt},
+            album_id, headers={'Authorization': 'jwt ' + jwt, 'Accept': 'application/json'},
             query={'fields': 'description,name,privacy'})
         hashed_pass = None
         if try_get(album, lambda x: x['privacy']['view']) == 'password':
