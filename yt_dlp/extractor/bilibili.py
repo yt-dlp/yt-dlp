@@ -7,6 +7,7 @@ import math
 import re
 import time
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..dependencies import Cryptodome
@@ -1305,6 +1306,26 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
         },
         'playlist_mincount': 513,
     }, {
+        'url': 'https://www.bilibili.com/list/1958703906?sid=547718&oid=687146339&bvid=BV1DU4y1r7tz',
+        'info_dict': {
+            'id': 'BV1DU4y1r7tz',
+            'ext': 'mp4',
+            'title': '【直播回放】8.20晚9:30 3d发布喵 2022年8月20日21点场',
+            'upload_date': '20220820',
+            'description': '',
+            'timestamp': 1661016330,
+            'uploader_id': '1958703906',
+            'uploader': '靡烟miya',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'duration': 9552.903,
+            'tags': list,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            '_old_archive_ids': ['bilibili 687146339_part1'],
+        },
+        'params': {'noplaylist': True},
+    }, {
         'url': 'https://www.bilibili.com/medialist/play/1958703906?business=space_series&business_id=547718&desc=1',
         'info_dict': {
             'id': '5_547718',
@@ -1355,6 +1376,11 @@ class BilibiliPlaylistIE(BilibiliSpaceListBaseIE):
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
+
+        bvid = traverse_obj(parse_qs(url), ('bvid', 0))
+        if not self._yes_playlist(list_id, bvid):
+            return self.url_result(f'https://www.bilibili.com/video/{bvid}', BiliBiliIE)
+
         webpage = self._download_webpage(url, list_id)
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', list_id)
         if traverse_obj(initial_state, ('error', 'code', {int_or_none})) != 200:
@@ -1464,8 +1490,37 @@ class BiliBiliSearchIE(SearchInfoExtractor):
     IE_DESC = 'Bilibili video search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'bilisearch'
+    _TESTS = [{
+        'url': 'bilisearch3:靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': '靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+            'title': '靡烟 出道一年，我怎么还在等你单推的女人睡觉后开播啊',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'BV1n44y1Q7sc',
+                'ext': 'mp4',
+                'title': '“出道一年，我怎么还在等你单推的女人睡觉后开播啊？”【一分钟了解靡烟miya】',
+                'timestamp': 1669889987,
+                'upload_date': '20221201',
+                'description': 'md5:43343c0973defff527b5a4b403b4abf9',
+                'tags': list,
+                'uploader': '靡烟miya',
+                'duration': 123.156,
+                'uploader_id': '1958703906',
+                'comment_count': int,
+                'view_count': int,
+                'like_count': int,
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                '_old_archive_ids': ['bilibili 988222410_part1'],
+            },
+        }],
+    }]
 
     def _search_results(self, query):
+        if not self._get_cookies('https://api.bilibili.com').get('buvid3'):
+            self._set_cookie('.bilibili.com', 'buvid3', f'{uuid.uuid4()}infoc')
         for page_num in itertools.count(1):
             videos = self._download_json(
                 'https://api.bilibili.com/x/web-interface/search/type', query,
