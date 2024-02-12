@@ -22,7 +22,7 @@ from ..utils import (
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
-    _FORMATS = ['bMusic', 'mMusic', 'hMusic']
+    _FORMATS = ['sqMusic', 'hrMusic', 'lMusic', 'bMusic', 'mMusic', 'hMusic']
     _API_BASE = 'http://music.163.com/api/'
     _GEO_BYPASS = False
 
