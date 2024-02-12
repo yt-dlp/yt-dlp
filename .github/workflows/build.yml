@@ -204,9 +204,10 @@ jobs:
             apt -y install zlib1g-dev libffi-dev python3.8 python3.8-dev python3.8-distutils python3-pip \
               python3-secretstorage  # Cannot build cryptography wheel in virtual armv7 environment
             python3.8 -m pip install -U pip setuptools wheel
-            # XXX: Keep this in sync with pyproject.toml (it can't be accessed it this stage) and exclude secretstorage
+            # XXX: Keep this in sync with pyproject.toml (it can't be accessed at this stage) and exclude secretstorage
             python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi cffi \
               'requests>=2.31.0,<3' 'urllib3>=1.26.17,<3' 'websockets>=12.0'
+
           run: |
             cd repo
             python3.8 devscripts/install_deps.py -o --include build
