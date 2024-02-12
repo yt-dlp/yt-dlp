@@ -470,7 +470,6 @@ from .dlf import (
 )
 from .dfb import DFBIE
 from .dhm import DHMIE
-from .digg import DiggIE
 from .douyutv import (
     DouyuShowIE,
     DouyuTVIE,
