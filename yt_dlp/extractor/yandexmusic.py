@@ -441,10 +441,12 @@ class YandexMusicArtistTracksIE(YandexMusicArtistBaseIE):
         artist_id = mobj.group('id')
         data = self._call_artist(tld, url, artist_id)
         tracks = self._extract_tracks(data, artist_id, url, tld)
-        artist = data.get('artist')
-        artist_name = artist.get('name', compat_str)
+        thumbnail = None
+        artist_name = None
+        if artist := data.get('artist'):
+            artist_name = artist.get('name')
+            thumbnail = self._extract_thumbnail(artist)
         title = '%s - %s' % (artist_name or artist_id, 'Треки')
-        thumbnail = self._extract_thumbnail(artist)
         return self.playlist_result(
             self._build_playlist(tracks), artist_id, title,
             thumbnail=thumbnail, artist=artist_name)
@@ -494,9 +496,11 @@ class YandexMusicArtistAlbumsIE(YandexMusicArtistBaseIE):
             entries.append(self.url_result(
                 'http://music.yandex.ru/album/%s' % album_id,
                 ie=YandexMusicAlbumIE.ie_key(), video_id=album_id))
-        artist = data.get('artist')
-        artist_name = artist.get('name', compat_str)
+        thumbnail = None
+        artist_name = None
+        if artist := data.get('artist'):
+            artist_name = artist.get('name')
+            thumbnail = self._extract_thumbnail(artist)
         title = '%s - %s' % (artist_name or artist_id, 'Альбомы')
-        thumbnail = self._extract_thumbnail(artist)
         return self.playlist_result(entries, artist_id, title,
                                     thumbnail=thumbnail, artist=artist_name)
