@@ -278,9 +278,10 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
         'url': 'http://music.yandex.ru/album/540508',
         'info_dict': {
             'id': '540508',
-            'title': 'md5:7ed1c3567f28d14be9f61179116f5571',
+            'title': 'Gypsy Soul',
             'artist': 'Carlo Ambrosio',
             'thumbnail': 're:^https://.*$',
+            'year': 2009,
         },
         'playlist_count': 50,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
@@ -310,17 +311,11 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
 
         entries = self._build_playlist([track for volume in album['volumes'] for track in volume])
 
-        title = album['title']
-        if artists := self._extract_artists(album):
-            title = '%s - %s' % (artists, title)
-        year = album.get('year')
-        if year:
-            title += ' (%s)' % year
-        thumbnail = self._extract_thumbnail(album)
-
-        return self.playlist_result(entries, compat_str(album['id']), title,
-                                    thumbnail=thumbnail,
-                                    artist=self._extract_artists(album))
+        return self.playlist_result(entries, compat_str(album['id']),
+                                    album.get('title'),
+                                    thumbnail=self._extract_thumbnail(album),
+                                    artist=self._extract_artists(album),
+                                    year=album.get('year'))
 
 
 class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
