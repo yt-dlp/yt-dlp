@@ -1190,6 +1190,10 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             if response['code'] == -401:
                 raise ExtractorError(
                     'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
+            if response['code'] == -352 and not self._get_cookies('https://api.bilibili.com').get('SESSDATA'):
+                self.raise_login_required('Request is rejected, you need to login to access playlist')
+            if response['code'] != 0:
+                raise ExtractorError(f'Request failed ({response["code"]}): {response.get("message", "")}')
             return response['data']
 
         def get_metadata(page_data):
