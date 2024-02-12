@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class BleacherReportIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?bleacherreport\.com/articles/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://bleacherreport.com/articles/2496438-fsu-stat-projections-is-jalen-ramsey-best-defensive-player-in-college-football',
@@ -82,6 +83,7 @@ class BleacherReportIE(InfoExtractor):
 
 
 class BleacherReportCMSIE(AMPIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?bleacherreport\.com/video_embed\?id=(?P<id>[0-9a-f-]{36}|\d{5})'
     _TESTS = [{
         'url': 'http://bleacherreport.com/video_embed?id=8fd44c2f-3dc5-4821-9118-2c825a98c0e1&library=video-cms',
