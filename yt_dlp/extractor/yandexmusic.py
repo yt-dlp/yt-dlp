@@ -281,7 +281,8 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
             'title': 'Gypsy Soul',
             'artist': 'Carlo Ambrosio',
             'thumbnail': 're:^https://.*$',
-            'year': 2009,
+            'timestamp': 1241208000,
+            'upload_date': str
         },
         'playlist_count': 50,
         # 'skip': 'Travis CI servers blocked by YandexMusic',
@@ -315,7 +316,7 @@ class YandexMusicAlbumIE(YandexMusicPlaylistBaseIE):
                                     album.get('title'),
                                     thumbnail=self._extract_thumbnail(album),
                                     artist=self._extract_artists(album),
-                                    year=album.get('year'))
+                                    timestamp=self._extract_timestamp(album))
 
 
 class YandexMusicPlaylistIE(YandexMusicPlaylistBaseIE):
