@@ -1,15 +1,15 @@
 import hashlib
 import itertools
+from datetime import datetime, timezone
 
 from .common import InfoExtractor
 from ..compat import compat_str
-from datetime import datetime, timezone
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
+    traverse_obj,
     try_get,
-    traverse_obj
 )
 
 
