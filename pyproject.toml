@@ -81,6 +81,42 @@ yt-dlp = "yt_dlp:main"
 [project.entry-points.pyinstaller40]
 hook-dirs = "yt_dlp.__pyinstaller:get_hook_dirs"
 
+[tool.hatch.envs.default]
+dependencies = [
+    "yt-dlp[dev]",
+]
+
+[tool.hatch.envs.dev]
+detached = true
+dependencies = [
+    "flake8",
+    "isort",
+    "autopep8",
+]
+
+[tool.hatch.envs.dev.scripts]
+lint = "flake8 && isort ."
+fmt = "autopep8 --max-line-length 120 --jobs 0 --in-place --recursive ."
+
+[tool.hatch.envs.tests]
+dependencies = [
+    "pytest",
+]
+
+[tool.hatch.envs.tests.scripts]
+run = 'python -m devscripts.run_tests {args}'
+core = 'pytest -We --tb=short --ignore=test/test_download.py {args}'
+download = 'pytest -We --tb=short test/test_download.py'
+
+[[tool.hatch.envs.tests.overrides.env.TEST_ALL.matrix.value]]
+python = [
+    "3.8",
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+]
+
 [tool.hatch.build.targets.sdist]
 include = [
     "/yt_dlp",
@@ -118,3 +154,19 @@ artifacts = ["/yt_dlp/extractor/lazy_extractors.py"]
 [tool.hatch.version]
 path = "yt_dlp/version.py"
 pattern = "_pkg_version = '(?P<version>[^']+)'"
+
+[tool.pytest.ini_options]
+addopts = "-ra -v --strict-markers"
+markers = [
+    "download",
+]
+
+[tool.isort]
+py_version = "38"
+multi_line_output = "VERTICAL_HANGING_INDENT"
+line_length = 120
+reverse_relative = true
+ensure_newline_before_comments = true
+include_trailing_comma = true
+split_on_trailing_comma = true
+known_first_party = ["test"]
