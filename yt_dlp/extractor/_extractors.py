@@ -695,7 +695,6 @@ from .gettr import (
     GettrStreamingIE,
 )
 from .giantbomb import GiantBombIE
-from .giga import GigaIE
 from .glide import GlideIE
 from .globalplayer import (
     GlobalPlayerLiveIE,
