@@ -907,7 +907,6 @@ from .kth import KTHIE
 from .krasview import KrasViewIE
 from .ku6 import Ku6IE
 from .kukululive import KukuluLiveIE
-from .kusi import KUSIIE
 from .kuwo import (
     KuwoIE,
     KuwoAlbumIE,
