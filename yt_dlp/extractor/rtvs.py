@@ -1,7 +1,6 @@
 import re
 
 from .common import InfoExtractor
-
 from ..utils import (
     parse_duration,
     traverse_obj,

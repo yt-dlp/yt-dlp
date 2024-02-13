@@ -3,9 +3,9 @@ import json
 import re
 import xml.etree.ElementTree
 
+from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .theplatform import ThePlatformIE, default_ns
-from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
 from ..networking import HEADRequest
 from ..utils import (

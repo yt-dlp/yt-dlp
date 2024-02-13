@@ -2,11 +2,11 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    find_xpath_attr,
     int_or_none,
     parse_iso8601,
-    xpath_with_ns,
     xpath_text,
-    find_xpath_attr,
+    xpath_with_ns,
 )
 
 

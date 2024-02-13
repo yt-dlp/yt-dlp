@@ -4,8 +4,8 @@ from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_iso8601,
     qualities,

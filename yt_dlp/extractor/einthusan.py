@@ -7,8 +7,8 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
-    extract_attributes,
     ExtractorError,
+    extract_attributes,
     get_elements_by_class,
     urlencode_postdata,
 )

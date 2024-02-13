@@ -1,6 +1,6 @@
 import re
-
 from hashlib import sha1
+
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (

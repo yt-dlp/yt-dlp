@@ -1,6 +1,6 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, str_or_none, traverse_obj, unified_strdate
 from ..compat import compat_str
+from ..utils import ExtractorError, str_or_none, traverse_obj, unified_strdate
 
 
 class IchinanaLiveIE(InfoExtractor):

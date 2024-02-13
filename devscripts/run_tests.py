@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 fix_test_name = functools.partial(re.compile(r'IE(_all|_\d+)?$').sub, r'\1')
 
 

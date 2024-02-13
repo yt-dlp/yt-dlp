@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    parse_iso8601
-)
+from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class PornFlipIE(InfoExtractor):

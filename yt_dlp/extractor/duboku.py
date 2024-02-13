@@ -3,9 +3,9 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
+    ExtractorError,
     clean_html,
     extract_attributes,
-    ExtractorError,
     get_elements_by_class,
     int_or_none,
     js_to_json,

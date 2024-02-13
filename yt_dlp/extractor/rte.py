@@ -3,13 +3,13 @@ import re
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
     float_or_none,
     parse_iso8601,
     str_or_none,
     try_get,
     unescapeHTML,
     url_or_none,
-    ExtractorError,
 )
 
 

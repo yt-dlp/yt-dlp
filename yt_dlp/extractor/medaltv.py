@@ -4,8 +4,8 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    format_field,
     float_or_none,
+    format_field,
     int_or_none,
     str_or_none,
     traverse_obj,

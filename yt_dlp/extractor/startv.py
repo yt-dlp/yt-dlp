@@ -3,10 +3,10 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
-    clean_html,
     ExtractorError,
-    traverse_obj,
+    clean_html,
     int_or_none,
+    traverse_obj,
 )
 
 

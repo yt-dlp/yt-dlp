@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    decode_packed_codes,
     ExtractorError,
+    decode_packed_codes,
     urlencode_postdata,
 )
 

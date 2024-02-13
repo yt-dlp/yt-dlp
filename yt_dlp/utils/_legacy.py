@@ -21,7 +21,10 @@ from ..networking._urllib import HTTPHandler
 from .networking import random_user_agent, std_headers  # noqa: F401
 from ..cookies import YoutubeDLCookieJar  # noqa: F401
 from ..networking._urllib import PUTRequest  # noqa: F401
-from ..networking._urllib import SUPPORTED_ENCODINGS, HEADRequest  # noqa: F401
+from ..networking._urllib import (  # noqa: F401
+    SUPPORTED_ENCODINGS,
+    HEADRequest,
+)
 from ..networking._urllib import ProxyHandler as PerRequestProxyHandler  # noqa: F401
 from ..networking._urllib import RedirectHandler as YoutubeDLRedirectHandler  # noqa: F401
 from ..networking._urllib import (  # noqa: F401

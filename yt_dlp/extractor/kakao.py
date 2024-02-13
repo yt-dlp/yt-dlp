@@ -3,8 +3,8 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
-    strip_or_none,
     str_or_none,
+    strip_or_none,
     traverse_obj,
     unified_timestamp,
 )

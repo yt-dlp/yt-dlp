@@ -2,9 +2,9 @@ import functools
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     format_field,
     int_or_none,
-    OnDemandPagedList,
     smuggle_url,
 )
 

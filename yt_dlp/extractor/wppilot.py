@@ -1,12 +1,12 @@
-from .common import InfoExtractor
-from ..utils import (
-    try_get,
-    ExtractorError,
-)
-
 import json
 import random
 import re
+
+from .common import InfoExtractor
+from ..utils import (
+    ExtractorError,
+    try_get,
+)
 
 
 class WPPilotBaseIE(InfoExtractor):

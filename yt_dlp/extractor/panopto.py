@@ -1,21 +1,17 @@
 import calendar
-import json
 import functools
+import json
 from datetime import datetime, timezone
 from random import random
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urlparse
-)
-
+from ..compat import compat_urllib_parse_urlparse, compat_urlparse
 from ..utils import (
-    bug_reports_message,
     ExtractorError,
+    OnDemandPagedList,
+    bug_reports_message,
     get_first,
     int_or_none,
-    OnDemandPagedList,
     parse_qs,
     srt_subtitles_timecode,
     traverse_obj,

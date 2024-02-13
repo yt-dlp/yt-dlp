@@ -1,14 +1,15 @@
 import itertools
+
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
-    urljoin,
-    traverse_obj,
+    clean_html,
     int_or_none,
     mimetype2ext,
-    clean_html,
-    url_or_none,
-    unified_timestamp,
     str_or_none,
+    traverse_obj,
+    unified_timestamp,
+    url_or_none,
+    urljoin,
 )
 
 

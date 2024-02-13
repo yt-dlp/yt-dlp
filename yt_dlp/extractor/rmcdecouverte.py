@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from .brightcove import BrightcoveLegacyIE
+from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
     compat_urlparse,

@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    extract_attributes,
     ExtractorError,
+    extract_attributes,
     get_element_by_class,
 )
 

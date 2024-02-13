@@ -4,6 +4,7 @@ import re
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+
 from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,

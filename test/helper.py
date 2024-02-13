@@ -10,7 +10,7 @@ import types
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_os_name
-from yt_dlp.utils import preferredencoding, try_call, write_string, find_available_port
+from yt_dlp.utils import find_available_port, preferredencoding, try_call, write_string
 
 if 'pytest' in sys.modules:
     import pytest

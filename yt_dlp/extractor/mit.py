@@ -1,11 +1,11 @@
-import re
 import json
+import re
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     get_element_by_id,
 )
 

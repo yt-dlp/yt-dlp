@@ -4,8 +4,8 @@ import time
 
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     strip_jsonp,
     unescapeHTML,
 )

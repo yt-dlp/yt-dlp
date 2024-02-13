@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import struct
 
 from yt_dlp import compat
+
 from yt_dlp.compat import urllib  # isort: split
 from yt_dlp.compat import (
     compat_etree_fromstring,

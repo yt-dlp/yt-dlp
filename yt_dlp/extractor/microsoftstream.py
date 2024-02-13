@@ -3,8 +3,8 @@ from base64 import b64decode
 from .common import InfoExtractor
 from ..utils import (
     merge_dicts,
-    parse_iso8601,
     parse_duration,
+    parse_iso8601,
     parse_resolution,
     try_get,
     url_basename,

@@ -3,9 +3,9 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     int_or_none,
     parse_duration,
 )

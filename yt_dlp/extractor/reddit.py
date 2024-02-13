@@ -8,8 +8,8 @@ from ..utils import (
     traverse_obj,
     try_get,
     unescapeHTML,
-    urlencode_postdata,
     url_or_none,
+    urlencode_postdata,
 )
 
 

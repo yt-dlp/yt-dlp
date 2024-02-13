@@ -1,7 +1,7 @@
 import math
 
 from .common import InfoExtractor
-from ..utils import traverse_obj, try_call, InAdvancePagedList
+from ..utils import InAdvancePagedList, traverse_obj, try_call
 
 
 class XimalayaBaseIE(InfoExtractor):

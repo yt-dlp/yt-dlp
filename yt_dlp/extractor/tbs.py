@@ -2,8 +2,8 @@ import re
 
 from .turner import TurnerBaseIE
 from ..compat import (
-    compat_urllib_parse_urlparse,
     compat_parse_qs,
+    compat_urllib_parse_urlparse,
 )
 from ..utils import (
     float_or_none,

@@ -1,5 +1,6 @@
 import re
 
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -9,9 +10,8 @@ from ..utils import (
     smuggle_url,
     traverse_obj,
     try_call,
-    unsmuggle_url
+    unsmuggle_url,
 )
-from .common import InfoExtractor
 
 
 def _parse_japanese_date(text):

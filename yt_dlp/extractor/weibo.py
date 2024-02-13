@@ -1,6 +1,6 @@
+import itertools
 import json
 import random
-import itertools
 import urllib.parse
 
 from .common import InfoExtractor

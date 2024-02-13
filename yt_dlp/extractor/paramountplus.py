@@ -1,7 +1,7 @@
 import itertools
 
-from .common import InfoExtractor
 from .cbs import CBSBaseIE
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,

@@ -1,10 +1,12 @@
 import re
 
 from .common import InfoExtractor
+from .senategov import SenateISVPIE
+from .ustream import UstreamIE
 from ..compat import compat_HTMLParseError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     extract_attributes,
     find_xpath_attr,
     get_element_by_attribute,
@@ -19,8 +21,6 @@ from ..utils import (
     str_to_int,
     unescapeHTML,
 )
-from .senategov import SenateISVPIE
-from .ustream import UstreamIE
 
 
 class CSpanIE(InfoExtractor):

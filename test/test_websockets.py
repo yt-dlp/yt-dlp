@@ -18,6 +18,7 @@ import random
 import ssl
 import threading
 
+from test.conftest import validate_and_send
 from yt_dlp import socks
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import websockets
@@ -31,8 +32,6 @@ from yt_dlp.networking.exceptions import (
     TransportError,
 )
 from yt_dlp.utils.networking import HTTPHeaderDict
-
-from test.conftest import validate_and_send
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

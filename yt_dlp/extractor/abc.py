@@ -6,10 +6,10 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    dict_get,
     ExtractorError,
-    js_to_json,
+    dict_get,
     int_or_none,
+    js_to_json,
     parse_iso8601,
     str_or_none,
     traverse_obj,

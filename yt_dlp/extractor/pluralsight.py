@@ -10,8 +10,8 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
-    dict_get,
     ExtractorError,
+    dict_get,
     float_or_none,
     int_or_none,
     parse_duration,

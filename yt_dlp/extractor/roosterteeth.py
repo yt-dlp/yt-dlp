@@ -2,16 +2,16 @@ from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    LazyList,
     int_or_none,
     join_nonempty,
-    LazyList,
     parse_qs,
     str_or_none,
     traverse_obj,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     urljoin,
-    update_url_query,
 )
 
 

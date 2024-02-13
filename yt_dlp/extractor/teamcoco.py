@@ -13,8 +13,8 @@ from ..utils import (
     parse_qs,
     traverse_obj,
     unified_timestamp,
-    urljoin,
     url_or_none,
+    urljoin,
 )
 
 

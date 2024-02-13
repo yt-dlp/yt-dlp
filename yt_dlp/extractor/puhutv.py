@@ -3,8 +3,8 @@ from ..compat import compat_str
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
     parse_resolution,
     str_or_none,
     try_get,

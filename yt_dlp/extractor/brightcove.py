@@ -12,10 +12,11 @@ from ..compat import (
 )
 from ..networking.exceptions import HTTPError
 from ..utils import (
+    ExtractorError,
+    UnsupportedError,
     clean_html,
     dict_get,
     extract_attributes,
-    ExtractorError,
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
@@ -29,7 +30,6 @@ from ..utils import (
     try_get,
     unescapeHTML,
     unsmuggle_url,
-    UnsupportedError,
     update_url_query,
     url_or_none,
 )

@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     KNOWN_EXTENSIONS,
+    determine_ext,
     str_to_int,
 )
 

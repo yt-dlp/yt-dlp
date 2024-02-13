@@ -26,6 +26,7 @@ import zlib
 from email.message import Message
 from http.cookiejar import CookieJar
 
+from test.conftest import validate_and_send
 from test.helper import FakeYDL, http_server_port, verify_address_availability
 from yt_dlp.cookies import YoutubeDLCookieJar
 from yt_dlp.dependencies import brotli, requests, urllib3
@@ -51,8 +52,6 @@ from yt_dlp.networking.exceptions import (
 )
 from yt_dlp.utils._utils import _YDLLogger as FakeLogger
 from yt_dlp.utils.networking import HTTPHeaderDict
-
-from test.conftest import validate_and_send
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

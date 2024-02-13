@@ -4,10 +4,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     dict_get,
-    ExtractorError,
     int_or_none,
     js_to_json,
     str_or_none,

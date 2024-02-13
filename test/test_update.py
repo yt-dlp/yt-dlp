@@ -11,7 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from test.helper import FakeYDL, report_warning
 from yt_dlp.update import UpdateInfo, Updater
 
-
 # XXX: Keep in sync with yt_dlp.update.UPDATE_SOURCES
 TEST_UPDATE_SOURCES = {
     'stable': 'yt-dlp/yt-dlp',

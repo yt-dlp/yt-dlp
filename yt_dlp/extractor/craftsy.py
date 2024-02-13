@@ -1,6 +1,5 @@
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-
 from ..utils import (
     dict_get,
     get_element_by_id,

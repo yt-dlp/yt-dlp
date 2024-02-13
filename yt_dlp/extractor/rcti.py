@@ -4,13 +4,7 @@ import time
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
-from ..utils import (
-    dict_get,
-    ExtractorError,
-    strip_or_none,
-    traverse_obj,
-    try_get
-)
+from ..utils import ExtractorError, dict_get, strip_or_none, traverse_obj, try_get
 
 
 class RCTIPlusBaseIE(InfoExtractor):

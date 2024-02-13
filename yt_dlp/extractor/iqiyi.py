@@ -4,20 +4,16 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_unquote
-)
 from .openload import PhantomJSwrapper
+from ..compat import compat_str, compat_urllib_parse_unquote, compat_urllib_parse_urlencode
 from ..utils import (
+    ExtractorError,
     clean_html,
     decode_packed_codes,
-    ExtractorError,
     float_or_none,
     format_field,
-    get_element_by_id,
     get_element_by_attribute,
+    get_element_by_id,
     int_or_none,
     js_to_json,
     ohdave_rsa_encrypt,

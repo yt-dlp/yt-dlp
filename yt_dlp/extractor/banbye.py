@@ -2,12 +2,12 @@ import math
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_urllib_parse_urlparse,
     compat_parse_qs,
+    compat_urllib_parse_urlparse,
 )
 from ..utils import (
-    format_field,
     InAdvancePagedList,
+    format_field,
     traverse_obj,
     unified_timestamp,
 )

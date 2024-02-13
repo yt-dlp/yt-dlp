@@ -1,11 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_qs,
-    xpath_text,
     qualities,
+    xpath_text,
 )
 
 

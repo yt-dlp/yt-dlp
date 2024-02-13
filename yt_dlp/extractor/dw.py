@@ -1,10 +1,10 @@
 from .common import InfoExtractor
+from ..compat import compat_urlparse
 from ..utils import (
     int_or_none,
     unified_strdate,
     url_or_none,
 )
-from ..compat import compat_urlparse
 
 
 class DWIE(InfoExtractor):

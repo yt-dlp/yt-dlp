@@ -1,17 +1,17 @@
-from itertools import zip_longest
 import re
+from itertools import zip_longest
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     get_element_by_class,
     int_or_none,
+    mimetype2ext,
     srt_subtitles_timecode,
     strip_or_none,
-    mimetype2ext,
     try_get,
     urlencode_postdata,
     urljoin,

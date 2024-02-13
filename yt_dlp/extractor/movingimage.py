@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    unescapeHTML,
     parse_duration,
+    unescapeHTML,
 )
 
 

@@ -1,6 +1,6 @@
 import base64
-import re
 import json
+import re
 
 from .common import InfoExtractor
 from ..utils import (

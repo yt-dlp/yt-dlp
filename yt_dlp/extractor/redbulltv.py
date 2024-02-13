@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    float_or_none,
     ExtractorError,
+    float_or_none,
 )
 
 

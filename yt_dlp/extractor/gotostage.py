@@ -1,11 +1,8 @@
+import json
+
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    try_get,
-    url_or_none
-)
-
-import json
+from ..utils import try_get, url_or_none
 
 
 class GoToStageIE(InfoExtractor):

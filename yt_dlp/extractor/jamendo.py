@@ -1,8 +1,8 @@
 import hashlib
 import random
 
-from ..compat import compat_str
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
     clean_html,
     int_or_none,

@@ -3,8 +3,8 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    try_get,
     parse_codecs,
+    try_get,
 )
 
 

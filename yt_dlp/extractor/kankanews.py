@@ -1,7 +1,7 @@
-import time
+import hashlib
 import random
 import string
-import hashlib
+import time
 import urllib.parse
 
 from .common import InfoExtractor

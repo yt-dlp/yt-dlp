@@ -4,11 +4,11 @@ import uuid
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     determine_ext,
     dict_get,
-    ExtractorError,
     float_or_none,
-    OnDemandPagedList,
     traverse_obj,
 )
 

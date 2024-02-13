@@ -4,11 +4,11 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     dict_get,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     int_or_none,
     parse_duration,
