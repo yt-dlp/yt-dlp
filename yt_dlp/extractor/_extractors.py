@@ -1014,7 +1014,6 @@ from .mailru import (
     MailRuMusicSearchIE,
 )
 from .mainstreaming import MainStreamingIE
-from .malltv import MallTVIE
 from .mangomolo import (
     MangomoloVideoIE,
     MangomoloLiveIE,
